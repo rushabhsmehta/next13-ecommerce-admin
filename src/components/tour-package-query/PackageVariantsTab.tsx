@@ -295,6 +295,22 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }), []);
+
+  // Helper: Fetch hotel pricing for a hotel, period, and meal plan
+  const fetchHotelPricing = async (hotelId: string, startDate: string, endDate: string, mealPlanId?: string) => {
+    try {
+      if (!hotelId) return [];
+      const params = new URLSearchParams();
+      params.set('startDate', startDate);
+      params.set('endDate', endDate);
+      if (mealPlanId) params.set('mealPlanId', mealPlanId);
+      const res = await axios.get(`/api/hotels/${hotelId}/pricing?${params.toString()}`);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (err) {
+      console.error('[HOTEL_PRICING_FETCH]', err);
+      return [];
+    }
+  };
   
   // Initialize variants from form or use default
   const [variants, setVariants] = useState<PackageVariant[]>(() => {
@@ -370,6 +386,33 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
       seasonalPricings: [],
     }];
   });
+  
+  // State: Hotel pricing cache per variant/pricing/hotel
+  const [hotelPricingCache, setHotelPricingCache] = useState<Record<string, any>>({});
+
+  // Effect: Fetch hotel pricing for all variants/pricings/hotels and cache results
+  useEffect(() => {
+    const fetchAllHotelPricing = async () => {
+      const cache: Record<string, any> = {};
+      const promises: Array<Promise<void>> = [];
+      variants.forEach((variant, variantIdx) => {
+        (variant.seasonalPricings || []).forEach((pricing, pricingIdx) => {
+          itineraries.forEach((itinerary) => {
+            const hotelId = variant.hotelMappings[itinerary.id] || variant.hotelMappings[String(itinerary.dayNumber)];
+            if (!hotelId) return;
+            const key = `${variantIdx}_${pricingIdx}_${hotelId}`;
+            const p = fetchHotelPricing(hotelId, pricing.startDate, pricing.endDate, pricing.mealPlanId ?? undefined)
+              .then((result) => { cache[key] = result; })
+              .catch((err) => { console.error('[HOTEL_PRICING_FETCH_ERROR]', err); cache[key] = []; });
+            promises.push(p);
+          });
+        });
+      });
+      await Promise.all(promises);
+      setHotelPricingCache(cache);
+    };
+    fetchAllHotelPricing();
+  }, [variants, itineraries]);
   
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
   const [openHotelPopover, setOpenHotelPopover] = useState<string | null>(null);
@@ -1507,6 +1550,52 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                 <IndianRupee className="h-3 w-3 text-emerald-600" />
                                 {totalPriceLabel}
                               </span>
+                            </div>
+
+                            {/* Hotel Pricing Breakdown */}
+                            <div className="mt-4">
+                              <div className="text-xs font-semibold text-slate-700 mb-1">Hotel Pricing Breakdown</div>
+                              {itineraries.map((itinerary) => {
+                                const hotelId = variant.hotelMappings[itinerary.id] || variant.hotelMappings[String(itinerary.dayNumber)];
+                                if (!hotelId) return null;
+                                const key = `${variantIndex}_${pricingIndex}_${hotelId}`;
+                                const hotel = hotels.find(h => h.id === hotelId);
+                                const pricingList = hotelPricingCache[key] || [];
+                                return (
+                                  <div key={hotelId} className="mb-2 border rounded p-2 bg-slate-50">
+                                    <div className="font-medium text-xs mb-1 flex items-center gap-2">
+                                      <span>{hotel?.name || 'Hotel'}</span>
+                                      {hotel?.images?.[0]?.url && (
+                                        <Image src={hotel.images[0].url} alt={hotel.name} width={32} height={24} className="rounded object-cover" />
+                                      )}
+                                    </div>
+                                    {pricingList.length === 0 ? (
+                                      <span className="text-[11px] text-muted-foreground">No pricing found for this period/meal plan.</span>
+                                    ) : (
+                                      <table className="text-[11px] w-full">
+                                        <thead>
+                                          <tr>
+                                            <th className="text-left">Room Type</th>
+                                            <th className="text-left">Occupancy</th>
+                                            <th className="text-left">Meal Plan</th>
+                                            <th className="text-right">Price</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {pricingList.map((hp: any) => (
+                                            <tr key={hp.id}>
+                                              <td>{hp.roomType?.name || '-'}</td>
+                                              <td>{hp.occupancyType?.name || '-'}</td>
+                                              <td>{hp.mealPlan?.name || '-'}</td>
+                                              <td className="text-right">{currencyFormatter.format(hp.price)}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );

@@ -531,44 +531,52 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                         placeholder="Activity Title"
                         value={activity.activityTitle}
                         onChange={(e) => {
-                          const updatedActivities = [...value]
-                          updatedActivities[index].activityTitle = e.target.value
-                          onChange(updatedActivities)
-                        }} />
+                          const updatedActivities = [...value];
+                          updatedActivities[index] = {
+                            ...updatedActivities[index],
+                            activityTitle: e.target.value
+                          };
+                          onChange(updatedActivities);
+                        }}
+                      />
                       <Textarea
                         rows={3}
                         placeholder="Activity Description"
                         value={activity.activityDescription}
                         onChange={(e) => {
-                          const updatedActivities = [...value]
-                          updatedActivities[index].activityDescription = e.target.value
-                          onChange(updatedActivities)
-                        }} />
+                          const updatedActivities = [...value];
+                          updatedActivities[index] = {
+                            ...updatedActivities[index],
+                            activityDescription: e.target.value
+                          };
+                          onChange(updatedActivities);
+                        }}
+                      />
                       <ImageUpload
                         value={activity.activityImages.map((image) => image.url)}
                         onChange={(url) => {
-                          const updatedActivities = [...value]
-                          updatedActivities[index].activityImages.push({ url })
-                          onChange(updatedActivities)
+                          const updatedActivities = [...value];
+                          updatedActivities[index].activityImages.push({ url });
+                          onChange(updatedActivities);
                         }}
                         onRemove={(url) => {
-                          const updatedActivities = [...value]
-                          updatedActivities[index].activityImages = updatedActivities[index].activityImages.filter((current) => current.url !== url)
-                          onChange(updatedActivities)
-                        }} />
+                          const updatedActivities = [...value];
+                          updatedActivities[index].activityImages = updatedActivities[index].activityImages.filter((current) => current.url !== url);
+                          onChange(updatedActivities);
+                        }}
+                      />
                       <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
                           const updatedActivities = [...value];
                           updatedActivities.splice(index, 1);
                           onChange(updatedActivities);
                         }}
                       >
-                          Remove Activity
+                        Remove Activity
                       </Button>
-
                     </FormItem>
                   </>)
                 )}

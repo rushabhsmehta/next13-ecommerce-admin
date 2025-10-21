@@ -432,7 +432,10 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                           value={activity.activityTitle}
                           onChange={(e) => {
                             const newActivities = [...value];
-                            newActivities[index] = { ...activity, activityTitle: e.target.value };
+                            newActivities[index] = {
+                              ...newActivities[index],
+                              activityTitle: e.target.value
+                            };
                             onChange(newActivities);
                           }}
                         />
@@ -446,7 +449,10 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                           value={activity.activityDescription}
                           onChange={(e) => {
                             const newActivities = [...value];
-                            newActivities[index] = { ...activity, activityDescription: e.target.value };
+                            newActivities[index] = {
+                              ...newActivities[index],
+                              activityDescription: e.target.value
+                            };
                             onChange(newActivities);
                           }}
                         />

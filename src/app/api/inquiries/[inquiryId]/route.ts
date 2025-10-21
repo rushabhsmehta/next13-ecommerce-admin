@@ -3,8 +3,46 @@ import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { createAuditLog } from "@/lib/utils/audit-logger";
+import { normalizeWhatsAppPhone } from "@/lib/whatsapp-customers";
 
 const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"];
+
+// Helper function to ensure customer exists in WhatsApp customer list
+async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string) {
+  try {
+    const normalizedPhone = normalizeWhatsAppPhone(phoneNumber);
+    
+    // Check if customer already exists
+    const existingCustomer = await prismadb.whatsAppCustomer.findUnique({
+      where: { phoneNumber: normalizedPhone }
+    });
+    
+    if (existingCustomer) {
+      console.log(`[WHATSAPP_CUSTOMER] Customer already exists: ${normalizedPhone}`);
+      return existingCustomer;
+    }
+    
+    // Create new customer with "Customer" tag
+    const newCustomer = await prismadb.whatsAppCustomer.create({
+      data: {
+        firstName: customerName.split(' ')[0] || customerName,
+        lastName: customerName.split(' ').slice(1).join(' ') || null,
+        phoneNumber: normalizedPhone,
+        tags: ["Customer"] as any,
+        isOptedIn: true,
+        importedFrom: 'inquiry',
+        importedAt: new Date()
+      }
+    });
+    
+    console.log(`[WHATSAPP_CUSTOMER] Created new customer: ${normalizedPhone}`);
+    return newCustomer;
+  } catch (error) {
+    // Log error but don't fail the inquiry creation/update
+    console.error('[WHATSAPP_CUSTOMER] Error ensuring customer:', error);
+    return null;
+  }
+}
 
 export async function GET(
   req: Request,
@@ -355,6 +393,9 @@ export async function PATCH(
         }
       }
     });
+
+    // Add customer to WhatsApp customer list
+    await ensureWhatsAppCustomer(customerName, customerMobileNumber);
 
     // Log the audit entry
     await createAuditLog({

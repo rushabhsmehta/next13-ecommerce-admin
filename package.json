@@ -11,8 +11,8 @@
         "update-accommodation-policies": "node update-accommodation-policies.js",
         "seed-whatsapp-templates": "node seed-whatsapp-templates.js",
         "sync-whatsapp-templates": "node scripts/whatsapp/sync-templates.js",
-    "create-and-publish-catalog": "node scripts/whatsapp/run-create-and-publish-catalog.js",
-    "create-multiple-catalog": "node scripts/whatsapp/create-multiple-catalog.js",
+        "create-and-publish-catalog": "node scripts/whatsapp/run-create-and-publish-catalog.js",
+        "create-multiple-catalog": "node scripts/whatsapp/create-multiple-catalog.js",
         "cleanup-legacy-whatsapp": "node scripts/cleanup-legacy-whatsapp.js"
     },
     "dependencies": {
@@ -74,6 +74,7 @@
         "jose": "^6.0.10",
         "jspdf": "^3.0.1",
         "jspdf-autotable": "^5.0.2",
+        "libphonenumber-js": "^1.12.24",
         "linkedin-api-client": "^0.3.0",
         "lucide-react": "^0.474.0",
         "next": "13.5.7",

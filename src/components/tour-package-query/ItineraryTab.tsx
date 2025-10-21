@@ -608,8 +608,10 @@ function ItineraryTab({
                                                 value={activity.activityTitle || ''}
                                                 onChange={(e) => {
                                                   const newItineraries = [...value];
-                                                  newItineraries[index].activities[activityIndex].activityTitle = e.target.value;
-                                                  newItineraries[index] = normalizeItinerary(newItineraries[index], index);
+                                                  newItineraries[index].activities[activityIndex] = {
+                                                    ...newItineraries[index].activities[activityIndex],
+                                                    activityTitle: e.target.value
+                                                  };
                                                   onChange(newItineraries);
                                                 }}
                                                 onKeyDown={(e) => {
@@ -631,8 +633,10 @@ function ItineraryTab({
                                                 value={activity.activityDescription || ''}
                                                 onChange={(e) => {
                                                   const newItineraries = [...value];
-                                                  newItineraries[index].activities[activityIndex].activityDescription = e.target.value;
-                                                  newItineraries[index] = normalizeItinerary(newItineraries[index], index);
+                                                  newItineraries[index].activities[activityIndex] = {
+                                                    ...newItineraries[index].activities[activityIndex],
+                                                    activityDescription: e.target.value
+                                                  };
                                                   onChange(newItineraries);
                                                 }}
                                                 onKeyDown={(e) => {

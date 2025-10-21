@@ -15,6 +15,7 @@ import {
   Tag,
   CheckCircle2,
   XCircle,
+  Edit,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { DataTable } from '@/components/ui/data-table';
 import {
   AlertDialog,
@@ -34,6 +36,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import clsx from 'clsx';
@@ -135,6 +146,8 @@ export default function WhatsAppCustomersPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [formValues, setFormValues] = useState<PendingCustomer>(DEFAULT_FORM);
+  const [editingCustomer, setEditingCustomer] = useState<WhatsAppCustomerRow | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [csvSummary, setCsvSummary] = useState<CsvImportSummary | null>(null);
   const [csvErrors, setCsvErrors] = useState<CsvErrorEntry[]>([]);
   const [optInFilter, setOptInFilter] = useState<'all' | 'opted-in' | 'opted-out'>('all');
@@ -269,44 +282,58 @@ export default function WhatsAppCustomersPage() {
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600">
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Delete customer</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Remove this WhatsApp customer?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This only deletes the record from the WhatsApp customer directory. Existing campaigns will keep past recipients.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(`/api/whatsapp/customers/${row.original.id}`, { method: 'DELETE' });
-                      if (!response.ok) {
-                        const error = await response.json().catch(() => ({ error: 'Failed to delete customer' }));
-                        throw new Error(error.error || 'Failed to delete customer');
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-blue-500 hover:text-blue-600"
+              onClick={() => {
+                setEditingCustomer(row.original);
+                setEditDialogOpen(true);
+              }}
+            >
+              <Edit className="h-4 w-4" />
+              <span className="sr-only">Edit customer</span>
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600">
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Delete customer</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove this WhatsApp customer?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This only deletes the record from the WhatsApp customer directory. Existing campaigns will keep past recipients.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-red-600 hover:bg-red-700"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/whatsapp/customers/${row.original.id}`, { method: 'DELETE' });
+                        if (!response.ok) {
+                          const error = await response.json().catch(() => ({ error: 'Failed to delete customer' }));
+                          throw new Error(error.error || 'Failed to delete customer');
+                        }
+                        toast.success('Customer removed');
+                        fetchCustomers();
+                      } catch (error: any) {
+                        console.error('Failed to delete customer', error);
+                        toast.error(error?.message || 'Could not delete customer');
                       }
-                      toast.success('Customer removed');
-                      fetchCustomers();
-                    } catch (error: any) {
-                      console.error('Failed to delete customer', error);
-                      toast.error(error?.message || 'Could not delete customer');
-                    }
-                  }}
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         ),
       },
     ],
@@ -345,6 +372,49 @@ export default function WhatsAppCustomersPage() {
     } catch (error: any) {
       console.error('Error creating WhatsApp customer', error);
       toast.error(error?.message || 'Could not create customer');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingCustomer) return;
+    
+    try {
+      setSubmitting(true);
+      const payload = {
+        firstName: editingCustomer.firstName.trim(),
+        lastName: editingCustomer.lastName?.trim() || undefined,
+        phoneNumber: editingCustomer.phoneNumber.trim(),
+        email: editingCustomer.email?.trim() || undefined,
+        tags: editingCustomer.tags || undefined,
+        notes: editingCustomer.notes?.trim() || undefined,
+        isOptedIn: editingCustomer.isOptedIn,
+      };
+      
+      if (!payload.firstName || !payload.phoneNumber) {
+        toast.error('First name and phone number are required');
+        return;
+      }
+      
+      const response = await fetch(`/api/whatsapp/customers/${editingCustomer.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to update customer' }));
+        throw new Error(error.error || 'Failed to update customer');
+      }
+      
+      toast.success('Customer updated successfully');
+      setEditDialogOpen(false);
+      setEditingCustomer(null);
+      fetchCustomers();
+    } catch (error: any) {
+      console.error('Error updating WhatsApp customer', error);
+      toast.error(error?.message || 'Could not update customer');
     } finally {
       setSubmitting(false);
     }
@@ -887,6 +957,101 @@ export default function WhatsAppCustomersPage() {
           </Card>
         </div>
       </div>
+
+      {/* Edit Customer Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>Update customer information</DialogDescription>
+          </DialogHeader>
+          {editingCustomer && (
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-firstName">First Name *</Label>
+                <Input
+                  id="edit-firstName"
+                  value={editingCustomer.firstName}
+                  onChange={(e) => setEditingCustomer({ ...editingCustomer, firstName: e.target.value })}
+                  placeholder="Aarav"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-lastName">Last Name</Label>
+                <Input
+                  id="edit-lastName"
+                  value={editingCustomer.lastName || ''}
+                  onChange={(e) => setEditingCustomer({ ...editingCustomer, lastName: e.target.value })}
+                  placeholder="Shah"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-phoneNumber">Mobile Number *</Label>
+                <Input
+                  id="edit-phoneNumber"
+                  value={editingCustomer.phoneNumber}
+                  onChange={(e) => setEditingCustomer({ ...editingCustomer, phoneNumber: e.target.value })}
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  value={editingCustomer.email || ''}
+                  onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                  placeholder="customer@example.com"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-tags">Tags (comma or | separated)</Label>
+                <Input
+                  id="edit-tags"
+                  value={editingCustomer.tags?.join(', ') || ''}
+                  onChange={(e) => {
+                    const tags = parseTagInput(e.target.value);
+                    setEditingCustomer({ ...editingCustomer, tags: tags || [] });
+                  }}
+                  placeholder="VIP, Bali"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Textarea
+                  id="edit-notes"
+                  value={editingCustomer.notes || ''}
+                  onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
+                  placeholder="Reminders, travel preferences, etc."
+                  rows={3}
+                />
+              </div>
+              <div className="flex items-center justify-between space-x-2 rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="edit-isOptedIn" className="cursor-pointer font-medium">
+                    Opted In for WhatsApp
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Allow this customer to receive WhatsApp messages
+                  </p>
+                </div>
+                <Switch
+                  id="edit-isOptedIn"
+                  checked={editingCustomer.isOptedIn}
+                  onCheckedChange={(checked) => setEditingCustomer({ ...editingCustomer, isOptedIn: checked })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditSubmit} disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

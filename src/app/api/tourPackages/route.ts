@@ -233,9 +233,10 @@ export async function GET(
             isArchived: false,
         } satisfies Prisma.TourPackageWhereInput;
 
-        const orderBy = {
-            createdAt: 'desc' as const,
-        };
+        const orderBy = [
+            { websiteSortOrder: 'asc' as const },
+            { createdAt: 'desc' as const },
+        ];
 
         if (summary) {
             const packages = await prismadb.tourPackage.findMany({

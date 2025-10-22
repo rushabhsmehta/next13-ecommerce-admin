@@ -42,7 +42,7 @@ Try these commonly valid formats:
 // Test with these numbers (replace with your actual number)
 const validTestNumbers = [
   "+1234567890",    // US format
-  "+919876543210",  // Indian format (if registered)
+  "+919724444701",  // Indian format (if registered)
   "+447123456789"   // UK format
 ];
 ```

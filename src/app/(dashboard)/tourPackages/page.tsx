@@ -20,6 +20,7 @@ const tourPackagesPage = async ({
       isArchived: true,
       price: true,
       numDaysNight: true,
+      websiteSortOrder: true,
       createdAt: true,
       updatedAt: true,
       location: {
@@ -31,6 +32,7 @@ const tourPackagesPage = async ({
     },
     orderBy: [
       { location: { label: 'asc' } },
+      { websiteSortOrder: 'asc' },
       { updatedAt: 'desc' },
       { tourCategory: 'asc' },
       { numDaysNight: 'asc' }
@@ -50,6 +52,7 @@ const tourPackagesPage = async ({
     price: item.price ?? '',
     location: item.location.label,
     duration: item.numDaysNight ?? 'Not specified',
+    websiteSortOrder: item.websiteSortOrder ?? 0,
     createdAt: formatLocalDate(item.createdAt, 'MMMM d, yyyy'),
     updatedAt: formatLocalDate(item.updatedAt, 'MMMM d, yyyy'),
   }));
@@ -80,6 +83,7 @@ const tourPackagesPage = async ({
       price: tourPackage.price ?? '',
       location: tourPackage.location.label,
       duration: tourPackage.numDaysNight ?? 'Not specified',
+      websiteSortOrder: tourPackage.websiteSortOrder ?? 0,
       createdAt: formatLocalDate(tourPackage.createdAt, 'MMMM d, yyyy'),
       updatedAt: formatLocalDate(tourPackage.updatedAt, 'MMMM d, yyyy'),
     });

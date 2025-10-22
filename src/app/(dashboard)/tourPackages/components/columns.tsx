@@ -52,6 +52,7 @@ export type TourPackageColumn = {
   price: string;
   location : string;
   duration: string;
+  websiteSortOrder: number;
   //hotel : string;
   createdAt: string;
   updatedAt : string;
@@ -119,6 +120,13 @@ export const columns: ColumnDef<TourPackageColumn>[] = [
         tourPackageId={row.original.id}
         field="numDaysNight"
       />
+    ),
+  },
+  {
+    accessorKey: "websiteSortOrder",
+    header: "Website Order",
+    cell: ({ row }) => (
+      <span>{Number.isFinite(row.original.websiteSortOrder) ? row.original.websiteSortOrder : "-"}</span>
     ),
   },
   {
@@ -220,6 +228,13 @@ export const createColumns = (readOnly: boolean = false): ColumnDef<TourPackageC
         tourPackageId={row.original.id}
         field="numDaysNight"
       />
+    ),
+  },
+  {
+    accessorKey: "websiteSortOrder",
+    header: "Website Order",
+    cell: ({ row }) => (
+      <span>{Number.isFinite(row.original.websiteSortOrder) ? row.original.websiteSortOrder : "-"}</span>
     ),
   },
   {

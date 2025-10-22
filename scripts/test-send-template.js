@@ -95,7 +95,7 @@ async function main() {
     console.log('🔍 No arguments provided. Listing available templates...\n');
     await listTemplates();
     console.log('💡 Usage: node test-send-template.js [contentSid] [phoneNumber]');
-    console.log('   Example: node test-send-template.js HXxxxx +919876543210');
+    console.log('   Example: node test-send-template.js HXxxxx +919724444701');
     return;
   }
 

@@ -516,6 +516,7 @@ model TourPackage {
   price                            String?
   isFeatured                       Boolean              @default(false)
   isArchived                       Boolean              @default(false)
+  websiteSortOrder                 Int                  @default(0)
   createdAt                        DateTime             @default(now())
   updatedAt                        DateTime             @updatedAt
   assignedTo                       String?
@@ -557,8 +558,29 @@ model TourPackage {
   images                           Images[]
   tourPackagePricings              TourPackagePricing[]
   packageVariants                  PackageVariant[]
+  primaryRelatedPackages           TourPackageRelation[] @relation("PrimaryRelated")
+  relatedToPackages                TourPackageRelation[] @relation("SecondaryRelated")
 
   @@index([locationId])
+  @@index([websiteSortOrder])
+}
+
+model TourPackageRelation {
+  id                   String      @id @default(uuid())
+  tourPackageId        String
+  relatedTourPackageId String
+  relationType         String      @default("related")
+  sortOrder            Int         @default(0)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  tourPackage          TourPackage @relation("PrimaryRelated", fields: [tourPackageId], references: [id], onDelete: Cascade)
+  relatedTourPackage   TourPackage @relation("SecondaryRelated", fields: [relatedTourPackageId], references: [id], onDelete: Cascade)
+
+  @@unique([tourPackageId, relatedTourPackageId, relationType])
+  @@index([tourPackageId])
+  @@index([relatedTourPackageId])
+  @@index([relationType])
+  @@index([sortOrder])
 }
 
 model PricingAttribute {

@@ -8,7 +8,7 @@
  *   node scripts/whatsapp/send-tour-package-template.js <PHONE_NUMBER>
  * 
  * Example:
- *   node scripts/whatsapp/send-tour-package-template.js +919876543210
+ *   node scripts/whatsapp/send-tour-package-template.js +919724444701
  * 
  * Prerequisites:
  *   - Template must be approved in Meta Business Manager
@@ -26,14 +26,14 @@ if (!recipientPhone) {
   console.log('Usage:');
   console.log('  node scripts/whatsapp/send-tour-package-template.js <PHONE_NUMBER>\n');
   console.log('Example:');
-  console.log('  node scripts/whatsapp/send-tour-package-template.js +919876543210\n');
+  console.log('  node scripts/whatsapp/send-tour-package-template.js +919724444701\n');
   process.exit(1);
 }
 
 // Validate phone number format (should start with +)
 if (!recipientPhone.startsWith('+')) {
   console.error('\n❌ Error: Phone number must include country code starting with +\n');
-  console.log('Example: +919876543210 (for India)\n');
+  console.log('Example: +919724444701 (for India)\n');
   process.exit(1);
 }
 

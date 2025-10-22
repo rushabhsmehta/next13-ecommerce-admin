@@ -88,14 +88,14 @@ This feature allows you to export customer contact information from both Inquiri
 ### Inquiries CSV Structure
 ```csv
 Customer Name,Mobile Number,Location,Status,Journey Date,Inquiry Date,Associate Partner Business,Associate Contact Person,Associate Mobile
-"John Doe","9876543210","Goa","PENDING","10/15/2025","10/01/2025","Travel Partners Ltd","Jane Smith","9123456789"
+"John Doe","9724444701","Goa","PENDING","10/15/2025","10/01/2025","Travel Partners Ltd","Jane Smith","9123456789"
 "Alice Johnson","9988776655","Kerala","CONFIRMED","11/20/2025","10/02/2025","Direct","",""
 ```
 
 ### Tour Queries CSV Structure
 ```csv
 Query Number,Customer Name (Query),Mobile Number (Query),Customer Name (Inquiry),Mobile Number (Inquiry),Location,Tour Start Date,Query Created Date,Associate Partner Business,Associate Contact Person,Associate Mobile
-"TPQ-001","John Doe","9876543210","John Doe","9876543210","Goa","10/15/2025","10/05/2025","Travel Partners Ltd","Jane Smith","9123456789"
+"TPQ-001","John Doe","9724444701","John Doe","9724444701","Goa","10/15/2025","10/05/2025","Travel Partners Ltd","Jane Smith","9123456789"
 ```
 
 ## Technical Implementation

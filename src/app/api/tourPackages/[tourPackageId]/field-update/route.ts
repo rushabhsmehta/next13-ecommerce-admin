@@ -25,7 +25,7 @@ export async function PATCH(
     }
 
   // Define allowed fields for security
-  const allowedFields = ['tourPackageType', 'tourCategory', 'numDaysNight', 'isFeatured', 'isArchived'];
+  const allowedFields = ['tourPackageType', 'tourCategory', 'numDaysNight', 'isFeatured', 'isArchived', 'websiteSortOrder'];
     
     if (!allowedFields.includes(field)) {
       return new NextResponse("Field not allowed for update", { status: 400 });
@@ -33,7 +33,15 @@ export async function PATCH(
 
     // Create update data object
     const updateData: any = {};
-    updateData[field] = value;
+    if (field === 'websiteSortOrder') {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) {
+        return new NextResponse("Invalid websiteSortOrder", { status: 400 });
+      }
+      updateData[field] = parsed;
+    } else {
+      updateData[field] = value;
+    }
 
     const tourPackage = await prismadb.tourPackage.update({
       where: {

@@ -79,7 +79,7 @@ const formSchema = z.object({
   customerName: z.string().min(1),
   customerMobileNumber: z.string()
     .min(1, "Phone number is required")
-    .regex(/^\+?[0-9]{12}$/, "Phone number must be exactly 12 digits including country code (e.g., +919876543210)"),
+    .regex(/^\+?[0-9]{12}$/, "Phone number must be exactly 12 digits including country code (e.g., +919724444701)"),
   locationId: z.string().min(1, "Please select a location"),
   associatePartnerId: z.string().nullable(),
   numAdults: z.number().min(0),

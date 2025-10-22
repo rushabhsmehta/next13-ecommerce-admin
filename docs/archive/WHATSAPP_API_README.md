@@ -19,7 +19,7 @@ AISENSY_DEFAULT_CAMPAIGN_NAME=My Live API Campaign
 AISENSY_DEFAULT_SOURCE=Website lead          # stored against the AiSensy contact
 AISENSY_DEFAULT_TAGS=lead,automation         # comma-separated; merged with per-request tags
 AISENSY_DEFAULT_USERNAME=Aagam Holidays      # default "userName" sent to AiSensy
-AISENSY_SENDER_ID=whatsapp:+919876543210     # used when recording the sender in Prisma
+AISENSY_SENDER_ID=whatsapp:+919724444701     # used when recording the sender in Prisma
 AISENSY_API_BASE=https://backend.aisensy.com # override only if AiSensy support instructs you to
 ```
 

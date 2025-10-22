@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, MapPin, Tag, Clock, Search } from "lucide-react";
+import { Plus, MapPin, Tag, Clock, Search, Globe2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -124,6 +124,12 @@ export const TourPackagesClient: React.FC<TourPackagesClientProps> = ({
       <div className="flex items-center justify-between">
         <Heading title={`Tour Packages (${data.length})`} description="Manage tour packages for your Website" />
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/tourPackages/website-management`)}
+          >
+            <Globe2 className="mr-2 h-4 w-4" /> Website Management
+          </Button>
           <Button 
             variant={viewMode === 'grouped' ? 'default' : 'outline'}
             onClick={() => setViewMode('grouped')}

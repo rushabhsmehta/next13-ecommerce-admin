@@ -285,7 +285,11 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
   variantPricingLookup,
   tourPackageId,
 }) => {
-  const itineraries = useWatch({ control, name: "itineraries" }) as any[] || [];
+  const watchedItineraries = useWatch({ control, name: "itineraries" }) as unknown;
+  const itineraries = useMemo<any[]>(
+    () => (Array.isArray(watchedItineraries) ? watchedItineraries : []),
+    [watchedItineraries]
+  );
   const availablePackages = Array.isArray(availableTourPackages) ? availableTourPackages : [];
   const pricingLookup = useMemo(() => variantPricingLookup ?? EMPTY_PRICING_LOOKUP, [variantPricingLookup]);
   const locationId = useWatch({ control, name: "locationId" }) as string | undefined;

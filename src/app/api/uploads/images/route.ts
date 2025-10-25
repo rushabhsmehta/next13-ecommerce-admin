@@ -270,29 +270,20 @@ function mapCloudinaryResource(resource: any): CloudinaryMedia {
 async function uploadToCloudinary(file: File): Promise<CloudinaryMedia> {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
+  const mimeType = file.type && typeof file.type === 'string' ? file.type : 'application/octet-stream';
+  const dataUri = `data:${mimeType};base64,${buffer.toString('base64')}`;
 
-  return new Promise((resolve, reject) => {
-    const upload = cloudinary.uploader.upload_stream(
-      {
-        folder: CLOUDINARY_FOLDER,
-        resource_type: 'image',
-        use_filename: true,
-        unique_filename: true,
-        overwrite: false,
-        allowed_formats: [...ALLOWED_FORMATS],
-        tags: CLOUDINARY_TAGS,
-      },
-      (error, result) => {
-        if (error || !result) {
-          reject(error || new Error('Cloudinary upload failed'));
-          return;
-        }
-        resolve(mapCloudinaryResource(result));
-      }
-    );
-
-    upload.end(buffer);
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder: CLOUDINARY_FOLDER,
+    resource_type: 'image',
+    use_filename: true,
+    unique_filename: true,
+    overwrite: false,
+    allowed_formats: [...ALLOWED_FORMATS],
+    tags: CLOUDINARY_TAGS,
   });
+
+  return mapCloudinaryResource(result);
 }
 
 async function listCloudinaryMedia(): Promise<CloudinaryMedia[]> {

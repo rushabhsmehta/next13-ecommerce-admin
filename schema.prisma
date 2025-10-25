@@ -1775,6 +1775,29 @@ model WhatsAppCatalog {
   @@index([isActive])
 }
 
+model WhatsAppMediaAsset {
+  id           String    @id @default(uuid())
+  publicId     String    @unique
+  filename     String
+  secureUrl    String
+  size         Int
+  contentType  String
+  format       String?
+  width        Int?
+  height       Int?
+  resourceType String    @default("image")
+  folder       String?
+  tags         Json?
+  uploadedAt   DateTime  @default(now())
+  uploadedBy   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([uploadedAt])
+  @@index([uploadedBy])
+  @@index([folder])
+}
+
 model WhatsAppProduct {
   id                String                      @id @default(uuid())
   catalogId         String

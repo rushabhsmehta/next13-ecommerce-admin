@@ -12,16 +12,20 @@ import { cn } from '@/lib/utils';
 
 const MAX_UPLOAD_SIZE_MB = 5;
 const MAX_UPLOAD_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
-const DEFAULT_CANONICAL_ORIGIN = 'https://admin.aagamholidays.com';
-const CANONICAL_ORIGIN = process.env.NEXT_PUBLIC_MEDIA_BASE_URL || process.env.NEXT_PUBLIC_APP_ORIGIN || DEFAULT_CANONICAL_ORIGIN;
 
 type UploadedImage = {
+  id: string;
+  publicId: string;
   filename: string;
-  url: string;
-  absoluteUrl?: string;
+  secureUrl: string;
   size: number;
   contentType: string;
   uploadedAt: string;
+  width?: number;
+  height?: number;
+  format?: string;
+  resourceType?: string;
+  folder?: string | null;
 };
 
 function formatBytes(bytes: number) {
@@ -47,19 +51,6 @@ function formatTimestamp(input: string) {
   }).format(date);
 }
 
-function buildCanonicalUrl(relativePath: string) {
-  if (!relativePath) {
-    return '';
-  }
-  if (!CANONICAL_ORIGIN) {
-    return '';
-  }
-  const normalizedBase = CANONICAL_ORIGIN.endsWith('/')
-    ? CANONICAL_ORIGIN.slice(0, -1)
-    : CANONICAL_ORIGIN;
-  return `${normalizedBase}${relativePath}`;
-}
-
 export default function MediaUploader() {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -67,7 +58,6 @@ export default function MediaUploader() {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-  const [origin, setOrigin] = useState('');
   const previewUrl = useMemo(() => (selectedFile ? URL.createObjectURL(selectedFile) : null), [selectedFile]);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [messageVariant, setMessageVariant] = useState<'neutral' | 'success' | 'error'>('neutral');
@@ -79,12 +69,6 @@ export default function MediaUploader() {
       }
     };
   }, [previewUrl]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setOrigin(window.location.origin);
-    }
-  }, []);
 
   const fetchUploads = useCallback(async () => {
     setIsLoadingList(true);
@@ -108,13 +92,42 @@ export default function MediaUploader() {
       }
 
       const files = Array.isArray(payload?.files) ? payload.files : [];
-      const normalized: UploadedImage[] = files.map((file: UploadedImage) => {
-        const canonical = file.absoluteUrl || buildCanonicalUrl(file.url);
-        return {
-          ...file,
-          absoluteUrl: canonical,
-        };
-      });
+      const normalized: UploadedImage[] = [];
+
+      for (const file of files as any[]) {
+        const secureUrl = file?.secureUrl || file?.secure_url || file?.url;
+        if (typeof secureUrl !== 'string' || secureUrl.length === 0) {
+          continue;
+        }
+
+        const folder = typeof file?.folder === 'string'
+          ? file.folder
+          : typeof file?.asset_folder === 'string'
+            ? file.asset_folder
+            : null;
+
+        const resourceType = typeof file?.resourceType === 'string'
+          ? file.resourceType
+          : typeof file?.resource_type === 'string'
+            ? file.resource_type
+            : undefined;
+
+        normalized.push({
+          id: file?.id || file?.publicId || file?.public_id || file?.asset_id || secureUrl,
+          publicId: file?.publicId || file?.public_id,
+          filename: file?.filename || file?.original_filename || file?.publicId || 'media',
+          secureUrl,
+          size: typeof file?.size === 'number' ? file.size : typeof file?.bytes === 'number' ? file.bytes : 0,
+          contentType: file?.contentType || file?.content_type || (file?.format ? `image/${file.format}` : 'image'),
+          uploadedAt: file?.uploadedAt || file?.uploaded_at || file?.created_at || new Date().toISOString(),
+          width: typeof file?.width === 'number' ? file.width : undefined,
+          height: typeof file?.height === 'number' ? file.height : undefined,
+          format: typeof file?.format === 'string' ? file.format : undefined,
+          resourceType,
+          folder,
+        });
+
+      }
 
       setUploads(normalized);
     } catch (error: any) {
@@ -221,8 +234,12 @@ export default function MediaUploader() {
         title: 'Upload failed',
         description: error?.message || 'Please try again.',
       });
-      if (error?.code === 'STORAGE_UNAVAILABLE') {
-        setUploadMessage(error?.message || 'Storage directory is not writable. Configure MEDIA_UPLOAD_DIR to point to a writable path.');
+      if (error?.code === 'CLOUDINARY_CONFIG') {
+        setUploadMessage(error?.message || 'Cloudinary is not configured. Add CLOUDINARY_URL to your environment and retry.');
+      } else if (error?.code === 'CLOUDINARY_UPLOAD') {
+        setUploadMessage(error?.message || 'Cloudinary rejected the upload. Review your credentials and try again.');
+      } else if (error?.code === 'MEDIA_PERSISTENCE') {
+        setUploadMessage(error?.message || 'We could not save the media record. Please try again.');
       } else {
         setUploadMessage(`Upload failed: ${error?.message || 'Please try again.'}`);
       }
@@ -238,10 +255,8 @@ export default function MediaUploader() {
     }
 
     try {
-      const fallbackOrigin = origin || window.location.origin;
-      const absoluteUrl = file.absoluteUrl || buildCanonicalUrl(file.url) || `${fallbackOrigin}${file.url}`;
-      await navigator.clipboard.writeText(absoluteUrl);
-      setCopiedUrl(absoluteUrl);
+      await navigator.clipboard.writeText(file.secureUrl);
+      setCopiedUrl(file.secureUrl);
       toast({
         title: 'Link copied',
         description: 'The image URL is now on your clipboard.',
@@ -268,7 +283,7 @@ export default function MediaUploader() {
             </div>
             <div>
               <CardTitle className="text-2xl">Upload Image</CardTitle>
-              <CardDescription>Store images locally and reuse their URLs inside WhatsApp templates and broadcasts.</CardDescription>
+              <CardDescription>Store images in Cloudinary and reuse their URLs inside WhatsApp templates and broadcasts.</CardDescription>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -349,9 +364,9 @@ export default function MediaUploader() {
           ) : hasUploads ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {uploads.map((item) => (
-                <div key={item.filename} className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition hover:shadow-lg">
+                <div key={item.id} className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition hover:shadow-lg">
                   <div className="relative h-48 w-full bg-muted">
-                    <Image src={item.url} alt={item.filename} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" unoptimized />
+                    <Image src={item.secureUrl} alt={item.filename} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" unoptimized />
                   </div>
                   <div className="space-y-2 p-4">
                     <div className="flex items-center justify-between gap-2">
@@ -362,13 +377,13 @@ export default function MediaUploader() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="text-xs">{item.contentType}</Badge>
                       <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => handleCopyLink(item)}>
-                        {copiedUrl === (item.absoluteUrl || buildCanonicalUrl(item.url) || item.url) ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}Copy link
+                        {copiedUrl === item.secureUrl ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}Copy link
                       </Button>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <LinkIcon className="h-3.5 w-3.5" />
-                      <span className="truncate" title={item.absoluteUrl || buildCanonicalUrl(item.url) || (origin ? `${origin}${item.url}` : item.url)}>
-                        {item.absoluteUrl || buildCanonicalUrl(item.url) || item.url}
+                      <span className="truncate" title={item.secureUrl}>
+                        {item.secureUrl}
                       </span>
                     </div>
                   </div>

@@ -19,23 +19,29 @@ if (process.env.NODE_ENV !== "production") {
 
 // Add comprehensive shutdown handlers for proper cleanup
 if (typeof window === "undefined") {
-  // Server-side only
-  process.on("beforeExit", async () => {
-    await prismadb.$disconnect();
-  });
-  
-  // Handle termination signals
-  process.on("SIGTERM", async () => {
-    console.log("SIGTERM received - disconnecting Prisma Client");
-    await prismadb.$disconnect();
-    process.exit(0);
-  });
-  
-  process.on("SIGINT", async () => {
-    console.log("SIGINT received - disconnecting Prisma Client");
-    await prismadb.$disconnect();
-    process.exit(0);
-  });
+  const globalForHandlers = global as unknown as { prismaHandlersRegistered?: boolean };
+
+  if (!globalForHandlers.prismaHandlersRegistered) {
+    globalForHandlers.prismaHandlersRegistered = true;
+
+    // Server-side only
+    process.on("beforeExit", async () => {
+      await prismadb.$disconnect();
+    });
+
+    // Handle termination signals
+    process.on("SIGTERM", async () => {
+      console.log("SIGTERM received - disconnecting Prisma Client");
+      await prismadb.$disconnect();
+      process.exit(0);
+    });
+
+    process.on("SIGINT", async () => {
+      console.log("SIGINT received - disconnecting Prisma Client");
+      await prismadb.$disconnect();
+      process.exit(0);
+    });
+  }
 }
 
 export default prismadb;

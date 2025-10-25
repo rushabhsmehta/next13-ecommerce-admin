@@ -28,6 +28,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { createDatePickerValue, normalizeApiDate, formatLocalDate } from "@/lib/timezone-utils";
+import { normalizePhoneNumber } from "@/lib/phone-utils";
 
 const formSchema = z.object({
   name: z.string().min(1),
@@ -58,27 +59,48 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData ? {
-      ...initialData,
-      birthdate: createDatePickerValue(initialData.birthdate),
-      marriageAnniversary: createDatePickerValue(initialData.marriageAnniversary),
-    } : {
-      name: '',
-      email: '',
-      contact: '',
-      associatePartnerId: '',
-      birthdate: undefined,
-      marriageAnniversary: undefined,
-    }
+    defaultValues: initialData
+      ? {
+          name: initialData.name ?? '',
+          email: initialData.email ?? '',
+          contact: initialData.contact ?? '',
+          associatePartnerId: initialData.associatePartnerId ?? '',
+          birthdate: createDatePickerValue(initialData.birthdate),
+          marriageAnniversary: createDatePickerValue(initialData.marriageAnniversary),
+        }
+      : {
+          name: '',
+          email: '',
+          contact: '',
+          associatePartnerId: '',
+          birthdate: undefined,
+          marriageAnniversary: undefined,
+        },
   });
 
   const onSubmit = async (data: CustomerFormValues) => {
     try {
       setLoading(true);
+      const hasContact = typeof data.contact === "string" && data.contact.trim().length > 0;
+      const normalizedContact = hasContact ? normalizePhoneNumber(data.contact) : null;
+
+      if (hasContact && !normalizedContact) {
+        form.setError("contact", { type: "manual", message: "Enter a valid phone number" });
+        toast.error("Please enter a valid phone number.");
+        setLoading(false);
+        return;
+      }
+
+      if (normalizedContact) {
+        form.setValue("contact", normalizedContact.e164);
+      }
       
       // Normalize dates to prevent timezone shifting
       const submitData = {
         ...data,
+        name: data.name.trim(),
+        contact: normalizedContact ? normalizedContact.e164 : "",
+        email: data.email?.trim() || "",
         birthdate: normalizeApiDate(data.birthdate),
         marriageAnniversary: normalizeApiDate(data.marriageAnniversary),
       };
@@ -180,6 +202,10 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                             disabled={loading} 
                             placeholder="Enter phone number" 
                             {...field}
+                            onChange={(event) => {
+                              const sanitized = event.target.value.replace(/\s+/g, "");
+                              field.onChange(sanitized);
+                            }}
                             className="transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                           />
                         </FormControl>

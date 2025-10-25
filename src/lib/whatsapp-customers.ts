@@ -1,5 +1,6 @@
 import { Prisma, WhatsAppCustomer } from '@prisma/client';
 import prisma from './prismadb';
+import { normalizePhoneNumberOrThrow } from './phone-utils';
 
 export type WhatsAppCustomerInput = {
   firstName: string;
@@ -31,30 +32,11 @@ function extractDigits(value: string) {
 }
 
 export function normalizeWhatsAppPhone(phone: string) {
-  if (!phone) {
+  if (!phone || !phone.trim()) {
     throw new Error('Phone number is required');
   }
-  const trimmed = phone.trim();
-  if (!trimmed) {
-    throw new Error('Phone number is required');
-  }
-  if (trimmed.startsWith('+')) {
-    return `+${extractDigits(trimmed)}`;
-  }
-  const digits = extractDigits(trimmed);
-  if (!digits) {
-    throw new Error('Phone number must contain digits');
-  }
-  if (digits.startsWith('00')) {
-    return `+${digits.slice(2)}`;
-  }
-  if (digits.startsWith('0')) {
-    return `+91${digits.slice(1)}`;
-  }
-  if (digits.length <= 10) {
-    return `+91${digits}`;
-  }
-  return `+${digits}`;
+  const normalized = normalizePhoneNumberOrThrow(phone);
+  return normalized.e164;
 }
 
 function sanitizeTags(tags?: string[] | null) {

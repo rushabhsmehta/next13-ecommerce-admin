@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { UploadCloud, RefreshCcw, Copy, Check, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { UploadCloud, RefreshCcw, Copy, Check, Image as ImageIcon, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 
 const MAX_UPLOAD_SIZE_MB = 5;
 const MAX_UPLOAD_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
@@ -68,6 +69,8 @@ export default function MediaUploader() {
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [origin, setOrigin] = useState('');
   const previewUrl = useMemo(() => (selectedFile ? URL.createObjectURL(selectedFile) : null), [selectedFile]);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const [messageVariant, setMessageVariant] = useState<'neutral' | 'success' | 'error'>('neutral');
 
   useEffect(() => {
     return () => {
@@ -85,6 +88,7 @@ export default function MediaUploader() {
 
   const fetchUploads = useCallback(async () => {
     setIsLoadingList(true);
+    setCopiedUrl(null);
     try {
       const response = await fetch('/api/uploads/images');
       const payload = await response.json();
@@ -133,6 +137,8 @@ export default function MediaUploader() {
 
     if (!file) {
       setSelectedFile(null);
+      setUploadMessage(null);
+      setMessageVariant('neutral');
       return;
     }
 
@@ -147,6 +153,8 @@ export default function MediaUploader() {
     }
 
     setSelectedFile(file);
+    setUploadMessage(null);
+    setMessageVariant('neutral');
   };
 
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -162,6 +170,8 @@ export default function MediaUploader() {
     }
 
     setIsUploading(true);
+    setUploadMessage(null);
+    setMessageVariant('neutral');
     setCopiedUrl(null);
 
     try {
@@ -193,6 +203,8 @@ export default function MediaUploader() {
           title: 'Image uploaded',
           description: 'Copy the direct URL and paste it into your WhatsApp template.',
         });
+        setUploadMessage('Upload complete. Your media library has been refreshed.');
+        setMessageVariant('success');
       }
 
       setSelectedFile(null);
@@ -205,6 +217,8 @@ export default function MediaUploader() {
         title: 'Upload failed',
         description: error?.message || 'Please try again.',
       });
+      setUploadMessage(`Upload failed: ${error?.message || 'Please try again.'}`);
+      setMessageVariant('error');
     } finally {
       setIsUploading(false);
     }
@@ -277,7 +291,14 @@ export default function MediaUploader() {
               <div className="flex flex-col justify-between gap-3">
                 <Input id="image-upload-input" name="file" type="file" accept="image/*" onChange={handleFileSelection} disabled={isUploading} />
                 <Button type="submit" className="w-full" disabled={isUploading || !selectedFile}>
-                  {isUploading ? 'Uploading...' : 'Upload image'}
+                  {isUploading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </span>
+                  ) : (
+                    'Upload image'
+                  )}
                 </Button>
                 <Button type="button" variant="ghost" className="w-full" onClick={() => fetchUploads()} disabled={isUploading || isLoadingList}>
                   <RefreshCcw className="mr-2 h-4 w-4" />Refresh library
@@ -285,6 +306,18 @@ export default function MediaUploader() {
               </div>
             </div>
           </form>
+          {uploadMessage && (
+            <div
+              className={cn(
+                'rounded-md border p-3 text-sm transition-colors',
+                messageVariant === 'success' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950/60 dark:text-green-300',
+                messageVariant === 'error' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/60 dark:text-red-300',
+                messageVariant === 'neutral' && 'border-muted bg-muted/20 text-muted-foreground'
+              )}
+            >
+              {uploadMessage}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -301,7 +334,10 @@ export default function MediaUploader() {
         </CardHeader>
         <CardContent>
           {isLoadingList ? (
-            <p className="text-sm text-muted-foreground">Loading your media library...</p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading your media library...
+            </div>
           ) : hasUploads ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {uploads.map((item) => (

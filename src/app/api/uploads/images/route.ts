@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 import { handleApi, jsonError } from '@/lib/api-response';
 import { isCurrentUserAssociate } from '@/lib/associate-utils';
-import { promises as fs } from 'fs';
+import { promises as fs, constants as fsConstants } from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 
@@ -23,14 +23,28 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   '.avif': 'image/avif',
 };
 const ALLOWED_EXTENSIONS = new Set(Object.keys(MIME_BY_EXTENSION));
-
-const UPLOAD_PUBLIC_PATH = '/uploads/whatsapp';
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'whatsapp');
+const DEFAULT_PUBLIC_PATH = '/uploads/whatsapp';
 const DEFAULT_CANONICAL_ORIGIN = 'https://admin.aagamholidays.com';
-const CANONICAL_ORIGIN = process.env.MEDIA_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_ORIGIN || DEFAULT_CANONICAL_ORIGIN;
+const PUBLIC_PATH = normalizePublicPath(process.env.MEDIA_PUBLIC_PATH || DEFAULT_PUBLIC_PATH);
+const PUBLIC_PATH_SEGMENTS = PUBLIC_PATH.replace(/^\//, '').split('/').filter(Boolean);
+const DEFAULT_UPLOAD_DIR = path.join(process.cwd(), 'public', ...PUBLIC_PATH_SEGMENTS);
+const UPLOAD_DIR = process.env.MEDIA_UPLOAD_DIR ? path.resolve(process.env.MEDIA_UPLOAD_DIR) : DEFAULT_UPLOAD_DIR;
+const CANONICAL_ORIGIN = (process.env.MEDIA_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_ORIGIN || DEFAULT_CANONICAL_ORIGIN).replace(/\/$/, '');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+function normalizePublicPath(input: string) {
+  if (!input) return DEFAULT_PUBLIC_PATH;
+  const trimmed = input.trim();
+  if (!trimmed) return DEFAULT_PUBLIC_PATH;
+  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  let normalized = withLeadingSlash;
+  while (normalized.length > 1 && normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized || '/';
+}
 
 function resolveExtension(file: File) {
   const name = typeof file.name === 'string' ? file.name : '';
@@ -60,7 +74,8 @@ function resolveExtension(file: File) {
 }
 
 function buildPublicUrl(filename: string) {
-  return `${UPLOAD_PUBLIC_PATH}/${filename}`.replace(/\\/g, '/');
+  const sanitized = filename.replace(/\\/g, '/');
+  return `${PUBLIC_PATH}/${sanitized}`;
 }
 
 function buildAbsoluteUrl(filename: string) {
@@ -72,6 +87,23 @@ function buildAbsoluteUrl(filename: string) {
     ? CANONICAL_ORIGIN.slice(0, -1)
     : CANONICAL_ORIGIN;
   return `${normalizedBase}${relative}`;
+}
+
+async function ensureUploadDirectory() {
+  try {
+    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    await fs.access(UPLOAD_DIR, fsConstants.W_OK);
+    return { ok: true as const };
+  } catch (error: any) {
+    console.error('[media-upload] Storage unavailable', { error: error?.message, code: error?.code, path: UPLOAD_DIR });
+    const details = process.env.MEDIA_UPLOAD_DIR
+      ? 'Check that MEDIA_UPLOAD_DIR points to a writable directory.'
+      : 'The deployed environment does not allow writing inside /public. Configure MEDIA_UPLOAD_DIR to a writable absolute path on this host.';
+    return {
+      ok: false as const,
+      message: `Media storage directory is not writable. ${details}`,
+    };
+  }
 }
 
 async function listUploadDirectory() {
@@ -118,6 +150,11 @@ export async function POST(request: NextRequest) {
 
     if (await isCurrentUserAssociate()) {
       return jsonError('Associates cannot upload media', 403, 'FORBIDDEN');
+    }
+
+    const storageStatus = await ensureUploadDirectory();
+    if (!storageStatus.ok) {
+      return jsonError(storageStatus.message, 500, 'STORAGE_UNAVAILABLE');
     }
 
     const formData = await request.formData();

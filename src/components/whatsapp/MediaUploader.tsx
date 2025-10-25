@@ -102,7 +102,9 @@ export default function MediaUploader() {
       }
 
       if (!response.ok) {
-        throw new Error(payload?.error || 'Failed to load uploaded images');
+        const error = new Error(payload?.error || 'Failed to load uploaded images');
+        (error as any).code = payload?.code;
+        throw error;
       }
 
       const files = Array.isArray(payload?.files) ? payload.files : [];
@@ -194,7 +196,9 @@ export default function MediaUploader() {
       }
 
       if (!response.ok) {
-        throw new Error(payload?.error || 'Upload failed');
+        const error = new Error(payload?.error || 'Upload failed');
+        (error as any).code = payload?.code;
+        throw error;
       }
 
       const uploaded: UploadedImage | undefined = payload?.file;
@@ -217,7 +221,11 @@ export default function MediaUploader() {
         title: 'Upload failed',
         description: error?.message || 'Please try again.',
       });
-      setUploadMessage(`Upload failed: ${error?.message || 'Please try again.'}`);
+      if (error?.code === 'STORAGE_UNAVAILABLE') {
+        setUploadMessage(error?.message || 'Storage directory is not writable. Configure MEDIA_UPLOAD_DIR to point to a writable path.');
+      } else {
+        setUploadMessage(`Upload failed: ${error?.message || 'Please try again.'}`);
+      }
       setMessageVariant('error');
     } finally {
       setIsUploading(false);

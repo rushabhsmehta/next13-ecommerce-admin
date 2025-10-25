@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, FileText, Workflow, Megaphone, ArrowRight, Settings, Sparkles, CheckCircle2, Zap, Users, LayoutGrid } from 'lucide-react';
+import { MessageSquare, FileText, Workflow, Megaphone, ArrowRight, Settings, Sparkles, CheckCircle2, Zap, Users, LayoutGrid, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 
@@ -43,6 +43,24 @@ export default function WhatsAppOverviewPage() {
         'Quick replies',
         'Media support (images, videos, documents)',
         'Message history'
+      ]
+    },
+    {
+      title: 'Media Library',
+      description: 'Host reusable images for WhatsApp templates and flows',
+      icon: ImageIcon,
+      href: '/whatsapp/media',
+      color: 'text-indigo-600',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-950',
+      borderColor: 'border-l-indigo-500',
+      gradientFrom: 'from-indigo-500',
+      gradientTo: 'to-purple-500',
+      features: [
+        'Local image storage',
+        'Copyable public URLs',
+        'Template media ready',
+        'Meta-compliant formats',
+        'No third-party dependency'
       ]
     },
     {

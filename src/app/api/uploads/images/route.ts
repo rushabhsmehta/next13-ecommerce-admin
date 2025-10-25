@@ -419,6 +419,10 @@ export async function POST(request: NextRequest) {
     try {
       uploaded = await uploadToCloudinary(file);
     } catch (error: any) {
+      const rawResponse = typeof error?.http_response_body === 'string' ? error.http_response_body : '';
+      if (rawResponse) {
+        console.error('[media-upload] Cloudinary raw response (trimmed)', rawResponse.slice(0, 500));
+      }
       console.error('[media-upload] Cloudinary upload failed', error);
       return jsonError(formatCloudinaryUploadError(error?.message), 502, 'CLOUDINARY_UPLOAD');
     }

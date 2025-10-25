@@ -10,7 +10,8 @@
  * @see https://developers.facebook.com/docs/whatsapp/flows
  */
 
-import { graphBusinessRequest } from './whatsapp';
+import { graphBusinessRequest, graphFlowRequest } from './whatsapp';
+import prismadb from '@/lib/prismadb';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -109,6 +110,24 @@ export interface FlowAssetUploadRequest {
   asset_type: 'FLOW_ASSET';
 }
 
+export interface FlowVersionRecord {
+  id: string;
+  flowId: string;
+  name: string;
+  versionNumber: number;
+  flowJson: FlowJSON;
+  notes?: string | null;
+  createdBy?: string | null;
+  createdAt: Date;
+}
+
+interface FlowAsset {
+  name: string;
+  asset_type: string;
+  download_url?: string;
+  asset_content?: string;
+}
+
 // ============================================================================
 // FLOW CRUD OPERATIONS
 // ============================================================================
@@ -142,7 +161,7 @@ export async function getFlow(flowId: string, fields?: string[]): Promise<WhatsA
     'application',
   ];
 
-  return graphBusinessRequest<WhatsAppFlow>(flowId, {
+  return graphFlowRequest<WhatsAppFlow>(`${flowId}`, {
     method: 'GET',
     searchParams: {
       fields: (fields || defaultFields).join(','),
@@ -167,7 +186,7 @@ export async function updateFlow(
   flowId: string,
   updates: UpdateFlowRequest
 ): Promise<{ success: boolean }> {
-  return graphBusinessRequest<{ success: boolean }>(flowId, {
+  return graphFlowRequest<{ success: boolean }>(`${flowId}`, {
     method: 'POST',
     body: updates,
   });
@@ -177,7 +196,7 @@ export async function updateFlow(
  * Delete a flow
  */
 export async function deleteFlow(flowId: string): Promise<{ success: boolean }> {
-  return graphBusinessRequest<{ success: boolean }>(flowId, {
+  return graphFlowRequest<{ success: boolean }>(`${flowId}`, {
     method: 'DELETE',
   });
 }
@@ -189,7 +208,7 @@ export async function publishFlow(flowId: string): Promise<{
   success: boolean;
   validation_errors?: any[];
 }> {
-  return graphBusinessRequest<any>(`${flowId}/publish`, {
+  return graphFlowRequest<any>(`${flowId}/publish`, {
     method: 'POST',
   });
 }
@@ -198,7 +217,7 @@ export async function publishFlow(flowId: string): Promise<{
  * Deprecate a flow
  */
 export async function deprecateFlow(flowId: string): Promise<{ success: boolean }> {
-  return graphBusinessRequest<{ success: boolean }>(`${flowId}`, {
+  return graphFlowRequest<{ success: boolean }>(`${flowId}`, {
     method: 'POST',
     body: { status: 'DEPRECATED' },
   });
@@ -212,15 +231,36 @@ export async function deprecateFlow(flowId: string): Promise<{ success: boolean 
  * Get flow JSON
  */
 export async function getFlowJSON(flowId: string): Promise<FlowJSON> {
-  const response = await graphBusinessRequest<{ data: FlowJSON[] }>(`${flowId}/assets`, {
+  const response = await graphFlowRequest<{ data: FlowAsset[] }>(`${flowId}/assets`, {
     method: 'GET',
+    searchParams: {
+      fields: 'name,asset_type,download_url,asset_content',
+    },
   });
 
-  if (response.data && response.data.length > 0) {
-    return response.data[0];
+  const asset = response.data?.find((item) => item.asset_type === 'FLOW_JSON');
+  if (!asset) {
+    throw new Error('Flow JSON asset not found');
   }
 
-  throw new Error('Flow JSON not found');
+  if (asset.asset_content) {
+    return JSON.parse(asset.asset_content) as FlowJSON;
+  }
+
+  if (asset.download_url) {
+    const download = await fetch(asset.download_url);
+    if (!download.ok) {
+      throw new Error(`Failed to download flow JSON asset (${download.status})`);
+    }
+    const text = await download.text();
+    try {
+      return JSON.parse(text) as FlowJSON;
+    } catch (err) {
+      throw new Error(`Flow JSON download was not valid JSON. Response begins with: ${text.slice(0,200)}`);
+    }
+  }
+
+  throw new Error('Flow JSON asset did not include content or download URL');
 }
 
 /**
@@ -232,13 +272,51 @@ export async function updateFlowJSON(
 ): Promise<{
   success: boolean;
   validation_errors?: any[];
+  error?: string;
 }> {
-  return graphBusinessRequest<any>(`${flowId}`, {
-    method: 'POST',
-    body: {
-      flow_json: JSON.stringify(flowJson),
-    },
-  });
+  try {
+    // Use the /assets endpoint to upload flow JSON as a file
+    const formData = new FormData();
+    
+    // Create a Blob from the JSON string and add it as a file
+    const jsonBlob = new Blob([JSON.stringify(flowJson)], { type: 'application/json' });
+    formData.append('file', jsonBlob, 'flow.json');
+    formData.append('asset_type', 'FLOW_JSON');
+    formData.append('name', 'flow.json');
+    
+    const result = await graphFlowRequest<any>(`${flowId}/assets`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    // Check if Meta returned validation errors
+    if (result.validation_errors && result.validation_errors.length > 0) {
+      console.error('❌ Flow JSON validation errors:', JSON.stringify(result.validation_errors, null, 2));
+      return {
+        success: false,
+        validation_errors: result.validation_errors,
+        error: 'Flow JSON validation failed'
+      };
+    }
+    
+    return {
+      success: true,
+      validation_errors: result.validation_errors || []
+    };
+  } catch (error: any) {
+    console.error('❌ Failed to update flow JSON:', error);
+    
+    // Extract validation errors from Graph API error response if available
+    const validationErrors = error.response?.error?.error_user_msg || 
+                            error.response?.error?.message ||
+                            error.message;
+    
+    return {
+      success: false,
+      error: validationErrors || 'Failed to upload flow JSON',
+      validation_errors: error.response?.validation_errors || []
+    };
+  }
 }
 
 // ============================================================================
@@ -275,7 +353,7 @@ export function createSignUpFlow(options: {
   });
 
   return {
-    version: '5.0',
+    version: '7.3',
     screens: [
       {
         id: 'SIGNUP_SCREEN',
@@ -320,7 +398,7 @@ export function createAppointmentBookingFlow(options: {
   timeLabel?: string;
 }): FlowJSON {
   return {
-    version: '5.0',
+    version: '7.3',
     screens: [
       {
         id: 'SERVICE_SELECTION',
@@ -476,7 +554,7 @@ export function createSurveyFlow(options: {
   });
 
   return {
-    version: '5.0',
+    version: '7.3',
     screens: [
       {
         id: 'SURVEY_SCREEN',
@@ -594,7 +672,7 @@ export function createLeadGenerationFlow(options: {
   }
 
   return {
-    version: '5.0',
+    version: '7.3',
     screens: [
       {
         id: 'LEAD_FORM',
@@ -688,6 +766,91 @@ export async function getFlowPreview(flowId: string): Promise<{
 }
 
 // ============================================================================
+// FLOW VERSIONING
+// ============================================================================
+
+export async function saveFlowVersion(params: {
+  flowId: string;
+  name: string;
+  flowJson: FlowJSON;
+  createdBy?: string | null;
+  notes?: string | null;
+}): Promise<FlowVersionRecord> {
+  const latest = await prismadb.whatsAppFlowVersion.findFirst({
+    where: { flowId: params.flowId },
+    orderBy: { versionNumber: 'desc' },
+    select: { versionNumber: true },
+  });
+
+  const versionNumber = (latest?.versionNumber ?? 0) + 1;
+
+  const created = await prismadb.whatsAppFlowVersion.create({
+    data: {
+      flowId: params.flowId,
+      name: params.name,
+      versionNumber,
+      flowJson: params.flowJson as any,
+      createdBy: params.createdBy ?? null,
+      notes: params.notes ?? null,
+    },
+  });
+
+  return {
+    id: created.id,
+    flowId: created.flowId,
+    name: created.name,
+    versionNumber: created.versionNumber,
+    flowJson: created.flowJson as any as FlowJSON,
+    createdBy: created.createdBy ?? undefined,
+    notes: created.notes ?? undefined,
+    createdAt: created.createdAt,
+  };
+}
+
+export async function listFlowVersions(flowId: string, limit = 25): Promise<FlowVersionRecord[]> {
+  const records = await prismadb.whatsAppFlowVersion.findMany({
+    where: { flowId },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  return records.map((record) => ({
+    id: record.id,
+    flowId: record.flowId,
+    name: record.name,
+    versionNumber: record.versionNumber,
+    flowJson: record.flowJson as any as FlowJSON,
+    createdBy: record.createdBy ?? undefined,
+    notes: record.notes ?? undefined,
+    createdAt: record.createdAt,
+  }));
+}
+
+export async function getFlowVersion(versionId: string): Promise<FlowVersionRecord | null> {
+  const record = await prismadb.whatsAppFlowVersion.findUnique({
+    where: { id: versionId },
+  });
+
+  if (!record) return null;
+
+  return {
+    id: record.id,
+    flowId: record.flowId,
+    name: record.name,
+    versionNumber: record.versionNumber,
+    flowJson: record.flowJson as any as FlowJSON,
+    createdBy: record.createdBy ?? undefined,
+    notes: record.notes ?? undefined,
+    createdAt: record.createdAt,
+  };
+}
+
+export async function deleteFlowVersion(versionId: string): Promise<{ success: boolean }> {
+  await prismadb.whatsAppFlowVersion.delete({ where: { id: versionId } });
+  return { success: true };
+}
+
+// ============================================================================
 // EXPORT ALL
 // ============================================================================
 
@@ -714,6 +877,12 @@ const whatsappFlows = {
   // Utilities
   validateFlowJSON,
   getFlowPreview,
+
+  // Versioning
+  saveFlowVersion,
+  listFlowVersions,
+  getFlowVersion,
+  deleteFlowVersion,
 };
 
 export default whatsappFlows;

@@ -138,6 +138,16 @@ export async function POST(request: NextRequest) {
         }
 
         const result = await updateFlowJSON(flowId, flowJson);
+        
+        // Check if upload failed with validation errors
+        if (!result.success) {
+          return NextResponse.json({
+            success: false,
+            error: result.error || 'Failed to update flow JSON',
+            validation_errors: result.validation_errors,
+            flow_json: flowJson,
+          }, { status: 400 });
+        }
 
         return NextResponse.json({
           success: true,

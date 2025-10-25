@@ -124,7 +124,18 @@ export async function POST(request: NextRequest) {
     });
 
     // Update with JSON
-    await updateFlowJSON(flow.id, flowJson);
+    const uploadResult = await updateFlowJSON(flow.id, flowJson);
+    
+    // Check if JSON upload failed
+    if (!uploadResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: uploadResult.error || 'Failed to upload flow JSON',
+        flow_id: flow.id,
+        validation_errors: uploadResult.validation_errors,
+        flow_json: flowJson,
+      }, { status: 400 });
+    }
 
     // Publish if requested
     let publishResult;

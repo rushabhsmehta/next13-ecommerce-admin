@@ -1,2 +1,21 @@
-<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
-Don't Give Codeblocks in Chat in Agent Mode. Implement in the files.
+# Copilot Instructions
+- Keep chat replies code-block free and point to edited files instead; implement changes directly in the repo.
+- Project runs on Next.js 13 App Router under `src/app`, with route groups `(auth)`, `(dashboard)`, `(root)`, and domain-specific `/ops`; root layout wraps everything with `ClerkProvider`, `AppSidebar`, and `DebugLogPanel`.
+- Navigation and permissions are domain-aware: admin users get full `NAV_ITEMS`, associate domains (`associate.aagamholidays.com`) are read-only via `middleware.ts` and `src/lib/associate-utils.ts`/`hooks/use-associate-partner.ts`.
+- Authentication uses Clerk; check `src/middleware.ts` for bypass rules (webhooks, Puppeteer) and ensure new routes respect associate restrictions and auth guard helpers in `src/lib/authz.ts`.
+- Prisma is the single source of truth (`schema.prisma` ~2k lines); regenerate with `npx prisma generate` (also runs on install). Massive models cover inquiries, tour packages, finance ledgers, and WhatsApp automation—reuse existing relations and enums.
+- Database client lives in `lib/prismadb.ts`; server code should import the re-export at `@/lib/prismadb` to stay on the singleton.
+- API handlers under `src/app/api/**/route.ts` share patterns: use `handleApi`/`jsonError` from `src/lib/api-response.ts`, add `export const dynamic = 'force-dynamic'` when data is mutable, and prefer typed `select` objects over `include` if you do not need full relations.
+- Timezone handling is centralized in `src/lib/timezone-utils.ts`; for date inputs use `dateToUtc`, `normalizeApiDate`, and format outputs with `formatLocalDate` or `formatSafeDate` from `src/lib/utils.ts`.
+- UI components extend shadcn primitives in `src/components/ui`; favour existing wrappers (e.g. `form-date-picker.tsx`, `multi-select.tsx`) before introducing new libraries.
+- Dashboard pages live in `src/app/(dashboard)/**`; server components fetch data (often via Prisma) and pass it to client components in `/components` directories. Respect read-only modes by checking `isCurrentUserAssociate()` before enabling mutations.
+- Financial modules share types in `types/index.ts` and transaction helpers in `src/lib/transaction-service.ts`; reuse `calculateRunningBalance` when presenting ledgers.
+- WhatsApp stack is extensive: `src/lib/whatsapp.ts` manages Meta Graph API calls, session persistence, automations, and scheduled jobs; follow existing helpers like `sendWhatsAppTemplate` and record analytics via `recordAnalyticsEvent`.
+- WhatsApp environment variables (`META_*`, `WHATSAPP_FLOW_*`, etc.) must be set for builds; see `docs/VERCEL_ENV_SETUP.md` and other WhatsApp docs for deployment steps.
+- PDF generation flows use Puppeteer (`src/utils/generatepdf.ts`) with `@sparticuz/chromium-min` in production; when adding exports ensure headers/footers use `inlineImagesInHtml` to avoid remote asset issues.
+- Scripts are organized under `scripts/` with subfolders for migrations, tests, WhatsApp utilities, seeds, and validation; run individual scripts via `node scripts/<group>/<file>.js` (see `scripts/README.md`).
+- Primary npm scripts: `npm run dev`, `npm run build`, `npm run lint`; build requires Prisma schema sync and WhatsApp env vars.
+- Debugging uses emoji-prefixed `console` logs captured by `DebugLogPanel`; add new structured logs rather than raw strings for visibility.
+- Path alias `@/*` resolves to `./src/*`; keep new shared code under `src/lib`, `src/utils`, or `src/components` to leverage the alias.
+- Docs under `docs/` are authoritative—WhatsApp guides, tour package variants, timezone fixes—link to them in comments or PRs instead of duplicating instructions.
+- When touching associate or ops experiences, test under both domains to ensure redirects and restricted navigation still behave.

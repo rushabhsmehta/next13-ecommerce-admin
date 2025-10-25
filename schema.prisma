@@ -1432,6 +1432,21 @@ model WhatsAppTemplate {
   @@index([name])
 }
 
+model WhatsAppFlowVersion {
+  id             String   @id @default(uuid())
+  flowId         String
+  name           String
+  versionNumber  Int
+  flowJson       Json
+  notes          String?  @db.Text
+  createdBy      String?
+  createdAt      DateTime @default(now())
+
+  @@index([flowId])
+  @@index([createdAt])
+  @@unique([flowId, versionNumber])
+}
+
 model AuditLog {
   id         String   @id @default(uuid())
   entityId   String

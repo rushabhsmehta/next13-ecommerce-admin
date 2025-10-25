@@ -232,6 +232,80 @@ export async function graphBusinessRequest<T>(endpoint: string, options: GraphRe
   return payload as T;
 }
 
+export async function graphFlowRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {
+  if (!META_WHATSAPP_ACCESS_TOKEN) {
+    throw new Error('Missing Meta WhatsApp access token. Set META_WHATSAPP_ACCESS_TOKEN.');
+  }
+
+  const FLOW_BASE = `https://graph.facebook.com/${META_GRAPH_API_VERSION}`;
+  const url = new URL(`${FLOW_BASE}/${endpoint}`);
+  if (debugMode) {
+    console.log('========== WhatsApp Flow API Request ==========', {
+      url: url.toString(),
+      endpoint,
+      method: options.method || 'GET',
+      body: options.body,
+    });
+  }
+  if (options.searchParams) {
+    Object.entries(options.searchParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, String(value));
+      }
+    });
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${META_WHATSAPP_ACCESS_TOKEN}`,
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body && options.body instanceof FormData;
+
+  if (isFormData) {
+    delete headers['Content-Type'];
+  }
+
+  const response = await fetch(url.toString(), {
+    method: options.method || 'GET',
+    headers,
+    body: options.body
+      ? isFormData
+        ? options.body
+        : JSON.stringify(options.body)
+      : undefined,
+  });
+
+  let payload: any = null;
+  try {
+    const text = await response.text();
+    payload = text ? JSON.parse(text) : null;
+  } catch (err) {
+    if (!response.ok) {
+      throw new GraphApiError(response.status, `Meta API responded with HTTP ${response.status}`, null);
+    }
+  }
+
+  if (!response.ok || (payload && payload.error)) {
+    const errorMessage =
+      payload?.error?.message ||
+      payload?.error?.error_data?.details ||
+      `Meta API request failed (${response.status})`;
+    if (debugMode) {
+      console.error('[WhatsApp] Graph API flow error', {
+        endpoint,
+        status: response.status,
+        payload,
+      });
+    }
+    throw new GraphApiError(response.status, errorMessage, payload);
+  }
+
+  return payload as T;
+}
+
 function normalizeE164(input: string) {
   if (!input) return input;
   const trimmed = input.trim();

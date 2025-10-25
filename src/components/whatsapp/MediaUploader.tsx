@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { UploadCloud, RefreshCcw, Copy, Check, Image as ImageIcon, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { UploadCloud, RefreshCcw, Copy, Check, Image as ImageIcon, Link as LinkIcon, Loader2, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +57,7 @@ export default function MediaUploader() {
   const [uploads, setUploads] = useState<UploadedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingList, setIsLoadingList] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const previewUrl = useMemo(() => (selectedFile ? URL.createObjectURL(selectedFile) : null), [selectedFile]);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
@@ -175,6 +176,8 @@ export default function MediaUploader() {
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const formElement = event.currentTarget;
+
     if (!selectedFile) {
       toast({
         variant: 'destructive',
@@ -225,7 +228,9 @@ export default function MediaUploader() {
       }
 
       setSelectedFile(null);
-      event.currentTarget.reset();
+      if (formElement) {
+        formElement.reset();
+      }
       await fetchUploads();
     } catch (error: any) {
       console.error('[media-upload] Upload failed', error);
@@ -272,6 +277,63 @@ export default function MediaUploader() {
   };
 
   const hasUploads = uploads.length > 0;
+
+  const handleDelete = async (file: UploadedImage) => {
+    if (typeof window !== 'undefined') {
+      const confirmDelete = window.confirm(`Delete ${file.filename}? This action cannot be undone.`);
+      if (!confirmDelete) {
+        return;
+      }
+    }
+
+    setDeletingId(file.id);
+    setUploadMessage(null);
+    setMessageVariant('neutral');
+
+    try {
+      const response = await fetch('/api/uploads/images', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: file.id }),
+      });
+
+      const payload = await response.json();
+
+      if (response.status === 403) {
+        throw new Error('You do not have permission to delete media.');
+      }
+
+      if (response.status === 401) {
+        throw new Error('Your session expired. Please sign in again and retry.');
+      }
+
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Failed to delete the image.');
+      }
+
+      toast({
+        title: 'Image deleted',
+        description: 'The media asset has been removed from Cloudinary and your library.',
+      });
+      setUploadMessage('Image deleted successfully. The media library has been refreshed.');
+      setMessageVariant('success');
+      setCopiedUrl(null);
+      await fetchUploads();
+    } catch (error: any) {
+      console.error('[media-upload] Delete failed', error);
+      toast({
+        variant: 'destructive',
+        title: 'Delete failed',
+        description: error?.message || 'Please try again.',
+      });
+      setUploadMessage(`Delete failed: ${error?.message || 'Please try again.'}`);
+      setMessageVariant('error');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -376,8 +438,24 @@ export default function MediaUploader() {
                     <p className="text-xs text-muted-foreground">Uploaded {formatTimestamp(item.uploadedAt)}</p>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="text-xs">{item.contentType}</Badge>
-                      <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => handleCopyLink(item)}>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleCopyLink(item)}
+                        disabled={deletingId === item.id}
+                      >
                         {copiedUrl === item.secureUrl ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}Copy link
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDelete(item)}
+                        disabled={deletingId === item.id}
+                      >
+                        {deletingId === item.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}Delete
                       </Button>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

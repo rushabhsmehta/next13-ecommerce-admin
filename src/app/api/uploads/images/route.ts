@@ -83,6 +83,17 @@ function ensureCloudinaryConfigured() {
       ...(cname ? { cname } : {}),
     });
 
+    const redactedKey = apiKey.length > 6
+      ? `${apiKey.slice(0, 3)}***${apiKey.slice(-3)}`
+      : `${apiKey.slice(0, 1)}***`;
+    console.log('[media-upload] Cloudinary config initialized', {
+      cloudName,
+      apiKey: redactedKey,
+      privateCdn: Boolean(privateCdn),
+      secureDistribution: Boolean(secureDistribution),
+      cnameEnabled: Boolean(cname),
+    });
+
     cloudinaryConfigured = true;
     cloudinaryConfigError = null;
     return true;

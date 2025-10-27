@@ -93,7 +93,7 @@ export default function NewCampaignPage() {
     templateName: '',
     templateLanguage: 'en_US',
     recipients: [],
-    rateLimit: 10,
+    rateLimit: 4800, // 80 messages per second = 4800 per minute (optimized default)
       // send window removed
   });
 
@@ -1062,13 +1062,14 @@ export default function NewCampaignPage() {
               <Input
                 id="rateLimit"
                 type="number"
-                min="1"
-                max="60"
+                min="60"
+                max="6000"
+                step="60"
                 value={campaignData.rateLimit}
                 onChange={(e) => setCampaignData({ ...campaignData, rateLimit: parseInt(e.target.value) })}
               />
               <p className="text-sm text-muted-foreground mt-1">
-                Recommended: 10 messages per minute to avoid rate limits
+                Default: 4800 per minute (80 msg/sec). WhatsApp allows up to 6000/min (100 msg/sec).
               </p>
             </div>
 
@@ -1117,6 +1118,7 @@ export default function NewCampaignPage() {
                   <div className="bg-white p-4 rounded-lg border">
                     <p className="text-sm text-muted-foreground">Rate Limit</p>
                     <p className="font-medium text-lg">{campaignData.rateLimit} msg/min</p>
+                    <p className="text-xs text-muted-foreground">≈ {Math.floor(campaignData.rateLimit / 60)} msg/sec</p>
                   </div>
 
                   {/* Send window removed from summary */}

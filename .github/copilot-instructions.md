@@ -1,4 +1,14 @@
 # Copilot Instructions
+
+## CRITICAL DATABASE SAFETY RULES
+- **NEVER delete or drop the production database or any tables**
+- **NEVER run destructive Prisma commands** (`prisma db push --force-reset`, `prisma migrate reset`, `prisma db execute` with DROP statements)
+- Safe commands only: `prisma format` (format schema file), `prisma generate` (generate client), `prisma migrate dev` (create migrations)
+- Always use migrations for schema changes - never direct database modifications
+- Before any schema changes, confirm with the user and explain exactly what will happen to the database
+- Test destructive operations only on local/development databases, never on production
+
+## General Guidelines
 - Keep chat replies code-block free and point to edited files instead; implement changes directly in the repo.
 - Project runs on Next.js 13 App Router under `src/app`, with route groups `(auth)`, `(dashboard)`, `(root)`, and domain-specific `/ops`; root layout wraps everything with `ClerkProvider`, `AppSidebar`, and `DebugLogPanel`.
 - Navigation and permissions are domain-aware: admin users get full `NAV_ITEMS`, associate domains (`associate.aagamholidays.com`) are read-only via `middleware.ts` and `src/lib/associate-utils.ts`/`hooks/use-associate-partner.ts`.

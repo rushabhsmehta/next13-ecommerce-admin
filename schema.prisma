@@ -81,18 +81,18 @@ model LocationSeasonalPeriod {
 }
 
 model Hotel {
-  id                   String                 @id @default(uuid())
+  id                   String                @id @default(uuid())
   locationId           String
   name                 String
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  link                 String?                @db.Text
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  link                 String?               @db.Text
   destinationId        String?
   images               Images[]
-  location             Location               @relation(fields: [locationId], references: [id])
-  destination          TourDestination?       @relation(fields: [destinationId], references: [id])
-  itineraries          Itinerary[]            @relation("ItineraryToHotel")
-  itinerariesMaster    ItineraryMaster[]      @relation("ItineraryMasterToHotel")
+  location             Location              @relation(fields: [locationId], references: [id])
+  destination          TourDestination?      @relation(fields: [destinationId], references: [id])
+  itineraries          Itinerary[]           @relation("ItineraryToHotel")
+  itinerariesMaster    ItineraryMaster[]     @relation("ItineraryMasterToHotel")
   seasonalPricing      HotelPricing[]
   variantHotelMappings VariantHotelMapping[]
 
@@ -144,15 +144,15 @@ model OccupancyType {
 }
 
 model VehicleType {
-  id                   String                 @id @default(uuid())
-  name                 String                 @unique
-  description          String?
-  isActive             Boolean                @default(true)
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @default(now())
-  transportPricings    TransportPricing[]
-  transportDetails     TransportDetail[]
-  tourPackagePricings  TourPackagePricing[]
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  description         String?
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now())
+  transportPricings   TransportPricing[]
+  transportDetails    TransportDetail[]
+  tourPackagePricings TourPackagePricing[]
 }
 
 model HotelPricing {
@@ -511,14 +511,14 @@ model FlightDetails {
 }
 
 model TourPackage {
-  id                               String               @id @default(uuid())
+  id                               String                @id @default(uuid())
   locationId                       String
   price                            String?
-  isFeatured                       Boolean              @default(false)
-  isArchived                       Boolean              @default(false)
-  websiteSortOrder                 Int                  @default(0)
-  createdAt                        DateTime             @default(now())
-  updatedAt                        DateTime             @updatedAt
+  isFeatured                       Boolean               @default(false)
+  isArchived                       Boolean               @default(false)
+  websiteSortOrder                 Int                   @default(0)
+  createdAt                        DateTime              @default(now())
+  updatedAt                        DateTime              @updatedAt
   assignedTo                       String?
   assignedToEmail                  String?
   assignedToMobileNumber           String?
@@ -533,7 +533,7 @@ model TourPackage {
   pricePerChild5to12YearsNoBed     String?
   pricePerChildOrExtraBed          String?
   pricePerChildwithSeatBelow5Years String?
-  totalPrice                       String?              @db.Text
+  totalPrice                       String?               @db.Text
   transport                        String?
   customerNumber                   String?
   drop_location                    String?
@@ -550,8 +550,8 @@ model TourPackage {
   paymentPolicy                    Json?
   termsconditions                  Json?
   usefulTip                        Json?
-  tourCategory                     String?              @default("Domestic")
-  location                         Location             @relation("LocationTotourPackage", fields: [locationId], references: [id])
+  tourCategory                     String?               @default("Domestic")
+  location                         Location              @relation("LocationTotourPackage", fields: [locationId], references: [id])
   flightDetails                    FlightDetails[]
   itineraries                      Itinerary[]
   itinerariesMaster                ItineraryMaster[]
@@ -681,33 +681,33 @@ model ActivityMaster {
 }
 
 model Itinerary {
-  id                   String                  @id @default(uuid())
+  id                   String                @id @default(uuid())
   locationId           String
   tourPackageId        String?
   tourPackageQueryId   String?
-  itineraryTitle       String?                 @db.Text
-  itineraryDescription String?                 @db.Text
+  itineraryTitle       String?               @db.Text
+  itineraryDescription String?               @db.Text
   days                 String?
   hotelId              String?
   mealsIncluded        String?
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @default(now())
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now())
   dayNumber            Int?
   roomCategory         String?
   numberofRooms        String?
   mealPlanId           String?
   occupancyTypeId      String?
   roomTypeId           String?
-  location             Location                @relation(fields: [locationId], references: [id])
+  location             Location              @relation(fields: [locationId], references: [id])
   itineraryImages      Images[]
-  hotel                Hotel?                  @relation("ItineraryToHotel", fields: [hotelId], references: [id])
-  roomType             RoomType?               @relation(fields: [roomTypeId], references: [id])
-  mealPlan             MealPlan?               @relation(fields: [mealPlanId], references: [id])
-  occupancyType        OccupancyType?          @relation(fields: [occupancyTypeId], references: [id])
+  hotel                Hotel?                @relation("ItineraryToHotel", fields: [hotelId], references: [id])
+  roomType             RoomType?             @relation(fields: [roomTypeId], references: [id])
+  mealPlan             MealPlan?             @relation(fields: [mealPlanId], references: [id])
+  occupancyType        OccupancyType?        @relation(fields: [occupancyTypeId], references: [id])
   transportDetails     TransportDetail[]
   roomAllocations      RoomAllocation[]
-  tourPackage          TourPackage?            @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  tourPackageQuery     TourPackageQuery?       @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  tourPackage          TourPackage?          @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  tourPackageQuery     TourPackageQuery?     @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities           Activity[]
   activitiesMaster     ActivityMaster[]
   variantHotelMappings VariantHotelMapping[]
@@ -803,34 +803,34 @@ model Images {
 }
 
 model Customer {
-  id                    String                      @id @default(uuid())
-  name                  String
-  contact               String?
-  email                 String?
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @default(now())
-  associatePartnerId    String?
-  birthdate             DateTime?                   @db.Date
-  marriageAnniversary   DateTime?                   @db.Date
-  isTdsDeductor         Boolean                     @default(false)
-  tanNumber             String?
-  
+  id                  String    @id @default(uuid())
+  name                String
+  contact             String?
+  email               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now())
+  associatePartnerId  String?
+  birthdate           DateTime? @db.Date
+  marriageAnniversary DateTime? @db.Date
+  isTdsDeductor       Boolean   @default(false)
+  tanNumber           String?
+
   // Marketing Preferences
-  marketingOptIn        Boolean                     @default(true)
-  marketingOptInAt      DateTime?
-  marketingOptOutAt     DateTime?
-  
+  marketingOptIn    Boolean   @default(true)
+  marketingOptInAt  DateTime?
+  marketingOptOutAt DateTime?
+
   // Relations
-  saleDetails           SaleDetail[]
-  receiptDetails        ReceiptDetail[]
-  refundPayments        PaymentDetail[]
-  associatePartner      AssociatePartner?           @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
-  tdsTransactions       TDSTransaction[]
-  
+  saleDetails      SaleDetail[]
+  receiptDetails   ReceiptDetail[]
+  refundPayments   PaymentDetail[]
+  associatePartner AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  tdsTransactions  TDSTransaction[]
+
   // WhatsApp Campaign Relations
-  campaignRecipients    WhatsAppCampaignRecipient[]
-  whatsappCarts         WhatsAppCart[]
-  whatsappOrders        WhatsAppOrder[]
+  campaignRecipients WhatsAppCampaignRecipient[]
+  whatsappCarts      WhatsAppCart[]
+  whatsappOrders     WhatsAppOrder[]
 
   @@index([associatePartnerId])
 }
@@ -1324,16 +1324,16 @@ model Notification {
 }
 
 model WhatsAppMessage {
-  id                 String                  @id @default(uuid())
-  message            String?                 @db.Text
-  status             String                  @default("pending")
-  direction          String                  @default("outbound")
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @default(now())
+  id                 String                   @id @default(uuid())
+  message            String?                  @db.Text
+  status             String                   @default("pending")
+  direction          String                   @default("outbound")
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @default(now())
   messageSid         String?
   deliveredAt        DateTime?
   errorCode          String?
-  errorMessage       String?                 @db.Text
+  errorMessage       String?                  @db.Text
   from               String?
   sentAt             DateTime?
   to                 String?
@@ -1344,9 +1344,9 @@ model WhatsAppMessage {
   scheduledAt        DateTime?
   automationId       String?
   whatsappCustomerId String?
-  session            WhatsAppSession?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  automation         WhatsAppAutomation?     @relation(fields: [automationId], references: [id], onDelete: SetNull)
-  whatsappCustomer   WhatsAppCustomer?       @relation(fields: [whatsappCustomerId], references: [id], onDelete: SetNull)
+  session            WhatsAppSession?         @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  automation         WhatsAppAutomation?      @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  whatsappCustomer   WhatsAppCustomer?        @relation(fields: [whatsappCustomerId], references: [id], onDelete: SetNull)
   analytics          WhatsAppAnalyticsEvent[]
 
   @@index([to])
@@ -1360,21 +1360,21 @@ model WhatsAppMessage {
 }
 
 model WhatsAppSession {
-  id               String                   @id @default(uuid())
-  phoneNumber      String?
-  waId             String?
-  flowToken        String?
-  context          Json?
-  lastScreen       String?
-  lastAction       String?
-  lastMessageId    String?
-  lastInteraction  DateTime                 @default(now())
-  expiresAt        DateTime?
-  isArchived       Boolean                  @default(false)
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  messages         WhatsAppMessage[]
-  analytics        WhatsAppAnalyticsEvent[]
+  id              String                   @id @default(uuid())
+  phoneNumber     String?
+  waId            String?
+  flowToken       String?
+  context         Json?
+  lastScreen      String?
+  lastAction      String?
+  lastMessageId   String?
+  lastInteraction DateTime                 @default(now())
+  expiresAt       DateTime?
+  isArchived      Boolean                  @default(false)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  messages        WhatsAppMessage[]
+  analytics       WhatsAppAnalyticsEvent[]
 
   @@unique([flowToken])
   @@index([waId])
@@ -1384,18 +1384,18 @@ model WhatsAppSession {
 }
 
 model WhatsAppAutomation {
-  id          String                   @id @default(uuid())
-  name        String
-  description String?                  @db.Text
-  triggerType String
+  id            String                   @id @default(uuid())
+  name          String
+  description   String?                  @db.Text
+  triggerType   String
   triggerConfig Json?
-  actionType  String
-  actionConfig Json?
-  isActive    Boolean                  @default(true)
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-  messages    WhatsAppMessage[]
-  analytics   WhatsAppAnalyticsEvent[]
+  actionType    String
+  actionConfig  Json?
+  isActive      Boolean                  @default(true)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  messages      WhatsAppMessage[]
+  analytics     WhatsAppAnalyticsEvent[]
 
   @@index([triggerType])
   @@index([actionType])
@@ -1403,17 +1403,17 @@ model WhatsAppAutomation {
 }
 
 model WhatsAppAnalyticsEvent {
-  id           String               @id @default(uuid())
+  id           String              @id @default(uuid())
   sessionId    String?
   messageId    String?
   automationId String?
   eventType    String
   payload      Json?
-  observedAt   DateTime             @default(now())
-  createdAt    DateTime             @default(now())
-  session      WhatsAppSession?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  message      WhatsAppMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
-  automation   WhatsAppAutomation?  @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  observedAt   DateTime            @default(now())
+  createdAt    DateTime            @default(now())
+  session      WhatsAppSession?    @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  message      WhatsAppMessage?    @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  automation   WhatsAppAutomation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
 
   @@index([sessionId])
   @@index([messageId])
@@ -1423,31 +1423,31 @@ model WhatsAppAnalyticsEvent {
 }
 
 model WhatsAppTemplate {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  body      String   @db.Text
-  components Json?
-  variables Json?
+  id           String   @id @default(uuid())
+  name         String   @unique
+  body         String   @db.Text
+  components   Json?
+  variables    Json?
   flowDefaults Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([name])
 }
 
 model WhatsAppFlowVersion {
-  id             String   @id @default(uuid())
-  flowId         String
-  name           String
-  versionNumber  Int
-  flowJson       Json
-  notes          String?  @db.Text
-  createdBy      String?
-  createdAt      DateTime @default(now())
+  id            String   @id @default(uuid())
+  flowId        String
+  name          String
+  versionNumber Int
+  flowJson      Json
+  notes         String?  @db.Text
+  createdBy     String?
+  createdAt     DateTime @default(now())
 
+  @@unique([flowId, versionNumber])
   @@index([flowId])
   @@index([createdAt])
-  @@unique([flowId, versionNumber])
 }
 
 model AuditLog {
@@ -1576,16 +1576,16 @@ model TDSReturn {
 }
 
 model PackageVariant {
-  id                   String                  @id @default(uuid())
-  name                 String                  // "Luxury", "Premium", "Standard"
-  description          String?                 @db.Text
+  id                   String                @id @default(uuid())
+  name                 String // "Luxury", "Premium", "Standard"
+  description          String?               @db.Text
   tourPackageId        String?
-  isDefault            Boolean                 @default(false)
-  sortOrder            Int                     @default(0)
-  priceModifier        Float?                  // % increase/decrease from base
-  createdAt            DateTime                @default(now())
-  updatedAt            DateTime                @updatedAt
-  tourPackage          TourPackage?            @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  isDefault            Boolean               @default(false)
+  sortOrder            Int                   @default(0)
+  priceModifier        Float? // % increase/decrease from base
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  tourPackage          TourPackage?          @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   variantHotelMappings VariantHotelMapping[]
   tourPackagePricings  TourPackagePricing[]
 
@@ -1615,48 +1615,48 @@ model VariantHotelMapping {
 // ============================================================================
 
 model WhatsAppCampaign {
-  id               String                      @id @default(uuid())
-  name             String
-  description      String?                     @db.Text
-  
+  id          String  @id @default(uuid())
+  name        String
+  description String? @db.Text
+
   // Template Configuration
-  templateName     String
-  templateLanguage String                      @default("en_US")
-  templateVariables Json?                      // Dynamic variables for template
-  
+  templateName      String
+  templateLanguage  String @default("en_US")
+  templateVariables Json? // Dynamic variables for template
+
   // Targeting
-  targetType       String                      // "all", "segment", "manual", "imported"
-  segmentQuery     Json?                       // Saved query for dynamic segments
-  
+  targetType   String // "all", "segment", "manual", "imported"
+  segmentQuery Json? // Saved query for dynamic segments
+
   // Scheduling
-  status           String                      @default("draft") // draft, scheduled, sending, paused, completed, cancelled, failed
-  scheduledFor     DateTime?
-  startedAt        DateTime?
-  completedAt      DateTime?
-  
+  status       String    @default("draft") // draft, scheduled, sending, paused, completed, cancelled, failed
+  scheduledFor DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+
   // Settings
-  rateLimit        Int                         @default(10) // Messages per minute
-  retryFailed      Boolean                     @default(true)
-  maxRetries       Int                         @default(3)
-  
+  rateLimit   Int     @default(10) // Messages per minute
+  retryFailed Boolean @default(true)
+  maxRetries  Int     @default(3)
+
   // Stats (cached for performance)
-  totalRecipients  Int                         @default(0)
-  sentCount        Int                         @default(0)
-  deliveredCount   Int                         @default(0)
-  readCount        Int                         @default(0)
-  failedCount      Int                         @default(0)
-  respondedCount   Int                         @default(0)
-  
+  totalRecipients Int @default(0)
+  sentCount       Int @default(0)
+  deliveredCount  Int @default(0)
+  readCount       Int @default(0)
+  failedCount     Int @default(0)
+  respondedCount  Int @default(0)
+
   // Metadata
-  createdAt        DateTime                    @default(now())
-  updatedAt        DateTime                    @updatedAt
-  createdBy        String?                     // User ID who created it
-  organizationId   String?
-  tags             Json?                       // For categorization (array of strings)
-  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String? // User ID who created it
+  organizationId String?
+  tags           Json? // For categorization (array of strings)
+
   // Relations
-  recipients       WhatsAppCampaignRecipient[]
-  
+  recipients WhatsAppCampaignRecipient[]
+
   @@index([status])
   @@index([scheduledFor])
   @@index([createdAt])
@@ -1665,71 +1665,72 @@ model WhatsAppCampaign {
 }
 
 model WhatsAppCampaignRecipient {
-  id               String            @id @default(uuid())
-  campaignId       String
-  
+  id         String @id @default(uuid())
+  campaignId String
+
   // Recipient Info
-  phoneNumber      String            // E.164 format
-  customerId       String?           // Link to Customer model
-  name             String?
+  phoneNumber        String // E.164 format
+  customerId         String? // Link to Customer model
+  name               String?
   whatsappCustomerId String?
-  
+
   // Template Variables (personalization)
-  variables        Json?             // {"name": "John", "package": "Bali Premium"}
-  
+  variables Json? // {"name": "John", "package": "Bali Premium"}
+
   // Sending Status
-  status           String            @default("pending") // pending, sending, sent, delivered, read, failed, responded, opted_out
-  sentAt           DateTime?
-  deliveredAt      DateTime?
-  readAt           DateTime?
-  failedAt         DateTime?
-  
+  status      String    @default("pending") // pending, sending, sent, delivered, read, failed, responded, opted_out
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+
   // Error Handling
-  errorCode        String?
-  errorMessage     String?           @db.Text
-  retryCount       Int               @default(0)
-  lastRetryAt      DateTime?
-  
+  errorCode    String?
+  errorMessage String?   @db.Text
+  retryCount   Int       @default(0)
+  lastRetryAt  DateTime?
+
   // Response Tracking
-  respondedAt      DateTime?
-  responseMessage  String?           @db.Text
-  
+  respondedAt     DateTime?
+  responseMessage String?   @db.Text
+
   // Message Reference
-  messageId        String?           // WhatsApp message ID (wamid)
-  messageSid       String?           // Our internal message ID
-  
+  messageId  String? // WhatsApp message ID (wamid)
+  messageSid String? // Our internal message ID
+
   // Metadata
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
   campaign         WhatsAppCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   customer         Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
   whatsappCustomer WhatsAppCustomer? @relation(fields: [whatsappCustomerId], references: [id], onDelete: SetNull)
-  
+
   @@index([campaignId])
   @@index([status])
   @@index([customerId])
   @@index([phoneNumber])
   @@index([sentAt])
   @@index([whatsappCustomerId])
+  @@index([campaignId, status, createdAt]) // Composite index for batch queries
 }
 
 model WhatsAppCustomer {
-  id               String                       @id @default(uuid())
-  firstName        String
-  lastName         String?
-  phoneNumber      String                       @unique
-  email            String?
-  tags             Json?
-  notes            String?                      @db.Text
-  importedAt       DateTime?
-  importedFrom     String?
-  isOptedIn        Boolean                      @default(true)
-  lastContactedAt  DateTime?
-  metadata         Json?
-  createdAt        DateTime                     @default(now())
-  updatedAt        DateTime                     @updatedAt
+  id              String    @id @default(uuid())
+  firstName       String
+  lastName        String?
+  phoneNumber     String    @unique
+  email           String?
+  tags            Json?
+  notes           String?   @db.Text
+  importedAt      DateTime?
+  importedFrom    String?
+  isOptedIn       Boolean   @default(true)
+  lastContactedAt DateTime?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   campaignRecipients WhatsAppCampaignRecipient[]
   messages           WhatsAppMessage[]
@@ -1740,48 +1741,48 @@ model WhatsAppCustomer {
 }
 
 model WhatsAppCatalog {
-  id                  String                @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Meta Integration
-  metaCatalogId       String?               @unique // Meta Commerce Manager catalog ID
-  
+  metaCatalogId String? @unique // Meta Commerce Manager catalog ID
+
   // Basic Info
-  name                String
-  description         String?               @db.Text
-  currency            String                @default("INR")
-  
+  name        String
+  description String? @db.Text
+  currency    String  @default("INR")
+
   // Settings
-  isActive            Boolean               @default(true)
-  isPublic            Boolean               @default(false)
-  autoSync            Boolean               @default(false) // Auto-sync with Meta Commerce Manager
-  lastSyncAt          DateTime?
-  
+  isActive   Boolean   @default(true)
+  isPublic   Boolean   @default(false)
+  autoSync   Boolean   @default(false) // Auto-sync with Meta Commerce Manager
+  lastSyncAt DateTime?
+
   // Configuration
-  businessCategoryId  String?               // E.g., "Travel", "Tours"
-  defaultImageUrl     String?
-  
+  businessCategoryId String? // E.g., "Travel", "Tours"
+  defaultImageUrl    String?
+
   // Stats
-  totalProducts       Int                   @default(0)
-  activeProducts      Int                   @default(0)
-  totalOrders         Int                   @default(0)
-  totalRevenue        Decimal               @default(0) @db.Decimal(10, 2)
-  
+  totalProducts  Int     @default(0)
+  activeProducts Int     @default(0)
+  totalOrders    Int     @default(0)
+  totalRevenue   Decimal @default(0) @db.Decimal(10, 2)
+
   // Metadata
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  organizationId      String?
-  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organizationId String?
+
   // Relations
-  products            WhatsAppProduct[]
-  
+  products WhatsAppProduct[]
+
   @@index([metaCatalogId])
   @@index([organizationId])
   @@index([isActive])
 }
 
 model WhatsAppMediaAsset {
-  id           String    @id @default(uuid())
-  publicId     String    @unique
+  id           String   @id @default(uuid())
+  publicId     String   @unique
   filename     String
   secureUrl    String
   size         Int
@@ -1789,13 +1790,13 @@ model WhatsAppMediaAsset {
   format       String?
   width        Int?
   height       Int?
-  resourceType String    @default("image")
+  resourceType String   @default("image")
   folder       String?
   tags         Json?
-  uploadedAt   DateTime  @default(now())
+  uploadedAt   DateTime @default(now())
   uploadedBy   String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([uploadedAt])
   @@index([uploadedBy])
@@ -1803,66 +1804,66 @@ model WhatsAppMediaAsset {
 }
 
 model WhatsAppProduct {
-  id                String                      @id @default(uuid())
-  catalogId         String
-  
+  id        String @id @default(uuid())
+  catalogId String
+
   // Meta Integration
-  metaProductId     String?                     @unique // Meta product ID (retailer_id)
-  
+  metaProductId String? @unique // Meta product ID (retailer_id)
+
   // Basic Info
-  sku               String                      @unique
-  name              String
-  description       String?                     @db.Text
-  
+  sku         String  @unique
+  name        String
+  description String? @db.Text
+
   // Pricing
-  price             Decimal                     @db.Decimal(10, 2)
-  salePrice         Decimal?                    @db.Decimal(10, 2)
-  currency          String                      @default("INR")
-  
+  price     Decimal  @db.Decimal(10, 2)
+  salePrice Decimal? @db.Decimal(10, 2)
+  currency  String   @default("INR")
+
   // Inventory
-  availability      String                      @default("in_stock") // in_stock, out_of_stock, preorder
-  quantity          Int?
-  
+  availability String @default("in_stock") // in_stock, out_of_stock, preorder
+  quantity     Int?
+
   // Media
-  imageUrl          String?
-  imageUrls         Json?                       // Multiple images as JSON array
-  videoUrl          String?
-  
+  imageUrl  String?
+  imageUrls Json? // Multiple images as JSON array
+  videoUrl  String?
+
   // Organization
-  category          String?
-  brand             String?
-  condition         String                      @default("new") // new, refurbished
-  
+  category  String?
+  brand     String?
+  condition String  @default("new") // new, refurbished
+
   // Variants (for tour packages)
-  hasVariants       Boolean                     @default(false)
-  variantOptions    Json?                       // e.g., {"duration": ["3 days", "5 days"], "accommodation": ["Standard", "Premium"]}
-  
+  hasVariants    Boolean @default(false)
+  variantOptions Json? // e.g., {"duration": ["3 days", "5 days"], "accommodation": ["Standard", "Premium"]}
+
   // SEO & Discovery
-  tags              Json?                       // Tags as JSON array
-  url               String?                     // Product page URL
-  
+  tags Json? // Tags as JSON array
+  url  String? // Product page URL
+
   // Status
-  isActive          Boolean                     @default(true)
-  isVisible         Boolean                     @default(true)
-  
+  isActive  Boolean @default(true)
+  isVisible Boolean @default(true)
+
   // Stats
-  viewCount         Int                         @default(0)
-  shareCount        Int                         @default(0)
-  cartAddCount      Int                         @default(0)
-  purchaseCount     Int                         @default(0)
-  
+  viewCount     Int @default(0)
+  shareCount    Int @default(0)
+  cartAddCount  Int @default(0)
+  purchaseCount Int @default(0)
+
   // Metadata
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-  lastSyncAt        DateTime?
-  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastSyncAt DateTime?
+
   // Relations
-  catalog           WhatsAppCatalog             @relation(fields: [catalogId], references: [id], onDelete: Cascade)
-  variants          WhatsAppProductVariant[]
-  tourPackage       WhatsAppTourPackage?
-  cartItems         WhatsAppCartItem[]
-  orderItems        WhatsAppOrderItem[]
-  
+  catalog     WhatsAppCatalog          @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  variants    WhatsAppProductVariant[]
+  tourPackage WhatsAppTourPackage?
+  cartItems   WhatsAppCartItem[]
+  orderItems  WhatsAppOrderItem[]
+
   @@index([catalogId])
   @@index([metaProductId])
   @@index([sku])
@@ -1871,41 +1872,41 @@ model WhatsAppProduct {
 }
 
 model WhatsAppProductVariant {
-  id                String                @id @default(uuid())
-  productId         String
-  
+  id        String @id @default(uuid())
+  productId String
+
   // Variant Info
-  sku               String                @unique
-  name              String                // "Bali 5 Days Premium Package"
-  options           Json                  // {"duration": "5 days", "accommodation": "Premium"}
-  
+  sku     String @unique
+  name    String // "Bali 5 Days Premium Package"
+  options Json // {"duration": "5 days", "accommodation": "Premium"}
+
   // Pricing
-  price             Decimal               @db.Decimal(10, 2)
-  salePrice         Decimal?              @db.Decimal(10, 2)
-  
+  price     Decimal  @db.Decimal(10, 2)
+  salePrice Decimal? @db.Decimal(10, 2)
+
   // Inventory
-  availability      String                @default("in_stock")
-  quantity          Int?
-  
+  availability String @default("in_stock")
+  quantity     Int?
+
   // Media
-  imageUrl          String?
-  
+  imageUrl String?
+
   // Status
-  isActive          Boolean               @default(true)
-  
+  isActive Boolean @default(true)
+
   // Stats
-  purchaseCount     Int                   @default(0)
-  
+  purchaseCount Int @default(0)
+
   // Metadata
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  product           WhatsAppProduct       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  cartItems         WhatsAppCartItem[]
-  orderItems        WhatsAppOrderItem[]
-  tourVariant       WhatsAppTourPackageVariant?
-  
+  product     WhatsAppProduct             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems   WhatsAppCartItem[]
+  orderItems  WhatsAppOrderItem[]
+  tourVariant WhatsAppTourPackageVariant?
+
   @@index([productId])
   @@index([sku])
 }
@@ -1925,46 +1926,46 @@ enum WhatsAppCatalogSyncStatus {
 }
 
 model WhatsAppTourPackage {
-  id                    String                      @id @default(uuid())
-  productId             String                      @unique
+  id        String @id @default(uuid())
+  productId String @unique
 
   // Core Content
-  title                 String
-  subtitle              String?
-  heroImageUrl          String?
-  gallery               Json?                       // Additional media assets
-  location              String?
-  itinerarySummary      String?                     @db.Text
-  highlights            Json?                       // e.g. ["Sunset cruise", "Guided tour"]
-  inclusions            Json?                       // Array of strings
-  exclusions            Json?                       // Array of strings
-  bookingUrl            String?
-  termsAndConditions    String?                     @db.Text
+  title              String
+  subtitle           String?
+  heroImageUrl       String?
+  gallery            Json? // Additional media assets
+  location           String?
+  itinerarySummary   String? @db.Text
+  highlights         Json? // e.g. ["Sunset cruise", "Guided tour"]
+  inclusions         Json? // Array of strings
+  exclusions         Json? // Array of strings
+  bookingUrl         String?
+  termsAndConditions String? @db.Text
 
   // Pricing & Availability
-  basePrice             Decimal?                    @db.Decimal(10, 2)
-  currency              String                      @default("INR")
-  seasonalAvailability  Json?                       // [{"start": "2025-11-01", "end": "2026-03-31"}]
-  durationNights        Int?
-  durationDays          Int?
+  basePrice            Decimal? @db.Decimal(10, 2)
+  currency             String   @default("INR")
+  seasonalAvailability Json? // [{"start": "2025-11-01", "end": "2026-03-31"}]
+  durationNights       Int?
+  durationDays         Int?
 
   // Sync Metadata
-  status                WhatsAppTourPackageStatus   @default(draft)
-  syncStatus            WhatsAppCatalogSyncStatus   @default(pending)
-  catalogProductId      String?                     // Meta catalog product id
-  retailerId            String?                     // Retailer-friendly id
-  lastSyncAt            DateTime?
-  lastSyncError         String?                     @db.Text
+  status           WhatsAppTourPackageStatus @default(draft)
+  syncStatus       WhatsAppCatalogSyncStatus @default(pending)
+  catalogProductId String? // Meta catalog product id
+  retailerId       String? // Retailer-friendly id
+  lastSyncAt       DateTime?
+  lastSyncError    String?                   @db.Text
 
   // Audit
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
-  createdBy             String?
-  updatedBy             String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
 
   // Relations
-  product               WhatsAppProduct             @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variants              WhatsAppTourPackageVariant[]
+  product  WhatsAppProduct              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variants WhatsAppTourPackageVariant[]
 
   @@index([status])
   @@index([catalogProductId])
@@ -1972,61 +1973,61 @@ model WhatsAppTourPackage {
 }
 
 model WhatsAppTourPackageVariant {
-  id                    String                    @id @default(uuid())
-  tourPackageId         String
-  productVariantId      String                     @unique
+  id               String @id @default(uuid())
+  tourPackageId    String
+  productVariantId String @unique
 
-  name                  String
-  description           String?                   @db.Text
-  heroImageUrl          String?
-  priceOverride         Decimal?                  @db.Decimal(10, 2)
-  availabilityNotes     String?                   @db.Text
-  seasonalAvailability  Json?
-  status                WhatsAppTourPackageStatus @default(active)
+  name                 String
+  description          String?                   @db.Text
+  heroImageUrl         String?
+  priceOverride        Decimal?                  @db.Decimal(10, 2)
+  availabilityNotes    String?                   @db.Text
+  seasonalAvailability Json?
+  status               WhatsAppTourPackageStatus @default(active)
 
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  tourPackage           WhatsAppTourPackage       @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  variant               WhatsAppProductVariant    @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  tourPackage WhatsAppTourPackage    @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  variant     WhatsAppProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
   @@index([tourPackageId])
   @@index([status])
 }
 
 model WhatsAppCart {
-  id                String              @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Customer Info
-  phoneNumber       String
-  customerId        String?
-  sessionId         String?             // WhatsAppSession ID
-  
+  phoneNumber String
+  customerId  String?
+  sessionId   String? // WhatsAppSession ID
+
   // Status
-  status            String              @default("active") // active, checkout, converted, abandoned
-  
+  status String @default("active") // active, checkout, converted, abandoned
+
   // Totals
-  subtotal          Decimal             @default(0) @db.Decimal(10, 2)
-  tax               Decimal             @default(0) @db.Decimal(10, 2)
-  discount          Decimal             @default(0) @db.Decimal(10, 2)
-  total             Decimal             @default(0) @db.Decimal(10, 2)
-  currency          String              @default("INR")
-  
+  subtotal Decimal @default(0) @db.Decimal(10, 2)
+  tax      Decimal @default(0) @db.Decimal(10, 2)
+  discount Decimal @default(0) @db.Decimal(10, 2)
+  total    Decimal @default(0) @db.Decimal(10, 2)
+  currency String  @default("INR")
+
   // Checkout
-  checkoutAt        DateTime?
-  abandonedAt       DateTime?
-  convertedAt       DateTime?
-  
+  checkoutAt  DateTime?
+  abandonedAt DateTime?
+  convertedAt DateTime?
+
   // Metadata
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  expiresAt         DateTime?           // Auto-expire after X days
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime? // Auto-expire after X days
+
   // Relations
-  customer          Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  items             WhatsAppCartItem[]
-  order             WhatsAppOrder?
-  
+  customer Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    WhatsAppCartItem[]
+  order    WhatsAppOrder?
+
   @@index([phoneNumber])
   @@index([status])
   @@index([customerId])
@@ -2034,89 +2035,89 @@ model WhatsAppCart {
 }
 
 model WhatsAppCartItem {
-  id                String                    @id @default(uuid())
-  cartId            String
-  
+  id     String @id @default(uuid())
+  cartId String
+
   // Product Info
-  productId         String
-  variantId         String?
-  
+  productId String
+  variantId String?
+
   // Quantity & Pricing
-  quantity          Int                       @default(1)
-  unitPrice         Decimal                   @db.Decimal(10, 2)
-  totalPrice        Decimal                   @db.Decimal(10, 2)
-  
+  quantity   Int     @default(1)
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
   // Customization
-  notes             String?                   @db.Text
-  customFields      Json?
-  
+  notes        String? @db.Text
+  customFields Json?
+
   // Metadata
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  cart              WhatsAppCart              @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product           WhatsAppProduct           @relation(fields: [productId], references: [id])
-  variant           WhatsAppProductVariant?   @relation(fields: [variantId], references: [id])
-  
+  cart    WhatsAppCart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product WhatsAppProduct         @relation(fields: [productId], references: [id])
+  variant WhatsAppProductVariant? @relation(fields: [variantId], references: [id])
+
   @@index([cartId])
   @@index([productId])
 }
 
 model WhatsAppOrder {
-  id                String              @id @default(uuid())
-  orderNumber       String              @unique // "ORD-2025-001234"
-  
+  id          String @id @default(uuid())
+  orderNumber String @unique // "ORD-2025-001234"
+
   // Customer Info
-  cartId            String              @unique
-  phoneNumber       String
-  customerId        String?
-  
+  cartId      String  @unique
+  phoneNumber String
+  customerId  String?
+
   // Contact Info
-  customerName      String
-  customerEmail     String?
-  
+  customerName  String
+  customerEmail String?
+
   // Order Details
-  status            String              @default("pending") // pending, confirmed, processing, completed, cancelled, refunded
-  
+  status String @default("pending") // pending, confirmed, processing, completed, cancelled, refunded
+
   // Pricing
-  subtotal          Decimal             @db.Decimal(10, 2)
-  tax               Decimal             @db.Decimal(10, 2)
-  discount          Decimal             @db.Decimal(10, 2)
-  shippingFee       Decimal             @default(0) @db.Decimal(10, 2)
-  total             Decimal             @db.Decimal(10, 2)
-  currency          String              @default("INR")
-  
+  subtotal    Decimal @db.Decimal(10, 2)
+  tax         Decimal @db.Decimal(10, 2)
+  discount    Decimal @db.Decimal(10, 2)
+  shippingFee Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+  currency    String  @default("INR")
+
   // Payment
-  paymentStatus     String              @default("unpaid") // unpaid, partial, paid, refunded
-  paymentMethod     String?             // "whatsapp_pay", "razorpay", "bank_transfer"
-  paidAmount        Decimal             @default(0) @db.Decimal(10, 2)
-  
+  paymentStatus String  @default("unpaid") // unpaid, partial, paid, refunded
+  paymentMethod String? // "whatsapp_pay", "razorpay", "bank_transfer"
+  paidAmount    Decimal @default(0) @db.Decimal(10, 2)
+
   // Fulfillment
-  fulfillmentStatus String              @default("unfulfilled") // unfulfilled, partially_fulfilled, fulfilled
+  fulfillmentStatus String @default("unfulfilled") // unfulfilled, partially_fulfilled, fulfilled
   shippingAddress   Json?
   billingAddress    Json?
-  
+
   // Tracking
   trackingNumber    String?
   estimatedDelivery DateTime?
   deliveredAt       DateTime?
-  
+
   // Notes
-  customerNotes     String?             @db.Text
-  internalNotes     String?             @db.Text
-  
+  customerNotes String? @db.Text
+  internalNotes String? @db.Text
+
   // Metadata
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  confirmedAt       DateTime?
-  cancelledAt       DateTime?
-  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+
   // Relations
-  cart              WhatsAppCart        @relation(fields: [cartId], references: [id])
-  customer          Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  items             WhatsAppOrderItem[]
-  
+  cart     WhatsAppCart        @relation(fields: [cartId], references: [id])
+  customer Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    WhatsAppOrderItem[]
+
   @@index([orderNumber])
   @@index([status])
   @@index([customerId])
@@ -2125,41 +2126,41 @@ model WhatsAppOrder {
 }
 
 model WhatsAppOrderItem {
-  id                String                    @id @default(uuid())
-  orderId           String
-  
+  id      String @id @default(uuid())
+  orderId String
+
   // Product Info
-  productId         String
-  variantId         String?
-  
+  productId String
+  variantId String?
+
   // Snapshot (preserve data even if product deleted)
-  productName       String
-  productSku        String
-  productImage      String?
-  variantOptions    Json?
-  
+  productName    String
+  productSku     String
+  productImage   String?
+  variantOptions Json?
+
   // Quantity & Pricing
-  quantity          Int
-  unitPrice         Decimal                   @db.Decimal(10, 2)
-  totalPrice        Decimal                   @db.Decimal(10, 2)
-  
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
   // Fulfillment
-  fulfillmentStatus String                    @default("unfulfilled")
-  fulfilledQuantity Int                       @default(0)
-  
+  fulfillmentStatus String @default("unfulfilled")
+  fulfilledQuantity Int    @default(0)
+
   // Customization
-  notes             String?                   @db.Text
-  customFields      Json?
-  
+  notes        String? @db.Text
+  customFields Json?
+
   // Metadata
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  order             WhatsAppOrder             @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product           WhatsAppProduct           @relation(fields: [productId], references: [id])
-  variant           WhatsAppProductVariant?   @relation(fields: [variantId], references: [id])
-  
+  order   WhatsAppOrder           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product WhatsAppProduct         @relation(fields: [productId], references: [id])
+  variant WhatsAppProductVariant? @relation(fields: [variantId], references: [id])
+
   @@index([orderId])
   @@index([productId])
 }

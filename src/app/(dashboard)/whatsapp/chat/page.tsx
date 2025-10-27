@@ -1741,12 +1741,20 @@ export default function WhatsAppSettingsPage() {
 
         if (!contactPhone) return;
 
+        // Check if message has an associated WhatsAppCustomer
+        const whatsappCustomer = (msg as any).whatsappCustomer;
+        const customerName = whatsappCustomer 
+          ? `${whatsappCustomer.firstName}${whatsappCustomer.lastName ? ' ' + whatsappCustomer.lastName : ''}`
+          : null;
+
         const profileName = baseMetadata?.contactName;
-        const displayName = profileName
-          ? profileName
-          : msg.direction === 'inbound'
-            ? formatContactLabel(msg.from)
-            : formatContactLabel(msg.to);
+        const displayName = customerName 
+          ? customerName
+          : profileName
+            ? profileName
+            : msg.direction === 'inbound'
+              ? formatContactLabel(msg.from)
+              : formatContactLabel(msg.to);
 
         // Create contact if not exists
         if (!contactMap[contactPhone]) {
@@ -1756,10 +1764,11 @@ export default function WhatsAppSettingsPage() {
             phone: contactPhone,
             avatarText: contactPhone.replace(/\D/g, '').slice(-2) || 'CT'
           };
-        } else if (profileName && contactMap[contactPhone].name !== profileName) {
+        } else if ((customerName || profileName) && contactMap[contactPhone].name !== displayName) {
+          // Update contact name if we have a customer name or profile name
           contactMap[contactPhone] = {
             ...contactMap[contactPhone],
-            name: profileName,
+            name: displayName,
           };
         }
 

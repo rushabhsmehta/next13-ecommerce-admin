@@ -1324,28 +1324,30 @@ model Notification {
 }
 
 model WhatsAppMessage {
-  id           String                  @id @default(uuid())
-  message      String?                 @db.Text
-  status       String                  @default("pending")
-  direction    String                  @default("outbound")
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @default(now())
-  messageSid   String?
-  deliveredAt  DateTime?
-  errorCode    String?
-  errorMessage String?                 @db.Text
-  from         String?
-  sentAt       DateTime?
-  to           String?
-  waId         String?
-  sessionId    String?
-  metadata     Json?
-  payload      Json?
-  scheduledAt  DateTime?
-  automationId String?
-  session      WhatsAppSession?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  automation   WhatsAppAutomation?     @relation(fields: [automationId], references: [id], onDelete: SetNull)
-  analytics    WhatsAppAnalyticsEvent[]
+  id                 String                  @id @default(uuid())
+  message            String?                 @db.Text
+  status             String                  @default("pending")
+  direction          String                  @default("outbound")
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @default(now())
+  messageSid         String?
+  deliveredAt        DateTime?
+  errorCode          String?
+  errorMessage       String?                 @db.Text
+  from               String?
+  sentAt             DateTime?
+  to                 String?
+  waId               String?
+  sessionId          String?
+  metadata           Json?
+  payload            Json?
+  scheduledAt        DateTime?
+  automationId       String?
+  whatsappCustomerId String?
+  session            WhatsAppSession?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  automation         WhatsAppAutomation?     @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  whatsappCustomer   WhatsAppCustomer?       @relation(fields: [whatsappCustomerId], references: [id], onDelete: SetNull)
+  analytics          WhatsAppAnalyticsEvent[]
 
   @@index([to])
   @@index([status])
@@ -1354,6 +1356,7 @@ model WhatsAppMessage {
   @@index([sessionId])
   @@index([automationId])
   @@index([scheduledAt])
+  @@index([whatsappCustomerId])
 }
 
 model WhatsAppSession {
@@ -1729,6 +1732,7 @@ model WhatsAppCustomer {
   updatedAt        DateTime                     @updatedAt
 
   campaignRecipients WhatsAppCampaignRecipient[]
+  messages           WhatsAppMessage[]
 
   @@index([firstName])
   @@index([lastName])

@@ -776,6 +776,27 @@ async function persistOutboundMessage(data: {
 }): Promise<WhatsAppMessage> {
   const toAddress = data.to ? `whatsapp:${normalizeE164(data.to)}` : null;
 
+  // Find customer by phone number for outbound messages
+  let customerId = null;
+  const normalizedTo = normalizeE164(data.to);
+  if (normalizedTo) {
+    try {
+      const customer = await prisma.whatsAppCustomer.findFirst({
+        where: {
+          phoneNumber: normalizedTo,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (customer) {
+        customerId = customer.id;
+      }
+    } catch (error) {
+      console.error('❌ Error finding customer for outbound message:', error);
+    }
+  }
+
   return prisma.whatsAppMessage.create({
     data: {
       to: toAddress ?? undefined,
@@ -792,6 +813,7 @@ async function persistOutboundMessage(data: {
       scheduledAt: data.scheduledAt ?? undefined,
       sentAt: data.sentAt ?? undefined,
       waId: data.waId ?? undefined,
+      whatsappCustomerId: customerId ?? undefined,
     },
   });
 }
@@ -2274,7 +2296,7 @@ export async function sendWhatsAppTemplate(
 export async function getWhatsAppMessages(
   limit: number = 50,
   options: { sessionId?: string; status?: string; includeSession?: boolean } = {}
-): Promise<Array<WhatsAppMessage & { session?: WhatsAppSession | null }>> {
+): Promise<Array<WhatsAppMessage & { session?: WhatsAppSession | null; whatsappCustomer?: any | null }>> {
   return prisma.whatsAppMessage.findMany({
     where: {
       ...(options.sessionId ? { sessionId: options.sessionId } : {}),
@@ -2282,7 +2304,10 @@ export async function getWhatsAppMessages(
     },
     take: limit,
     orderBy: { createdAt: 'desc' },
-    include: options.includeSession ? { session: true } : undefined,
+    include: {
+      ...(options.includeSession ? { session: true } : {}),
+      whatsappCustomer: true,
+    },
   });
 }
 

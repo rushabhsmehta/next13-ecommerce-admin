@@ -19,6 +19,35 @@ const normalizeE164 = (input?: string | null): string | undefined => {
   return `+${digits}`;
 };
 
+/**
+ * Find WhatsAppCustomer by phone number
+ */
+const findCustomerByPhone = async (prisma: any, phoneNumber: string) => {
+  if (!phoneNumber) return null;
+  
+  const normalized = normalizeE164(phoneNumber);
+  if (!normalized) return null;
+  
+  try {
+    const customer = await prisma.whatsAppCustomer.findFirst({
+      where: {
+        phoneNumber: normalized,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+      },
+    });
+    
+    return customer;
+  } catch (error) {
+    console.error('❌ Error finding customer by phone:', error);
+    return null;
+  }
+};
+
 const fetchMediaMimeType = async (mediaId?: string | null) => {
   if (!mediaId || !META_WHATSAPP_ACCESS_TOKEN) return undefined;
   try {
@@ -404,6 +433,16 @@ export async function POST(request: NextRequest) {
                     const { messageBody, metadata } = await buildIncomingMetadata(value, message);
                     metadata.timestamp = message.timestamp ? Number(message.timestamp) : undefined;
 
+                    // Find customer by phone number for inbound messages
+                    let customerId = null;
+                    if (fromNumber) {
+                      const customer = await findCustomerByPhone(prisma, fromNumber);
+                      if (customer) {
+                        customerId = customer.id;
+                        console.log(`🔗 Linked message to customer: ${customer.firstName} ${customer.lastName || ''} (${customer.phoneNumber})`);
+                      }
+                    }
+
                     const savedMessage = await prisma.whatsAppMessage.create({
                       data: {
                         to: toAddress,
@@ -414,6 +453,7 @@ export async function POST(request: NextRequest) {
                         direction: 'inbound',
                         metadata: metadata as any,
                         payload: value as any,
+                        whatsappCustomerId: customerId,
                       },
                     });
                     

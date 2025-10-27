@@ -13,7 +13,9 @@
         "sync-whatsapp-templates": "node scripts/whatsapp/sync-templates.js",
         "create-and-publish-catalog": "node scripts/whatsapp/run-create-and-publish-catalog.js",
         "create-multiple-catalog": "node scripts/whatsapp/create-multiple-catalog.js",
-        "cleanup-legacy-whatsapp": "node scripts/cleanup-legacy-whatsapp.js"
+        "cleanup-legacy-whatsapp": "node scripts/cleanup-legacy-whatsapp.js",
+        "cleanup-database": "node scripts/auto-cleanup-daily.js",
+        "check-db-health": "node scripts/check-db-health.js"
     },
     "dependencies": {
         "@clerk/nextjs": "^4.31.8",

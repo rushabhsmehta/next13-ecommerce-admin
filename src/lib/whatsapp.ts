@@ -916,16 +916,36 @@ interface AnalyticsEventInput {
 }
 
 export async function recordAnalyticsEvent(input: AnalyticsEventInput) {
-  return prisma.whatsAppAnalyticsEvent.create({
-    data: {
-      eventType: input.eventType,
-      payload: input.payload ? (input.payload as Prisma.InputJsonValue) : undefined,
-      sessionId: input.sessionId ?? undefined,
-      messageId: input.messageId ?? undefined,
-      automationId: input.automationId ?? undefined,
-      observedAt: input.observedAt ?? new Date(),
-    },
-  });
+  // 📊 OPTIMIZED ANALYTICS - Uses 10% sampling to reduce database growth
+  // This prevents disk space issues while still capturing useful metrics
+  
+  // Sample only 10% of events (except errors - always log those)
+  const isError = input.eventType.toLowerCase().includes('error') || 
+                  input.eventType.toLowerCase().includes('failed');
+  const shouldSample = isError || Math.random() < 0.1; // 10% sampling rate
+  
+  if (!shouldSample) {
+    // Still log to console for debugging, just don't save to DB
+    console.log(`[Analytics] Sampled out: ${input.eventType}`);
+    return null;
+  }
+
+  try {
+    return await prisma.whatsAppAnalyticsEvent.create({
+      data: {
+        eventType: input.eventType,
+        payload: input.payload ? (input.payload as Prisma.InputJsonValue) : undefined,
+        sessionId: input.sessionId ?? undefined,
+        messageId: input.messageId ?? undefined,
+        automationId: input.automationId ?? undefined,
+        observedAt: input.observedAt ?? new Date(),
+      },
+    });
+  } catch (error) {
+    // If analytics fails, don't crash the main flow
+    console.error('[Analytics] Failed to record event:', error);
+    return null;
+  }
 }
 
 type AutomationEventContext = {
@@ -1284,7 +1304,7 @@ export async function sendWhatsAppMessage(
       session,
       message: dbRecord,
       payload: { type: payload.type },
-      analyticsEventId: analytics.id,
+      analyticsEventId: analytics?.id,
       params,
     });
 
@@ -2236,7 +2256,7 @@ export async function sendWhatsAppTemplate(
         templateName: params.templateName,
         languageCode: params.languageCode || 'en_US',
       },
-      analyticsEventId: analytics.id,
+      analyticsEventId: analytics?.id,
       params,
     });
 
@@ -2465,7 +2485,7 @@ export async function emitWhatsAppEvent(
     session,
     message,
     payload: payload.context || payload.raw,
-    analyticsEventId: analytics.id,
+    analyticsEventId: analytics?.id,
   });
 
   return analytics;

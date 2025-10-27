@@ -277,14 +277,26 @@ export default function CampaignDetailsPage() {
 
   const resumeCampaign = async () => {
     try {
-      const response = await fetch(`/api/whatsapp/campaigns/${campaignId}`, {
+      // First set status to 'sending'
+      const statusResponse = await fetch(`/api/whatsapp/campaigns/${campaignId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'scheduled' })
+        body: JSON.stringify({ status: 'sending' })
       });
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (!statusResponse.ok) {
+        const error = await statusResponse.json();
+        throw new Error(error.error || 'Failed to update campaign status');
+      }
+
+      // Then call the send endpoint to restart the background processor
+      const sendResponse = await fetch(`/api/whatsapp/campaigns/${campaignId}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!sendResponse.ok) {
+        const error = await sendResponse.json();
         throw new Error(error.error || 'Failed to resume campaign');
       }
 

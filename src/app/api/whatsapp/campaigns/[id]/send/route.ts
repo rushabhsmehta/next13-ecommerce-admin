@@ -39,8 +39,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     // Completed campaigns can be retried – reset stats and recipient states
     const isCompletedRetry = campaign.status === 'completed';
+    const isResume = campaign.status === 'sending' || campaign.status === 'paused';
 
-    if (!isCompletedRetry && campaign.status !== 'draft' && campaign.status !== 'scheduled') {
+    if (!isCompletedRetry && !isResume && campaign.status !== 'draft' && campaign.status !== 'scheduled') {
       return NextResponse.json(
         { error: 'Campaign cannot be sent in current status' },
         { status: 400 }
@@ -83,12 +84,21 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           }
         });
       });
-    } else {
+    } else if (!isResume) {
+      // Only update status if not already sending/paused (i.e., starting fresh)
       await prisma.whatsAppCampaign.update({
         where: { id: params.id },
         data: {
           status: 'sending',
           startedAt: new Date()
+        }
+      });
+    } else {
+      // Resuming - just ensure status is 'sending'
+      await prisma.whatsAppCampaign.update({
+        where: { id: params.id },
+        data: {
+          status: 'sending'
         }
       });
     }

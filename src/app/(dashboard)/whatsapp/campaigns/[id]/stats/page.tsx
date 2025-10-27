@@ -65,7 +65,8 @@ export default function CampaignStatsPage() {
 
   useEffect(() => {
   fetchStats();
-  const interval = setInterval(fetchStats, 3000);
+  // Reduced from 3000ms to 2000ms for faster UI updates with optimized backend
+  const interval = setInterval(fetchStats, 2000);
     return () => clearInterval(interval);
   }, [fetchStats]);
 

@@ -201,7 +201,8 @@ export default function CampaignDetailsPage() {
       return;
     }
 
-    const interval = setInterval(fetchCampaign, 3000);
+    // Reduced from 3000ms to 2000ms for faster UI updates with optimized backend
+    const interval = setInterval(fetchCampaign, 2000);
 
     return () => clearInterval(interval);
   }, [campaign, fetchCampaign]);
@@ -748,8 +749,8 @@ export default function CampaignDetailsPage() {
 }
 
 function resolveMessagesPerSecond(rateLimit?: number | null): number {
-  const DEFAULT_MESSAGES_PER_SECOND = 15;
-  const MAX_MESSAGES_PER_SECOND = 25;
+  const DEFAULT_MESSAGES_PER_SECOND = 80; // Updated to match backend optimization
+  const MAX_MESSAGES_PER_SECOND = 100; // Updated to match backend optimization
   if (!rateLimit || rateLimit <= 0) {
     return DEFAULT_MESSAGES_PER_SECOND;
   }

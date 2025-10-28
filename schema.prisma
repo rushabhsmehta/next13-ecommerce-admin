@@ -38,8 +38,12 @@ model Location {
   suppliers                 SupplierLocation[]
   tourDestinations          TourDestination[]
   seasonalPeriods           LocationSeasonalPeriod[]
+  isActive                  Boolean                  @default(true)
+  value                     String?
 
   @@index([id])
+  @@index([isActive])
+  @@index([label])
 }
 
 model TourDestination {
@@ -269,6 +273,11 @@ model TourPackageQuery {
   @@index([locationId])
   @@index([inquiryId])
   @@index([associatePartnerId])
+  @@index([updatedAt])
+  @@index([isArchived])
+  @@index([locationId, isArchived, updatedAt])
+  @@index([tourPackageQueryNumber])
+  @@index([customerNumber])
 }
 
 model PurchaseDetail {
@@ -884,6 +893,9 @@ model AssociatePartner {
   inquiries          Inquiry[]
   customers          Customer[]
   tourPackageQueries TourPackageQuery[]
+
+  @@index([isActive])
+  @@index([createdAt])
 }
 
 model OperationalStaff {

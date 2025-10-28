@@ -49,30 +49,48 @@ const tourPackageQueryPage = async ({
   });
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
+  // Optimize: Only fetch active associate partners with minimal fields
   const associatePartners = await prismadb.associatePartner.findMany({
+    where: {
+      isActive: true,
+    },
     orderBy: {
       createdAt: 'desc'
-    }
+    },
+    take: 50, // Limit to 50 most recent
   });
+
+  // Optimize: Only fetch essential location fields
   const locations = await prismadb.location.findMany({
-  });
-
-  const hotels = await prismadb.hotel.findMany({
-    include: {
-      images: true // Ensure images are included in the query result
+    orderBy: {
+      label: 'asc',
     }
   });
 
-  const activitiesMaster = await prismadb.activityMaster.findMany({
+  // Optimize: Only fetch hotels for the specific location if editing
+  const hotels = await prismadb.hotel.findMany({
+    where: tourPackageQuery?.locationId ? {
+      locationId: tourPackageQuery.locationId,
+    } : undefined,
+    include: {
+      images: true,
+    },
+    take: 100, // Limit hotels
+  });
 
+  // Optimize: Only fetch activity masters for the specific location
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+    where: tourPackageQuery?.locationId ? {
+      locationId: tourPackageQuery.locationId,
+    } : undefined,
     include: {
       activityMasterImages: true,
     },
-  }
-  );
+    take: 50,
+  });
 
+  // Optimize: Only fetch itinerary masters for the specific location
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
-
     where: {
       locationId: tourPackageQuery?.locationId ?? '',
     },
@@ -83,12 +101,15 @@ const tourPackageQueryPage = async ({
           activityImages: true,
         }
       },
-    }
+    },
+    take: 50,
   });
+
+  // Optimize: Only fetch tour packages for the specific location with minimal data
   const tourPackages = await prismadb.tourPackage.findMany({
     where: {
       isArchived: false,
-      
+      locationId: tourPackageQuery?.locationId,
     },
     include: {
       images: true,
@@ -103,71 +124,37 @@ const tourPackageQueryPage = async ({
           }
         }
       },
-      packageVariants: {
-        include: {
-          variantHotelMappings: {
-            include: {
-              hotel: {
-                include: {
-                  images: true,
-                },
-              },
-              itinerary: true,
-            },
-          },
-          tourPackagePricings: {
-            include: {
-              mealPlan: true,
-              vehicleType: true,
-              locationSeasonalPeriod: true,
-              pricingComponents: {
-                include: {
-                  pricingAttribute: true,
-                },
-                orderBy: {
-                  pricingAttribute: {
-                    sortOrder: 'asc',
-                  },
-                },
-              },
-            },
-            orderBy: {
-              startDate: 'asc',
-            },
-          },
-        },
-        orderBy: {
-          sortOrder: 'asc',
-        },
-      },
-    }
+    },
+    take: 20, // Limit to 20 packages
   });
 
-  // Fetch tour package queries for templates
+  // Optimize: Only fetch recent tour package queries as templates
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
     where: {
       isArchived: false,
+      locationId: tourPackageQuery?.locationId,
       createdAt: {
         gt: new Date('2024-12-31')
+      }
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
+            }
+          }
+        }
       }
     },
     orderBy: {
       createdAt: 'desc'
     },
-    include: {
-      images: true,
-      flightDetails: true,
-      itineraries: {
-        include: {
-          itineraryImages: true,
-          activities: {
-            include: {
-              activityImages: true
-            }
-          }
-        }
-      }
-    }
+    take: 30, // Limit to 30 most recent
   });
 
   return (

@@ -9,28 +9,29 @@ import Navbar from "@/components/navbar";
 const tourPackageQueryPage = async ({
 
 }) => {
+  // Optimized query: only fetch necessary fields, limit to recent records
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
-
-    include: {
-      //   images: true,
-      location: true,
-      //    flightDetails: true,
-      //    itineraries: {
-      //
-      //     include: {
-      //       itineraryImages: true,
-      //       activities:
-      //       {
-      //         include:
-      //         {
-      //          activityImages: true,
-      //          }
-      //       }
-      //      },
-      //       orderBy: {
-      //       days: 'asc' // or 'desc', depending on the desired order
-      //     }
-      //   }
+    take: 100, // Limit to 100 most recent records
+    select: {
+      id: true,
+      tourPackageQueryNumber: true,
+      tourPackageQueryName: true,
+      tourPackageQueryType: true,
+      customerName: true,
+      assignedTo: true,
+      isFeatured: true,
+      isArchived: true,
+      customerNumber: true,
+      tourStartsFrom: true,
+      updatedAt: true,
+      location: {
+        select: {
+          label: true,
+        }
+      }
+    },
+    where: {
+      isArchived: false,
     },
     orderBy: {
       updatedAt: 'desc'

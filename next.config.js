@@ -34,10 +34,14 @@ const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
       '/api/**/*': [
+        './node_modules/@prisma/client/**/*',
+        './node_modules/.prisma/client/**/*',
         './node_modules/@prisma/whatsapp-client/**/*',
         './node_modules/.prisma/whatsapp-client/**/*',
       ],
       '/(dashboard)/**/*': [
+        './node_modules/@prisma/client/**/*',
+        './node_modules/.prisma/client/**/*',
         './node_modules/@prisma/whatsapp-client/**/*',
         './node_modules/.prisma/whatsapp-client/**/*',
       ],

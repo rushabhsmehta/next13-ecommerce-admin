@@ -1,5 +1,5 @@
-import { Prisma, WhatsAppCustomer } from '@prisma/client';
-import prisma from './prismadb';
+import { Prisma, WhatsAppCustomer } from '@prisma/whatsapp-client';
+import whatsappPrisma from './whatsapp-prismadb';
 import { normalizePhoneNumberOrThrow } from './phone-utils';
 
 export type WhatsAppCustomerInput = {
@@ -62,7 +62,7 @@ function buildCreateData(input: WhatsAppCustomerInput): Prisma.WhatsAppCustomerC
     lastName: input.lastName?.trim() || null,
     phoneNumber: normalizedPhone,
     email: input.email?.trim() || null,
-    tags: tags ? (tags as unknown as Prisma.InputJsonValue) : undefined,
+    tags: tags || undefined, // PostgreSQL uses String[] for tags
     notes: input.notes?.trim() || null,
     isOptedIn: input.isOptedIn ?? true,
     metadata: input.metadata ? (input.metadata as Prisma.InputJsonValue) : undefined,
@@ -89,7 +89,7 @@ function buildUpdateData(input: Partial<WhatsAppCustomerInput>): Prisma.WhatsApp
   }
   if (input.tags !== undefined) {
     const tags = sanitizeTags(input.tags);
-    data.tags = tags ? (tags as unknown as Prisma.InputJsonValue) : Prisma.DbNull;
+    data.tags = tags || []; // PostgreSQL uses String[] for tags, empty array instead of null
   }
   if (input.notes !== undefined) {
     data.notes = input.notes?.trim() || null;
@@ -137,7 +137,8 @@ function buildWhatsAppCustomerWhere(filters: Pick<WhatsAppCustomerFilters, 'sear
   }
 
   if (tags && tags.length > 0) {
-    where.tags = { array_contains: tags } as Prisma.JsonFilter;
+    // PostgreSQL array contains - check if any of the provided tags exists in the customer's tags array
+    where.tags = { hasSome: tags };
   }
 
   return where;
@@ -156,17 +157,17 @@ export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {
   const where = buildWhatsAppCustomerWhere({ search, tags, isOptedIn });
 
   const [data, total] = await Promise.all([
-    prisma.whatsAppCustomer.findMany({
+    whatsappPrisma.whatsAppCustomer.findMany({
       where,
       skip,
       take,
       orderBy,
     }),
-    prisma.whatsAppCustomer.count({ where }),
+    whatsappPrisma.whatsAppCustomer.count({ where }),
   ]);
 
-  const uniqueTags = await prisma.whatsAppCustomer.findMany({
-    where: { tags: { not: Prisma.DbNull } },
+  const uniqueTags = await whatsappPrisma.whatsAppCustomer.findMany({
+    where: { tags: { isEmpty: false } }, // PostgreSQL array: get customers with non-empty tags
     select: { tags: true },
   });
 
@@ -195,25 +196,25 @@ export async function exportWhatsAppCustomers(filters: WhatsAppCustomerFilters =
   const { search, tags, isOptedIn } = filters;
   const where = buildWhatsAppCustomerWhere({ search, tags, isOptedIn });
   const orderBy = filters.orderBy ?? [{ firstName: 'asc' }, { lastName: 'asc' }];
-  return prisma.whatsAppCustomer.findMany({ where, orderBy });
+  return whatsappPrisma.whatsAppCustomer.findMany({ where, orderBy });
 }
 
 export async function getWhatsAppCustomerById(id: string) {
-  return prisma.whatsAppCustomer.findUnique({ where: { id } });
+  return whatsappPrisma.whatsAppCustomer.findUnique({ where: { id } });
 }
 
 export async function createWhatsAppCustomer(input: WhatsAppCustomerInput) {
   const data = buildCreateData(input);
-  return prisma.whatsAppCustomer.create({ data });
+  return whatsappPrisma.whatsAppCustomer.create({ data });
 }
 
 export async function updateWhatsAppCustomer(id: string, input: Partial<WhatsAppCustomerInput>) {
   const data = buildUpdateData(input);
-  return prisma.whatsAppCustomer.update({ where: { id }, data });
+  return whatsappPrisma.whatsAppCustomer.update({ where: { id }, data });
 }
 
 export async function deleteWhatsAppCustomer(id: string) {
-  return prisma.whatsAppCustomer.delete({ where: { id } });
+  return whatsappPrisma.whatsAppCustomer.delete({ where: { id } });
 }
 
 export async function upsertWhatsAppCustomers(
@@ -243,7 +244,7 @@ export async function upsertWhatsAppCustomers(
         importedAt: customer.importedAt ?? new Date(),
       });
 
-      return prisma.whatsAppCustomer.upsert({
+      return whatsappPrisma.whatsAppCustomer.upsert({
         where: { phoneNumber: normalizedPhone },
         update: {
           ...updateData,
@@ -255,7 +256,7 @@ export async function upsertWhatsAppCustomers(
     })
   );
 
-  results.forEach((result) => {
+  results.forEach((result: WhatsAppCustomer | undefined) => {
     if (result?.createdAt && result.createdAt.getTime() === result.updatedAt.getTime()) {
       created += 1;
     } else {
@@ -267,8 +268,8 @@ export async function upsertWhatsAppCustomers(
 }
 
 export async function getWhatsAppCustomerTags() {
-  const rows = await prisma.whatsAppCustomer.findMany({
-    where: { tags: { not: Prisma.DbNull } },
+  const rows = await whatsappPrisma.whatsAppCustomer.findMany({
+    where: { tags: { isEmpty: false } }, // PostgreSQL array
     select: { tags: true },
   });
 
@@ -293,5 +294,8 @@ export async function ensureWhatsAppCustomersExist(ids: string[]): Promise<Whats
   if (!ids.length) {
     return [];
   }
-  return prisma.whatsAppCustomer.findMany({ where: { id: { in: ids } } });
+  return whatsappPrisma.whatsAppCustomer.findMany({ where: { id: { in: ids } } });
 }
+
+
+

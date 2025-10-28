@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_ACCESS_TOKEN = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
@@ -24,7 +22,7 @@ async function checkMessagingWindow(phoneNumber: string): Promise<{
       : `whatsapp:${phoneNumber.replace(/^\+/, '')}`;
 
     // Find the most recent inbound message from this customer
-    const lastInboundMessage = await prisma.whatsAppMessage.findFirst({
+    const lastInboundMessage = await whatsappPrisma.whatsAppMessage.findFirst({
       where: {
         from: normalizedPhone,
         direction: 'inbound',
@@ -165,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     // Save the sent message to database
     try {
-      const savedMessage = await prisma.whatsAppMessage.create({
+      const savedMessage = await whatsappPrisma.whatsAppMessage.create({
         data: {
           to: `whatsapp:${phoneNumber.replace(/^\+/, '')}`,
           from: `whatsapp:${META_WHATSAPP_PHONE_NUMBER_ID}`,

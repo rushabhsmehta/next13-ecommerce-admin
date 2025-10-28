@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc, getUserTimezone, formatLocalDate } from "@/lib/timezone-utils";
 import { 
   startOfDay, 
@@ -22,7 +23,7 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
     const normalizedPhone = normalizeWhatsAppPhone(phoneNumber);
     
     // Check if customer already exists
-    const existingCustomer = await prismadb.whatsAppCustomer.findUnique({
+    const existingCustomer = await whatsappPrisma.whatsAppCustomer.findUnique({
       where: { phoneNumber: normalizedPhone }
     });
     
@@ -32,7 +33,7 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
     }
     
     // Create new customer with "Customer" tag
-    const newCustomer = await prismadb.whatsAppCustomer.create({
+    const newCustomer = await whatsappPrisma.whatsAppCustomer.create({
       data: {
         firstName: customerName.split(' ')[0] || customerName,
         lastName: customerName.split(' ').slice(1).join(' ') || null,

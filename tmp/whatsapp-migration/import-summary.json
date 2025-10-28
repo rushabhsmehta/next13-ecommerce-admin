@@ -1,0 +1,63 @@
+{
+  "importedAt": "2025-10-28T14:51:49.709Z",
+  "totalRecords": 1604,
+  "models": {
+    "WhatsAppTemplate": {
+      "count": 16
+    },
+    "WhatsAppFlowVersion": {
+      "count": 0
+    },
+    "WhatsAppAutomation": {
+      "count": 0
+    },
+    "WhatsAppCustomer": {
+      "count": 685
+    },
+    "WhatsAppSession": {
+      "count": 4
+    },
+    "WhatsAppMessage": {
+      "count": 63
+    },
+    "WhatsAppAnalyticsEvent": {
+      "count": 131
+    },
+    "WhatsAppCampaign": {
+      "count": 4
+    },
+    "WhatsAppCampaignRecipient": {
+      "count": 685
+    },
+    "WhatsAppCatalog": {
+      "count": 1
+    },
+    "WhatsAppMediaAsset": {
+      "count": 1
+    },
+    "WhatsAppProduct": {
+      "count": 5
+    },
+    "WhatsAppProductVariant": {
+      "count": 2
+    },
+    "WhatsAppTourPackage": {
+      "count": 5
+    },
+    "WhatsAppTourPackageVariant": {
+      "count": 2
+    },
+    "WhatsAppCart": {
+      "count": 0
+    },
+    "WhatsAppCartItem": {
+      "count": 0
+    },
+    "WhatsAppOrder": {
+      "count": 0
+    },
+    "WhatsAppOrderItem": {
+      "count": 0
+    }
+  }
+}

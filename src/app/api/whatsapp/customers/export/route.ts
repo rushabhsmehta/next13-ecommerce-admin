@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { exportWhatsAppCustomers } from '@/lib/whatsapp-customers';
+import type { WhatsAppCustomer } from '@prisma/whatsapp-client';
 
 function parseTags(raw: string | null) {
   if (!raw) {
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       'Updated At',
     ];
 
-    const rows = customers.map((customer) => {
+    const rows = customers.map((customer: WhatsAppCustomer) => {
       const tagsValue = Array.isArray(customer.tags)
         ? (customer.tags as unknown[])
             .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)

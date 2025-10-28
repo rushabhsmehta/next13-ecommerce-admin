@@ -7,8 +7,8 @@ import {
   WhatsAppTourPackage,
   WhatsAppTourPackageStatus,
   WhatsAppTourPackageVariant,
-} from '@prisma/client';
-import prisma from './prismadb';
+} from '@prisma/whatsapp-client';
+import whatsappPrisma from './whatsapp-prismadb';
 import { GraphApiError } from './whatsapp';
 
 const DEFAULT_CATALOG_ID = process.env.WHATSAPP_CATALOG_ID || '669842452858464';
@@ -112,7 +112,7 @@ function buildRichDescription(pkg: WhatsAppTourPackage & { product: { descriptio
 async function ensureDefaultCatalog(): Promise<WhatsAppCatalog> {
   const catalogId = assertCatalogId();
 
-  const existing = await prisma.whatsAppCatalog.findFirst({
+  const existing = await whatsappPrisma.whatsAppCatalog.findFirst({
     where: { metaCatalogId: catalogId },
   });
 
@@ -120,7 +120,7 @@ async function ensureDefaultCatalog(): Promise<WhatsAppCatalog> {
     return existing;
   }
 
-  return prisma.whatsAppCatalog.create({
+  return whatsappPrisma.whatsAppCatalog.create({
     data: {
       name: DEFAULT_CATALOG_NAME,
       metaCatalogId: catalogId,
@@ -305,7 +305,7 @@ async function generateUniqueVariantSku(client: TransactionClient, base: string,
 }
 
 async function fetchTourPackageWithRelations(id: string) {
-  const record = await prisma.whatsAppTourPackage.findUnique({
+  const record = await whatsappPrisma.whatsAppTourPackage.findUnique({
     where: { id },
     include: {
       product: true,
@@ -458,7 +458,7 @@ export async function createTourPackage(input: TourPackageInput): Promise<TourPa
   const basePrice = toDecimal(input.basePrice) ?? new Prisma.Decimal(0);
   const status = input.status || WhatsAppTourPackageStatus.draft;
 
-  const created = await prisma.$transaction(async (tx) => {
+  const created = await whatsappPrisma.$transaction(async (tx) => {
     const sku = await generateUniqueProductSku(tx, input.title);
 
     const product = await tx.whatsAppProduct.create({
@@ -545,7 +545,7 @@ export async function updateTourPackage(
   id: string,
   input: Partial<TourPackageInput>,
 ): Promise<TourPackageWithRelations> {
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await whatsappPrisma.$transaction(async (tx) => {
     const existing = await tx.whatsAppTourPackage.findUnique({
       where: { id },
       include: {
@@ -683,7 +683,7 @@ export async function syncTourPackageToMeta(id: string): Promise<TourPackageWith
     throw new Error('Meta catalog is not configured for synchronization.');
   }
 
-  const pkg = await prisma.whatsAppTourPackage.findUnique({
+  const pkg = await whatsappPrisma.whatsAppTourPackage.findUnique({
     where: { id },
     include: {
       product: true,
@@ -694,7 +694,7 @@ export async function syncTourPackageToMeta(id: string): Promise<TourPackageWith
     throw new Error(`Tour package ${id} not found.`);
   }
 
-  await prisma.whatsAppTourPackage.update({
+  await whatsappPrisma.whatsAppTourPackage.update({
     where: { id },
     data: {
       syncStatus: WhatsAppCatalogSyncStatus.in_progress,
@@ -740,7 +740,7 @@ export async function syncTourPackageToMeta(id: string): Promise<TourPackageWith
       metaProductId = response.id;
     }
 
-    await prisma.whatsAppProduct.update({
+    await whatsappPrisma.whatsAppProduct.update({
       where: { id: pkg.productId },
       data: {
         metaProductId: metaProductId || undefined,
@@ -748,7 +748,7 @@ export async function syncTourPackageToMeta(id: string): Promise<TourPackageWith
       },
     });
 
-    await prisma.whatsAppTourPackage.update({
+    await whatsappPrisma.whatsAppTourPackage.update({
       where: { id },
       data: {
         catalogProductId: metaProductId || undefined,
@@ -759,7 +759,7 @@ export async function syncTourPackageToMeta(id: string): Promise<TourPackageWith
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown sync failure';
-    await prisma.whatsAppTourPackage.update({
+    await whatsappPrisma.whatsAppTourPackage.update({
       where: { id },
       data: {
         syncStatus: WhatsAppCatalogSyncStatus.failed,
@@ -775,7 +775,7 @@ export async function syncTourPackageToMeta(id: string): Promise<TourPackageWith
 export async function deleteTourPackage(id: string, options?: { removeFromMeta?: boolean }) {
   const removeFromMeta = options?.removeFromMeta !== false;
 
-  const pkg = await prisma.whatsAppTourPackage.findUnique({
+  const pkg = await whatsappPrisma.whatsAppTourPackage.findUnique({
     where: { id },
     include: {
       product: true,
@@ -814,7 +814,7 @@ export async function deleteTourPackage(id: string, options?: { removeFromMeta?:
 
   const wasActive = !isArchivedStatus(pkg.status);
 
-  await prisma.$transaction(
+  await whatsappPrisma.$transaction(
     async (tx) => {
       await tx.whatsAppTourPackageVariant.deleteMany({ where: { tourPackageId: id } });
       await tx.whatsAppProductVariant.deleteMany({ where: { productId: pkg.productId } });
@@ -844,7 +844,7 @@ export async function syncPendingTourPackages(limit = 10) {
     throw new Error('Meta catalog is not configured for synchronization.');
   }
 
-  const queue = await prisma.whatsAppTourPackage.findMany({
+  const queue = await whatsappPrisma.whatsAppTourPackage.findMany({
     where: {
       syncStatus: { in: [WhatsAppCatalogSyncStatus.pending, WhatsAppCatalogSyncStatus.failed] },
       status: { not: WhatsAppTourPackageStatus.archived },
@@ -879,7 +879,7 @@ export async function ensureCatalogReady() {
 }
 
 export async function listTourPackages() {
-  const packages = await prisma.whatsAppTourPackage.findMany({
+  const packages = await whatsappPrisma.whatsAppTourPackage.findMany({
     include: {
       product: true,
       variants: {
@@ -890,3 +890,6 @@ export async function listTourPackages() {
 
   return packages;
 }
+
+
+

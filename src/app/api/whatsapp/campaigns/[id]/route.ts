@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { auth } from '@clerk/nextjs/server';
 
 interface RouteParams {
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const campaign = await prisma.whatsAppCampaign.findUnique({
+    const campaign = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: params.id },
       include: {
         recipients: {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const groupedStatuses = await prisma.whatsAppCampaignRecipient.groupBy({
+    const groupedStatuses = await whatsappPrisma.whatsAppCampaignRecipient.groupBy({
       where: { campaignId: params.id },
       by: ['status'],
       _count: { _all: true },
@@ -93,7 +93,7 @@ function mapStatusSummary(summary: Record<string, number>) {
 }
 
 async function buildRetrySchedule(campaignId: string) {
-  const retryingRecipients = await prisma.whatsAppCampaignRecipient.findMany({
+  const retryingRecipients = await whatsappPrisma.whatsAppCampaignRecipient.findMany({
     where: {
       campaignId,
       status: 'retry',
@@ -161,7 +161,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
           updateData.scheduledFor = body.scheduledFor ? new Date(body.scheduledFor) : null;
         }
 
-        const updatedCampaign = await prisma.whatsAppCampaign.update({
+        const updatedCampaign = await whatsappPrisma.whatsAppCampaign.update({
           where: { id: params.id },
           data: updateData,
           include: {
@@ -174,7 +174,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       }
 
     // Check if campaign exists and is editable
-    const existingCampaign = await prisma.whatsAppCampaign.findUnique({
+    const existingCampaign = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: params.id }
     });
 
@@ -205,7 +205,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     } = body;
 
     // Update campaign
-    const campaign = await prisma.whatsAppCampaign.update({
+    const campaign = await whatsappPrisma.whatsAppCampaign.update({
       where: { id: params.id },
       data: {
         ...(name && { name }),
@@ -251,7 +251,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     // Check if campaign exists
-    const campaign = await prisma.whatsAppCampaign.findUnique({
+    const campaign = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: params.id }
     });
 
@@ -264,7 +264,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     // If campaign is actively sending, cancel instead of deleting
     if (campaign.status === 'sending') {
-      await prisma.whatsAppCampaign.update({
+      await whatsappPrisma.whatsAppCampaign.update({
         where: { id: params.id },
         data: {
           status: 'cancelled',
@@ -288,7 +288,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     ]);
 
     if (deletableStatuses.has(campaign.status)) {
-      await prisma.whatsAppCampaign.delete({
+      await whatsappPrisma.whatsAppCampaign.delete({
         where: { id: params.id }
       });
 

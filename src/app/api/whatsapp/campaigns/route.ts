@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { auth } from '@clerk/nextjs/server';
 
 // GET /api/whatsapp/campaigns - List all campaigns
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     // Get campaigns
     const [campaigns, total] = await Promise.all([
-      prisma.whatsAppCampaign.findMany({
+      whatsappPrisma.whatsAppCampaign.findMany({
         where,
         skip,
         take: limit,
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
           }
         }
       }),
-      prisma.whatsAppCampaign.count({ where })
+      whatsappPrisma.whatsAppCampaign.count({ where })
     ]);
 
     return NextResponse.json({
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create campaign
-    const campaign = await prisma.whatsAppCampaign.create({
+    const campaign = await whatsappPrisma.whatsAppCampaign.create({
       data: {
         name,
         description,
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
           let phoneNumber = recipient.phoneNumber;
 
           if ((!phoneNumber || phoneNumber.trim().length === 0) && recipient.whatsappCustomerId) {
-            const customer = await prisma.whatsAppCustomer.findUnique({
+            const customer = await whatsappPrisma.whatsAppCustomer.findUnique({
               where: { id: recipient.whatsappCustomerId },
               select: { phoneNumber: true },
             });
@@ -135,13 +135,13 @@ export async function POST(req: NextRequest) {
         })
       );
 
-      await prisma.whatsAppCampaignRecipient.createMany({
+      await whatsappPrisma.whatsAppCampaignRecipient.createMany({
         data: enhancedRecipients,
       });
     }
 
     // Fetch campaign with recipients
-    const campaignWithRecipients = await prisma.whatsAppCampaign.findUnique({
+    const campaignWithRecipients = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: campaign.id },
       include: {
         recipients: true,

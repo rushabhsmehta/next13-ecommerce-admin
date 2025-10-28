@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prismadb from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb'; // PostgreSQL for WhatsApp models
+import prismadb from '@/lib/prismadb'; // Main MySQL DB for Location, TourPackage, etc.
 import crypto from 'crypto';
 import {
   emitWhatsAppEvent,
@@ -83,9 +84,9 @@ type SessionState = {
 };
 
 async function loadFlowSession(flowToken: string): Promise<{ sessionId: string; state: SessionState }> {
-  let session = await prismadb.whatsAppSession.findUnique({ where: { flowToken } });
+  let session = await whatsappPrisma.whatsAppSession.findUnique({ where: { flowToken } });
   if (!session) {
-    session = await prismadb.whatsAppSession.create({
+    session = await whatsappPrisma.whatsAppSession.create({
       data: {
         flowToken,
         context: {},
@@ -105,10 +106,10 @@ async function persistFlowSession(
   patch: Partial<SessionState>,
   meta: { lastScreen?: string; lastAction?: string } = {}
 ) {
-  const session = await prismadb.whatsAppSession.findUnique({ where: { id: sessionId } });
+  const session = await whatsappPrisma.whatsAppSession.findUnique({ where: { id: sessionId } });
   const existing = (session?.context as SessionState) || {};
   const nextState: SessionState = { ...existing, ...patch };
-  await prismadb.whatsAppSession.update({
+  await whatsappPrisma.whatsAppSession.update({
     where: { id: sessionId },
     data: {
       context: nextState as any,
@@ -798,7 +799,7 @@ async function handlePackageSummary(body: FlowDataExchangeRequest): Promise<Flow
   });
 
   try {
-    const session = await prismadb.whatsAppSession.findUnique({ where: { id: sessionId } });
+    const session = await whatsappPrisma.whatsAppSession.findUnique({ where: { id: sessionId } });
     const destination = session?.phoneNumber || session?.waId;
     if (destination) {
       const summaryMessage = [

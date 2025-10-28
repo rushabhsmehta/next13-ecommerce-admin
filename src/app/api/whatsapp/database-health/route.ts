@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prismadb from "@/lib/prismadb";
+import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { auth } from "@clerk/nextjs";
 
 /**
@@ -29,13 +29,13 @@ export async function GET() {
       campaignsCount,
       templatesCount,
     ] = await Promise.all([
-      prismadb.whatsAppAnalyticsEvent.count(),
-      prismadb.whatsAppMessage.count(),
-      prismadb.whatsAppSession.count(),
-      prismadb.whatsAppCampaignRecipient.count(),
-      prismadb.whatsAppCustomer.count(),
-      prismadb.whatsAppCampaign.count(),
-      prismadb.whatsAppTemplate.count(),
+      whatsappPrisma.whatsAppAnalyticsEvent.count(),
+      whatsappPrisma.whatsAppMessage.count(),
+      whatsappPrisma.whatsAppSession.count(),
+      whatsappPrisma.whatsAppCampaignRecipient.count(),
+      whatsappPrisma.whatsAppCustomer.count(),
+      whatsappPrisma.whatsAppCampaign.count(),
+      whatsappPrisma.whatsAppTemplate.count(),
     ]);
 
     const totalRecords = 

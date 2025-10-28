@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { auth } from '@clerk/nextjs/server';
 
 interface RouteParams {
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     // Get campaign
-    const campaign = await prisma.whatsAppCampaign.findUnique({
+    const campaign = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: params.id }
     });
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     // Get recipient statistics
-    const recipientStats = await prisma.whatsAppCampaignRecipient.groupBy({
+    const recipientStats = await whatsappPrisma.whatsAppCampaignRecipient.groupBy({
       by: ['status'],
       where: { campaignId: params.id },
       _count: true
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     });
 
     // Get error breakdown
-    const errorBreakdown = await prisma.whatsAppCampaignRecipient.groupBy({
+    const errorBreakdown = await whatsappPrisma.whatsAppCampaignRecipient.groupBy({
       by: ['errorCode'],
       where: {
         campaignId: params.id,
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const failureRate = total > 0 ? ((stats.failed / total) * 100).toFixed(2) : '0.00';
 
     // Get time-based stats (messages sent over time)
-    const sentOverTime = await prisma.whatsAppCampaignRecipient.groupBy({
+    const sentOverTime = await whatsappPrisma.whatsAppCampaignRecipient.groupBy({
       by: ['sentAt'],
       where: {
         campaignId: params.id,
@@ -103,7 +103,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     // Get sample failed recipients (for debugging)
-    const failedRecipients = await prisma.whatsAppCampaignRecipient.findMany({
+    const failedRecipients = await whatsappPrisma.whatsAppCampaignRecipient.findMany({
       where: {
         campaignId: params.id,
         status: 'failed'

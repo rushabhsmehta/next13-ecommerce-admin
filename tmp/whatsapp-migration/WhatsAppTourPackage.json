@@ -1,0 +1,222 @@
+[
+  {
+    "id": "27a4e6cb-ba3c-456a-a66d-befc8ac362b3",
+    "productId": "4e8bbba2-56f3-44ab-a37f-ad108f061014",
+    "title": "Andaman Diving Adventure",
+    "subtitle": "Tropical islands with world-class diving spots",
+    "heroImageUrl": "https://images.pexels.com/photos/3861440/pexels-photo-3861440.jpeg",
+    "gallery": [
+      "https://images.pexels.com/photos/3861441/pexels-photo-3861441.jpeg",
+      "https://images.pexels.com/photos/1298684/pexels-photo-1298684.jpeg"
+    ],
+    "location": "Havelock & Neil Islands",
+    "itinerarySummary": "Day 1: Port Blair arrival and Cellular Jail. \nDay 2: Havelock scuba dive. \nDay 3: Elephant Beach snorkel. \nDay 4: Neil Island exploration. \nDay 5: Return.",
+    "highlights": [
+      "PADI certified dive",
+      "Elephant Beach snorkelling",
+      "Neil Island beaches"
+    ],
+    "inclusions": [
+      "Diver instructor fees",
+      "Hotel transfers",
+      "Breakfast"
+    ],
+    "exclusions": [
+      "Airfare",
+      "Lunch & dinner"
+    ],
+    "bookingUrl": "https://example.com/book/andaman-diving-adventure",
+    "termsAndConditions": null,
+    "basePrice": "4199999",
+    "currency": "INR",
+    "seasonalAvailability": null,
+    "durationNights": 4,
+    "durationDays": 5,
+    "status": "active",
+    "syncStatus": "synced",
+    "catalogProductId": "25454584007459019",
+    "retailerId": "PKG-1760633049473-306",
+    "lastSyncAt": "2025-10-17T05:12:55.926Z",
+    "lastSyncError": null,
+    "createdAt": "2025-10-16T16:44:11.621Z",
+    "updatedAt": "2025-10-17T05:12:55.927Z",
+    "createdBy": null,
+    "updatedBy": null
+  },
+  {
+    "id": "545b5035-aa79-45a7-bff1-f31ad0d7c05f",
+    "productId": "2e366253-e40b-47c1-a85d-31c5976413fa",
+    "title": "Himalayan Snow Escape",
+    "subtitle": "Witness snow-capped peaks and cozy mountain stays",
+    "heroImageUrl": "https://images.pexels.com/photos/1151335/pexels-photo-1151335.jpeg",
+    "gallery": [
+      "https://images.pexels.com/photos/572897/pexels-photo-572897.jpeg",
+      "https://images.pexels.com/photos/2868242/pexels-photo-2868242.jpeg"
+    ],
+    "location": "Manali, Himachal Pradesh",
+    "itinerarySummary": "Day 1: Arrival and local exploration. Day 2: Snow adventure in Solang Valley. Day 3: Rohtang Pass excursion. Day 4: Leisure and departure.",
+    "highlights": [
+      "Solang Valley snow sports",
+      "Rohtang Pass excursion",
+      "Local Himachali cuisine"
+    ],
+    "inclusions": [
+      "Hotel accommodation",
+      "Daily breakfast and dinner",
+      "Private transfers"
+    ],
+    "exclusions": [
+      "Flights",
+      "Personal expenses"
+    ],
+    "bookingUrl": "https://example.com/book/himalayan-snow-escape",
+    "termsAndConditions": null,
+    "basePrice": "24999",
+    "currency": "INR",
+    "seasonalAvailability": null,
+    "durationNights": 3,
+    "durationDays": 4,
+    "status": "active",
+    "syncStatus": "synced",
+    "catalogProductId": "24830343049968720",
+    "retailerId": "PKG-1760632988931-871",
+    "lastSyncAt": "2025-10-16T16:43:27.348Z",
+    "lastSyncError": null,
+    "createdAt": "2025-10-16T16:43:12.013Z",
+    "updatedAt": "2025-10-16T16:43:27.349Z",
+    "createdBy": null,
+    "updatedBy": null
+  },
+  {
+    "id": "a56fec87-5717-4d71-9fd9-e57c0e39394b",
+    "productId": "cdd0a83f-ddb4-44aa-9812-d5a6396c72f5",
+    "title": "Varanasi Spiritual Retreat",
+    "subtitle": "Morning aartis, boat rides, and heritage walk",
+    "heroImageUrl": "https://images.pexels.com/photos/5414060/pexels-photo-5414060.jpeg",
+    "gallery": [
+      "https://images.pexels.com/photos/5414066/pexels-photo-5414066.jpeg",
+      "https://images.pexels.com/photos/5414137/pexels-photo-5414137.jpeg"
+    ],
+    "location": "Varanasi, Uttar Pradesh",
+    "itinerarySummary": "Day 1: Evening Ganga aarti. \nDay 2: Sunrise boat ride and silk weaving tour. \nDay 3: Sarnath excursion. \nDay 4: Heritage walk and departure.",
+    "highlights": [
+      "Ganga aarti",
+      "Sunrise boat ride",
+      "Sarnath visit"
+    ],
+    "inclusions": [
+      "Hotel stay",
+      "Breakfast",
+      "Guided tours"
+    ],
+    "exclusions": [
+      "Flights",
+      "Personal expenses"
+    ],
+    "bookingUrl": "https://example.com/book/varanasi-spiritual-retreat",
+    "termsAndConditions": null,
+    "basePrice": "1899999",
+    "currency": "INR",
+    "seasonalAvailability": null,
+    "durationNights": 3,
+    "durationDays": 4,
+    "status": "active",
+    "syncStatus": "synced",
+    "catalogProductId": "25328192060138000",
+    "retailerId": "PKG-1760633063674-271",
+    "lastSyncAt": "2025-10-17T05:11:49.423Z",
+    "lastSyncError": null,
+    "createdAt": "2025-10-16T16:44:25.740Z",
+    "updatedAt": "2025-10-17T05:11:49.424Z",
+    "createdBy": null,
+    "updatedBy": null
+  },
+  {
+    "id": "c8227c27-55c8-44b6-a6e6-05f02683ddfc",
+    "productId": "1a22302f-ca18-4419-b69f-2913ef171c7f",
+    "title": "Maldives Lagoon Getaway",
+    "subtitle": "Crystal clear waters and overwater villas",
+    "heroImageUrl": "https://images.pexels.com/photos/1450361/pexels-photo-1450361.jpeg",
+    "gallery": [
+      "https://images.pexels.com/photos/1118873/pexels-photo-1118873.jpeg",
+      "https://images.pexels.com/photos/3601426/pexels-photo-3601426.jpeg"
+    ],
+    "location": "South Male Atoll",
+    "itinerarySummary": "Day 1: Speedboat transfer and sunset cruise. Day 2: Snorkelling and spa. Day 3: Sandbank picnic. Day 4: Leisure and departure.",
+    "highlights": [
+      "Sunset cruise",
+      "Snorkelling at coral reefs",
+      "Private sandbank picnic"
+    ],
+    "inclusions": [
+      "Overwater villa stay",
+      "All meals",
+      "Airport transfers"
+    ],
+    "exclusions": [
+      "International flights",
+      "Travel insurance"
+    ],
+    "bookingUrl": "https://example.com/book/maldives-lagoon-getaway",
+    "termsAndConditions": null,
+    "basePrice": "89999",
+    "currency": "INR",
+    "seasonalAvailability": null,
+    "durationNights": 3,
+    "durationDays": 4,
+    "status": "active",
+    "syncStatus": "synced",
+    "catalogProductId": "25404606425809635",
+    "retailerId": "PKG-1760633010927-496",
+    "lastSyncAt": "2025-10-16T16:43:53.177Z",
+    "lastSyncError": null,
+    "createdAt": "2025-10-16T16:43:33.477Z",
+    "updatedAt": "2025-10-16T16:43:53.178Z",
+    "createdBy": null,
+    "updatedBy": null
+  },
+  {
+    "id": "fd1bf47a-08e6-47ed-91a3-132670f83dee",
+    "productId": "421b2516-6d15-4f21-86d0-c19406309e24",
+    "title": "Rajasthan Heritage Trail",
+    "subtitle": "Palaces, desert safaris, and cultural evenings",
+    "heroImageUrl": "https://images.pexels.com/photos/3889981/pexels-photo-3889981.jpeg",
+    "gallery": [
+      "https://images.pexels.com/photos/161235/books-india-jaipur-palace-161235.jpeg",
+      "https://images.pexels.com/photos/326055/pexels-photo-326055.jpeg"
+    ],
+    "location": "Jaipur, Jodhpur & Jaisalmer",
+    "itinerarySummary": "Day 1: Jaipur forts and bazaars. Day 2: Blue city tour in Jodhpur. Day 3: Desert safari in Jaisalmer. Day 4: Cultural evening and departure.",
+    "highlights": [
+      "Amber Fort visit",
+      "Desert camp stay",
+      "Traditional folk performances"
+    ],
+    "inclusions": [
+      "Heritage hotel stays",
+      "Breakfast and dinner",
+      "AC chauffeur-driven vehicle"
+    ],
+    "exclusions": [
+      "Entry tickets",
+      "Lunches"
+    ],
+    "bookingUrl": "https://example.com/book/rajasthan-heritage-trail",
+    "termsAndConditions": null,
+    "basePrice": "32999",
+    "currency": "INR",
+    "seasonalAvailability": null,
+    "durationNights": 3,
+    "durationDays": 4,
+    "status": "active",
+    "syncStatus": "synced",
+    "catalogProductId": "25164180329874876",
+    "retailerId": "PKG-1760633035721-602",
+    "lastSyncAt": "2025-10-16T16:44:07.000Z",
+    "lastSyncError": null,
+    "createdAt": "2025-10-16T16:43:57.785Z",
+    "updatedAt": "2025-10-16T16:44:07.001Z",
+    "createdBy": null,
+    "updatedBy": null
+  }
+]

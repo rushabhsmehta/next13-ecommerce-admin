@@ -1,0 +1,38 @@
+[
+  {
+    "id": "2e9f8038-79d5-4558-bfd8-5721d7cf622b",
+    "productId": "1a22302f-ca18-4419-b69f-2913ef171c7f",
+    "sku": "var-1760633021621-849",
+    "name": "Water Pool Villa",
+    "options": {
+      "name": "Water Pool Villa"
+    },
+    "price": "109999",
+    "salePrice": null,
+    "availability": "in_stock",
+    "quantity": null,
+    "imageUrl": "https://images.pexels.com/photos/3319961/pexels-photo-3319961.jpeg",
+    "isActive": true,
+    "purchaseCount": 0,
+    "createdAt": "2025-10-16T16:43:41.623Z",
+    "updatedAt": "2025-10-16T16:43:41.623Z"
+  },
+  {
+    "id": "8b0dd205-56f2-4953-b675-754750f6422c",
+    "productId": "1a22302f-ca18-4419-b69f-2913ef171c7f",
+    "sku": "var-1760633015462-161",
+    "name": "Sunset Villa",
+    "options": {
+      "name": "Sunset Villa"
+    },
+    "price": "94999",
+    "salePrice": null,
+    "availability": "in_stock",
+    "quantity": null,
+    "imageUrl": "https://images.pexels.com/photos/2613273/pexels-photo-2613273.jpeg",
+    "isActive": true,
+    "purchaseCount": 0,
+    "createdAt": "2025-10-16T16:43:35.465Z",
+    "updatedAt": "2025-10-16T16:43:35.465Z"
+  }
+]

@@ -1,0 +1,710 @@
+// ============================================================================
+// WhatsApp Integration - PostgreSQL Database Schema
+// ============================================================================
+// This schema is separate from the main MySQL database
+// Optimized for PostgreSQL with JSONB, arrays, and full-text search
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/whatsapp-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("WHATSAPP_DATABASE_URL")
+}
+
+// ============================================================================
+// Core WhatsApp Models
+// ============================================================================
+
+model WhatsAppMessage {
+  id                 String                   @id @default(uuid())
+  message            String?
+  status             String                   @default("pending")
+  direction          String                   @default("outbound")
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @default(now())
+  messageSid         String?
+  deliveredAt        DateTime?
+  errorCode          String?
+  errorMessage       String?
+  from               String?
+  sentAt             DateTime?
+  to                 String?
+  waId               String?
+  sessionId          String?
+  metadata           Json?                    @db.JsonB
+  payload            Json?                    @db.JsonB
+  scheduledAt        DateTime?
+  automationId       String?
+  whatsappCustomerId String?
+  session            WhatsAppSession?         @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  automation         WhatsAppAutomation?      @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  whatsappCustomer   WhatsAppCustomer?        @relation(fields: [whatsappCustomerId], references: [id], onDelete: SetNull)
+  analytics          WhatsAppAnalyticsEvent[]
+
+  @@index([to])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+  @@index([sessionId])
+  @@index([automationId])
+  @@index([scheduledAt])
+  @@index([whatsappCustomerId])
+}
+
+model WhatsAppSession {
+  id              String                   @id @default(uuid())
+  phoneNumber     String?
+  waId            String?
+  flowToken       String?                  @unique
+  context         Json?                    @db.JsonB
+  lastScreen      String?
+  lastAction      String?
+  lastMessageId   String?
+  lastInteraction DateTime                 @default(now())
+  expiresAt       DateTime?
+  isArchived      Boolean                  @default(false)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  messages        WhatsAppMessage[]
+  analytics       WhatsAppAnalyticsEvent[]
+
+  @@index([waId])
+  @@index([phoneNumber])
+  @@index([lastInteraction])
+  @@index([isArchived])
+}
+
+model WhatsAppAutomation {
+  id            String                   @id @default(uuid())
+  name          String
+  description   String?
+  triggerType   String
+  triggerConfig Json?                    @db.JsonB
+  actionType    String
+  actionConfig  Json?                    @db.JsonB
+  isActive      Boolean                  @default(true)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  messages      WhatsAppMessage[]
+  analytics     WhatsAppAnalyticsEvent[]
+
+  @@index([triggerType])
+  @@index([actionType])
+  @@index([isActive])
+}
+
+model WhatsAppAnalyticsEvent {
+  id           String              @id @default(uuid())
+  sessionId    String?
+  messageId    String?
+  automationId String?
+  eventType    String
+  payload      Json?               @db.JsonB
+  observedAt   DateTime            @default(now())
+  createdAt    DateTime            @default(now())
+  session      WhatsAppSession?    @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  message      WhatsAppMessage?    @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  automation   WhatsAppAutomation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([messageId])
+  @@index([automationId])
+  @@index([eventType])
+  @@index([observedAt])
+}
+
+model WhatsAppTemplate {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  body         String
+  components   Json?    @db.JsonB
+  variables    Json?    @db.JsonB
+  flowDefaults Json?    @db.JsonB
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([name])
+}
+
+model WhatsAppFlowVersion {
+  id            String   @id @default(uuid())
+  flowId        String
+  name          String
+  versionNumber Int
+  flowJson      Json     @db.JsonB
+  notes         String?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+
+  @@unique([flowId, versionNumber])
+  @@index([flowId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// Campaign Models
+// ============================================================================
+
+model WhatsAppCampaign {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  // Template Configuration
+  templateName      String
+  templateLanguage  String @default("en_US")
+  templateVariables Json?  @db.JsonB
+
+  // Targeting
+  targetType   String
+  segmentQuery Json?  @db.JsonB
+
+  // Scheduling
+  status       String    @default("draft")
+  scheduledFor DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  // Settings
+  rateLimit   Int     @default(10)
+  retryFailed Boolean @default(true)
+  maxRetries  Int     @default(3)
+
+  // Stats
+  totalRecipients Int @default(0)
+  sentCount       Int @default(0)
+  deliveredCount  Int @default(0)
+  readCount       Int @default(0)
+  failedCount     Int @default(0)
+  respondedCount  Int @default(0)
+
+  // Metadata
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String?
+  organizationId String?
+  tags           Json?    @db.JsonB
+
+  // Relations
+  recipients WhatsAppCampaignRecipient[]
+
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@index([organizationId])
+  @@index([createdBy])
+}
+
+model WhatsAppCampaignRecipient {
+  id         String @id @default(uuid())
+  campaignId String
+
+  // Recipient Info
+  phoneNumber        String
+  customerId         String?
+  name               String?
+  whatsappCustomerId String?
+
+  // Template Variables
+  variables Json? @db.JsonB
+
+  // Sending Status
+  status      String    @default("pending")
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+
+  // Error Handling
+  errorCode    String?
+  errorMessage String?
+  retryCount   Int       @default(0)
+  lastRetryAt  DateTime?
+
+  // Response Tracking
+  respondedAt     DateTime?
+  responseMessage String?
+
+  // Message Reference
+  messageId  String?
+  messageSid String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  campaign         WhatsAppCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  whatsappCustomer WhatsAppCustomer? @relation(fields: [whatsappCustomerId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([customerId])
+  @@index([phoneNumber])
+  @@index([sentAt])
+  @@index([whatsappCustomerId])
+  @@index([campaignId, status, createdAt])
+}
+
+model WhatsAppCustomer {
+  id              String    @id @default(uuid())
+  firstName       String
+  lastName        String?
+  phoneNumber     String    @unique
+  email           String?
+  tags            String[]  @default([])
+  notes           String?
+  importedAt      DateTime?
+  importedFrom    String?
+  isOptedIn       Boolean   @default(true)
+  lastContactedAt DateTime?
+  metadata        Json?     @db.JsonB
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // External references (store as strings since in different database)
+  associatePartnerId String?
+
+  campaignRecipients WhatsAppCampaignRecipient[]
+  messages           WhatsAppMessage[]
+
+  @@index([firstName])
+  @@index([lastName])
+  @@index([isOptedIn])
+  @@index([associatePartnerId])
+}
+
+// ============================================================================
+// Catalog & E-commerce Models
+// ============================================================================
+
+model WhatsAppCatalog {
+  id String @id @default(uuid())
+
+  // Meta Integration
+  metaCatalogId String? @unique
+
+  // Basic Info
+  name        String
+  description String?
+  currency    String  @default("INR")
+
+  // Settings
+  isActive   Boolean   @default(true)
+  isPublic   Boolean   @default(false)
+  autoSync   Boolean   @default(false)
+  lastSyncAt DateTime?
+
+  // Configuration
+  businessCategoryId String?
+  defaultImageUrl    String?
+
+  // Stats
+  totalProducts  Int     @default(0)
+  activeProducts Int     @default(0)
+  totalOrders    Int     @default(0)
+  totalRevenue   Decimal @default(0) @db.Decimal(10, 2)
+
+  // Metadata
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organizationId String?
+
+  // Relations
+  products WhatsAppProduct[]
+
+  @@index([metaCatalogId])
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+model WhatsAppMediaAsset {
+  id           String   @id @default(uuid())
+  publicId     String   @unique
+  filename     String
+  secureUrl    String
+  size         Int
+  contentType  String
+  format       String?
+  width        Int?
+  height       Int?
+  resourceType String   @default("image")
+  folder       String?
+  tags         Json?    @db.JsonB
+  uploadedAt   DateTime @default(now())
+  uploadedBy   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([uploadedAt])
+  @@index([uploadedBy])
+  @@index([folder])
+}
+
+model WhatsAppProduct {
+  id        String @id @default(uuid())
+  catalogId String
+
+  // Meta Integration
+  metaProductId String? @unique
+
+  // Basic Info
+  sku         String  @unique
+  name        String
+  description String?
+
+  // Pricing
+  price     Decimal  @db.Decimal(10, 2)
+  salePrice Decimal? @db.Decimal(10, 2)
+  currency  String   @default("INR")
+
+  // Inventory
+  availability String @default("in_stock")
+  quantity     Int?
+
+  // Media
+  imageUrl  String?
+  imageUrls Json?   @db.JsonB
+  videoUrl  String?
+
+  // Organization
+  category  String?
+  brand     String?
+  condition String  @default("new")
+
+  // Variants
+  hasVariants    Boolean @default(false)
+  variantOptions Json?   @db.JsonB
+
+  // SEO & Discovery
+  tags Json? @db.JsonB
+  url  String?
+
+  // Status
+  isActive  Boolean @default(true)
+  isVisible Boolean @default(true)
+
+  // Stats
+  viewCount     Int @default(0)
+  shareCount    Int @default(0)
+  cartAddCount  Int @default(0)
+  purchaseCount Int @default(0)
+
+  // Metadata
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastSyncAt DateTime?
+
+  // Relations
+  catalog     WhatsAppCatalog          @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  variants    WhatsAppProductVariant[]
+  tourPackage WhatsAppTourPackage?
+  cartItems   WhatsAppCartItem[]
+  orderItems  WhatsAppOrderItem[]
+
+  @@index([catalogId])
+  @@index([metaProductId])
+  @@index([sku])
+  @@index([isActive, isVisible])
+  @@index([category])
+}
+
+model WhatsAppProductVariant {
+  id        String @id @default(uuid())
+  productId String
+
+  // Variant Info
+  sku     String @unique
+  name    String
+  options Json   @db.JsonB
+
+  // Pricing
+  price     Decimal  @db.Decimal(10, 2)
+  salePrice Decimal? @db.Decimal(10, 2)
+
+  // Inventory
+  availability String @default("in_stock")
+  quantity     Int?
+
+  // Media
+  imageUrl String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Stats
+  purchaseCount Int @default(0)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  product     WhatsAppProduct             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems   WhatsAppCartItem[]
+  orderItems  WhatsAppOrderItem[]
+  tourVariant WhatsAppTourPackageVariant?
+
+  @@index([productId])
+  @@index([sku])
+}
+
+enum WhatsAppTourPackageStatus {
+  draft
+  active
+  inactive
+  archived
+}
+
+enum WhatsAppCatalogSyncStatus {
+  pending
+  in_progress
+  synced
+  failed
+}
+
+model WhatsAppTourPackage {
+  id        String @id @default(uuid())
+  productId String @unique
+
+  // Core Content
+  title              String
+  subtitle           String?
+  heroImageUrl       String?
+  gallery            Json?                     @db.JsonB
+  location           String?
+  itinerarySummary   String?
+  highlights         Json?                     @db.JsonB
+  inclusions         Json?                     @db.JsonB
+  exclusions         Json?                     @db.JsonB
+  bookingUrl         String?
+  termsAndConditions String?
+
+  // Pricing & Availability
+  basePrice            Decimal?                  @db.Decimal(10, 2)
+  currency             String                    @default("INR")
+  seasonalAvailability Json?                     @db.JsonB
+  durationNights       Int?
+  durationDays         Int?
+
+  // Sync Metadata
+  status           WhatsAppTourPackageStatus @default(draft)
+  syncStatus       WhatsAppCatalogSyncStatus @default(pending)
+  catalogProductId String?
+  retailerId       String?
+  lastSyncAt       DateTime?
+  lastSyncError    String?
+
+  // External references (store as strings since in different database)
+  tourPackageId String? // Reference to main TourPackage in MySQL
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+
+  // Relations
+  product  WhatsAppProduct              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variants WhatsAppTourPackageVariant[]
+
+  @@index([status])
+  @@index([catalogProductId])
+  @@index([retailerId])
+  @@index([tourPackageId])
+}
+
+model WhatsAppTourPackageVariant {
+  id               String @id @default(uuid())
+  tourPackageId    String
+  productVariantId String @unique
+
+  name                 String
+  description          String?
+  heroImageUrl         String?
+  priceOverride        Decimal?                  @db.Decimal(10, 2)
+  availabilityNotes    String?
+  seasonalAvailability Json?                     @db.JsonB
+  status               WhatsAppTourPackageStatus @default(active)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tourPackage WhatsAppTourPackage    @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  variant     WhatsAppProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@index([tourPackageId])
+  @@index([status])
+}
+
+model WhatsAppCart {
+  id String @id @default(uuid())
+
+  // Customer Info
+  phoneNumber String
+  customerId  String? // Reference to main Customer in MySQL
+  sessionId   String?
+
+  // Status
+  status String @default("active")
+
+  // Totals
+  subtotal Decimal @default(0) @db.Decimal(10, 2)
+  tax      Decimal @default(0) @db.Decimal(10, 2)
+  discount Decimal @default(0) @db.Decimal(10, 2)
+  total    Decimal @default(0) @db.Decimal(10, 2)
+  currency String  @default("INR")
+
+  // Checkout
+  checkoutAt  DateTime?
+  abandonedAt DateTime?
+  convertedAt DateTime?
+
+  // Metadata
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+
+  // Relations
+  items WhatsAppCartItem[]
+  order WhatsAppOrder?
+
+  @@index([phoneNumber])
+  @@index([status])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model WhatsAppCartItem {
+  id     String @id @default(uuid())
+  cartId String
+
+  // Product Info
+  productId String
+  variantId String?
+
+  // Quantity & Pricing
+  quantity   Int     @default(1)
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  // Customization
+  notes        String?
+  customFields Json?   @db.JsonB
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  cart    WhatsAppCart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product WhatsAppProduct         @relation(fields: [productId], references: [id])
+  variant WhatsAppProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([cartId])
+  @@index([productId])
+}
+
+model WhatsAppOrder {
+  id          String @id @default(uuid())
+  orderNumber String @unique
+
+  // Customer Info
+  cartId      String  @unique
+  phoneNumber String
+  customerId  String? // Reference to main Customer in MySQL
+
+  // Contact Info
+  customerName  String
+  customerEmail String?
+
+  // Order Details
+  status String @default("pending")
+
+  // Pricing
+  subtotal    Decimal @db.Decimal(10, 2)
+  tax         Decimal @db.Decimal(10, 2)
+  discount    Decimal @db.Decimal(10, 2)
+  shippingFee Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+  currency    String  @default("INR")
+
+  // Payment
+  paymentStatus String  @default("unpaid")
+  paymentMethod String?
+  paidAmount    Decimal @default(0) @db.Decimal(10, 2)
+
+  // Fulfillment
+  fulfillmentStatus String @default("unfulfilled")
+  shippingAddress   Json?  @db.JsonB
+  billingAddress    Json?  @db.JsonB
+
+  // Tracking
+  trackingNumber    String?
+  estimatedDelivery DateTime?
+  deliveredAt       DateTime?
+
+  // Notes
+  customerNotes String?
+  internalNotes String?
+
+  // Metadata
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+
+  // Relations
+  cart  WhatsAppCart        @relation(fields: [cartId], references: [id])
+  items WhatsAppOrderItem[]
+
+  @@index([orderNumber])
+  @@index([status])
+  @@index([customerId])
+  @@index([phoneNumber])
+  @@index([createdAt])
+}
+
+model WhatsAppOrderItem {
+  id      String @id @default(uuid())
+  orderId String
+
+  // Product Info
+  productId String
+  variantId String?
+
+  // Snapshot
+  productName    String
+  productSku     String
+  productImage   String?
+  variantOptions Json?   @db.JsonB
+
+  // Quantity & Pricing
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  // Fulfillment
+  fulfillmentStatus String @default("unfulfilled")
+  fulfilledQuantity Int    @default(0)
+
+  // Customization
+  notes        String?
+  customFields Json?   @db.JsonB
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  order   WhatsAppOrder           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product WhatsAppProduct         @relation(fields: [productId], references: [id])
+  variant WhatsAppProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}

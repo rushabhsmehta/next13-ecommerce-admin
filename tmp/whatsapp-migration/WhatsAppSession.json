@@ -1,0 +1,62 @@
+[
+  {
+    "id": "4846ef1f-c383-45d8-abaf-671f8786c886",
+    "phoneNumber": "+919974976005",
+    "waId": null,
+    "flowToken": null,
+    "context": null,
+    "lastScreen": null,
+    "lastAction": "message.prepare",
+    "lastMessageId": null,
+    "lastInteraction": "2025-10-28T02:52:03.310Z",
+    "expiresAt": null,
+    "isArchived": false,
+    "createdAt": "2025-10-28T02:52:03.311Z",
+    "updatedAt": "2025-10-28T02:52:03.311Z"
+  },
+  {
+    "id": "63fab11d-dcfc-4917-9220-167b19a49ad1",
+    "phoneNumber": "+919624094350",
+    "waId": null,
+    "flowToken": null,
+    "context": null,
+    "lastScreen": null,
+    "lastAction": "message.prepare",
+    "lastMessageId": null,
+    "lastInteraction": "2025-10-27T17:55:27.488Z",
+    "expiresAt": null,
+    "isArchived": false,
+    "createdAt": "2025-10-27T17:55:27.489Z",
+    "updatedAt": "2025-10-27T17:55:27.489Z"
+  },
+  {
+    "id": "c1a47e28-3fd9-4f37-901a-c49f2ec6a686",
+    "phoneNumber": "+919978783238",
+    "waId": null,
+    "flowToken": null,
+    "context": null,
+    "lastScreen": null,
+    "lastAction": null,
+    "lastMessageId": null,
+    "lastInteraction": "2025-10-28T09:12:05.036Z",
+    "expiresAt": null,
+    "isArchived": false,
+    "createdAt": "2025-10-28T09:12:05.037Z",
+    "updatedAt": "2025-10-28T09:12:05.037Z"
+  },
+  {
+    "id": "c99105fd-2e2b-4fdb-8274-c5fdd6c92bdd",
+    "phoneNumber": "+919726157815",
+    "waId": null,
+    "flowToken": null,
+    "context": null,
+    "lastScreen": null,
+    "lastAction": "message.prepare",
+    "lastMessageId": null,
+    "lastInteraction": "2025-10-28T06:10:50.977Z",
+    "expiresAt": null,
+    "isArchived": false,
+    "createdAt": "2025-10-28T05:16:44.691Z",
+    "updatedAt": "2025-10-28T06:10:50.978Z"
+  }
+]

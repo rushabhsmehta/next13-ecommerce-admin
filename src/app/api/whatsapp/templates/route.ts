@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listWhatsAppTemplates } from '@/lib/whatsapp';
-import prismadb from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 
 const BUSINESS_ID =
   process.env.META_WHATSAPP_BUSINESS_ID || process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID;
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
 
     if (templateNames.length) {
       try {
-        const storedTemplates = await prismadb.whatsAppTemplate.findMany({
+        const storedTemplates = await whatsappPrisma.whatsAppTemplate.findMany({
           where: { name: { in: templateNames } },
           select: { name: true, flowDefaults: true },
         });

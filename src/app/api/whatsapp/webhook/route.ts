@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { verifyWebhookSignature, updateMessageStatus, sendWhatsAppMessage } from '@/lib/whatsapp';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
@@ -29,7 +30,7 @@ const findCustomerByPhone = async (prisma: any, phoneNumber: string) => {
   if (!normalized) return null;
   
   try {
-    const customer = await prisma.whatsAppCustomer.findFirst({
+    const customer = await whatsappPrisma.whatsAppCustomer.findFirst({
       where: {
         phoneNumber: normalized,
       },
@@ -443,7 +444,7 @@ export async function POST(request: NextRequest) {
                       }
                     }
 
-                    const savedMessage = await prisma.whatsAppMessage.create({
+                    const savedMessage = await whatsappPrisma.whatsAppMessage.create({
                       data: {
                         to: toAddress,
                         from: fromNumber ? `whatsapp:${fromNumber}` : message.from,

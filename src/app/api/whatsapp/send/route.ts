@@ -6,7 +6,7 @@ import {
   emitWhatsAppEvent,
 } from '@/lib/whatsapp';
 import type { SessionUpdateInput, WhatsAppInteractiveMessagePayload } from '@/lib/whatsapp';
-import prisma from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 
 export async function POST(request: NextRequest) {
   try {

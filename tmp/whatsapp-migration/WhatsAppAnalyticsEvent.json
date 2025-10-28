@@ -1,0 +1,1627 @@
+[
+  {
+    "id": "005113ae-5a24-40f2-a184-9b18b9db5f33",
+    "sessionId": null,
+    "messageId": "b748b9e8-8514-460f-9aa1-20a95e5ac840",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:42:42.958Z",
+    "createdAt": "2025-10-27T12:42:42.959Z"
+  },
+  {
+    "id": "01641d89-4170-43a5-b846-cc862e9a2e6e",
+    "sessionId": "63fab11d-dcfc-4917-9220-167b19a49ad1",
+    "messageId": "d8d48918-8fb0-47c1-927a-618b6319f67e",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T17:55:35.496Z",
+    "createdAt": "2025-10-27T17:55:35.497Z"
+  },
+  {
+    "id": "03337fc5-6883-4e93-9422-07a6f0a4e651",
+    "sessionId": null,
+    "messageId": "c6f685b9-89ff-4305-8ca4-8db79ec1069a",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:43:01.493Z",
+    "createdAt": "2025-10-27T12:43:01.494Z"
+  },
+  {
+    "id": "045dfe8d-8ca6-4911-b2ec-562fac5105bd",
+    "sessionId": null,
+    "messageId": "de55006f-012f-4d58-8746-7082687a5cc3",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:28:17.171Z",
+    "createdAt": "2025-10-27T15:28:17.172Z"
+  },
+  {
+    "id": "060f1f22-5ce5-4646-b065-9790cbb4ccb5",
+    "sessionId": null,
+    "messageId": null,
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:25:26.318Z",
+    "createdAt": "2025-10-27T12:25:26.319Z"
+  },
+  {
+    "id": "08bf8bc2-02d6-4794-be37-31dc5565ecd5",
+    "sessionId": null,
+    "messageId": "f73a8358-caa0-4c1a-96ab-fdb69aaac412",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T15:30:56.501Z",
+    "createdAt": "2025-10-27T15:30:56.502Z"
+  },
+  {
+    "id": "09f55b2a-d3b4-412b-bbe5-9cc49d2266e6",
+    "sessionId": null,
+    "messageId": "c8caedc7-d3bc-4efb-b9f0-212f785b7ed8",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:35:41.343Z",
+    "createdAt": "2025-10-27T12:35:41.344Z"
+  },
+  {
+    "id": "0a6d97e7-247f-438d-b3ff-e7bbc648fee7",
+    "sessionId": null,
+    "messageId": "5044da61-0e82-44b7-a498-fb9016e207ef",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-25T11:45:44.141Z",
+    "createdAt": "2025-10-25T11:45:44.142Z"
+  },
+  {
+    "id": "0d579b1f-d1bc-4d64-9a79-2398932debb4",
+    "sessionId": null,
+    "messageId": "e1bfb949-7cbf-4cc9-8dec-7b58b6fb1bdb",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:33:33.974Z",
+    "createdAt": "2025-10-27T12:33:33.975Z"
+  },
+  {
+    "id": "0dd2710f-1f4c-46d9-a360-eba372b4df65",
+    "sessionId": null,
+    "messageId": "18ced1e0-d4e4-4e6d-b2b3-7789316a434c",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:06:37.363Z",
+    "createdAt": "2025-10-27T15:06:37.364Z"
+  },
+  {
+    "id": "0e5cee24-3df4-4718-af30-c0805ed4f80e",
+    "sessionId": "63fab11d-dcfc-4917-9220-167b19a49ad1",
+    "messageId": "d8d48918-8fb0-47c1-927a-618b6319f67e",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "to": "+919624094350",
+      "type": "text",
+      "hasMetadata": true
+    },
+    "observedAt": "2025-10-27T17:55:31.671Z",
+    "createdAt": "2025-10-27T17:55:31.672Z"
+  },
+  {
+    "id": "14c49ed7-e1ce-4bb8-8c11-c285b21c1050",
+    "sessionId": null,
+    "messageId": "43bca448-f0ef-4480-95a4-2b99f38134bc",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:31:27.004Z",
+    "createdAt": "2025-10-27T15:31:27.004Z"
+  },
+  {
+    "id": "17b2abf2-b6cd-4bf5-97e5-f495353d24f5",
+    "sessionId": null,
+    "messageId": "7f64dfb1-65cd-453d-a1ae-ef4c2a2d5550",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-25T11:42:52.650Z",
+    "createdAt": "2025-10-25T11:42:52.651Z"
+  },
+  {
+    "id": "19248991-f56b-47df-8913-fad0e0bf6215",
+    "sessionId": null,
+    "messageId": "5044da61-0e82-44b7-a498-fb9016e207ef",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-25T11:45:40.790Z",
+    "createdAt": "2025-10-25T11:45:40.791Z"
+  },
+  {
+    "id": "1a14bd00-d6d6-4a81-ab60-1c9828961331",
+    "sessionId": null,
+    "messageId": "00560b96-3e41-4f0c-bc86-40b43f61077c",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:20:53.942Z",
+    "createdAt": "2025-10-27T15:20:53.943Z"
+  },
+  {
+    "id": "1b6cfd52-f6e3-47bc-bae9-456e6f424ba5",
+    "sessionId": null,
+    "messageId": "ff37b3f0-6430-4c82-9720-2aa116f0736c",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:14:52.092Z",
+    "createdAt": "2025-10-27T12:14:52.093Z"
+  },
+  {
+    "id": "1bfa9406-fd5e-463b-980d-d9b7a8427d14",
+    "sessionId": null,
+    "messageId": "c3dd43e0-6447-408e-b95c-598964f95a91",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:29:05.088Z",
+    "createdAt": "2025-10-27T15:29:05.089Z"
+  },
+  {
+    "id": "1d9c5f90-c2b4-496c-b4f4-937841d00998",
+    "sessionId": null,
+    "messageId": "9d794732-5007-4dd6-aeda-e7e08c4d8137",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:22:39.516Z",
+    "createdAt": "2025-10-27T15:22:39.517Z"
+  },
+  {
+    "id": "1fd92acb-18e6-4d5d-9faf-2c9f28e727be",
+    "sessionId": null,
+    "messageId": "e154a040-cc48-43f3-83fc-200fc38f9982",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T13:01:41.895Z",
+    "createdAt": "2025-10-27T13:01:41.896Z"
+  },
+  {
+    "id": "237769f9-96a9-47c2-92cf-a4f9cdd0f277",
+    "sessionId": null,
+    "messageId": "98a63e98-67c8-47fe-92c2-78fa2f59f98c",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:27:51.295Z",
+    "createdAt": "2025-10-27T12:27:51.296Z"
+  },
+  {
+    "id": "2570d27b-e4fd-457b-a40b-605b74ff4e27",
+    "sessionId": null,
+    "messageId": null,
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:25:27.536Z",
+    "createdAt": "2025-10-27T12:25:27.538Z"
+  },
+  {
+    "id": "29e4edd9-b9e6-4dac-a770-15d59fa9d5ef",
+    "sessionId": null,
+    "messageId": "24055472-cb25-4ec2-be1f-99f1ff201c83",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T11:59:34.393Z",
+    "createdAt": "2025-10-27T11:59:34.394Z"
+  },
+  {
+    "id": "2a5a6b6b-769e-4618-9fa2-b015ed4f84f0",
+    "sessionId": null,
+    "messageId": "e6f58f6a-e227-4d53-8c00-3537efb4da1e",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T13:01:21.535Z",
+    "createdAt": "2025-10-27T13:01:21.536Z"
+  },
+  {
+    "id": "2b38cace-7bd0-432a-96ba-89344dceb05c",
+    "sessionId": null,
+    "messageId": "094136ef-863c-4a54-a7bc-36c419088e78",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:21:15.597Z",
+    "createdAt": "2025-10-27T15:21:15.598Z"
+  },
+  {
+    "id": "2cd97cac-1a44-4972-bad4-d661588d86c9",
+    "sessionId": null,
+    "messageId": "c3dd43e0-6447-408e-b95c-598964f95a91",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:29:05.798Z",
+    "createdAt": "2025-10-27T15:29:05.799Z"
+  },
+  {
+    "id": "2db52b3b-0b6a-480e-971f-6be46767ef84",
+    "sessionId": null,
+    "messageId": "9d794732-5007-4dd6-aeda-e7e08c4d8137",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:22:38.974Z",
+    "createdAt": "2025-10-27T15:22:38.975Z"
+  },
+  {
+    "id": "2f0a23f3-77fd-4db3-9c30-133a4618e8e5",
+    "sessionId": null,
+    "messageId": "e154a040-cc48-43f3-83fc-200fc38f9982",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T13:01:40.214Z",
+    "createdAt": "2025-10-27T13:01:40.215Z"
+  },
+  {
+    "id": "3084d9c3-4d00-42ed-8b26-15a2a179f25c",
+    "sessionId": null,
+    "messageId": "e4715085-3f87-4489-93cd-130bc45f6ed0",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:10:55.809Z",
+    "createdAt": "2025-10-27T12:10:55.810Z"
+  },
+  {
+    "id": "322f3e8d-ebf2-4b32-b574-dc9601cf4081",
+    "sessionId": null,
+    "messageId": "c9986935-3d83-461b-a654-c44fb6aec505",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:40:54.234Z",
+    "createdAt": "2025-10-27T12:40:54.235Z"
+  },
+  {
+    "id": "32a8beca-a675-442d-a294-161dfa879d92",
+    "sessionId": null,
+    "messageId": "b748b9e8-8514-460f-9aa1-20a95e5ac840",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:41:54.580Z",
+    "createdAt": "2025-10-27T12:41:54.581Z"
+  },
+  {
+    "id": "389ee06d-752a-48e9-9d09-8dd37af5ede1",
+    "sessionId": null,
+    "messageId": "0ac126dc-438d-46cb-86e5-195ae810e164",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-25T10:41:14.616Z",
+    "createdAt": "2025-10-25T10:41:14.617Z"
+  },
+  {
+    "id": "3958d17f-67dd-47fa-a44b-faa3021d53f6",
+    "sessionId": null,
+    "messageId": "a07710aa-e420-4993-a878-e960433e16cd",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:33:53.263Z",
+    "createdAt": "2025-10-27T12:33:53.264Z"
+  },
+  {
+    "id": "395f62da-4393-4992-978e-c411b9c89835",
+    "sessionId": null,
+    "messageId": "5070f1c1-c6b2-4519-aab6-be4c250e43b2",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T15:22:38.301Z",
+    "createdAt": "2025-10-27T15:22:38.302Z"
+  },
+  {
+    "id": "3a9d5021-1a64-4797-8140-8eb74ce26e0e",
+    "sessionId": null,
+    "messageId": "f73a8358-caa0-4c1a-96ab-fdb69aaac412",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:30:57.991Z",
+    "createdAt": "2025-10-27T15:30:57.991Z"
+  },
+  {
+    "id": "3eaa2dad-5947-4e02-82bb-800375abb0f6",
+    "sessionId": null,
+    "messageId": "5044da61-0e82-44b7-a498-fb9016e207ef",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-25T11:46:04.892Z",
+    "createdAt": "2025-10-25T11:46:04.893Z"
+  },
+  {
+    "id": "400d3fd0-e890-4f6d-a8d2-9f8849f57668",
+    "sessionId": null,
+    "messageId": "7f64dfb1-65cd-453d-a1ae-ef4c2a2d5550",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-25T11:43:00.058Z",
+    "createdAt": "2025-10-25T11:43:00.059Z"
+  },
+  {
+    "id": "406c6275-fe07-4af1-823d-242c2567ff12",
+    "sessionId": null,
+    "messageId": "439f78ab-ecbb-4356-847f-36a1442b4932",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T15:19:46.889Z",
+    "createdAt": "2025-10-27T15:19:46.890Z"
+  },
+  {
+    "id": "4167fbd6-83ff-4471-8c48-a6e59e24ab57",
+    "sessionId": null,
+    "messageId": "c8caedc7-d3bc-4efb-b9f0-212f785b7ed8",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:35:41.894Z",
+    "createdAt": "2025-10-27T12:35:41.895Z"
+  },
+  {
+    "id": "41b26e85-ba03-44b9-8902-ec57384a0a8d",
+    "sessionId": null,
+    "messageId": "f2d06158-f022-489b-a385-fb39854d6c84",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-25T10:40:37.853Z",
+    "createdAt": "2025-10-25T10:40:37.854Z"
+  },
+  {
+    "id": "4338fa0c-c168-4bd5-974c-45ca2d7c8b22",
+    "sessionId": null,
+    "messageId": "cbe36cfa-cb6c-4609-b41d-044b89738027",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T13:53:00.973Z",
+    "createdAt": "2025-10-27T13:53:00.974Z"
+  },
+  {
+    "id": "47db8657-1436-4530-83a9-8e044b08bda7",
+    "sessionId": null,
+    "messageId": "fcf6dfb2-663b-4110-92ea-3e5214d336cc",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:31:29.458Z",
+    "createdAt": "2025-10-27T15:31:29.459Z"
+  },
+  {
+    "id": "4a681d31-5e45-438a-920d-d4a08e8bd333",
+    "sessionId": null,
+    "messageId": "e6f58f6a-e227-4d53-8c00-3537efb4da1e",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T13:01:22.342Z",
+    "createdAt": "2025-10-27T13:01:22.343Z"
+  },
+  {
+    "id": "4c8f7bc2-c3be-4dfc-ab8c-4f6f2385f6f3",
+    "sessionId": null,
+    "messageId": "838e5826-6b92-4a7b-b6da-2606564d1fdd",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:22:05.293Z",
+    "createdAt": "2025-10-27T15:22:05.294Z"
+  },
+  {
+    "id": "4d5b39d9-81ef-4cea-a033-829726c0282f",
+    "sessionId": "63fab11d-dcfc-4917-9220-167b19a49ad1",
+    "messageId": "d8d48918-8fb0-47c1-927a-618b6319f67e",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T17:55:33.722Z",
+    "createdAt": "2025-10-27T17:55:33.723Z"
+  },
+  {
+    "id": "51d72907-db52-4a08-a307-142638899683",
+    "sessionId": null,
+    "messageId": "241eb9d3-57e7-4fde-a354-12f97bb38a9e",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:48:29.188Z",
+    "createdAt": "2025-10-27T12:48:29.189Z"
+  },
+  {
+    "id": "5220e782-e9cd-4e70-b111-99949529958b",
+    "sessionId": null,
+    "messageId": "cbe36cfa-cb6c-4609-b41d-044b89738027",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:43:13.945Z",
+    "createdAt": "2025-10-27T12:43:13.946Z"
+  },
+  {
+    "id": "529a2676-b7a8-41a0-9dd7-dc090f279de3",
+    "sessionId": null,
+    "messageId": "c7a52816-0c47-4ff1-8780-04f7f775a4ee",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T13:16:30.707Z",
+    "createdAt": "2025-10-27T13:16:30.708Z"
+  },
+  {
+    "id": "55138a94-fcd1-414e-a835-2d2b23187bd5",
+    "sessionId": null,
+    "messageId": "439f78ab-ecbb-4356-847f-36a1442b4932",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:07:46.235Z",
+    "createdAt": "2025-10-27T15:07:46.236Z"
+  },
+  {
+    "id": "556350ea-ea43-449e-978d-b83b15d49276",
+    "sessionId": null,
+    "messageId": "913ad625-0417-4671-8587-cb65d0d9ba4d",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T13:00:52.855Z",
+    "createdAt": "2025-10-27T13:00:52.856Z"
+  },
+  {
+    "id": "56fb7d97-48ea-4a84-818e-ec59d7a9ccad",
+    "sessionId": null,
+    "messageId": "e4715085-3f87-4489-93cd-130bc45f6ed0",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:17:45.200Z",
+    "createdAt": "2025-10-27T12:17:45.201Z"
+  },
+  {
+    "id": "5988367c-8060-40bf-859f-92c1420c4b63",
+    "sessionId": null,
+    "messageId": "b748b9e8-8514-460f-9aa1-20a95e5ac840",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T13:37:07.117Z",
+    "createdAt": "2025-10-27T13:37:07.118Z"
+  },
+  {
+    "id": "5b1d144b-a45d-4b66-b23a-446c7578462e",
+    "sessionId": null,
+    "messageId": "7f64dfb1-65cd-453d-a1ae-ef4c2a2d5550",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-25T11:42:50.706Z",
+    "createdAt": "2025-10-25T11:42:50.707Z"
+  },
+  {
+    "id": "6032296e-ef50-4404-a34b-5b01243887c7",
+    "sessionId": null,
+    "messageId": "52f0a38e-48e2-42b2-8b39-e019c7142163",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:26:47.217Z",
+    "createdAt": "2025-10-27T12:26:47.218Z"
+  },
+  {
+    "id": "6077c255-25ab-4bc7-9e5b-bfb2220ccc5e",
+    "sessionId": null,
+    "messageId": "f1a596b8-11b0-4e90-922e-80bd781cea98",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:28:41.292Z",
+    "createdAt": "2025-10-27T15:28:41.292Z"
+  },
+  {
+    "id": "61366e32-5f1a-4ee9-9e19-b5b48434916b",
+    "sessionId": null,
+    "messageId": "98a63e98-67c8-47fe-92c2-78fa2f59f98c",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "to": "+919924774020",
+      "type": "text",
+      "hasMetadata": true
+    },
+    "observedAt": "2025-10-27T12:27:50.471Z",
+    "createdAt": "2025-10-27T12:27:50.472Z"
+  },
+  {
+    "id": "627205ac-6568-4b01-b238-d2e577c4c2c6",
+    "sessionId": null,
+    "messageId": "fcf6dfb2-663b-4110-92ea-3e5214d336cc",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T15:31:30.424Z",
+    "createdAt": "2025-10-27T15:31:30.424Z"
+  },
+  {
+    "id": "644d78ef-1c33-49c4-87a0-12a995fc607e",
+    "sessionId": null,
+    "messageId": "cbe36cfa-cb6c-4609-b41d-044b89738027",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:43:14.029Z",
+    "createdAt": "2025-10-27T12:43:14.030Z"
+  },
+  {
+    "id": "650074df-94e1-499f-acb2-946c68798242",
+    "sessionId": null,
+    "messageId": "6096969e-33ff-4e60-b246-cd4278510043",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:31:08.448Z",
+    "createdAt": "2025-10-27T15:31:08.449Z"
+  },
+  {
+    "id": "68b0e5f5-cbfe-4fb5-940a-393f49fe5c8a",
+    "sessionId": null,
+    "messageId": "44d03bac-f2a3-4fc3-9e9e-cc421057cd3d",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:59:15.678Z",
+    "createdAt": "2025-10-27T12:59:15.679Z"
+  },
+  {
+    "id": "6b7785bd-b4ad-4194-b336-5b7f50ac8c33",
+    "sessionId": null,
+    "messageId": "e154a040-cc48-43f3-83fc-200fc38f9982",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T13:01:40.232Z",
+    "createdAt": "2025-10-27T13:01:40.233Z"
+  },
+  {
+    "id": "705f69b6-d804-4ee8-a31f-e7ac4047297c",
+    "sessionId": null,
+    "messageId": "354e0d73-771e-416a-8ffc-eb8e7777a1a2",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:08:03.805Z",
+    "createdAt": "2025-10-27T15:08:03.806Z"
+  },
+  {
+    "id": "71cd93e5-b9be-40bf-94d2-3cc4fa8c3c52",
+    "sessionId": null,
+    "messageId": "c222e521-bf2c-4b2d-b400-d6e054bd2061",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:34:12.653Z",
+    "createdAt": "2025-10-27T12:34:12.654Z"
+  },
+  {
+    "id": "71daf841-94c2-4779-8444-ddf9eb5907d4",
+    "sessionId": null,
+    "messageId": "98a63e98-67c8-47fe-92c2-78fa2f59f98c",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:27:52.376Z",
+    "createdAt": "2025-10-27T12:27:52.377Z"
+  },
+  {
+    "id": "738fa305-80e2-48c0-88ca-00b0cbbc08b9",
+    "sessionId": null,
+    "messageId": "913ad625-0417-4671-8587-cb65d0d9ba4d",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "failed"
+    },
+    "observedAt": "2025-10-27T13:00:52.943Z",
+    "createdAt": "2025-10-27T13:00:52.944Z"
+  },
+  {
+    "id": "750b86c7-a705-4480-afe8-0eada51f91ce",
+    "sessionId": null,
+    "messageId": "18ced1e0-d4e4-4e6d-b2b3-7789316a434c",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "failed"
+    },
+    "observedAt": "2025-10-27T15:06:37.503Z",
+    "createdAt": "2025-10-27T15:06:37.504Z"
+  },
+  {
+    "id": "76d32d48-6a17-4204-b805-9ab24d24406b",
+    "sessionId": null,
+    "messageId": "e6f58f6a-e227-4d53-8c00-3537efb4da1e",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T13:01:25.357Z",
+    "createdAt": "2025-10-27T13:01:25.358Z"
+  },
+  {
+    "id": "77c75b2f-1482-4321-a349-10c024de6770",
+    "sessionId": null,
+    "messageId": "b748b9e8-8514-460f-9aa1-20a95e5ac840",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:41:55.038Z",
+    "createdAt": "2025-10-27T12:41:55.039Z"
+  },
+  {
+    "id": "7803c699-b4a5-4a17-9692-4b34ecc2b7d6",
+    "sessionId": null,
+    "messageId": "f2d06158-f022-489b-a385-fb39854d6c84",
+    "automationId": null,
+    "eventType": "message.api.template",
+    "payload": {
+      "route": "api/whatsapp/send-template",
+      "language": "en",
+      "template": "find_interestt",
+      "scheduled": false
+    },
+    "observedAt": "2025-10-25T10:40:38.733Z",
+    "createdAt": "2025-10-25T10:40:38.734Z"
+  },
+  {
+    "id": "78452e33-20d0-46d8-bd54-ed5b44c1bdbd",
+    "sessionId": null,
+    "messageId": "5044da61-0e82-44b7-a498-fb9016e207ef",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-25T11:45:44.641Z",
+    "createdAt": "2025-10-25T11:45:44.642Z"
+  },
+  {
+    "id": "78c06f1e-af29-4280-bd30-558c1fb307e7",
+    "sessionId": null,
+    "messageId": "c6f685b9-89ff-4305-8ca4-8db79ec1069a",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:43:03.418Z",
+    "createdAt": "2025-10-27T12:43:03.420Z"
+  },
+  {
+    "id": "78e5b336-b9b2-4bd9-9338-884a0a814af0",
+    "sessionId": null,
+    "messageId": "7f64dfb1-65cd-453d-a1ae-ef4c2a2d5550",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-25T11:43:36.869Z",
+    "createdAt": "2025-10-25T11:43:36.870Z"
+  },
+  {
+    "id": "79a11fa2-d35b-4a76-b8b7-ecc0d03b8ae7",
+    "sessionId": "c99105fd-2e2b-4fdb-8274-c5fdd6c92bdd",
+    "messageId": "e215d7c5-3f4c-4336-b63b-d2271a4ae7fa",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-28T06:10:57.746Z",
+    "createdAt": "2025-10-28T06:10:57.747Z"
+  },
+  {
+    "id": "7b96a3aa-0ffd-4e6f-9226-f8d09d64b876",
+    "sessionId": null,
+    "messageId": "e1bfb949-7cbf-4cc9-8dec-7b58b6fb1bdb",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:33:31.468Z",
+    "createdAt": "2025-10-27T12:33:31.469Z"
+  },
+  {
+    "id": "7fa3cb05-abbf-4540-a022-392335432c94",
+    "sessionId": null,
+    "messageId": "a07710aa-e420-4993-a878-e960433e16cd",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:35:00.421Z",
+    "createdAt": "2025-10-27T12:35:00.422Z"
+  },
+  {
+    "id": "83b6e8fd-5223-49f5-aef9-66fbb80df686",
+    "sessionId": null,
+    "messageId": "997a45c4-30d9-4132-8235-eecb3814fdf9",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:10:18.313Z",
+    "createdAt": "2025-10-27T12:10:18.314Z"
+  },
+  {
+    "id": "859a8d23-aa9a-418a-aba3-7af5af57e28c",
+    "sessionId": null,
+    "messageId": "a07710aa-e420-4993-a878-e960433e16cd",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:33:52.200Z",
+    "createdAt": "2025-10-27T12:33:52.201Z"
+  },
+  {
+    "id": "865b66b9-21b2-47c9-b6af-a94dc4c89aae",
+    "sessionId": null,
+    "messageId": "094136ef-863c-4a54-a7bc-36c419088e78",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:21:11.670Z",
+    "createdAt": "2025-10-27T15:21:11.671Z"
+  },
+  {
+    "id": "86862f62-8769-4f31-9d1c-be8b715d5b11",
+    "sessionId": null,
+    "messageId": "00560b96-3e41-4f0c-bc86-40b43f61077c",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T15:20:54.142Z",
+    "createdAt": "2025-10-27T15:20:54.143Z"
+  },
+  {
+    "id": "8722e715-1c34-4743-823c-7010c2046935",
+    "sessionId": null,
+    "messageId": "c0306e0e-3200-49bf-b382-82c58f5cbee7",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-25T11:47:14.193Z",
+    "createdAt": "2025-10-25T11:47:14.194Z"
+  },
+  {
+    "id": "8a2aa726-35b1-4c5a-92d8-3f450b72f54d",
+    "sessionId": null,
+    "messageId": "52f0a38e-48e2-42b2-8b39-e019c7142163",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:26:52.151Z",
+    "createdAt": "2025-10-27T12:26:52.152Z"
+  },
+  {
+    "id": "8c377343-a6e2-42b7-81fa-07dba1600cc4",
+    "sessionId": null,
+    "messageId": "e6f58f6a-e227-4d53-8c00-3537efb4da1e",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T13:24:56.513Z",
+    "createdAt": "2025-10-27T13:24:56.514Z"
+  },
+  {
+    "id": "8f97c6af-d804-44a7-b5d8-3d8d3996a14b",
+    "sessionId": null,
+    "messageId": "c222e521-bf2c-4b2d-b400-d6e054bd2061",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:34:11.912Z",
+    "createdAt": "2025-10-27T12:34:11.913Z"
+  },
+  {
+    "id": "90abe02b-6719-49ec-b165-fe1917128877",
+    "sessionId": null,
+    "messageId": "24055472-cb25-4ec2-be1f-99f1ff201c83",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "failed"
+    },
+    "observedAt": "2025-10-27T11:59:34.534Z",
+    "createdAt": "2025-10-27T11:59:34.535Z"
+  },
+  {
+    "id": "90f01ea4-14ba-484b-9dd5-c55f2d653651",
+    "sessionId": null,
+    "messageId": "de55006f-012f-4d58-8746-7082687a5cc3",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T15:30:24.160Z",
+    "createdAt": "2025-10-27T15:30:24.161Z"
+  },
+  {
+    "id": "96fe2006-46e5-4ce6-a482-a21e03dd4486",
+    "sessionId": null,
+    "messageId": "2259ba7a-1d6d-45a8-ad6b-2219c8588f75",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:52:49.005Z",
+    "createdAt": "2025-10-27T12:52:49.006Z"
+  },
+  {
+    "id": "9a065b74-9369-49aa-bedb-d24e07309353",
+    "sessionId": null,
+    "messageId": "c7a52816-0c47-4ff1-8780-04f7f775a4ee",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:36:07.818Z",
+    "createdAt": "2025-10-27T12:36:07.819Z"
+  },
+  {
+    "id": "9fa73f0e-cffd-4b36-aec8-166cf8ba8f6a",
+    "sessionId": null,
+    "messageId": "5070f1c1-c6b2-4519-aab6-be4c250e43b2",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:02:52.267Z",
+    "createdAt": "2025-10-27T15:02:52.268Z"
+  },
+  {
+    "id": "a493aad0-6e9f-4901-b9db-dc254bcf538c",
+    "sessionId": null,
+    "messageId": "c6f685b9-89ff-4305-8ca4-8db79ec1069a",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:43:01.431Z",
+    "createdAt": "2025-10-27T12:43:01.432Z"
+  },
+  {
+    "id": "a639abe6-efac-4373-9986-8bbc2d788f76",
+    "sessionId": null,
+    "messageId": "fcf6dfb2-663b-4110-92ea-3e5214d336cc",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:31:31.698Z",
+    "createdAt": "2025-10-27T15:31:31.699Z"
+  },
+  {
+    "id": "a8ae8b62-5d5e-43d2-9e67-fc714ae3c7e4",
+    "sessionId": null,
+    "messageId": "f2d06158-f022-489b-a385-fb39854d6c84",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-25T10:40:41.729Z",
+    "createdAt": "2025-10-25T10:40:41.732Z"
+  },
+  {
+    "id": "b1204e4f-f8c3-4626-8a5e-dee870f89103",
+    "sessionId": null,
+    "messageId": "e4715085-3f87-4489-93cd-130bc45f6ed0",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:10:55.868Z",
+    "createdAt": "2025-10-27T12:10:55.869Z"
+  },
+  {
+    "id": "b5dc20e0-fe29-4176-9933-2c78fd4f3e6e",
+    "sessionId": null,
+    "messageId": "c0306e0e-3200-49bf-b382-82c58f5cbee7",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-25T11:47:16.276Z",
+    "createdAt": "2025-10-25T11:47:16.277Z"
+  },
+  {
+    "id": "b7e10e0e-7cdc-4288-9503-2b7dff584ebf",
+    "sessionId": null,
+    "messageId": "e154a040-cc48-43f3-83fc-200fc38f9982",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T13:30:38.201Z",
+    "createdAt": "2025-10-27T13:30:38.202Z"
+  },
+  {
+    "id": "b83a215d-a7d9-4ae4-93ca-95baaaab97e6",
+    "sessionId": null,
+    "messageId": "0ac126dc-438d-46cb-86e5-195ae810e164",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-25T10:41:14.463Z",
+    "createdAt": "2025-10-25T10:41:14.464Z"
+  },
+  {
+    "id": "b9731446-f18c-406d-a24d-76a09bc23fab",
+    "sessionId": null,
+    "messageId": "2259ba7a-1d6d-45a8-ad6b-2219c8588f75",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:41:30.563Z",
+    "createdAt": "2025-10-27T12:41:30.564Z"
+  },
+  {
+    "id": "bb137dbf-ab56-444c-88e9-cf5f787ca603",
+    "sessionId": null,
+    "messageId": "44d03bac-f2a3-4fc3-9e9e-cc421057cd3d",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "failed"
+    },
+    "observedAt": "2025-10-27T12:59:17.480Z",
+    "createdAt": "2025-10-27T12:59:17.481Z"
+  },
+  {
+    "id": "bb8b9cac-2da3-4d6e-8409-9b04e1509313",
+    "sessionId": null,
+    "messageId": "c7a52816-0c47-4ff1-8780-04f7f775a4ee",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:35:30.574Z",
+    "createdAt": "2025-10-27T12:35:30.574Z"
+  },
+  {
+    "id": "bbca960a-753b-432c-936f-9ad57c7aa776",
+    "sessionId": null,
+    "messageId": "c8caedc7-d3bc-4efb-b9f0-212f785b7ed8",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:36:30.197Z",
+    "createdAt": "2025-10-27T12:36:30.198Z"
+  },
+  {
+    "id": "bcc900d0-851d-4825-bd3f-da4d429ec212",
+    "sessionId": null,
+    "messageId": "c222e521-bf2c-4b2d-b400-d6e054bd2061",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:34:22.198Z",
+    "createdAt": "2025-10-27T12:34:22.199Z"
+  },
+  {
+    "id": "bf20accf-95a7-4374-962b-84cb92f8614c",
+    "sessionId": null,
+    "messageId": "c0306e0e-3200-49bf-b382-82c58f5cbee7",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-25T11:47:16.240Z",
+    "createdAt": "2025-10-25T11:47:16.241Z"
+  },
+  {
+    "id": "c027a2fd-4f39-4de7-9871-cb5ed5a7014c",
+    "sessionId": null,
+    "messageId": "de55006f-012f-4d58-8746-7082687a5cc3",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:28:18.313Z",
+    "createdAt": "2025-10-27T15:28:18.314Z"
+  },
+  {
+    "id": "c25768eb-16c2-4fd5-bb90-645b0a23023b",
+    "sessionId": null,
+    "messageId": "c7a52816-0c47-4ff1-8780-04f7f775a4ee",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:35:29.465Z",
+    "createdAt": "2025-10-27T12:35:29.466Z"
+  },
+  {
+    "id": "c4ed4746-6101-4477-89e4-9ecc2820579b",
+    "sessionId": "c1a47e28-3fd9-4f37-901a-c49f2ec6a686",
+    "messageId": "4bd3999f-d3ae-4dc3-85fa-b774a055e07e",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-28T09:12:13.435Z",
+    "createdAt": "2025-10-28T09:12:13.439Z"
+  },
+  {
+    "id": "c99d2db2-7adc-43ff-9700-3c3301fd3858",
+    "sessionId": null,
+    "messageId": "2259ba7a-1d6d-45a8-ad6b-2219c8588f75",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:41:37.029Z",
+    "createdAt": "2025-10-27T12:41:37.030Z"
+  },
+  {
+    "id": "ca1b37fc-53c3-4b7e-bb58-87c4978fd3c7",
+    "sessionId": null,
+    "messageId": "997a45c4-30d9-4132-8235-eecb3814fdf9",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:18:41.978Z",
+    "createdAt": "2025-10-27T12:18:41.979Z"
+  },
+  {
+    "id": "cafc3f14-25a1-4899-a44d-db6f409ff320",
+    "sessionId": null,
+    "messageId": "439f78ab-ecbb-4356-847f-36a1442b4932",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:07:48.826Z",
+    "createdAt": "2025-10-27T15:07:48.827Z"
+  },
+  {
+    "id": "cb215dd6-74f3-46bc-b66e-004a843da3c5",
+    "sessionId": null,
+    "messageId": "c0306e0e-3200-49bf-b382-82c58f5cbee7",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-25T11:47:14.562Z",
+    "createdAt": "2025-10-25T11:47:14.563Z"
+  },
+  {
+    "id": "cb448e62-72a0-4f85-aa81-7b75d2616373",
+    "sessionId": null,
+    "messageId": "ff37b3f0-6430-4c82-9720-2aa116f0736c",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:25:26.071Z",
+    "createdAt": "2025-10-27T12:25:26.072Z"
+  },
+  {
+    "id": "cc9a5fb0-8df2-445a-8a05-289eee49ec14",
+    "sessionId": null,
+    "messageId": "579603b1-96b3-44f1-aa4f-d9e9f25871c0",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:20:28.290Z",
+    "createdAt": "2025-10-27T15:20:28.291Z"
+  },
+  {
+    "id": "d196f540-3dc1-49f8-884e-423472dd2af6",
+    "sessionId": null,
+    "messageId": "0ac126dc-438d-46cb-86e5-195ae810e164",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-25T10:41:13.839Z",
+    "createdAt": "2025-10-25T10:41:13.840Z"
+  },
+  {
+    "id": "d30f86a0-fc63-46c7-b202-5a333dec34fa",
+    "sessionId": null,
+    "messageId": "5044da61-0e82-44b7-a498-fb9016e207ef",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-25T11:45:44.326Z",
+    "createdAt": "2025-10-25T11:45:44.326Z"
+  },
+  {
+    "id": "d3dd8be8-b5d8-4b58-9fe5-b3e5625aa62a",
+    "sessionId": null,
+    "messageId": "43bca448-f0ef-4480-95a4-2b99f38134bc",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:31:17.095Z",
+    "createdAt": "2025-10-27T15:31:17.096Z"
+  },
+  {
+    "id": "d4fc2832-2ed3-468f-92f3-e4831fea0c69",
+    "sessionId": null,
+    "messageId": "354e0d73-771e-416a-8ffc-eb8e7777a1a2",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "failed"
+    },
+    "observedAt": "2025-10-27T15:08:03.847Z",
+    "createdAt": "2025-10-27T15:08:03.848Z"
+  },
+  {
+    "id": "da442068-73b3-4206-854a-18903674c61d",
+    "sessionId": null,
+    "messageId": "f73a8358-caa0-4c1a-96ab-fdb69aaac412",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:30:56.500Z",
+    "createdAt": "2025-10-27T15:30:56.500Z"
+  },
+  {
+    "id": "db12ef3f-94e4-4452-b265-70aac03c59d3",
+    "sessionId": null,
+    "messageId": "094136ef-863c-4a54-a7bc-36c419088e78",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T15:21:13.129Z",
+    "createdAt": "2025-10-27T15:21:13.130Z"
+  },
+  {
+    "id": "db84fd65-9b6f-4592-a001-05459c54bcf7",
+    "sessionId": null,
+    "messageId": "2259ba7a-1d6d-45a8-ad6b-2219c8588f75",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:41:31.217Z",
+    "createdAt": "2025-10-27T12:41:31.218Z"
+  },
+  {
+    "id": "de6fb793-49ad-4e59-8bcb-ca751110749e",
+    "sessionId": null,
+    "messageId": "75fec243-8b7e-493d-abec-fbb2ad6c229a",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:50:22.619Z",
+    "createdAt": "2025-10-27T12:50:22.620Z"
+  },
+  {
+    "id": "e0c6847a-ec0a-4470-81c1-56de54d4cfa1",
+    "sessionId": null,
+    "messageId": "c222e521-bf2c-4b2d-b400-d6e054bd2061",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:34:14.438Z",
+    "createdAt": "2025-10-27T12:34:14.439Z"
+  },
+  {
+    "id": "e1054932-e0ed-4a30-b576-36655d84fb45",
+    "sessionId": null,
+    "messageId": "e1bfb949-7cbf-4cc9-8dec-7b58b6fb1bdb",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:33:31.351Z",
+    "createdAt": "2025-10-27T12:33:31.352Z"
+  },
+  {
+    "id": "e511e3d6-e951-4de8-a0ea-b44d80adbbae",
+    "sessionId": null,
+    "messageId": "52f0a38e-48e2-42b2-8b39-e019c7142163",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-27T12:27:01.575Z",
+    "createdAt": "2025-10-27T12:27:01.576Z"
+  },
+  {
+    "id": "e5f7cbc0-bec9-4593-969d-a2ad9bd96e87",
+    "sessionId": null,
+    "messageId": "ff37b3f0-6430-4c82-9720-2aa116f0736c",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "sent"
+    },
+    "observedAt": "2025-10-27T12:14:38.029Z",
+    "createdAt": "2025-10-27T12:14:38.030Z"
+  },
+  {
+    "id": "e829eb42-0507-48f4-b997-085bcc19e476",
+    "sessionId": null,
+    "messageId": "e4715085-3f87-4489-93cd-130bc45f6ed0",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:10:58.148Z",
+    "createdAt": "2025-10-27T12:10:58.149Z"
+  },
+  {
+    "id": "e9c940db-c260-4a7d-a5f7-bc15e5ab8123",
+    "sessionId": null,
+    "messageId": "c0306e0e-3200-49bf-b382-82c58f5cbee7",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "to": "+919724444701",
+      "type": "text",
+      "hasMetadata": true
+    },
+    "observedAt": "2025-10-25T11:47:12.919Z",
+    "createdAt": "2025-10-25T11:47:12.920Z"
+  },
+  {
+    "id": "ee0d978a-4deb-4939-8434-f038c73304c1",
+    "sessionId": null,
+    "messageId": "cbe36cfa-cb6c-4609-b41d-044b89738027",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T12:43:15.823Z",
+    "createdAt": "2025-10-27T12:43:15.824Z"
+  },
+  {
+    "id": "ef954c10-9096-444b-97a8-e75dcf96940c",
+    "sessionId": null,
+    "messageId": "0ac126dc-438d-46cb-86e5-195ae810e164",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "to": "+919978783238",
+      "type": "text",
+      "hasMetadata": true
+    },
+    "observedAt": "2025-10-25T10:41:13.006Z",
+    "createdAt": "2025-10-25T10:41:13.007Z"
+  },
+  {
+    "id": "f1ade6c6-094c-4f45-9d7b-08bbe2a1c155",
+    "sessionId": "c99105fd-2e2b-4fdb-8274-c5fdd6c92bdd",
+    "messageId": "e215d7c5-3f4c-4336-b63b-d2271a4ae7fa",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "to": "+919726157815",
+      "type": "text",
+      "hasMetadata": false
+    },
+    "observedAt": "2025-10-28T06:10:56.012Z",
+    "createdAt": "2025-10-28T06:10:56.013Z"
+  },
+  {
+    "id": "f40ae2ab-1542-4619-ada8-c65ace39eea5",
+    "sessionId": null,
+    "messageId": "6096969e-33ff-4e60-b246-cd4278510043",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T15:31:05.095Z",
+    "createdAt": "2025-10-27T15:31:05.097Z"
+  },
+  {
+    "id": "f7f2876a-fd8d-4ec0-969f-4708e2e0fe5a",
+    "sessionId": null,
+    "messageId": "f1a596b8-11b0-4e90-922e-80bd781cea98",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-27T15:28:42.832Z",
+    "createdAt": "2025-10-27T15:28:42.833Z"
+  },
+  {
+    "id": "f98ba7d4-ee78-4f00-8271-91f692270074",
+    "sessionId": null,
+    "messageId": "f2d06158-f022-489b-a385-fb39854d6c84",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "read"
+    },
+    "observedAt": "2025-10-25T10:40:46.985Z",
+    "createdAt": "2025-10-25T10:40:46.986Z"
+  },
+  {
+    "id": "faa658df-eca9-48f1-a12c-51c7c199cc6b",
+    "sessionId": null,
+    "messageId": "ff37b3f0-6430-4c82-9720-2aa116f0736c",
+    "automationId": null,
+    "eventType": "message.sent",
+    "payload": {
+      "languageCode": "en",
+      "templateName": "find_interestt"
+    },
+    "observedAt": "2025-10-27T12:14:37.538Z",
+    "createdAt": "2025-10-27T12:14:37.539Z"
+  },
+  {
+    "id": "fcc4eb3d-1550-4979-b1cd-eae865788ac2",
+    "sessionId": null,
+    "messageId": "f2d06158-f022-489b-a385-fb39854d6c84",
+    "automationId": null,
+    "eventType": "message.status",
+    "payload": {
+      "status": "delivered"
+    },
+    "observedAt": "2025-10-25T10:40:42.961Z",
+    "createdAt": "2025-10-25T10:40:42.962Z"
+  }
+]

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import prisma from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { ensureCatalogReady, syncPendingTourPackages } from '@/lib/whatsapp-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,7 @@ export async function GET() {
     const catalog = await ensureCatalogReady();
 
     const [availableCatalogs, totalPackages, statusGroups, syncGroups] = await Promise.all([
-      prisma.whatsAppCatalog.findMany({
+      whatsappPrisma.whatsAppCatalog.findMany({
         orderBy: { createdAt: 'asc' },
         select: {
           id: true,
@@ -29,12 +29,12 @@ export async function GET() {
           autoSync: true,
         },
       }),
-      prisma.whatsAppTourPackage.count(),
-      prisma.whatsAppTourPackage.groupBy({
+      whatsappPrisma.whatsAppTourPackage.count(),
+      whatsappPrisma.whatsAppTourPackage.groupBy({
         by: ['status'],
         _count: { _all: true },
       }),
-      prisma.whatsAppTourPackage.groupBy({
+      whatsappPrisma.whatsAppTourPackage.groupBy({
         by: ['syncStatus'],
         _count: { _all: true },
       }),

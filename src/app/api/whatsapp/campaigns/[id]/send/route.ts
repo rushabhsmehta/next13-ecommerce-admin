@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { auth } from '@clerk/nextjs/server';
 import { sendWhatsAppTemplate } from '@/lib/whatsapp';
-import type { WhatsAppCampaign, WhatsAppCampaignRecipient } from '@prisma/client';
+import type { WhatsAppCampaign, WhatsAppCampaignRecipient } from '@prisma/whatsapp-client';
 
 interface RouteParams {
   params: {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Get campaign
-    const campaign = await prisma.whatsAppCampaign.findUnique({
+    const campaign = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: params.id },
       include: {
         recipients: {
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     if (isCompletedRetry) {
-      await prisma.$transaction(async (tx) => {
+      await whatsappPrisma.$transaction(async (tx) => {
         await tx.whatsAppCampaignRecipient.updateMany({
           where: { campaignId: params.id },
           data: {
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       });
     } else if (!isResume) {
       // Only update status if not already sending/paused (i.e., starting fresh)
-      await prisma.whatsAppCampaign.update({
+      await whatsappPrisma.whatsAppCampaign.update({
         where: { id: params.id },
         data: {
           status: 'sending',
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       });
     } else {
       // Resuming - just ensure status is 'sending'
-      await prisma.whatsAppCampaign.update({
+      await whatsappPrisma.whatsAppCampaign.update({
         where: { id: params.id },
         data: {
           status: 'sending'
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 // Background processor with throttled dispatch and retry backoff
 async function processCampaignInBackground(campaignId: string) {
   try {
-    const campaign = await prisma.whatsAppCampaign.findUnique({
+    const campaign = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: campaignId },
       select: {
         id: true,
@@ -141,7 +141,7 @@ async function processCampaignInBackground(campaignId: string) {
       return;
     }
 
-    const templateRecord = await prisma.whatsAppTemplate.findUnique({
+    const templateRecord = await whatsappPrisma.whatsAppTemplate.findUnique({
       where: { name: campaign.templateName },
       select: { body: true },
     });
@@ -162,7 +162,7 @@ async function processCampaignInBackground(campaignId: string) {
     const campaignStartTime = Date.now();
 
     while (true) {
-      const statusSnapshot = await prisma.whatsAppCampaign.findUnique({
+      const statusSnapshot = await whatsappPrisma.whatsAppCampaign.findUnique({
         where: { id: campaignId },
         select: { status: true },
       });
@@ -176,7 +176,7 @@ async function processCampaignInBackground(campaignId: string) {
         continue;
       }
 
-      const candidateRecipients = await prisma.whatsAppCampaignRecipient.findMany({
+      const candidateRecipients = await whatsappPrisma.whatsAppCampaignRecipient.findMany({
         where: {
           campaignId,
           status: { in: ['pending', 'retry'] },
@@ -189,7 +189,7 @@ async function processCampaignInBackground(campaignId: string) {
       });
 
       if (!candidateRecipients.length) {
-        const remaining = await prisma.whatsAppCampaignRecipient.count({
+        const remaining = await whatsappPrisma.whatsAppCampaignRecipient.count({
           where: {
             campaignId,
             status: { in: ['pending', 'retry', 'sending'] },
@@ -200,7 +200,7 @@ async function processCampaignInBackground(campaignId: string) {
           const campaignDuration = ((Date.now() - campaignStartTime) / 1000).toFixed(2);
           console.log(`✅ [Campaign ${campaignId}] Completed! Total: ${totalProcessed} messages in ${campaignDuration}s`);
           
-          await prisma.whatsAppCampaign.update({
+          await whatsappPrisma.whatsAppCampaign.update({
             where: { id: campaignId },
             data: {
               status: 'completed',
@@ -226,7 +226,7 @@ async function processCampaignInBackground(campaignId: string) {
       for (const windowRecipients of windows) {
         const windowStart = Date.now();
 
-        const statusCheck = await prisma.whatsAppCampaign.findUnique({
+        const statusCheck = await whatsappPrisma.whatsAppCampaign.findUnique({
           where: { id: campaignId },
           select: { status: true },
         });
@@ -237,7 +237,7 @@ async function processCampaignInBackground(campaignId: string) {
             if (pendingCounterUpdates.sentCount > 0 || pendingCounterUpdates.failedCount > 0) {
               await flushCounterUpdates(campaignId, pendingCounterUpdates);
             }
-            await prisma.whatsAppCampaign.update({
+            await whatsappPrisma.whatsAppCampaign.update({
               where: { id: campaignId },
               data: { completedAt: new Date() },
             });
@@ -303,7 +303,7 @@ async function processCampaignInBackground(campaignId: string) {
   } catch (error) {
     console.error('Error processing campaign:', error);
 
-    await prisma.whatsAppCampaign.update({
+    await whatsappPrisma.whatsAppCampaign.update({
       where: { id: campaignId },
       data: {
         status: 'failed',
@@ -330,7 +330,7 @@ async function flushCounterUpdates(
     incrementData.failedCount = updates.failedCount;
   }
 
-  await prisma.whatsAppCampaign.update({
+  await whatsappPrisma.whatsAppCampaign.update({
     where: { id: campaignId },
     data: incrementData,
   });
@@ -351,7 +351,7 @@ async function sendSingleRecipient({
 }): Promise<'success' | 'failed' | 'retry'> {
   try {
     // Mark as sending - use updateMany for better performance
-    await prisma.whatsAppCampaignRecipient.updateMany({
+    await whatsappPrisma.whatsAppCampaignRecipient.updateMany({
       where: { 
         id: recipient.id,
         status: { in: ['pending', 'retry'] } // Only update if still in expected state
@@ -381,7 +381,7 @@ async function sendSingleRecipient({
     });
 
     if (result.success) {
-      await prisma.whatsAppCampaignRecipient.update({
+      await whatsappPrisma.whatsAppCampaignRecipient.update({
         where: { id: recipient.id },
         data: {
           status: 'sent',
@@ -397,7 +397,7 @@ async function sendSingleRecipient({
 
       // Only increment counter if not batching
       if (!skipCounterUpdate) {
-        await prisma.whatsAppCampaign.update({
+        await whatsappPrisma.whatsAppCampaign.update({
           where: { id: campaignId },
           data: {
             sentCount: { increment: 1 },
@@ -674,7 +674,7 @@ async function handleSendError(
   campaign: Pick<WhatsAppCampaign, 'retryFailed' | 'maxRetries'>,
   skipCounterUpdate = false
 ): Promise<'retry' | 'failed'> {
-  const recipient = await prisma.whatsAppCampaignRecipient.findUnique({
+  const recipient = await whatsappPrisma.whatsAppCampaignRecipient.findUnique({
     where: { id: recipientId }
   });
 
@@ -688,7 +688,7 @@ async function handleSendError(
   const nextRetryCount = recipient.retryCount + 1;
 
   if (retryEnabled && !hardStop && nextRetryCount <= maxRetries) {
-    await prisma.whatsAppCampaignRecipient.update({
+    await whatsappPrisma.whatsAppCampaignRecipient.update({
       where: { id: recipientId },
       data: {
         status: 'retry',
@@ -702,7 +702,7 @@ async function handleSendError(
     return 'retry';
   }
 
-  await prisma.whatsAppCampaignRecipient.update({
+  await whatsappPrisma.whatsAppCampaignRecipient.update({
     where: { id: recipientId },
     data: {
       status: errorCode === '131050' ? 'opted_out' : 'failed',
@@ -714,7 +714,7 @@ async function handleSendError(
 
   // Only increment counter if not batching
   if (!skipCounterUpdate) {
-    await prisma.whatsAppCampaign.update({
+    await whatsappPrisma.whatsAppCampaign.update({
       where: { id: campaignId },
       data: {
         failedCount: { increment: 1 },

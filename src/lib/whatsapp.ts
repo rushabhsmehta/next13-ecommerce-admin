@@ -1,6 +1,6 @@
-import { Prisma } from '@prisma/client';
-import type { WhatsAppAutomation, WhatsAppMessage, WhatsAppSession } from '@prisma/client';
-import prisma from './prismadb';
+import { Prisma } from '@prisma/whatsapp-client';
+import type { WhatsAppAutomation, WhatsAppMessage, WhatsAppSession } from '@prisma/whatsapp-client';
+import prisma from './whatsapp-prismadb';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '';

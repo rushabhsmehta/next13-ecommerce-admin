@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { Prisma, WhatsAppCatalogSyncStatus, WhatsAppTourPackageStatus } from '@prisma/client';
-import prisma from '@/lib/prismadb';
+import { Prisma, WhatsAppCatalogSyncStatus, WhatsAppTourPackageStatus } from '@prisma/whatsapp-client';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { createTourPackage } from '@/lib/whatsapp-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -74,8 +74,8 @@ export async function GET(request: NextRequest) {
     const where = buildWhereClause(options);
 
     const [total, packages] = await Promise.all([
-      prisma.whatsAppTourPackage.count({ where }),
-      prisma.whatsAppTourPackage.findMany({
+      whatsappPrisma.whatsAppTourPackage.count({ where }),
+      whatsappPrisma.whatsAppTourPackage.findMany({
         where,
         orderBy: { updatedAt: 'desc' },
         skip: (options.page - 1) * options.limit,

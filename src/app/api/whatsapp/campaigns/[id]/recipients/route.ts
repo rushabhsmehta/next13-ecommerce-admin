@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { auth } from '@clerk/nextjs/server';
 
 interface RouteParams {
@@ -30,22 +30,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     // Get recipients
     const [recipients, total] = await Promise.all([
-      prisma.whatsAppCampaignRecipient.findMany({
+      whatsappPrisma.whatsAppCampaignRecipient.findMany({
         where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
-          }
-        }
+        // Note: Cannot include customer relation across databases (PostgreSQL -> MySQL)
+        // Customer data is stored in customerId field
       }),
-      prisma.whatsAppCampaignRecipient.count({ where })
+      whatsappPrisma.whatsAppCampaignRecipient.count({ where })
     ]);
 
     return NextResponse.json({
@@ -85,7 +78,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Check if campaign exists and is editable
-    const campaign = await prisma.whatsAppCampaign.findUnique({
+    const campaign = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: params.id }
     });
 
@@ -114,7 +107,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Create recipients
-    await prisma.whatsAppCampaignRecipient.createMany({
+    await whatsappPrisma.whatsAppCampaignRecipient.createMany({
       data: validRecipients.map((recipient: any) => ({
         campaignId: params.id,
         phoneNumber: recipient.phoneNumber.trim(),
@@ -126,11 +119,11 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     });
 
     // Update campaign total recipients count
-    const totalRecipients = await prisma.whatsAppCampaignRecipient.count({
+    const totalRecipients = await whatsappPrisma.whatsAppCampaignRecipient.count({
       where: { campaignId: params.id }
     });
 
-    await prisma.whatsAppCampaign.update({
+    await whatsappPrisma.whatsAppCampaign.update({
       where: { id: params.id },
       data: { totalRecipients }
     });
@@ -168,7 +161,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     // Check if campaign is editable
-    const campaign = await prisma.whatsAppCampaign.findUnique({
+    const campaign = await whatsappPrisma.whatsAppCampaign.findUnique({
       where: { id: params.id }
     });
 
@@ -187,7 +180,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     }
 
     // Delete recipients
-    await prisma.whatsAppCampaignRecipient.deleteMany({
+    await whatsappPrisma.whatsAppCampaignRecipient.deleteMany({
       where: {
         id: { in: recipientIds },
         campaignId: params.id
@@ -195,11 +188,11 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     });
 
     // Update campaign total recipients count
-    const totalRecipients = await prisma.whatsAppCampaignRecipient.count({
+    const totalRecipients = await whatsappPrisma.whatsAppCampaignRecipient.count({
       where: { campaignId: params.id }
     });
 
-    await prisma.whatsAppCampaign.update({
+    await whatsappPrisma.whatsAppCampaign.update({
       where: { id: params.id },
       data: { totalRecipients }
     });

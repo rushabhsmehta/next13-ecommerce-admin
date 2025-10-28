@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { WhatsAppTourPackageStatus } from '@prisma/client';
-import prisma from '@/lib/prismadb';
+import { WhatsAppTourPackageStatus } from '@prisma/whatsapp-client';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { deleteTourPackage, updateTourPackage } from '@/lib/whatsapp-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Package id is required' }, { status: 400 });
     }
 
-    const tourPackage = await prisma.whatsAppTourPackage.findUnique({
+    const tourPackage = await whatsappPrisma.whatsAppTourPackage.findUnique({
       where: { id: packageId },
       include: {
         product: true,

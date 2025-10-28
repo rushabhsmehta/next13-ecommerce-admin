@@ -11,7 +11,7 @@
  */
 
 import { graphBusinessRequest, graphFlowRequest } from './whatsapp';
-import prismadb from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -776,7 +776,7 @@ export async function saveFlowVersion(params: {
   createdBy?: string | null;
   notes?: string | null;
 }): Promise<FlowVersionRecord> {
-  const latest = await prismadb.whatsAppFlowVersion.findFirst({
+  const latest = await whatsappPrisma.whatsAppFlowVersion.findFirst({
     where: { flowId: params.flowId },
     orderBy: { versionNumber: 'desc' },
     select: { versionNumber: true },
@@ -784,7 +784,7 @@ export async function saveFlowVersion(params: {
 
   const versionNumber = (latest?.versionNumber ?? 0) + 1;
 
-  const created = await prismadb.whatsAppFlowVersion.create({
+  const created = await whatsappPrisma.whatsAppFlowVersion.create({
     data: {
       flowId: params.flowId,
       name: params.name,
@@ -808,7 +808,7 @@ export async function saveFlowVersion(params: {
 }
 
 export async function listFlowVersions(flowId: string, limit = 25): Promise<FlowVersionRecord[]> {
-  const records = await prismadb.whatsAppFlowVersion.findMany({
+  const records = await whatsappPrisma.whatsAppFlowVersion.findMany({
     where: { flowId },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -827,7 +827,7 @@ export async function listFlowVersions(flowId: string, limit = 25): Promise<Flow
 }
 
 export async function getFlowVersion(versionId: string): Promise<FlowVersionRecord | null> {
-  const record = await prismadb.whatsAppFlowVersion.findUnique({
+  const record = await whatsappPrisma.whatsAppFlowVersion.findUnique({
     where: { id: versionId },
   });
 
@@ -846,7 +846,7 @@ export async function getFlowVersion(versionId: string): Promise<FlowVersionReco
 }
 
 export async function deleteFlowVersion(versionId: string): Promise<{ success: boolean }> {
-  await prismadb.whatsAppFlowVersion.delete({ where: { id: versionId } });
+  await whatsappPrisma.whatsAppFlowVersion.delete({ where: { id: versionId } });
   return { success: true };
 }
 

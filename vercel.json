@@ -3,5 +3,12 @@
     "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "build": {
+    "env": {
+      "PRISMA_GENERATE_DATAPROXY": "false",
+      "PRISMA_SKIP_POSTINSTALL_GENERATE": "false"
+    }
+  },
+  "buildCommand": "npm run vercel-build"
 }

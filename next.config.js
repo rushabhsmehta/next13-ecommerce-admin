@@ -49,6 +49,15 @@ const nextConfig = {
   },
   // Ensure Prisma binaries are included in the output
   outputFileTracing: true,
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        '@prisma/client': 'commonjs @prisma/client',
+        '@prisma/whatsapp-client': 'commonjs @prisma/whatsapp-client',
+      });
+    }
+    return config;
+  },
 }
 
 module.exports = nextConfig

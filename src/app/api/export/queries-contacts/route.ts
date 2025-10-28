@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
 
+// Force dynamic rendering to prevent static generation errors
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   try {
     console.log('[QUERIES_EXPORT] Starting export...');

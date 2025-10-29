@@ -6,8 +6,7 @@
   },
   "build": {
     "env": {
-      "PRISMA_GENERATE_DATAPROXY": "false",
-      "PRISMA_SKIP_POSTINSTALL_GENERATE": "false"
+      "PRISMA_CLIENT_ENGINE_TYPE": "binary"
     }
   },
   "buildCommand": "npm run vercel-build"

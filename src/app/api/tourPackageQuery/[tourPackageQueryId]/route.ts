@@ -7,6 +7,7 @@ import { string } from "zod";
 import { Activity } from "@prisma/client";
 import { createAuditLog } from "@/lib/utils/audit-logger";
 
+export const dynamic = 'force-dynamic'; // Ensure API is not cached
 
 
 export async function GET(
@@ -234,7 +235,7 @@ async function createItineraryAndActivities(itinerary: {
   return createdItinerary;
 }
 
-// Transaction-safe version of createItineraryAndActivities - simplified for reliability
+// Transaction-safe version of createItineraryAndActivities - optimized with batch operations
 async function createItineraryAndActivitiesInTransaction(itinerary: {
   itineraryTitle: any;
   itineraryDescription: any;
@@ -252,7 +253,7 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
   transportDetails?: any[];
 }, tourPackageQueryId: string, tx: any) {
   try {
-    // Step 1: Create the itinerary first (simplified to avoid nested transaction issues)
+    // Step 1: Create the itinerary first
     const createdItinerary = await tx.itinerary.create({
       data: {
         itineraryTitle: itinerary.itineraryTitle,
@@ -267,21 +268,22 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
         roomCategory: itinerary.roomCategory,
         mealsIncluded: itinerary.mealsIncluded,
       },
-    });    // Step 2: Create itinerary images if they exist
+    });
+
+    // Step 2: Batch create itinerary images (if any)
     if (itinerary.itineraryImages && itinerary.itineraryImages.length > 0) {
-      for (const image of itinerary.itineraryImages) {
-        await tx.images.create({
-          data: {
-            itinerariesId: createdItinerary.id,
-            url: image.url
-          }
-        });
-      }
+      await tx.images.createMany({
+        data: itinerary.itineraryImages.map((image: any) => ({
+          itinerariesId: createdItinerary.id,
+          url: image.url
+        }))
+      });
     }
 
-    // Step 3: Create activities if they exist
+    // Step 3: Create activities with their images in batch
     if (itinerary.activities && itinerary.activities.length > 0) {
-      for (const activity of itinerary.activities) {
+      // We need activity IDs for images, so use Promise.all for parallel creation
+      const activityCreationPromises = itinerary.activities.map(async (activity: any) => {
         const createdActivity = await tx.activity.create({
           data: {
             itineraryId: createdItinerary.id,
@@ -289,59 +291,61 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
             activityDescription: activity.activityDescription,
             locationId: activity.locationId,
           }
-        });        // Create activity images if they exist
+        });
+
+        // Batch create activity images if they exist
         if (activity.activityImages && activity.activityImages.length > 0) {
-          for (const img of activity.activityImages) {
-            await tx.images.create({
-              data: {
-                activitiesId: createdActivity.id,
-                url: img.url
-              }
-            });
-          }
+          await tx.images.createMany({
+            data: activity.activityImages.map((img: any) => ({
+              activitiesId: createdActivity.id,
+              url: img.url
+            }))
+          });
         }
-      }
+
+        return createdActivity;
+      });
+
+      await Promise.all(activityCreationPromises);
     }
 
-    // Step 4: Create room allocations if they exist
+    // Step 4: Batch create room allocations (if any)
     if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
       const validRoomAllocations = itinerary.roomAllocations.filter((ra: any) => 
         ra.occupancyTypeId && (ra.roomTypeId || ra.customRoomType)
       );
-        if (validRoomAllocations.length > 0) {
-        for (const roomAllocation of validRoomAllocations) {
-          await tx.roomAllocation.create({
-            data: {
-              itineraryId: createdItinerary.id,
-              roomTypeId: roomAllocation.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea", // Use Custom room type if no roomTypeId
-              occupancyTypeId: roomAllocation.occupancyTypeId,
-              mealPlanId: roomAllocation.mealPlanId,
-              quantity: roomAllocation.quantity || 1,
-              guestNames: roomAllocation.guestNames || "",
-              voucherNumber: roomAllocation.voucherNumber || "",
-              customRoomType: roomAllocation.customRoomType || ""
-            }
-          });
-        }
+
+      if (validRoomAllocations.length > 0) {
+        await tx.roomAllocation.createMany({
+          data: validRoomAllocations.map((roomAllocation: any) => ({
+            itineraryId: createdItinerary.id,
+            roomTypeId: roomAllocation.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea",
+            occupancyTypeId: roomAllocation.occupancyTypeId,
+            mealPlanId: roomAllocation.mealPlanId,
+            quantity: roomAllocation.quantity || 1,
+            guestNames: roomAllocation.guestNames || "",
+            voucherNumber: roomAllocation.voucherNumber || "",
+            customRoomType: roomAllocation.customRoomType || ""
+          }))
+        });
       }
     }
 
-    // Step 5: Create transport details if they exist
+    // Step 5: Batch create transport details (if any)
     if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
       const validTransportDetails = itinerary.transportDetails.filter((td: any) => 
         td.vehicleTypeId
       );
-        if (validTransportDetails.length > 0) {
-        for (const transport of validTransportDetails) {
-          await tx.transportDetail.create({
-            data: {
-              itineraryId: createdItinerary.id,
-              vehicleTypeId: transport.vehicleTypeId,
-              quantity: transport.quantity || 1,
-              description: transport.description || ""
-            }
-          });
-        }
+
+      if (validTransportDetails.length > 0) {
+        await tx.transportDetail.createMany({
+          data: validTransportDetails.map((transport: any) => ({
+            itineraryId: createdItinerary.id,
+            vehicleTypeId: transport.vehicleTypeId,
+            quantity: transport.quantity || 1,
+            description: transport.description || ""
+          }))
+        });
       }
     }
 
@@ -352,7 +356,7 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
   }
 }
 
-// Helper function to create flight details with images
+// Helper function to create flight details with images - optimized with batch operations
 async function createFlightDetailWithImages(flightDetail: {
   date: string;
   flightName: string;
@@ -380,16 +384,14 @@ async function createFlightDetailWithImages(flightDetail: {
       },
     });
 
-    // Create flight images if they exist
+    // Batch create flight images if they exist
     if (flightDetail.images && flightDetail.images.length > 0) {
-      for (const image of flightDetail.images) {
-        await tx.images.create({
-          data: {
-            flightDetailsId: createdFlightDetail.id,
-            url: image.url
-          }
-        });
-      }
+      await tx.images.createMany({
+        data: flightDetail.images.map((image: any) => ({
+          flightDetailsId: createdFlightDetail.id,
+          url: image.url
+        }))
+      });
     }
 
     return createdFlightDetail;
@@ -633,19 +635,18 @@ export async function PATCH(
           data: tourPackageUpdateData as any
         });
 
-        // Handle itineraries separately with sequential processing to avoid transaction issues
+        // Handle itineraries separately with parallel processing for better performance
         if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
-          console.log(`[TRANSACTION] Processing ${itineraries.length} itineraries sequentially`);
+          console.log(`[TRANSACTION] Processing ${itineraries.length} itineraries in parallel`);
           
-          // Delete existing itineraries only within the transaction
+          // Delete existing itineraries within the transaction
           await tx.itinerary.deleteMany({
             where: { tourPackageQueryId: params.tourPackageQueryId }
           });
           console.log(`[TRANSACTION] Deleted existing itineraries`);
 
-          // Create new itineraries sequentially to maintain transaction integrity
-          for (let i = 0; i < itineraries.length; i++) {
-            const itinerary = itineraries[i];
+          // Create new itineraries in parallel for better performance
+          await Promise.all(itineraries.map(async (itinerary, i) => {
             try {
               console.log(`[TRANSACTION] Creating itinerary ${i + 1}/${itineraries.length}: ${itinerary.itineraryTitle?.substring(0, 50)}...`);
               await createItineraryAndActivitiesInTransaction(itinerary, params.tourPackageQueryId, tx);
@@ -657,7 +658,7 @@ export async function PATCH(
               });
               throw new Error(`Failed to create itinerary ${i + 1} "${itinerary.itineraryTitle}": ${itineraryError?.message || 'Unknown error'}`);
             }
-          }
+          }));
           console.log(`[TRANSACTION] Successfully created all ${itineraries.length} itineraries`);
         } else if (itineraries && Array.isArray(itineraries) && itineraries.length === 0) {
           // If itineraries array is explicitly empty, delete all existing itineraries
@@ -667,8 +668,9 @@ export async function PATCH(
           });
         }
         // If itineraries is undefined/null, don't touch existing itineraries        // Handle flight details with images
+        // Handle flight details with images in parallel
         if (flightDetails && Array.isArray(flightDetails) && flightDetails.length > 0) {
-          console.log(`[TRANSACTION] Processing ${flightDetails.length} flight details`);
+          console.log(`[TRANSACTION] Processing ${flightDetails.length} flight details in parallel`);
           
           // Delete existing flight details first
           await tx.flightDetails.deleteMany({
@@ -676,9 +678,8 @@ export async function PATCH(
           });
           console.log(`[TRANSACTION] Deleted existing flight details`);
           
-          // Create new flight details sequentially to maintain transaction integrity
-          for (let i = 0; i < flightDetails.length; i++) {
-            const flightDetail = flightDetails[i];
+          // Create new flight details in parallel for better performance
+          await Promise.all(flightDetails.map(async (flightDetail, i) => {
             try {
               console.log(`[TRANSACTION] Creating flight detail ${i + 1}/${flightDetails.length}: ${flightDetail.flightName || 'Unknown Flight'}`);
               await createFlightDetailWithImages(flightDetail, params.tourPackageQueryId, tx);
@@ -690,12 +691,12 @@ export async function PATCH(
               });
               throw new Error(`Failed to create flight detail ${i + 1} "${flightDetail.flightName}": ${flightError?.message || 'Unknown error'}`);
             }
-          }
+          }));
           console.log(`[TRANSACTION] Successfully created all ${flightDetails.length} flight details`);
         }
       }, {
-        maxWait: 30000, // Maximum time to wait for a transaction slot (30 seconds)
-        timeout: 60000, // Maximum time to run the transaction (60 seconds)
+        maxWait: 10000, // Maximum time to wait for a transaction slot (10 seconds)
+        timeout: 50000, // Maximum time to run the transaction (50 seconds) - increased for complex operations
       });
     } catch (transactionError: any) {
       console.error('[TRANSACTION_FAILED] Attempting fallback strategy', transactionError);

@@ -65,8 +65,8 @@ export default function CampaignStatsPage() {
 
   useEffect(() => {
   fetchStats();
-  // Reduced from 3000ms to 2000ms for faster UI updates with optimized backend
-  const interval = setInterval(fetchStats, 2000);
+  // Poll every 30 seconds to balance real-time updates with server load
+  const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, [fetchStats]);
 

@@ -76,9 +76,9 @@ export default function CampaignsPage() {
 
   useEffect(() => {
   fetchCampaigns();
-  // Poll frequently so dashboard reflects campaign changes in near real-time.
-  // Reduced from 3000ms to 2000ms for faster UI updates with optimized backend
-  const interval = setInterval(fetchCampaigns, 2000);
+  // Poll every 30 seconds to balance real-time updates with server load
+  // Reduced from 2 seconds to 30 seconds for better performance
+  const interval = setInterval(fetchCampaigns, 30000);
     return () => clearInterval(interval);
   }, [fetchCampaigns]);
 

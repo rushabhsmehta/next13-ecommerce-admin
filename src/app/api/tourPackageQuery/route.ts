@@ -5,6 +5,9 @@ import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from '@/lib/prismadb';
 import { createAuditLog } from "@/lib/utils/audit-logger";
 
+// Enable caching for GET requests - revalidate every 5 minutes
+export const revalidate = 300;
+
 
 async function createItineraryAndActivities(itinerary: {
     itineraryTitle: any;
@@ -589,16 +592,99 @@ export async function GET(
 
         const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
             where: whereClause,
-            include: {
-                associatePartner: true,  // Add this line
-                images: true,                location: true, itineraries: {
-                    include: {
-                        itineraryImages: true,
-                        roomAllocations: true,
-                        transportDetails: true,
+            select: {
+                id: true,
+                tourPackageQueryNumber: true,
+                tourPackageQueryName: true,
+                tourPackageQueryType: true,
+                tourCategory: true,
+                customerName: true,
+                customerNumber: true,
+                numDaysNight: true,
+                locationId: true,
+                period: true,
+                tourStartsFrom: true,
+                tourEndsOn: true,
+                transport: true,
+                pickup_location: true,
+                drop_location: true,
+                numAdults: true,
+                numChild5to12: true,
+                numChild0to5: true,
+                price: true,
+                totalPrice: true,
+                remarks: true,
+                assignedTo: true,
+                assignedToMobileNumber: true,
+                assignedToEmail: true,
+                isFeatured: true,
+                isArchived: true,
+                createdAt: true,
+                updatedAt: true,
+                associatePartner: {
+                    select: {
+                        id: true,
+                        name: true,
+                        gmail: true,
+                    }
+                },
+                images: {
+                    select: {
+                        id: true,
+                        url: true,
+                    }
+                },
+                location: {
+                    select: {
+                        id: true,
+                        label: true,
+                        value: true,
+                    }
+                },
+                itineraries: {
+                    select: {
+                        id: true,
+                        itineraryTitle: true,
+                        itineraryDescription: true,
+                        dayNumber: true,
+                        days: true,
+                        hotelId: true,
+                        numberofRooms: true,
+                        roomCategory: true,
+                        mealsIncluded: true,
+                        itineraryImages: {
+                            select: {
+                                id: true,
+                                url: true,
+                            }
+                        },
+                        roomAllocations: {
+                            select: {
+                                id: true,
+                                quantity: true,
+                                guestNames: true,
+                                voucherNumber: true,
+                                customRoomType: true,
+                            }
+                        },
+                        transportDetails: {
+                            select: {
+                                id: true,
+                                quantity: true,
+                                description: true,
+                            }
+                        },
                         activities: {
-                            include: {
-                                activityImages: true,
+                            select: {
+                                id: true,
+                                activityTitle: true,
+                                activityDescription: true,
+                                activityImages: {
+                                    select: {
+                                        id: true,
+                                        url: true,
+                                    }
+                                },
                             },
                         },
                     },

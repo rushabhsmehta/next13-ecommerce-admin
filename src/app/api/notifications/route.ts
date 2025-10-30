@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 
+// Request deduplication cache - stores in-flight requests by cache key
+const pendingRequests = new Map<string, Promise<NotificationsResponse>>();
+
+interface NotificationsResponse {
+  notifications: any[];
+  unreadCount: number;
+}
+
 // GET - Fetch all notifications
 export async function GET(req: Request) {
   try {
@@ -16,32 +24,61 @@ export async function GET(req: Request) {
     const unreadOnly = searchParams.get("unreadOnly") === "true";
     const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined;
     
-    // Create where clause based on parameters
-    const whereClause: any = {};
-    if (unreadOnly) {
-      whereClause.read = false;
+    // Create cache key for request deduplication
+    const cacheKey = `${userId}-${unreadOnly}-${limit || 'all'}`;
+    
+    // Check if there's already a pending request for this exact query
+    if (pendingRequests.has(cacheKey)) {
+      console.log('🔄 [NOTIFICATIONS] Deduplicating request:', cacheKey);
+      const cachedPromise = pendingRequests.get(cacheKey)!;
+      const result = await cachedPromise;
+      return NextResponse.json(result);
     }
     
-    // Fetch notifications
-    const notifications = await prismadb.notification.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: limit
-    });
-    
-    // Count total unread notifications
-    const unreadCount = await prismadb.notification.count({
-      where: {
-        read: false
+    // Create a new promise for this request
+    const requestPromise = (async (): Promise<NotificationsResponse> => {
+      try {
+        // Create where clause based on parameters
+        const whereClause: any = {};
+        if (unreadOnly) {
+          whereClause.read = false;
+        }
+        
+        // Fetch notifications
+        const notifications = await prismadb.notification.findMany({
+          where: whereClause,
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: limit
+        });
+        
+        // Count total unread notifications
+        const unreadCount = await prismadb.notification.count({
+          where: {
+            read: false
+          }
+        });
+        
+        return {
+          notifications,
+          unreadCount
+        };
+      } finally {
+        // Clean up the cache after a short delay (100ms)
+        setTimeout(() => {
+          pendingRequests.delete(cacheKey);
+        }, 100);
       }
-    });
+    })();
     
-    return NextResponse.json({
-      notifications,
-      unreadCount
-    });
+    // Store the promise in the cache
+    pendingRequests.set(cacheKey, requestPromise);
+    
+    // Wait for the result
+    const data = await requestPromise;
+    
+    return NextResponse.json(data);
   } catch (error) {
     console.error('[NOTIFICATIONS_GET]', error);
     return new NextResponse("Internal error", { status: 500 });

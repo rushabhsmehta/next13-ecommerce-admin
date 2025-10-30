@@ -144,10 +144,10 @@ export const useNotifications = () => {
   useEffect(() => {
     fetchNotifications();
 
-    // Set up polling to check for new notifications every minute
+    // Set up polling to check for new notifications every 30 minutes
     const intervalId = setInterval(() => {
       fetchNotifications();
-    }, 600000); // 10 minutes    
+    }, 1800000); // 30 minutes    
     return () => clearInterval(intervalId);
   }, [fetchNotifications]);
 

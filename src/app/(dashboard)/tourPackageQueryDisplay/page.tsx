@@ -6,10 +6,25 @@ import { TourPackageQueryDisplayClient } from "./components/client";
 import { TourPackageQueryDisplayColumn } from "./components/columns";
 import { isCurrentUserAssociate } from "@/lib/associate-utils";
 
+// Enable ISR - revalidate every 5 minutes (300 seconds)
+export const revalidate = 300;
+
 const TourPackageQueryDisplayPage = async () => {
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
-    include: {
-      location: true,
+    select: {
+      id: true,
+      tourPackageQueryNumber: true,
+      tourPackageQueryName: true,
+      customerName: true,
+      assignedTo: true,
+      totalPrice: true,
+      createdAt: true,
+      updatedAt: true,
+      location: {
+        select: {
+          label: true,
+        }
+      }
     },
     orderBy: {
       updatedAt: 'desc'

@@ -201,8 +201,8 @@ export default function CampaignDetailsPage() {
       return;
     }
 
-    // Reduced from 3000ms to 2000ms for faster UI updates with optimized backend
-    const interval = setInterval(fetchCampaign, 2000);
+    // Poll every 30 seconds to balance real-time updates with server load
+    const interval = setInterval(fetchCampaign, 30000);
 
     return () => clearInterval(interval);
   }, [campaign, fetchCampaign]);

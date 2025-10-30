@@ -1,8 +1,27 @@
+import { notFound } from "next/navigation";
+
 import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
-import { Turret_Road } from "next/font/google";
-import Navbar from "@/components/navbar";
+
+const IMAGE_SELECT = {
+  id: true,
+  url: true,
+  createdAt: true,
+  updatedAt: true,
+  tourPackageId: true,
+  tourPackageQueryId: true,
+  hotelId: true,
+  itinerariesId: true,
+  activitiesId: true,
+  activitiesMasterId: true,
+  itinerariesMasterId: true,
+  paymentDetailsId: true,
+  receiptDetailsId: true,
+  expenseDetailsId: true,
+  incomeDetailsId: true,
+  flightDetailsId: true,
+} as const;
 
 const tourPackageQueryPage = async ({
   params
@@ -14,148 +33,245 @@ const tourPackageQueryPage = async ({
       id: params.tourPackageQueryId,
     },
     include: {
-      images: true,
+      images: {
+        select: IMAGE_SELECT,
+      },
       flightDetails: {
         include: {
-          images: true,
-        }
+          images: {
+            select: IMAGE_SELECT,
+          },
+        },
       },
       itineraries: {
         orderBy: {
-          dayNumber: 'asc' // or 'desc', depending on the desired order
+          dayNumber: 'asc',
         },
         include: {
-          itineraryImages: true,
+          itineraryImages: {
+            select: IMAGE_SELECT,
+          },
           roomAllocations: {
             include: {
               roomType: true,
               occupancyType: true,
               mealPlan: true,
-            }
+            },
           },
           transportDetails: {
             include: {
               vehicleType: true,
-            }
+            },
           },
           activities: {
             include: {
-              activityImages: true,
-            }
-          }
-        }
-      },
-    }
-  });
-  // console.log("Fetched tourPackage Query:", tourPackageQuery);
-
-  // Optimize: Only fetch active associate partners with minimal fields
-  const associatePartners = await prismadb.associatePartner.findMany({
-    where: {
-      isActive: true,
-    },
-    orderBy: {
-      createdAt: 'desc'
-    },
-    take: 50, // Limit to 50 most recent
-  });
-
-  // Optimize: Only fetch essential location fields
-  const locations = await prismadb.location.findMany({
-    orderBy: {
-      label: 'asc',
-    }
-  });
-
-  // Optimize: Only fetch hotels for the specific location if editing
-  const hotels = await prismadb.hotel.findMany({
-    where: tourPackageQuery?.locationId ? {
-      locationId: tourPackageQuery.locationId,
-    } : undefined,
-    include: {
-      images: true,
-    },
-    take: 100, // Limit hotels
-  });
-
-  // Optimize: Only fetch activity masters for the specific location
-  const activitiesMaster = await prismadb.activityMaster.findMany({
-    where: tourPackageQuery?.locationId ? {
-      locationId: tourPackageQuery.locationId,
-    } : undefined,
-    include: {
-      activityMasterImages: true,
-    },
-    take: 50,
-  });
-
-  // Optimize: Only fetch itinerary masters for the specific location
-  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
-    where: {
-      locationId: tourPackageQuery?.locationId ?? '',
-    },
-    include: {
-      itineraryMasterImages: true,
-      activities: {
-        include: {
-          activityImages: true,
-        }
+              activityImages: {
+                select: IMAGE_SELECT,
+              },
+            },
+          },
+        },
       },
     },
-    take: 50,
   });
 
-  // Optimize: Only fetch tour packages for the specific location with minimal data
-  const tourPackages = await prismadb.tourPackage.findMany({
-    where: {
-      isArchived: false,
-      locationId: tourPackageQuery?.locationId,
-    },
-    include: {
-      images: true,
-      flightDetails: true,
-      itineraries: {
-        include: {
-          itineraryImages: true,
-          activities: {
-            include: {
-              activityImages: true
-            }
-          }
-        }
+  if (!tourPackageQuery) {
+    notFound();
+  }
+
+  const locationId = tourPackageQuery.locationId ?? undefined;
+  const locationFilter = locationId ? { locationId } : undefined;
+  const itineraryMasterFilter = locationId ? { locationId } : { locationId: "" };
+
+  // Fetch supporting datasets in parallel to avoid sequential Prisma round-trips.
+  const [
+    associatePartners,
+    locations,
+    hotels,
+    activitiesMaster,
+    itinerariesMaster,
+    tourPackages,
+    tourPackageQueries,
+  ] = await Promise.all([
+    prismadb.associatePartner.findMany({
+      where: {
+        isActive: true,
       },
-    },
-    take: 20, // Limit to 20 packages
-  });
-
-  // Optimize: Only fetch recent tour package queries as templates
-  const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
-    where: {
-      isArchived: false,
-      locationId: tourPackageQuery?.locationId,
-      createdAt: {
-        gt: new Date('2024-12-31')
-      }
-    },
-    include: {
-      images: true,
-      flightDetails: true,
-      itineraries: {
-        include: {
-          itineraryImages: true,
-          activities: {
-            include: {
-              activityImages: true
-            }
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        mobileNumber: true,
+        updatedAt: true,
+        isActive: true,
+        gmail: true,
+        createdAt: true,
+      },
+    }),
+    prismadb.location.findMany({
+      orderBy: {
+        label: 'asc',
+      },
+      select: {
+        id: true,
+        label: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        slug: true,
+        tags: true,
+        inclusions: true,
+        exclusions: true,
+        importantNotes: true,
+        paymentPolicy: true,
+        usefulTip: true,
+        cancellationPolicy: true,
+        airlineCancellationPolicy: true,
+        termsconditions: true,
+        kitchenGroupPolicy: true,
+        isActive: true,
+        value: true,
+      },
+    }),
+    prismadb.hotel.findMany({
+      where: locationFilter,
+      include: {
+        images: {
+          select: IMAGE_SELECT,
+        },
+      },
+      take: 100,
+    }),
+    prismadb.activityMaster.findMany({
+      where: locationFilter,
+      include: {
+        activityMasterImages: {
+          select: IMAGE_SELECT,
+        },
+      },
+      take: 50,
+    }),
+    prismadb.itineraryMaster.findMany({
+      where: itineraryMasterFilter,
+      include: {
+        itineraryMasterImages: {
+          select: IMAGE_SELECT,
+        },
+        activities: {
+          include: {
+            activityImages: {
+              select: IMAGE_SELECT,
+            },
           }
-        }
-      }
-    },
-    orderBy: {
-      createdAt: 'desc'
-    },
-    take: 30, // Limit to 30 most recent
-  });
+        },
+      },
+      take: 50,
+    }),
+    prismadb.tourPackage.findMany({
+      where: {
+        isArchived: false,
+        ...(locationId ? { locationId } : {}),
+      },
+      include: {
+        images: {
+          select: IMAGE_SELECT,
+        },
+        flightDetails: {
+          include: {
+            images: {
+              select: IMAGE_SELECT,
+            },
+          }
+        },
+        itineraries: {
+          include: {
+            itineraryImages: {
+              select: IMAGE_SELECT,
+            },
+            activities: {
+              include: {
+                activityImages: {
+                  select: IMAGE_SELECT,
+                },
+              }
+            },
+          }
+        },
+        packageVariants: {
+          include: {
+            variantHotelMappings: {
+              include: {
+                hotel: {
+                  include: {
+                    images: {
+                      select: IMAGE_SELECT,
+                    },
+                  }
+                },
+                itinerary: true,
+              }
+            },
+            tourPackagePricings: {
+              include: {
+                mealPlan: true,
+                vehicleType: true,
+                locationSeasonalPeriod: true,
+                pricingComponents: {
+                  include: {
+                    pricingAttribute: true,
+                  }
+                },
+              }
+            },
+          }
+        },
+      },
+      take: 20,
+    }),
+    prismadb.tourPackageQuery.findMany({
+      where: {
+        isArchived: false,
+        ...(locationId ? { locationId } : {}),
+        createdAt: {
+          gt: new Date('2024-12-31'),
+        },
+      },
+      include: {
+        images: {
+          select: IMAGE_SELECT,
+        },
+        flightDetails: {
+          include: {
+            images: {
+              select: IMAGE_SELECT,
+            },
+          }
+        },
+        itineraries: {
+          include: {
+            itineraryImages: {
+              select: IMAGE_SELECT,
+            },
+            activities: {
+              include: {
+                activityImages: {
+                  select: IMAGE_SELECT,
+                },
+              }
+            },
+          }
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 30,
+    }),
+  ]);
 
   return (
     <>{/*       <Navbar /> */}

@@ -5,47 +5,120 @@ import prismadb from '@/lib/prismadb';
 import { Prisma } from '@prisma/client';
 export const dynamic = 'force-dynamic';
 
-async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any; roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageId: any) {
-    // First, create the itinerary and get its id
-    const createdItinerary = await prismadb.itinerary.create({
+type TransactionClient = Prisma.TransactionClient;
+
+const toJsonArrayString = (value: unknown): string => {
+    if (value === null || value === undefined) {
+        return JSON.stringify([]);
+    }
+    return JSON.stringify(Array.isArray(value) ? value : [value]);
+};
+
+const normalizeImageInput = (images: unknown): Array<{ url: string }> => {
+    if (!Array.isArray(images)) {
+        return [];
+    }
+
+    return images
+        .map((image) => (typeof image === 'object' && image !== null ? (image as { url?: string }) : undefined))
+        .filter((image): image is { url: string } => Boolean(image?.url));
+};
+
+const normalizeFlightDetails = (details: unknown): Array<{ date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string }> => {
+    if (!Array.isArray(details)) {
+        return [];
+    }
+
+    return details
+        .map((detail) => (typeof detail === 'object' && detail !== null ? detail as any : undefined))
+        .filter((detail): detail is { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string } => Boolean(detail?.date));
+};
+
+async function createItineraryAndActivities(
+    tx: TransactionClient,
+    itinerary: {
+        itineraryTitle: any;
+        itineraryDescription: any;
+        locationId: any;
+        tourPackageQueryId: any;
+        dayNumber: any;
+        days: any;
+        hotelId: any;
+        numberofRooms: any;
+        roomCategory: any;
+        mealsIncluded: any;
+        itineraryImages: any[];
+        activities: any[];
+    },
+    tourPackageId: string,
+) {
+    const validationErrors: string[] = [];
+
+    if (!itinerary?.itineraryTitle) {
+        validationErrors.push(`Missing itinerary title for day ${itinerary?.dayNumber ?? 'unknown'}`);
+    }
+
+    if (!itinerary?.locationId) {
+        validationErrors.push(`Missing location ID for itinerary "${itinerary?.itineraryTitle ?? 'unknown'}"`);
+    }
+
+    if (!itinerary?.dayNumber) {
+        validationErrors.push(`Missing day number for itinerary "${itinerary?.itineraryTitle ?? 'unknown'}"`);
+    }
+
+    if (validationErrors.length > 0) {
+        throw new Error(`Itinerary validation failed: ${validationErrors.join(', ')}`);
+    }
+
+    const createdItinerary = await tx.itinerary.create({
         data: {
             itineraryTitle: itinerary.itineraryTitle,
             itineraryDescription: itinerary.itineraryDescription,
             locationId: itinerary.locationId,
-            tourPackageId: tourPackageId,
+            tourPackageId,
             tourPackageQueryId: itinerary.tourPackageQueryId,
-            dayNumber : itinerary.dayNumber,
+            dayNumber: itinerary.dayNumber,
             days: itinerary.days,
             hotelId: itinerary.hotelId,
             numberofRooms: itinerary.numberofRooms,
             roomCategory: itinerary.roomCategory,
             mealsIncluded: itinerary.mealsIncluded,
-            itineraryImages: {
-                createMany: {
-                    data: itinerary.itineraryImages.map((image: { url: any; }) => ({ url: image.url })),
-                },
-            },
+            itineraryImages: itinerary?.itineraryImages?.length
+                ? {
+                    createMany: {
+                        data: itinerary.itineraryImages
+                            .filter((image: any) => image?.url)
+                            .map((image: { url: string }) => ({ url: image.url })),
+                    },
+                }
+                : undefined,
         },
     });
 
-    // Next, create activities linked to this itinerary
-    if (itinerary.activities && itinerary.activities.length > 0) {
-        await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
-            console.log("Received Activities is ", activity);
-            return prismadb.activity.create({
-                data: {
-                    itineraryId: createdItinerary.id, // Link to the created itinerary
-                    activityTitle: activity.activityTitle,
-                    activityDescription: activity.activityDescription,
-                    locationId: activity.locationId,
-                    activityImages: {
-                        createMany: {
-                            data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
-                        },
+    const activities = Array.isArray(itinerary.activities) ? itinerary.activities : [];
+
+    if (activities.length > 0) {
+        await Promise.all(
+            activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) =>
+                tx.activity.create({
+                    data: {
+                        itineraryId: createdItinerary.id,
+                        activityTitle: activity.activityTitle,
+                        activityDescription: activity.activityDescription,
+                        locationId: activity.locationId,
+                        activityImages: activity?.activityImages?.length
+                            ? {
+                                createMany: {
+                                    data: activity.activityImages
+                                        .filter((img: any) => img?.url)
+                                        .map((img: { url: string }) => ({ url: img.url })),
+                                },
+                            }
+                            : undefined,
                     },
-                },
-            });
-        }));
+                })
+            )
+        );
     }
 
     return createdItinerary;
@@ -133,72 +206,95 @@ export async function POST(
         const processedTermsConditions = Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : termsconditions ? JSON.stringify([termsconditions]) : JSON.stringify([]);
         const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? JSON.stringify(kitchenGroupPolicy) : kitchenGroupPolicy ? JSON.stringify([kitchenGroupPolicy]) : JSON.stringify([]);
 
-        const newTourPackage = await prismadb.tourPackage.create({
-            data: {
-                tourPackageName,
-                tourPackageType,
-                customerName,
-                customerNumber,
-                numDaysNight,
-                locationId,
-                period, 
-                transport,
-                pickup_location,
-                drop_location,
-                numAdults,
-                numChild5to12,
-                numChild0to5,
-                price,
-                pricePerAdult,
-                pricePerChildOrExtraBed,
-                pricePerChild5to12YearsNoBed,
-                pricePerChildwithSeatBelow5Years,
-                totalPrice,
-                pricingSection, // Add this line
-                //  hotelDetails,
-                inclusions: processedInclusions,
-                exclusions: processedExclusions,
-                importantNotes: processedImportantNotes,
-                paymentPolicy: processedPaymentPolicy,
-                usefulTip: processedUsefulTip,                cancellationPolicy: processedCancellationPolicy,
-                airlineCancellationPolicy: processedAirlineCancellationPolicy,
-                termsconditions: processedTermsConditions,
-                kitchenGroupPolicy: processedKitchenGroupPolicy,
-            //    disclaimer,
-                assignedTo,
-                assignedToMobileNumber,
-                assignedToEmail,
-                slug,
-                //   hotelId,
-                        images: {
-                    createMany: {
-                        data: [
-                            ...images.map((image: { url: string }) => image),
+        const normalizedImages = normalizeImageInput(images);
+        const normalizedFlightDetails = normalizeFlightDetails(flightDetails);
+        const preparedItineraries = Array.isArray(itineraries) ? itineraries : [];
+
+        const createdTourPackage = await prismadb.$transaction(async (tx) => {
+            const tourPackageRecord = await tx.tourPackage.create({
+                data: {
+                    tourPackageName,
+                    tourPackageType,
+                    customerName,
+                    customerNumber,
+                    numDaysNight,
+                    locationId,
+                    period,
+                    transport,
+                    pickup_location,
+                    drop_location,
+                    numAdults,
+                    numChild5to12,
+                    numChild0to5,
+                    price,
+                    pricePerAdult,
+                    pricePerChildOrExtraBed,
+                    pricePerChild5to12YearsNoBed,
+                    pricePerChildwithSeatBelow5Years,
+                    totalPrice,
+                    pricingSection,
+                    inclusions: processedInclusions,
+                    exclusions: processedExclusions,
+                    importantNotes: processedImportantNotes,
+                    paymentPolicy: processedPaymentPolicy,
+                    usefulTip: processedUsefulTip,
+                    cancellationPolicy: processedCancellationPolicy,
+                    airlineCancellationPolicy: processedAirlineCancellationPolicy,
+                    termsconditions: processedTermsConditions,
+                    kitchenGroupPolicy: processedKitchenGroupPolicy,
+                    assignedTo,
+                    assignedToMobileNumber,
+                    assignedToEmail,
+                    slug,
+                    images: normalizedImages.length
+                        ? {
+                            createMany: {
+                                data: normalizedImages,
+                                skipDuplicates: true,
+                            },
+                        }
+                        : undefined,
+                    flightDetails: normalizedFlightDetails.length
+                        ? {
+                            createMany: {
+                                data: normalizedFlightDetails,
+                                skipDuplicates: true,
+                            },
+                        }
+                        : undefined,
+                },
+            } as any);
+
+            if (preparedItineraries.length > 0) {
+                await Promise.all(
+                    preparedItineraries.map((itinerary) =>
+                        createItineraryAndActivities(tx, itinerary, tourPackageRecord.id)
+                    )
+                );
+            }
+
+            return tx.tourPackage.findUnique({
+                where: { id: tourPackageRecord.id },
+                include: {
+                    images: true,
+                    flightDetails: true,
+                    itineraries: {
+                        include: {
+                            itineraryImages: true,
+                            activities: {
+                                include: {
+                                    activityImages: true,
+                                },
+                            },
+                        },
+                        orderBy: [
+                            { dayNumber: 'asc' },
+                            { days: 'asc' },
                         ],
                     },
                 },
-                flightDetails: {
-                    createMany: {
-                        data: [
-                            ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
-                    }
-                },            },
-        } as any
-        )
-
-        if (itineraries && itineraries.length > 0) {
-            for (const itinerary of itineraries) {
-                await createItineraryAndActivities(itinerary, newTourPackage.id);
-            }
-        }
-
-        const createdTourPackage = await prismadb.tourPackage.findUnique({
-            where: { id: newTourPackage.id },
-            include: {
-                // Include relevant relations
-            },
+            });
         });
-
 
         return NextResponse.json(createdTourPackage);
     } catch (error) {

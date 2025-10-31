@@ -955,7 +955,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
             ${overviewSection}
             ${tourInfoHighlights}
             ${totalPriceSection}
-            ${pricingBreakdown}
             ${flightSection}
             ${hotelsSection}
             ${itinerariesSection}

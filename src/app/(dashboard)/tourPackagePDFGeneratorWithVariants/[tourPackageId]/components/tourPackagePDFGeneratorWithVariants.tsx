@@ -769,7 +769,6 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
           <div style="${containerStyle}">
             ${headerSection}
             ${tourInfoSection}
-            ${dynamicPricingSection}
             ${totalPriceSection}
             ${itinerariesSection}
             ${variantsSection}

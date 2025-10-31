@@ -326,7 +326,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
               <div>
                 <CardTitle className="text-xl font-bold"
                   dangerouslySetInnerHTML={{
-                    __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
+                    __html: `Day ${itinerary.dayNumber} :- ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
                   }} />
               </div>
             </div>

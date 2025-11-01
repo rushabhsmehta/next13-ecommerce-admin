@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from 'react-hot-toast';
-import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus, Sun, Moon, Cloud, Info, Smile, Search, X, MoreVertical, ArrowRight, ImageIcon, ShoppingBag, Check, ChevronsUpDown } from 'lucide-react';
+import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus, Sun, Moon, Cloud, Info, Smile, Search, X, MoreVertical, ArrowRight, ImageIcon, ShoppingBag, Check, ChevronsUpDown, Filter } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -148,7 +148,7 @@ const formatContactLabel = (value?: string | null) => {
   return stripped || 'Unknown contact';
 };
 
-const DEFAULT_MESSAGE_FETCH_LIMIT = 100;
+const DEFAULT_MESSAGE_FETCH_LIMIT = 500; // Increased to ensure better contact coverage (was 100)
 const INITIAL_VISIBLE_MESSAGES = 5;
 const LOAD_MORE_MESSAGES_STEP = 5;
 
@@ -600,6 +600,8 @@ export default function WhatsAppSettingsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [convos, setConvos] = useState<Record<string, ChatMsg[]>>({});
+  const [visibleContactsCount, setVisibleContactsCount] = useState(25); // Load 25 contacts at a time
+  const [showOnlyResponded, setShowOnlyResponded] = useState(false); // Filter to show only contacts with responses
   const [typing, setTyping] = useState(false);
   const [liveSend, setLiveSend] = useState(true); // ✅ ENABLE LIVE SENDING
   const [sendingLive, setSendingLive] = useState(false);
@@ -697,10 +699,35 @@ export default function WhatsAppSettingsPage() {
     return 'Select products';
   }, [catalogProductsLoading, selectedProductIds.length, selectedProductSummaries]);
 
-  const filteredContacts = contacts.filter(c => 
-    c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
-    c.phone.toLowerCase().includes(chatSearchTerm.toLowerCase())
-  );
+  const filteredContacts = contacts
+    .filter(c => 
+      (c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
+       c.phone.toLowerCase().includes(chatSearchTerm.toLowerCase()))
+    )
+    .filter(c => {
+      // If "responded only" filter is on, check if contact has inbound messages
+      if (showOnlyResponded) {
+        const convo = convos[c.id] || [];
+        return convo.some(m => m.direction === 'in');
+      }
+      return true;
+    })
+    .slice(0, visibleContactsCount); // Apply pagination limit
+  
+  const totalAvailableContacts = contacts
+    .filter(c => 
+      (c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
+       c.phone.toLowerCase().includes(chatSearchTerm.toLowerCase()))
+    )
+    .filter(c => {
+      if (showOnlyResponded) {
+        const convo = convos[c.id] || [];
+        return convo.some(m => m.direction === 'in');
+      }
+      return true;
+    }).length;
+  
+  const hasMoreContacts = filteredContacts.length < totalAvailableContacts;
 
   const handleAddNewChat = () => {
     if (!newChatNumber) return;
@@ -1557,7 +1584,13 @@ export default function WhatsAppSettingsPage() {
       if (result.success) {
         setMessages(result.messages);
         setMessageOffset(0);
-        console.log('📨 Fetched messages:', result.messages.length);
+        // Debug logging to track message types
+        const outboundCount = result.messages.filter((m: any) => m.direction === 'outbound' || m.direction === 'out').length;
+        const inboundCount = result.messages.filter((m: any) => m.direction === 'inbound' || m.direction === 'in').length;
+        console.log('📨 Fetched messages:', result.messages.length, `(outbound: ${outboundCount}, inbound: ${inboundCount})`);
+        result.messages.slice(0, 5).forEach((m: any, idx: number) => {
+          console.log(`  [${idx}] direction=${m.direction}, to=${m.to}, message=${m.message?.substring(0, 50) || 'N/A'}`);
+        });
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -1897,14 +1930,20 @@ export default function WhatsAppSettingsPage() {
   useEffect(() => {
     const buildContactsAndConvos = () => {
       if (!messages || messages.length === 0) {
+        console.log('🚫 buildContactsAndConvos: No messages to process');
         return { contacts: [], convos: {} };
       }
 
       const contactMap: Record<string, Contact> = {};
       const convoMap: Record<string, ChatMsg[]> = {};
 
+      // Debug: Log message breakdown
+      const outboundMsgs = messages.filter(m => m.direction === 'outbound' || m.direction === 'out');
+      const inboundMsgs = messages.filter(m => m.direction === 'inbound' || m.direction === 'in');
+      console.log('🔍 buildContactsAndConvos processing', messages.length, `messages (outbound: ${outboundMsgs.length}, inbound: ${inboundMsgs.length})`);
+
       // Group messages by phone number
-      messages.forEach(msg => {
+      messages.forEach((msg, msgIdx) => {
         const normalizedFrom = normalizeContactAddress(msg.from);
         const normalizedTo = normalizeContactAddress(msg.to);
         const baseMetadata = ((msg as any).metadata || {}) as ChatMsg['metadata'];
@@ -1913,7 +1952,16 @@ export default function WhatsAppSettingsPage() {
           ? (normalizedFrom || normalizedTo)
           : (normalizedTo || normalizedFrom);
 
-        if (!contactPhone) return;
+        // Debug: Log first few messages to understand phone normalization
+        if (msgIdx < 3) {
+          console.log(`  [Msg ${msgIdx}] dir=${msg.direction}, from=${msg.from}, to=${msg.to}`);
+          console.log(`    normalized: from=${normalizedFrom}, to=${normalizedTo}, contactPhone=${contactPhone}`);
+        }
+
+        if (!contactPhone) {
+          console.log(`  [Msg ${msgIdx}] SKIPPED: contactPhone is null or empty`);
+          return;
+        }
 
         // Check if message has an associated WhatsAppCustomer
         const whatsappCustomer = (msg as any).whatsappCustomer;
@@ -2075,6 +2123,28 @@ export default function WhatsAppSettingsPage() {
         return timeB - timeA; // Most recent first
       });
 
+      // Debug: Log built conversations
+      console.log('✅ Built', contactsList.length, 'contacts with convos');
+      
+      // Categorize contacts
+      const templateOnlyContacts = contactsList.filter(c => {
+        const convo = convoMap[c.id] || [];
+        return convo.every(m => m.direction === 'out');
+      });
+      const twoWayContacts = contactsList.filter(c => {
+        const convo = convoMap[c.id] || [];
+        return convo.some(m => m.direction === 'in');
+      });
+      
+      console.log(`  📊 Breakdown: ${twoWayContacts.length} two-way, ${templateOnlyContacts.length} template-only`);
+      
+      contactsList.slice(0, 10).forEach(contact => {
+        const convo = convoMap[contact.id] || [];
+        const outboundInConvo = convo.filter(m => m.direction === 'out').length;
+        const inboundInConvo = convo.filter(m => m.direction === 'in').length;
+        console.log(`  - ${contact.name} (${contact.phone}): ${convo.length} messages (out: ${outboundInConvo}, in: ${inboundInConvo})`);
+      });
+
       return {
         contacts: contactsList,
         convos: convoMap
@@ -2176,6 +2246,21 @@ export default function WhatsAppSettingsPage() {
     : INITIAL_VISIBLE_MESSAGES;
   const activeVisibleMessages = activeContactMessages.slice(-activeVisibleCount);
   const hasMoreActiveMessages = activeContactMessages.length > activeVisibleMessages.length;
+
+  // Debug: Log active conversation state
+  useEffect(() => {
+    if (activeContact) {
+      console.log(`📱 Active contact: ${activeContact.name} (${activeContact.phone})`);
+      console.log(`  Total messages in conversation: ${activeContactMessages.length}`);
+      console.log(`  Visible count: ${activeVisibleCount}`);
+      console.log(`  Currently showing: ${activeVisibleMessages.length} messages`);
+      if (activeContactMessages.length > 0) {
+        const outbound = activeContactMessages.filter(m => m.direction === 'out').length;
+        const inbound = activeContactMessages.filter(m => m.direction === 'in').length;
+        console.log(`  Message breakdown - Outbound: ${outbound}, Inbound: ${inbound}`);
+      }
+    }
+  }, [activeContact, activeContactMessages, activeVisibleCount, activeVisibleMessages]);
 
   useEffect(() => {
     if (!activeId) {
@@ -2806,11 +2891,17 @@ export default function WhatsAppSettingsPage() {
 
             addDebugLog('success', '✅ Text Message Sent Successfully!', {
               messageId: j.messageId || j.messageSid,
+              dbRecordId: j.dbRecord?.id,
+              dbRecordDirection: j.dbRecord?.direction,
               timestamp: new Date().toISOString(),
             });
 
+            console.log('🔄 Sent successfully, scheduling fetchMessages in 1 second...');
             toast.success('Message sent');
-            setTimeout(() => fetchMessages(), 1000);
+            setTimeout(() => {
+              console.log('⏱️ 1 second elapsed, calling fetchMessages()...');
+              fetchMessages();
+            }, 1000);
           } else {
             if (mediaToSend) {
               addDebugLog('info', '📎 Sending media message', {
@@ -4036,8 +4127,22 @@ export default function WhatsAppSettingsPage() {
           {/* Chat Sidebar */}
           <div className="flex w-80 flex-col border-r border-emerald-100/60 bg-white/70 backdrop-blur-md dark:border-slate-800 dark:bg-[#111b21]/80">
             <div className="flex items-center justify-between border-b border-emerald-100/60 bg-white/60 p-4 backdrop-blur dark:border-slate-800 dark:bg-[#0b141a]/70">
-              <h1 className="text-2xl font-bold">Chats</h1>
+              <div>
+                <h1 className="text-2xl font-bold">Chats</h1>
+                <p className="text-xs text-muted-foreground">
+                  {filteredContacts.length} of {contacts.length} shown
+                </p>
+              </div>
               <div className="flex gap-2">
+                <Button
+                  variant={showOnlyResponded ? "default" : "ghost"}
+                  size="icon"
+                  onClick={() => setShowOnlyResponded(v => !v)}
+                  className={showOnlyResponded ? "h-9 w-9 bg-emerald-500 hover:bg-emerald-600" : "h-9 w-9"}
+                  title={showOnlyResponded ? "Showing only responded contacts" : "Show only contacts with responses"}
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -4118,6 +4223,20 @@ export default function WhatsAppSettingsPage() {
                   </div>
                 );
               })}
+
+              {/* Load More Contacts Button */}
+              {hasMoreContacts && (
+                <div className="p-2">
+                  <Button
+                    onClick={() => setVisibleContactsCount(prev => prev + 25)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                  >
+                    Load {Math.min(25, totalAvailableContacts - filteredContacts.length)} more contacts
+                  </Button>
+                </div>
+              )}
 
             </div>
           </div>

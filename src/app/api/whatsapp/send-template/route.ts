@@ -313,7 +313,13 @@ export async function POST(request: NextRequest) {
       automationId,
     });
 
-    console.log('[send-template] Result:', { success: result.success, messageSid: result.messageSid });
+    console.log('[send-template] Result:', { 
+      success: result.success, 
+      messageSid: result.messageSid,
+      dbRecordId: result.dbRecord?.id,
+      dbRecordDirection: result.dbRecord?.direction,
+      dbRecordMessage: result.dbRecord?.message?.substring(0, 100),
+    });
 
     if (result.success) {
       if (result.dbRecord?.id) {

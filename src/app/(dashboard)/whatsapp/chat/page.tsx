@@ -1562,7 +1562,7 @@ export default function WhatsAppSettingsPage() {
   }, []);
 
   // Debug Logging Helper
-  const addDebugLog = (type: 'info' | 'success' | 'error' | 'warning', action: string, details: any = {}) => {
+  const addDebugLog = useCallback((type: 'info' | 'success' | 'error' | 'warning', action: string, details: any = {}) => {
     const log: DebugLog = {
       id: `log-${Date.now()}-${Math.random()}`,
       timestamp: new Date(),
@@ -1571,12 +1571,12 @@ export default function WhatsAppSettingsPage() {
       details: typeof details === 'object' ? details : { value: details }
     };
     setDebugLogs(prev => [log, ...prev].slice(0, 100)); // Keep last 100 logs
-  };
+  }, []);
 
-  const clearDebugLogs = () => {
+  const clearDebugLogs = useCallback(() => {
     setDebugLogs([]);
     addDebugLog('info', 'Debug logs cleared', { count: 0 });
-  };
+  }, [addDebugLog]);
 
   const exportDebugLogs = () => {
     const logsText = debugLogs.map(log => 
@@ -1727,7 +1727,7 @@ export default function WhatsAppSettingsPage() {
         return {
           file,
           previewUrl,
-          type: resolvedType,
+          type: resolvedType as PendingMedia['type'],
           mimeType: file.type || (resolvedType === 'document' ? 'application/pdf' : 'image/jpeg'),
           fileName: file.name || `attachment-${Date.now()}`,
           size: file.size,

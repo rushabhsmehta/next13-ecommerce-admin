@@ -1037,6 +1037,47 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
     alert("Hotels from first variant copied to all variants");
   };
 
+  const applyHotelsFromCurrentPackage = (variantIndex: number) => {
+    const nextMappings: Record<string, string> = {};
+    const missingHotelDays: number[] = [];
+
+    // Extract hotels from current itineraries in Hotels Tab
+    itineraries.forEach((itinerary, orderIndex) => {
+      const dayNumber = Number.isFinite(itinerary.dayNumber) ? itinerary.dayNumber : orderIndex + 1;
+      
+      const mappingKey = itinerary.id
+        || (Number.isFinite(dayNumber)
+          ? String(dayNumber)
+          : `fallback-${orderIndex}`);
+
+      const hotelId = itinerary.hotelId;
+
+      if (hotelId) {
+        nextMappings[mappingKey] = hotelId;
+      } else {
+        missingHotelDays.push(dayNumber);
+      }
+    });
+
+    setVariants(prev => {
+      const next = [...prev];
+      if (!next[variantIndex]) {
+        return prev;
+      }
+      next[variantIndex] = {
+        ...next[variantIndex],
+        hotelMappings: nextMappings,
+      };
+      return next;
+    });
+
+    if (missingHotelDays.length > 0) {
+      toast(`Hotels applied, but no hotel is set for day(s): ${missingHotelDays.join(', ')} in the Hotels tab.`);
+    } else {
+      toast.success("Hotels from this package applied to variant.");
+    }
+  };
+
   if (itineraries.length === 0) {
     return (
       <Card className="border-dashed border-2">
@@ -1272,6 +1313,26 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                       </p>
                     )}
                   </div>
+
+                  {/* Use Hotels From This Package Button */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">Or Use Hotels From This Package</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-center text-xs bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border-emerald-200/50"
+                      onClick={() => applyHotelsFromCurrentPackage(variantIndex)}
+                      disabled={loading}
+                    >
+                      <HotelIcon className="h-3.5 w-3.5 mr-1.5" />
+                      <span>Quick Apply Hotels from Hotels Tab</span>
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground italic">
+                      💡 Applies the hotels you&apos;ve already selected in the Hotels tab to this variant with one click
+                    </p>
+                  </div>
+
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id={`default-${variantIndex}`}

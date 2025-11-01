@@ -667,7 +667,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     <div style="display:flex; align-items:center; gap:12px;">
                       <span style="display:inline-flex; align-items:center; justify-content:center; background:${brandColors.primary}; color:${brandColors.white}; padding:6px 10px; border-radius:8px; font-weight:700; font-size:12px;">DAY ${it.dayNumber}</span>
                       <div style="flex:1;">
-                        <h3 style="margin:0; font-size:16px; font-weight:800; line-height:1.1; background: ${brandGradients.secondary}; -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:0.15px; text-shadow: 0 1px 0 rgba(0,0,0,0.03);">${it.days}</h3>
+                        <h3 style="margin:0; font-size:16px; font-weight:800; line-height:1.1; background: ${brandGradients.secondary}; -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:0.15px; text-shadow: 0 1px 0 rgba(0,0,0,0.03);">${it.days || 'Destination'}</h3>
                         <div style="height:6px; width:84px; max-width:84px; display:inline-block; background: ${brandGradients.primary}; border-radius:4px; margin-top:8px;"></div>
                       </div>
                     </div>

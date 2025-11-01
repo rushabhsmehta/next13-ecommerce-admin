@@ -1,4 +1,5 @@
 import { generatePDF } from "@/utils/generatepdf";
+import { pdfCache } from "@/lib/pdf-cache";
 
 export async function POST(req: Request): Promise<Response> {
   try {
@@ -11,7 +12,15 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
 
-  const pdfBuffer = await generatePDF(htmlContent, { headerHtml, footerHtml, margin, scale });
+    // 🔍 Check cache first
+    const contentHash = pdfCache.generateHash(htmlContent);
+    let pdfBuffer = pdfCache.get(contentHash);
+    
+    // If not in cache, generate and store
+    if (!pdfBuffer) {
+      pdfBuffer = await generatePDF(htmlContent, { headerHtml, footerHtml, margin, scale });
+      pdfCache.set(htmlContent, pdfBuffer);
+    }
 
   return new Response(new Uint8Array(pdfBuffer), {
       headers: {

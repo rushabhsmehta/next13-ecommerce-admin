@@ -601,7 +601,7 @@ export default function WhatsAppSettingsPage() {
   const [activeId, setActiveId] = useState<string>('');
   const [convos, setConvos] = useState<Record<string, ChatMsg[]>>({});
   const [visibleContactsCount, setVisibleContactsCount] = useState(25); // Load 25 contacts at a time
-  const [showOnlyResponded, setShowOnlyResponded] = useState(false); // Filter to show only contacts with responses
+  const [showOnlyResponded, setShowOnlyResponded] = useState(true); // Filter to show only contacts with responses (DEFAULT: true)
   const [typing, setTyping] = useState(false);
   const [liveSend, setLiveSend] = useState(true); // ✅ ENABLE LIVE SENDING
   const [sendingLive, setSendingLive] = useState(false);
@@ -4139,7 +4139,7 @@ export default function WhatsAppSettingsPage() {
                   size="icon"
                   onClick={() => setShowOnlyResponded(v => !v)}
                   className={showOnlyResponded ? "h-9 w-9 bg-emerald-500 hover:bg-emerald-600" : "h-9 w-9"}
-                  title={showOnlyResponded ? "Showing only responded contacts" : "Show only contacts with responses"}
+                  title={showOnlyResponded ? "Showing only responded contacts (click to see all)" : "Click to show only responded contacts"}
                 >
                   <Filter className="h-4 w-4" />
                 </Button>

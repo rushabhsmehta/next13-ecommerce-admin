@@ -148,7 +148,7 @@ const formatContactLabel = (value?: string | null) => {
   return stripped || 'Unknown contact';
 };
 
-const DEFAULT_MESSAGE_FETCH_LIMIT = 500; // Increased to ensure better contact coverage (was 100)
+const DEFAULT_MESSAGE_FETCH_LIMIT = 1000; // Fetch all messages to ensure all responded contacts are included
 const INITIAL_VISIBLE_MESSAGES = 5;
 const LOAD_MORE_MESSAGES_STEP = 5;
 
@@ -728,6 +728,20 @@ export default function WhatsAppSettingsPage() {
     }).length;
   
   const hasMoreContacts = filteredContacts.length < totalAvailableContacts;
+
+  // Debug logging
+  useEffect(() => {
+    if (showOnlyResponded) {
+      console.log('🔍 [FILTER DEBUG]', {
+        visibleContactsCount,
+        filteredContactsLength: filteredContacts.length,
+        totalAvailableContacts,
+        hasMoreContacts,
+        showOnlyResponded,
+        totalContacts: contacts.length
+      });
+    }
+  }, [filteredContacts.length, totalAvailableContacts, visibleContactsCount, showOnlyResponded, contacts.length]);
 
   const handleAddNewChat = () => {
     if (!newChatNumber) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -178,6 +178,7 @@ export default function WhatsAppSettingsPage() {
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showCatalogComposer, setShowCatalogComposer] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const lastReadMapRef = useRef<Record<string, number>>({});
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [visibleMessageCounts, setVisibleMessageCounts] = useState<Record<string, number>>({});
@@ -228,6 +229,7 @@ export default function WhatsAppSettingsPage() {
       sha256?: string;
       size?: number;
       url?: string;
+      localUrl?: string;
     };
     location?: {
       latitude: number;
@@ -290,6 +292,24 @@ export default function WhatsAppSettingsPage() {
     flowToken?: string;
     responseText?: string;
     isFlowReply: boolean;
+  };
+
+  type PendingMedia = {
+    file: File;
+    previewUrl?: string;
+    type: 'image' | 'document';
+    mimeType: string;
+    fileName: string;
+    size: number;
+  };
+
+  type UploadedMediaResult = {
+    success: true;
+    mediaId: string;
+    type: 'image' | 'document';
+    mimeType: string;
+    fileName: string;
+    size: number;
   };
 
   const safeParseFlowJson = (raw: unknown): any | null => {
@@ -382,6 +402,14 @@ export default function WhatsAppSettingsPage() {
       return value ? 'Yes' : 'No';
     }
     return String(value);
+  };
+
+  const formatBytes = (bytes: number): string => {
+    if (!bytes || Number.isNaN(bytes)) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const size = bytes / Math.pow(1024, index);
+    return `${index === 0 ? size.toFixed(0) : size.toFixed(1)} ${units[index]}`;
   };
 
   const coerceFlowSummaryObject = (input: unknown): Record<string, any> | null => {
@@ -591,9 +619,12 @@ export default function WhatsAppSettingsPage() {
   const [productSelectOpen, setProductSelectOpen] = useState(false);
   const [multiProductSelectOpen, setMultiProductSelectOpen] = useState(false);
   const [sendingCatalog, setSendingCatalog] = useState(false);
+  const [pendingMedia, setPendingMedia] = useState<PendingMedia | null>(null);
+  const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
   
   const catalogsLoadingRef = useRef(false);
   const catalogProductsLoadingRef = useRef(false);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
 
   // Ref for auto-scrolling to bottom of chat
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
@@ -620,6 +651,7 @@ export default function WhatsAppSettingsPage() {
       return { id: retailerId, label };
     });
   }, [selectedProductIds, catalogProductOptions]);
+
 
   const catalogSelectionLabel = useMemo(() => {
     if (catalogsLoading) {
@@ -885,8 +917,8 @@ export default function WhatsAppSettingsPage() {
       .filter((element): element is JSX.Element => element !== null);
 
     if (whatsappType && whatsappType !== 'text') {
-      if (whatsappType === 'image' && media?.id) {
-        const src = buildMediaSrc(media.id);
+      if (whatsappType === 'image' && (media?.id || media?.localUrl)) {
+        const src = media?.localUrl || (media?.id ? buildMediaSrc(media.id) : null);
         segments.push(
           <div key="image" className="overflow-hidden rounded-xl border border-white/10 bg-black/10">
             {src ? (
@@ -908,8 +940,8 @@ export default function WhatsAppSettingsPage() {
             )}
           </div>
         );
-      } else if (whatsappType === 'video' && media?.id) {
-        const src = buildMediaSrc(media.id);
+      } else if (whatsappType === 'video' && (media?.id || media?.localUrl)) {
+        const src = media?.localUrl || (media?.id ? buildMediaSrc(media.id) : null);
         segments.push(
           <div key="video" className="overflow-hidden rounded-xl border border-white/10 bg-black/10">
             {src ? (
@@ -924,8 +956,8 @@ export default function WhatsAppSettingsPage() {
             )}
           </div>
         );
-      } else if ((whatsappType === 'audio' || whatsappType === 'voice') && media?.id) {
-        const src = buildMediaSrc(media.id);
+      } else if ((whatsappType === 'audio' || whatsappType === 'voice') && (media?.id || media?.localUrl)) {
+        const src = media?.localUrl || (media?.id ? buildMediaSrc(media.id) : null);
         segments.push(
           <div key="audio" className="rounded-xl border border-white/10 bg-white/5 p-3">
             {src ? (
@@ -938,8 +970,8 @@ export default function WhatsAppSettingsPage() {
             )}
           </div>
         );
-      } else if (whatsappType === 'document' && media?.id) {
-        const src = buildMediaSrc(media.id);
+      } else if (whatsappType === 'document' && (media?.id || media?.localUrl || media?.url)) {
+        const src = media?.localUrl || (media?.id ? buildMediaSrc(media.id) : media?.url || null);
         segments.push(
           <a
             key="document"
@@ -1631,6 +1663,123 @@ export default function WhatsAppSettingsPage() {
       setCatalogProductsLoading(false);
     }
   }, []);
+
+  const removePendingMedia = useCallback(() => {
+    setPendingMedia((current) => {
+      if (current?.previewUrl) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+      return null;
+    });
+    setMediaUploadError(null);
+  }, []);
+
+  const handleMediaSelect = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) {
+        return;
+      }
+
+      if (selectedTemplate) {
+        toast.error('Remove the selected template before attaching media.');
+        return;
+      }
+
+      const lowerName = file.name?.toLowerCase() || '';
+      let resolvedType: PendingMedia['type'] | null = null;
+
+      if (file.type?.startsWith('image/')) {
+        resolvedType = 'image';
+      } else if (file.type === 'application/pdf') {
+        resolvedType = 'document';
+      } else if (['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
+        resolvedType = 'document';
+      } else if (lowerName.endsWith('.pdf')) {
+        resolvedType = 'document';
+      }
+
+      if (!resolvedType) {
+        setMediaUploadError('Only images and PDFs can be sent from the live chat right now.');
+        toast.error('Only images and PDF documents are supported right now.');
+        return;
+      }
+
+      const imageLimit = 16 * 1024 * 1024;
+      const documentLimit = 25 * 1024 * 1024;
+      if (resolvedType === 'image' && file.size > imageLimit) {
+        setMediaUploadError('Images must be 16MB or smaller.');
+        toast.error('Images must be 16MB or smaller.');
+        return;
+      }
+      if (resolvedType === 'document' && file.size > documentLimit) {
+        setMediaUploadError('Documents must be 25MB or smaller.');
+        toast.error('Documents must be 25MB or smaller.');
+        return;
+      }
+
+      setPendingMedia((current) => {
+        if (current?.previewUrl) {
+          URL.revokeObjectURL(current.previewUrl);
+        }
+  const previewUrl = URL.createObjectURL(file);
+        return {
+          file,
+          previewUrl,
+          type: resolvedType,
+          mimeType: file.type || (resolvedType === 'document' ? 'application/pdf' : 'image/jpeg'),
+          fileName: file.name || `attachment-${Date.now()}`,
+          size: file.size,
+        };
+      });
+
+      setMediaUploadError(null);
+      addDebugLog('info', '🖇️ Media attached', {
+        type: resolvedType,
+        fileName: file.name,
+        size: file.size,
+      });
+
+      toast.success(resolvedType === 'image' ? 'Image attached' : 'Document attached');
+    },
+    [selectedTemplate, addDebugLog]
+  );
+
+  const uploadPendingMedia = useCallback(
+    async (media: PendingMedia, caption?: string): Promise<UploadedMediaResult> => {
+      const formData = new FormData();
+      formData.append('file', media.file, media.fileName);
+      formData.append('type', media.type);
+      formData.append('fileName', media.fileName);
+      formData.append('mimeType', media.mimeType);
+      formData.append('size', String(media.size));
+      if (caption) {
+        formData.append('caption', caption);
+      }
+
+      const response = await fetch('/api/whatsapp/media/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await response.json();
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.error || 'Failed to upload media');
+      }
+
+      const result = json as UploadedMediaResult;
+      addDebugLog('success', '✅ Media uploaded to WhatsApp', {
+        mediaId: result.mediaId,
+        type: result.type,
+        fileName: result.fileName,
+        size: result.size,
+      });
+
+      return result;
+    },
+    [addDebugLog]
+  );
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -2388,36 +2537,45 @@ export default function WhatsAppSettingsPage() {
       addDebugLog('error', '❌ No Active Contact', { action: 'send_attempt_blocked' });
       return;
     }
-    
+
+    if (selectedTemplate && pendingMedia) {
+      toast.error('Remove the attachment before sending a template message.');
+      addDebugLog('warning', '⚠️ Attachment blocked for template send', {});
+      return;
+    }
+
     addDebugLog('info', '📤 Send Message Initiated', {
       contactName: activeContact.name,
       contactPhone: activeContact.phone,
       hasTemplate: !!selectedTemplate,
-      templateId: selectedTemplate || null
+      templateId: selectedTemplate || null,
     });
-    
+
     const selectedTemplateId = selectedTemplate;
-    const tpl = templates.find(t => t.id === selectedTemplateId);
+    const tpl = templates.find((t) => t.id === selectedTemplateId);
     const hasVars = tpl && (Array.isArray(tpl.variables) ? tpl.variables.length > 0 : Object.keys(extractPlaceholders(tpl.body)).length > 0);
 
-    if (selectedTemplateId && hasVars && Object.values(templateVariables).some(v => !v)) {
-        // If template is selected and has variables, but they are not filled,
-        // we just return, because the modal should be handling it.
-        // This prevents sending a message with unfilled placeholders.
-        addDebugLog('warning', '⚠️ Template Variables Not Filled', {
-          templateId: selectedTemplateId,
-          templateName: tpl?.name,
-          requiredVariables: Object.keys(templateVariables),
-          filledVariables: Object.entries(templateVariables).filter(([k,v]) => v).map(([k]) => k),
-          missingVariables: Object.entries(templateVariables).filter(([k,v]) => !v).map(([k]) => k)
-        });
-        return;
+    if (selectedTemplateId && hasVars && Object.values(templateVariables).some((v) => !v)) {
+      addDebugLog('warning', '⚠️ Template Variables Not Filled', {
+        templateId: selectedTemplateId,
+        templateName: tpl?.name,
+        requiredVariables: Object.keys(templateVariables),
+        filledVariables: Object.entries(templateVariables)
+          .filter(([_, v]) => v)
+          .map(([k]) => k),
+        missingVariables: Object.entries(templateVariables)
+          .filter(([_, v]) => !v)
+          .map(([k]) => k),
+      });
+      return;
     }
 
-    const base = selectedTemplateId ? (tpl?.body || '') : (message || '');
-    const text = selectedTemplateId ? substituteTemplate(base, templateVariables) : base;
+    const base = selectedTemplateId ? tpl?.body || '' : message || '';
+    const composedText = selectedTemplateId ? substituteTemplate(base, templateVariables) : base;
+    const trimmedText = composedText.trim();
+    const mediaToSend = pendingMedia;
 
-    if (!text.trim()) {
+    if (!trimmedText && !mediaToSend) {
       addDebugLog('error', '❌ Empty Message', { action: 'send_blocked' });
       return;
     }
@@ -2425,8 +2583,8 @@ export default function WhatsAppSettingsPage() {
     addDebugLog('info', '📝 Message Text Prepared', {
       isTemplate: !!selectedTemplateId,
       originalText: base,
-      substitutedText: text,
-      variablesUsed: selectedTemplateId ? Object.keys(templateVariables) : []
+      substitutedText: composedText,
+      variablesUsed: selectedTemplateId ? Object.keys(templateVariables) : [],
     });
 
     const submission = selectedTemplateId && tpl
@@ -2444,15 +2602,17 @@ export default function WhatsAppSettingsPage() {
       addDebugLog('warning', '⚠️ Flow Action Data Warning', { buttonIndex: index, error });
     });
 
-    const templateMetadata = selectedTemplateId && tpl ? {
-      templateId: tpl.id,
-      templateName: tpl.name,
-      headerImage: processedVariables.headerImage || templateVariables['_header_image'],
-      buttons: tpl.whatsapp?.buttons || [],
-      components: tpl.components || [],
-      flowButtons: submission.flowButtons,
-      variables: processedVariables,
-    } : undefined;
+    const templateMetadata = selectedTemplateId && tpl
+      ? {
+          templateId: tpl.id,
+          templateName: tpl.name,
+          headerImage: processedVariables.headerImage || templateVariables['_header_image'],
+          buttons: tpl.whatsapp?.buttons || [],
+          components: tpl.components || [],
+          flowButtons: submission.flowButtons,
+          variables: processedVariables,
+        }
+      : undefined;
 
     if (templateMetadata) {
       addDebugLog('info', '🎨 Template Metadata Built', {
@@ -2461,50 +2621,104 @@ export default function WhatsAppSettingsPage() {
         hasHeaderImage: !!templateMetadata.headerImage,
         buttonCount: templateMetadata.buttons.length,
         componentCount: templateMetadata.components.length,
-        components: templateMetadata.components.map((c: any) => c.type)
+        components: templateMetadata.components.map((c: any) => c.type),
       });
     }
 
-    // Clear message and template selection after preparing the message
-    setMessage('');
-    if (selectedTemplateId) {
-        setSelectedTemplate('');
-        setTemplateVariables({});
-        setShowTemplatePreview(false);
-        addDebugLog('info', '🧹 Template Selection Cleared', { templateId: selectedTemplateId });
+    const fallbackPreview = mediaToSend
+      ? mediaToSend.type === 'image'
+        ? '📷 Image attachment'
+        : `📄 ${mediaToSend.fileName}`
+      : '';
+    const textPreview = trimmedText || fallbackPreview || undefined;
+    const displayText = trimmedText || fallbackPreview || composedText || '[message]';
+
+    const localMetadata: ChatMsgMetadata = {
+      ...(templateMetadata || {}),
+      textPreview,
+    };
+
+    if (mediaToSend) {
+      localMetadata.whatsappType = mediaToSend.type;
+      localMetadata.media = {
+        filename: mediaToSend.fileName,
+        mimeType: mediaToSend.mimeType,
+        caption: trimmedText || undefined,
+        size: mediaToSend.size,
+        localUrl: mediaToSend.previewUrl,
+      };
     }
 
-    const id = `m${Math.random().toString(36).slice(2,8)}`;
+    setMessage('');
+    if (selectedTemplateId) {
+      setSelectedTemplate('');
+      setTemplateVariables({});
+      setShowTemplatePreview(false);
+      addDebugLog('info', '🧹 Template Selection Cleared', { templateId: selectedTemplateId });
+    }
+    if (mediaToSend) {
+      setPendingMedia(null);
+      setMediaUploadError(null);
+    }
+
+    const id = `m${Math.random().toString(36).slice(2, 8)}`;
     const now = Date.now();
-    
+
     addDebugLog('success', '✅ Message Added to UI', {
       messageId: id,
       timestamp: now,
       direction: 'out',
-      hasMetadata: !!templateMetadata
+      hasMetadata: !!(templateMetadata || mediaToSend),
     });
-    
-    setConvos(prev => {
+
+    setConvos((prev) => {
       const arr = prev[activeContact.id] ? [...prev[activeContact.id]] : [];
-      arr.push({ 
-        id, 
-        text, 
-        direction: 'out', 
-        ts: now, 
+      arr.push({
+        id,
+        text: displayText,
+        direction: 'out',
+        ts: now,
         status: 0,
-        metadata: templateMetadata
+        metadata: localMetadata,
       });
       return { ...prev, [activeContact.id]: arr };
     });
     // Animate status per message id
-    setTimeout(() => setConvos(p => ({...p, [activeContact.id]: p[activeContact.id].map(m => m.id===id?{...m, status:1}:m)})), 400);
-    setTimeout(() => setConvos(p => ({...p, [activeContact.id]: p[activeContact.id].map(m => m.id===id?{...m, status:2}:m)})), 900);
-    setTimeout(() => setConvos(p => ({...p, [activeContact.id]: p[activeContact.id].map(m => m.id===id?{...m, status:3}:m)})), 1400);
-    // Live send via API if enabled
+    setTimeout(
+      () =>
+        setConvos((p) => ({
+          ...p,
+          [activeContact.id]: p[activeContact.id].map((m) =>
+            m.id === id ? { ...m, status: 1 } : m
+          ),
+        })),
+      400
+    );
+    setTimeout(
+      () =>
+        setConvos((p) => ({
+          ...p,
+          [activeContact.id]: p[activeContact.id].map((m) =>
+            m.id === id ? { ...m, status: 2 } : m
+          ),
+        })),
+      900
+    );
+    setTimeout(
+      () =>
+        setConvos((p) => ({
+          ...p,
+          [activeContact.id]: p[activeContact.id].map((m) =>
+            m.id === id ? { ...m, status: 3 } : m
+          ),
+        })),
+      1400
+    );
+
     if (liveSend) {
       addDebugLog('info', '🌐 Live Send Enabled - Preparing API Call', {
         liveSendStatus: true,
-        recipientPhone: activeContact.phone
+        recipientPhone: activeContact.phone,
       });
 
       setSendingLive(true);
@@ -2528,18 +2742,18 @@ export default function WhatsAppSettingsPage() {
                 templateName: tpl.name,
                 sentFrom: 'chat_interface',
                 flowButtons: submission.flowButtons,
-              }
+              },
             };
 
             addDebugLog('info', '📦 API Payload Constructed', {
               endpoint: '/api/whatsapp/send-template',
-              payload: apiPayload
+              payload: apiPayload,
             });
 
             const res = await fetch('/api/whatsapp/send-template', {
-              method: 'POST', 
+              method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(apiPayload)
+              body: JSON.stringify(apiPayload),
             });
             const j = await res.json();
             if (!res.ok || j?.success === false) {
@@ -2567,23 +2781,77 @@ export default function WhatsAppSettingsPage() {
 
             addDebugLog('success', '✅ Text Message Sent Successfully!', {
               messageId: j.messageId || j.messageSid,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
             });
-            
+
             toast.success('Message sent');
-            // Refresh messages to show what was sent
             setTimeout(() => fetchMessages(), 1000);
           } else {
-            addDebugLog('info', '💬 Sending Regular Text Message', {
+            if (mediaToSend) {
+              addDebugLog('info', '📎 Sending media message', {
+                to,
+                fileName: mediaToSend.fileName,
+                size: mediaToSend.size,
+              });
+            } else {
+              addDebugLog('info', '💬 Sending regular text message', {
+                to,
+                messageLength: composedText.length,
+              });
+            }
+
+            const payload: Record<string, any> = {
               to,
-              messageText: text,
-              messageLength: text.length,
-            });
+              saveToDb: true,
+            };
+
+            let metadataForApi: ChatMsgMetadata | undefined;
+
+            if (mediaToSend) {
+              setIsUploadingMedia(true);
+              try {
+                const uploadResult = await uploadPendingMedia(mediaToSend, trimmedText);
+                payload.media = {
+                  id: uploadResult.mediaId,
+                  type: mediaToSend.type,
+                  caption: trimmedText || undefined,
+                  filename: mediaToSend.fileName,
+                };
+                if (trimmedText) {
+                  payload.message = trimmedText;
+                }
+                metadataForApi = {
+                  whatsappType: mediaToSend.type,
+                  media: {
+                    id: uploadResult.mediaId,
+                    filename: mediaToSend.fileName,
+                    mimeType: mediaToSend.mimeType,
+                    caption: trimmedText || undefined,
+                    size: mediaToSend.size,
+                  },
+                  textPreview: textPreview || displayText,
+                };
+              } finally {
+                setIsUploadingMedia(false);
+              }
+            } else {
+              payload.message = composedText;
+              if (templateMetadata || textPreview) {
+                metadataForApi = {
+                  ...(templateMetadata || {}),
+                  ...(textPreview ? { textPreview } : {}),
+                };
+              }
+            }
+
+            if (metadataForApi) {
+              payload.metadata = metadataForApi;
+            }
 
             const res = await fetch('/api/whatsapp/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ to, message: text, saveToDb: true }),
+              body: JSON.stringify(payload),
             });
             const j = await res.json();
 
@@ -2608,7 +2876,7 @@ export default function WhatsAppSettingsPage() {
                 displayMessage += '\n\nPlease use a template message instead.';
               }
 
-              addDebugLog('error', '❌ Text Message API Error', {
+              addDebugLog('error', mediaToSend ? '❌ Media message API error' : '❌ Text Message API Error', {
                 status: res.status,
                 statusText: res.statusText,
                 errorPayload,
@@ -2618,30 +2886,40 @@ export default function WhatsAppSettingsPage() {
               throw new Error(displayMessageBase);
             }
 
-            addDebugLog('success', '✅ Text Message Sent Successfully!', {
-              messageId: j.messageId || j.messageSid,
-              timestamp: new Date().toISOString(),
-            });
+            addDebugLog(
+              'success',
+              mediaToSend ? '✅ Media message sent successfully!' : '✅ Text Message Sent Successfully!',
+              {
+                messageId: j.messageId || j.messageSid,
+                timestamp: new Date().toISOString(),
+              }
+            );
 
             toast.success('Message sent');
+            setTimeout(() => fetchMessages(), 1000);
           }
         } catch (e: any) {
+          if (mediaToSend) {
+            setPendingMedia(mediaToSend);
+            setMediaUploadError(e?.message || 'Failed to send media');
+          }
           addDebugLog('error', '❌ Live Send Exception', {
             errorMessage: e?.message || String(e),
             errorStack: e?.stack,
-            wasTemplate: !!selectedTemplateId
+            wasTemplate: !!selectedTemplateId,
+            hadMedia: !!mediaToSend,
           });
           toast.error(`Live send failed: ${e?.message || e}`);
         } finally {
           setSendingLive(false);
-          addDebugLog('info', 'Live send process completed', { 
-            sendingLive: false 
+          addDebugLog('info', 'Live send process completed', {
+            sendingLive: false,
           });
         }
       })();
     } else {
       addDebugLog('info', 'Live send disabled - message only shown in UI', {
-        liveSendStatus: false
+        liveSendStatus: false,
       });
     }
     // ❌ REMOVED: Fake reply simulation - Real messages will come from webhook
@@ -4372,6 +4650,53 @@ export default function WhatsAppSettingsPage() {
                   </div>
                 )}
 
+                <input
+                  ref={mediaInputRef}
+                  type="file"
+                  accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  onChange={handleMediaSelect}
+                />
+
+                {pendingMedia && (
+                  <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-emerald-100/70 bg-white/90 p-3 text-sm shadow-sm dark:border-[#1f2c33] dark:bg-[#111b21]/80">
+                    {pendingMedia.type === 'image' ? (
+                      <div className="h-14 w-14 overflow-hidden rounded-lg border border-emerald-100/70 bg-muted">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={pendingMedia.previewUrl}
+                          alt={pendingMedia.fileName}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-dashed border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-200">
+                        <FileText className="h-6 w-6" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-slate-900 dark:text-slate-100">
+                        {pendingMedia.fileName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatBytes(pendingMedia.size)} • {pendingMedia.mimeType || (pendingMedia.type === 'image' ? 'Image' : 'Document')}
+                      </p>
+                      {mediaUploadError && (
+                        <p className="mt-1 text-xs text-red-500">{mediaUploadError}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-red-500"
+                      onClick={removePendingMedia}
+                      title="Remove attachment"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+
                 <div
                   className={cn(
                     "flex items-center gap-3 border-t border-emerald-100/60 bg-white/70 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-[#0b141a]/80",
@@ -4409,6 +4734,16 @@ export default function WhatsAppSettingsPage() {
                     title="Send catalog message"
                   >
                     <ShoppingBag className="h-5 w-5" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground hover:bg-accent"
+                    onClick={() => mediaInputRef.current?.click()}
+                    title="Attach media"
+                  >
+                    <ImageIcon className="h-5 w-5" />
                   </Button>
                   
                   <Popover>
@@ -4449,7 +4784,7 @@ export default function WhatsAppSettingsPage() {
                     size="icon"
                     className="rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 hover:from-emerald-600 hover:to-teal-600"
                     onClick={sendPreviewMessage}
-                    disabled={!activeContact || sendingLive}
+                    disabled={!activeContact || sendingLive || isUploadingMedia}
                   >
                     <ArrowRight className="h-5 w-5" />
                   </Button>

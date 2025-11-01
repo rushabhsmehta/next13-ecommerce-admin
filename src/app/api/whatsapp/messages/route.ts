@@ -9,8 +9,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
+    const skip = parseInt(searchParams.get('skip') || '0');
 
-    const messages = await getWhatsAppMessages(limit);
+    const messages = await getWhatsAppMessages(limit, { skip });
 
     return NextResponse.json({
       success: true,

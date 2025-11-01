@@ -179,6 +179,8 @@ export default function WhatsAppSettingsPage() {
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showCatalogComposer, setShowCatalogComposer] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [messageOffset, setMessageOffset] = useState(0);
+  const [isLoadingPreviousMessages, setIsLoadingPreviousMessages] = useState(false);
   const lastReadMapRef = useRef<Record<string, number>>({});
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [visibleMessageCounts, setVisibleMessageCounts] = useState<Record<string, number>>({});
@@ -1554,12 +1556,35 @@ export default function WhatsAppSettingsPage() {
       const result = await response.json();
       if (result.success) {
         setMessages(result.messages);
+        setMessageOffset(0);
         console.log('📨 Fetched messages:', result.messages.length);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
   }, []);
+
+  const fetchPreviousMessages = useCallback(async () => {
+    setIsLoadingPreviousMessages(true);
+    try {
+      const newOffset = messageOffset + DEFAULT_MESSAGE_FETCH_LIMIT;
+      const response = await fetch(`/api/whatsapp/messages?limit=${DEFAULT_MESSAGE_FETCH_LIMIT}&skip=${newOffset}`);
+      const result = await response.json();
+      if (result.success && result.messages.length > 0) {
+        setMessages(prev => [...result.messages, ...prev]);
+        setMessageOffset(newOffset);
+        console.log('📨 Loaded previous messages:', result.messages.length);
+        toast.success(`Loaded ${result.messages.length} previous message(s)`);
+      } else {
+        toast.success('No more previous messages');
+      }
+    } catch (error) {
+      console.error('Error fetching previous messages:', error);
+      toast.error('Failed to load previous messages');
+    } finally {
+      setIsLoadingPreviousMessages(false);
+    }
+  }, [messageOffset]);
 
   // Debug Logging Helper
   const addDebugLog = useCallback((type: 'info' | 'success' | 'error' | 'warning', action: string, details: any = {}) => {
@@ -3941,9 +3966,14 @@ export default function WhatsAppSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => fetchMessages()} variant="outline" className="mb-4">
-                Refresh Messages
-              </Button>
+              <div className="flex gap-2 mb-4">
+                <Button onClick={() => fetchMessages()} variant="outline">
+                  Refresh Messages
+                </Button>
+                <Button onClick={() => fetchPreviousMessages()} variant="outline" disabled={isLoadingPreviousMessages}>
+                  {isLoadingPreviousMessages ? 'Loading...' : 'Load Previous Messages'}
+                </Button>
+              </div>
 
               {messages.length === 0 ? (
                 <p className="text-muted-foreground">No messages found. Send a test message to see results here.</p>

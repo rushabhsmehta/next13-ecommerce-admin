@@ -2315,7 +2315,7 @@ export async function sendWhatsAppTemplate(
 
 export async function getWhatsAppMessages(
   limit: number = 50,
-  options: { sessionId?: string; status?: string; includeSession?: boolean } = {}
+  options: { sessionId?: string; status?: string; includeSession?: boolean; skip?: number } = {}
 ): Promise<Array<WhatsAppMessage & { session?: WhatsAppSession | null; whatsappCustomer?: any | null }>> {
   return prisma.whatsAppMessage.findMany({
     where: {
@@ -2323,6 +2323,7 @@ export async function getWhatsAppMessages(
       ...(options.status ? { status: options.status } : {}),
     },
     take: limit,
+    skip: options.skip || 0,
     orderBy: { createdAt: 'desc' },
     include: {
       ...(options.includeSession ? { session: true } : {}),

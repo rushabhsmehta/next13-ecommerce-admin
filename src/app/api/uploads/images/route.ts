@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 import { handleApi, jsonError } from '@/lib/api-response';
 import { isCurrentUserAssociate } from '@/lib/associate-utils';
-import prismadb from '@/lib/prismadb';
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { v2 as cloudinary } from 'cloudinary';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB limit to avoid large payloads
@@ -163,9 +163,9 @@ type MediaAssetDelegate = {
 };
 
 function getMediaAssetClient(): MediaAssetDelegate {
-  const delegate = (prismadb as unknown as { whatsAppMediaAsset?: MediaAssetDelegate }).whatsAppMediaAsset;
+  const delegate = whatsappPrisma.whatsAppMediaAsset as unknown as MediaAssetDelegate;
   if (!delegate) {
-    throw new Error('Prisma client is missing the whatsAppMediaAsset delegate. Run `npx prisma generate` and redeploy.');
+    throw new Error('Prisma client is missing the whatsAppMediaAsset delegate. Run `npx prisma generate --schema=prisma/whatsapp-schema.prisma` and redeploy.');
   }
   return delegate;
 }

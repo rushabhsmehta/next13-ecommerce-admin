@@ -7,7 +7,6 @@ const path = require('path');
 // Load environment
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
-const { PrismaClient: MainPrisma } = require('@prisma/client');
 const { PrismaClient: WhatsAppPrisma } = require('@prisma/whatsapp-client');
 
 async function checkConversations() {

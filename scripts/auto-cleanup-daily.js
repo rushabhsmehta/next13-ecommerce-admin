@@ -9,7 +9,7 @@
  * Command: node scripts/auto-cleanup-daily.js
  */
 
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("@prisma/whatsapp-client");
 
 const prisma = new PrismaClient();
 

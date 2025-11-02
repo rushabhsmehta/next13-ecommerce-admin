@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/whatsapp-client');
 
 async function analyzeContacts() {
   const prisma = new PrismaClient();

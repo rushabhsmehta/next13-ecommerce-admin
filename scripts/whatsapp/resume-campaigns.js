@@ -3,7 +3,7 @@
  * This will restart the background processing for campaigns in "sending" status
  */
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/whatsapp-client');
 
 const prisma = new PrismaClient();
 

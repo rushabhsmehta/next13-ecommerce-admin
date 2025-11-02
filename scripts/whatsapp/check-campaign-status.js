@@ -2,7 +2,7 @@
  * Script to check campaign status and identify why it stopped
  */
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/whatsapp-client');
 
 const prisma = new PrismaClient({
   log: ['error', 'warn'],

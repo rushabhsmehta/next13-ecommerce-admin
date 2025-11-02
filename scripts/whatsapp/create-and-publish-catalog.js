@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/whatsapp-client');
 require('dotenv').config();
 
 const {

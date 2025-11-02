@@ -1,5 +1,5 @@
 import 'ts-node/register';
-import prisma from '../../src/lib/prismadb';
+import whatsappPrisma from '../../src/lib/whatsapp-prismadb';
 import {
   createTourPackage,
   syncTourPackageToMeta,
@@ -55,5 +55,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await whatsappPrisma.$disconnect();
   });

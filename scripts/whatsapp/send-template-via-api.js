@@ -100,7 +100,7 @@ async function fetchTemplateDefaults(baseUrl, templateName) {
 
 async function fetchDefaultsFromDatabase(templateName) {
   try {
-    const { PrismaClient } = require('@prisma/client');
+  const { PrismaClient } = require('@prisma/whatsapp-client');
     const prisma = new PrismaClient();
     try {
       const record = await prisma.whatsAppTemplate.findUnique({ where: { name: templateName } });

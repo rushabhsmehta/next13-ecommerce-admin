@@ -1,7 +1,7 @@
 // Seed script to add default WhatsApp templates
 // Run with: node seed-whatsapp-templates.js
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/whatsapp-client');
 const prisma = new PrismaClient();
 
 const defaultTemplates = [

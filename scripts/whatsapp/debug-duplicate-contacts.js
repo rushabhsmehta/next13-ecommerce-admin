@@ -4,7 +4,7 @@
  * Debug duplicate contacts - check why +919978783238 appears twice
  */
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/whatsapp-client');
 
 async function debugDuplicates() {
   const prisma = new PrismaClient();

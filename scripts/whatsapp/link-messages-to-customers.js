@@ -3,7 +3,7 @@
  * based on phone numbers
  */
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/whatsapp-client');
 
 const prisma = new PrismaClient({
   datasources: {

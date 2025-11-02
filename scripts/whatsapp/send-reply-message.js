@@ -19,7 +19,7 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/whatsapp-client';
 
 const prisma = new PrismaClient();
 

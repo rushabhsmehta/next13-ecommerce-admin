@@ -882,7 +882,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
           <div style="${cardStyle}; ${pageBreakBefore}; overflow: hidden; padding: 0;">
             <div style="background: ${brandGradients.primary}; color: ${brandColors.white}; padding: 32px 30px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between;">
               <div style="display: flex; gap: 16px; align-items: center;">
-                ${companyProfile.logo ? `<div style="background: rgba(255,255,255,0.18); padding: 12px; border-radius: 18px; box-shadow: 0 16px 30px rgba(15, 23, 42, 0.15);">
+                ${companyProfile.logo ? `<div style="background: rgba(255,255,255,0.95); padding: 8px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); backdrop-filter: blur(8px);">
                   <img src="${companyProfile.logo}" alt="${safe(companyProfile.name)}" style="height: 60px; width: auto; object-fit: contain;" />
                 </div>` : ""}
                 <div>
@@ -909,33 +909,44 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                     ${companyProfile.website ? `<span>🌐 ${companyProfile.website}</span>` : ""}
                   </div>
                 </div>
-                ${
-                  companyProfile.social
-                    ? `<div style="${avoidPageBreakStyle}">
-                        <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: ${brandColors.muted}; font-weight: 700;">Connect With Us</div>
-                        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px;">
-                          ${Object.entries(companyProfile.social)
-                            .filter(([platform, url]) => {
-                              if (!url) return false;
-                              const key = platform.toLowerCase();
-                              return key === "facebook" || key === "instagram";
-                            })
-                            .map(
-                              ([platform, url]) => {
-                                const key = platform.toLowerCase();
-                                const label = key.charAt(0).toUpperCase() + key.slice(1);
-                                return `<a href="${sanitizeText(url)}" style="font-size: 13px; color: ${brandColors.secondary}; text-decoration: none; font-weight: 600; display: inline-flex; gap: 8px; align-items: center;">
-                                  <span style="width: 26px; height: 26px; border-radius: 50%; background: ${brandColors.lightOrange}; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">${label.slice(0, 2).toUpperCase()}</span>
-                                  <span style="letter-spacing: 0.4px;">${label}</span>
-                                </a>`
-                              }
-                            )
-                            .join("")}
-                        </div>
-                      </div>`
-                    : ""
-                }
+                <div style="${avoidPageBreakStyle}">
+                  <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: ${brandColors.muted}; font-weight: 700;">Connect With Us</div>
+                  <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px;">
+                    ${companyProfile.social?.facebook ? `<a href="${sanitizeText(companyProfile.social.facebook)}" target="_blank" style="font-size: 13px; color: #1877F2; text-decoration: none; font-weight: 600; display: inline-flex; gap: 8px; align-items: center;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                      <span>Facebook</span>
+                    </a>` : ""}
+                    ${companyProfile.social?.instagram ? `<a href="${sanitizeText(companyProfile.social.instagram)}" target="_blank" style="font-size: 13px; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; font-weight: 600; display: inline-flex; gap: 8px; align-items: center;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="url(#insta-gradient)"><defs><radialGradient id="insta-gradient" cx="0.3" cy="1" r="1"><stop offset="0" stop-color="#FFD600"/><stop offset="0.5" stop-color="#FF7A00"/><stop offset="1" stop-color="#D62976"/></radialGradient></defs><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919C8.416 2.175 8.796 2.163 12 2.163m0-2.163C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.058-1.28.072-1.689.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98C15.668.014 15.259 0 12 0z"/></svg>
+                      <span>Instagram</span>
+                    </a>` : ""}
+                  </div>
+                </div>
               </div>
+
+              <!-- Branch Offices Section -->
+              <div style="margin-top: 20px; padding: 20px; background: #fafafa; border-radius: 12px; border: 1px solid #efefef;">
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: ${brandColors.muted}; font-weight: 700; margin-bottom: 16px;">Our Branches</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                  <div style="${avoidPageBreakStyle}">
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brandColors.secondary}; font-weight: 700; margin-bottom: 8px;">Surat Branch</div>
+                    <div style="font-size: 12px; color: ${brandColors.text}; line-height: 1.6;">
+                      <div style="margin-bottom: 6px;">📍 1101, Siddhi Vinayak Paradise, Adajan, Surat - 395005, Gujarat</div>
+                      <div style="margin-bottom: 6px;">📞 +91-94092 64480</div>
+                      <div>✉️ kinjal@aagamholidays.com</div>
+                    </div>
+                  </div>
+                  <div style="${avoidPageBreakStyle}">
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brandColors.secondary}; font-weight: 700; margin-bottom: 8px;">Rajkot Branch</div>
+                    <div style="font-size: 12px; color: ${brandColors.text}; line-height: 1.6;">
+                      <div style="margin-bottom: 6px;">📍 305, Mahalaxmi Complex, Opp. Saint Marry School, Kalavad Road, Rajkot - 360005, Gujarat</div>
+                      <div style="margin-bottom: 6px;">📞 +91-76989 80007</div>
+                      <div>✉️ khushbu@aagamholidays.com</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div style="margin-top: 28px; padding: 18px 20px; border: 1px dashed ${brandColors.border}; border-radius: 12px; background: ${brandColors.panelBg}; ${avoidPageBreakStyle}">
                 <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: ${brandColors.muted}; font-weight: 700;">Next Steps</div>
                 <div style="margin-top: 8px; font-size: 13px; color: ${brandColors.text}; line-height: 1.7;">Share your thoughts with us and we will tailor the itinerary, upgrade stays, or add curated experiences to match your travel style.</div>

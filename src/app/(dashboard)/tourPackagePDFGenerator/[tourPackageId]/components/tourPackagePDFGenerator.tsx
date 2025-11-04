@@ -59,34 +59,7 @@ const COMPANY_PROFILES: Record<string, CompanyProfile> = {
       instagram: "https://www.instagram.com/aagamholidays/",
       twitter: "https://twitter.com/aagamholidays",
       linkedin: "https://www.linkedin.com/in/deep-doshi-1265802b9",
-      
       whatsapp: "https://wa.me/919724444701",
-    },
-  },
-  KH: {
-    logo: "https://next13-ecommerce-admin-zeta.vercel.app/kobawala.png",
-    name: "Kobawala Holidays",
-    address:
-      "Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007",
-    phone: "+91-99040 35277",
-    email: "kobawala.holiday@gmail.com",
-    website: "http://kobawalaholidays.com",
-    social: {
-      facebook: "https://www.facebook.com/kobawalaholidays",
-      instagram: "https://www.instagram.com/kobawalaholidays",
-      twitter: "https://twitter.com/kobawalaholidays",
-    },
-  },
-  MT: {
-    logo: "https://next13-ecommerce-admin-zeta.vercel.app/mahavirtravels.png",
-    name: "Mahavir Tour and Travels",
-    address: "Mahavir Travels, Ahmedabad",
-    phone: "+91-97244 44701",
-    email: "info@aagamholidays.com",
-    website: "https://mahavirtravels.com",
-    social: {
-      facebook: "https://www.facebook.com/mahavirtravels",
-      instagram: "https://www.instagram.com/mahavirtravels",
     },
   },
 };

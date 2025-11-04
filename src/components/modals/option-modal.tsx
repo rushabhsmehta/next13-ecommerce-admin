@@ -10,25 +10,18 @@ interface OptionModalProps {
   }
   
   export const OptionModal: React.FC<OptionModalProps> = ({ isOpen, onClose, onConfirm }) => {
-    const [selectedOption, setSelectedOption] = useState('');
-  
     const handleConfirm = () => {
-      onConfirm(selectedOption);
-      onClose(); // Close modal after selection
+      // Always use AH as the default option
+      onConfirm("AH");
+      onClose();
     };
   
     return (
       <div className={`modal ${isOpen ? 'show' : ''}`}>
         {/* Modal content */}
         <div className="modal-content">
-          <h4>Select an Option</h4>
-          <select value={selectedOption} onChange={(e) => setSelectedOption(e.target.value)}>
-            <option value="">Empty</option>
-            <option value="AH">AH</option>
-            <option value="KH">KH</option>
-            <option value="MT">MT</option>
-          </select>
-          <button onClick={handleConfirm}>Confirm</button>
+          <h4>Generating PDF with Aagam Holidays</h4>
+          <button onClick={handleConfirm}>Generate PDF</button>
           <button onClick={onClose}>Cancel</button>
         </div>
       </div>

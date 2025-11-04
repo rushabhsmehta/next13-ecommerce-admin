@@ -57,23 +57,6 @@ const companyInfo: CompanyInfo = {
     email: 'info@aagamholidays.com', // Add the missing fields
     website: 'https://aagamholidays.com',
   },
-  // Define KH and MT with their respective details
-  KH: {
-    logo: '/kobawala.png',
-    name: 'Kobawala Holidays',
-    address: 'Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007',
-    phone: '+91-99040 35277',
-    email: 'kobawala.holiday@gmail.com', // Add the missing fields
-    website: 'http://kobawalaholidays.com'
-  },
-  MT: {
-    logo: '/mahavirtravels.png',
-    name: 'Mahavir Tour and Travels',
-    address: 'Mahavir Travels, Ahmedabad',
-    phone: '+91-97244 44701',
-    email: 'info@aagamholidays.com', // Add the missing fields
-    website: 'https://mahavirtravels.com',
-  },
 };
 
 // Add this helper function to parse pricing section from JSON

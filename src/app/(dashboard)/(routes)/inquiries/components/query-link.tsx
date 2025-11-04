@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MoreHorizontal, Edit, FileText, Download, Trash, Check, X, Star } from 'lucide-react';
+import { MoreHorizontal, Edit, FileText, Download, Trash, X, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TourPackageQuery } from '@prisma/client';
 import { toast } from 'react-hot-toast';
@@ -12,14 +12,9 @@ import { formatLocalDate } from "@/lib/timezone-utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuPortal,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
@@ -65,17 +60,17 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
     }
   };
 
-  const handleOptionConfirm = (selectedOption: string) => {
-    window.open(`/tourPackageQueryDisplay/${query.id}?search=${selectedOption}`, "_blank");
-  }
+  const openPdf = () => {
+    window.open(`/tourPackageQueryPDFGenerator/${query.id}?search=AH`, "_blank");
+  };
 
-  const handleOptionConfirmPDF = (selectedOption: string) => {
-    window.open(`/tourPackageQueryPDFGenerator/${query.id}?search=${selectedOption}`, "_blank");
-  }
+  const openDisplay = () => {
+    window.open(`/tourPackageQueryDisplay/${query.id}?search=AH`, "_blank");
+  };
 
-  const handleOptionConfirmVoucher = (selectedOption: string) => {
-    window.open(`/tourPackageQueryVoucherDisplay/${query.id}?search=${selectedOption}`, "_blank");
-  }
+  const openVoucher = () => {
+    window.open(`/tourPackageQueryVoucherDisplay/${query.id}?search=AH`, "_blank");
+  };
 
   // Use the provided URL or fall back to a default URL structure
   const linkUrl = url || `/inquiries/${query.inquiryId}/tourPackage/${query.id}`;
@@ -169,85 +164,19 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Download className="mr-2 h-4 w-4" /> Download PDF
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="w-56">
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('Empty')}>
-                    Empty
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('AH')}>
-                    AH
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('KH')}>
-                    KH
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('MT')}>
-                    MT
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('SupplierA')}>
-                    Supplier - Title only
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('SupplierB')}>
-                    Supplier - with Details
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
+            <DropdownMenuItem onSelect={openPdf}>
+              <Download className="mr-2 h-4 w-4" /> Download PDF
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
 
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <FileText className="mr-2 h-4 w-4" /> Generate PDF
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="w-56">
-                  <DropdownMenuItem onSelect={() => handleOptionConfirm('Empty')}>
-                    Empty
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirm('AH')}>
-                    AH
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirm('KH')}>
-                    KH
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirm('MT')}>
-                    MT
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirm('SupplierA')}>
-                    Supplier - Title only
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirm('SupplierB')}>
-                    Supplier - with Details
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
+            <DropdownMenuItem onSelect={openDisplay}>
+              <FileText className="mr-2 h-4 w-4" /> Generate PDF
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
 
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <FileText className="mr-2 h-4 w-4" /> Generate Voucher
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="w-56">
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('Empty')}>
-                    Empty
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('AH')}>
-                    AH
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('KH')}>
-                    KH
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('MT')}>
-                    MT
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
+            <DropdownMenuItem onSelect={openVoucher}>
+              <FileText className="mr-2 h-4 w-4" /> Generate Voucher
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

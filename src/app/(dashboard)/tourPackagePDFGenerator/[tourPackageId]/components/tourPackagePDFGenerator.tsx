@@ -55,11 +55,11 @@ const COMPANY_PROFILES: Record<string, CompanyProfile> = {
     email: "info@aagamholidays.com",
     website: "https://aagamholidays.com",
     social: {
-      facebook: "https://www.facebook.com/aagamholidays",
-      instagram: "https://www.instagram.com/aagamholidays",
+      facebook: "https://www.facebook.com/aagamholidays2021",
+      instagram: "https://www.instagram.com/aagamholidays/",
       twitter: "https://twitter.com/aagamholidays",
-      linkedin: "https://www.linkedin.com/company/aagamholidays",
-      youtube: "https://www.youtube.com/@aagamholidays",
+      linkedin: "https://www.linkedin.com/in/deep-doshi-1265802b9",
+      
       whatsapp: "https://wa.me/919724444701",
     },
   },

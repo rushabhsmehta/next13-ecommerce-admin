@@ -1,25 +1,19 @@
 "use client";
 
 import axios from "axios";
-import { Copy, Edit, MoreHorizontal, Trash, Hotel, FileText } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { Copy, Edit, MoreHorizontal, Trash, FileText } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 
 import { AlertModal } from "@/components/modals/alert-modal";
-import { OptionModal } from "@/components/modals/option-modal";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuPortal,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
@@ -37,7 +31,6 @@ export const CellAction: React.FC<CellActionProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const router = useRouter();
-  const params = useParams();
 
   const onConfirm = async () => {
     try {
@@ -50,35 +43,35 @@ export const CellAction: React.FC<CellActionProps> = ({
     } finally {
       setLoading(false);
       setOpen(false);
-  setMenuOpen(false);
+      setMenuOpen(false);
     }
   };
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     toast.success('Tour Package ID copied to clipboard.');
-  setMenuOpen(false);
+    setMenuOpen(false);
   }
 
-  const handleOptionConfirm = (selectedOption: string) => {
+  const openDisplay = () => {
     setMenuOpen(false);
-    window.open(`/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`, "_blank");
-  }
+    window.open(`/tourPackageQueryDisplay/${data.id}?search=AH`, "_blank");
+  };
 
-  const handleOptionConfirmPDF = (selectedOption: string) => {
+  const openPdf = () => {
     setMenuOpen(false);
-    window.open(`/tourPackageQueryPDFGenerator/${data.id}?search=${selectedOption}`, "_blank");
-  }
+    window.open(`/tourPackageQueryPDFGenerator/${data.id}?search=AH`, "_blank");
+  };
 
-  const handleOptionConfirmPDFWithVariants = (selectedOption: string) => {
+  const openPdfWithVariants = () => {
     setMenuOpen(false);
-    window.open(`/tourPackageQueryPDFGeneratorWithVariants/${data.id}?search=${selectedOption}`, "_blank");
-  }
+    window.open(`/tourPackageQueryPDFGeneratorWithVariants/${data.id}?search=AH`, "_blank");
+  };
 
-  const handleOptionConfirmVoucher = (selectedOption: string) => {
+  const openVoucher = () => {
     setMenuOpen(false);
-    window.open(`/tourPackageQueryVoucherDisplay/${data.id}?search=${selectedOption}`,"_blank");
-  }
+    window.open(`/tourPackageQueryVoucherDisplay/${data.id}?search=AH`, "_blank");
+  };
 
 
   return (
@@ -89,8 +82,7 @@ export const CellAction: React.FC<CellActionProps> = ({
         onConfirm={onConfirm}
         loading={loading}
       />
-
-  <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -105,12 +97,12 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
           <DropdownMenuItem
-    onClick={() => { setMenuOpen(false); router.push(`/tourPackageQueryCreateCopy/${data.id}`) }}
+            onClick={() => { setMenuOpen(false); router.push(`/tourPackageQueryCreateCopy/${data.id}`) }}
           >
             <Edit className="mr-2 h-4 w-4" /> Copy and Create New
           </DropdownMenuItem>
           <DropdownMenuItem
-    onClick={() => { setMenuOpen(false); router.push(`/tourPackageQuery/${data.id}`) }}
+            onClick={() => { setMenuOpen(false); router.push(`/tourPackageQuery/${data.id}`) }}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
@@ -124,109 +116,24 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Edit className="mr-2 h-4 w-4" />  Download PDF
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className="w-56">
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('Empty')}>
-                  Empty
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('AH')}>
-                  AH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('KH')}>
-                  KH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('MT')}>
-                  MT
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('SupplierA')}>
-                  Supplier - Title only
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('SupplierB')}>
-                  Supplier - with Details
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
+          <DropdownMenuItem onSelect={openPdf}>
+            <Edit className="mr-2 h-4 w-4" /> Download PDF
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <FileText className="mr-2 h-4 w-4" />  Download PDF with Variants
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className="w-56">
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDFWithVariants('Empty')}>
-                  Empty
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDFWithVariants('AH')}>
-                  AH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDFWithVariants('KH')}>
-                  KH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDFWithVariants('MT')}>
-                  MT
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
+          <DropdownMenuItem onSelect={openPdfWithVariants}>
+            <FileText className="mr-2 h-4 w-4" /> Download PDF with Variants
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Edit className="mr-2 h-4 w-4" />  Generate PDF
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className="w-56">
-                <DropdownMenuItem onSelect={() => handleOptionConfirm('Empty')}>
-                  Empty
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirm('AH')}>
-                  AH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirm('KH')}>
-                  KH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirm('MT')}>
-                  MT
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirm('SupplierA')}>
-                  Supplier - Title only
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirm('SupplierB')}>
-                  Supplier - with Details
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
+          <DropdownMenuItem onSelect={openDisplay}>
+            <Edit className="mr-2 h-4 w-4" /> Generate PDF
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Edit className="mr-2 h-4 w-4" />  Generate Voucher
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className="w-56">
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('Empty')}>
-                  Empty
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('AH')}>
-                  AH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('KH')}>
-                  KH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('MT')}>
-                  MT
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
+          <DropdownMenuItem onSelect={openVoucher}>
+            <Edit className="mr-2 h-4 w-4" /> Generate Voucher
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => { setMenuOpen(false); setOpen(true); }}
@@ -234,7 +141,7 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu >
+      </DropdownMenu>
     </>
   );
 };

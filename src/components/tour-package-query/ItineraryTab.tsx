@@ -82,8 +82,8 @@ function ItineraryTab({
   vehicleTypes = [],
   // --- END DESTRUCTURE ---
 }: ItineraryTabProps) {
-  // Create a refs object to store multiple editor references instead of a single ref
-  const editorsRef = useRef<{[key: string]: any}>({});
+  // Single shared ref for all Jodit editors (like tour package implementation)
+  const editor = useRef(null);
   // Track open state for each itinerary accordion to avoid it collapsing on re-render
   const [openMap, setOpenMap] = useState<Record<number, boolean>>({ 0: true });
   // Handle saving to master itinerary
@@ -391,13 +391,8 @@ function ItineraryTab({
                                     </FormLabel>
                                     <FormControl>
                                       <JoditEditor
-                                        ref={(node) => editorsRef.current[`title-${index}`] = node}
+                                        ref={editor}
                                         value={itinerary.itineraryTitle || ''}
-                                        config={{
-                                          readonly: loading,
-                                          toolbar: true,
-                                          theme: 'default',
-                                        }}
                                         onBlur={(newContent) => {
                                           const newItineraries = [...value]
                                           newItineraries[index] = normalizeItinerary({ ...itinerary, itineraryTitle: newContent }, index)
@@ -413,13 +408,8 @@ function ItineraryTab({
                                     </FormLabel>
                                     <FormControl>
                                       <JoditEditor
-                                        ref={(node) => editorsRef.current[`description-${index}`] = node}
+                                        ref={editor}
                                         value={itinerary.itineraryDescription || ''}
-                                        config={{
-                                          readonly: loading,
-                                          toolbar: true,
-                                          theme: 'default',
-                                        }}
                                         onBlur={(newContent) => {
                                           const newItineraries = [...value]
                                           newItineraries[index] = normalizeItinerary({ ...itinerary, itineraryDescription: newContent }, index)
@@ -602,19 +592,8 @@ function ItineraryTab({
                                             <FormLabel>Activity Title</FormLabel>
                                             <FormControl>
                                               <JoditEditor
-                                                ref={(node) => {
-                                                  if (node) {
-                                                    editorsRef.current[`activity-title-${index}-${activityIndex}`] = node;
-                                                  } else {
-                                                    delete editorsRef.current[`activity-title-${index}-${activityIndex}`];
-                                                  }
-                                                }}
+                                                ref={editor}
                                                 value={activity.activityTitle || ''}
-                                                config={{
-                                                  readonly: loading,
-                                                  toolbar: true,
-                                                  theme: 'default',
-                                                }}
                                                 onBlur={(newContent) => {
                                                   const updatedItineraries = [...value];
                                                   updatedItineraries[index].activities[activityIndex] = normalizeActivity({
@@ -633,19 +612,8 @@ function ItineraryTab({
                                             <FormLabel>Description</FormLabel>
                                             <FormControl>
                                               <JoditEditor
-                                                ref={(node) => {
-                                                  if (node) {
-                                                    editorsRef.current[`activity-description-${index}-${activityIndex}`] = node;
-                                                  } else {
-                                                    delete editorsRef.current[`activity-description-${index}-${activityIndex}`];
-                                                  }
-                                                }}
+                                                ref={editor}
                                                 value={activity.activityDescription || ''}
-                                                config={{
-                                                  readonly: loading,
-                                                  toolbar: true,
-                                                  theme: 'default',
-                                                }}
                                                 onBlur={(newContent) => {
                                                   const updatedItineraries = [...value];
                                                   updatedItineraries[index].activities[activityIndex] = normalizeActivity({

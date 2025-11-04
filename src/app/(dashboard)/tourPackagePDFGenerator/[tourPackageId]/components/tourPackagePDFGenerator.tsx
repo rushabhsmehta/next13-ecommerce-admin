@@ -556,57 +556,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       </div>
     `;
 
-    const totalPriceSection =
-      initialData.totalPrice && safe(initialData.totalPrice).length
-        ? `
-          <div style="${cardStyle}; text-align: center;">
-            <div style="${sectionHeaderStyle}; display: flex; align-items: center; justify-content: center;">
-              <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: ${brandColors.text};">Investment Overview</h2>
-            </div>
-            <div style="${sectionBodyStyle}">
-              <div style="display: inline-block; padding: 24px 28px; border-radius: 16px; background: ${brandGradients.subtle}; border: 1px solid ${brandColors.border};">
-                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: ${brandColors.muted}; font-weight: 600;">Total Package Cost</div>
-                <div style="margin-top: 10px; font-size: 30px; font-weight: 800; color: ${brandColors.primary}; letter-spacing: 0.8px;">
-                  ₹ ${formatINR(initialData.totalPrice)}
-                </div>
-                <div style="margin-top: 6px; font-size: 11px; color: ${brandColors.muted}; letter-spacing: 0.7px; text-transform: uppercase;">
-                  Exclusive of applicable taxes
-                </div>
-              </div>
-            </div>
-          </div>
-        `
-        : "";
-
-    const pricingEntries = parsePricingSection(initialData.pricingSection);
-    const pricingBreakdown =
-      pricingEntries.length > 0
-        ? `
-          <div style="${cardStyle}; ${avoidPageBreakStyle}">
-            <div style="${sectionHeaderStyle}">
-              <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: ${brandColors.text};">Detailed Pricing Breakdown</h2>
-            </div>
-            <div style="${sectionBodyStyle}">
-              ${pricingEntries
-                .map(
-                  (entry) => `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: ${brandColors.panelBg}; border-radius: 10px; padding: 14px 16px; border: 1px solid ${brandColors.border}; margin-bottom: 12px;">
-                  <div>
-                    <div style="font-size: 14px; font-weight: 700; color: ${brandColors.text};">${entry.name ?? "Pricing Component"}</div>
-                    ${entry.description ? `<div style="margin-top: 4px; font-size: 12px; color: ${brandColors.muted}; line-height: 1.5;">${entry.description}</div>` : ""}
-                  </div>
-                  ${entry.price ? `<div style="font-size: 14px; font-weight: 700; color: ${brandColors.primary}; margin-left: 20px;">${entry.price}</div>` : ""}
-                </div>
-              `
-                )
-                .join("")}
-              <div style="margin-top: 12px; font-size: 12px; color: ${brandColors.muted}; text-align: center;">
-                * Pricing is subject to availability and prevailing taxes at the time of booking.
-              </div>
-            </div>
-          </div>
-        `
-        : "";
 
     const flightSection =
       initialData.flightDetails && initialData.flightDetails.length
@@ -965,7 +914,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
             ${headerSection}
             ${overviewSection}
             ${tourInfoHighlights}
-            ${totalPriceSection}
             ${flightSection}
             ${hotelsSection}
             ${itinerariesSection}

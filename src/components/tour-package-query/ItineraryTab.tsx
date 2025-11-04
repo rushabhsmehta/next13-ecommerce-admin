@@ -395,7 +395,7 @@ function ItineraryTab({
                                         value={itinerary.itineraryTitle || ''}
                                         onBlur={(newContent) => {
                                           const newItineraries = [...value]
-                                          newItineraries[index] = normalizeItinerary({ ...itinerary, itineraryTitle: newContent }, index)
+                                          newItineraries[index] = { ...itinerary, itineraryTitle: newContent }
                                           onChange(newItineraries)
                                         }}
                                         onChange={() => {}}
@@ -412,7 +412,7 @@ function ItineraryTab({
                                         value={itinerary.itineraryDescription || ''}
                                         onBlur={(newContent) => {
                                           const newItineraries = [...value]
-                                          newItineraries[index] = normalizeItinerary({ ...itinerary, itineraryDescription: newContent }, index)
+                                          newItineraries[index] = { ...itinerary, itineraryDescription: newContent }
                                           onChange(newItineraries)
                                         }}
                                         onChange={() => {}}
@@ -596,10 +596,10 @@ function ItineraryTab({
                                                 value={activity.activityTitle || ''}
                                                 onBlur={(newContent) => {
                                                   const updatedItineraries = [...value];
-                                                  updatedItineraries[index].activities[activityIndex] = normalizeActivity({
+                                                  updatedItineraries[index].activities[activityIndex] = {
                                                     ...updatedItineraries[index].activities[activityIndex],
                                                     activityTitle: newContent,
-                                                  });
+                                                  };
                                                   onChange(updatedItineraries);
                                                 }}
                                                 onChange={() => {}}
@@ -616,10 +616,10 @@ function ItineraryTab({
                                                 value={activity.activityDescription || ''}
                                                 onBlur={(newContent) => {
                                                   const updatedItineraries = [...value];
-                                                  updatedItineraries[index].activities[activityIndex] = normalizeActivity({
+                                                  updatedItineraries[index].activities[activityIndex] = {
                                                     ...updatedItineraries[index].activities[activityIndex],
                                                     activityDescription: newContent,
-                                                  });
+                                                  };
                                                   onChange(updatedItineraries);
                                                 }}
                                                 onChange={() => {}}

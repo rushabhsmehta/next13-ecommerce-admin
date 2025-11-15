@@ -229,18 +229,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     return text;
   }, []);
 
-  const formatINR = useCallback(
-    (value: any) => {
-      if (value === null || value === undefined) return "";
-      const numeric = Number(String(value).replace(/[^0-9.-]/g, ""));
-      if (Number.isFinite(numeric)) {
-        return numeric.toLocaleString("en-IN");
-      }
-      return sanitizeText(value);
-    },
-    [sanitizeText]
-  );
-
   const parsePolicyField = useCallback(
     (field: any): string[] => {
       const items: string[] = [];
@@ -289,37 +277,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
         console.error("Failed to parse policy field", error);
       }
       return items;
-    },
-    [sanitizeText]
-  );
-
-  const parsePricingSection = useCallback(
-    (raw: any): Array<{ name?: string; price?: string; description?: string }> => {
-      if (!raw) return [];
-      let value: any = raw;
-      if (typeof raw === "string") {
-        try {
-          value = JSON.parse(raw);
-        } catch (error) {
-          console.error("Failed to parse pricing section", error);
-          return [];
-        }
-      }
-      if (!Array.isArray(value)) {
-        if (typeof value === "object") {
-          value = Object.values(value);
-        } else {
-          return [];
-        }
-      }
-      const entries = value as Array<Record<string, any>>;
-      return entries
-        .map((entry) => ({
-          name: sanitizeText(entry?.name),
-          price: sanitizeText(entry?.price),
-          description: sanitizeText(entry?.description),
-        }))
-        .filter((entry) => entry.name || entry.price || entry.description);
     },
     [sanitizeText]
   );
@@ -910,12 +867,10 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     cardStyle,
     companyProfile,
     containerStyle,
-    formatINR,
     hotels,
     initialData,
     locations,
     parsePolicyField,
-    parsePricingSection,
     renderBulletList,
     sanitizeText,
     sectionBodyStyle,

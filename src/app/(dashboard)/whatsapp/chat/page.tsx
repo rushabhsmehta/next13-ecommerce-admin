@@ -741,7 +741,7 @@ export default function WhatsAppSettingsPage() {
         totalContacts: contacts.length
       });
     }
-  }, [filteredContacts.length, totalAvailableContacts, visibleContactsCount, showOnlyResponded, contacts.length]);
+  }, [filteredContacts.length, hasMoreContacts, totalAvailableContacts, visibleContactsCount, showOnlyResponded, contacts.length]);
 
   const handleAddNewChat = () => {
     if (!newChatNumber) return;
@@ -2251,14 +2251,25 @@ export default function WhatsAppSettingsPage() {
     }
   }, [activeContact?.phone]);
 
-  const activeContactMessages = activeContact ? (convos[activeContact.id] || []) : [];
-  const activeVisibleCount = activeContact
-    ? (visibleMessageCounts[activeContact.id] ?? Math.min(
+  const activeContactId = activeContact?.id;
+  const activeContactMessages = useMemo(() => {
+    if (!activeContactId) {
+      return [];
+    }
+    return convos[activeContactId] || [];
+  }, [activeContactId, convos]);
+
+  const activeVisibleCount = activeContactId
+    ? (visibleMessageCounts[activeContactId] ?? Math.min(
         INITIAL_VISIBLE_MESSAGES,
         activeContactMessages.length || INITIAL_VISIBLE_MESSAGES
       ))
     : INITIAL_VISIBLE_MESSAGES;
-  const activeVisibleMessages = activeContactMessages.slice(-activeVisibleCount);
+
+  const activeVisibleMessages = useMemo(
+    () => activeContactMessages.slice(-activeVisibleCount),
+    [activeContactMessages, activeVisibleCount]
+  );
   const hasMoreActiveMessages = activeContactMessages.length > activeVisibleMessages.length;
 
   // Debug: Log active conversation state

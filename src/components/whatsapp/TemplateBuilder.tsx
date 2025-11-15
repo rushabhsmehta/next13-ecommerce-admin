@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,12 +15,12 @@ import {
   Image as ImageIcon,
   Video,
   FileIcon,
-  Phone,
   Link as LinkIcon,
   MessageSquare,
-  Workflow,
-  Sparkles,
-  Eye
+  Eye,
+  UploadCloud,
+  Loader2,
+  Copy
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -49,6 +49,21 @@ interface TemplateData {
   components: TemplateComponent[];
 }
 
+const MAX_DOCUMENT_SIZE_MB = 5;
+const MAX_DOCUMENT_SIZE_BYTES = MAX_DOCUMENT_SIZE_MB * 1024 * 1024;
+
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return '0 B';
+  }
+
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, exponent);
+  const precision = exponent === 0 || value >= 10 ? 0 : 1;
+  return `${value.toFixed(precision)} ${units[exponent]}`;
+}
+
 export default function TemplateBuilder({ onComplete }: { onComplete?: () => void }) {
   const [templateName, setTemplateName] = useState('');
   const [language, setLanguage] = useState('en_US');
@@ -58,6 +73,28 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
   ]);
   const [previewMode, setPreviewMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentUploadedFileName, setDocumentUploadedFileName] = useState<string | null>(null);
+  const [documentUploading, setDocumentUploading] = useState(false);
+  const [documentInputKey, setDocumentInputKey] = useState(0);
+
+  const headerComponent = components.find((component) => component.type === 'HEADER');
+  const headerFormat = headerComponent?.format;
+  const headerExample = headerComponent?.example;
+
+  useEffect(() => {
+    if (headerFormat !== 'DOCUMENT') {
+      setDocumentFile(null);
+      setDocumentUploadedFileName(null);
+      setDocumentInputKey((key) => key + 1);
+    }
+  }, [headerFormat]);
+
+  useEffect(() => {
+    if (headerFormat === 'DOCUMENT' && !headerExample) {
+      setDocumentUploadedFileName(null);
+    }
+  }, [headerFormat, headerExample]);
 
   const addComponent = (type: ComponentType) => {
     const newComponent: TemplateComponent = { type };
@@ -88,8 +125,15 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
   };
 
   const removeComponent = (index: number) => {
+    const componentToRemove = components[index];
     const newComponents = components.filter((_, i) => i !== index);
     setComponents(newComponents);
+
+    if (componentToRemove?.type === 'HEADER') {
+      setDocumentFile(null);
+      setDocumentUploadedFileName(null);
+      setDocumentInputKey((key) => key + 1);
+    }
   };
 
   const addButton = (componentIndex: number) => {
@@ -123,6 +167,125 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
     if (component.buttons) {
       component.buttons = component.buttons.filter((_, i) => i !== buttonIndex);
       setComponents(newComponents);
+    }
+  };
+
+  const handleDocumentFileSelection = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+
+    if (!file) {
+      setDocumentFile(null);
+      setDocumentInputKey((key) => key + 1);
+      return;
+    }
+
+    if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
+      toast.error(`PDF is too large. Maximum size is ${MAX_DOCUMENT_SIZE_MB} MB.`);
+      setDocumentFile(null);
+      setDocumentInputKey((key) => key + 1);
+      return;
+    }
+
+    const type = (file.type || '').toLowerCase();
+    const name = file.name?.toLowerCase() || '';
+
+    if (type !== 'application/pdf' && !name.endsWith('.pdf')) {
+      toast.error('Only PDF documents are supported.');
+      setDocumentFile(null);
+      setDocumentInputKey((key) => key + 1);
+      return;
+    }
+
+    setDocumentFile(file);
+    setDocumentUploadedFileName(null);
+  };
+
+  const uploadDocument = async () => {
+    if (documentUploading) {
+      return;
+    }
+
+    const headerIndex = components.findIndex((component) => component.type === 'HEADER');
+
+    if (headerIndex === -1) {
+      toast.error('Add a header component before uploading a document.');
+      return;
+    }
+
+    if (headerFormat !== 'DOCUMENT') {
+      toast.error('Change the header format to Document to upload a PDF.');
+      return;
+    }
+
+    if (!documentFile) {
+      toast.error('Select a PDF file to upload.');
+      return;
+    }
+
+    setDocumentUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', documentFile, documentFile.name);
+      if (templateName) {
+        formData.append('templateName', templateName);
+      }
+
+      const response = await fetch('/api/whatsapp/templates/upload-document', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to upload PDF');
+      }
+
+      const documentUrl: string | undefined = data?.document?.url;
+      const uploadedName: string | undefined = data?.document?.fileName;
+
+      if (!documentUrl) {
+        throw new Error('Upload succeeded but no document URL was returned.');
+      }
+
+      updateComponent(headerIndex, { example: documentUrl });
+      setDocumentUploadedFileName(uploadedName || documentFile.name);
+      setDocumentFile(null);
+      setDocumentInputKey((key) => key + 1);
+
+      toast.success('PDF uploaded successfully. The example URL is ready.');
+    } catch (error: any) {
+      console.error('Error uploading template PDF:', error);
+      toast.error(error?.message || 'Failed to upload PDF');
+    } finally {
+      setDocumentUploading(false);
+    }
+  };
+
+  const clearDocumentExample = () => {
+    const headerIndex = components.findIndex((component) => component.type === 'HEADER');
+    if (headerIndex === -1) {
+      return;
+    }
+
+    updateComponent(headerIndex, { example: undefined });
+    setDocumentUploadedFileName(null);
+    toast.success('Document link removed.');
+  };
+
+  const copyDocumentUrl = async (url: string) => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) {
+      toast.error('Clipboard is not available in this environment.');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('PDF URL copied to clipboard.');
+    } catch (error) {
+      console.error('Failed to copy PDF URL:', error);
+      toast.error('Unable to copy PDF URL.');
     }
   };
 
@@ -460,7 +623,27 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                       {component.type === 'HEADER' && (
                         <Select
                           value={component.format}
-                          onValueChange={(value) => updateComponent(idx, { format: value as HeaderFormat })}
+                          onValueChange={(value) => {
+                            const selectedFormat = value as HeaderFormat;
+                            const updates: Partial<TemplateComponent> = {
+                              format: selectedFormat,
+                            };
+
+                            if (selectedFormat === 'TEXT') {
+                              updates.example = undefined;
+                            } else {
+                              updates.text = '';
+                            }
+
+                            if (selectedFormat !== 'DOCUMENT') {
+                              updates.example = undefined;
+                            }
+
+                            updateComponent(idx, updates);
+                            setDocumentFile(null);
+                            setDocumentUploadedFileName(null);
+                            setDocumentInputKey((key) => key + 1);
+                          }}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -488,20 +671,107 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
 
                       {/* Example URL for media headers (IMAGE, VIDEO, DOCUMENT) */}
                       {component.type === 'HEADER' && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format || '') && (
-                        <div className="space-y-2">
-                          <Label>Example {component.format} URL *</Label>
-                          <Input
-                            type="url"
-                            placeholder={`https://example.com/sample-${component.format?.toLowerCase()}.${
-                              component.format === 'IMAGE' ? 'jpg' :
-                              component.format === 'VIDEO' ? 'mp4' : 'pdf'
-                            }`}
-                            value={component.example || ''}
-                            onChange={(e) => updateComponent(idx, { example: e.target.value })}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Provide a sample {component.format?.toLowerCase()} URL for template approval
-                          </p>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label>
+                              Example {component.format} URL *
+                            </Label>
+                            <Input
+                              type="url"
+                              placeholder={`https://example.com/sample-${component.format?.toLowerCase()}.${
+                                component.format === 'IMAGE' ? 'jpg' :
+                                component.format === 'VIDEO' ? 'mp4' : 'pdf'
+                              }`}
+                              value={component.example || ''}
+                              onChange={(e) => {
+                                updateComponent(idx, { example: e.target.value });
+                                if (component.format === 'DOCUMENT') {
+                                  setDocumentUploadedFileName(null);
+                                }
+                              }}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Provide a sample {component.format?.toLowerCase()} URL for template approval
+                              {component.format === 'DOCUMENT' ? ' or upload a PDF to fill this automatically.' : ''}
+                            </p>
+                          </div>
+
+                          {component.format === 'DOCUMENT' && (
+                            <div className="space-y-3 rounded-md border border-dashed border-muted bg-muted/20 p-3">
+                              <div className="flex items-center gap-2 text-sm font-medium">
+                                <UploadCloud className="h-4 w-4" />
+                                <span>Upload PDF to Cloudflare R2</span>
+                              </div>
+                              <Input
+                                key={documentInputKey}
+                                type="file"
+                                accept="application/pdf"
+                                onChange={handleDocumentFileSelection}
+                                disabled={documentUploading}
+                              />
+                              {documentFile && (
+                                <p className="text-xs text-muted-foreground">
+                                  Selected: {documentFile.name} ({formatBytes(documentFile.size)})
+                                </p>
+                              )}
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={uploadDocument}
+                                  disabled={!documentFile || documentUploading}
+                                >
+                                  {documentUploading ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UploadCloud className="mr-2 h-4 w-4" />
+                                      Upload PDF
+                                    </>
+                                  )}
+                                </Button>
+                                {component.example && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={clearDocumentExample}
+                                    disabled={documentUploading}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Clear link
+                                  </Button>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Uploaded PDFs receive a permanent public URL served from Cloudflare R2.
+                              </p>
+                            </div>
+                          )}
+
+                          {component.format === 'DOCUMENT' && component.example && (
+                            <div className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-muted bg-background/80 p-3">
+                              <div className="min-w-0 space-y-1">
+                                {documentUploadedFileName && (
+                                  <p className="text-sm font-medium truncate">{documentUploadedFileName}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground break-all">{component.example}</p>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyDocumentUrl(component.example!)}
+                              >
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copy URL
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
 

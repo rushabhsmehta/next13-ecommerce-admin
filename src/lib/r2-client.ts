@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-// Lightweight helper around Cloudflare R2's S3-compatible API for WhatsApp PDFs
+// Lightweight helper around Cloudflare R2's S3-compatible API for WhatsApp media
 
 type R2Config = {
   accountId: string;
@@ -24,6 +24,26 @@ type UploadTemplatePdfParams = {
 };
 
 type UploadTemplatePdfResult = {
+  key: string;
+  url: string;
+  bucket: string;
+};
+
+type UploadR2ObjectParams = {
+  buffer: Buffer;
+  fileName?: string;
+  contentType?: string;
+  prefix?: string;
+  segments?: Array<string | null | undefined>;
+  objectKey?: string;
+  extension?: string;
+  metadata?: Record<string, string | undefined>;
+  cacheControl?: string;
+  contentDisposition?: string;
+  fallbackExtension?: string;
+};
+
+type UploadR2ObjectResult = {
   key: string;
   url: string;
   bucket: string;
@@ -101,32 +121,61 @@ function toSlug(value: string | null | undefined): string {
   return slug || 'template';
 }
 
-function normalizeBaseName(value: string | null | undefined): string {
+function extractExtension(value: string | null | undefined): string {
   if (!value) {
-    return 'document';
+    return '';
   }
 
-  const withoutExt = value.replace(/\.pdf$/i, '').replace(/\s+/g, '-');
+  const match = value.match(/\.([^.]+)$/);
+  return match ? `.${match[1].toLowerCase()}` : '';
+}
+
+function normalizeBaseName(value: string | null | undefined): string {
+  if (!value) {
+    return 'file';
+  }
+
+  const withoutExt = value
+    .replace(/\.[^.]+$/, '')
+    .replace(/\s+/g, '-');
+
   const safe = withoutExt
     .replace(/[^a-zA-Z0-9._-]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  return safe || 'document';
+  return safe || 'file';
 }
 
-function sanitizeFileName(value: string | null | undefined): string {
-  return `${normalizeBaseName(value)}.pdf`;
+function normalizeExtension(value: string | undefined, fallback = '.bin'): string {
+  if (value && value.trim()) {
+    return value.startsWith('.') ? value.toLowerCase() : `.${value.toLowerCase()}`;
+  }
+  return fallback;
 }
 
-function buildObjectKey(params: { fileName?: string; templateName?: string | null; prefix?: string }): string {
+function sanitizeFileName(value: string | null | undefined, extension?: string): string {
+  const fallback = extension || extractExtension(value) || '.bin';
+  return `${normalizeBaseName(value)}${normalizeExtension(fallback)}`;
+}
+
+function buildObjectKey(params: { fileName?: string; templateName?: string | null; prefix?: string; segments?: Array<string | null | undefined>; extension?: string }): string {
   const prefix = (params.prefix || DEFAULT_PREFIX).replace(/\/+$/, '');
-  const templateSegment = toSlug(params.templateName);
+  const segmentInput = params.segments && params.segments.length
+    ? params.segments
+    : [params.templateName ? toSlug(params.templateName) : null];
+  const segments = segmentInput
+    .map((segment) => (segment
+      ? segment.toLowerCase().replace(/\/+/g, '-').replace(/[^a-z0-9-]/gi, '-')
+      : null))
+    .filter((segment): segment is string => Boolean(segment));
   const baseName = normalizeBaseName(params.fileName);
   const stamp = Date.now();
   const randomSuffix = randomUUID().replace(/-/g, '');
+  const extension = normalizeExtension(params.extension || extractExtension(params.fileName) || '.bin');
+  const folder = segments.length ? `${prefix}/${segments.join('/')}` : prefix;
 
-  return `${prefix}/${templateSegment}/${baseName}-${stamp}-${randomSuffix}.pdf`;
+  return `${folder}/${baseName}-${stamp}-${randomSuffix}${extension}`;
 }
 
 function buildPublicUrl(key: string): string {
@@ -135,18 +184,35 @@ function buildPublicUrl(key: string): string {
   return `${base}/${key}`;
 }
 
-export async function uploadTemplatePdf(params: UploadTemplatePdfParams): Promise<UploadTemplatePdfResult> {
+function cleanMetadata(metadata?: Record<string, string | undefined>): Record<string, string> | undefined {
+  if (!metadata) {
+    return undefined;
+  }
+
+  const cleaned: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(metadata)) {
+    if (typeof value === 'string' && value.length) {
+      cleaned[key] = value;
+    }
+  }
+
+  return Object.keys(cleaned).length ? cleaned : undefined;
+}
+
+export async function uploadR2Object(params: UploadR2ObjectParams): Promise<UploadR2ObjectResult> {
   const config = loadConfig();
   const client = getClient();
+  const contentType = params.contentType?.trim() || 'application/octet-stream';
+  const inferredExtension = params.extension || extractExtension(params.fileName) || inferExtensionFromMime(contentType);
 
   const key = params.objectKey || buildObjectKey({
     fileName: params.fileName,
-    templateName: params.templateName,
+    templateName: null,
     prefix: params.prefix,
+    segments: params.segments,
+    extension: inferredExtension,
   });
-
-  const contentType = params.contentType?.trim() || 'application/pdf';
-  const safeFileName = sanitizeFileName(params.fileName);
 
   await client.send(
     new PutObjectCommand({
@@ -154,13 +220,9 @@ export async function uploadTemplatePdf(params: UploadTemplatePdfParams): Promis
       Key: key,
       Body: params.buffer,
       ContentType: contentType,
-      CacheControl: 'public, max-age=31536000, immutable',
-      ContentDisposition: `inline; filename="${safeFileName}"`,
-      Metadata: {
-        source: 'whatsapp-template-builder',
-        ...(params.uploadedBy ? { 'uploaded-by': params.uploadedBy } : {}),
-        ...(params.templateName ? { 'template-name': toSlug(params.templateName) } : {}),
-      },
+      CacheControl: params.cacheControl || 'public, max-age=31536000, immutable',
+      ...(params.contentDisposition ? { ContentDisposition: params.contentDisposition } : {}),
+      Metadata: cleanMetadata(params.metadata),
     })
   );
 
@@ -169,6 +231,38 @@ export async function uploadTemplatePdf(params: UploadTemplatePdfParams): Promis
     url: buildPublicUrl(key),
     bucket: config.bucket,
   };
+}
+
+function inferExtensionFromMime(mime: string): string {
+  const value = mime.toLowerCase();
+  if (value.includes('pdf')) return '.pdf';
+  if (value.includes('jpeg') || value.includes('jpg')) return '.jpg';
+  if (value.includes('png')) return '.png';
+  if (value.includes('webp')) return '.webp';
+  if (value.includes('gif')) return '.gif';
+  if (value.includes('svg')) return '.svg';
+  if (value.includes('json')) return '.json';
+  return '.bin';
+}
+
+export async function uploadTemplatePdf(params: UploadTemplatePdfParams): Promise<UploadTemplatePdfResult> {
+  const safeFileName = sanitizeFileName(params.fileName, '.pdf');
+
+  return uploadR2Object({
+    buffer: params.buffer,
+    fileName: safeFileName,
+    contentType: params.contentType?.trim() || 'application/pdf',
+    prefix: params.prefix || DEFAULT_PREFIX,
+    segments: [params.templateName ? toSlug(params.templateName) : undefined],
+    objectKey: params.objectKey,
+    extension: '.pdf',
+    metadata: {
+      source: 'whatsapp-template-builder',
+      ...(params.uploadedBy ? { 'uploaded-by': params.uploadedBy } : {}),
+      ...(params.templateName ? { 'template-name': toSlug(params.templateName) } : {}),
+    },
+    contentDisposition: `inline; filename="${safeFileName}"`,
+  });
 }
 
 export async function deleteR2Object(key: string): Promise<void> {

@@ -3,16 +3,31 @@ import { auth } from '@clerk/nextjs';
 import { handleApi, jsonError } from '@/lib/api-response';
 import { isCurrentUserAssociate } from '@/lib/associate-utils';
 import whatsappPrisma from '@/lib/whatsapp-prismadb';
-import { v2 as cloudinary } from 'cloudinary';
+import { uploadR2Object, deleteR2Object } from '@/lib/r2-client';
 
-const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB limit to avoid large payloads
+const configuredMaxFileSizeMb = Number(
+  process.env.MEDIA_LIBRARY_MAX_FILE_SIZE_MB ||
+    process.env.NEXT_PUBLIC_MEDIA_LIBRARY_MAX_FILE_SIZE_MB ||
+    100
+);
+const MAX_UPLOAD_SIZE_MB = Number.isFinite(configuredMaxFileSizeMb) && configuredMaxFileSizeMb > 0
+  ? configuredMaxFileSizeMb
+  : 100;
+const MAX_UPLOAD_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+const MEDIA_LIBRARY_PREFIX = process.env.CLOUDFLARE_R2_MEDIA_LIBRARY_PREFIX || 'whatsapp/media-library';
+const MEDIA_LIBRARY_LIMIT = Number(process.env.MEDIA_LIBRARY_MAX_RESULTS || 48);
+const configuredMaxFiles = Number(process.env.MEDIA_LIBRARY_MAX_FILES || process.env.NEXT_PUBLIC_MEDIA_LIBRARY_MAX_FILES || 5);
+const MAX_FILES_PER_UPLOAD = Number.isFinite(configuredMaxFiles) && configuredMaxFiles > 0 ? configuredMaxFiles : 5;
+
 const ALLOWED_MIME_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/gif',
   'image/avif',
+  'application/pdf',
 ]);
+
 const MIME_BY_EXTENSION: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -20,121 +35,18 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   '.webp': 'image/webp',
   '.gif': 'image/gif',
   '.avif': 'image/avif',
+  '.pdf': 'application/pdf',
 };
+
 const ALLOWED_EXTENSIONS = new Set(Object.keys(MIME_BY_EXTENSION));
-const ALLOWED_FORMATS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'] as const;
-const CLOUDINARY_FOLDER = process.env.CLOUDINARY_WHATSAPP_FOLDER || 'uploads/whatsapp';
-const CLOUDINARY_TAGS = (process.env.CLOUDINARY_WHATSAPP_TAGS || 'whatsapp-media')
-  .split(',')
-  .map((tag) => tag.trim())
-  .filter(Boolean);
-const CLOUDINARY_MAX_RESULTS = Number(process.env.CLOUDINARY_WHATSAPP_MAX_RESULTS || 48);
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+const MEDIA_SEGMENTS = {
+  image: 'images',
+  document: 'documents',
+  binary: 'files',
+} as const;
 
-let cloudinaryConfigured = false;
-let cloudinaryConfigError: string | null = null;
-
-function ensureCloudinaryConfigured() {
-  if (cloudinaryConfigured) return true;
-
-  const rawUrl = process.env.CLOUDINARY_URL;
-  if (!rawUrl) {
-    cloudinaryConfigError = 'CLOUDINARY_URL env var is missing';
-    console.error('[media-upload] CLOUDINARY_URL env var is missing');
-    return false;
-  }
-
-  const trimmedUrl = rawUrl.trim();
-  if (!trimmedUrl.toLowerCase().startsWith('cloudinary://')) {
-    cloudinaryConfigError = 'Expected CLOUDINARY_URL in the format cloudinary://API_KEY:API_SECRET@CLOUD_NAME';
-    console.error('[media-upload] Invalid CLOUDINARY_URL format. Expected cloudinary://API_KEY:API_SECRET@CLOUD_NAME');
-    return false;
-  }
-
-  try {
-    const parsed = new URL(trimmedUrl);
-    const apiKey = decodeURIComponent(parsed.username || '');
-    const apiSecret = decodeURIComponent(parsed.password || '');
-    const cloudName = parsed.hostname || '';
-
-    if (!apiKey || !apiSecret || !cloudName) {
-      cloudinaryConfigError = 'CLOUDINARY_URL is missing the API key, secret, or cloud name';
-      console.error('[media-upload] CLOUDINARY_URL is missing required credentials components', {
-        hasApiKey: Boolean(apiKey),
-        hasApiSecret: Boolean(apiSecret),
-        cloudName,
-      });
-      return false;
-    }
-
-    const privateCdn = parsed.searchParams.get('private_cdn');
-    const secureDistribution = parsed.searchParams.get('secure_distribution');
-    const cname = parsed.searchParams.get('cname');
-
-    cloudinary.config({
-      cloud_name: cloudName,
-      api_key: apiKey,
-      api_secret: apiSecret,
-      secure: true,
-      ...(privateCdn ? { private_cdn: privateCdn === 'true' } : {}),
-      ...(secureDistribution ? { secure_distribution: secureDistribution } : {}),
-      ...(cname ? { cname } : {}),
-    });
-
-    const redactedKey = apiKey.length > 6
-      ? `${apiKey.slice(0, 3)}***${apiKey.slice(-3)}`
-      : `${apiKey.slice(0, 1)}***`;
-    console.log('[media-upload] Cloudinary config initialized', {
-      cloudName,
-      apiKey: redactedKey,
-      privateCdn: Boolean(privateCdn),
-      secureDistribution: Boolean(secureDistribution),
-      cnameEnabled: Boolean(cname),
-    });
-
-    cloudinaryConfigured = true;
-    cloudinaryConfigError = null;
-    return true;
-  } catch (error) {
-    cloudinaryConfigError = 'Failed to parse CLOUDINARY_URL. Verify the value matches cloudinary://API_KEY:API_SECRET@CLOUD_NAME';
-    console.error('[media-upload] Failed to parse CLOUDINARY_URL', error);
-    return false;
-  }
-}
-
-function cloudinaryConfigFailureMessage(base: string) {
-  return cloudinaryConfigError ? `${base} ${cloudinaryConfigError}` : base;
-}
-
-function formatCloudinaryUploadError(message?: string) {
-  if (!message) {
-    return 'Failed to upload image to Cloudinary';
-  }
-
-  if (message.toLowerCase().includes('invalid json response')) {
-    return `${message} Verify that CLOUDINARY_URL points to the API endpoint (cloudinary://API_KEY:API_SECRET@CLOUD_NAME) and the account is active.`;
-  }
-
-  return message;
-}
-
-type CloudinaryMedia = {
-  id: string;
-  publicId: string;
-  filename: string;
-  secureUrl: string;
-  size: number;
-  contentType: string;
-  uploadedAt: string;
-  width?: number;
-  height?: number;
-  format?: string;
-  resourceType?: string;
-  folder?: string | null;
-  tags?: string[];
-};
+type ResourceType = keyof typeof MEDIA_SEGMENTS;
 
 type MediaAssetRecord = {
   id: string;
@@ -162,14 +74,6 @@ type MediaAssetDelegate = {
   delete: (args: any) => Promise<MediaAssetRecord>;
 };
 
-function getMediaAssetClient(): MediaAssetDelegate {
-  const delegate = whatsappPrisma.whatsAppMediaAsset as unknown as MediaAssetDelegate;
-  if (!delegate) {
-    throw new Error('Prisma client is missing the whatsAppMediaAsset delegate. Run `npx prisma generate --schema=prisma/whatsapp-schema.prisma` and redeploy.');
-  }
-  return delegate;
-}
-
 type MediaAssetResponse = {
   id: string;
   publicId: string;
@@ -185,13 +89,29 @@ type MediaAssetResponse = {
   folder?: string | null;
 };
 
-function parseUploadDate(value?: string) {
-  if (!value) {
-    return new Date();
-  }
+type MediaPersistencePayload = {
+  publicId: string;
+  filename: string;
+  secureUrl: string;
+  size: number;
+  contentType: string;
+  format: string | null;
+  width: number | null;
+  height: number | null;
+  resourceType: string;
+  folder: string | null;
+  uploadedAt: Date;
+};
 
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+function getMediaAssetClient(): MediaAssetDelegate {
+  const delegate = whatsappPrisma.whatsAppMediaAsset as unknown as MediaAssetDelegate;
+  if (!delegate) {
+    throw new Error('Prisma client is missing the whatsAppMediaAsset delegate. Run `npx prisma generate --schema=prisma/whatsapp-schema.prisma` and redeploy.');
+  }
+  return delegate;
 }
 
 function mapMediaAssetRecord(asset: MediaAssetRecord): MediaAssetResponse {
@@ -211,147 +131,150 @@ function mapMediaAssetRecord(asset: MediaAssetRecord): MediaAssetResponse {
   };
 }
 
-function resolveExtension(file: File) {
-  const name = typeof file.name === 'string' ? file.name : '';
-  const extFromName = name ? name.substring(name.lastIndexOf('.')).toLowerCase() : '';
-  if (extFromName && ALLOWED_EXTENSIONS.has(extFromName)) {
-    return extFromName;
+function resolveExtension(file: File): string {
+  const name = typeof file.name === 'string' ? file.name.toLowerCase() : '';
+  if (name.includes('.')) {
+    const ext = name.substring(name.lastIndexOf('.'));
+    if (ALLOWED_EXTENSIONS.has(ext)) {
+      return ext;
+    }
   }
 
-  if (file.type && ALLOWED_MIME_TYPES.has(file.type)) {
-    switch (file.type) {
-      case 'image/jpeg':
-        return '.jpg';
-      case 'image/png':
-        return '.png';
-      case 'image/webp':
-        return '.webp';
-      case 'image/gif':
-        return '.gif';
-      case 'image/avif':
-        return '.avif';
-      default:
-        return '';
+  const mime = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+  for (const [extension, mimeType] of Object.entries(MIME_BY_EXTENSION)) {
+    if (mime && mime === mimeType) {
+      return extension;
     }
   }
 
   return '';
 }
 
-function mapCloudinaryResource(resource: any): CloudinaryMedia {
-  const format = resource?.format || '';
-  const resourceType = resource?.resource_type || 'image';
-  const contentType = resourceType === 'image' && format
-    ? `image/${format}`
-    : `${resourceType}/${format || 'binary'}`;
-  const baseName = resource?.public_id?.split('/')?.pop() || resource?.public_id;
-  const folder = resource?.folder || resource?.asset_folder || null;
-  const tags = Array.isArray(resource?.tags)
-    ? resource.tags.filter((tag: unknown) => typeof tag === 'string')
-    : undefined;
+function resolveMimeType(file: File, extension: string): string {
+  const mime = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+  if (mime && ALLOWED_MIME_TYPES.has(mime)) {
+    return mime;
+  }
 
-  return {
-    id: resource?.asset_id || resource?.public_id,
-    publicId: resource?.public_id,
-    filename: resource?.original_filename || baseName || 'media',
-    secureUrl: resource?.secure_url || resource?.url,
-    size: resource?.bytes ?? 0,
-    contentType,
-    uploadedAt: resource?.created_at || new Date().toISOString(),
-    width: resource?.width ?? undefined,
-    height: resource?.height ?? undefined,
-    format: format || undefined,
-    resourceType: resourceType || 'image',
-    folder,
-    tags,
-  };
+  const mapped = MIME_BY_EXTENSION[extension];
+  return mapped || mime || 'application/octet-stream';
 }
 
-async function uploadToCloudinary(file: File): Promise<CloudinaryMedia> {
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const mimeType = file.type && typeof file.type === 'string' ? file.type : 'application/octet-stream';
-  const dataUri = `data:${mimeType};base64,${buffer.toString('base64')}`;
-
-  const result = await cloudinary.uploader.upload(dataUri, {
-    folder: CLOUDINARY_FOLDER,
-    resource_type: 'image',
-    use_filename: true,
-    unique_filename: true,
-    overwrite: false,
-    allowed_formats: [...ALLOWED_FORMATS],
-    tags: CLOUDINARY_TAGS,
-  });
-
-  return mapCloudinaryResource(result);
+function inferResourceType(mimeType: string): ResourceType {
+  if (mimeType.startsWith('image/')) {
+    return 'image';
+  }
+  if (mimeType === 'application/pdf') {
+    return 'document';
+  }
+  return 'binary';
 }
 
-async function listCloudinaryMedia(): Promise<CloudinaryMedia[]> {
-  const expression = CLOUDINARY_FOLDER.includes('/')
-    ? `folder="${CLOUDINARY_FOLDER}"`
-    : `folder:${CLOUDINARY_FOLDER}`;
-
-  const search = await cloudinary.search
-    .expression(expression)
-    .sort_by('uploaded_at', 'desc')
-    .max_results(CLOUDINARY_MAX_RESULTS)
-    .execute();
-
-  return Array.isArray(search?.resources)
-    ? search.resources.map(mapCloudinaryResource)
-    : [];
+function formatFromExtension(extension: string): string | null {
+  if (!extension) {
+    return null;
+  }
+  return extension.startsWith('.') ? extension.slice(1) : extension;
 }
 
-async function saveMediaAsset(media: CloudinaryMedia, uploadedBy?: string): Promise<MediaAssetRecord> {
-  const tagsPayload = media.tags && media.tags.length ? media.tags : undefined;
-  const baseData = {
-    filename: media.filename,
-    secureUrl: media.secureUrl,
-    size: typeof media.size === 'number' ? media.size : Number(media.size) || 0,
-    contentType: media.contentType,
-    format: media.format ?? null,
-    width: typeof media.width === 'number' ? media.width : null,
-    height: typeof media.height === 'number' ? media.height : null,
-    resourceType: media.resourceType ?? 'image',
-    folder: media.folder ?? null,
-    uploadedAt: parseUploadDate(media.uploadedAt),
-    ...(typeof tagsPayload !== 'undefined' ? { tags: tagsPayload } : {}),
-  };
+function folderFromKey(key: string): string | null {
+  const index = key.lastIndexOf('/');
+  return index > 0 ? key.slice(0, index) : null;
+}
 
-  const mediaAssetClient = getMediaAssetClient();
-  const record = await mediaAssetClient.upsert({
-    where: { publicId: media.publicId },
+async function saveMediaAsset(payload: MediaPersistencePayload, uploadedBy?: string): Promise<MediaAssetRecord> {
+  const client = getMediaAssetClient();
+  return client.upsert({
+    where: { publicId: payload.publicId },
     create: {
-      publicId: media.publicId,
+      publicId: payload.publicId,
+      filename: payload.filename,
+      secureUrl: payload.secureUrl,
+      size: payload.size,
+      contentType: payload.contentType,
+      format: payload.format,
+      width: payload.width,
+      height: payload.height,
+      resourceType: payload.resourceType,
+      folder: payload.folder,
+      uploadedAt: payload.uploadedAt,
       uploadedBy: uploadedBy ?? null,
-      ...baseData,
     },
     update: {
-      ...baseData,
+      filename: payload.filename,
+      secureUrl: payload.secureUrl,
+      size: payload.size,
+      contentType: payload.contentType,
+      format: payload.format,
+      width: payload.width,
+      height: payload.height,
+      resourceType: payload.resourceType,
+      folder: payload.folder,
+      uploadedAt: payload.uploadedAt,
       ...(uploadedBy ? { uploadedBy } : {}),
     },
   });
-
-  return record as MediaAssetRecord;
 }
 
-async function tryDestroyCloudinaryAsset(publicId: string) {
-  try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
-  } catch (error) {
-    console.warn('[media-upload] Failed to clean up Cloudinary asset after persistence error', error, { publicId });
-  }
-}
+type PreparedUpload = {
+  file: File;
+  extension: string;
+  mimeType: string;
+  resourceType: ResourceType;
+  size: number;
+};
 
-async function destroyCloudinaryAsset(publicId: string) {
-  const response = await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
-  const result = typeof response?.result === 'string' ? response.result : '';
-
-  if (result && result !== 'ok' && result !== 'not found') {
-    throw new Error(`Cloudinary returned ${result} for asset deletion`);
+function validateUploadFile(file: File): { ok: true; data: PreparedUpload } | { ok: false; response: NextResponse } {
+  if (!(file instanceof File)) {
+    return { ok: false, response: jsonError('Invalid file payload', 400, 'VALIDATION') };
   }
 
-  return result || 'ok';
+  if (typeof file.arrayBuffer !== 'function') {
+    return { ok: false, response: jsonError('Invalid file payload', 400, 'VALIDATION') };
+  }
+
+  const size = typeof file.size === 'number' ? file.size : 0;
+  if (size === 0) {
+    return { ok: false, response: jsonError(`Empty uploads are not allowed (${file.name || 'file'})`, 400, 'VALIDATION') };
+  }
+
+  if (size > MAX_UPLOAD_SIZE) {
+    return {
+      ok: false,
+      response: jsonError(
+        `${file.name || 'File'} is too large. Maximum supported size is ${MAX_UPLOAD_SIZE_MB}MB.`,
+        413,
+        'PAYLOAD_TOO_LARGE'
+      ),
+    };
+  }
+
+  const extension = resolveExtension(file);
+  if (!extension) {
+    return {
+      ok: false,
+      response: jsonError('Unsupported file type. Upload PNG, JPEG, WEBP, GIF, AVIF, or PDF files.', 415, 'UNSUPPORTED_MEDIA'),
+    };
+  }
+
+  const mimeType = resolveMimeType(file, extension);
+  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+    return {
+      ok: false,
+      response: jsonError('Unsupported file type. Upload PNG, JPEG, WEBP, GIF, AVIF, or PDF files.', 415, 'UNSUPPORTED_MEDIA'),
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      file,
+      extension,
+      mimeType,
+      resourceType: inferResourceType(mimeType),
+      size,
+    },
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -365,75 +288,89 @@ export async function POST(request: NextRequest) {
       return jsonError('Associates cannot upload media', 403, 'FORBIDDEN');
     }
 
-    if (!ensureCloudinaryConfigured()) {
-      return jsonError(
-        cloudinaryConfigFailureMessage('Cloudinary is not configured.'),
-        500,
-        'CLOUDINARY_CONFIG'
-      );
-    }
-
     const formData = await request.formData();
-    const fileEntry = formData.get('file');
+    const fileEntries = formData.getAll('file').filter((entry): entry is File => entry instanceof File);
 
-    if (!fileEntry) {
-      return jsonError('No image file received', 400, 'VALIDATION');
-    }
-
-    const file = (typeof File !== 'undefined' && fileEntry instanceof File)
-      ? fileEntry
-      : (fileEntry as unknown as File);
-
-    if (typeof file.arrayBuffer !== 'function') {
-      return jsonError('Invalid file payload', 400, 'VALIDATION');
-    }
-
-    if (!ALLOWED_MIME_TYPES.has(file.type)) {
-      return jsonError('Unsupported file type. Upload PNG, JPEG, WEBP, GIF, or AVIF images.', 415, 'UNSUPPORTED_MEDIA');
-    }
-
-    const fileSize = typeof file.size === 'number' ? file.size : 0;
-    if (fileSize === 0) {
-      return jsonError('Empty file uploads are not allowed', 400, 'VALIDATION');
-    }
-
-    if (fileSize > MAX_UPLOAD_SIZE) {
-      return jsonError('File is too large. Maximum supported size is 5MB.', 413, 'PAYLOAD_TOO_LARGE');
-    }
-
-    const extension = resolveExtension(file);
-    if (!extension) {
-      return jsonError('Could not determine a valid file extension', 400, 'VALIDATION');
-    }
-
-    let uploaded: CloudinaryMedia;
-    try {
-      uploaded = await uploadToCloudinary(file);
-    } catch (error: any) {
-      const rawResponse = typeof error?.http_response_body === 'string' ? error.http_response_body : '';
-      if (rawResponse) {
-        console.error('[media-upload] Cloudinary raw response (trimmed)', rawResponse.slice(0, 500));
+    if (!fileEntries.length) {
+      const fallbackFile = formData.get('file[]');
+      if (fallbackFile instanceof File) {
+        fileEntries.push(fallbackFile);
       }
-      console.error('[media-upload] Cloudinary upload failed', error);
-      return jsonError(formatCloudinaryUploadError(error?.message), 502, 'CLOUDINARY_UPLOAD');
     }
 
-    try {
-      const assetRecord = await saveMediaAsset(uploaded, userId);
-      return NextResponse.json(
-        {
-          success: true,
-          file: mapMediaAssetRecord(assetRecord),
-        },
-        { status: 201 }
-      );
-    } catch (error: any) {
-      console.error('[media-upload] Failed to persist media asset', error);
-      if (uploaded?.publicId) {
-        await tryDestroyCloudinaryAsset(uploaded.publicId);
-      }
-      return jsonError(error?.message || 'Failed to persist uploaded media. Please try again.', 500, 'MEDIA_PERSISTENCE');
+    if (!fileEntries.length) {
+      return jsonError('No file received', 400, 'VALIDATION');
     }
+
+    if (fileEntries.length > MAX_FILES_PER_UPLOAD) {
+      return jsonError(`Select up to ${MAX_FILES_PER_UPLOAD} files per upload.`, 400, 'MAX_FILES_EXCEEDED');
+    }
+
+    const preparedUploads: Array<PreparedUpload & { buffer: Buffer }> = [];
+
+    for (const file of fileEntries) {
+      const validation = validateUploadFile(file);
+      if (!validation.ok) {
+        return validation.response;
+      }
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      preparedUploads.push({ ...validation.data, buffer });
+    }
+
+    const uploadedFiles: MediaAssetResponse[] = [];
+
+    for (const uploadItem of preparedUploads) {
+      const segment = MEDIA_SEGMENTS[uploadItem.resourceType];
+      let uploadResult;
+
+      try {
+        uploadResult = await uploadR2Object({
+          buffer: uploadItem.buffer,
+          fileName: uploadItem.file.name,
+          contentType: uploadItem.mimeType,
+          prefix: MEDIA_LIBRARY_PREFIX,
+          segments: [segment],
+          metadata: {
+            source: 'whatsapp-media-library',
+            'resource-type': uploadItem.resourceType,
+            ...(uploadItem.extension ? { extension: uploadItem.extension.replace('.', '') } : {}),
+          },
+        });
+      } catch (error: any) {
+        console.error('[media-upload] Cloudflare R2 upload failed', error, { file: uploadItem.file.name });
+        return jsonError(error?.message || `Failed to upload ${uploadItem.file.name} to Cloudflare R2`, 502, 'R2_UPLOAD');
+      }
+
+      try {
+        const assetRecord = await saveMediaAsset({
+          publicId: uploadResult.key,
+          filename: uploadItem.file.name || 'media',
+          secureUrl: uploadResult.url,
+          size: uploadItem.size,
+          contentType: uploadItem.mimeType,
+          format: formatFromExtension(uploadItem.extension),
+          width: null,
+          height: null,
+          resourceType: uploadItem.resourceType,
+          folder: folderFromKey(uploadResult.key),
+          uploadedAt: new Date(),
+        }, userId);
+
+        uploadedFiles.push(mapMediaAssetRecord(assetRecord));
+      } catch (error: any) {
+        console.error('[media-upload] Failed to persist media asset', error, { key: uploadResult?.key });
+        return jsonError(error?.message || `Failed to persist ${uploadItem.file.name}. Please try again.`, 500, 'MEDIA_PERSISTENCE');
+      }
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        files: uploadedFiles,
+      },
+      { status: 201 }
+    );
   });
 }
 
@@ -448,51 +385,17 @@ export async function GET() {
       return jsonError('Associates cannot view uploaded media', 403, 'FORBIDDEN');
     }
 
-    if (!ensureCloudinaryConfigured()) {
-      return jsonError(
-        cloudinaryConfigFailureMessage('Cloudinary is not configured.'),
-        500,
-        'CLOUDINARY_CONFIG'
-      );
-    }
-
     try {
-  const mediaAssetClient = getMediaAssetClient();
-  let mediaAssets = await mediaAssetClient.findMany({
+      const client = getMediaAssetClient();
+      const mediaAssets = await client.findMany({
         orderBy: { uploadedAt: 'desc' },
-        take: CLOUDINARY_MAX_RESULTS,
+        take: MEDIA_LIBRARY_LIMIT,
       });
 
-      if (!mediaAssets.length) {
-        const cloudFiles = await listCloudinaryMedia();
-        if (cloudFiles.length) {
-          const synced: MediaAssetRecord[] = [];
-
-          for (const media of cloudFiles) {
-            try {
-              const record = await saveMediaAsset(media);
-              synced.push(record);
-            } catch (syncError) {
-              console.error('[media-upload] Failed to synchronize Cloudinary media record', syncError, {
-                publicId: media.publicId,
-              });
-            }
-          }
-
-          if (synced.length) {
-            mediaAssets = synced;
-          }
-        }
-      }
-
-      const files = mediaAssets
-        .sort((a: MediaAssetRecord, b: MediaAssetRecord) => b.uploadedAt.getTime() - a.uploadedAt.getTime())
-        .slice(0, CLOUDINARY_MAX_RESULTS)
-        .map(mapMediaAssetRecord);
-
+      const files = mediaAssets.map(mapMediaAssetRecord);
       return NextResponse.json({ success: true, files });
     } catch (error: any) {
-      console.error('[media-upload] Failed to list WhatsApp media assets', error);
+      console.error('[media-upload] Failed to list media assets', error);
       return jsonError(error?.message || 'Failed to load the media library', 502, 'MEDIA_LIST');
     }
   });
@@ -509,14 +412,6 @@ export async function DELETE(request: NextRequest) {
       return jsonError('Associates cannot delete media', 403, 'FORBIDDEN');
     }
 
-    if (!ensureCloudinaryConfigured()) {
-      return jsonError(
-        cloudinaryConfigFailureMessage('Cloudinary is not configured.'),
-        500,
-        'CLOUDINARY_CONFIG'
-      );
-    }
-
     let payload: any;
     try {
       payload = await request.json();
@@ -525,38 +420,106 @@ export async function DELETE(request: NextRequest) {
       return jsonError('Invalid JSON payload', 400, 'VALIDATION');
     }
 
-    const id = typeof payload?.id === 'string' ? payload.id : undefined;
-    const publicIdInput = typeof payload?.publicId === 'string' ? payload.publicId : undefined;
+    const normalizeArray = (input: unknown): string[] => {
+      if (!Array.isArray(input)) {
+        return [];
+      }
+      return input
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter((value): value is string => Boolean(value.length));
+    };
 
-    if (!id && !publicIdInput) {
+    const idSet = new Set<string>();
+    const publicIdSet = new Set<string>();
+
+    const singleId = typeof payload?.id === 'string' ? payload.id.trim() : '';
+    if (singleId) {
+      idSet.add(singleId);
+    }
+
+    const singlePublicId = typeof payload?.publicId === 'string' ? payload.publicId.trim() : '';
+    if (singlePublicId) {
+      publicIdSet.add(singlePublicId);
+    }
+
+    for (const value of normalizeArray(payload?.ids)) {
+      idSet.add(value);
+    }
+
+    for (const value of normalizeArray(payload?.publicIds)) {
+      publicIdSet.add(value);
+    }
+
+    if (!idSet.size && !publicIdSet.size) {
       return jsonError('Provide an id or publicId to delete.', 400, 'VALIDATION');
     }
 
-    const mediaAssetClient = getMediaAssetClient();
-    let asset: MediaAssetRecord | null = null;
+    const requestedIds = Array.from(idSet);
+    const requestedPublicIds = Array.from(publicIdSet);
 
-    if (id) {
-      asset = await mediaAssetClient.findUnique({ where: { id } });
+    const client = getMediaAssetClient();
+    const assetsMap = new Map<string, MediaAssetRecord>();
+
+    if (requestedIds.length) {
+      const assetsById = await client.findMany({ where: { id: { in: requestedIds } } });
+      for (const asset of assetsById) {
+        assetsMap.set(asset.id, asset);
+      }
     }
 
-    if (!asset && publicIdInput) {
-      asset = await mediaAssetClient.findUnique({ where: { publicId: publicIdInput } });
+    const resolvedPublicIds = new Set<string>();
+    for (const asset of Array.from(assetsMap.values())) {
+      if (asset.publicId) {
+        resolvedPublicIds.add(asset.publicId);
+      }
     }
 
-    if (!asset) {
+    const publicIdsToFetch = requestedPublicIds.filter((pid) => pid && !resolvedPublicIds.has(pid));
+    if (publicIdsToFetch.length) {
+      const assetsByPublicId = await client.findMany({ where: { publicId: { in: publicIdsToFetch } } });
+      for (const asset of assetsByPublicId) {
+        assetsMap.set(asset.id, asset);
+      }
+    }
+
+    const assets = Array.from(assetsMap.values());
+
+    if (!assets.length) {
       return jsonError('Media asset not found', 404, 'NOT_FOUND');
     }
 
+    const deletedIds: string[] = [];
+
     try {
-      const cloudResult = await destroyCloudinaryAsset(asset.publicId);
-      await mediaAssetClient.delete({ where: { id: asset.id } });
-      return NextResponse.json({ success: true, deletedId: asset.id, cloudinaryResult: cloudResult ?? 'ok' });
-    } catch (error: any) {
-      console.error('[media-upload] Failed to delete media asset', error, { id: asset.id, publicId: asset.publicId });
-      if (error?.message?.includes('Cloudinary')) {
-        return jsonError(error.message, 502, 'CLOUDINARY_DELETE');
+      for (const asset of assets) {
+        if (asset.publicId) {
+          try {
+            await deleteR2Object(asset.publicId);
+          } catch (deleteError: any) {
+            if (!`${deleteError?.name || ''}`.includes('NoSuchKey')) {
+              console.warn('[media-upload] Failed to delete object from R2', deleteError, { publicId: asset.publicId });
+              throw deleteError;
+            }
+          }
+        }
+
+        await client.delete({ where: { id: asset.id } });
+        deletedIds.push(asset.id);
       }
-      return jsonError(error?.message || 'Failed to delete the media asset.', 500, 'MEDIA_DELETE');
+
+      const missingIds = requestedIds.filter((id) => !deletedIds.includes(id));
+      const missingPublicIds = requestedPublicIds.filter((pid) => !assets.some((asset) => asset.publicId === pid));
+
+      return NextResponse.json({
+        success: true,
+        deletedIds,
+        deletedId: deletedIds.length === 1 ? deletedIds[0] : undefined,
+        missingIds,
+        missingPublicIds,
+      });
+    } catch (error: any) {
+      console.error('[media-upload] Failed to delete media asset(s)', error, { ids: deletedIds });
+      return jsonError(error?.message || 'Failed to delete one or more media assets.', 500, 'MEDIA_DELETE');
     }
   });
 }

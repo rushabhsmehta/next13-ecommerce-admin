@@ -81,6 +81,7 @@ WhatsApp Business API integration scripts:
 - `test-whatsapp-db.js` - WhatsApp database tests
 - `test-whatsapp-templates.js` - Template tests
 - `seed-whatsapp-templates.js` - Seed WhatsApp templates
+- `create-send-pdf-template.ts` - Downloads a PDF, uploads it to Meta's template media endpoint, and submits the `send_pdf` DOCUMENT-header template
 - `TEMPLATE_VARIABLES_REFERENCE.js` - Template variables reference
 
 **Usage**:
@@ -90,6 +91,9 @@ node scripts/whatsapp/send-whatsapp.js
 
 # Seed templates
 node scripts/whatsapp/seed-whatsapp-templates.js
+
+# Create the send_pdf template with a document header
+npx tsx scripts/whatsapp/create-send-pdf-template.ts
 ```
 
 **Reference**:

@@ -14,7 +14,7 @@ const META_API_BASE = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${ME
 // Lazily cached resolved WABA id. Initialize from env (if provided).
 let resolvedBusinessId: string | null = META_WHATSAPP_BUSINESS_ID || null;
 
-async function resolveBusinessId(): Promise<string> {
+export async function getWhatsAppBusinessId(): Promise<string> {
   if (resolvedBusinessId) return resolvedBusinessId;
 
   // If env provided, use it
@@ -169,7 +169,7 @@ export async function graphBusinessRequest<T>(endpoint: string, options: GraphRe
   }
 
   // Resolve the business id (WABA) lazily; if not set in env, derive from phone number
-  const businessId = await resolveBusinessId();
+  const businessId = await getWhatsAppBusinessId();
   const BUSINESS_BASE = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${businessId}`;
 
   const url = new URL(`${BUSINESS_BASE}/${endpoint}`);
@@ -230,6 +230,78 @@ export async function graphBusinessRequest<T>(endpoint: string, options: GraphRe
   }
 
   return payload as T;
+}
+
+export async function uploadTemplateMediaHandle(params: {
+  buffer: Buffer;
+  fileName: string;
+  mimeType: string;
+}): Promise<{ handle: string }> {
+  if (!META_APP_ID) {
+    throw new Error('Missing META_APP_ID required for template media uploads');
+  }
+
+  if (!META_WHATSAPP_ACCESS_TOKEN) {
+    throw new Error('Missing Meta WhatsApp access token. Set META_WHATSAPP_ACCESS_TOKEN.');
+  }
+
+  const baseUrl = `https://graph.facebook.com/${META_GRAPH_API_VERSION}`;
+  const startUrl = new URL(`${baseUrl}/${META_APP_ID}/uploads`);
+  startUrl.searchParams.set('file_name', params.fileName);
+  startUrl.searchParams.set('file_length', String(params.buffer.length));
+  startUrl.searchParams.set('file_type', params.mimeType);
+
+  const startResponse = await fetch(startUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${META_WHATSAPP_ACCESS_TOKEN}`,
+    },
+  });
+
+  let startPayload: any = null;
+  try {
+    const text = await startResponse.text();
+    startPayload = text ? JSON.parse(text) : null;
+  } catch (error) {
+    if (!startResponse.ok) {
+      throw new GraphApiError(startResponse.status, `Meta API responded with HTTP ${startResponse.status}`, null);
+    }
+  }
+
+  if (!startResponse.ok || !startPayload?.id) {
+    const errorMessage =
+      startPayload?.error?.message || `Failed to start template media upload (${startResponse.status})`;
+    throw new GraphApiError(startResponse.status, errorMessage, startPayload);
+  }
+
+  const uploadId = String(startPayload.id);
+  const uploadUrl = `${baseUrl}/${uploadId}`;
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${META_WHATSAPP_ACCESS_TOKEN}`,
+      file_offset: '0',
+    },
+    body: params.buffer,
+  });
+
+  let uploadPayload: any = null;
+  try {
+    const text = await uploadResponse.text();
+    uploadPayload = text ? JSON.parse(text) : null;
+  } catch (error) {
+    if (!uploadResponse.ok) {
+      throw new GraphApiError(uploadResponse.status, `Meta API responded with HTTP ${uploadResponse.status}`, null);
+    }
+  }
+
+  if (!uploadResponse.ok || !uploadPayload?.h) {
+    const errorMessage =
+      uploadPayload?.error?.message || `Failed to upload template media (${uploadResponse.status})`;
+    throw new GraphApiError(uploadResponse.status, errorMessage, uploadPayload);
+  }
+
+  return { handle: String(uploadPayload.h) };
 }
 
 export async function graphFlowRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {

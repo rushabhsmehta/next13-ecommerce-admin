@@ -3,8 +3,14 @@ import { auth } from '@clerk/nextjs';
 import { handleApi, jsonError } from '@/lib/api-response';
 import { isCurrentUserAssociate } from '@/lib/associate-utils';
 import { uploadTemplatePdf } from '@/lib/r2-client';
+import { uploadWhatsAppTemplateMediaBuffer } from '@/lib/whatsapp-media';
 
-const MAX_PDF_SIZE_MB = 5;
+const configuredMaxPdfMb = Number(
+  process.env.MEDIA_LIBRARY_MAX_FILE_SIZE_MB ||
+    process.env.NEXT_PUBLIC_MEDIA_LIBRARY_MAX_FILE_SIZE_MB ||
+    100
+);
+const MAX_PDF_SIZE_MB = Number.isFinite(configuredMaxPdfMb) && configuredMaxPdfMb > 0 ? configuredMaxPdfMb : 100;
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
 export const dynamic = 'force-dynamic';
@@ -68,6 +74,28 @@ export async function POST(request: NextRequest) {
         prefix,
       });
 
+      let metaHandle: string | null = null;
+      try {
+        const metaUpload = await uploadWhatsAppTemplateMediaBuffer({
+          buffer,
+          fileName: file.name,
+          mimeType: 'application/pdf',
+          mediaType: 'document',
+        });
+        metaHandle = metaUpload.mediaId;
+      } catch (metaError: any) {
+        console.error('[whatsapp-template-upload] Failed to upload PDF to WhatsApp template media', metaError);
+        return jsonError(
+          metaError?.message || 'Failed to upload document to WhatsApp template media',
+          502,
+          'META_UPLOAD'
+        );
+      }
+
+      if (!metaHandle) {
+        return jsonError('WhatsApp did not return a media handle for the uploaded PDF', 502, 'META_HANDLE');
+      }
+
       return NextResponse.json({
         success: true,
         document: {
@@ -77,6 +105,7 @@ export async function POST(request: NextRequest) {
           size,
           fileName: file.name,
           uploadedAt: new Date().toISOString(),
+          metaHandle,
         },
       });
     } catch (error: any) {

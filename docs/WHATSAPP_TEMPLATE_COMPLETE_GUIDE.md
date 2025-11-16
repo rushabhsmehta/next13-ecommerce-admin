@@ -134,20 +134,20 @@ if (typeof component.example === 'string') {
   "type": "HEADER",
   "format": "DOCUMENT",
   "example": {
-    "header_handle": ["https://example.com/invoice.pdf"]
+    "header_handle": ["4::aW9...meta_media_handle..."]
   }
 }
 ```
 
 **UI Usage:**
 - Select Format: DOCUMENT
-- Enter example URL: `https://example.com/invoice.pdf`
+- Upload PDF ≤ 100MB (auto-generates public URL + WhatsApp media handle)
+- Confirm the media handle auto-fills the "WhatsApp media handle" input
 
 **Supported formats:**
-- PDF
-- DOC/DOCX
-- XLS/XLSX
-- Max 100MB
+- PDF only (UI enforces)
+- Max 100MB (Meta Cloud API limit)
+- Auto-uploaded to Cloudflare R2 + Meta media endpoint
 
 #### 5. **LOCATION Header**
 ```json
@@ -511,24 +511,24 @@ POST /api/whatsapp/templates/create
 ## 🐛 Common Errors & Solutions
 
 ### ❌ "Missing sample parameter for title type"
-**Cause:** Media header (IMAGE/VIDEO/DOCUMENT) without example URL
+**Cause:** Media header (IMAGE/VIDEO) missing sample URL or document header missing Meta media handle
 
 **Solution:**
 ```typescript
 // ✅ Correct
 {
   "type": "HEADER",
-  "format": "IMAGE",
+  "format": "DOCUMENT",
   "example": {
-    "header_handle": ["https://example.com/image.jpg"]
+    "header_handle": ["4::aW9...meta_media_handle..."]
   }
 }
 
 // ❌ Wrong
 {
   "type": "HEADER",
-  "format": "IMAGE"
-  // Missing example!
+  "format": "DOCUMENT"
+  // Missing Meta media handle!
 }
 ```
 

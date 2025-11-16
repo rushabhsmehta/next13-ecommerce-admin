@@ -121,6 +121,13 @@ await fetch('/api/whatsapp/templates/create', {
   type: 'HEADER',
   format: 'LOCATION'
 }
+
+> **Document header note:** Meta requires a `header_handle` produced via the [Resumable Upload API](https://developers.facebook.com/docs/graph-api/guides/upload). The flow is:
+> 1. `POST /<APP_ID>/uploads` with `file_name`, `file_length`, `file_type` to start a session.
+> 2. `POST /upload:<SESSION_ID>` with `file_offset: 0` and the binary PDF to receive a handle (`h`).
+> 3. Use that handle in `example.header_handle` (e.g., `"4::..."`).
+>
+> The Template Builder now performs these steps under the hood (using `META_APP_ID` + `META_WHATSAPP_ACCESS_TOKEN`), so any PDF you upload from the UI automatically yields a review-ready handle.
 ```
 
 ### Body Component

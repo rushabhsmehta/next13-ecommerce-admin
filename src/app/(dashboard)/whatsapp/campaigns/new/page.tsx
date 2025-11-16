@@ -291,7 +291,7 @@ export default function NewCampaignPage() {
           source: 'header',
           type: 'image',
           placeholder: 'https://example.com/banner.jpg',
-          helperText: 'Provide a publicly accessible HTTPS image URL (JPEG/PNG, max 5MB).',
+          helperText: 'Provide a publicly accessible HTTPS image URL (JPEG/PNG, max 100MB per Meta).',
         });
       } else if (headerFormat === 'VIDEO') {
         addField({
@@ -311,7 +311,7 @@ export default function NewCampaignPage() {
           source: 'header',
           type: 'document',
           placeholder: 'https://example.com/brochure.pdf',
-          helperText: 'Provide a publicly accessible HTTPS document URL (PDF, max 5MB).',
+          helperText: 'Provide a publicly accessible HTTPS document URL (PDF, max 100MB per Meta).',
         });
         addField({
           key: '_header_document_filename',
@@ -331,7 +331,7 @@ export default function NewCampaignPage() {
           source: 'header',
           type: 'image',
           placeholder: 'https://example.com/banner.jpg',
-          helperText: 'Provide a publicly accessible HTTPS image URL (JPEG/PNG, max 5MB).',
+          helperText: 'Provide a publicly accessible HTTPS image URL (JPEG/PNG, max 100MB per Meta).',
         });
       }
     }

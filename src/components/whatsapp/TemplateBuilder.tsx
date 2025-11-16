@@ -75,6 +75,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
   const [loading, setLoading] = useState(false);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentUploadedFileName, setDocumentUploadedFileName] = useState<string | null>(null);
+  const [documentUploadedUrl, setDocumentUploadedUrl] = useState<string | null>(null);
   const [documentUploading, setDocumentUploading] = useState(false);
   const [documentInputKey, setDocumentInputKey] = useState(0);
 
@@ -86,6 +87,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
     if (headerFormat !== 'DOCUMENT') {
       setDocumentFile(null);
       setDocumentUploadedFileName(null);
+      setDocumentUploadedUrl(null);
       setDocumentInputKey((key) => key + 1);
     }
   }, [headerFormat]);
@@ -93,6 +95,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
   useEffect(() => {
     if (headerFormat === 'DOCUMENT' && !headerExample) {
       setDocumentUploadedFileName(null);
+      setDocumentUploadedUrl(null);
     }
   }, [headerFormat, headerExample]);
 
@@ -132,6 +135,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
     if (componentToRemove?.type === 'HEADER') {
       setDocumentFile(null);
       setDocumentUploadedFileName(null);
+      setDocumentUploadedUrl(null);
       setDocumentInputKey((key) => key + 1);
     }
   };
@@ -244,17 +248,23 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
 
       const documentUrl: string | undefined = data?.document?.url;
       const uploadedName: string | undefined = data?.document?.fileName;
+      const metaHandle: string | undefined = data?.document?.metaHandle;
 
       if (!documentUrl) {
         throw new Error('Upload succeeded but no document URL was returned.');
       }
 
-      updateComponent(headerIndex, { example: documentUrl });
+      if (!metaHandle) {
+        throw new Error('Upload succeeded but no WhatsApp media handle was returned.');
+      }
+
+      updateComponent(headerIndex, { example: metaHandle });
       setDocumentUploadedFileName(uploadedName || documentFile.name);
+      setDocumentUploadedUrl(documentUrl);
       setDocumentFile(null);
       setDocumentInputKey((key) => key + 1);
 
-      toast.success('PDF uploaded successfully. The example URL is ready.');
+      toast.success('PDF uploaded successfully. WhatsApp media handle saved.');
     } catch (error: any) {
       console.error('Error uploading template PDF:', error);
       toast.error(error?.message || 'Failed to upload PDF');
@@ -271,21 +281,22 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
 
     updateComponent(headerIndex, { example: undefined });
     setDocumentUploadedFileName(null);
+    setDocumentUploadedUrl(null);
     toast.success('Document link removed.');
   };
 
-  const copyDocumentUrl = async (url: string) => {
+  const copyValue = async (value: string, successMessage: string) => {
     if (typeof navigator === 'undefined' || !navigator.clipboard) {
       toast.error('Clipboard is not available in this environment.');
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success('PDF URL copied to clipboard.');
+      await navigator.clipboard.writeText(value);
+      toast.success(successMessage);
     } catch (error) {
-      console.error('Failed to copy PDF URL:', error);
-      toast.error('Unable to copy PDF URL.');
+      console.error('Failed to copy value to clipboard:', error);
+      toast.error('Unable to copy to clipboard.');
     }
   };
 
@@ -301,17 +312,32 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
       return 'Body component is required';
     }
 
-    // Validate header with media format requires example URL
+    // Validate header media requirements
     const headerComponent = components.find(c => c.type === 'HEADER');
-    if (headerComponent && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format || '')) {
-      if (!headerComponent.example?.trim()) {
-        return `${headerComponent.format} header requires an example URL`;
+    if (headerComponent && headerComponent.format) {
+      const format = headerComponent.format;
+      const exampleValue = typeof headerComponent.example === 'string'
+        ? headerComponent.example.trim()
+        : '';
+
+      if (['IMAGE', 'VIDEO'].includes(format)) {
+        if (!exampleValue) {
+          return `${format} header requires an example URL`;
+        }
+        try {
+          new URL(exampleValue);
+        } catch {
+          return 'Header example must be a valid URL';
+        }
       }
-      // Basic URL validation
-      try {
-        new URL(headerComponent.example);
-      } catch {
-        return 'Header example must be a valid URL';
+
+      if (format === 'DOCUMENT') {
+        if (!exampleValue) {
+          return 'Document header requires a WhatsApp media handle';
+        }
+        if (/^https?:\/\//i.test(exampleValue)) {
+          return 'Document headers must use a WhatsApp media handle. Upload the PDF to generate one.';
+        }
       }
     }
 
@@ -642,6 +668,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                             updateComponent(idx, updates);
                             setDocumentFile(null);
                             setDocumentUploadedFileName(null);
+                            setDocumentUploadedUrl(null);
                             setDocumentInputKey((key) => key + 1);
                           }}
                         >
@@ -674,25 +701,32 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                         <div className="space-y-3">
                           <div className="space-y-2">
                             <Label>
-                              Example {component.format} URL *
+                              {component.format === 'DOCUMENT'
+                                ? 'WhatsApp media handle *'
+                                : `Example ${component.format} URL *`}
                             </Label>
                             <Input
-                              type="url"
-                              placeholder={`https://example.com/sample-${component.format?.toLowerCase()}.${
-                                component.format === 'IMAGE' ? 'jpg' :
-                                component.format === 'VIDEO' ? 'mp4' : 'pdf'
-                              }`}
+                              type="text"
+                              placeholder={component.format === 'DOCUMENT'
+                                ? '4::aW...'
+                                : `https://example.com/sample-${component.format?.toLowerCase()}.${
+                                    component.format === 'IMAGE' ? 'jpg' :
+                                    component.format === 'VIDEO' ? 'mp4' : 'pdf'
+                                  }`
+                              }
                               value={component.example || ''}
                               onChange={(e) => {
                                 updateComponent(idx, { example: e.target.value });
                                 if (component.format === 'DOCUMENT') {
                                   setDocumentUploadedFileName(null);
+                                  setDocumentUploadedUrl(null);
                                 }
                               }}
                             />
                             <p className="text-xs text-muted-foreground">
-                              Provide a sample {component.format?.toLowerCase()} URL for template approval
-                              {component.format === 'DOCUMENT' ? ' or upload a PDF to fill this automatically.' : ''}
+                              {component.format === 'DOCUMENT'
+                                ? 'Provide the WhatsApp media handle (auto-filled after uploading a PDF below).'
+                                : `Provide a sample ${component.format?.toLowerCase()} URL for template approval.`}
                             </p>
                           </div>
 
@@ -748,7 +782,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                                 )}
                               </div>
                               <p className="text-xs text-muted-foreground">
-                                Uploaded PDFs receive a permanent public URL served from Cloudflare R2.
+                                Uploaded PDFs receive a permanent public URL and a WhatsApp media handle automatically.
                               </p>
                             </div>
                           )}
@@ -759,13 +793,32 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                                 {documentUploadedFileName && (
                                   <p className="text-sm font-medium truncate">{documentUploadedFileName}</p>
                                 )}
+                                <p className="text-xs text-muted-foreground font-medium">Meta media handle</p>
                                 <p className="text-xs text-muted-foreground break-all">{component.example}</p>
                               </div>
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                onClick={() => copyDocumentUrl(component.example!)}
+                                onClick={() => copyValue(component.example!, 'Media handle copied to clipboard.')}
+                              >
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copy handle
+                              </Button>
+                            </div>
+                          )}
+
+                          {component.format === 'DOCUMENT' && documentUploadedUrl && (
+                            <div className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-muted bg-background/50 p-3">
+                              <div className="min-w-0 space-y-1">
+                                <p className="text-xs text-muted-foreground font-medium">Public PDF link</p>
+                                <p className="text-xs text-muted-foreground break-all">{documentUploadedUrl}</p>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyValue(documentUploadedUrl, 'PDF link copied to clipboard.')}
                               >
                                 <Copy className="mr-2 h-4 w-4" />
                                 Copy URL

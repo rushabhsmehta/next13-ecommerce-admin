@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from 'react-hot-toast';
-import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus, Sun, Moon, Cloud, Info, Smile, Search, X, MoreVertical, ArrowRight, ImageIcon, ShoppingBag, Check, ChevronsUpDown, Filter } from 'lucide-react';
+import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus, Sun, Moon, Cloud, Info, Smile, Search, X, MoreVertical, ArrowRight, ImageIcon, ShoppingBag, Check, ChevronsUpDown, Filter, UploadCloud, Loader2, Copy } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -151,6 +151,9 @@ const formatContactLabel = (value?: string | null) => {
 const DEFAULT_MESSAGE_FETCH_LIMIT = 1000; // Fetch all messages to ensure all responded contacts are included
 const INITIAL_VISIBLE_MESSAGES = 5;
 const LOAD_MORE_MESSAGES_STEP = 5;
+const inlineUploadConfiguredMb = Number(process.env.NEXT_PUBLIC_MEDIA_LIBRARY_MAX_FILE_SIZE_MB ?? 100);
+const INLINE_UPLOAD_MAX_MB = Number.isFinite(inlineUploadConfiguredMb) && inlineUploadConfiguredMb > 0 ? inlineUploadConfiguredMb : 100;
+const INLINE_UPLOAD_MAX_BYTES = INLINE_UPLOAD_MAX_MB * 1024 * 1024;
 
 export default function WhatsAppSettingsPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -184,6 +187,8 @@ export default function WhatsAppSettingsPage() {
   const lastReadMapRef = useRef<Record<string, number>>({});
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [visibleMessageCounts, setVisibleMessageCounts] = useState<Record<string, number>>({});
+  const [variableUploadState, setVariableUploadState] = useState<Record<string, { isLoading: boolean; error?: string; fileName?: string }>>({});
+  const variableFileInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Debug Logs State
   type DebugLog = {
@@ -1591,6 +1596,113 @@ export default function WhatsAppSettingsPage() {
 
     const isLongFormField = (variable: string) => /action_data|payload|json/i.test(variable);
 
+    const getVariableUploadConfig = (variable: string) => {
+      if (variable === '_header_document') {
+        return {
+          accept: 'application/pdf',
+          label: 'PDF',
+          description: 'Document'
+        } as const;
+      }
+      if (variable === '_header_image') {
+        return {
+          accept: 'image/*',
+          label: 'Image',
+          description: 'Image'
+        } as const;
+      }
+      return null;
+    };
+
+    const handleVariableFileUpload = useCallback(
+      async (variable: string, file: File) => {
+        const config = getVariableUploadConfig(variable);
+        if (!config) {
+          return;
+        }
+
+        if (file.size > INLINE_UPLOAD_MAX_BYTES) {
+          toast.error(`File exceeds the ${INLINE_UPLOAD_MAX_MB} MB limit.`);
+          return;
+        }
+
+        setVariableUploadState((prev) => ({
+          ...prev,
+          [variable]: { isLoading: true, error: undefined, fileName: file.name },
+        }));
+
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch('/api/uploads/images', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const payload = await response.json();
+
+          if (!response.ok) {
+            throw new Error(payload?.error || 'Upload failed');
+          }
+
+          const uploadedFile = Array.isArray(payload?.files) ? payload.files[0] : payload?.file;
+          const secureUrl = uploadedFile?.secureUrl || uploadedFile?.secure_url || uploadedFile?.url;
+
+          if (!secureUrl) {
+            throw new Error('Upload response did not include a URL');
+          }
+
+          setTemplateVariables((prev) => ({
+            ...prev,
+            [variable]: secureUrl,
+            ...(variable === '_header_document' && !prev['_header_document_filename']
+              ? { _header_document_filename: file.name }
+              : {}),
+          }));
+
+          toast.success(`${config.description} uploaded`);
+
+          setVariableUploadState((prev) => ({
+            ...prev,
+            [variable]: { isLoading: false, error: undefined, fileName: file.name },
+          }));
+        } catch (error: any) {
+          console.error('[template-variable-upload] Failed to upload media', error);
+          toast.error(error?.message || 'Upload failed');
+          setVariableUploadState((prev) => ({
+            ...prev,
+            [variable]: { isLoading: false, error: error?.message || 'Upload failed' },
+          }));
+        }
+      },
+      [setTemplateVariables]
+    );
+
+    const handleCopyVariableValue = useCallback(
+      async (variable: string) => {
+        const value = templateVariables[variable];
+        if (!value) {
+          toast.error('Nothing to copy');
+          return;
+        }
+
+        if (typeof navigator === 'undefined' || !navigator.clipboard) {
+          toast.error('Clipboard not available');
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(value);
+          toast.success('Link copied');
+        } catch (error: any) {
+          console.error('[template-variable-copy] Failed to copy URL', error);
+          toast.error('Unable to copy the link');
+        }
+      },
+      [templateVariables]
+    );
+
   const fetchMessages = useCallback(async () => {
     try {
       const response = await fetch(`/api/whatsapp/messages?limit=${DEFAULT_MESSAGE_FETCH_LIMIT}`);
@@ -2467,6 +2579,8 @@ export default function WhatsAppSettingsPage() {
     const isLongField = isLongFormField(variable);
     const label = formatVariableLabel(variable);
     const textareaRows = options.textareaRows ?? (isLongField ? 6 : 4);
+    const uploadConfig = getVariableUploadConfig(variable);
+    const uploadState = variableUploadState[variable];
 
     return (
       <div key={variable} className="space-y-1.5">
@@ -2504,6 +2618,66 @@ export default function WhatsAppSettingsPage() {
         )}
         {helper && (
           <p className={cn('text-xs text-muted-foreground', options.helperClassName)}>{helper}</p>
+        )}
+        {uploadConfig && (
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+            <input
+              type="file"
+              accept={uploadConfig.accept}
+              ref={(element) => {
+                if (element) {
+                  variableFileInputsRef.current[variable] = element;
+                } else {
+                  delete variableFileInputsRef.current[variable];
+                }
+              }}
+              className="hidden"
+              onChange={(event) => {
+                const selectedFile = event.target.files?.[0];
+                if (selectedFile) {
+                  handleVariableFileUpload(variable, selectedFile);
+                }
+                event.target.value = '';
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => variableFileInputsRef.current[variable]?.click()}
+              disabled={uploadState?.isLoading}
+            >
+              {uploadState?.isLoading ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="mr-1.5 h-4 w-4" />
+                  Upload {uploadConfig.label}
+                </>
+              )}
+            </Button>
+            {currentValue && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-emerald-700 hover:text-emerald-600 dark:text-emerald-300"
+                onClick={() => handleCopyVariableValue(variable)}
+              >
+                <Copy className="mr-1 h-3.5 w-3.5" />
+                Copy URL
+              </Button>
+            )}
+            <span className="text-muted-foreground">
+              Stored in Media Library · Max {INLINE_UPLOAD_MAX_MB} MB
+            </span>
+          </div>
+        )}
+        {uploadState?.error && (
+          <p className="text-xs text-destructive">{uploadState.error}</p>
         )}
       </div>
     );

@@ -190,6 +190,7 @@ export default function WhatsAppSettingsPage() {
   const [visibleMessageCounts, setVisibleMessageCounts] = useState<Record<string, number>>({});
   const [variableUploadState, setVariableUploadState] = useState<Record<string, { isLoading: boolean; error?: string; fileName?: string }>>({});
   const variableFileInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
+  const manualContactsRef = useRef<Record<string, Contact>>({});
 
   // Debug Logs State
   type DebugLog = {
@@ -318,6 +319,16 @@ export default function WhatsAppSettingsPage() {
     mimeType: string;
     fileName: string;
     size: number;
+  };
+
+  const sortContactsByRecent = (list: Contact[], convoMap: Record<string, ChatMsg[]>) => {
+    return list.sort((a, b) => {
+      const lastMsgA = convoMap[a.id]?.[convoMap[a.id].length - 1];
+      const lastMsgB = convoMap[b.id]?.[convoMap[b.id].length - 1];
+      const timeA = lastMsgA?.ts || 0;
+      const timeB = lastMsgB?.ts || 0;
+      return timeB - timeA;
+    });
   };
 
   const safeParseFlowJson = (raw: unknown): any | null => {
@@ -778,15 +789,18 @@ export default function WhatsAppSettingsPage() {
       toast.error('Invalid phone number. Use digits with country code (e.g. +1234567890 or 1234567890).');
       return;
     }
-    setContacts(prev => prev.some(c => c.id === normalized)
-      ? prev
-      : [...prev, {
-          id: normalized,
-          name: normalized,
-          phone: normalized,
-          avatarText: normalized.replace(/\D/g, '').slice(-2) || 'CT'
-        }]
-    );
+    const newContact: Contact = {
+      id: normalized,
+      name: normalized,
+      phone: normalized,
+      avatarText: normalized.replace(/\D/g, '').slice(-2) || 'CT'
+    };
+
+    manualContactsRef.current[normalized] = newContact;
+
+    setContacts(prev => prev.some(c => c.id === normalized) ? prev : [...prev, newContact]);
+    setConvos(prev => (prev[normalized] ? prev : { ...prev, [normalized]: [] }));
+    setVisibleMessageCounts(prev => (prev[normalized] ? prev : { ...prev, [normalized]: INITIAL_VISIBLE_MESSAGES }));
     setActiveId(normalized);
     setShowNewChatDialog(false);
     setNewChatNumber('');
@@ -2264,13 +2278,7 @@ export default function WhatsAppSettingsPage() {
       });
 
       // Convert contacts to array and sort by most recent message
-      const contactsList = Object.values(contactMap).sort((a, b) => {
-        const lastMsgA = convoMap[a.id]?.[convoMap[a.id].length - 1];
-        const lastMsgB = convoMap[b.id]?.[convoMap[b.id].length - 1];
-        const timeA = lastMsgA?.ts || 0;
-        const timeB = lastMsgB?.ts || 0;
-        return timeB - timeA; // Most recent first
-      });
+      const contactsList = sortContactsByRecent(Object.values(contactMap), convoMap);
 
       // Debug: Log built conversations
       console.log('✅ Built', contactsList.length, 'contacts with convos');
@@ -2301,6 +2309,31 @@ export default function WhatsAppSettingsPage() {
     };
 
     const { contacts: newContacts, convos: newConvos } = buildContactsAndConvos();
+
+    const pendingManualContacts = Object.values(manualContactsRef.current);
+    if (pendingManualContacts.length > 0) {
+      let needsResort = false;
+      pendingManualContacts.forEach(contact => {
+        const hasRealMessages = (newConvos[contact.id]?.length ?? 0) > 0;
+        if (hasRealMessages) {
+          delete manualContactsRef.current[contact.id];
+          return;
+        }
+
+        if (!newConvos[contact.id]) {
+          newConvos[contact.id] = [];
+        }
+
+        if (!newContacts.some(c => c.id === contact.id)) {
+          newContacts.push(contact);
+          needsResort = true;
+        }
+      });
+
+      if (needsResort) {
+        sortContactsByRecent(newContacts, newConvos);
+      }
+    }
     
     if (newContacts.length > 0) {
       setContacts(newContacts);

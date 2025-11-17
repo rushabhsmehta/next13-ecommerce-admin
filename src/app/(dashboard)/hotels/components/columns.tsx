@@ -18,12 +18,11 @@ export const columns: ColumnDef<HotelColumn>[] = [
     header: "Name",
   },
   {
-    accessorKey: "location",
+    accessorKey: "locationLabel",
     header: "Location",
-    cell: ({ row }) => row.original.locationLabel,
   },
   {
-    accessorKey: "destination",
+    accessorKey: "destinationName",
     header: "Destination",
     cell: ({ row }) => (
       <span className={row.original.destinationName === "No destination" ? "text-muted-foreground italic" : ""}>

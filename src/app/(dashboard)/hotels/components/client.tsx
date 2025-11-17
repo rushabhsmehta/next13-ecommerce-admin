@@ -32,7 +32,7 @@ export const HotelsClient: React.FC<HotelsClientProps> = ({
         </div>
       </div>
       <Separator />
-       <DataTableMultiple searchKeys={["name", "location"]} columns={columns} data={data} />
+  <DataTableMultiple searchKeys={["name", "locationLabel", "destinationName"]} columns={columns} data={data} />
 
       {/*   <Heading title="API" description="API Calls for Hotels" />
       <Separator />

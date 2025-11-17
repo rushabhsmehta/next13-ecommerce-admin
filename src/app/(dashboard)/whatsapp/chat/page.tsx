@@ -18,6 +18,7 @@ import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { formatLocalDate } from '@/lib/timezone-utils';
 
 
 interface WhatsAppMessage {
@@ -409,6 +410,28 @@ export default function WhatsAppSettingsPage() {
       return value ? 'Yes' : 'No';
     }
     return String(value);
+  };
+
+  const isSameCalendarDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  const formatChatDateLabel = (timestamp: number): string => {
+    const messageDate = new Date(timestamp);
+    const now = new Date();
+
+    if (isSameCalendarDay(messageDate, now)) {
+      return 'Today';
+    }
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (isSameCalendarDay(messageDate, yesterday)) {
+      return 'Yesterday';
+    }
+
+    return formatLocalDate(messageDate, 'EEE, MMM d, yyyy');
   };
 
   const formatBytes = (bytes: number): string => {
@@ -4496,116 +4519,128 @@ export default function WhatsAppSettingsPage() {
                     </div>
                   )}
 
-                  {activeVisibleMessages.map(m => {
+                  {activeVisibleMessages.map((m, index) => {
                     const templateButtons = m.metadata?.buttons ?? [];
                     const flowButtons = m.metadata?.flowButtons ?? [];
                     const hasAnyButtons = templateButtons.length > 0 || flowButtons.length > 0;
+                    const previousMessage = activeVisibleMessages[index - 1];
+                    const messageDate = new Date(m.ts);
+                    const showDateSeparator = !previousMessage || !isSameCalendarDay(messageDate, new Date(previousMessage.ts));
 
                     return (
-                      <div key={m.id} className={cn(
-                        "flex items-start gap-3",
-                        m.direction === 'out' && "justify-end"
-                      )}>
-                        {m.direction === 'in' && (
-                          <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
-                              {activeContact.avatarText || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
+                      <div key={m.id} className="space-y-2">
+                        {showDateSeparator && (
+                          <div className="flex justify-center">
+                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 shadow-sm dark:bg-emerald-900/60 dark:text-emerald-100">
+                              {formatChatDateLabel(m.ts)}
+                            </span>
+                          </div>
                         )}
-                        <div
-                          className={cn(
-                            "max-w-[70%] rounded-3xl p-3 shadow-md",
-                            m.direction === 'out'
-                              ? "rounded-br-xl border border-emerald-400/60 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-500 text-white shadow-emerald-500/20"
-                              : "rounded-bl-xl border border-emerald-100/70 bg-white/90 text-slate-900 backdrop-blur-sm dark:border-[#1f2c33] dark:bg-[#1f2c33]/80 dark:text-slate-100"
+                        <div className={cn(
+                          "flex items-start gap-3",
+                          m.direction === 'out' && "justify-end"
+                        )}>
+                          {m.direction === 'in' && (
+                            <Avatar className="h-8 w-8 flex-shrink-0">
+                              <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
+                                {activeContact.avatarText || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
                           )}
-                        >
-                          {m.metadata?.headerImage && (
-                            <div className="mb-2 -mt-3 -mx-3 overflow-hidden rounded-t-2xl">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={m.metadata.headerImage}
-                                alt="Header"
-                                className="w-full h-auto max-h-[200px] object-cover"
-                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              />
-                            </div>
-                          )}
-
-                          {renderMessageContent(m)}
-
-                          {/* WhatsApp-style timestamp and status */}
                           <div
                             className={cn(
-                              "mt-2 flex items-center gap-1 text-xs",
+                              "max-w-[70%] rounded-3xl p-3 shadow-md",
                               m.direction === 'out'
-                                ? "justify-end text-white/80"
-                                : "justify-start text-emerald-800/80 dark:text-emerald-200/80"
+                                ? "rounded-br-xl border border-emerald-400/60 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-500 text-white shadow-emerald-500/20"
+                                : "rounded-bl-xl border border-emerald-100/70 bg-white/90 text-slate-900 backdrop-blur-sm dark:border-[#1f2c33] dark:bg-[#1f2c33]/80 dark:text-slate-100"
                             )}
                           >
-                            <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
-                            {m.direction === 'out' && (
-                              <span className="inline-flex">
-                                {m.status === 0 && <span className="opacity-50">🕐</span>}
-                                {m.status === 1 && <span className="opacity-70">✓</span>}
-                                {m.status === 2 && <span className="opacity-90">✓✓</span>}
-                                {m.status === 3 && <span className="text-blue-300">✓✓</span>}
-                              </span>
+                            {m.metadata?.headerImage && (
+                              <div className="mb-2 -mt-3 -mx-3 overflow-hidden rounded-t-2xl">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={m.metadata.headerImage}
+                                  alt="Header"
+                                  className="w-full h-auto max-h-[200px] object-cover"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                              </div>
                             )}
-                          </div>
 
-                          {hasAnyButtons && (
-                            <div className={cn(
-                              "-mx-3 mt-3 -mb-3 border-t pt-1",
-                              m.direction === 'out' ? "border-white/30" : "border-emerald-100/60 dark:border-[#1f2c33]"
-                            )}>
-                              {templateButtons.map((btn, idx) => (
-                                <button
-                                  key={`tpl-${idx}`}
-                                  className={cn(
-                                    "w-full px-3 py-2.5 text-sm font-medium text-center transition-colors",
-                                    idx > 0 && (m.direction === 'out' ? "border-t border-white/20" : "border-t border-border"),
-                                    m.direction === 'out'
-                                      ? "text-white hover:bg-white/15"
-                                      : "text-emerald-700 hover:bg-emerald-100/60 dark:text-emerald-200 dark:hover:bg-emerald-900/30"
-                                  )}
-                                  onClick={() => {
-                                    if (btn.url) window.open(btn.url, '_blank');
-                                    if (btn.phone) window.open(`tel:${btn.phone}`, '_blank');
-                                  }}
-                                >
-                                  {btn.type === 'PHONE_NUMBER' && '📞 '}
-                                  {(btn.type === 'URL' || btn.sub_type === 'url') && '🔗 '}
-                                  {btn.text || 'Button'}
-                                </button>
-                              ))}
+                            {renderMessageContent(m)}
 
-                              {flowButtons.map(({ index, parameter }) => {
-                                const cta = parameter?.flow_cta || parameter?.flow_name || `Flow Button ${index + 1}`;
-                                return (
+                            {/* WhatsApp-style timestamp and status */}
+                            <div
+                              className={cn(
+                                "mt-2 flex items-center gap-1 text-xs",
+                                m.direction === 'out'
+                                  ? "justify-end text-white/80"
+                                  : "justify-start text-emerald-800/80 dark:text-emerald-200/80"
+                              )}
+                            >
+                              <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+                              {m.direction === 'out' && (
+                                <span className="inline-flex">
+                                  {m.status === 0 && <span className="opacity-50">🕐</span>}
+                                  {m.status === 1 && <span className="opacity-70">✓</span>}
+                                  {m.status === 2 && <span className="opacity-90">✓✓</span>}
+                                  {m.status === 3 && <span className="text-blue-300">✓✓</span>}
+                                </span>
+                              )}
+                            </div>
+
+                            {hasAnyButtons && (
+                              <div className={cn(
+                                "-mx-3 mt-3 -mb-3 border-t pt-1",
+                                m.direction === 'out' ? "border-white/30" : "border-emerald-100/60 dark:border-[#1f2c33]"
+                              )}>
+                                {templateButtons.map((btn, idx) => (
                                   <button
-                                    key={`flow-${index}`}
+                                    key={`tpl-${idx}`}
                                     className={cn(
                                       "w-full px-3 py-2.5 text-sm font-medium text-center transition-colors",
-                                      (templateButtons.length > 0 || index > 0) && (m.direction === 'out' ? "border-t border-white/20" : "border-t border-border"),
-                                      "cursor-default",
+                                      idx > 0 && (m.direction === 'out' ? "border-t border-white/20" : "border-t border-border"),
                                       m.direction === 'out'
-                                        ? "text-white hover:bg-white/10"
+                                        ? "text-white hover:bg-white/15"
                                         : "text-emerald-700 hover:bg-emerald-100/60 dark:text-emerald-200 dark:hover:bg-emerald-900/30"
                                     )}
-                                    disabled
-                                    title="Flow buttons launch inside WhatsApp"
+                                    onClick={() => {
+                                      if (btn.url) window.open(btn.url, '_blank');
+                                      if (btn.phone) window.open(`tel:${btn.phone}`, '_blank');
+                                    }}
                                   >
-                                    <span className="inline-flex items-center justify-center gap-2">
-                                      <ArrowRight className="h-3.5 w-3.5" />
-                                      <span>{cta}</span>
-                                    </span>
+                                    {btn.type === 'PHONE_NUMBER' && '📞 '}
+                                    {(btn.type === 'URL' || btn.sub_type === 'url') && '🔗 '}
+                                    {btn.text || 'Button'}
                                   </button>
-                                );
-                              })}
-                            </div>
-                          )}
+                                ))}
+
+                                {flowButtons.map(({ index, parameter }) => {
+                                  const cta = parameter?.flow_cta || parameter?.flow_name || `Flow Button ${index + 1}`;
+                                  return (
+                                    <button
+                                      key={`flow-${index}`}
+                                      className={cn(
+                                        "w-full px-3 py-2.5 text-sm font-medium text-center transition-colors",
+                                        (templateButtons.length > 0 || index > 0) && (m.direction === 'out' ? "border-t border-white/20" : "border-t border-border"),
+                                        "cursor-default",
+                                        m.direction === 'out'
+                                          ? "text-white hover:bg-white/10"
+                                          : "text-emerald-700 hover:bg-emerald-100/60 dark:text-emerald-200 dark:hover:bg-emerald-900/30"
+                                      )}
+                                      disabled
+                                      title="Flow buttons launch inside WhatsApp"
+                                    >
+                                      <span className="inline-flex items-center justify-center gap-2">
+                                        <ArrowRight className="h-3.5 w-3.5" />
+                                        <span>{cta}</span>
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

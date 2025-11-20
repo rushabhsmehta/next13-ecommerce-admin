@@ -173,7 +173,7 @@ export function HotelPricingImportDialog() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Run <code>npx tsx scripts/utilities/export-hotel-pricing-template.ts</code> to generate the latest workbook with drop-down validation. The importer accepts either the Excel file or a CSV exported from it.
+              Run <code>npx tsx scripts/utilities/export-hotel-pricing-template.ts</code> to generate the latest workbook with drop-down validation. The importer accepts either the Excel file or a CSV exported from it. Each active occupancy type now appears as its own column—enter the nightly price under the corresponding header.
             </p>
             <p>
               If a range overlaps another row (either already in the database or inside the file), the uploader will still process it but flag the overlap so you can reconcile periods later.
@@ -298,12 +298,13 @@ export function HotelPricingImportDialog() {
               <span>Accepted columns:</span>
               <Badge variant="outline" className="text-[11px]">hotel_id</Badge>
               <Badge variant="outline" className="text-[11px]">room_type_name</Badge>
-              <Badge variant="outline" className="text-[11px]">occupancy_type_name</Badge>
               <Badge variant="outline" className="text-[11px]">meal_plan_code</Badge>
               <Badge variant="outline" className="text-[11px]">start_date</Badge>
               <Badge variant="outline" className="text-[11px]">end_date</Badge>
-              <Badge variant="outline" className="text-[11px]">price_per_night</Badge>
+              <Badge variant="outline" className="text-[11px]">currency</Badge>
               <Badge variant="outline" className="text-[11px]">is_active</Badge>
+              <Badge variant="outline" className="text-[11px]">notes</Badge>
+              <Badge variant="outline" className="text-[11px]">each occupancy column</Badge>
             </div>
             <div className="flex items-center gap-2">
               <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={isSubmitting}>

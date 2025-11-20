@@ -154,20 +154,21 @@ function buildTemplateSheet(
   lookups: Awaited<ReturnType<typeof fetchLookups>>,
   rowTarget: number
 ) {
-  const header = [
+  const baseHeader = [
     "hotel_id",
     "hotel_name",
     "location_name",
     "room_type_name",
-    "occupancy_type_name",
     "meal_plan_code",
     "start_date",
     "end_date",
-    "price_per_night",
     "currency",
     "is_active",
     "notes",
   ];
+
+  const occupancyHeaders = lookups.occupancyTypes.map((type) => type.name);
+  const header = [...baseHeader, ...occupancyHeaders];
 
   const rows: string[][] = [header];
   const blankRow = new Array(header.length).fill("") as string[];
@@ -190,21 +191,25 @@ function buildTemplateSheet(
     };
   }
 
-  sheet["!ref"] = `A1:L${totalRows}`;
-  sheet["!cols"] = [
+  const lastColumnLetter = XLSX.utils.encode_col(header.length - 1);
+  sheet["!ref"] = `A1:${lastColumnLetter}${totalRows}`;
+
+  const columnWidths = [
     { wch: 40 },
     { wch: 32 },
     { wch: 28 },
     { wch: 28 },
-    { wch: 24 },
     { wch: 20 },
     { wch: 14 },
     { wch: 14 },
-    { wch: 20 },
     { wch: 10 },
     { wch: 10 },
     { wch: 40 },
   ];
+  for (let i = 0; i < occupancyHeaders.length; i++) {
+    columnWidths.push({ wch: 18 });
+  }
+  sheet["!cols"] = columnWidths;
 
   const lastRow = totalRows;
   const dataValidation = [
@@ -226,22 +231,16 @@ function buildTemplateSheet(
       sqref: `E2:E${lastRow}`,
       type: "list" as const,
       allowBlank: true,
-      formulas: [`Lookups!$G$2:$G$${lookups.occupancyTypes.length + 1}`],
-    },
-    {
-      sqref: `F2:F${lastRow}`,
-      type: "list" as const,
-      allowBlank: true,
       formulas: [`Lookups!$H$2:$H$${lookups.mealPlans.length + 1}`],
     },
     {
-      sqref: `J2:J${lastRow}`,
+      sqref: `H2:H${lastRow}`,
       type: "list" as const,
       allowBlank: true,
       formulas: ["Lookups!$J$2:$J$7"],
     },
     {
-      sqref: `K2:K${lastRow}`,
+      sqref: `I2:I${lastRow}`,
       type: "list" as const,
       allowBlank: true,
       formulas: ["Lookups!$K$2:$K$3"],

@@ -24,9 +24,11 @@ npx tsx scripts/utilities/export-hotel-pricing-template.ts
 
 - Column `A` (`hotel_id`) offers a drop-down of active hotel IDs.
 - Columns `B` and `C` auto-fill the hotel name and location based on the selected ID (using `INDEX/MATCH`).
-- Columns `D`, `E`, and `F` have drop-downs for room types, occupancy types, and meal plan codes sourced from the same database.
-- Column `J` (`currency`) and `K` (`is_active`) limit values to approved options.
-- Hidden `Lookups` worksheet stores the master lists—do not modify it manually.
+- Column `D` (`room_type_name`) and `E` (`meal_plan_code`) have drop-downs fed by the live master data.
+- Columns `F`–`G` capture the stay window (`start_date`, `end_date`).
+- Columns `H` (`currency`) and `I` (`is_active`) limit values to approved options, while column `J` stores free-form notes.
+- Columns `K` onward are one column per active occupancy type (for example, `Single Occupancy`, `Double Occupancy`, `Triple Occupancy`). Enter nightly rates directly under the occupancy you want to price. Leave the cell blank if that occupancy is not offered for the given room/meal-plan/date range.
+- The hidden `Lookups` worksheet still stores the master lists—do not modify it manually.
 
 After filling prices, save the workbook and upload it through the portal importer. The importer still accepts the CSV if you prefer a flat file; keep the headers identical when exporting from Excel.
 
@@ -34,6 +36,6 @@ After filling prices, save the workbook and upload it through the portal importe
 
 - Go to **Dashboard → Hotels** and click **Import Pricing** next to **Add New**.
 - Select the regenerated `.xlsx` file (or a CSV exported from it) and submit.
-- The importer validates every row against the live Prisma master data (hotel IDs, room types, occupancy types, and meal plans).
+- The importer validates every row against the live Prisma master data (hotel IDs, room types, meal plans, and all occupancy column headers).
 - Overlapping date ranges (either within the file or versus existing pricing) are still processed but surfaced as warnings so you can reconcile periods afterward.
-- Existing pricing rows with matching hotel/room/occupancy/meal-plan/date combinations are updated; new rows are inserted; rows with validation issues are reported with exact Excel row numbers.
+- Existing pricing rows with matching hotel/room/occupancy/meal-plan/date combinations are updated; new rows are inserted; rows with validation issues are reported with exact Excel row numbers and the offending occupancy column when applicable.

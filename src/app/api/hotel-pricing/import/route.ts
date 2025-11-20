@@ -18,6 +18,7 @@ interface PreparedRow {
   hotelId: string;
   roomTypeId: string;
   occupancyTypeId: string;
+  occupancyTypeLabel: string;
   mealPlanId: string | null;
   startDateUtc: Date;
   endDateUtc: Date;
@@ -41,7 +42,7 @@ type LookupMaps = {
   hotelsById: Map<string, HotelLookup>;
   hotelsByComposite: Map<string, HotelLookup>;
   roomTypeByName: Map<string, { id: string }>;
-  occupancyTypeByName: Map<string, { id: string }>;
+  occupancyTypeByName: Map<string, { id: string; name: string }>;
   mealPlanByCode: Map<string, { id: string }>;
 };
 
@@ -71,9 +72,9 @@ function buildLookupMaps(lookups: {
     roomTypeByName.set(normalize(room.name), { id: room.id });
   });
 
-  const occupancyTypeByName = new Map<string, { id: string }>();
+  const occupancyTypeByName = new Map<string, { id: string; name: string }>();
   lookups.occupancyTypes.forEach((occ) => {
-    occupancyTypeByName.set(normalize(occ.name), { id: occ.id });
+    occupancyTypeByName.set(normalize(occ.name), { id: occ.id, name: occ.name });
   });
 
   const mealPlanByCode = new Map<string, { id: string }>();
@@ -101,11 +102,12 @@ function mapRowsToPrepared(
   const prepared: PreparedRow[] = [];
   const errors: HotelPricingParseError[] = [];
   const warnings: string[] = [];
-  const seen = new Map<string, number>();
+  const seen = new Map<string, { rowNumber: number; occupancyLabel: string }>();
   const rowsByCombination = new Map<string, PreparedRow[]>();
 
   rows.forEach((row) => {
     const rowErrors: HotelPricingParseError[] = [];
+    const rowPrepared: PreparedRow[] = [];
 
     const hotelIdNormalized = row.hotelId ? row.hotelId.trim() : "";
     let hotel = hotelIdNormalized ? lookups.hotelsById.get(hotelIdNormalized) : undefined;
@@ -130,17 +132,6 @@ function mapRowsToPrepared(
         rowNumber: row.rowNumber,
         field: "room_type_name",
         message: `Room type \"${row.roomTypeName}\" not found`,
-      });
-    }
-
-    const occupancyType = lookups.occupancyTypeByName.get(
-      normalize(row.occupancyTypeName)
-    );
-    if (!occupancyType) {
-      rowErrors.push({
-        rowNumber: row.rowNumber,
-        field: "occupancy_type_name",
-        message: `Occupancy type \"${row.occupancyTypeName}\" not found`,
       });
     }
 
@@ -191,47 +182,84 @@ function mapRowsToPrepared(
       return;
     }
 
-    const combinationKey = `${hotel!.id}|${roomType!.id}|${occupancyType!.id}|${mealPlanId ?? "null"}`;
-    const key = `${combinationKey}|${startDateUtc!.toISOString()}|${endDateUtc!.toISOString()}`;
-    const existing = seen.get(key);
-    if (existing) {
-      errors.push({
+    row.occupancyPrices.forEach((cell) => {
+      const occupancyType = lookups.occupancyTypeByName.get(normalize(cell.columnLabel));
+      if (!occupancyType) {
+        rowErrors.push({
+          rowNumber: row.rowNumber,
+          field: cell.columnLabel,
+          message: `Occupancy column "${cell.columnLabel}" does not match any active occupancy type`,
+        });
+        return;
+      }
+
+      rowPrepared.push({
         rowNumber: row.rowNumber,
-        field: "start_date",
-        message: `Duplicate pricing combination (matches row ${existing})`,
+        hotelId: hotel!.id,
+        roomTypeId: roomType!.id,
+        occupancyTypeId: occupancyType.id,
+        occupancyTypeLabel: occupancyType.name,
+        mealPlanId,
+        startDateUtc: startDateUtc!,
+        endDateUtc: endDateUtc!,
+        price: cell.price,
+        isActive: row.isActive,
       });
-      return;
-    }
-    seen.set(key, row.rowNumber);
-
-    const existingRows = rowsByCombination.get(combinationKey) ?? [];
-    const overlapInUpload = existingRows.find((existingRow) =>
-      dateRangesOverlap(
-        existingRow.startDateUtc,
-        existingRow.endDateUtc,
-        startDateUtc!,
-        endDateUtc!
-      )
-    );
-    if (overlapInUpload) {
-      warnings.push(
-        `Row ${row.rowNumber} overlaps with row ${overlapInUpload.rowNumber} for the same hotel/room/occupancy combination in this upload.`
-      );
-    }
-
-    prepared.push({
-      rowNumber: row.rowNumber,
-      hotelId: hotel!.id,
-      roomTypeId: roomType!.id,
-      occupancyTypeId: occupancyType!.id,
-      mealPlanId,
-      startDateUtc: startDateUtc!,
-      endDateUtc: endDateUtc!,
-      price: row.price,
-      isActive: row.isActive,
     });
 
-    rowsByCombination.set(combinationKey, [...existingRows, prepared[prepared.length - 1]]);
+    if (rowErrors.length) {
+      errors.push(...rowErrors);
+      return;
+    }
+
+    const rowCombinationEntries: Array<{
+      preparedRow: PreparedRow;
+      combinationKey: string;
+      key: string;
+    }> = [];
+
+    for (const preparedRow of rowPrepared) {
+      const combinationKey = `${preparedRow.hotelId}|${preparedRow.roomTypeId}|${preparedRow.occupancyTypeId}|${preparedRow.mealPlanId ?? "null"}`;
+      const key = `${combinationKey}|${preparedRow.startDateUtc.toISOString()}|${preparedRow.endDateUtc.toISOString()}`;
+      const existing = seen.get(key);
+      if (existing) {
+        rowErrors.push({
+          rowNumber: preparedRow.rowNumber,
+          field: "start_date",
+          message: `Duplicate pricing for ${preparedRow.occupancyTypeLabel} occupancy (matches row ${existing.rowNumber})`,
+        });
+        continue;
+      }
+
+      const existingRows = rowsByCombination.get(combinationKey) ?? [];
+      const overlapInUpload = existingRows.find((existingRow) =>
+        dateRangesOverlap(
+          existingRow.startDateUtc,
+          existingRow.endDateUtc,
+          preparedRow.startDateUtc,
+          preparedRow.endDateUtc
+        )
+      );
+      if (overlapInUpload) {
+        warnings.push(
+          `Row ${preparedRow.rowNumber} (${preparedRow.occupancyTypeLabel}) overlaps with row ${overlapInUpload.rowNumber} for the same hotel/room/occupancy combination in this upload.`
+        );
+      }
+
+      rowCombinationEntries.push({ preparedRow, combinationKey, key });
+    }
+
+    if (rowErrors.length) {
+      errors.push(...rowErrors);
+      return;
+    }
+
+    rowCombinationEntries.forEach(({ preparedRow, combinationKey, key }) => {
+      seen.set(key, { rowNumber: preparedRow.rowNumber, occupancyLabel: preparedRow.occupancyTypeLabel });
+      const existingRows = rowsByCombination.get(combinationKey) ?? [];
+      rowsByCombination.set(combinationKey, [...existingRows, preparedRow]);
+      prepared.push(preparedRow);
+    });
   });
 
   return { prepared, errors, warnings };
@@ -383,7 +411,7 @@ export async function POST(req: Request) {
           const startLabel = existing.startDate.toISOString().slice(0, 10);
           const endLabel = existing.endDate.toISOString().slice(0, 10);
           dbOverlapWarnings.push(
-            `Row ${row.rowNumber} overlaps existing pricing (${startLabel} → ${endLabel}).`
+            `Row ${row.rowNumber} (${row.occupancyTypeLabel}) overlaps existing pricing (${startLabel} → ${endLabel}).`
           );
         }
       });
@@ -396,45 +424,43 @@ export async function POST(req: Request) {
     let created = 0;
     let updated = 0;
 
-    await prismadb.$transaction(async (tx) => {
-      for (const row of prepared) {
-        const existing = await tx.hotelPricing.findFirst({
-          where: {
+    for (const row of prepared) {
+      const existing = await prismadb.hotelPricing.findFirst({
+        where: {
+          hotelId: row.hotelId,
+          roomTypeId: row.roomTypeId,
+          occupancyTypeId: row.occupancyTypeId,
+          mealPlanId: row.mealPlanId,
+          startDate: row.startDateUtc,
+          endDate: row.endDateUtc,
+        },
+      });
+
+      if (existing) {
+        await prismadb.hotelPricing.update({
+          where: { id: existing.id },
+          data: {
+            price: row.price,
+            isActive: row.isActive,
+          },
+        });
+        updated += 1;
+      } else {
+        await prismadb.hotelPricing.create({
+          data: {
             hotelId: row.hotelId,
             roomTypeId: row.roomTypeId,
             occupancyTypeId: row.occupancyTypeId,
             mealPlanId: row.mealPlanId,
             startDate: row.startDateUtc,
             endDate: row.endDateUtc,
+            price: row.price,
+            isActive: row.isActive,
           },
         });
-
-        if (existing) {
-          await tx.hotelPricing.update({
-            where: { id: existing.id },
-            data: {
-              price: row.price,
-              isActive: row.isActive,
-            },
-          });
-          updated += 1;
-        } else {
-          await tx.hotelPricing.create({
-            data: {
-              hotelId: row.hotelId,
-              roomTypeId: row.roomTypeId,
-              occupancyTypeId: row.occupancyTypeId,
-              mealPlanId: row.mealPlanId,
-              startDate: row.startDateUtc,
-              endDate: row.endDateUtc,
-              price: row.price,
-              isActive: row.isActive,
-            },
-          });
-          created += 1;
-        }
+        created += 1;
       }
-    });
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,5 @@
-hotel_id,hotel_name,location_name,room_type_name,occupancy_type_name,meal_plan_code,start_date,end_date,price_per_night,currency,is_active,notes
-HTL-0001,Seaside Retreat,Goa,Deluxe Room,Double Occupancy,MAP,2025-12-01,2026-01-15,14500,INR,TRUE,"Peak season rate incl. breakfast and dinner"
-HTL-0001,Seaside Retreat,Goa,Deluxe Room,Triple Occupancy,MAP,2025-12-01,2026-01-15,18250,INR,TRUE,"Extra bed included"
-HTL-0024,Hilltop Haven,Manali,Standard Room,Double Occupancy,EP,2025-04-01,2025-06-30,7800,INR,TRUE,"Summer shoulder season"
-HTL-0024,Hilltop Haven,Manali,Standard Room,Double Occupancy,EP,2025-07-01,2025-09-30,9200,INR,TRUE,"High season"
-HTL-0310,City Central Hotel,Mumbai,Executive Suite,Single Occupancy,CP,2025-01-01,2025-12-31,11200,INR,FALSE,"Deactivate to pause sale if inventory closed"
+hotel_id,hotel_name,location_name,room_type_name,meal_plan_code,start_date,end_date,currency,is_active,notes,Single Occupancy,Double Occupancy,Triple Occupancy
+HTL-0001,Seaside Retreat,Goa,Deluxe Room,MAP,2025-12-01,2026-01-15,INR,TRUE,"Peak season rate incl. breakfast and dinner",,14500,18250
+HTL-0024,Hilltop Haven,Manali,Standard Room,EP,2025-04-01,2025-06-30,INR,TRUE,"Summer shoulder season",,7800,
+HTL-0024,Hilltop Haven,Manali,Standard Room,EP,2025-07-01,2025-09-30,INR,TRUE,"High season",,9200,
+HTL-0310,City Central Hotel,Mumbai,Executive Suite,CP,2025-01-01,2025-12-31,INR,FALSE,"Deactivate to pause sale if inventory closed",11200,13200,

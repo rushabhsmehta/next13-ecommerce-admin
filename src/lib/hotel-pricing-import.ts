@@ -1,20 +1,24 @@
 import * as XLSX from "xlsx";
 import { format as formatDate, isValid, parse as parseWithFormat, parseISO } from "date-fns";
 
+export interface OccupancyPriceValue {
+  columnLabel: string;
+  price: number;
+}
+
 export interface HotelPricingImportRow {
   rowNumber: number;
   hotelId?: string;
   hotelName?: string;
   locationName?: string;
   roomTypeName: string;
-  occupancyTypeName: string;
   mealPlanCode?: string | null;
   startDate: string;
   endDate: string;
-  price: number;
   isActive: boolean;
   currency?: string | null;
   notes?: string | null;
+  occupancyPrices: OccupancyPriceValue[];
 }
 
 export interface HotelPricingParseError {
@@ -51,23 +55,22 @@ const COLUMN_ALIASES: Record<string, string[]> = {
   hotel_name: ["hotel_name", "hotelname", "name"],
   location_name: ["location_name", "location", "destination"],
   room_type_name: ["room_type_name", "roomtype", "room_type", "room"],
-  occupancy_type_name: ["occupancy_type_name", "occupancy", "occupancy_type", "pax"],
   meal_plan_code: ["meal_plan_code", "mealplan", "meal_plan", "plan"],
   start_date: ["start_date", "from", "from_date", "start"],
   end_date: ["end_date", "to", "to_date", "end"],
-  price_per_night: ["price_per_night", "price", "rate", "amount"],
   currency: ["currency"],
   is_active: ["is_active", "active", "status"],
   notes: ["notes", "note", "remarks", "comment"],
+  // Legacy single-occupancy format columns kept for friendly error messages
+  occupancy_type_name: ["occupancy_type_name", "occupancy", "occupancy_type", "pax"],
+  price_per_night: ["price_per_night", "price", "rate", "amount"],
 };
 
 const REQUIRED_COLUMNS: Array<keyof typeof COLUMN_ALIASES> = [
   "hotel_id",
   "room_type_name",
-  "occupancy_type_name",
   "start_date",
   "end_date",
-  "price_per_night",
 ];
 
 const FLEXIBLE_DATE_FORMATS = [
@@ -81,6 +84,11 @@ const FLEXIBLE_DATE_FORMATS = [
 ];
 
 type HeaderIndexMap = Record<keyof typeof COLUMN_ALIASES, number | undefined>;
+
+interface OccupancyColumnDefinition {
+  index: number;
+  label: string;
+}
 
 function normalizeHeader(label: unknown): string {
   if (label === null || label === undefined) {
@@ -218,6 +226,20 @@ function pickCell(row: unknown[], index: number | undefined): unknown {
   return row[index];
 }
 
+function hasCellValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+  if (typeof value === "number") {
+    return !Number.isNaN(value);
+  }
+  if (value instanceof Date) {
+    return isValid(value);
+  }
+  return true;
+}
+
 export function parseHotelPricingWorkbook(buffer: Buffer, options?: { fileName?: string }): HotelPricingParseResult {
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
   if (!workbook.SheetNames.length) {
@@ -284,6 +306,77 @@ export function parseHotelPricingWorkbook(buffer: Buffer, options?: { fileName?:
     };
   }
 
+  const headerErrors: HotelPricingParseError[] = [];
+
+  if (headerIndexes.occupancy_type_name !== undefined) {
+    headerErrors.push({
+      rowNumber: 1,
+      field: "occupancy_type_name",
+      message:
+        "The single-occupancy format is no longer supported. Remove this column and add one column per occupancy type (use the exact name from the Lookups sheet).",
+    });
+  }
+
+  if (headerIndexes.price_per_night !== undefined) {
+    headerErrors.push({
+      rowNumber: 1,
+      field: "price_per_night",
+      message:
+        "Remove the legacy price_per_night column. Enter prices in the dedicated occupancy columns instead.",
+    });
+  }
+
+  const recognizedColumnIndexes = new Set<number>();
+  (Object.values(headerIndexes) as Array<number | undefined>).forEach((index) => {
+    if (typeof index === "number") {
+      recognizedColumnIndexes.add(index);
+    }
+  });
+
+  const occupancyColumns: OccupancyColumnDefinition[] = headerRow
+    .map((original, index) => ({ index, label: coerceString(original) }))
+    .filter((entry): entry is { index: number; label: string } => !!entry.label)
+    .filter((entry) => !recognizedColumnIndexes.has(entry.index))
+    .map((entry) => ({ index: entry.index, label: entry.label.trim() }));
+
+  if (!occupancyColumns.length) {
+    headerErrors.push({
+      rowNumber: 1,
+      field: "occupancy_columns",
+      message:
+        "Add at least one occupancy column whose header exactly matches an active occupancy type (e.g., Double, Triple).",
+    });
+  }
+
+  const occupancyLabelMap = new Map<string, OccupancyColumnDefinition>();
+  occupancyColumns.forEach((column) => {
+    const key = column.label.toLowerCase();
+    if (occupancyLabelMap.has(key)) {
+      headerErrors.push({
+        rowNumber: 1,
+        field: column.label,
+        message: `Duplicate occupancy column "${column.label}" detected. Each occupancy type should appear only once.`,
+      });
+    } else {
+      occupancyLabelMap.set(key, column);
+    }
+  });
+
+  if (headerErrors.length) {
+    return {
+      rows: [],
+      errors: headerErrors,
+      warnings: [],
+      stats: {
+        sheetName,
+        totalRows: 0,
+        dataRows: 0,
+        skippedEmptyRows: 0,
+        fileName: options?.fileName,
+      },
+    };
+  }
+
   const rows: HotelPricingImportRow[] = [];
   const errors: HotelPricingParseError[] = [];
   const warnings: string[] = [];
@@ -306,23 +399,44 @@ export function parseHotelPricingWorkbook(buffer: Buffer, options?: { fileName?:
     const hotelName = coerceString(pickCell(rawRow, headerIndexes.hotel_name));
     const locationName = coerceString(pickCell(rawRow, headerIndexes.location_name));
     const roomTypeName = coerceString(pickCell(rawRow, headerIndexes.room_type_name));
-    const occupancyTypeName = coerceString(pickCell(rawRow, headerIndexes.occupancy_type_name));
     const mealPlanCodeRaw = coerceString(pickCell(rawRow, headerIndexes.meal_plan_code));
     const startDate = coerceDate(pickCell(rawRow, headerIndexes.start_date));
     const endDate = coerceDate(pickCell(rawRow, headerIndexes.end_date));
-    const price = coerceNumber(pickCell(rawRow, headerIndexes.price_per_night));
     const currency = coerceString(pickCell(rawRow, headerIndexes.currency));
     const isActiveRaw = coerceBoolean(pickCell(rawRow, headerIndexes.is_active));
     const notes = coerceString(pickCell(rawRow, headerIndexes.notes));
+
+    const occupancyPrices: OccupancyPriceValue[] = [];
+    occupancyColumns.forEach((column) => {
+      const rawValue = pickCell(rawRow, column.index);
+      const price = coerceNumber(rawValue);
+      if (price === undefined) {
+        if (hasCellValue(rawValue)) {
+          rowErrors.push({
+            rowNumber,
+            field: column.label,
+            message: `Price in column "${column.label}" must be a valid number`,
+          });
+        }
+        return;
+      }
+      if (price < 0) {
+        rowErrors.push({
+          rowNumber,
+          field: column.label,
+          message: `Price in column "${column.label}" cannot be negative`,
+          value: price,
+        });
+        return;
+      }
+      occupancyPrices.push({ columnLabel: column.label, price });
+    });
 
     if (!hotelId && !hotelName) {
       rowErrors.push({ rowNumber, field: "hotel_id", message: "Hotel ID is required", value: hotelId ?? hotelName });
     }
     if (!roomTypeName) {
       rowErrors.push({ rowNumber, field: "room_type_name", message: "Room type is required" });
-    }
-    if (!occupancyTypeName) {
-      rowErrors.push({ rowNumber, field: "occupancy_type_name", message: "Occupancy type is required" });
     }
     if (!startDate) {
       rowErrors.push({ rowNumber, field: "start_date", message: "Start date is invalid or missing" });
@@ -333,10 +447,12 @@ export function parseHotelPricingWorkbook(buffer: Buffer, options?: { fileName?:
     if (startDate && endDate && startDate > endDate) {
       rowErrors.push({ rowNumber, field: "start_date", message: "Start date must be on or before end date" });
     }
-    if (price === undefined || Number.isNaN(price)) {
-      rowErrors.push({ rowNumber, field: "price_per_night", message: "Price must be a valid number" });
-    } else if (price < 0) {
-      rowErrors.push({ rowNumber, field: "price_per_night", message: "Price cannot be negative", value: price });
+    if (!occupancyPrices.length) {
+      rowErrors.push({
+        rowNumber,
+        field: "occupancy_prices",
+        message: "Provide at least one occupancy price for this row",
+      });
     }
 
     if (currency && currency.toUpperCase() !== "INR") {
@@ -354,14 +470,13 @@ export function parseHotelPricingWorkbook(buffer: Buffer, options?: { fileName?:
       hotelName: hotelName?.trim(),
       locationName: locationName?.trim(),
       roomTypeName: roomTypeName!.trim(),
-      occupancyTypeName: occupancyTypeName!.trim(),
       mealPlanCode: mealPlanCodeRaw?.trim() ?? null,
       startDate: startDate!,
       endDate: endDate!,
-      price: price!,
       isActive: isActiveRaw ?? true,
       currency: currency?.trim() ?? null,
       notes: notes ?? null,
+      occupancyPrices,
     });
   }
 

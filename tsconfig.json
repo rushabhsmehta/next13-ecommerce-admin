@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,9 +24,21 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/(dashboard)/[storeId]/(routes)/tourPackages/[tourPackageId]/components/tourPackage-form", "app/(dashboard)/[storeId]/(routes)/tourPackages/[tourPackageId]/components/tourPackage-form copy"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "app/(dashboard)/[storeId]/(routes)/tourPackages/[tourPackageId]/components/tourPackage-form",
+    "app/(dashboard)/[storeId]/(routes)/tourPackages/[tourPackageId]/components/tourPackage-form copy",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

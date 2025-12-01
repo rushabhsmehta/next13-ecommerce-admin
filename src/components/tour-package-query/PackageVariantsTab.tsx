@@ -1421,6 +1421,19 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                 <CommandList className="max-h-60 overflow-auto">
                                   <CommandEmpty>No hotel found.</CommandEmpty>
                                   <CommandGroup>
+                                    <CommandItem
+                                      value="none"
+                                      onSelect={() => {
+                                        updateHotelMapping(variantIndex, itinerary.id, "");
+                                        setOpenHotelPopover(null);
+                                      }}
+                                      className="text-xs text-muted-foreground italic"
+                                    >
+                                      <Trash className="mr-2 h-3.5 w-3.5" />
+                                      None / Unselect
+                                      {selectedHotelId === "" && <Check className="ml-auto h-3.5 w-3.5 text-primary" />}
+                                    </CommandItem>
+
                                     {hotels.map(h => (
                                       <CommandItem
                                         key={h.id}

@@ -24,6 +24,7 @@ Key Features:
 - You will be able to see your orders, sales, etc.
 - You will be able to see graphs of your revenue etc.
 - You will learn Clerk Authentication!
+- Auto Tour Package builder backed by OpenAI for instant itinerary drafts.
 - Order creation
 - Stripe checkout
 - Stripe webhooks
@@ -68,6 +69,8 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=""
 STRIPE_API_KEY=
 FRONTEND_STORE_URL=http://localhost:3001
 STRIPE_WEBHOOK_SECRET=
+OPENAI_API_KEY=
+OPENAI_TOUR_MODEL=gpt-4.1-mini
 ```
 
 ### Connect to PlanetScale and Push Prisma

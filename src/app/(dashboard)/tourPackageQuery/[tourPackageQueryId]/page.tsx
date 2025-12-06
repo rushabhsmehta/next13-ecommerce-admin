@@ -59,6 +59,12 @@ const tourPackageQueryPage = async ({
             },
           },
           transportDetails: {
+            // Older rows may not have vehicleTypeId populated; filter to prevent Prisma errors.
+            where: {
+              vehicleTypeId: {
+                not: null,
+              },
+            },
             include: {
               vehicleType: true,
             },

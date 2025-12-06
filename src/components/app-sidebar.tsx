@@ -52,6 +52,7 @@ const NAV_ITEMS = [
       { title: "Itineraries", url: "/itinerariesMaster" },
       { title: "Activities", url: "/activitiesMaster" },
       { title: "Tour Packages", url: "/tourPackages" },
+      { title: "Auto Tour Package", url: "/tourPackages/auto" },
     ],
   },
   {

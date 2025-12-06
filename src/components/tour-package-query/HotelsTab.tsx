@@ -215,7 +215,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
       {daysMissingHotel > 0 && (
         <Card className="border-amber-300 bg-amber-50">
           <CardHeader className="py-2">
-            <CardTitle className="text-sm text-amber-800">{daysMissingHotel} day{daysMissingHotel>1?'s':''} missing hotel assignment</CardTitle>
+            <CardTitle className="text-sm text-amber-800">{daysMissingHotel} day{daysMissingHotel > 1 ? 's' : ''} missing hotel assignment</CardTitle>
           </CardHeader>
         </Card>
       )}
@@ -233,10 +233,10 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border ${it.hotelId ? 'bg-primary text-white border-primary' : 'bg-white text-slate-600 border-slate-300'}`}>{(it.dayNumber || index + 1)}</div>
                     <div className="min-w-0">
-                      <p className="font-medium text-sm truncate" dangerouslySetInnerHTML={{ __html: it.itineraryTitle || `Day ${index+1}` }} />
+                      <p className="font-medium text-sm truncate" dangerouslySetInnerHTML={{ __html: it.itineraryTitle || `Day ${index + 1}` }} />
                       <div className="flex flex-wrap gap-1 mt-1">
                         {it.hotelId ? (
-                          <Badge className="h-5 px-1.5 flex items-center gap-1 bg-gradient-to-r from-primary/90 to-primary text-white"><HotelIcon className="h-3 w-3" /> {hotels.find(h=>h.id===it.hotelId)?.name || 'Hotel'}</Badge>
+                          <Badge className="h-5 px-1.5 flex items-center gap-1 bg-gradient-to-r from-primary/90 to-primary text-white"><HotelIcon className="h-3 w-3" /> {hotels.find(h => h.id === it.hotelId)?.name || 'Hotel'}</Badge>
                         ) : (
                           <Badge variant="destructive" className="h-5 px-1.5 animate-pulse bg-rose-500 text-white">Hotel?</Badge>
                         )}
@@ -260,7 +260,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         return (
                           <FormItem>
                             <FormLabel className="text-[11px] font-medium uppercase tracking-wide text-slate-600">Select Hotel</FormLabel>
-                            <Popover open={open} onOpenChange={(o)=> setOpenHotelIndex(o? index : null)}>
+                            <Popover open={open} onOpenChange={(o) => setOpenHotelIndex(o ? index : null)}>
                               <PopoverTrigger asChild>
                                 <Button type="button" variant="outline" size="sm" className="w-full justify-between bg-white hover:bg-primary/5 transition" disabled={isDisabled}>
                                   <span className="truncate text-xs font-medium">{selectedHotel ? selectedHotel.name : 'Choose hotel'}</span>
@@ -268,13 +268,26 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-[320px] p-0" align="start">
-                                <Command onKeyDownCapture={e=>e.stopPropagation()}>
+                                <Command onKeyDownCapture={e => e.stopPropagation()}>
                                   <CommandInput placeholder="Search hotel..." className="text-xs" />
                                   <CommandList className="max-h-60 overflow-auto">
                                     <CommandEmpty>No hotel found.</CommandEmpty>
                                     <CommandGroup>
+                                      <CommandItem
+                                        value="none"
+                                        onSelect={() => {
+                                          if (isDisabled) return;
+                                          field.onChange("");
+                                          setOpenHotelIndex(null);
+                                        }}
+                                        className="text-xs text-muted-foreground italic"
+                                      >
+                                        <Trash className="mr-2 h-3.5 w-3.5" />
+                                        None / Unselect
+                                        {field.value === "" && <Check className="ml-auto h-3.5 w-3.5 text-primary" />}
+                                      </CommandItem>
                                       {hotels.map(h => (
-                                        <CommandItem key={h.id} value={h.name} onSelect={()=> { if (isDisabled) { return; } field.onChange(h.id); setOpenHotelIndex(null); }} className="text-xs">
+                                        <CommandItem key={h.id} value={h.name} onSelect={() => { if (isDisabled) { return; } field.onChange(h.id); setOpenHotelIndex(null); }} className="text-xs">
                                           {h.images?.[0]?.url && (
                                             <Image src={h.images[0].url} alt={h.name} width={28} height={20} className="mr-2 rounded object-cover" />
                                           )}
@@ -295,7 +308,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                     {(() => {
                       const selected = hotels.find(h => h.id === it.hotelId);
                       if (!selected) return null;
-                      const imgs = selected.images?.slice(0,4) || [];
+                      const imgs = selected.images?.slice(0, 4) || [];
                       if (!imgs.length) return null;
                       return (
                         <div className="grid grid-cols-4 gap-2 mt-2">
@@ -311,228 +324,228 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                 </Card>
 
                 {showRoomAllocations && (
-                <Card>
-                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent rounded-t-md">
-                    <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Users className="h-4 w-4 text-emerald-600" />Room Allocations</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-4">
-                    {(it.roomAllocations || []).map((room: any, rIndex: number) => (
-                      <Card key={rIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
-                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
-                          <CardTitle className="text-xs font-medium flex items-center gap-1"><BedDouble className="h-3.5 w-3.5 text-primary" />Room {rIndex + 1}</CardTitle>
-                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={isDisabled} onClick={()=> removeRoomAllocation(index, rIndex)}>
-                            <Trash className="h-3.5 w-3.5" />
-                          </Button>
-                        </CardHeader>
-                        <CardContent className="pt-3 space-y-3">
-                          {/* Custom Room Type Toggle */}
-                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType` as any}
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value || false}
-                                    onCheckedChange={(checked) => {
-                                      field.onChange(checked);
-                                      // Clear the opposite field when toggling
-                                      if (checked) {
-                                        // Switching to custom - clear roomTypeId
-                                        form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId`, "");
-                                      } else {
-                                        // Switching to dropdown - clear customRoomType
-                                        form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.customRoomType`, "");
-                                      }
-                                    }}
-                                    disabled={isDisabled}
-                                  />
-                                </FormControl>
-                                <FormLabel className="text-xs font-medium text-gray-700 cursor-pointer">
-                                  Custom Room Type
-                                </FormLabel>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          {/* Main Fields Grid */}
-                          <div className="grid gap-3 md:grid-cols-4">
-                            {/* Room Type - Conditional */}
-                            {(() => {
-                              const useCustom = form.watch(`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType`);
-                              if (useCustom) {
-                                return (
-                                  <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.customRoomType` as any}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel className="text-[10px] uppercase tracking-wide">Custom Room Type</FormLabel>
-                                        <FormControl>
-                                          <Input 
-                                            placeholder="Enter room type" 
-                                            className="h-8 text-xs" 
-                                            {...field} 
-                                            disabled={isDisabled}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                );
-                              } else {
-                                return (
-                                  <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId` as any}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
-                                        <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
-                                          <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room" /></SelectTrigger></FormControl>
-                                          <SelectContent>{roomTypes?.map(rt=> <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                );
-                              }
-                            })()}
-                            
-                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.occupancyTypeId` as any}
+                  <Card>
+                    <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent rounded-t-md">
+                      <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Users className="h-4 w-4 text-emerald-600" />Room Allocations</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-4">
+                      {(it.roomAllocations || []).map((room: any, rIndex: number) => (
+                        <Card key={rIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
+                          <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
+                            <CardTitle className="text-xs font-medium flex items-center gap-1"><BedDouble className="h-3.5 w-3.5 text-primary" />Room {rIndex + 1}</CardTitle>
+                            <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={isDisabled} onClick={() => removeRoomAllocation(index, rIndex)}>
+                              <Trash className="h-3.5 w-3.5" />
+                            </Button>
+                          </CardHeader>
+                          <CardContent className="pt-3 space-y-3">
+                            {/* Custom Room Type Toggle */}
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType` as any}
                               render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[10px] uppercase tracking-wide">Occupancy</FormLabel>
-                                  <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Occupancy" /></SelectTrigger></FormControl>
-                                    <SelectContent>{occupancyTypes?.map(o=> <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.mealPlanId` as any}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[10px] uppercase tracking-wide">Meal Plan</FormLabel>
-                                  <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal" /></SelectTrigger></FormControl>
-                                    <SelectContent>{mealPlans?.map(mp=> <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.quantity` as any}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
+                                <FormItem className="flex flex-row items-center space-x-2 space-y-0">
                                   <FormControl>
-                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} disabled={isDisabled} />
+                                    <Checkbox
+                                      checked={field.value || false}
+                                      onCheckedChange={(checked) => {
+                                        field.onChange(checked);
+                                        // Clear the opposite field when toggling
+                                        if (checked) {
+                                          // Switching to custom - clear roomTypeId
+                                          form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId`, "");
+                                        } else {
+                                          // Switching to dropdown - clear customRoomType
+                                          form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.customRoomType`, "");
+                                        }
+                                      }}
+                                      disabled={isDisabled}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="text-xs font-medium text-gray-700 cursor-pointer">
+                                    Custom Room Type
+                                  </FormLabel>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {/* Main Fields Grid */}
+                            <div className="grid gap-3 md:grid-cols-4">
+                              {/* Room Type - Conditional */}
+                              {(() => {
+                                const useCustom = form.watch(`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType`);
+                                if (useCustom) {
+                                  return (
+                                    <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.customRoomType` as any}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel className="text-[10px] uppercase tracking-wide">Custom Room Type</FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              placeholder="Enter room type"
+                                              className="h-8 text-xs"
+                                              {...field}
+                                              disabled={isDisabled}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  );
+                                } else {
+                                  return (
+                                    <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId` as any}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
+                                          <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
+                                            <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room" /></SelectTrigger></FormControl>
+                                            <SelectContent>{roomTypes?.map(rt => <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}</SelectContent>
+                                          </Select>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  );
+                                }
+                              })()}
+
+                              <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.occupancyTypeId` as any}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-[10px] uppercase tracking-wide">Occupancy</FormLabel>
+                                    <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
+                                      <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Occupancy" /></SelectTrigger></FormControl>
+                                      <SelectContent>{occupancyTypes?.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.mealPlanId` as any}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-[10px] uppercase tracking-wide">Meal Plan</FormLabel>
+                                    <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
+                                      <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal" /></SelectTrigger></FormControl>
+                                      <SelectContent>{mealPlans?.map(mp => <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.quantity` as any}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e => field.onChange(parseInt(e.target.value) || 0)} disabled={isDisabled} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            {/* Voucher Number Field */}
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.voucherNumber` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide flex items-center gap-1">
+                                    <Receipt className="h-3 w-3" />
+                                    Hotel Voucher Number
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Enter hotel booking voucher number"
+                                      className="h-8 text-xs"
+                                      {...field}
+                                      disabled={isDisabled}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
-                          </div>
-                          
-                          {/* Voucher Number Field */}
-                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.voucherNumber` as any}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] uppercase tracking-wide flex items-center gap-1">
-                                  <Receipt className="h-3 w-3" />
-                                  Hotel Voucher Number
-                                </FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="Enter hotel booking voucher number" 
-                                    className="h-8 text-xs" 
-                                    {...field} 
-                                    disabled={isDisabled}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </CardContent>
-                      </Card>
-                    ))}
-                    <Button type="button" variant="outline" size="sm" disabled={isDisabled} onClick={()=> addRoomAllocation(index)} className="w-full border-dashed hover:border-solid">
-                      <Plus className="h-4 w-4 mr-1" /> Add Room
-                    </Button>
-                  </CardContent>
-                </Card>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" disabled={isDisabled} onClick={() => addRoomAllocation(index)} className="w-full border-dashed hover:border-solid">
+                        <Plus className="h-4 w-4 mr-1" /> Add Room
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
 
                 {showTransportDetails && (
-                <Card>
-                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-sky-100 via-sky-50 to-transparent rounded-t-md">
-                    <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Car className="h-4 w-4 text-sky-600" />Transport Details</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-4">
-                    {(it.transportDetails || []).map((tr: any, tIndex: number) => (
-                      <Card key={tIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
-                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
-                          <CardTitle className="text-xs font-medium flex items-center gap-1"><Car className="h-3.5 w-3.5 text-sky-600" />Transport {tIndex + 1}</CardTitle>
-                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={isDisabled} onClick={()=> removeTransportDetail(index, tIndex)}>
-                            <Trash className="h-3.5 w-3.5" />
-                          </Button>
-                        </CardHeader>
-                        <CardContent className="pt-3 space-y-3">
-                          <div className="grid gap-3 md:grid-cols-4">
-                            <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.vehicleTypeId` as any}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[10px] uppercase tracking-wide">Vehicle Type</FormLabel>
-                                  <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vehicle" /></SelectTrigger></FormControl>
-                                    <SelectContent>{vehicleTypes?.map(v=> <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.transportType` as any}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[10px] uppercase tracking-wide">Transport Type</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="e.g. AC, Non-AC" className="h-8 text-xs" {...field} disabled={isDisabled} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.quantity` as any}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
-                                  <FormControl>
-                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} disabled={isDisabled} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.description` as any}
-                              render={({ field }) => (
-                                <FormItem className="md:col-span-1">
-                                  <FormLabel className="text-[10px] uppercase tracking-wide">Description</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Notes" className="h-8 text-xs" {...field} disabled={isDisabled} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    <Button type="button" variant="outline" size="sm" disabled={isDisabled} onClick={()=> addTransportDetail(index)} className="w-full border-dashed hover:border-solid">
-                      <Plus className="h-4 w-4 mr-1" /> Add Transport
-                    </Button>
-                  </CardContent>
-                </Card>
+                  <Card>
+                    <CardHeader className="pb-3 border-b bg-gradient-to-r from-sky-100 via-sky-50 to-transparent rounded-t-md">
+                      <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Car className="h-4 w-4 text-sky-600" />Transport Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-4">
+                      {(it.transportDetails || []).map((tr: any, tIndex: number) => (
+                        <Card key={tIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
+                          <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
+                            <CardTitle className="text-xs font-medium flex items-center gap-1"><Car className="h-3.5 w-3.5 text-sky-600" />Transport {tIndex + 1}</CardTitle>
+                            <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={isDisabled} onClick={() => removeTransportDetail(index, tIndex)}>
+                              <Trash className="h-3.5 w-3.5" />
+                            </Button>
+                          </CardHeader>
+                          <CardContent className="pt-3 space-y-3">
+                            <div className="grid gap-3 md:grid-cols-4">
+                              <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.vehicleTypeId` as any}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-[10px] uppercase tracking-wide">Vehicle Type</FormLabel>
+                                    <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
+                                      <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vehicle" /></SelectTrigger></FormControl>
+                                      <SelectContent>{vehicleTypes?.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.transportType` as any}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-[10px] uppercase tracking-wide">Transport Type</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="e.g. AC, Non-AC" className="h-8 text-xs" {...field} disabled={isDisabled} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.quantity` as any}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
+                                    <FormControl>
+                                      <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e => field.onChange(parseInt(e.target.value) || 0)} disabled={isDisabled} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.description` as any}
+                                render={({ field }) => (
+                                  <FormItem className="md:col-span-1">
+                                    <FormLabel className="text-[10px] uppercase tracking-wide">Description</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Notes" className="h-8 text-xs" {...field} disabled={isDisabled} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" disabled={isDisabled} onClick={() => addTransportDetail(index)} className="w-full border-dashed hover:border-solid">
+                        <Plus className="h-4 w-4 mr-1" /> Add Transport
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
               </AccordionContent>
             </AccordionItem>

@@ -582,6 +582,25 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       clearInterval(saveInterval);
     };
   }, [params.tourPackageQueryId, form, initialData, loading]);
+
+  // Auto-calculate Number of Days/Night based on itinerary length
+  const watchedItineraries = form.watch('itineraries');
+  useEffect(() => {
+    if (Array.isArray(watchedItineraries) && watchedItineraries.length > 0) {
+      const days = watchedItineraries.length;
+      const nights = Math.max(0, days - 1);
+      const durationString = `${nights}N-${days}D`;
+      const currentDuration = form.getValues('numDaysNight');
+      
+      if (currentDuration !== durationString) {
+        form.setValue('numDaysNight', durationString, { 
+          shouldValidate: true, 
+          shouldDirty: true 
+        });
+        // Also update the period field if needed, or just the numDaysNight as requested
+      }
+    }
+  }, [watchedItineraries, form]);
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {

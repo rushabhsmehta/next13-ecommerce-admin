@@ -17,20 +17,28 @@ import {
 
 import { columns, TourPackageQueryColumn } from "./columns";
 import { DataTableMultiple } from "@/components/ui/data-tableMultiple";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 interface TourPackageQueryClientProps {
   data: TourPackageQueryColumn[];
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
 }
 
 export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
-  data
+  data,
+  pagination
 }) => {
   const params = useParams();
   const router = useRouter();
   const [filteredData, setFilteredData] = useState(data);
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [confirmationFilter, setConfirmationFilter] = useState("all");
-  
+
   // Get unique assigned to values
   const uniqueAssignedTo = Array.from(
     new Set(data.map(item => item.assignedTo))
@@ -40,14 +48,14 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
     // Define applyFilters inside useEffect to fix dependency warnings
     const applyFilters = () => {
       console.log(`Applying filters - Assignee: ${assigneeFilter}, Status: ${confirmationFilter}`);
-      
+
       let result = [...data];
-      
+
       // Filter by assignee if not "all"
       if (assigneeFilter !== "all") {
         result = result.filter(item => item.assignedTo === assigneeFilter);
       }
-      
+
       // Filter by confirmation status if not "all"
       if (confirmationFilter !== "all") {
         const isConfirmed = confirmationFilter === "confirmed";
@@ -57,11 +65,11 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
           return item.isFeatured === isConfirmed;
         });
       }
-      
+
       console.log(`Filter result: ${result.length} items`);
       setFilteredData(result);
     };
-    
+
     // Apply filters immediately
     applyFilters();
   }, [assigneeFilter, confirmationFilter, data]);
@@ -77,9 +85,9 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   };
 
   return (
-    <> 
+    <>
       <div className="flex items-center justify-between">
-        <Heading title={`Tour Package Query (${filteredData.length})`} description="Manage tour package Query for your Website" />
+        <Heading title="Tour Package Query" description="Manage tour package Query for your Website" />
         <Button onClick={() => router.push(`/tourPackageQuery/new`)}>
           <Plus className="mr-2 h-4 w-4" /> Add New
         </Button>
@@ -111,11 +119,20 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
           </SelectContent>
         </Select>
       </div>
-      <DataTableMultiple 
-        searchKeys={["tourPackageQueryNumber", "customerNumber", "customerName", "tourPackageQueryName", "assignedTo"]} 
-        columns={columns} 
-        data={filteredData} 
+      <DataTableMultiple
+        searchKeys={["tourPackageQueryNumber", "customerNumber", "customerName", "tourPackageQueryName", "assignedTo"]}
+        columns={columns}
+        data={filteredData}
+        showPagination={!pagination}
       />
+      {pagination && (
+        <PaginationControls
+          page={pagination.page}
+          pageSize={pagination.pageSize}
+          totalCount={pagination.totalCount}
+          totalPages={pagination.totalPages}
+        />
+      )}
     </>
   );
 };

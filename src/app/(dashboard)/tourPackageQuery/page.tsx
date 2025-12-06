@@ -7,11 +7,28 @@ import Navbar from "@/components/navbar";
 
 
 const tourPackageQueryPage = async ({
-
+  searchParams
+}: {
+  searchParams: { page?: string, pageSize?: string }
 }) => {
-  // Optimized query: only fetch necessary fields, limit to recent records
+  // Parse pagination params
+  const page = parseInt(searchParams.page || '1');
+  const pageSize = parseInt(searchParams.pageSize || '25');
+  const skip = (page - 1) * pageSize;
+
+  // Fetch total count for pagination
+  const totalCount = await prismadb.tourPackageQuery.count({
+    where: {
+      isArchived: false,
+    }
+  });
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Optimized query: only fetch necessary fields, with pagination
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
-    take: 100, // Limit to 100 most recent records
+    skip,
+    take: pageSize,
     select: {
       id: true,
       tourPackageQueryNumber: true,
@@ -56,14 +73,22 @@ const tourPackageQueryPage = async ({
   return (
     <>
       {/*       <Navbar /> */}
-      
-        
-        <div className="flex-col">
-          <div className="flex-1 space-y-4 p-8 pt-6">
-            <TourPackageQueryClient data={formattedtourPackageQuery} />
-          </div>
+
+
+      <div className="flex-col">
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <TourPackageQueryClient
+            data={formattedtourPackageQuery}
+            pagination={{
+              page,
+              pageSize,
+              totalCount,
+              totalPages
+            }}
+          />
         </div>
-      
+      </div>
+
     </>
   );
 };

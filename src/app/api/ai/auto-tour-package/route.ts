@@ -25,6 +25,7 @@ const bodySchema = z.object({
     .optional()
     .default([]),
   tone: z.string().max(240).optional(),
+  systemInstruction: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -51,7 +52,10 @@ export async function POST(req: Request) {
 
     const previousMessages = historyMessages.length > 0 ? historyMessages.slice(0, -1) : [];
     const chatMessages: ChatMessage[] = [
-      { role: "system", content: AUTO_TOUR_PACKAGE_SYSTEM_PROMPT },
+      { 
+        role: "system", 
+        content: parsed.systemInstruction || AUTO_TOUR_PACKAGE_SYSTEM_PROMPT 
+      },
       ...previousMessages,
     ];
 

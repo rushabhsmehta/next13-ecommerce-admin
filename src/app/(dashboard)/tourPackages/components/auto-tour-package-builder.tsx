@@ -1,13 +1,25 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -15,14 +27,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Loader2, MessageCircle, RefreshCw, SendHorizontal, Sparkles, Copy } from "lucide-react";
+import { 
+  Loader2, 
+  SendHorizontal, 
+  Sparkles, 
+  Copy, 
+  Bot, 
+  User, 
+  Settings2,
+  RotateCcw,
+  Eraser,
+  Lightbulb,
+  PanelRightOpen,
+  PlusCircle
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   createdAt: string;
+  parsedJson?: any;
 }
 
 interface UsageMeta {
@@ -45,39 +71,28 @@ const tonePresets: Record<string, string> = {
 };
 
 export function AutoTourPackageBuilder({
-  instructions,
+  instructions: defaultInstructions,
   starterPrompts,
 }: AutoTourPackageBuilderProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [usage, setUsage] = useState<UsageMeta | null>(null);
   const [tone, setTone] = useState<keyof typeof tonePresets>("balanced");
-  const [customNotes, setCustomNotes] = useState("");
+  const [systemInstruction, setSystemInstruction] = useState(defaultInstructions);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
-  const instructionSummary = useMemo(() => {
-    const trimmed = instructions.trim();
-    const blocks = trimmed.split(/## /);
-
-    return blocks
-      .map((block, index) => {
-        const content = block.trim();
-        if (!content) return null;
-
-        if (index === 0 && !trimmed.startsWith("##")) {
-          return { title: "Overview", body: content };
-        }
-
-        const [titleLine, ...rest] = content.split("\n");
-        return {
-          title: titleLine.trim().replace(/^#+\s*/, ""),
-          body: rest.join("\n").trim(),
-        };
-      })
-      .filter(Boolean) as { title: string; body: string }[];
-  }, [instructions]);
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    }
+  }, [prompt]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }));
@@ -93,19 +108,60 @@ export function AutoTourPackageBuilder({
     }
   };
 
-  const handleSubmit = async () => {
-    if (!prompt.trim() && !customNotes.trim()) {
-      toast({ variant: "destructive", description: "Add a prompt or extra notes." });
-      return;
+  const extractJson = (content: string) => {
+    const match = content.match(/```json\n([\s\S]*?)\n```/);
+    if (match) {
+      try {
+        return {
+          text: content.replace(match[0], "").trim(),
+          data: JSON.parse(match[1])
+        };
+      } catch (e) {
+        return { text: content, data: null };
+      }
     }
+    return { text: content, data: null };
+  };
 
-    const userContent = [prompt.trim(), customNotes.trim()].filter(Boolean).join("\n\nAdditional Notes: ");
-    if (!userContent) return;
+  const handleCreatePackage = async (json: any) => {
+    setIsCreating(true);
+    try {
+      const response = await fetch("/api/ai/create-tour-package", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(json),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to create package");
+      }
+
+      const data = await response.json();
+      toast({
+        title: "Package Created",
+        description: "Redirecting to editor...",
+      });
+      router.push(`/tourPackages/${data.id}`);
+    } catch (error) {
+      console.error("[AUTO_TOUR_PKG] create failed", error);
+      toast({
+        variant: "destructive",
+        title: "Creation failed",
+        description: error instanceof Error ? error.message : "Unexpected error",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!prompt.trim()) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      content: userContent,
+      content: prompt.trim(),
       createdAt: new Date().toISOString(),
     };
 
@@ -113,8 +169,10 @@ export function AutoTourPackageBuilder({
 
     setMessages((prev) => [...prev, userMessage]);
     setPrompt("");
-    setCustomNotes("");
     setIsSubmitting(true);
+    
+    // Reset height
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     try {
       const response = await fetch("/api/ai/auto-tour-package", {
@@ -124,6 +182,7 @@ export function AutoTourPackageBuilder({
           prompt: userMessage.content,
           history: historyPayload,
           tone: tonePresets[tone],
+          systemInstruction: systemInstruction,
         }),
       });
 
@@ -133,10 +192,13 @@ export function AutoTourPackageBuilder({
       }
 
       const data = await response.json();
+      const { text, data: parsedJson } = extractJson(data.message);
+
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: data.message,
+        content: text,
+        parsedJson: parsedJson,
         createdAt: new Date().toISOString(),
       };
 
@@ -155,227 +217,230 @@ export function AutoTourPackageBuilder({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   const handleReset = () => {
     setMessages([]);
     setUsage(null);
-    setTone("balanced");
     setPrompt("");
-    setCustomNotes("");
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-      <div className="space-y-4">
-        <Card>
-          <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Auto Tour Package Builder
-              </CardTitle>
-              <CardDescription>
-                Craft tour-ready packages with OpenAI using the internal Aagam playbook.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={handleReset} disabled={isSubmitting || messages.length === 0}>
-                <RefreshCw className="mr-2 h-4 w-4" /> Reset chat
+    <div className="flex h-[calc(100vh-140px)] flex-col relative">
+      {/* Header / Toolbar */}
+      <div className="flex items-center justify-between border-b pb-4 mb-4 px-2">
+        <div className="flex items-center gap-2">
+          <div className="rounded-md bg-primary/10 p-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Package Designer</h2>
+            <p className="text-xs text-muted-foreground">Powered by {usage?.model ?? "gpt-4.1-mini"}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleReset} title="Clear Chat">
+              <Eraser className="h-4 w-4 mr-2" /> Clear
+            </Button>
+          )}
+          
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                Instructions
               </Button>
-              <Badge variant="outline">Model: {usage?.model ?? "gpt-4.1-mini"}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-[minmax(220px,260px)_1fr]">
-              <div className="space-y-3">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Tone Preset
-                </label>
-                <Select value={tone} onValueChange={(value) => setTone(value as keyof typeof tonePresets)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(tonePresets).map((key) => (
-                      <SelectItem key={key} value={key}>
-                        {key === "balanced"
-                          ? "Balanced"
-                          : key === "celebratory"
-                          ? "Celebratory"
-                          : key === "budgetFocused"
-                          ? "Budget Focused"
-                          : "Luxury"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {tonePresets[tone]}
-                </p>
-                <Separator className="my-2" />
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Quick Starters
-                </label>
-                <div className="flex flex-col gap-2">
-                  {starterPrompts.map((sample) => (
-                    <Button
-                      key={sample}
-                      variant="secondary"
-                      size="sm"
-                      className="justify-start text-left"
-                      onClick={() => setPrompt(sample)}
+            </SheetTrigger>
+            <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Custom Instructions</SheetTitle>
+                <SheetDescription>
+                  Control how the AI behaves. These instructions are hidden from the chat but guide every response.
+                </SheetDescription>
+              </SheetHeader>
+              
+              <div className="py-6 space-y-6">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">System Prompt</label>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 text-xs"
+                      onClick={() => setSystemInstruction(defaultInstructions)}
                     >
-                      <MessageCircle className="mr-2 h-3.5 w-3.5" />
-                      {sample}
+                      <RotateCcw className="h-3 w-3 mr-1" /> Reset to Default
                     </Button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-3">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Prompt
-                </label>
-                <Textarea
-                  value={prompt}
-                  onChange={(event) => setPrompt(event.target.value)}
-                  placeholder="Describe the traveller profile, destination, season, must-dos, and budget guardrails."
-                  className="min-h-[160px]"
-                />
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Extra notes for AI (optional)
-                </label>
-                <Input
-                  value={customNotes}
-                  onChange={(event) => setCustomNotes(event.target.value)}
-                  placeholder="e.g., Mention scuba add-on and spotlight 4-star hotels only"
-                />
-                <div className="flex items-center justify-between pt-2">
-                  <div className="text-xs text-muted-foreground">
-                    OpenAI sees the entire chat history so you can refine further responses.
                   </div>
-                  <Button onClick={handleSubmit} disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
-                      </>
-                    ) : (
-                      <>
-                        <SendHorizontal className="mr-2 h-4 w-4" /> Generate
-                      </>
-                    )}
-                  </Button>
+                  <Textarea 
+                    value={systemInstruction}
+                    onChange={(e) => setSystemInstruction(e.target.value)}
+                    className="min-h-[400px] font-mono text-xs leading-relaxed"
+                  />
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="min-h-[420px]">
-          <CardHeader>
-            <CardTitle>Conversation</CardTitle>
-            <CardDescription>Refine the plan by adding more prompts.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <ScrollArea className="h-[420px] pr-4">
-                {messages.length === 0 ? (
-                  <div className="flex h-[360px] flex-col items-center justify-center text-center text-sm text-muted-foreground">
-                    <Sparkles className="mb-3 h-6 w-6 text-primary" />
-                    Start with a quick prompt or paste an inquiry brief to let OpenAI draft the first package.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`rounded-lg border p-4 text-sm leading-relaxed ${
-                          message.role === "assistant"
-                            ? "border-primary/30 bg-primary/5"
-                            : "border-muted bg-background"
-                        }`}
-                      >
-                        <div className="mb-2 flex items-center justify-between gap-3 text-xs uppercase tracking-wide">
-                          <span className="font-semibold">
-                            {message.role === "assistant" ? "Aagam AI" : "You"}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">
-                              {new Date(message.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => handleCopyMessage(message.content)}
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                        <pre className="whitespace-pre-wrap text-[13px] leading-relaxed">
-                          {message.content}
-                        </pre>
-                      </div>
-                    ))}
-                    <div ref={chatEndRef} />
-                  </div>
-                )}
-              </ScrollArea>
-              {usage && (
-                <div className="rounded-md bg-muted px-4 py-2 text-xs text-muted-foreground">
-                  Tokens: {usage.totalTokens ?? "-"} (prompt {usage.promptTokens ?? "-"} / response {usage.responseTokens ?? "-"})
+                <div className="rounded-lg bg-muted p-4">
+                  <h4 className="mb-2 flex items-center gap-2 font-semibold text-sm">
+                    <Lightbulb className="h-4 w-4 text-amber-500" />
+                    Pro Tips
+                  </h4>
+                  <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
+                    <li>Include traveller count, age group, and preferred hotel category in your prompt.</li>
+                    <li>Specify flight requirements or whether pricing should exclude air.</li>
+                    <li>Add any mandatory experiences so they are never dropped.</li>
+                    <li>After the first draft, ask for tweaks instead of restarting.</li>
+                  </ul>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Instruction Playbook</CardTitle>
-            <CardDescription>These guardrails keep outputs consistent for the ops team.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-end pb-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleCopyMessage(instructions)}
-                className="gap-2"
-              >
-                <Copy className="h-3.5 w-3.5" /> Copy instructions
-              </Button>
-            </div>
-            <ScrollArea className="h-[520px] pr-4">
-              <div className="space-y-4 text-sm">
-                {instructionSummary.map((section, index) => (
-                  <div key={section.title + index} className="space-y-1">
-                    <h3 className="font-semibold">{section.title}</h3>
-                    <p className="whitespace-pre-wrap text-muted-foreground">{section.body}</p>
-                  </div>
+      {/* Main Chat Area */}
+      <div className="flex-1 overflow-hidden relative flex flex-col">
+        <ScrollArea className="flex-1 pr-4 -mr-4">
+          {messages.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+              <div className="mb-6 rounded-full bg-muted p-6">
+                <Bot className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-2xl font-semibold tracking-tight mb-2">How can I help you plan?</h3>
+              <p className="text-muted-foreground max-w-md mb-8">
+                I can draft detailed itineraries, suggest hotels, and calculate pricing based on your requirements.
+              </p>
+              
+              <div className="grid gap-3 w-full max-w-2xl grid-cols-1 md:grid-cols-2">
+                {starterPrompts.map((starter) => (
+                  <button
+                    key={starter}
+                    onClick={() => setPrompt(starter)}
+                    className="flex flex-col items-start gap-2 rounded-xl border bg-card p-4 text-left text-sm transition-all hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <span className="font-medium">Draft a package</span>
+                    <span className="text-muted-foreground line-clamp-2 text-xs">
+                      {starter}
+                    </span>
+                  </button>
                 ))}
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Tips</CardTitle>
-            <CardDescription>Help OpenAI stay factual.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>Include traveller count, age group, and preferred hotel category.</li>
-              <li>Specify flight requirements or whether pricing should exclude air.</li>
-              <li>Add any mandatory experiences so they are never dropped.</li>
-              <li>After the first draft, ask for tweaks instead of restarting.</li>
-            </ul>
-          </CardContent>
-        </Card>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6 pb-4 max-w-3xl mx-auto w-full">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={cn(
+                    "flex gap-4 group",
+                    message.role === "assistant" ? "bg-transparent" : ""
+                  )}
+                >
+                  <Avatar className={cn(
+                    "h-8 w-8 border shadow-sm mt-1",
+                    message.role === "assistant" ? "bg-primary text-primary-foreground" : "bg-muted"
+                  )}>
+                    <AvatarFallback className={message.role === "assistant" ? "bg-primary text-primary-foreground" : "bg-muted"}>
+                      {message.role === "assistant" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 space-y-2 overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">
+                        {message.role === "assistant" ? "Aagam AI" : "You"}
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleCopyMessage(message.content)}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="prose prose-sm max-w-none dark:prose-invert leading-relaxed">
+                      <pre className="whitespace-pre-wrap font-sans text-sm bg-transparent p-0 border-none">
+                        {message.content}
+                      </pre>
+                    </div>
+                    {message.parsedJson && (
+                      <div className="pt-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="gap-2 border-primary/20 hover:bg-primary/5"
+                          onClick={() => handleCreatePackage(message.parsedJson)}
+                          disabled={isCreating}
+                        >
+                          {isCreating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <PlusCircle className="h-4 w-4" />
+                          )}
+                          Create Draft Package
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+
+      {/* Input Area */}
+      <div className="mt-4 max-w-3xl mx-auto w-full">
+        <div className="relative flex flex-col gap-2 rounded-xl border bg-background p-4 shadow-sm focus-within:ring-1 focus-within:ring-ring">
+          <Textarea
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Describe the trip (e.g. '5 days in Kerala for a couple, luxury hotels')..."
+            className="min-h-[60px] w-full resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+          />
+          
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <Select value={tone} onValueChange={(v) => setTone(v as any)}>
+                <SelectTrigger className="h-8 w-[140px] text-xs border-0 bg-muted/50 hover:bg-muted">
+                  <SelectValue placeholder="Select tone" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="balanced">Balanced</SelectItem>
+                  <SelectItem value="celebratory">Celebratory</SelectItem>
+                  <SelectItem value="budgetFocused">Budget</SelectItem>
+                  <SelectItem value="luxury">Luxury</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Button 
+              size="sm" 
+              onClick={handleSubmit} 
+              disabled={!prompt.trim() || isSubmitting}
+              className={cn("h-8 w-8 rounded-lg p-0", prompt.trim() ? "bg-primary" : "bg-muted text-muted-foreground")}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <SendHorizontal className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          AI can make mistakes. Review generated packages before sending to clients.
+        </p>
       </div>
     </div>
   );

@@ -27,13 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Loader2, 
-  SendHorizontal, 
-  Sparkles, 
-  Copy, 
-  Bot, 
-  User, 
+import {
+  Loader2,
+  SendHorizontal,
+  Sparkles,
+  Copy,
+  Bot,
+  User,
   Settings2,
   RotateCcw,
   Eraser,
@@ -81,6 +81,7 @@ export function AutoTourPackageBuilder({
   const [usage, setUsage] = useState<UsageMeta | null>(null);
   const [tone, setTone] = useState<keyof typeof tonePresets>("balanced");
   const [systemInstruction, setSystemInstruction] = useState(defaultInstructions);
+  const [customInstruction, setCustomInstruction] = useState("");
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { toast } = useToast();
@@ -93,6 +94,43 @@ export function AutoTourPackageBuilder({
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [prompt]);
+
+  // Fetch custom instructions on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/ai/settings");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.customInstructions) {
+            setCustomInstruction(data.customInstructions);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch AI settings", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // Save custom instructions on change (debounced)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (customInstruction !== "") {
+        try {
+          await fetch("/api/ai/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customInstructions: customInstruction }),
+          });
+        } catch (error) {
+          console.error("Failed to save AI settings", error);
+        }
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [customInstruction]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }));
@@ -170,7 +208,7 @@ export function AutoTourPackageBuilder({
     setMessages((prev) => [...prev, userMessage]);
     setPrompt("");
     setIsSubmitting(true);
-    
+
     // Reset height
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
@@ -183,6 +221,7 @@ export function AutoTourPackageBuilder({
           history: historyPayload,
           tone: tonePresets[tone],
           systemInstruction: systemInstruction,
+          customInstruction: customInstruction,
         }),
       });
 
@@ -231,7 +270,7 @@ export function AutoTourPackageBuilder({
   };
 
   return (
-    <div className="flex h-[calc(100vh-140px)] flex-col relative">
+    <div className="flex h-[calc(100vh-100px)] flex-col relative">
       {/* Header / Toolbar */}
       <div className="flex items-center justify-between border-b pb-4 mb-4 px-2">
         <div className="flex items-center gap-2">
@@ -240,17 +279,17 @@ export function AutoTourPackageBuilder({
           </div>
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Package Designer</h2>
-            <p className="text-xs text-muted-foreground">Powered by {usage?.model ?? "gpt-4.1-mini"}</p>
+            <p className="text-xs text-muted-foreground">Powered by {usage?.model ?? "gpt-4o-mini"}</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
             <Button variant="ghost" size="sm" onClick={handleReset} title="Clear Chat">
               <Eraser className="h-4 w-4 mr-2" /> Clear
             </Button>
           )}
-          
+
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
@@ -258,28 +297,40 @@ export function AutoTourPackageBuilder({
                 Instructions
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
+            <SheetContent className="w-[800px] sm:w-[800px] sm:max-w-[800px] overflow-y-auto flex flex-col h-full">
               <SheetHeader>
                 <SheetTitle>Custom Instructions</SheetTitle>
                 <SheetDescription>
                   Control how the AI behaves. These instructions are hidden from the chat but guide every response.
                 </SheetDescription>
               </SheetHeader>
-              
-              <div className="py-6 space-y-6">
+
+              <div className="py-6 space-y-6 flex-1 flex flex-col">
+                <div className="space-y-2 flex-1 flex flex-col">
+                  <label className="text-sm font-medium">Custom Instructions (Safe)</label>
+                  <p className="text-xs text-muted-foreground">
+                    Add specific rules like "Use British English" or "Always suggest vegan food". These are appended to the system prompt.
+                  </p>
+                  <Textarea
+                    value={customInstruction}
+                    onChange={(e) => setCustomInstruction(e.target.value)}
+                    placeholder="e.g. Focus on eco-friendly hotels..."
+                    className="min-h-[200px] text-sm flex-1 resize-none"
+                  />
+                </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">System Prompt</label>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <label className="text-sm font-medium">Core System Prompt (Advanced)</label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="h-6 text-xs"
                       onClick={() => setSystemInstruction(defaultInstructions)}
                     >
                       <RotateCcw className="h-3 w-3 mr-1" /> Reset to Default
                     </Button>
                   </div>
-                  <Textarea 
+                  <Textarea
                     value={systemInstruction}
                     onChange={(e) => setSystemInstruction(e.target.value)}
                     className="min-h-[400px] font-mono text-xs leading-relaxed"
@@ -316,7 +367,7 @@ export function AutoTourPackageBuilder({
               <p className="text-muted-foreground max-w-md mb-8">
                 I can draft detailed itineraries, suggest hotels, and calculate pricing based on your requirements.
               </p>
-              
+
               <div className="grid gap-3 w-full max-w-2xl grid-cols-1 md:grid-cols-2">
                 {starterPrompts.map((starter) => (
                   <button
@@ -350,7 +401,7 @@ export function AutoTourPackageBuilder({
                       {message.role === "assistant" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="flex-1 space-y-2 overflow-hidden">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">
@@ -372,9 +423,9 @@ export function AutoTourPackageBuilder({
                     </div>
                     {message.parsedJson && (
                       <div className="pt-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="gap-2 border-primary/20 hover:bg-primary/5"
                           onClick={() => handleCreatePackage(message.parsedJson)}
                           disabled={isCreating}
@@ -408,7 +459,7 @@ export function AutoTourPackageBuilder({
             placeholder="Describe the trip (e.g. '5 days in Kerala for a couple, luxury hotels')..."
             className="min-h-[60px] w-full resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
           />
-          
+
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2">
               <Select value={tone} onValueChange={(v) => setTone(v as any)}>
@@ -423,10 +474,10 @@ export function AutoTourPackageBuilder({
                 </SelectContent>
               </Select>
             </div>
-            
-            <Button 
-              size="sm" 
-              onClick={handleSubmit} 
+
+            <Button
+              size="sm"
+              onClick={handleSubmit}
               disabled={!prompt.trim() || isSubmitting}
               className={cn("h-8 w-8 rounded-lg p-0", prompt.trim() ? "bg-primary" : "bg-muted text-muted-foreground")}
             >

@@ -121,16 +121,16 @@ const formSchema = z.object({
   tourPackageName: z.string().optional(),
   tourPackageType: z.string().optional(),
   tourCategory: z.string().default("Domestic").optional(),
-  customerName: z.string().optional(),
-  customerNumber: z.string().optional(),
+  customerName: z.string().optional().nullable(),
+  customerNumber: z.string().optional().nullable(),
   numDaysNight: z.string().optional(),
-  period: z.string().optional(),
+  period: z.string().optional().nullable(),
   transport: z.string().optional(),
   pickup_location: z.string().optional(),
   drop_location: z.string().optional(),
-  numAdults: z.string().optional(),
-  numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),  totalPrice: z.string().optional(),
+  numAdults: z.string().optional().nullable(),
+  numChild5to12: z.string().optional().nullable(),
+  numChild0to5: z.string().optional().nullable(), totalPrice: z.string().optional().nullable(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
   locationId: z.string().min(1),
   //location : z.string(),
@@ -313,9 +313,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             break;
           case 'airlineCancellationPolicy':
             form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-            break;          case 'termsconditions':
+            break; case 'termsconditions':
             form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
-            break;          case 'kitchenGroupPolicy':
+            break; case 'kitchenGroupPolicy':
             form.setValue('kitchenGroupPolicy', parseJsonField((selectedLocation as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
             break;
         }
@@ -445,16 +445,16 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   // Transform packageVariants from API response to component format
   const transformPackageVariants = (variants: TourPackageVariantWithRelations[] | undefined): any[] => {
     if (!variants || !Array.isArray(variants)) return [];
-    
+
     console.log('🔄 [TRANSFORM VARIANTS] Transforming packageVariants from API:', {
       count: variants.length,
       rawData: variants
     });
-    
+
     return variants.map(variant => {
       // Convert variantHotelMappings array to hotelMappings object
       const hotelMappings: { [itineraryId: string]: string } = {};
-      
+
       if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
         variant.variantHotelMappings.forEach((mapping: any) => {
           if (mapping.itineraryId && mapping.hotelId) {
@@ -462,12 +462,12 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           }
         });
       }
-      
+
       console.log(`🔄 [TRANSFORM] Variant "${variant.name}":`, {
         mappingsCount: Object.keys(hotelMappings).length,
         hotelMappings
       });
-      
+
       return {
         id: variant.id,
         name: variant.name,
@@ -483,7 +483,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   };
 
   const extractVariantPricingLookup = (
-     variants: TourPackageVariantWithRelations[] | undefined
+    variants: TourPackageVariantWithRelations[] | undefined
   ): Record<string, TourPackageVariantWithRelations["tourPackagePricings"]> => {
     if (!Array.isArray(variants)) {
       return {};
@@ -536,7 +536,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
         }))
-      })),      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
+      })), inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
       exclusions: parseJsonField(data.exclusions) || EXCLUSIONS_DEFAULT,
       kitchenGroupPolicy: parseJsonField(data.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: parseJsonField(data.importantNotes) || IMPORTANT_NOTES_DEFAULT,
@@ -780,7 +780,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   // Add this function to handle pricing items
   const handleAddPricingItem = (insertAtIndex?: number) => {
     const newItem = { name: '', price: '', description: '' };
-    
+
     if (insertAtIndex !== undefined) {
       // Insert after the specified index
       insertPricing(insertAtIndex + 1, newItem);
@@ -791,7 +791,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       console.log("Added item at the end");
     }
   };
-  
+
   const handleRemovePricingItem = (indexToRemove: number) => {
     removePricing(indexToRemove);
     console.log("Removed item at index", indexToRemove);
@@ -800,7 +800,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const handleSaveToMasterItinerary = async (itinerary: any) => {
     try {
       setLoading(true);
-      
+
       // Prepare the data for saving to master itinerary
       const masterItineraryData = {
         itineraryMasterTitle: itinerary.itineraryTitle,
@@ -821,13 +821,13 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         roomCategory: itinerary.roomCategory,
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.join('-') : ''
       };
-      
+
       // Send to existing API endpoint
       const response = await axios.post('/api/itinerariesMaster', masterItineraryData);
-      
+
       toast.success('Saved to Master Itinerary successfully!');
       console.log('Saved to master itinerary:', response.data);
-      
+
     } catch (error: any) {
       console.error('Error saving to master itinerary:', error);
       toast.error(error.response?.data?.message || 'Failed to save to Master Itinerary');
@@ -889,10 +889,10 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FileText className="h-4 w-4" />
                 Basic Info
               </TabsTrigger>
-              <TabsTrigger value="guests" className="flex items-center gap-2">
+              {/* <TabsTrigger value="guests" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Guests
-              </TabsTrigger>
+              </TabsTrigger> */}
               <TabsTrigger value="location" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Location
@@ -1135,14 +1135,12 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             </TabsContent>
 
             {/* Add similar TabsContent sections for other tabs */}
-            <TabsContent value="guests" className="space-y-4 mt-4">
+            {/* <TabsContent value="guests" className="space-y-4 mt-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Guests</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Move guests form fields here */}
-                  {/* //add formfield for numAdults */}
                   <FormField
                     control={form.control}
                     name="customerName"
@@ -1186,7 +1184,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     )}
                   />
 
-                  {/* //add formfield for numChildren */}
                   <FormField
                     control={form.control}
                     name="numChild5to12"
@@ -1201,7 +1198,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     )}
                   />
 
-                  {/* //add formfield for numChildren */}
                   <FormField
                     control={form.control}
                     name="numChild0to5"
@@ -1217,7 +1213,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
 
             <TabsContent value="location" className="space-y-4 mt-4">
               <Card>
@@ -1283,9 +1279,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                       }
                                       if (useLocationDefaults.airlineCancellationPolicy) {
                                         form.setValue('airlineCancellationPolicy', parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-                                      }                                      if (useLocationDefaults.termsconditions) {
+                                      } if (useLocationDefaults.termsconditions) {
                                         form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
-                                      }                                      if (useLocationDefaults.kitchenGroupPolicy) {
+                                      } if (useLocationDefaults.kitchenGroupPolicy) {
                                         form.setValue('kitchenGroupPolicy', parseJsonField((location as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
                                       }
                                       const currentItineraries = form.getValues('itineraries');
@@ -1538,7 +1534,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                       ref={editor}
                                                       value={itinerary.itineraryTitle || ''}
                                                       onBlur={(content) => updateItinerary(index, (current) => ({ ...current, itineraryTitle: content }))}
-                                                      onChange={() => {}}
+                                                      onChange={() => { }}
                                                     />
                                                   </FormControl>
                                                 </FormItem>
@@ -1552,7 +1548,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                       ref={editor}
                                                       value={itinerary.itineraryDescription || ''}
                                                       onBlur={(content) => updateItinerary(index, (current) => ({ ...current, itineraryDescription: content }))}
-                                                      onChange={() => {}}
+                                                      onChange={() => { }}
                                                     />
                                                   </FormControl>
                                                 </FormItem>
@@ -1704,12 +1700,12 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                                 />
                                                               </CommandItem>
                                                             ))}
-                                                      </CommandGroup>
-                                                    </Command>
-                                                  </PopoverContent>
-                                                </Popover>
-                                                <FormMessage />
-                                              </FormItem>
+                                                        </CommandGroup>
+                                                      </Command>
+                                                    </PopoverContent>
+                                                  </Popover>
+                                                  <FormMessage />
+                                                </FormItem>
 
                                                 <div className="rounded-lg border border-slate-200 bg-white p-4">
                                                   <FormLabel className="font-medium mb-3 block">Meal Plan</FormLabel>
@@ -1796,7 +1792,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                                     return { ...current, activities: updatedActivities };
                                                                   });
                                                                 }}
-                                                                onChange={() => {}}
+                                                                onChange={() => { }}
                                                               />
                                                             </FormControl>
                                                           </FormItem>
@@ -1816,7 +1812,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                                     return { ...current, activities: updatedActivities };
                                                                   });
                                                                 }}
-                                                                onChange={() => {}}
+                                                                onChange={() => { }}
                                                               />
                                                             </FormControl>
                                                           </FormItem>

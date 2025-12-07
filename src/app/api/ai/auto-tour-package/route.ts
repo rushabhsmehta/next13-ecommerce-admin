@@ -26,6 +26,7 @@ const bodySchema = z.object({
     .default([]),
   tone: z.string().max(240).optional(),
   systemInstruction: z.string().optional(),
+  customInstruction: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -36,13 +37,19 @@ export async function POST(req: Request) {
     }
 
     const parsed = bodySchema.parse(await req.json());
+
+    // Force load .env to override system vars
+    const dotenv = require('dotenv');
+    dotenv.config({ override: true });
+
     const apiKey = process.env.OPENAI_API_KEY;
+
     if (!apiKey) {
       console.error("[AUTO_TOUR_PKG] Missing OPENAI_API_KEY env var");
       return jsonError("OpenAI API key is not configured", 500, "NO_OPENAI_KEY");
     }
 
-    const modelId = process.env.OPENAI_TOUR_MODEL ?? "gpt-4.1-mini";
+    const modelId = process.env.OPENAI_TOUR_MODEL ?? "gpt-4o-mini";
     const openai = new OpenAI({ apiKey });
 
     const historyMessages: ChatMessage[] = parsed.history.map((message) => ({
@@ -51,10 +58,17 @@ export async function POST(req: Request) {
     }));
 
     const previousMessages = historyMessages.length > 0 ? historyMessages.slice(0, -1) : [];
+
+    // Construct system message with optional custom instruction appended
+    let systemContent = parsed.systemInstruction || AUTO_TOUR_PACKAGE_SYSTEM_PROMPT;
+    if (parsed.customInstruction) {
+      systemContent += `\n\n## User Custom Instructions\n${parsed.customInstruction}`;
+    }
+
     const chatMessages: ChatMessage[] = [
-      { 
-        role: "system", 
-        content: parsed.systemInstruction || AUTO_TOUR_PACKAGE_SYSTEM_PROMPT 
+      {
+        role: "system",
+        content: systemContent
       },
       ...previousMessages,
     ];
@@ -65,8 +79,14 @@ export async function POST(req: Request) {
 
     chatMessages.push({ role: "user", content: augmentedPrompt });
 
+    // Force correct model if env var is invalid
+    let finalModelId = modelId;
+    if (modelId === "gpt-4.1-mini") {
+      finalModelId = "gpt-4o-mini";
+    }
+
     const completion = await openai.chat.completions.create({
-      model: modelId,
+      model: finalModelId,
       temperature: 0.65,
       top_p: 0.9,
       messages: chatMessages,

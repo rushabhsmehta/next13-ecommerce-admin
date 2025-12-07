@@ -61,13 +61,9 @@ Wrap in \`\`\`json fenced block. This JSON must strictly follow the schema struc
       "mealsIncluded": string, // e.g., "Breakfast & Dinner", "Breakfast only"
       "activities": string[] // Array of activity titles for that day
     }
-  ],
-  "inclusions": string[], // Array of strings
-  "exclusions": string[], // Array of strings
-  "importantNotes": string[], // Array of strings
-  "paymentPolicy": string[], // Array of strings
-  "cancellationPolicy": string[], // Array of strings
-  "termsconditions": string[] // Array of strings
+  ]
+  // DO NOT include inclusions, exclusions, importantNotes, paymentPolicy, cancellationPolicy, termsconditions, kitchenGroupPolicy.
+  // These will be populated from the Location defaults.
 }
 \`\`\`
 

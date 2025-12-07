@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
     customInstructions: z.string().optional(),
+    systemInstruction: z.string().optional(),
 });
 
 export async function GET(req: Request) {
@@ -24,6 +25,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             customInstructions: settings?.customInstructions || "",
+            systemInstruction: settings?.systemInstruction || "",
         });
     });
 }
@@ -41,10 +43,12 @@ export async function POST(req: Request) {
             where: { userId },
             update: {
                 customInstructions: parsed.customInstructions,
+                systemInstruction: parsed.systemInstruction,
             },
             create: {
                 userId,
                 customInstructions: parsed.customInstructions,
+                systemInstruction: parsed.systemInstruction,
             },
         });
 

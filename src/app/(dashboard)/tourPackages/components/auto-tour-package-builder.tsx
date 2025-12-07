@@ -82,6 +82,7 @@ export function AutoTourPackageBuilder({
   const [tone, setTone] = useState<keyof typeof tonePresets>("balanced");
   const [systemInstruction, setSystemInstruction] = useState(defaultInstructions);
   const [customInstruction, setCustomInstruction] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { toast } = useToast();
@@ -105,6 +106,9 @@ export function AutoTourPackageBuilder({
           if (data.customInstructions) {
             setCustomInstruction(data.customInstructions);
           }
+          if (data.systemInstruction) {
+            setSystemInstruction(data.systemInstruction);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch AI settings", error);
@@ -116,21 +120,25 @@ export function AutoTourPackageBuilder({
   // Save custom instructions on change (debounced)
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (customInstruction !== "") {
-        try {
-          await fetch("/api/ai/settings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ customInstructions: customInstruction }),
-          });
-        } catch (error) {
-          console.error("Failed to save AI settings", error);
-        }
+      setIsSaving(true);
+      try {
+        await fetch("/api/ai/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customInstructions: customInstruction,
+            systemInstruction: systemInstruction
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to save AI settings", error);
+      } finally {
+        setIsSaving(false);
       }
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [customInstruction]);
+  }, [customInstruction, systemInstruction]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }));
@@ -307,9 +315,16 @@ export function AutoTourPackageBuilder({
 
               <div className="py-6 space-y-6 flex-1 flex flex-col">
                 <div className="space-y-2 flex-1 flex flex-col">
-                  <label className="text-sm font-medium">Custom Instructions (Safe)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Custom Instructions (Safe)</label>
+                    {isSaving ? (
+                      <Badge variant="secondary" className="text-[10px] h-5">Saving...</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] h-5 text-muted-foreground">Saved</Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    Add specific rules like "Use British English" or "Always suggest vegan food". These are appended to the system prompt.
+                    Add specific rules like &quot;Use British English&quot; or &quot;Always suggest vegan food&quot;. These are appended to the system prompt.
                   </p>
                   <Textarea
                     value={customInstruction}

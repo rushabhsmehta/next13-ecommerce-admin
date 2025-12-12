@@ -107,7 +107,15 @@ export async function POST(req: Request) {
             itineraryDescription: day.itineraryDescription,
             mealsIncluded: day.mealsIncluded,
             hotelId: hotelId,
-            // activities: day.activities ? { ... } : undefined // Complex to map activities by name
+            activities: day.activities && Array.isArray(day.activities) && day.activities.length > 0 ? {
+              create: [{
+                activityTitle: "Day Highlights",
+                activityDescription: day.activities.map((act: string, i: number) =>
+                  `${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][i] || (i + 1) + '.'}. ${act}`
+                ).join('<br/>'),
+                locationId: location.id
+              }]
+            } : undefined
           }
         });
       }

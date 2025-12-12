@@ -1429,7 +1429,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                 <div className="font-semibold text-left" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
                                               </div>
                                               <span className="text-xs font-medium text-slate-500">
-                                                {itinerary.days ? `Scheduled: ${itinerary.days}` : 'No date selected'}
+                                                {itinerary.days ? `Scheduled: ${itinerary.days}` : ''}
                                               </span>
                                             </AccordionTrigger>
                                             <AccordionContent className="px-4 pb-6 pt-4 space-y-6">

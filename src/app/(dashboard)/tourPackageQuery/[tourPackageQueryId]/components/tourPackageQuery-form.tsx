@@ -350,7 +350,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       return [field as string];
     }
   };
-  
+
   const handleUseLocationDefaultsChange = (field: string, checked: boolean): void => {
     setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
     if (checked) {
@@ -455,11 +455,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
       selectedMealPlanId: initialData.selectedMealPlanId || '',
-    selectedTourPackageVariantId: (initialData as any).selectedTourPackageVariantId || '',
-    selectedTourPackageVariantName: (initialData as any).selectedTourPackageVariantName || '',
-  numberOfRooms: (initialData as any).numberOfRooms ?? 1,
-    occupancySelections: initialData.occupancySelections || [],
-    inclusions: parseJsonField(initialData.inclusions),
+      selectedTourPackageVariantId: (initialData as any).selectedTourPackageVariantId || '',
+      selectedTourPackageVariantName: (initialData as any).selectedTourPackageVariantName || '',
+      numberOfRooms: (initialData as any).numberOfRooms ?? 1,
+      occupancySelections: initialData.occupancySelections || [],
+      inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       kitchenGroupPolicy: parseJsonField((initialData as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: parseJsonField(initialData.importantNotes),
@@ -491,7 +491,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       numChild0to5: '',
       totalPrice: '',
       remarks: '',
-      flightDetails: [],      inclusions: INCLUSIONS_DEFAULT,
+      flightDetails: [], inclusions: INCLUSIONS_DEFAULT,
       exclusions: EXCLUSIONS_DEFAULT,
       kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: IMPORTANT_NOTES_DEFAULT,
@@ -512,17 +512,99 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedTemplateType: '',
       tourPackageTemplateName: '',
       selectedMealPlanId: '',
-  selectedTourPackageVariantId: '',
-  selectedTourPackageVariantName: '',
-  numberOfRooms: 1,
-  occupancySelections: [],
-    };  const form = useForm<TourPackageQueryFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues
-  });
+      selectedTourPackageVariantId: '',
+      selectedTourPackageVariantName: '',
+      numberOfRooms: 1,
+      occupancySelections: [],
+    }; const form = useForm<TourPackageQueryFormValues>({
+      resolver: zodResolver(formSchema),
+      defaultValues
+    });
 
   // This useFieldArray is now handled in the PricingTab component
   // Removing unused code
+
+  // Auto-load draft from Auto Builder
+  useEffect(() => {
+    const loadDraft = () => {
+      // Only run if we are in "create" mode (no initialData)
+      if (initialData) return;
+
+      const draftKey = 'autoQueryDraft';
+      const storedDraft = localStorage.getItem(draftKey);
+
+      if (!storedDraft) return;
+
+      try {
+        const { data } = JSON.parse(storedDraft);
+        console.log("Found auto-generated draft:", data);
+
+        // Map AI JSON to Form Values
+        const mappedData: Partial<TourPackageQueryFormValues> = {
+          tourPackageQueryName: data.tourPackageQueryName || '',
+          customerName: data.customerName || '',
+          customerNumber: data.customerNumber || '',
+          tourCategory: data.tourCategory || 'Domestic',
+          numDaysNight: data.numDaysNight || '',
+          totalPrice: data.price ? String(data.price) : '',
+          transport: data.transport || '',
+          pickup_location: data.pickup_location || '',
+          drop_location: data.drop_location || '',
+          numAdults: String(data.numAdults || ''),
+          numChild5to12: String(data.numChild5to12 || ''),
+          numChild0to5: String(data.numChild0to5 || ''),
+
+          // Handle Date
+          tourStartsFrom: data.tourStartsFrom ? new Date(data.tourStartsFrom) : undefined,
+
+          // Map Itineraries
+          itineraries: Array.isArray(data.itineraries) ? data.itineraries.map((day: any) => ({
+            dayNumber: day.dayNumber,
+            itineraryTitle: day.itineraryTitle || '',
+            itineraryDescription: day.itineraryDescription || '',
+            mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [], // AI might send csv or array? Assuming string based on API or array. API route doesn't split.
+            // If AI sends array of strings for meals, allow it.
+            // API route used `mealsIncluded: day.mealsIncluded` directly.
+            // Form expects array of strings? `mealsIncluded: z.array(z.string()).optional()`
+
+            activities: Array.isArray(day.activities) ? day.activities.map((act: string) => ({
+              activityTitle: act,
+              activityDescription: '',
+              activityImages: []
+            })) : [],
+            itineraryImages: [],
+            hotelId: '', // Logic to look up hotel by name could go here if we had access to hotels list easily, but strictly matching names is risky.
+            locationId: '', // Default to empty
+            roomAllocations: [],
+            transportDetails: []
+          })) : [],
+
+          inclusions: data.inclusions ? (Array.isArray(data.inclusions) ? data.inclusions : [data.inclusions]) : INCLUSIONS_DEFAULT,
+          exclusions: data.exclusions ? (Array.isArray(data.exclusions) ? data.exclusions : [data.exclusions]) : EXCLUSIONS_DEFAULT,
+          importantNotes: data.importantNotes ? (Array.isArray(data.importantNotes) ? data.importantNotes : [data.importantNotes]) : IMPORTANT_NOTES_DEFAULT,
+        };
+
+        // Reset form with mapped data
+        // We use reset(values) to set the form values.
+        // We need to merge with defaultValues to ensure consistency
+        form.reset({
+          ...defaultValues,
+          ...mappedData
+        });
+
+        toast.success("Loaded properties from AI generation");
+
+        // Clear the draft so it doesn't persist
+        localStorage.removeItem(draftKey);
+
+      } catch (err) {
+        console.error("Failed to load auto-query draft:", err);
+        toast.error("Failed to load generated draft");
+      }
+    };
+
+    loadDraft();
+  }, [initialData, form]);
 
   // Auto-save form data to localStorage every 30 seconds - moved after form initialization
   useEffect(() => {
@@ -591,11 +673,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       const nights = Math.max(0, days - 1);
       const durationString = `${nights}N-${days}D`;
       const currentDuration = form.getValues('numDaysNight');
-      
+
       if (currentDuration !== durationString) {
-        form.setValue('numDaysNight', durationString, { 
-          shouldValidate: true, 
-          shouldDirty: true 
+        form.setValue('numDaysNight', durationString, {
+          shouldValidate: true,
+          shouldDirty: true
         });
         // Also update the period field if needed, or just the numDaysNight as requested
       }
@@ -621,7 +703,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', selectedTourPackage.transport || '');
       form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
-  // tour_highlights removed
+      // tour_highlights removed
       form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
@@ -649,8 +731,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         transportDetails: (itinerary as any).transportDetails || [],
 
       })) || [];
-  form.setValue('itineraries', transformedItineraries);
-  form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
+      form.setValue('itineraries', transformedItineraries);
+      form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
         date: flight.date || undefined,
         flightName: flight.flightName || undefined,
         flightNumber: flight.flightNumber || undefined,
@@ -760,8 +842,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('selectedTemplateId', selectedTourPackageQueryId);
       form.setValue('selectedTemplateType', 'TourPackage');
       form.setValue('tourPackageTemplate', ''); // Clear the other template field
-    form.setValue('selectedTourPackageVariantId', '');
-    form.setValue('selectedTourPackageVariantName', '');
+      form.setValue('selectedTourPackageVariantId', '');
+      form.setValue('selectedTourPackageVariantName', '');
 
       // Copy values from the selected template
       form.setValue('tourPackageQueryType', selectedTourPackageQuery.tourPackageQueryType || '');
@@ -771,7 +853,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', selectedTourPackageQuery.transport || '');
       form.setValue('pickup_location', selectedTourPackageQuery.pickup_location || '');
       form.setValue('drop_location', selectedTourPackageQuery.drop_location || '');
-  // tour_highlights removed
+      // tour_highlights removed
       form.setValue('totalPrice', selectedTourPackageQuery.totalPrice || '');
       form.setValue('inclusions', parseJsonField(selectedTourPackageQuery.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackageQuery.exclusions) || EXCLUSIONS_DEFAULT);
@@ -801,8 +883,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         roomAllocations: (itinerary as any).roomAllocations || [],
         transportDetails: (itinerary as any).transportDetails || [],
       })) || [];
-  form.setValue('itineraries', transformedItineraries);
-  // Set flight details
+      form.setValue('itineraries', transformedItineraries);
+      // Set flight details
       form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map(flight => ({
         date: flight.date || undefined,
         flightName: flight.flightName || undefined,
@@ -939,7 +1021,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         setLoading(false);
         return;
-      }      const formattedData = {
+      } const formattedData = {
         ...data,
         // Apply timezone normalization to tour dates
         tourStartsFrom: normalizeApiDate(data.tourStartsFrom),

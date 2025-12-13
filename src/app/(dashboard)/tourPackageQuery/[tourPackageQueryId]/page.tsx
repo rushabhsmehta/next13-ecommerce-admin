@@ -75,7 +75,7 @@ const tourPackageQueryPage = async ({
     },
   });
 
-  if (!tourPackageQuery) {
+  if (!tourPackageQuery && params.tourPackageQueryId !== 'new') {
     notFound();
   }
 

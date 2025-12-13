@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -88,9 +88,18 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
     <>
       <div className="flex items-center justify-between">
         <Heading title="Tour Package Query" description="Manage tour package Query for your Website" />
-        <Button onClick={() => router.push(`/tourPackageQuery/new`)}>
-          <Plus className="mr-2 h-4 w-4" /> Add New
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => router.push(`/tourPackageQuery/auto`)}
+            variant="secondary"
+            className="hidden md:flex"
+          >
+            <Sparkles className="mr-2 h-4 w-4" /> Smart Build
+          </Button>
+          <Button onClick={() => router.push(`/tourPackageQuery/new`)}>
+            <Plus className="mr-2 h-4 w-4" /> Add New
+          </Button>
+        </div>
       </div>
       <Separator />
       <div className="my-4 flex flex-wrap gap-4">

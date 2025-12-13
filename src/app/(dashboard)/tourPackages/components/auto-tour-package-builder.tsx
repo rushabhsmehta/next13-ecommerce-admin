@@ -172,29 +172,24 @@ export function AutoTourPackageBuilder({
   const handleCreatePackage = async (json: any) => {
     setIsCreating(true);
     try {
-      const response = await fetch("/api/ai/create-tour-package", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(json),
-      });
+      // Store the AI result as a draft
+      const draftKey = 'autoTourPackageDraft';
+      localStorage.setItem(draftKey, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        data: json
+      }));
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to create package");
-      }
-
-      const data = await response.json();
       toast({
-        title: "Package Created",
-        description: "Redirecting to editor...",
+        title: "Draft Generated",
+        description: "Redirecting to review page...",
       });
-      router.push(`/tourPackages/${data.id}`);
+      router.push(`/tourPackages/new`);
     } catch (error) {
-      console.error("[AUTO_TOUR_PKG] create failed", error);
+      console.error("Failed to process package draft:", error);
       toast({
+        title: "Error",
+        description: "Failed to process package draft. Please try again.",
         variant: "destructive",
-        title: "Creation failed",
-        description: error instanceof Error ? error.message : "Unexpected error",
       });
     } finally {
       setIsCreating(false);

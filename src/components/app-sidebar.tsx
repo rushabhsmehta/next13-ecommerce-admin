@@ -53,6 +53,7 @@ const NAV_ITEMS = [
       { title: "Activities", url: "/activitiesMaster" },
       { title: "Tour Packages", url: "/tourPackages" },
       { title: "Auto Tour Package", url: "/tourPackages/auto" },
+      { title: "Auto Tour Package Query", url: "/tourPackageQuery/auto" },
     ],
   },
   {
@@ -123,7 +124,7 @@ const NAV_ITEMS = [
       { title: "Catalog", url: "/whatsapp/catalog" },
       { title: "List of Customers", url: "/whatsapp/customers" },
       { title: "Live Chat", url: "/whatsapp/chat" },
-  { title: "Media Library", url: "/whatsapp/media" },
+      { title: "Media Library", url: "/whatsapp/media" },
       { title: "Templates", url: "/whatsapp/templates" },
       { title: "Flows", url: "/whatsapp/flows" },
       { title: "Campaigns", url: "/whatsapp/campaigns" },

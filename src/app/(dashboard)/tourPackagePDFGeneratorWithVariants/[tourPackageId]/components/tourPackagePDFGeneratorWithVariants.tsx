@@ -733,7 +733,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection, renderBulletList]);
+  }, [initialData, currentCompany, locations, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, sectionTitleStyle, parsePricingSection, renderBulletList]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

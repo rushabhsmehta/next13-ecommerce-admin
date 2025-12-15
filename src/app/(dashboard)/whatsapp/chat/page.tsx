@@ -213,7 +213,7 @@ export default function WhatsAppSettingsPage() {
     components?: any[];
     variables?: Record<string, any>;
     flowSummary?: Record<string, any>;
-  flowSummaryRaw?: any;
+    flowSummaryRaw?: any;
     flowToken?: string;
     flowTokenLabel?: string;
     flowName?: string;
@@ -279,21 +279,21 @@ export default function WhatsAppSettingsPage() {
   };
   type CatalogInteractivePayload =
     | {
-        type: 'product';
-        body: string;
-        footer?: string;
-        header?: { type: 'text'; text: string };
-        catalogId: string;
-        productRetailerId: string;
-      }
+      type: 'product';
+      body: string;
+      footer?: string;
+      header?: { type: 'text'; text: string };
+      catalogId: string;
+      productRetailerId: string;
+    }
     | {
-        type: 'product_list';
-        body: string;
-        footer?: string;
-        header: { type: 'text'; text: string };
-        catalogId: string;
-        sections: Array<{ title?: string; productItems: Array<{ productRetailerId: string }> }>;
-      };
+      type: 'product_list';
+      body: string;
+      footer?: string;
+      header: { type: 'text'; text: string };
+      catalogId: string;
+      sections: Array<{ title?: string; productItems: Array<{ productRetailerId: string }> }>;
+    };
   type Contact = { id: string; name: string; phone: string; avatarText?: string };
   type FlowSubmissionDetails = {
     summary?: Record<string, any>;
@@ -321,7 +321,7 @@ export default function WhatsAppSettingsPage() {
     size: number;
   };
 
-  const sortContactsByRecent = (list: Contact[], convoMap: Record<string, ChatMsg[]>) => {
+  const sortContactsByRecent = useCallback((list: Contact[], convoMap: Record<string, ChatMsg[]>) => {
     return list.sort((a, b) => {
       const lastMsgA = convoMap[a.id]?.[convoMap[a.id].length - 1];
       const lastMsgB = convoMap[b.id]?.[convoMap[b.id].length - 1];
@@ -329,7 +329,7 @@ export default function WhatsAppSettingsPage() {
       const timeB = lastMsgB?.ts || 0;
       return timeB - timeA;
     });
-  };
+  }, []);
 
   const safeParseFlowJson = (raw: unknown): any | null => {
     if (!raw) return null;
@@ -583,9 +583,9 @@ export default function WhatsAppSettingsPage() {
     const flowTokenCandidates = [
       metadata.flowToken,
       metadata.flowTokenLabel,
-  metadata.flowSubmission?.flowToken,
-  metadata.interactive?.flowResponse?.flow_token,
-  metadata.interactive?.flowResponse?.flowToken,
+      metadata.flowSubmission?.flowToken,
+      metadata.interactive?.flowResponse?.flow_token,
+      metadata.interactive?.flowResponse?.flowToken,
       metadata.variables?.flowToken,
       metadata.variables?._flow_token,
       nfmReply?.flow_token,
@@ -598,9 +598,9 @@ export default function WhatsAppSettingsPage() {
 
     const flowNameCandidates = [
       metadata.flowName,
-  metadata.flowSubmission?.flowName,
-  metadata.interactive?.flowResponse?.name,
-  metadata.interactive?.flowResponse?.flow_name,
+      metadata.flowSubmission?.flowName,
+      metadata.interactive?.flowResponse?.name,
+      metadata.interactive?.flowResponse?.flow_name,
       nfmReply?.flow_name,
       nfmReply?.flowName,
       nfmReply?.name,
@@ -664,7 +664,7 @@ export default function WhatsAppSettingsPage() {
   const [sendingCatalog, setSendingCatalog] = useState(false);
   const [pendingMedia, setPendingMedia] = useState<PendingMedia | null>(null);
   const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
-  
+
   const catalogsLoadingRef = useRef(false);
   const catalogProductsLoadingRef = useRef(false);
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
@@ -739,9 +739,9 @@ export default function WhatsAppSettingsPage() {
   }, [catalogProductsLoading, selectedProductIds.length, selectedProductSummaries]);
 
   const filteredContacts = contacts
-    .filter(c => 
-      (c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
-       c.phone.toLowerCase().includes(chatSearchTerm.toLowerCase()))
+    .filter(c =>
+    (c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
+      c.phone.toLowerCase().includes(chatSearchTerm.toLowerCase()))
     )
     .filter(c => {
       // If "responded only" filter is on, check if contact has inbound messages
@@ -752,11 +752,11 @@ export default function WhatsAppSettingsPage() {
       return true;
     })
     .slice(0, visibleContactsCount); // Apply pagination limit
-  
+
   const totalAvailableContacts = contacts
-    .filter(c => 
-      (c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
-       c.phone.toLowerCase().includes(chatSearchTerm.toLowerCase()))
+    .filter(c =>
+    (c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
+      c.phone.toLowerCase().includes(chatSearchTerm.toLowerCase()))
     )
     .filter(c => {
       if (showOnlyResponded) {
@@ -765,7 +765,7 @@ export default function WhatsAppSettingsPage() {
       }
       return true;
     }).length;
-  
+
   const hasMoreContacts = filteredContacts.length < totalAvailableContacts;
 
   // Debug logging
@@ -806,7 +806,7 @@ export default function WhatsAppSettingsPage() {
     setNewChatNumber('');
   };
 
-  const substituteTemplate = (body: string, vars: {[k: string]: string}) => {
+  const substituteTemplate = (body: string, vars: { [k: string]: string }) => {
     if (!body) return '';
     return body.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k) => (vars?.[k] ?? `{{${k}}}`));
   };
@@ -824,8 +824,8 @@ export default function WhatsAppSettingsPage() {
 
   const getMessagePreviewLabel = (message?: ChatMsg): string => {
     if (!message) return 'Start a conversation';
-  const metadata = message.metadata;
-  const flowDetails = extractFlowSubmissionDetails(metadata);
+    const metadata = message.metadata;
+    const flowDetails = extractFlowSubmissionDetails(metadata);
 
     if (metadata?.templateName || metadata?.templateId) {
       return `Template • ${metadata.templateName || metadata.templateId}`;
@@ -952,18 +952,18 @@ export default function WhatsAppSettingsPage() {
 
     const flowSummaryEntries = flowDetails?.summary
       ? Object.entries(flowDetails.summary).filter(([_, value]) => {
-          if (value === null || value === undefined) return false;
-          if (typeof value === 'string' && value.trim().length === 0) return false;
-          if (Array.isArray(value) && value.length === 0) return false;
-          if (
-            typeof value === 'object' &&
-            !Array.isArray(value) &&
-            Object.keys(value as Record<string, unknown>).length === 0
-          ) {
-            return false;
-          }
-          return true;
-        })
+        if (value === null || value === undefined) return false;
+        if (typeof value === 'string' && value.trim().length === 0) return false;
+        if (Array.isArray(value) && value.length === 0) return false;
+        if (
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          Object.keys(value as Record<string, unknown>).length === 0
+        ) {
+          return false;
+        }
+        return true;
+      })
       : [];
 
     const flowSummaryElements = flowSummaryEntries
@@ -1378,367 +1378,367 @@ export default function WhatsAppSettingsPage() {
     return <div className="space-y-2">{segments}</div>;
   };
 
-    const buildTemplateSubmission = (
-      template: WhatsAppTemplate | undefined,
-      stateVars: { [key: string]: string }
-    ) => {
-      const processed: Record<string, any> = {};
-      const flowButtons = new Map<number, any>();
-      const flowWarnings: Array<{ index: number; error: string }> = [];
+  const buildTemplateSubmission = (
+    template: WhatsAppTemplate | undefined,
+    stateVars: { [key: string]: string }
+  ) => {
+    const processed: Record<string, any> = {};
+    const flowButtons = new Map<number, any>();
+    const flowWarnings: Array<{ index: number; error: string }> = [];
 
-      let documentLink: string | null = null;
-      let documentFilename: string | null = null;
-      let headerTextOverride: string | null = null;
+    let documentLink: string | null = null;
+    let documentFilename: string | null = null;
+    let headerTextOverride: string | null = null;
 
-      const bodyVarSet = new Set<string>();
-      if (template) {
-        const bodyVars = Array.isArray(template.variables) && template.variables.length > 0
-          ? (template.variables as string[])
-          : extractPlaceholders(template.body);
-        bodyVars.forEach((v) => bodyVarSet.add(String(v)));
+    const bodyVarSet = new Set<string>();
+    if (template) {
+      const bodyVars = Array.isArray(template.variables) && template.variables.length > 0
+        ? (template.variables as string[])
+        : extractPlaceholders(template.body);
+      bodyVars.forEach((v) => bodyVarSet.add(String(v)));
 
-        const headerComponent = template.components?.find((c: any) => c.type === 'HEADER' || c.type === 'header');
-        if (headerComponent?.text) {
-          extractPlaceholders(headerComponent.text).forEach((v) => bodyVarSet.add(String(v)));
-        }
+      const headerComponent = template.components?.find((c: any) => c.type === 'HEADER' || c.type === 'header');
+      if (headerComponent?.text) {
+        extractPlaceholders(headerComponent.text).forEach((v) => bodyVarSet.add(String(v)));
+      }
+    }
+
+    Object.entries(stateVars).forEach(([key, rawValue]) => {
+      if (rawValue === undefined || rawValue === null) {
+        return;
+      }
+      const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+      if (value === '') {
+        return;
       }
 
-      Object.entries(stateVars).forEach(([key, rawValue]) => {
-        if (rawValue === undefined || rawValue === null) {
-          return;
-        }
-        const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
-        if (value === '') {
-          return;
-        }
+      if (key === '_header_image') {
+        processed.headerImage = value;
+        return;
+      }
 
-        if (key === '_header_image') {
-          processed.headerImage = value;
-          return;
-        }
-
-        if (key === '_header_video') {
-          processed.header = {
-            type: 'video',
-            video: { link: value },
-          };
-          return;
-        }
-
-        if (key === '_header_document') {
-          documentLink = value;
-          return;
-        }
-
-        if (key === '_header_document_filename') {
-          documentFilename = value;
-          return;
-        }
-
-        if (key === '_header_text') {
-          headerTextOverride = value;
-          return;
-        }
-
-        const urlMatch = key.match(/^_button_(\d+)_url$/);
-        if (urlMatch) {
-          const idx = Number(urlMatch[1]);
-          processed[`button${idx}`] = [value];
-          return;
-        }
-
-        const flowMatch = key.match(/^_flow_(\d+)_(.+)$/);
-        if (flowMatch) {
-          const idx = Number(flowMatch[1]);
-          const field = flowMatch[2];
-          const existing = flowButtons.get(idx) || { index: idx };
-
-          if (field === 'token') {
-            existing.flow_token = value;
-          } else if (field === 'id') {
-            existing.flow_id = value;
-          } else if (field === 'name') {
-            existing.flow_name = value;
-          } else if (field === 'cta') {
-            existing.flow_cta = value;
-          } else if (field === 'message_version') {
-            existing.flow_message_version = value;
-          } else if (field === 'action') {
-            existing.flow_action = value;
-          } else if (field === 'action_data') {
-            existing._raw_action_data = value;
-            if (typeof value === 'string' && value.trim().length > 0) {
-              try {
-                existing.flow_action_data = JSON.parse(value);
-              } catch (err: any) {
-                existing.flow_action_data = value;
-                existing._action_data_error = err?.message || 'Invalid JSON';
-              }
-            }
-          } else if (field === 'action_payload') {
-            existing.flow_action_payload = value;
-          } else if (field === 'token_label') {
-            existing.flow_token_label = value;
-          } else {
-            existing[field] = value;
-          }
-
-          flowButtons.set(idx, existing);
-          return;
-        }
-
-        if (bodyVarSet.has(key) || /^\d+$/.test(key)) {
-          processed[key] = value;
-          return;
-        }
-
-        processed[key] = value;
-      });
-
-      if (documentLink) {
+      if (key === '_header_video') {
         processed.header = {
-          type: 'document',
-          document: {
-            link: documentLink,
-            filename: documentFilename || 'document.pdf',
-          },
+          type: 'video',
+          video: { link: value },
         };
-      } else if (headerTextOverride) {
-        processed.header = {
-          type: 'text',
-          text: headerTextOverride,
-        };
+        return;
       }
 
-      const flowButtonArray: Array<{ index: number; parameter: any; warnings?: string[] }> = [];
-
-      flowButtons.forEach((flow, idx) => {
-        const parameter: any = {
-          type: 'flow',
-          flow_token: flow.flow_token || `flow-${Date.now()}-${idx}`,
-          flow_message_version: flow.flow_message_version || '3',
-        };
-
-        if (flow.flow_id) parameter.flow_id = flow.flow_id;
-        if (flow.flow_name) parameter.flow_name = flow.flow_name;
-        if (flow.flow_cta) parameter.flow_cta = flow.flow_cta;
-        if (flow.flow_action) parameter.flow_action = flow.flow_action;
-        if (flow.flow_action_data !== undefined && flow.flow_action_data !== '') {
-          parameter.flow_action_data = flow.flow_action_data;
-        }
-        if (flow.flow_action_payload) {
-          parameter.flow_action_payload = flow.flow_action_payload;
-        }
-        if (flow.flow_token_label) {
-          parameter.flow_token_label = flow.flow_token_label;
-        }
-
-        if (flow._action_data_error) {
-          flowWarnings.push({ index: idx, error: flow._action_data_error });
-        }
-
-        processed[`_flow_button_${idx}`] = parameter;
-        flowButtonArray.push({
-          index: idx,
-          parameter,
-          warnings: flow._action_data_error ? [flow._action_data_error] : undefined,
-        });
-      });
-
-      return {
-        variables: processed,
-        flowButtons: flowButtonArray,
-        warnings: flowWarnings,
-      };
-    };
-
-    const orderTemplateVariableKeys = (keys: string[]) => {
-      const body: string[] = [];
-      const header: string[] = [];
-      const button: string[] = [];
-      const flow: string[] = [];
-      const other: string[] = [];
-
-      keys.forEach((key) => {
-        if (key.startsWith('_flow_')) {
-          flow.push(key);
-        } else if (key.startsWith('_header')) {
-          header.push(key);
-        } else if (key.startsWith('_button_')) {
-          button.push(key);
-        } else if (key.startsWith('_')) {
-          other.push(key);
-        } else {
-          body.push(key);
-        }
-      });
-
-      return [...body, ...header, ...button, ...flow, ...other];
-    };
-
-    const formatVariableLabel = (variable: string) => {
-      if (/^\d+$/.test(variable)) {
-        return `Body Variable {{${variable}}}`;
+      if (key === '_header_document') {
+        documentLink = value;
+        return;
       }
 
-      if (variable.startsWith('_header_document')) {
-        return variable.endsWith('filename') ? 'Header Document Filename' : 'Header Document URL';
+      if (key === '_header_document_filename') {
+        documentFilename = value;
+        return;
       }
 
-      if (variable === '_header_image') return 'Header Image URL';
-      if (variable === '_header_video') return 'Header Video URL';
-      if (variable === '_header_text') return 'Header Text';
-
-      const buttonMatch = variable.match(/^_button_(\d+)_url$/);
-      if (buttonMatch) {
-        const idx = Number(buttonMatch[1]) + 1;
-        return `Button ${idx} URL Parameter`;
+      if (key === '_header_text') {
+        headerTextOverride = value;
+        return;
       }
 
-      const flowMatch = variable.match(/^_flow_(\d+)_(.+)$/);
+      const urlMatch = key.match(/^_button_(\d+)_url$/);
+      if (urlMatch) {
+        const idx = Number(urlMatch[1]);
+        processed[`button${idx}`] = [value];
+        return;
+      }
+
+      const flowMatch = key.match(/^_flow_(\d+)_(.+)$/);
       if (flowMatch) {
-        const idx = Number(flowMatch[1]) + 1;
-        const field = flowMatch[2]
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, (ch) => ch.toUpperCase());
-        return `Flow Button ${idx} ${field}`;
+        const idx = Number(flowMatch[1]);
+        const field = flowMatch[2];
+        const existing = flowButtons.get(idx) || { index: idx };
+
+        if (field === 'token') {
+          existing.flow_token = value;
+        } else if (field === 'id') {
+          existing.flow_id = value;
+        } else if (field === 'name') {
+          existing.flow_name = value;
+        } else if (field === 'cta') {
+          existing.flow_cta = value;
+        } else if (field === 'message_version') {
+          existing.flow_message_version = value;
+        } else if (field === 'action') {
+          existing.flow_action = value;
+        } else if (field === 'action_data') {
+          existing._raw_action_data = value;
+          if (typeof value === 'string' && value.trim().length > 0) {
+            try {
+              existing.flow_action_data = JSON.parse(value);
+            } catch (err: any) {
+              existing.flow_action_data = value;
+              existing._action_data_error = err?.message || 'Invalid JSON';
+            }
+          }
+        } else if (field === 'action_payload') {
+          existing.flow_action_payload = value;
+        } else if (field === 'token_label') {
+          existing.flow_token_label = value;
+        } else {
+          existing[field] = value;
+        }
+
+        flowButtons.set(idx, existing);
+        return;
       }
 
-      return variable
+      if (bodyVarSet.has(key) || /^\d+$/.test(key)) {
+        processed[key] = value;
+        return;
+      }
+
+      processed[key] = value;
+    });
+
+    if (documentLink) {
+      processed.header = {
+        type: 'document',
+        document: {
+          link: documentLink,
+          filename: documentFilename || 'document.pdf',
+        },
+      };
+    } else if (headerTextOverride) {
+      processed.header = {
+        type: 'text',
+        text: headerTextOverride,
+      };
+    }
+
+    const flowButtonArray: Array<{ index: number; parameter: any; warnings?: string[] }> = [];
+
+    flowButtons.forEach((flow, idx) => {
+      const parameter: any = {
+        type: 'flow',
+        flow_token: flow.flow_token || `flow-${Date.now()}-${idx}`,
+        flow_message_version: flow.flow_message_version || '3',
+      };
+
+      if (flow.flow_id) parameter.flow_id = flow.flow_id;
+      if (flow.flow_name) parameter.flow_name = flow.flow_name;
+      if (flow.flow_cta) parameter.flow_cta = flow.flow_cta;
+      if (flow.flow_action) parameter.flow_action = flow.flow_action;
+      if (flow.flow_action_data !== undefined && flow.flow_action_data !== '') {
+        parameter.flow_action_data = flow.flow_action_data;
+      }
+      if (flow.flow_action_payload) {
+        parameter.flow_action_payload = flow.flow_action_payload;
+      }
+      if (flow.flow_token_label) {
+        parameter.flow_token_label = flow.flow_token_label;
+      }
+
+      if (flow._action_data_error) {
+        flowWarnings.push({ index: idx, error: flow._action_data_error });
+      }
+
+      processed[`_flow_button_${idx}`] = parameter;
+      flowButtonArray.push({
+        index: idx,
+        parameter,
+        warnings: flow._action_data_error ? [flow._action_data_error] : undefined,
+      });
+    });
+
+    return {
+      variables: processed,
+      flowButtons: flowButtonArray,
+      warnings: flowWarnings,
+    };
+  };
+
+  const orderTemplateVariableKeys = (keys: string[]) => {
+    const body: string[] = [];
+    const header: string[] = [];
+    const button: string[] = [];
+    const flow: string[] = [];
+    const other: string[] = [];
+
+    keys.forEach((key) => {
+      if (key.startsWith('_flow_')) {
+        flow.push(key);
+      } else if (key.startsWith('_header')) {
+        header.push(key);
+      } else if (key.startsWith('_button_')) {
+        button.push(key);
+      } else if (key.startsWith('_')) {
+        other.push(key);
+      } else {
+        body.push(key);
+      }
+    });
+
+    return [...body, ...header, ...button, ...flow, ...other];
+  };
+
+  const formatVariableLabel = (variable: string) => {
+    if (/^\d+$/.test(variable)) {
+      return `Body Variable {{${variable}}}`;
+    }
+
+    if (variable.startsWith('_header_document')) {
+      return variable.endsWith('filename') ? 'Header Document Filename' : 'Header Document URL';
+    }
+
+    if (variable === '_header_image') return 'Header Image URL';
+    if (variable === '_header_video') return 'Header Video URL';
+    if (variable === '_header_text') return 'Header Text';
+
+    const buttonMatch = variable.match(/^_button_(\d+)_url$/);
+    if (buttonMatch) {
+      const idx = Number(buttonMatch[1]) + 1;
+      return `Button ${idx} URL Parameter`;
+    }
+
+    const flowMatch = variable.match(/^_flow_(\d+)_(.+)$/);
+    if (flowMatch) {
+      const idx = Number(flowMatch[1]) + 1;
+      const field = flowMatch[2]
         .replace(/_/g, ' ')
         .replace(/\b\w/g, (ch) => ch.toUpperCase());
-    };
+      return `Flow Button ${idx} ${field}`;
+    }
 
-    const variableHelperText = (variable: string): string | undefined => {
-      if (variable === '_header_image') return 'Public HTTPS link to the header image.';
-      if (variable === '_header_video') return 'Public HTTPS link to the header video.';
-      if (variable === '_header_document') return 'Public HTTPS link to the document (PDF, etc.).';
-      if (variable === '_header_document_filename') return 'Filename that will appear to the recipient (e.g., brochure.pdf).';
+    return variable
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (ch) => ch.toUpperCase());
+  };
 
-      const flowMatch = variable.match(/^_flow_(\d+)_(.+)$/);
-      if (flowMatch) {
-        const field = flowMatch[2];
-        if (field === 'token') return 'Unique token for this flow invocation. Auto-generated but editable.';
-        if (field === 'message_version') return 'Flow message version (default 3).';
-        if (field === 'id') return 'Flow ID from WhatsApp Flows Manager.';
-        if (field === 'name') return 'Human readable flow name for logging.';
-        if (field === 'cta') return 'CTA label shown on the button.';
-        if (field === 'action') return 'Optional flow action (navigate or data_exchange).';
-        if (field === 'action_data') return 'JSON payload passed as flow_action_data.';
-        if (field === 'action_payload') return 'Optional JSON payload for flow_action_payload.';
+  const variableHelperText = (variable: string): string | undefined => {
+    if (variable === '_header_image') return 'Public HTTPS link to the header image.';
+    if (variable === '_header_video') return 'Public HTTPS link to the header video.';
+    if (variable === '_header_document') return 'Public HTTPS link to the document (PDF, etc.).';
+    if (variable === '_header_document_filename') return 'Filename that will appear to the recipient (e.g., brochure.pdf).';
+
+    const flowMatch = variable.match(/^_flow_(\d+)_(.+)$/);
+    if (flowMatch) {
+      const field = flowMatch[2];
+      if (field === 'token') return 'Unique token for this flow invocation. Auto-generated but editable.';
+      if (field === 'message_version') return 'Flow message version (default 3).';
+      if (field === 'id') return 'Flow ID from WhatsApp Flows Manager.';
+      if (field === 'name') return 'Human readable flow name for logging.';
+      if (field === 'cta') return 'CTA label shown on the button.';
+      if (field === 'action') return 'Optional flow action (navigate or data_exchange).';
+      if (field === 'action_data') return 'JSON payload passed as flow_action_data.';
+      if (field === 'action_payload') return 'Optional JSON payload for flow_action_payload.';
+    }
+
+    return undefined;
+  };
+
+  const isLongFormField = (variable: string) => /action_data|payload|json/i.test(variable);
+
+  const getVariableUploadConfig = (variable: string) => {
+    if (variable === '_header_document') {
+      return {
+        accept: 'application/pdf',
+        label: 'PDF',
+        description: 'Document'
+      } as const;
+    }
+    if (variable === '_header_image') {
+      return {
+        accept: 'image/*',
+        label: 'Image',
+        description: 'Image'
+      } as const;
+    }
+    return null;
+  };
+
+  const handleVariableFileUpload = useCallback(
+    async (variable: string, file: File) => {
+      const config = getVariableUploadConfig(variable);
+      if (!config) {
+        return;
       }
 
-      return undefined;
-    };
-
-    const isLongFormField = (variable: string) => /action_data|payload|json/i.test(variable);
-
-    const getVariableUploadConfig = (variable: string) => {
-      if (variable === '_header_document') {
-        return {
-          accept: 'application/pdf',
-          label: 'PDF',
-          description: 'Document'
-        } as const;
+      if (file.size > INLINE_UPLOAD_MAX_BYTES) {
+        toast.error(`File exceeds the ${INLINE_UPLOAD_MAX_MB} MB limit.`);
+        return;
       }
-      if (variable === '_header_image') {
-        return {
-          accept: 'image/*',
-          label: 'Image',
-          description: 'Image'
-        } as const;
-      }
-      return null;
-    };
 
-    const handleVariableFileUpload = useCallback(
-      async (variable: string, file: File) => {
-        const config = getVariableUploadConfig(variable);
-        if (!config) {
-          return;
+      setVariableUploadState((prev) => ({
+        ...prev,
+        [variable]: { isLoading: true, error: undefined, fileName: file.name },
+      }));
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/uploads/images', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Upload failed');
         }
 
-        if (file.size > INLINE_UPLOAD_MAX_BYTES) {
-          toast.error(`File exceeds the ${INLINE_UPLOAD_MAX_MB} MB limit.`);
-          return;
+        const uploadedFile = Array.isArray(payload?.files) ? payload.files[0] : payload?.file;
+        const secureUrl = uploadedFile?.secureUrl || uploadedFile?.secure_url || uploadedFile?.url;
+
+        if (!secureUrl) {
+          throw new Error('Upload response did not include a URL');
         }
+
+        setTemplateVariables((prev) => ({
+          ...prev,
+          [variable]: secureUrl,
+          ...(variable === '_header_document' && !prev['_header_document_filename']
+            ? { _header_document_filename: file.name }
+            : {}),
+        }));
+
+        toast.success(`${config.description} uploaded`);
 
         setVariableUploadState((prev) => ({
           ...prev,
-          [variable]: { isLoading: true, error: undefined, fileName: file.name },
+          [variable]: { isLoading: false, error: undefined, fileName: file.name },
         }));
+      } catch (error: any) {
+        console.error('[template-variable-upload] Failed to upload media', error);
+        toast.error(error?.message || 'Upload failed');
+        setVariableUploadState((prev) => ({
+          ...prev,
+          [variable]: { isLoading: false, error: error?.message || 'Upload failed' },
+        }));
+      }
+    },
+    [setTemplateVariables]
+  );
 
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
+  const handleCopyVariableValue = useCallback(
+    async (variable: string) => {
+      const value = templateVariables[variable];
+      if (!value) {
+        toast.error('Nothing to copy');
+        return;
+      }
 
-          const response = await fetch('/api/uploads/images', {
-            method: 'POST',
-            body: formData,
-          });
+      if (typeof navigator === 'undefined' || !navigator.clipboard) {
+        toast.error('Clipboard not available');
+        return;
+      }
 
-          const payload = await response.json();
-
-          if (!response.ok) {
-            throw new Error(payload?.error || 'Upload failed');
-          }
-
-          const uploadedFile = Array.isArray(payload?.files) ? payload.files[0] : payload?.file;
-          const secureUrl = uploadedFile?.secureUrl || uploadedFile?.secure_url || uploadedFile?.url;
-
-          if (!secureUrl) {
-            throw new Error('Upload response did not include a URL');
-          }
-
-          setTemplateVariables((prev) => ({
-            ...prev,
-            [variable]: secureUrl,
-            ...(variable === '_header_document' && !prev['_header_document_filename']
-              ? { _header_document_filename: file.name }
-              : {}),
-          }));
-
-          toast.success(`${config.description} uploaded`);
-
-          setVariableUploadState((prev) => ({
-            ...prev,
-            [variable]: { isLoading: false, error: undefined, fileName: file.name },
-          }));
-        } catch (error: any) {
-          console.error('[template-variable-upload] Failed to upload media', error);
-          toast.error(error?.message || 'Upload failed');
-          setVariableUploadState((prev) => ({
-            ...prev,
-            [variable]: { isLoading: false, error: error?.message || 'Upload failed' },
-          }));
-        }
-      },
-      [setTemplateVariables]
-    );
-
-    const handleCopyVariableValue = useCallback(
-      async (variable: string) => {
-        const value = templateVariables[variable];
-        if (!value) {
-          toast.error('Nothing to copy');
-          return;
-        }
-
-        if (typeof navigator === 'undefined' || !navigator.clipboard) {
-          toast.error('Clipboard not available');
-          return;
-        }
-
-        try {
-          await navigator.clipboard.writeText(value);
-          toast.success('Link copied');
-        } catch (error: any) {
-          console.error('[template-variable-copy] Failed to copy URL', error);
-          toast.error('Unable to copy the link');
-        }
-      },
-      [templateVariables]
-    );
+      try {
+        await navigator.clipboard.writeText(value);
+        toast.success('Link copied');
+      } catch (error: any) {
+        console.error('[template-variable-copy] Failed to copy URL', error);
+        toast.error('Unable to copy the link');
+      }
+    },
+    [templateVariables]
+  );
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -1800,10 +1800,10 @@ export default function WhatsAppSettingsPage() {
   }, [addDebugLog]);
 
   const exportDebugLogs = () => {
-    const logsText = debugLogs.map(log => 
+    const logsText = debugLogs.map(log =>
       `[${log.timestamp.toISOString()}] [${log.type.toUpperCase()}] ${log.action}\n${JSON.stringify(log.details, null, 2)}`
     ).join('\n\n' + '='.repeat(80) + '\n\n');
-    
+
     const blob = new Blob([logsText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1851,20 +1851,20 @@ export default function WhatsAppSettingsPage() {
       const payload = await response.json();
       const options: CatalogProductOption[] = Array.isArray(payload?.data)
         ? payload.data
-            .map((item: any) => {
-              const retailerId = item?.retailerId || item?.product?.sku || item?.product?.retailerId;
-              if (!retailerId) {
-                return null;
-              }
-              const name = item?.title || item?.product?.name || 'Untitled product';
-              return {
-                id: item?.id || retailerId,
-                name,
-                retailerId: String(retailerId).trim(),
-                sku: item?.product?.sku || null,
-              } as CatalogProductOption;
-            })
-            .filter((option: CatalogProductOption | null): option is CatalogProductOption => Boolean(option))
+          .map((item: any) => {
+            const retailerId = item?.retailerId || item?.product?.sku || item?.product?.retailerId;
+            if (!retailerId) {
+              return null;
+            }
+            const name = item?.title || item?.product?.name || 'Untitled product';
+            return {
+              id: item?.id || retailerId,
+              name,
+              retailerId: String(retailerId).trim(),
+              sku: item?.product?.sku || null,
+            } as CatalogProductOption;
+          })
+          .filter((option: CatalogProductOption | null): option is CatalogProductOption => Boolean(option))
         : [];
 
       const uniqueByRetailer = options.reduce<CatalogProductOption[]>((acc, option) => {
@@ -1944,7 +1944,7 @@ export default function WhatsAppSettingsPage() {
         if (current?.previewUrl) {
           URL.revokeObjectURL(current.previewUrl);
         }
-  const previewUrl = URL.createObjectURL(file);
+        const previewUrl = URL.createObjectURL(file);
         return {
           file,
           previewUrl,
@@ -2128,12 +2128,12 @@ export default function WhatsAppSettingsPage() {
 
         // Check if message has an associated WhatsAppCustomer
         const whatsappCustomer = (msg as any).whatsappCustomer;
-        const customerName = whatsappCustomer 
+        const customerName = whatsappCustomer
           ? `${whatsappCustomer.firstName}${whatsappCustomer.lastName ? ' ' + whatsappCustomer.lastName : ''}`
           : null;
 
         const profileName = baseMetadata?.contactName;
-        const displayName = customerName 
+        const displayName = customerName
           ? customerName
           : profileName
             ? profileName
@@ -2165,7 +2165,7 @@ export default function WhatsAppSettingsPage() {
         // Extract readable message text and template metadata
         let messageText = msg.message || baseMetadata?.textPreview || '[No content]';
         let templateMetadata: ChatMsg['metadata'] = undefined;
-        
+
         // Check if message has metadata with template info (cast to any to avoid TS error until Prisma regenerates)
         const msgMetadata = (msg as any).metadata;
         if (msgMetadata?.templateId || msgMetadata?.templateName) {
@@ -2237,7 +2237,7 @@ export default function WhatsAppSettingsPage() {
               messageText = baseMetadata.textPreview || messageText;
           }
         }
-        
+
         // If message is in old template ID format like [template:HXa7...], try to make it readable
         if (messageText.startsWith('[template:')) {
           const templateId = messageText.match(/\[template:([^\]]+)\]/)?.[1];
@@ -2256,7 +2256,7 @@ export default function WhatsAppSettingsPage() {
             }
           }
         }
-        
+
         const mergedMetadata: ChatMsg['metadata'] = {
           ...(baseMetadata || {}),
           ...(templateMetadata || {}),
@@ -2282,7 +2282,7 @@ export default function WhatsAppSettingsPage() {
 
       // Debug: Log built conversations
       console.log('✅ Built', contactsList.length, 'contacts with convos');
-      
+
       // Categorize contacts
       const templateOnlyContacts = contactsList.filter(c => {
         const convo = convoMap[c.id] || [];
@@ -2292,9 +2292,9 @@ export default function WhatsAppSettingsPage() {
         const convo = convoMap[c.id] || [];
         return convo.some(m => m.direction === 'in');
       });
-      
+
       console.log(`  📊 Breakdown: ${twoWayContacts.length} two-way, ${templateOnlyContacts.length} template-only`);
-      
+
       contactsList.slice(0, 10).forEach(contact => {
         const convo = convoMap[contact.id] || [];
         const outboundInConvo = convo.filter(m => m.direction === 'out').length;
@@ -2334,7 +2334,7 @@ export default function WhatsAppSettingsPage() {
         sortContactsByRecent(newContacts, newConvos);
       }
     }
-    
+
     if (newContacts.length > 0) {
       setContacts(newContacts);
       setConvos(newConvos);
@@ -2406,7 +2406,7 @@ export default function WhatsAppSettingsPage() {
       setVisibleMessageCounts({});
       console.log('⚠️ No contacts to display');
     }
-  }, [messages, templates, activeId]);
+  }, [messages, templates, activeId, sortContactsByRecent]);
 
   const activeContact = contacts.find(c => c.id === activeId) || null;
 
@@ -2429,9 +2429,9 @@ export default function WhatsAppSettingsPage() {
 
   const activeVisibleCount = activeContactId
     ? (visibleMessageCounts[activeContactId] ?? Math.min(
-        INITIAL_VISIBLE_MESSAGES,
-        activeContactMessages.length || INITIAL_VISIBLE_MESSAGES
-      ))
+      INITIAL_VISIBLE_MESSAGES,
+      activeContactMessages.length || INITIAL_VISIBLE_MESSAGES
+    ))
     : INITIAL_VISIBLE_MESSAGES;
 
   const activeVisibleMessages = useMemo(
@@ -2822,9 +2822,9 @@ export default function WhatsAppSettingsPage() {
             case 'message_version':
               assign(
                 defaultAction?.flow_message_version ??
-                  btn?.flowMessageVersion ??
-                  next[variable] ??
-                  '3'
+                btn?.flowMessageVersion ??
+                next[variable] ??
+                '3'
               );
               break;
             case 'id':
@@ -2833,17 +2833,17 @@ export default function WhatsAppSettingsPage() {
             case 'name':
               assign(
                 defaultAction?.flow_name ??
-                  btn?.flowName ??
-                  btn?.text ??
-                  next[variable]
+                btn?.flowName ??
+                btn?.text ??
+                next[variable]
               );
               break;
             case 'cta':
               assign(
                 defaultAction?.flow_cta ??
-                  btn?.flowCta ??
-                  btn?.text ??
-                  next[variable]
+                btn?.flowCta ??
+                btn?.text ??
+                next[variable]
               );
               break;
             case 'action':
@@ -2855,22 +2855,22 @@ export default function WhatsAppSettingsPage() {
             case 'action_payload':
               assign(
                 defaultAction?.flow_action_payload ??
-                  (btn as any)?.flowActionPayload ??
-                  next[variable]
+                (btn as any)?.flowActionPayload ??
+                next[variable]
               );
               break;
             case 'token_label':
               assign(
                 defaultAction?.flow_token_label ??
-                  (btn as any)?.flowTokenLabel ??
-                  next[variable]
+                (btn as any)?.flowTokenLabel ??
+                next[variable]
               );
               break;
             case 'redirect_url':
               assign(
                 defaultAction?.flow_redirect_url ??
-                  btn?.flowRedirectUrl ??
-                  next[variable]
+                btn?.flowRedirectUrl ??
+                next[variable]
               );
               break;
             default:
@@ -2969,14 +2969,14 @@ export default function WhatsAppSettingsPage() {
 
     const templateMetadata = selectedTemplateId && tpl
       ? {
-          templateId: tpl.id,
-          templateName: tpl.name,
-          headerImage: processedVariables.headerImage || templateVariables['_header_image'],
-          buttons: tpl.whatsapp?.buttons || [],
-          components: tpl.components || [],
-          flowButtons: submission.flowButtons,
-          variables: processedVariables,
-        }
+        templateId: tpl.id,
+        templateName: tpl.name,
+        headerImage: processedVariables.headerImage || templateVariables['_header_image'],
+        buttons: tpl.whatsapp?.buttons || [],
+        components: tpl.components || [],
+        flowButtons: submission.flowButtons,
+        variables: processedVariables,
+      }
       : undefined;
 
     if (templateMetadata) {
@@ -3323,8 +3323,8 @@ export default function WhatsAppSettingsPage() {
     const trimmedFooter = catalogFooter.trim();
     const resolvedBody = catalogBody.trim() || 'Browse these items from our catalog.';
 
-  let interactivePayload: CatalogInteractivePayload | null = null;
-  let metadataCatalog: ChatMsgMetadata['catalog'] = undefined;
+    let interactivePayload: CatalogInteractivePayload | null = null;
+    let metadataCatalog: ChatMsgMetadata['catalog'] = undefined;
 
     if (catalogMode === 'single') {
       const trimmedProductId = catalogProductId.trim();
@@ -3351,9 +3351,9 @@ export default function WhatsAppSettingsPage() {
       const parsedIdsSource = selectedProductIds.length > 0
         ? selectedProductIds
         : catalogProductIds
-            .split(/[\s,;]+/)
-            .map((entry) => entry.trim())
-            .filter((entry) => entry.length > 0);
+          .split(/[\s,;]+/)
+          .map((entry) => entry.trim())
+          .filter((entry) => entry.length > 0);
 
       const parsedIds = Array.from(new Set(parsedIdsSource.map((id) => id.trim()).filter((id) => id.length > 0)));
 
@@ -3523,12 +3523,12 @@ export default function WhatsAppSettingsPage() {
     // Use active contact from chat interface or fallback to phone number
     // Priority: activeContact (from chat) > phoneNumber (from form)
     const recipientPhone = activeContact?.phone || phoneNumber;
-    
+
     if (!recipientPhone) {
       toast.error('Please select a contact or enter phone number');
       return;
     }
-    
+
     console.log('📤 Sending to:', recipientPhone);
     if (!selectedTemplate) {
       toast.error('Please select a template');
@@ -3577,7 +3577,7 @@ export default function WhatsAppSettingsPage() {
 
       if (result.success) {
         toast.success('Message sent successfully!');
-        
+
         // If we're in chat mode, add the message to the conversation immediately
         if (activeContact) {
           const messageText = substituteTemplate(tpl.body, processedVariables);
@@ -3595,19 +3595,19 @@ export default function WhatsAppSettingsPage() {
                 templateName: tpl.name,
                 headerImage: processedVariables.headerImage,
                 buttons: tpl.whatsapp?.buttons,
-                  components: tpl.components,
-                  flowButtons: submission.flowButtons,
+                components: tpl.components,
+                flowButtons: submission.flowButtons,
               }
             });
             return { ...prev, [activeContact.phone]: arr };
           });
         }
-        
+
         setPhoneNumber('');
         setMessage('');
         setSelectedTemplate('');
         setTemplateVariables({});
-        
+
         // Refresh messages from database
         setTimeout(() => fetchMessages(), 1000);
       } else {
@@ -3959,7 +3959,7 @@ export default function WhatsAppSettingsPage() {
                               let fieldLabel = variable;
                               let fieldPlaceholder = `Enter ${variable}`;
                               let fieldType = 'text';
-                              
+
                               if (variable === '_header_image') {
                                 fieldLabel = '📷 Header Image URL';
                                 fieldPlaceholder = 'https://example.com/image.jpg';
@@ -3985,7 +3985,7 @@ export default function WhatsAppSettingsPage() {
                               } else {
                                 fieldLabel = `{{${variable}}}`;
                               }
-                              
+
                               return (
                                 <div key={variable} className="space-y-1">
                                   <Label className="text-sm font-medium">{fieldLabel}</Label>
@@ -4227,9 +4227,9 @@ export default function WhatsAppSettingsPage() {
                   <Badge variant="secondary">{debugLogs.length}</Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button 
-                    onClick={() => setShowDebugLogs(!showDebugLogs)} 
-                    variant="ghost" 
+                  <Button
+                    onClick={() => setShowDebugLogs(!showDebugLogs)}
+                    variant="ghost"
                     size="sm"
                   >
                     {showDebugLogs ? 'Hide' : 'Show'}
@@ -4265,17 +4265,17 @@ export default function WhatsAppSettingsPage() {
                         error: 'bg-red-50 border-red-200 text-red-900 dark:bg-red-950 dark:border-red-800 dark:text-red-100',
                         warning: 'bg-yellow-50 border-yellow-200 text-yellow-900 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-100'
                       };
-                      
+
                       const typeIcons = {
                         info: '📘',
                         success: '✅',
                         error: '❌',
                         warning: '⚠️'
                       };
-                      
+
                       return (
-                        <div 
-                          key={log.id} 
+                        <div
+                          key={log.id}
                           className={`border rounded-lg p-3 text-sm ${typeColors[log.type]}`}
                         >
                           <div className="flex items-start justify-between mb-2">
@@ -4362,7 +4362,7 @@ export default function WhatsAppSettingsPage() {
           </Card>
         </>
       ) : (
-  <div className="flex h-[calc(100vh-12rem)] rounded-2xl border overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-slate-100 shadow-xl dark:from-[#0b141a] dark:via-[#111b21] dark:to-[#0b141a] dark:border-slate-800/80">
+        <div className="flex h-[calc(100vh-12rem)] rounded-2xl border overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-slate-100 shadow-xl dark:from-[#0b141a] dark:via-[#111b21] dark:to-[#0b141a] dark:border-slate-800/80">
           <style jsx global>{`
             .scrollbar-custom::-webkit-scrollbar {
               width: 6px;
@@ -4378,7 +4378,7 @@ export default function WhatsAppSettingsPage() {
               background: hsl(var(--muted-foreground) / 0.4);
             }
           `}</style>
-          
+
           {/* Chat Sidebar */}
           <div className="flex w-80 flex-col border-r border-emerald-100/60 bg-white/70 backdrop-blur-md dark:border-slate-800 dark:bg-[#111b21]/80">
             <div className="flex items-center justify-between border-b border-emerald-100/60 bg-white/60 p-4 backdrop-blur dark:border-slate-800 dark:bg-[#0b141a]/70">
@@ -4454,7 +4454,7 @@ export default function WhatsAppSettingsPage() {
                   >
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-semibold">
-                        {c.avatarText || c.phone.replace(/\D/g,'').slice(-2) || 'CT'}
+                        {c.avatarText || c.phone.replace(/\D/g, '').slice(-2) || 'CT'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 overflow-hidden">
@@ -4504,7 +4504,7 @@ export default function WhatsAppSettingsPage() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-semibold">
-                        {activeContact.avatarText || activeContact.phone.replace(/\D/g,'').slice(-2) || 'CT'}
+                        {activeContact.avatarText || activeContact.phone.replace(/\D/g, '').slice(-2) || 'CT'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -4611,7 +4611,7 @@ export default function WhatsAppSettingsPage() {
                                   : "justify-start text-emerald-800/80 dark:text-emerald-200/80"
                               )}
                             >
-                              <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+                              <span>{new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                               {m.direction === 'out' && (
                                 <span className="inline-flex">
                                   {m.status === 0 && <span className="opacity-50">🕐</span>}
@@ -4678,7 +4678,7 @@ export default function WhatsAppSettingsPage() {
                       </div>
                     );
                   })}
-                  
+
                   {typing && (
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 flex-shrink-0">
@@ -4688,14 +4688,14 @@ export default function WhatsAppSettingsPage() {
                       </Avatar>
                       <div className="rounded-2xl rounded-bl-md border border-emerald-100/70 bg-white/90 p-4 shadow-sm dark:border-[#1f2c33] dark:bg-[#1f2c33]/80">
                         <div className="flex gap-1.5">
-                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{animationDelay: '0ms'}}></span>
-                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{animationDelay: '150ms'}}></span>
-                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{animationDelay: '300ms'}}></span>
+                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '300ms' }}></span>
                         </div>
                       </div>
                     </div>
                   )}
-                  
+
                   <div ref={chatMessagesEndRef} />
                 </div>
 
@@ -5161,7 +5161,7 @@ export default function WhatsAppSettingsPage() {
                   >
                     <ImageIcon className="h-5 w-5" />
                   </Button>
-                  
+
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground hover:bg-accent">
@@ -5175,11 +5175,11 @@ export default function WhatsAppSettingsPage() {
                       />
                     </PopoverContent>
                   </Popover>
-                  
+
                   <Input
                     placeholder={selectedTemplate ? 'Template selected. Type to clear.' : 'Type a message...'}
                     className="h-11 flex-1 rounded-full border border-emerald-100/70 bg-white/80 px-4 text-slate-900 shadow-inner focus-visible:ring-emerald-400 dark:border-[#1f2c33] dark:bg-[#1f2c33]/80 dark:text-slate-100"
-                    value={selectedTemplate ? substituteTemplate(templates.find(t => t.id===selectedTemplate)?.body || '', templateVariables) : message}
+                    value={selectedTemplate ? substituteTemplate(templates.find(t => t.id === selectedTemplate)?.body || '', templateVariables) : message}
                     onChange={(e) => {
                       if (selectedTemplate) {
                         setSelectedTemplate('');
@@ -5195,7 +5195,7 @@ export default function WhatsAppSettingsPage() {
                       }
                     }}
                   />
-                  
+
                   <Button
                     size="icon"
                     className="rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 hover:from-emerald-600 hover:to-teal-600"
@@ -5303,7 +5303,7 @@ export default function WhatsAppSettingsPage() {
                   <p className="text-xs text-muted-foreground">Include country code (e.g., +91 for India)</p>
                 </div>
               )}
-              
+
               {/* Template Variables */}
               <div className="space-y-3">
                 <h4 className="font-semibold text-sm">Template Variables</h4>
@@ -5450,22 +5450,22 @@ export default function WhatsAppSettingsPage() {
                   {(() => {
                     const tpl = templates.find(t => t.id === selectedTemplate);
                     const components = tpl?.components || [];
-                    const headerComponent = components.find((c: any) => 
+                    const headerComponent = components.find((c: any) =>
                       (c.type === 'HEADER' || c.type === 'header')
                     );
-                    
+
                     if (!headerComponent) return null;
-                    
+
                     const headerFormat = (headerComponent.format || '').toUpperCase();
-                    
+
                     // IMAGE Header
                     if (headerFormat === 'IMAGE' && templateVariables['_header_image']) {
                       return (
                         <div className="w-full bg-gray-100 dark:bg-gray-800">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img 
-                            src={templateVariables['_header_image']} 
-                            alt="Header" 
+                          <img
+                            src={templateVariables['_header_image']}
+                            alt="Header"
                             className="w-full h-auto max-h-48 object-cover"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
@@ -5475,20 +5475,20 @@ export default function WhatsAppSettingsPage() {
                         </div>
                       );
                     }
-                    
+
                     // VIDEO Header
                     if (headerFormat === 'VIDEO' && templateVariables['_header_video']) {
                       return (
                         <div className="w-full bg-gray-900">
-                          <video 
-                            src={templateVariables['_header_video']} 
+                          <video
+                            src={templateVariables['_header_video']}
                             className="w-full h-auto max-h-48"
                             controls
                           />
                         </div>
                       );
                     }
-                    
+
                     // DOCUMENT Header
                     if (headerFormat === 'DOCUMENT' && templateVariables['_header_document']) {
                       return (
@@ -5503,7 +5503,7 @@ export default function WhatsAppSettingsPage() {
                         </div>
                       );
                     }
-                    
+
                     // TEXT Header
                     if (headerFormat === 'TEXT' && headerComponent.text) {
                       return (
@@ -5514,10 +5514,10 @@ export default function WhatsAppSettingsPage() {
                         </div>
                       );
                     }
-                    
+
                     return null;
                   })()}
-                  
+
                   {/* Body Component */}
                   <div className="px-3 py-3">
                     <p className="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-relaxed">
@@ -5527,15 +5527,15 @@ export default function WhatsAppSettingsPage() {
                       )}
                     </p>
                   </div>
-                  
+
                   {/* Footer Component */}
                   {(() => {
                     const tpl = templates.find(t => t.id === selectedTemplate);
                     const components = tpl?.components || [];
-                    const footerComponent = components.find((c: any) => 
+                    const footerComponent = components.find((c: any) =>
                       (c.type === 'FOOTER' || c.type === 'footer')
                     );
-                    
+
                     if (footerComponent && footerComponent.text) {
                       return (
                         <div className="px-3 pb-2">
@@ -5547,7 +5547,7 @@ export default function WhatsAppSettingsPage() {
                     }
                     return null;
                   })()}
-                  
+
                   {/* Buttons Component */}
                   {(() => {
                     const tpl = templates.find(t => t.id === selectedTemplate);
@@ -5595,10 +5595,10 @@ export default function WhatsAppSettingsPage() {
               >
                 Cancel
               </Button>
-              <Button 
-                onClick={() => { 
-                  sendTestMessage(); 
-                  setSelectedTemplate(''); 
+              <Button
+                onClick={() => {
+                  sendTestMessage();
+                  setSelectedTemplate('');
                   setTemplateVariables({});
                   setShowTemplatePreview(false);
                   setShowTemplatePicker(false);
@@ -5619,7 +5619,7 @@ export default function WhatsAppSettingsPage() {
             <DialogDescription>Enter a phone number in E.164 format to start a new conversation.</DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Input 
+            <Input
               placeholder="+1234567890"
               value={newChatNumber}
               onChange={(e) => setNewChatNumber(e.target.value)}

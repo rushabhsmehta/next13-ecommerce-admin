@@ -220,7 +220,8 @@ model TourPackageQuery {
   isArchived                       Boolean           @default(false)
   createdAt                        DateTime          @default(now())
   updatedAt                        DateTime          @updatedAt
-  assignedTo                       String?
+  assignedTo                       String? // RESTORED TEMPORARILY TO FIX PARSING, WILL REMOVE CORRECTLY
+  // assignedToEmail                  String?
   assignedToMobileNumber           String?
   assignedToEmail                  String?
   pricePerAdult                    String?
@@ -530,23 +531,14 @@ model TourPackage {
   websiteSortOrder                 Int                   @default(0)
   createdAt                        DateTime              @default(now())
   updatedAt                        DateTime              @updatedAt
-  assignedTo                       String?
-  assignedToEmail                  String?
-  assignedToMobileNumber           String?
-  customerName                     String?
-  numAdults                        String?
-  numChild0to5                     String?
-  numChild5to12                    String?
   numDaysNight                     String?
-  period                           String?
+  // Previous removed fields were here
   tourPackageName                  String?
   pricePerAdult                    String?
   pricePerChild5to12YearsNoBed     String?
   pricePerChildOrExtraBed          String?
   pricePerChildwithSeatBelow5Years String?
-  totalPrice                       String?               @db.Text
   transport                        String?
-  customerNumber                   String?
   drop_location                    String?
   pickup_location                  String?
   slug                             String?

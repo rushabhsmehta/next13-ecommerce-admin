@@ -397,9 +397,9 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     );
 
     const travellerBadges = [
-      initialData.numAdults ? `${safe(initialData.numAdults)} Adults` : "",
-      initialData.numChild5to12 ? `${safe(initialData.numChild5to12)} Children (5-12)` : "",
-      initialData.numChild0to5 ? `${safe(initialData.numChild0to5)} Children (0-5)` : "",
+      // initialData.numAdults ? `${safe(initialData.numAdults)} Adults` : "",
+      // initialData.numChild5to12 ? `${safe(initialData.numChild5to12)} Children (5-12)` : "",
+      // initialData.numChild0to5 ? `${safe(initialData.numChild0to5)} Children (0-5)` : "",
     ].filter(Boolean);
 
     const headerSection = `
@@ -437,11 +437,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
               <div style="font-size: 12px; color: ${brandColors.muted}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px;">Package Reference</div>
               <div style="margin-top: 6px; font-size: 15px; font-weight: 700; color: ${brandColors.text};">${safe(initialData.id, "N/A")}</div>
             </div>
-            <div style="background: ${brandColors.panelBg}; border-radius: 8px; padding: 14px; border: 1px solid ${brandColors.border};">
-              <div style="font-size: 12px; color: ${brandColors.muted}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px;">Prepared For</div>
-              <div style="margin-top: 6px; font-size: 15px; font-weight: 700; color: ${brandColors.text};">${safe(initialData.customerName, "Valued Traveller")}</div>
-              ${initialData.customerNumber ? `<div style="margin-top: 2px; font-size: 12px; color: ${brandColors.muted};">${safe(initialData.customerNumber)}</div>` : ""}
-            </div>
+            {/* Prepared For section removed as TourPackage doesn't have customer details */}
           </div>
         </div>
       </div>
@@ -476,10 +472,10 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
               ${initialData.pickup_location ? `<div style="border: 1px dashed ${brandColors.border}; border-radius: 999px; padding: 8px 14px; font-size: 12px; color: ${brandColors.muted};"><strong style="color: ${brandColors.text};">Pickup:</strong> ${safe(initialData.pickup_location)}</div>` : ""}
               ${initialData.drop_location ? `<div style="border: 1px dashed ${brandColors.border}; border-radius: 999px; padding: 8px 14px; font-size: 12px; color: ${brandColors.muted};"><strong style="color: ${brandColors.text};">Drop:</strong> ${safe(initialData.drop_location)}</div>` : ""}
               ${travellerBadges
-                .map(
-                  (badge) => `<div style="background: ${brandColors.panelBg}; border-radius: 999px; padding: 8px 14px; font-size: 12px; font-weight: 600; color: ${brandColors.text};">${badge}</div>`
-                )
-                .join("")}
+          .map(
+            (badge) => `<div style="background: ${brandColors.panelBg}; border-radius: 999px; padding: 8px 14px; font-size: 12px; font-weight: 600; color: ${brandColors.text};">${badge}</div>`
+          )
+          .join("")}
             </div>
           ` : ""}
         </div>
@@ -508,8 +504,8 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                 </thead>
                 <tbody>
                   ${initialData.flightDetails
-                    .map(
-                      (flight) => `
+          .map(
+            (flight) => `
                       <tr>
                         <td style="${tableCellStyle}; font-weight: 600;">${safe(flight.date, "N/A")}</td>
                         <td style="${tableCellStyle};">
@@ -522,8 +518,8 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                         <td style="${tableCellStyle};">${safe(flight.flightDuration, "-")}</td>
                       </tr>
                     `
-                    )
-                    .join("")}
+          )
+          .join("")}
                 </tbody>
               </table>
             </div>
@@ -562,40 +558,40 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
             <div style="${sectionBodyStyle}">
               <div style="display: flex; flex-direction: column; gap: 18px;">
                 ${sortedHotelsLinkedToItinerary
-                  .map((hotel) => {
-                    const associatedItineraries = initialData.itineraries?.filter((itinerary) => itinerary.hotelId === hotel.id) ?? [];
-                    const nightsCount = associatedItineraries.length;
-                    const nightsLabel = nightsCount ? `${nightsCount} ${nightsCount > 1 ? "Nights" : "Night"} Stay` : "";
-                    const dayBadges = associatedItineraries
-                      .map((itinerary) => (itinerary.dayNumber || itinerary.dayNumber === 0 ? `Day ${sanitizeText(itinerary.dayNumber)}` : ""))
-                      .filter(Boolean);
-                    const roomCategories = Array.from(
-                      new Set(
-                        associatedItineraries
-                          .map((itinerary) => sanitizeText(itinerary.roomCategory))
-                          .filter(Boolean)
-                      )
-                    );
-                    const mealPlans = Array.from(
-                      new Set(
-                        associatedItineraries
-                          .map((itinerary) => sanitizeText(itinerary.mealsIncluded))
-                          .filter(Boolean)
-                      )
-                    );
-                    const highlightTitles = associatedItineraries
-                      .map((itinerary) => sanitizeText(itinerary.itineraryTitle))
-                      .filter(Boolean);
-                    const heroImage = sanitizeText(hotel.images?.[0]?.url);
-                    const galleryImages = (hotel.images ?? [])
-                      .slice(1, 3)
-                      .map((image) => sanitizeText(image?.url))
-                      .filter(Boolean);
-                    const hotelLocation = locations.find((loc) => loc.id === hotel.locationId);
-                    const hotelLocationLabel = sanitizeText(hotelLocation?.label);
-                    const hotelLink = sanitizeText(hotel.link);
+          .map((hotel) => {
+            const associatedItineraries = initialData.itineraries?.filter((itinerary) => itinerary.hotelId === hotel.id) ?? [];
+            const nightsCount = associatedItineraries.length;
+            const nightsLabel = nightsCount ? `${nightsCount} ${nightsCount > 1 ? "Nights" : "Night"} Stay` : "";
+            const dayBadges = associatedItineraries
+              .map((itinerary) => (itinerary.dayNumber || itinerary.dayNumber === 0 ? `Day ${sanitizeText(itinerary.dayNumber)}` : ""))
+              .filter(Boolean);
+            const roomCategories = Array.from(
+              new Set(
+                associatedItineraries
+                  .map((itinerary) => sanitizeText(itinerary.roomCategory))
+                  .filter(Boolean)
+              )
+            );
+            const mealPlans = Array.from(
+              new Set(
+                associatedItineraries
+                  .map((itinerary) => sanitizeText(itinerary.mealsIncluded))
+                  .filter(Boolean)
+              )
+            );
+            const highlightTitles = associatedItineraries
+              .map((itinerary) => sanitizeText(itinerary.itineraryTitle))
+              .filter(Boolean);
+            const heroImage = sanitizeText(hotel.images?.[0]?.url);
+            const galleryImages = (hotel.images ?? [])
+              .slice(1, 3)
+              .map((image) => sanitizeText(image?.url))
+              .filter(Boolean);
+            const hotelLocation = locations.find((loc) => loc.id === hotel.locationId);
+            const hotelLocationLabel = sanitizeText(hotelLocation?.label);
+            const hotelLink = sanitizeText(hotel.link);
 
-                    return `
+            return `
                       <div style="border: 1px solid ${brandColors.border}; border-radius: 16px; overflow: hidden; box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08); background: ${brandColors.white}; ${avoidPageBreakStyle}">
                         <div style="background: ${brandGradients.primary}; padding: 18px 22px; color: ${brandColors.white}; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
                           <div>
@@ -605,63 +601,63 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                           <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end;">
                             ${nightsLabel ? `<span style="background: rgba(255,255,255,0.18); padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.6px;">${nightsLabel}</span>` : ""}
                             ${dayBadges
-                              .map(
-                                (badge) => `<span style="background: rgba(255,255,255,0.12); padding: 5px 10px; border-radius: 999px; font-size: 10px; font-weight: 600; letter-spacing: 0.6px;">${badge}</span>`
-                              )
-                              .join("")}
+                .map(
+                  (badge) => `<span style="background: rgba(255,255,255,0.12); padding: 5px 10px; border-radius: 999px; font-size: 10px; font-weight: 600; letter-spacing: 0.6px;">${badge}</span>`
+                )
+                .join("")}
                           </div>
                         </div>
                         <div style="display: flex; flex-wrap: wrap;">
                           <div style="flex: 1 1 320px; padding: 20px 22px; background: ${brandColors.white};">
                             ${roomCategories.length
-                              ? `<div style="font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.6px;">Room Plan</div>
+                ? `<div style="font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.6px;">Room Plan</div>
                                 <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
                                   ${roomCategories
-                                    .map(
-                                      (category) => `<span style="background: ${brandColors.lightOrange}; color: ${brandColors.secondary}; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;">${category}</span>`
-                                    )
-                                    .join("")}
+                  .map(
+                    (category) => `<span style="background: ${brandColors.lightOrange}; color: ${brandColors.secondary}; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;">${category}</span>`
+                  )
+                  .join("")}
                                 </div>`
-                              : ""}
+                : ""}
                             ${mealPlans.length
-                              ? `<div style="margin-top: 14px; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.6px;">Meal Plan</div>
+                ? `<div style="margin-top: 14px; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.6px;">Meal Plan</div>
                                 <div style="margin-top: 6px; color: ${brandColors.muted}; font-size: 12px;">${mealPlans.join(" • ")}</div>`
-                              : ""}
+                : ""}
                             ${highlightTitles.length
-                              ? `<div style="margin-top: 16px; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.6px;">Itinerary Highlights</div>
+                ? `<div style="margin-top: 16px; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.6px;">Itinerary Highlights</div>
                                 <ul style="margin: 8px 0 0; padding-left: 18px; font-size: 12px; color: ${brandColors.muted}; line-height: 1.5;">
                                   ${highlightTitles.map((title) => `<li>${title}</li>`).join("")}
                                 </ul>`
-                              : ""}
+                : ""}
                             ${hotelLink
-                              ? `<div style="margin-top: 18px;">
+                ? `<div style="margin-top: 18px;">
                                   <a href="${hotelLink}" style="display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: ${brandColors.secondary}; text-decoration: none; border: 1px solid ${brandColors.secondary}; border-radius: 999px; padding: 8px 14px;">Visit Website →</a>
                                 </div>`
-                              : ""}
+                : ""}
                           </div>
                           ${heroImage
-                            ? `<div style="flex: 1 1 220px; min-width: 220px; background: ${brandColors.white}; border-left: 1px solid ${brandColors.border}; display: flex; flex-direction: column;">
+                ? `<div style="flex: 1 1 220px; min-width: 220px; background: ${brandColors.white}; border-left: 1px solid ${brandColors.border}; display: flex; flex-direction: column;">
                                   <div style="flex: 1 1 auto; height: 160px; overflow: hidden;">
                                     <img src="${heroImage}" alt="${safe(hotel.name, "Hotel Image")}" style="width: 100%; height: 100%; object-fit: cover;" />
                                   </div>
                                   ${galleryImages.length
-                                    ? `<div style="display: flex; gap: 6px; padding: 10px; border-top: 1px solid ${brandColors.border}; background: ${brandColors.lightOrange};">
+                  ? `<div style="display: flex; gap: 6px; padding: 10px; border-top: 1px solid ${brandColors.border}; background: ${brandColors.lightOrange};">
                                         ${galleryImages
-                                          .map(
-                                            (url) => `<div style="flex: 1 1 50%; height: 60px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);">
+                    .map(
+                      (url) => `<div style="flex: 1 1 50%; height: 60px; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);">
                                               <img src="${url}" alt="${safe(hotel.name, "Hotel Gallery")}" style="width: 100%; height: 100%; object-fit: cover;" />
                                             </div>`
-                                          )
-                                          .join("")}
+                    )
+                    .join("")}
                                       </div>`
-                                    : ""}
+                  : ""}
                                 </div>`
-                            : ""}
+                : ""}
                         </div>
                       </div>
                     `;
-                  })
-                  .join("")}
+          })
+          .join("")}
               </div>
             </div>
           </div>
@@ -677,20 +673,20 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
             </div>
             <div style="${sectionBodyStyle}">
               ${initialData.itineraries
-                .slice()
-                .sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0))
-                .map((itinerary, index) => {
-                  const linkedHotel = hotels.find((hotel) => hotel.id === itinerary.hotelId);
-                  const linkedHotelName = linkedHotel ? safe(linkedHotel.name) : "";
-                  const mealPlanLabel = safe(itinerary.mealsIncluded);
-                  const daySummary = safe(itinerary.days);
-                  const roomInfo = [
-                    itinerary.roomCategory ? `Room: ${safe(itinerary.roomCategory)}` : "",
-                    itinerary.numberofRooms ? `Rooms: ${safe(itinerary.numberofRooms)}` : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" • ");
-                  return `
+          .slice()
+          .sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0))
+          .map((itinerary, index) => {
+            const linkedHotel = hotels.find((hotel) => hotel.id === itinerary.hotelId);
+            const linkedHotelName = linkedHotel ? safe(linkedHotel.name) : "";
+            const mealPlanLabel = safe(itinerary.mealsIncluded);
+            const daySummary = safe(itinerary.days);
+            const roomInfo = [
+              itinerary.roomCategory ? `Room: ${safe(itinerary.roomCategory)}` : "",
+              itinerary.numberofRooms ? `Rooms: ${safe(itinerary.numberofRooms)}` : "",
+            ]
+              .filter(Boolean)
+              .join(" • ");
+            return `
                     <div style="border: 1px solid ${brandColors.border}; border-radius: 10px; margin-bottom: 16px; overflow: hidden; ${avoidPageBreakStyle}">
                       <div style="background: ${index % 2 === 0 ? brandColors.panelBg : brandColors.white}; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 14px;">
@@ -708,34 +704,33 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                         ${itinerary.itineraryDescription ? `<div style="font-size: 13px; color: ${brandColors.text}; line-height: 1.7;">${safe(itinerary.itineraryDescription)}</div>` : ""}
                         ${linkedHotelName ? `<div style="margin-top: 12px; font-size: 13px; color: ${brandColors.text};"><strong>Suggested Hotel:</strong> ${linkedHotelName}</div>` : ""}
                         ${(roomInfo || mealPlanLabel) ? `<div style="margin-top: 10px; font-size: 12px; color: ${brandColors.muted};">${[roomInfo, mealPlanLabel ? `Meals: ${mealPlanLabel}` : ""].filter(Boolean).join(" • ")}</div>` : ""}
-                        ${
-                          itinerary.activities && itinerary.activities.length
-                            ? `
+                        ${itinerary.activities && itinerary.activities.length
+                ? `
                               <div style="margin-top: 14px;">
                                 <div style="font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.5px;">
                                   Included Experiences
                                 </div>
                                 <div style="margin-top: 8px; display: grid; gap: 12px;">
                                   ${itinerary.activities
-                                    .map(
-                                      (activity) => `
+                  .map(
+                    (activity) => `
                                         <div style="border: 1px solid ${brandColors.border}; border-radius: 10px; padding: 12px 14px; background: ${brandColors.white};">
                                           <div style="font-size: 13px; font-weight: 600; color: ${brandColors.text};">${safe(activity.activityTitle, "Activity")}</div>
                                           ${activity.activityDescription ? `<div style="margin-top: 4px; font-size: 12px; color: ${brandColors.muted}; line-height: 1.5;">${safe(activity.activityDescription)}</div>` : ""}
                                         </div>
                                       `
-                                    )
-                                    .join("")}
+                  )
+                  .join("")}
                                 </div>
                               </div>
                             `
-                            : ""
-                        }
+                : ""
+              }
                       </div>
                     </div>
                   `;
-                })
-                .join("")}
+          })
+          .join("")}
             </div>
           </div>
         `
@@ -890,7 +885,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     const htmlContent = buildHtmlContent();
     const footerHtml = buildFooterHtml();
 
-  const bottomMargin = "140px";
+    const bottomMargin = "140px";
 
     try {
       const response = await fetch("/api/generate-pdf", {

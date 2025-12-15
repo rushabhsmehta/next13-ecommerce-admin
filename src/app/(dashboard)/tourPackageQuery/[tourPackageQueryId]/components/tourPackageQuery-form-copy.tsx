@@ -176,7 +176,7 @@ const formSchema = z.object({
   pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
   customMarkup: z.string().optional(), // Added for custom markup percentage
   remarks: z.string().optional(),
-  locationId: z.string().min(1, "Location is required"),  flightDetails: flightDetailsSchema.array(),
+  locationId: z.string().min(1, "Location is required"), flightDetails: flightDetailsSchema.array(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
   kitchenGroupPolicy: z.array(z.string()),
@@ -244,7 +244,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   hotels,
   activitiesMaster,
   itinerariesMaster,
-  associatePartners, 
+  associatePartners,
   tourPackages,
   tourPackageQueries,
 }) => {
@@ -405,7 +405,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
   const defaultValues = initialData
     ? {
-      ...transformInitialData(initialData),      
+      ...transformInitialData(initialData),
       // Restore dropdown field values based on saved template data
       tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
@@ -441,7 +441,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       numChild0to5: '',
       totalPrice: '',
       remarks: '',
-      flightDetails: [],      inclusions: INCLUSIONS_DEFAULT,
+      flightDetails: [], inclusions: INCLUSIONS_DEFAULT,
       exclusions: EXCLUSIONS_DEFAULT,
       kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: IMPORTANT_NOTES_DEFAULT,
@@ -536,7 +536,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', selectedTourPackage.transport || '');
       form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
-      form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
+      // form.setValue('totalPrice', selectedTourPackage.totalPrice || ''); // REMOVED
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -580,11 +580,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
     // Find the selected tour package query template
     const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);
-    
+
     if (selectedTourPackageQuery) {
       // Update the tourPackageQueryTemplate field
       form.setValue('tourPackageQueryTemplate', selectedTourPackageQueryId);
-      
+
       // Copy values from the selected template
       form.setValue('tourPackageQueryType', selectedTourPackageQuery.tourPackageQueryType || '');
       form.setValue('locationId', selectedTourPackageQuery.locationId);
@@ -603,7 +603,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('termsconditions', parseJsonField(selectedTourPackageQuery.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
       form.setValue('images', selectedTourPackageQuery.images || []);
       form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection) || DEFAULT_PRICING_SECTION);
-      
+
       // Convert and set itineraries
       const transformedItineraries = selectedTourPackageQuery.itineraries?.map(itinerary => ({
         locationId: itinerary.locationId,
@@ -622,7 +622,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         transportDetails: (itinerary as any).transportDetails || [],
       })) || [];
       form.setValue('itineraries', transformedItineraries);
-      
+
       // Set flight details
       form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map(flight => ({
         date: flight.date || undefined,
@@ -759,7 +759,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         setLoading(false);
         return;
-      }      const formattedData = {
+      } const formattedData = {
         ...data,
         // Apply timezone normalization to tour dates
         tourStartsFrom: normalizeApiDate(data.tourStartsFrom),

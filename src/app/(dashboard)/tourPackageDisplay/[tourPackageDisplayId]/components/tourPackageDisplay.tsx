@@ -124,7 +124,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
   hotels,
 }) => {
 
-  
+
   const currentCompany = {
     logo: '/aagamholidays.png',
     name: 'Aagam Holidays',
@@ -306,15 +306,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         </div>
       )}
 
-      {initialData.totalPrice && initialData.totalPrice !== ' ' && (
-        <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
-          <CardContent>
-            <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-              Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Total Price Removed */}
       {/* Tour Highlights */}
 
       <Card className="break-inside-avoid border rounded-lg">

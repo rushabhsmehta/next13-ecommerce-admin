@@ -62,7 +62,7 @@ import { Textarea } from "@/components/ui/textarea";
 // Update imports for shared tab components
 import BasicInfoTab from "./BasicInfoTab"
 import DatesTab from "./DatesTab"
-import FlightsTab from "./FlightsTab" 
+import FlightsTab from "./FlightsTab"
 import GuestsTab from "./GuestsTab"
 import ItineraryTab from "./ItineraryTab"
 import LocationTab from "./LocationTab"
@@ -174,7 +174,7 @@ const formSchema = z.object({
 
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),
-  locationId: z.string().min(1),  
+  locationId: z.string().min(1),
   flightDetails: flightDetailsSchema.array().optional().default([]),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
@@ -273,7 +273,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // --- END ADDED STATE ---
 
   const title = "Create Tour Package Query from Inquiry";
-  const description = "Convert this inquiry into a detailed tour package";  
+  const description = "Convert this inquiry into a detailed tour package";
   const defaultValues = {
     tourPackageTemplate: '',
     tourPackageQueryTemplate: '',
@@ -296,7 +296,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     pickup_location: '',
     drop_location: '',
     numAdults: inquiry?.numAdults?.toString() || '',
-    numChild5to12: inquiry?.numChildren5to11?.toString() || '',    numChild0to5: inquiry?.numChildrenBelow5?.toString() || '',
+    numChild5to12: inquiry?.numChildren5to11?.toString() || '', numChild0to5: inquiry?.numChildrenBelow5?.toString() || '',
     tourStartsFrom: convertJourneyDateToTourStart(inquiry?.journeyDate),
     tourEndsOn: undefined,
     remarks: REMARKS_DEFAULT,
@@ -330,11 +330,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   useEffect(() => {
     const fetchLookupData = async () => {
       setLookupLoading(true);
-      
+
       console.log('=== FETCH LOOKUP DATA STARTED ===');
       console.log('Current URL:', window.location.href);
       console.log('Window origin:', window.location.origin);
-      
+
       try {
         // Fetch each API endpoint individually with detailed error handling
         console.log('Fetching room types...');
@@ -346,7 +346,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           isArray: Array.isArray(roomTypesRes.data),
           dataPreview: Array.isArray(roomTypesRes.data) ? roomTypesRes.data.slice(0, 2) : roomTypesRes.data
         });
-        
+
         console.log('Fetching occupancy types...');
         const occupancyTypesRes = await axios.get('/api/occupancy-types');
         console.log('Occupancy types response:', {
@@ -355,7 +355,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           isArray: Array.isArray(occupancyTypesRes.data),
           dataPreview: Array.isArray(occupancyTypesRes.data) ? occupancyTypesRes.data.slice(0, 2) : occupancyTypesRes.data
         });
-        
+
         console.log('Fetching meal plans...');
         const mealPlansRes = await axios.get('/api/meal-plans');
         console.log('Meal plans response:', {
@@ -364,7 +364,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           isArray: Array.isArray(mealPlansRes.data),
           dataPreview: Array.isArray(mealPlansRes.data) ? mealPlansRes.data.slice(0, 2) : mealPlansRes.data
         });
-        
+
         console.log('Fetching vehicle types...');
         const vehicleTypesRes = await axios.get('/api/vehicle-types');
         console.log('Vehicle types response:', {
@@ -379,17 +379,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           console.error('CRITICAL: roomTypes data is not an array:', roomTypesRes.data);
           throw new Error('Room types data is invalid - expected array but got: ' + typeof roomTypesRes.data);
         }
-        
+
         if (!Array.isArray(occupancyTypesRes.data)) {
           console.error('CRITICAL: occupancyTypes data is not an array:', occupancyTypesRes.data);
           throw new Error('Occupancy types data is invalid - expected array but got: ' + typeof occupancyTypesRes.data);
         }
-        
+
         if (!Array.isArray(mealPlansRes.data)) {
           console.error('CRITICAL: mealPlans data is not an array:', mealPlansRes.data);
           throw new Error('Meal plans data is invalid - expected array but got: ' + typeof mealPlansRes.data);
         }
-        
+
         if (!Array.isArray(vehicleTypesRes.data)) {
           console.error('CRITICAL: vehicleTypes data is not an array:', vehicleTypesRes.data);
           throw new Error('Vehicle types data is invalid - expected array but got: ' + typeof vehicleTypesRes.data);
@@ -400,7 +400,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         setOccupancyTypes(occupancyTypesRes.data);
         setMealPlans(mealPlansRes.data);
         setVehicleTypes(vehicleTypesRes.data);
-        
+
         console.log('=== FETCH LOOKUP DATA COMPLETED SUCCESSFULLY ===');
       } catch (error: any) {
         console.error('=== FETCH LOOKUP DATA ERROR ===');
@@ -412,14 +412,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           data: error.response?.data,
           headers: error.response?.headers
         });
-        
+
         // Set fallback empty arrays to prevent undefined errors
         console.log('Setting fallback empty arrays...');
         setRoomTypes([]);
         setOccupancyTypes([]);
         setMealPlans([]);
         setVehicleTypes([]);
-        
+
         toast.error("Failed to load configuration data. Using empty defaults. Please check console for details.");
       } finally {
         setLookupLoading(false);
@@ -492,16 +492,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     console.log('=== Tour Package Selection Started ===');
     console.log('selectedTourPackageId:', selectedTourPackageId);
-    
+
     // Log inquiry room allocation data
     console.log('=== Inquiry Room Allocation Data ===');
     console.log('inquiry:', inquiry);
     console.log('inquiry.roomAllocations:', inquiry?.roomAllocations);
     console.log('inquiry.transportDetails:', inquiry?.transportDetails);
-    
+
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     console.log('Found selectedTourPackage:', selectedTourPackage);
-    
+
     if (selectedTourPackage) {
       console.log('Processing tour package itineraries:', selectedTourPackage.itineraries);
       // Add this line to update the tourPackageTemplate field 
@@ -529,7 +529,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', String(selectedTourPackage.transport || ''));
       form.setValue('pickup_location', String(selectedTourPackage.pickup_location || ''));
       form.setValue('drop_location', String(selectedTourPackage.drop_location || ''));
-  form.setValue('totalPrice', String(selectedTourPackage.totalPrice || ''));
+      // form.setValue('totalPrice', String(selectedTourPackage.totalPrice || '')); // REMOVED
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -612,7 +612,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           }
         })(),
       })) || [];
-      
+
       console.log('=== Final transformedItineraries ===');
       console.log('transformedItineraries length:', transformedItineraries.length);
       transformedItineraries.forEach((itinerary, index) => {
@@ -626,7 +626,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           activitiesIsArray: Array.isArray(itinerary.activities)
         });
       });
-      
+
       console.log('Setting form itineraries...');
       form.setValue('itineraries', transformedItineraries);
       form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
@@ -666,10 +666,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
     const inquiryTransportDetails = inquiry?.transportDetails && inquiry.transportDetails.length > 0
       ? inquiry.transportDetails.map((transport: any) => ({
-          vehicleTypeId: transport.vehicleTypeId || '',
-          quantity: Number(transport.quantity) || 1,
-          description: transport.description || ''
-        }))
+        vehicleTypeId: transport.vehicleTypeId || '',
+        quantity: Number(transport.quantity) || 1,
+        description: transport.description || ''
+      }))
       : [];
 
     const updatedItineraries = currentItineraries.map((itinerary: any) => ({
@@ -707,12 +707,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         })),
         // Ensure correct spelling and explicit types
         roomAllocations: itinerary.roomAllocations?.map((alloc: z.infer<typeof roomAllocationSchema>) => ({
-            ...alloc,
-            quantity: Number(alloc.quantity) || 1 // Ensure quantity is a number
+          ...alloc,
+          quantity: Number(alloc.quantity) || 1 // Ensure quantity is a number
         })),
         transportDetails: itinerary.transportDetails?.map((detail: z.infer<typeof transportDetailsSchema>) => ({
-            ...detail,
-            quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
+          ...detail,
+          quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
         })),
       })),
       pricingSection: data.pricingSection || [],
@@ -724,7 +724,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       console.log("Submitting data:", formattedData); // Log data before sending
       const response = await axios.post(`/api/tourPackageQuery`, formattedData);
       console.log("API Response:", response.data); // Log API response
-      
+
       // Check if we have a tour package query ID to redirect to display page
       if (response.data?.id) {
         router.refresh();
@@ -754,7 +754,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [open, setOpen] = useState(false); // Keep if delete functionality is needed
 
   // Add loading indicator for lookup data
-   if (lookupLoading) {
+  if (lookupLoading) {
     return <div className="flex justify-center items-center h-64">Loading configuration data...</div>; // Improved loading indicator
   }
 
@@ -769,58 +769,58 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full max-w-full overflow-hidden">          {Object.keys(form.formState.errors).length > 0 && (
-            <Card className="border-red-200 bg-red-50 mx-1 sm:mx-0">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-red-800 text-xs sm:text-sm font-medium flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 sm:h-5 w-4 sm:w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 001.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-sm sm:text-base">Please fix the following errors:</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-                <ul className="list-disc pl-4 sm:pl-5 space-y-1 max-h-[150px] sm:max-h-none overflow-y-auto">
-                  {Object.entries(form.formState.errors).map(([field, error]) => (
-                    <li key={field} className="text-xs sm:text-sm text-red-700 break-words">
-                      <span className="font-medium">{field}:</span> {error?.message as string}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}<Tabs defaultValue="basic" className="w-full max-w-full overflow-hidden">
+          <Card className="border-red-200 bg-red-50 mx-1 sm:mx-0">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-red-800 text-xs sm:text-sm font-medium flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 sm:h-5 w-4 sm:w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 001.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm sm:text-base">Please fix the following errors:</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+              <ul className="list-disc pl-4 sm:pl-5 space-y-1 max-h-[150px] sm:max-h-none overflow-y-auto">
+                {Object.entries(form.formState.errors).map(([field, error]) => (
+                  <li key={field} className="text-xs sm:text-sm text-red-700 break-words">
+                    <span className="font-medium">{field}:</span> {error?.message as string}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}<Tabs defaultValue="basic" className="w-full max-w-full overflow-hidden">
             {/* Enhanced mobile-friendly tab list - Associate Partner: Basic, Dates (partial), Itinerary (partial), and Pricing are editable */}
-            
+
             {/* Mobile: Horizontal scroll tabs */}
             <div className="block md:hidden">
               <div className="overflow-x-auto pb-3 mb-4 -mx-4">
                 <div className="flex space-x-1 px-4 min-w-max w-full max-w-full">
                   <TabsList className="bg-transparent p-0 h-auto space-x-1">
-                    <TabsTrigger 
-                      value="basic" 
+                    <TabsTrigger
+                      value="basic"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                     >
                       <FileText className="h-4 w-4" />
                       <span className="text-center leading-tight">Tour Package</span>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="guests" 
+                    <TabsTrigger
+                      value="guests"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground opacity-50"
                       title="Read-only for Associate Partners"
                     >
                       <Users className="h-4 w-4" />
                       <span className="text-center leading-tight">Guests</span>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="location" 
+                    <TabsTrigger
+                      value="location"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground opacity-50"
                       title="Read-only for Associate Partners"
                     >
                       <MapPin className="h-4 w-4" />
                       <span className="text-center leading-tight">Location</span>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="dates" 
+                    <TabsTrigger
+                      value="dates"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
                       title="Tour Ends On field is editable for Associate Partners"
                     >
@@ -828,8 +828,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <span className="text-center leading-tight">Dates</span>
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="itinerary" 
+                    <TabsTrigger
+                      value="itinerary"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
                       title="Room Allocation and Transport sections are editable for Associate Partners"
                     >
@@ -837,23 +837,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <span className="text-center leading-tight">Itinerary</span>
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="flights" 
+                    <TabsTrigger
+                      value="flights"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground opacity-50"
                       title="Read-only for Associate Partners"
                     >
                       <Plane className="h-4 w-4" />
                       <span className="text-center leading-tight">Flights</span>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="pricing" 
+                    <TabsTrigger
+                      value="pricing"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                     >
                       <Tag className="h-4 w-4" />
                       <span className="text-center leading-tight">Pricing</span>
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="policies" 
+                    <TabsTrigger
+                      value="policies"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground opacity-50"
                       title="Read-only for Associate Partners"
                     >
@@ -938,9 +938,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
                 priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult}                selectedTemplateId={form.watch('selectedTemplateId')}
+                setPriceCalculationResult={setPriceCalculationResult} selectedTemplateId={form.watch('selectedTemplateId')}
                 selectedTemplateType={form.watch('selectedTemplateType')}
-                // --- END PASS LOOKUP DATA & STATE ---
+              // --- END PASS LOOKUP DATA & STATE ---
               />
             </TabsContent>
 
@@ -971,7 +971,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 loading={true} // Always disabled for associate partners
                 locations={locations}
                 form={form}
-                updateLocationDefaults={() => {}} // No-op for associate partners
+                updateLocationDefaults={() => { }} // No-op for associate partners
               />
             </TabsContent>
 
@@ -1020,7 +1020,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 enableRoomAllocation={true}
                 enableTransport={true}
                 inquiry={inquiry || undefined} // Pass inquiry for room allocation application
-                // --- END PASS LOOKUP DATA & STATE ---
+              // --- END PASS LOOKUP DATA & STATE ---
               />
             </TabsContent>
 
@@ -1052,11 +1052,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 loading={true} // Always disabled for associate partners
                 form={form}
                 useLocationDefaults={useLocationDefaults}
-                onUseLocationDefaultsChange={() => {}} // No-op for associate partners
+                onUseLocationDefaultsChange={() => { }} // No-op for associate partners
               />
             </TabsContent>
 
-          </Tabs>          
+          </Tabs>
           {/* Mobile-friendly submit button */}
           <div className="sticky bottom-0 bg-background border-t p-4 -mx-4 mt-8 md:static md:border-t-0 md:p-0 md:mx-0">
             <div className="flex justify-center md:justify-end">

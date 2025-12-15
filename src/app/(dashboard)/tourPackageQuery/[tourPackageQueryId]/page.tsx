@@ -79,7 +79,7 @@ const tourPackageQueryPage = async ({
     notFound();
   }
 
-  const locationId = tourPackageQuery.locationId ?? undefined;
+  const locationId = tourPackageQuery?.locationId ?? undefined;
   const locationFilter = locationId ? { locationId } : undefined;
   const itineraryMasterFilter = locationId ? { locationId } : { locationId: "" };
 

@@ -121,16 +121,10 @@ const formSchema = z.object({
   tourPackageName: z.string().optional(),
   tourPackageType: z.string().optional(),
   tourCategory: z.string().default("Domestic").optional(),
-  customerName: z.string().optional().nullable(),
-  customerNumber: z.string().optional().nullable(),
   numDaysNight: z.string().optional(),
-  period: z.string().optional().nullable(),
   transport: z.string().optional(),
   pickup_location: z.string().optional(),
   drop_location: z.string().optional(),
-  numAdults: z.string().optional().nullable(),
-  numChild5to12: z.string().optional().nullable(),
-  numChild0to5: z.string().optional().nullable(), totalPrice: z.string().optional().nullable(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
   locationId: z.string().min(1),
   //location : z.string(),
@@ -151,9 +145,6 @@ const formSchema = z.object({
   itineraries: z.array(itinerarySchema).optional().default([]),
   isFeatured: z.boolean().default(false),
   isArchived: z.boolean().default(false).optional(),
-  assignedTo: z.string().optional(),
-  assignedToMobileNumber: z.string().optional(),
-  assignedToEmail: z.string().optional(),
   slug: z.string().optional(),
   packageVariants: z.array(z.object({
     id: z.string().optional(),
@@ -500,12 +491,11 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const transformInitialData = (data: any) => {
     return {
       ...data,
-      assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
-      assignedToMobileNumber: data.assignedToMobileNumber ?? '',
-      assignedToEmail: data.assignedToEmail ?? '',
+      assignedTo: data.assignedTo ?? '',
+      isArchived: initialData?.isArchived || false,
       customerNumber: data.customerNumber ?? '',
       tourCategory: data.tourCategory ?? 'Domestic', // Add default for tour category
-      slug: data.slug ?? '',
+      slug: initialData?.slug || '',
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -565,9 +555,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     numChild5to12: '',
     numChild0to5: '',
     totalPrice: TOTAL_PRICE_DEFAULT,
-    assignedTo: '',
-    assignedToMobileNumber: '',
-    assignedToEmail: '',
+    isArchived: false,
+    // assignedTo: '',
+    // assignedToEmail: '',
     slug: '',
     flightDetails: [],
     // hotelDetails: '',    inclusions: INCLUSIONS_DEFAULT,
@@ -587,7 +577,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     //location : '',
     // hotelId: '',
     isFeatured: true,
-    isArchived: false,
+    // isArchived: false, // REMOVED DUPLICATE
     pricingSection: DEFAULT_PRICING_SECTION, // Update this line to use the default pricing section
     packageVariants: [],
   };
@@ -638,7 +628,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           tourCategory: data.tourCategory || 'Domestic',
           tourPackageType: data.tourPackageType || 'General',
           numDaysNight: data.numDaysNight || '',
-          totalPrice: data.price ? String(data.price) : '', // Map price to totalPrice
+          // totalPrice: data.price ? String(data.price) : '', // REMOVED
           transport: data.transport || '',
           pickup_location: data.pickup_location || '',
           drop_location: data.drop_location || '',
@@ -693,6 +683,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     };
 
     loadDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData, form, locations]);
 
   // Fetch lookup data required for Hotels tab
@@ -1210,86 +1201,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             </TabsContent>
 
             {/* Add similar TabsContent sections for other tabs */}
-            {/* <TabsContent value="guests" className="space-y-4 mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Guests</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="customerName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer Name</FormLabel>
-                        <FormControl>
-                          <Input disabled={loading} placeholder="Customer Name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="customerNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer Number</FormLabel>
-                        <FormControl>
-                          <Input disabled={loading} placeholder="Customer Number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-
-                  <FormField
-                    control={form.control}
-                    name="numAdults"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Number of Adults</FormLabel>
-                        <FormControl>
-                          <Input disabled={loading} placeholder="Number of Adults" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="numChild5to12"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Number of Children 5 to 12</FormLabel>
-                        <FormControl>
-                          <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="numChild0to5"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Number of Children 0 to 5</FormLabel>
-                        <FormControl>
-                          <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent> */}
-
             <TabsContent value="location" className="space-y-4 mt-4">
               <Card>
                 <CardHeader>
@@ -2146,21 +2057,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     </label>
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="totalPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Total Price</FormLabel>
-                        <FormControl>
-                          <Input disabled={loading} placeholder="Total Price" {...field}
-                            value={field.value || ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
                   <div className="border rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>
@@ -2231,7 +2127,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                         </Button>
                                         <Button
                                           type="button"
-                                          variant="ghost"
+                                          variant="destructive"
                                           size="icon"
                                           onClick={() => handleRemovePricingItem(index)}
                                           className="h-10 w-10"
@@ -2423,7 +2319,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               />
             </TabsContent>
 
-          </Tabs>
+          </Tabs >
 
           <div className="flex justify-end mt-8">
             {readOnly ? (
@@ -2450,8 +2346,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               </Button>
             )}
           </div>
-        </form>
-      </Form>
+        </form >
+      </Form >
 
       {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
 

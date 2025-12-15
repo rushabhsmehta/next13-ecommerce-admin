@@ -16,7 +16,7 @@ export async function GET(
 ) {
   try {
     console.log('[TOUR_PACKAGE_QUERY_GET] Starting GET request for ID:', params.tourPackageQueryId);
-    
+
     if (!params.tourPackageQueryId) {
       return new NextResponse("Tour Package Query id is required", { status: 400 });
     }
@@ -53,14 +53,14 @@ export async function GET(
         },
       }
     });
-    
+
     console.log('[TOUR_PACKAGE_QUERY_GET] Query executed successfully');
-    
+
     if (!tourPackageQuery) {
       console.log('[TOUR_PACKAGE_QUERY_GET] Tour package query not found');
       return new NextResponse("Tour package query not found", { status: 404 });
     }
-    
+
     return NextResponse.json(tourPackageQuery);
   } catch (error: any) {
     console.error('[TOUR_PACKAGE_QUERY_GET] Error occurred:', {
@@ -311,7 +311,7 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
 
     // Step 4: Batch create room allocations (if any)
     if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
-      const validRoomAllocations = itinerary.roomAllocations.filter((ra: any) => 
+      const validRoomAllocations = itinerary.roomAllocations.filter((ra: any) =>
         ra.occupancyTypeId && (ra.roomTypeId || ra.customRoomType)
       );
 
@@ -333,7 +333,7 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
 
     // Step 5: Batch create transport details (if any)
     if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
-      const validTransportDetails = itinerary.transportDetails.filter((td: any) => 
+      const validTransportDetails = itinerary.transportDetails.filter((td: any) =>
         td.vehicleTypeId
       );
 
@@ -451,7 +451,8 @@ async function createFlightDetailWithImagesFallback(flightDetail: {
 export async function PATCH(
   req: Request,
   { params }: { params: { tourPackageQueryId: string } }
-) {  try {
+) {
+  try {
     const { userId } = auth();
 
     const body = await req.json();
@@ -475,7 +476,7 @@ export async function PATCH(
       numAdults,
       numChild5to12,
       numChild0to5,
-      price,      pricePerAdult,
+      price, pricePerAdult,
       pricePerChild5to12,
       pricePerChild0to5,
       totalPrice,
@@ -568,7 +569,7 @@ export async function PATCH(
       numAdults,
       numChild5to12,
       numChild0to5,
-      price,      pricePerAdult,
+      price, pricePerAdult,
       pricePerChild5to12,
       pricePerChild0to5,
       totalPrice,
@@ -622,7 +623,7 @@ export async function PATCH(
       where: { tourPackageQueryId: params.tourPackageQueryId },
       select: { id: true, dayNumber: true }
     });
-    console.log(`📋 [PRE-DELETE] Captured ${oldItineraries.length} old itineraries:`, 
+    console.log(`📋 [PRE-DELETE] Captured ${oldItineraries.length} old itineraries:`,
       oldItineraries.map(i => `Day ${i.dayNumber}: ${i.id}`)
     );
 
@@ -638,7 +639,7 @@ export async function PATCH(
         // Handle itineraries separately with parallel processing for better performance
         if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
           console.log(`[TRANSACTION] Processing ${itineraries.length} itineraries in parallel`);
-          
+
           // Delete existing itineraries within the transaction
           await tx.itinerary.deleteMany({
             where: { tourPackageQueryId: params.tourPackageQueryId }
@@ -671,13 +672,13 @@ export async function PATCH(
         // Handle flight details with images in parallel
         if (flightDetails && Array.isArray(flightDetails) && flightDetails.length > 0) {
           console.log(`[TRANSACTION] Processing ${flightDetails.length} flight details in parallel`);
-          
+
           // Delete existing flight details first
           await tx.flightDetails.deleteMany({
             where: { tourPackageQueryId: params.tourPackageQueryId }
           });
           console.log(`[TRANSACTION] Deleted existing flight details`);
-          
+
           // Create new flight details in parallel for better performance
           await Promise.all(flightDetails.map(async (flightDetail, i) => {
             try {
@@ -700,11 +701,11 @@ export async function PATCH(
       });
     } catch (transactionError: any) {
       console.error('[TRANSACTION_FAILED] Attempting fallback strategy', transactionError);
-      
+
       // If transaction fails, try fallback approach with smaller operations
       if (transactionError.code === 'P2028' || transactionError.message?.includes('Transaction')) {
         console.log('[FALLBACK] Using non-transactional approach for itineraries');
-        
+
         // First update the main tour package query data outside transaction
         await prismadb.tourPackageQuery.update({
           where: { id: params.tourPackageQueryId },
@@ -714,7 +715,7 @@ export async function PATCH(
         // Handle itineraries with fallback approach
         if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
           console.log(`[FALLBACK] Processing ${itineraries.length} itineraries with fallback strategy`);
-          
+
           // Delete existing itineraries
           await prismadb.itinerary.deleteMany({
             where: { tourPackageQueryId: params.tourPackageQueryId }
@@ -743,7 +744,7 @@ export async function PATCH(
         // Handle flight details with fallback approach
         if (flightDetails && Array.isArray(flightDetails) && flightDetails.length > 0) {
           console.log(`[FALLBACK] Processing ${flightDetails.length} flight details with fallback strategy`);
-          
+
           // Delete existing flight details
           await prismadb.flightDetails.deleteMany({
             where: { tourPackageQueryId: params.tourPackageQueryId }
@@ -774,7 +775,7 @@ export async function PATCH(
       }
     }
 
-  const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+    const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.tourPackageQueryId },
       include: {
         associatePartner: true,
@@ -837,33 +838,33 @@ export async function PATCH(
     return NextResponse.json(tourPackageQuery);
   } catch (error: any) {
     console.error('[TOUR_PACKAGE_QUERY_PATCH]', error);
-    
+
     // Handle specific Prisma errors
     if (error.code === 'P2028') {
       // Transaction timeout error
       return new NextResponse("Update operation timed out due to large number of itineraries. Please try with fewer items or contact support.", { status: 408 });
     }
-    
+
     if (error.code === 'P2025') {
       // Record not found error (relation issues)
       return new NextResponse("Tour package query not found or has been deleted. Please refresh and try again.", { status: 404 });
     }
-    
+
     // Handle transaction errors
     if (error.message && error.message.includes('Transaction already closed')) {
       return new NextResponse("Operation timed out while processing itineraries. Please try again or reduce the number of itineraries.", { status: 408 });
     }
-    
+
     // Handle itinerary creation errors
     if (error.message && error.message.includes('Failed to create itinerary')) {
       return new NextResponse(`Tour package query update failed: ${error.message}`, { status: 400 });
     }
-    
+
     // Handle connection errors
     if (error.message && error.message.includes('Server has closed the connection')) {
       return new NextResponse("Database connection lost. Please try again.", { status: 503 });
     }
-    
+
     return new NextResponse("Internal error occurred while updating tour package query", { status: 500 });
   }
 };

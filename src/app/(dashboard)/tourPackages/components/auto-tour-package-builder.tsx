@@ -39,7 +39,8 @@ import {
   Eraser,
   Lightbulb,
   PanelRightOpen,
-  PlusCircle
+  PlusCircle,
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -483,6 +484,64 @@ export function AutoTourPackageBuilder({
                   <SelectItem value="luxury">Luxury</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1 bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+                onClick={() => {
+                  const confirmMsg = "Yes, verify the itinerary and please create the draft now.";
+                  const userMessage: Message = {
+                    id: crypto.randomUUID(),
+                    role: "user",
+                    content: confirmMsg,
+                    createdAt: new Date().toISOString(),
+                  };
+                  setMessages((prev) => [...prev, userMessage]);
+                  setPrompt("");
+                  setIsSubmitting(true);
+
+                  // Reuse submission logic minus the prompt check
+                  (async () => {
+                    const historyPayload = [...messages, userMessage].map(({ role, content }) => ({ role, content }));
+                    try {
+                      const response = await fetch("/api/ai/auto-plan", {
+                        method: "POST", // Note: API endpoint is different for tour package
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          prompt: confirmMsg,
+                          history: historyPayload,
+                          tone: tonePresets[tone],
+                          systemInstruction,
+                          customInstruction,
+                        }),
+                      });
+
+                      if (!response.ok) throw new Error(await response.text() || "Failed to reach OpenAI");
+
+                      const data = await response.json();
+                      const { text, data: parsedJson } = extractJson(data.message);
+
+                      setMessages((prev) => [...prev, {
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: text,
+                        parsedJson,
+                        createdAt: new Date().toISOString(),
+                      }]);
+                      setUsage(data.usage ?? null);
+                      scrollToBottom();
+                    } catch (error) {
+                      toast({ variant: "destructive", title: "Generation failed", description: error instanceof Error ? error.message : "Unexpected error" });
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  })();
+                }}
+                disabled={isSubmitting || messages.length === 0}
+                title="Click to confirm the plan and generate the draft"
+              >
+                <CheckCircle className="h-3 w-3" /> Request Draft
+              </Button>
             </div>
 
             <Button

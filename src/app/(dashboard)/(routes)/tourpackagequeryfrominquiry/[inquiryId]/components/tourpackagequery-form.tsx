@@ -321,7 +321,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // --- END ADDED STATE ---
 
   const title = "Create Tour Package Query from Inquiry";
-  const description = "Convert this inquiry into a detailed tour package";  
+  const description = "Convert this inquiry into a detailed tour package";
   const defaultValues = {
     tourPackageTemplate: '',
     tourPackageQueryTemplate: '',
@@ -344,12 +344,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     period: '',
     locationId: inquiry?.locationId || '',
     pickup_location: '',
-  drop_location: '',
-  numAdults: inquiry?.numAdults?.toString() || '',
+    drop_location: '',
+    numAdults: inquiry?.numAdults?.toString() || '',
     numChild5to12: inquiry?.numChildren5to11?.toString() || '',
     numChild0to5: inquiry?.numChildrenBelow5?.toString() || '',
     tourStartsFrom: convertJourneyDateToTourStart(inquiry?.journeyDate),
-    tourEndsOn: undefined,  
+    tourEndsOn: undefined,
     remarks: REMARKS_DEFAULT,
 
     totalPrice: '',
@@ -575,7 +575,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     form.setValue('transport', String(selectedTourPackage.transport || ''));
     form.setValue('pickup_location', String(selectedTourPackage.pickup_location || ''));
     form.setValue('drop_location', String(selectedTourPackage.drop_location || ''));
-    form.setValue('totalPrice', String(selectedTourPackage.totalPrice || ''));
+    // form.setValue('totalPrice', String(selectedTourPackage.totalPrice || '')); // REMOVED
     form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
     form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
     form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -720,7 +720,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           })) || [],
         })));
       } else {
-         form.setValue('itineraries', []); // Clear if template has none
+        form.setValue('itineraries', []); // Clear if template has none
       }
 
       // Attempt to parse and set pricing section if available
@@ -756,12 +756,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         })),
         // Ensure correct spelling and explicit types
         roomAllocations: itinerary.roomAllocations?.map((alloc: z.infer<typeof roomAllocationSchema>) => ({
-            ...alloc,
-            quantity: Number(alloc.quantity) || 1 // Ensure quantity is a number
+          ...alloc,
+          quantity: Number(alloc.quantity) || 1 // Ensure quantity is a number
         })),
         transportDetails: itinerary.transportDetails?.map((detail: z.infer<typeof transportDetailsSchema>) => ({
-            ...detail,
-            quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
+          ...detail,
+          quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
         })),
       })),
       pricingSection: data.pricingSection || [],
@@ -773,7 +773,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       console.log("Submitting data:", formattedData); // Log data before sending
       const response = await axios.post(`/api/tourPackageQuery`, formattedData);
       console.log("API Response:", response.data); // Log API response
-      
+
       // Check if we have a tour package query ID to redirect to display page
       if (response.data?.id) {
         router.refresh();
@@ -803,7 +803,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [open, setOpen] = useState(false); // Keep if delete functionality is needed
 
   // Add loading indicator for lookup data
-   if (lookupLoading) {
+  if (lookupLoading) {
     return <div className="flex justify-center items-center h-64">Loading configuration data...</div>; // Improved loading indicator
   }
 
@@ -959,7 +959,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 occupancyTypes={occupancyTypes}
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
-                // --- END PASS LOOKUP DATA ---
+              // --- END PASS LOOKUP DATA ---
               />
             </TabsContent>
 

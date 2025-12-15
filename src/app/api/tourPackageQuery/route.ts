@@ -35,7 +35,7 @@ async function createItineraryAndActivities(itinerary: {
 
     // Strict validation - no fallback values
     const validationErrors: string[] = [];
-    
+
     if (!itinerary.itineraryTitle) {
         validationErrors.push(`Missing itinerary title for day ${itinerary.dayNumber || 'unknown'}`);
     }
@@ -110,13 +110,13 @@ async function createItineraryAndActivities(itinerary: {
         console.log('Itinerary.roomAllocations type:', typeof itinerary.roomAllocations);
         console.log('Itinerary.roomAllocations value:', itinerary.roomAllocations);
         console.log('Itinerary.roomAllocations is array:', Array.isArray(itinerary.roomAllocations));
-        
+
         if (itinerary.roomAllocations && Array.isArray(itinerary.roomAllocations) && itinerary.roomAllocations.length > 0) {
             console.log('Room allocations array length:', itinerary.roomAllocations.length);
             itinerary.roomAllocations.forEach((allocation: any, index: number) => {
                 console.log(`Room allocation ${index}:`, JSON.stringify(allocation, null, 2));
             });
-            
+
             await Promise.all(itinerary.roomAllocations.map(async (roomAllocation: any, idx: number) => {
                 try {
                     // Determine roomTypeId to use: if custom is provided, map to a placeholder RoomType("Custom")
@@ -185,7 +185,8 @@ async function createItineraryAndActivities(itinerary: {
         }
 
         console.log("Successfully created itinerary and all related data for:", itinerary.itineraryTitle);
-        return createdItinerary;    } catch (error) {
+        return createdItinerary;
+    } catch (error) {
         console.error("Failed to create itinerary:", itinerary.itineraryTitle, error);
         throw error;
     }
@@ -198,7 +199,7 @@ export async function POST(
         const { userId } = auth();
 
         const body = await req.json();
-        
+
         console.log('🔍 TOUR PACKAGE QUERY API - POST REQUEST');
         console.log('========================================');
         console.log('1. Full request body:', JSON.stringify(body, null, 2));
@@ -208,7 +209,7 @@ export async function POST(
                 console.log(`3. Itinerary ${index} room allocations:`, JSON.stringify(itinerary.roomAllocations, null, 2));
             });
         }
-    console.log('========================================');        const {
+        console.log('========================================'); const {
             tourPackageQueryNumber,
             tourPackageQueryName,
             tourPackageQueryType,
@@ -324,61 +325,61 @@ export async function POST(
             if (inclusions === null || inclusions === undefined) return '';
             return Array.isArray(inclusions) ? JSON.stringify(inclusions) : JSON.stringify([inclusions]);
         })();
-        
+
         const processedExclusions = (() => {
             console.log('Processing exclusions:', typeof exclusions, exclusions);
             if (exclusions === null || exclusions === undefined) return '';
             return Array.isArray(exclusions) ? JSON.stringify(exclusions) : JSON.stringify([exclusions]);
         })();
-        
+
         const processedImportantNotes = (() => {
             console.log('Processing importantNotes:', typeof importantNotes, importantNotes);
             if (importantNotes === null || importantNotes === undefined) return '';
             return Array.isArray(importantNotes) ? JSON.stringify(importantNotes) : JSON.stringify([importantNotes]);
         })();
-        
+
         const processedPaymentPolicy = (() => {
             console.log('Processing paymentPolicy:', typeof paymentPolicy, paymentPolicy);
             if (paymentPolicy === null || paymentPolicy === undefined) return '';
             return Array.isArray(paymentPolicy) ? JSON.stringify(paymentPolicy) : JSON.stringify([paymentPolicy]);
         })();
-        
+
         const processedUsefulTip = (() => {
             console.log('Processing usefulTip:', typeof usefulTip, usefulTip);
             if (usefulTip === null || usefulTip === undefined) return '';
             return Array.isArray(usefulTip) ? JSON.stringify(usefulTip) : JSON.stringify([usefulTip]);
         })();
-        
+
         const processedCancellationPolicy = (() => {
             console.log('Processing cancellationPolicy:', typeof cancellationPolicy, cancellationPolicy);
             if (cancellationPolicy === null || cancellationPolicy === undefined) return '';
             return Array.isArray(cancellationPolicy) ? JSON.stringify(cancellationPolicy) : JSON.stringify([cancellationPolicy]);
         })();
-        
+
         const processedAirlineCancellationPolicy = (() => {
             console.log('Processing airlineCancellationPolicy:', typeof airlineCancellationPolicy, airlineCancellationPolicy);
             if (airlineCancellationPolicy === null || airlineCancellationPolicy === undefined) return '';
             return Array.isArray(airlineCancellationPolicy) ? JSON.stringify(airlineCancellationPolicy) : JSON.stringify([airlineCancellationPolicy]);
         })();
-        
+
         const processedTermsConditions = (() => {
             console.log('Processing termsconditions:', typeof termsconditions, termsconditions);
             if (termsconditions === null || termsconditions === undefined) return '';
             return Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : JSON.stringify([termsconditions]);
         })();
-        
+
         const processedKitchenGroupPolicy = (() => {
             console.log('Processing kitchenGroupPolicy:', typeof kitchenGroupPolicy, kitchenGroupPolicy);
             if (kitchenGroupPolicy === null || kitchenGroupPolicy === undefined) return '';
             return Array.isArray(kitchenGroupPolicy) ? JSON.stringify(kitchenGroupPolicy) : JSON.stringify([kitchenGroupPolicy]);
         })();
-        
-    console.log('✅ All policy arrays processed successfully');
 
-    const newTourPackageQuery = await prismadb.tourPackageQuery.create({
+        console.log('✅ All policy arrays processed successfully');
+
+        const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
                 inquiryId,
-        tourPackageQueryNumber: effectiveTourPackageQueryNumber,
+                tourPackageQueryNumber: effectiveTourPackageQueryNumber,
                 tourPackageQueryName,
                 tourPackageQueryType,
                 tourCategory,
@@ -392,7 +393,7 @@ export async function POST(
                 selectedTemplateType,
                 tourPackageTemplateName,
                 selectedMealPlanId,                // Store occupancy selections directly - don't transform it
-                occupancySelections: occupancySelections || undefined,                tourStartsFrom: dateToUtc(tourStartsFrom),
+                occupancySelections: occupancySelections || undefined, tourStartsFrom: dateToUtc(tourStartsFrom),
                 tourEndsOn: dateToUtc(tourEndsOn),
                 transport,
                 pickup_location,
@@ -429,7 +430,7 @@ export async function POST(
                             console.log('images type:', typeof images);
                             console.log('images value:', images);
                             console.log('images isArray:', Array.isArray(images));
-                            
+
                             if (images && Array.isArray(images)) {
                                 console.log('images length:', images.length);
                                 const processedImages = images.map((image: { url: string }) => {
@@ -451,7 +452,7 @@ export async function POST(
                             console.log('flightDetails type:', typeof flightDetails);
                             console.log('flightDetails value:', flightDetails);
                             console.log('flightDetails isArray:', Array.isArray(flightDetails));
-                            
+
                             if (flightDetails && Array.isArray(flightDetails)) {
                                 console.log('flightDetails length:', flightDetails.length);
                                 const processedFlightDetails = flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => {
@@ -493,7 +494,7 @@ export async function POST(
                         }
                     })
                 );
-                
+
                 console.log(`📊 All ${results.length} itineraries created successfully`);
             } catch (error: any) {
                 console.error('[ITINERARIES_CREATION_FAILED]', error.message);
@@ -503,10 +504,10 @@ export async function POST(
                 });
                 // Return detailed error message to frontend
                 return new NextResponse(
-                    JSON.stringify({ 
+                    JSON.stringify({
                         message: error.message || 'Itinerary creation failed',
                         details: 'The tour package template has missing or invalid data. Please ensure all required fields are properly filled.'
-                    }), 
+                    }),
                     { status: 400, headers: { 'Content-Type': 'application/json' } }
                 );
             }
@@ -517,10 +518,10 @@ export async function POST(
                 where: { id: newTourPackageQuery.id }
             });
             return new NextResponse(
-                JSON.stringify({ 
+                JSON.stringify({
                     message: 'No itineraries found in the selected tour package template',
                     details: 'The selected tour package template does not contain any itineraries. Please select a different template or contact an administrator.'
-                }), 
+                }),
                 { status: 400, headers: { 'Content-Type': 'application/json' } }
             );
         }

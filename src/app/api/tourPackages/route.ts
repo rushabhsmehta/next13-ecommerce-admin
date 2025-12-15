@@ -126,7 +126,7 @@ async function createItineraryAndActivities(
 
 export async function POST(
     req: Request,
-  ) {
+) {
     try {
         const { userId } = auth();
 
@@ -153,7 +153,7 @@ export async function POST(
             pricePerChildwithSeatBelow5Years,
             totalPrice,
             pricingSection, // Add this line
-            flightDetails,            inclusions,
+            flightDetails, inclusions,
             exclusions,
             importantNotes,
             paymentPolicy,
@@ -162,12 +162,11 @@ export async function POST(
             airlineCancellationPolicy,
             termsconditions,
             kitchenGroupPolicy,
-          //  disclaimer,
+            //  disclaimer,
             images,
             itineraries,
-            assignedTo,
-            assignedToMobileNumber,
-            assignedToEmail,
+            // assignedTo,
+            // assignedToEmail,
             slug,
             isFeatured,
             isArchived } = body;
@@ -176,17 +175,17 @@ export async function POST(
             return new NextResponse("Unauthenticated", { status: 403 });
         }
 
-      /*   if (!tourPackageQueryName) {
-            return new NextResponse("Tour Package Query Name is required", { status: 400 });
-        }
-
-        if (!images || !images.length) {
-            return new NextResponse("Images are required", { status: 400 });
-        }
-
-        if (!price) {
-            return new NextResponse("Price is required", { status: 400 });
-        } */
+        /*   if (!tourPackageQueryName) {
+              return new NextResponse("Tour Package Query Name is required", { status: 400 });
+          }
+  
+          if (!images || !images.length) {
+              return new NextResponse("Images are required", { status: 400 });
+          }
+  
+          if (!price) {
+              return new NextResponse("Price is required", { status: 400 });
+          } */
 
         if (!locationId) {
             return new NextResponse("Location id is required", { status: 400 });
@@ -242,9 +241,8 @@ export async function POST(
                     airlineCancellationPolicy: processedAirlineCancellationPolicy,
                     termsconditions: processedTermsConditions,
                     kitchenGroupPolicy: processedKitchenGroupPolicy,
-                    assignedTo,
-                    assignedToMobileNumber,
-                    assignedToEmail,
+                    // assignedTo,
+                    // assignedToEmail,
                     slug,
                     images: normalizedImages.length
                         ? {
@@ -315,9 +313,9 @@ export async function GET(
         const summaryParam = searchParams.get('summary');
 
         const isFeatured =
-          typeof isFeaturedParam === 'string'
-            ? ['true', '1'].includes(isFeaturedParam.toLowerCase())
-            : undefined;
+            typeof isFeaturedParam === 'string'
+                ? ['true', '1'].includes(isFeaturedParam.toLowerCase())
+                : undefined;
 
         const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
         const limit = Number.isFinite(parsedLimit) && parsedLimit! > 0 ? Math.min(parsedLimit!, 100) : undefined;
@@ -345,10 +343,14 @@ export async function GET(
                     locationId: true,
                     tourPackageName: true,
                     tourPackageType: true,
-                    numDaysNight: true,
-                    price: true,
-                    createdAt: true,
-                    updatedAt: true,
+                    numDaysNight: true, // Add this line
+                    price: true, // Add this line
+                    // remarks: true, // REMOVED
+                    createdAt: true, // Add this line
+                    updatedAt: true, // Add this line
+                    // assignedTo: true,
+                    // assignedToEmail: true,
+                    isFeatured: true,
                     location: {
                         select: {
                             id: true,

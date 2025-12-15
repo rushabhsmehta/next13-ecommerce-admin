@@ -404,10 +404,10 @@ const parseHTMLContent = (htmlString: string): string => {
 // Add a utility function to handle JSON formatted policies
 const handlePolicyContent = (policyData: any): string => {
   if (!policyData) return '';
-  
+
   // If it's a string, return it directly
   if (typeof policyData === 'string') return policyData;
-  
+
   // If it's an object (parsed JSON), extract the content property or convert it to string
   if (typeof policyData === 'object') {
     if (policyData.content) return policyData.content;
@@ -417,7 +417,7 @@ const handlePolicyContent = (policyData: any): string => {
       return '';
     }
   }
-  
+
   return '';
 };
 
@@ -456,39 +456,21 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                 <Text style={styles.tableLabel}>Customer: </Text>
                 <Text style={styles.tableValue}>
                   {data?.customerName} |
-                  {data?.customerNumber} 
+                  {data?.customerNumber}
                 </Text>
               </View>
 
-              {/* Assigned To Information */}
-              <View style={styles.tableRow}>
-                <Text style={styles.tableLabel}>Assigned To: </Text>
-                <Text style={styles.tableValue}>
-                  {data?.assignedTo} |
-                  {data?.assignedToMobileNumber && (
-                    <>
-                      <PhoneIcon size={16} color="#000" style={styles.icon} />
-                      {data?.assignedToMobileNumber} |
-                    </>
-                  )}
-                  {data?.assignedToEmail && (
-                    <>
-                      <MailIcon size={16} color="#000" style={styles.icon} />
-                      {data?.assignedToEmail}
-                    </>
-                  )}
-                </Text>
-              </View>
+              {/* Assigned To Information - Removed */}
             </View>
           )}
 
           <View style={styles.imagesContainer}>            {data?.images.map((image, index) => (
-              <Image
-                key={index}
-                src={image.url}
-                style={styles.image}
-              />
-            ))}
+            <Image
+              key={index}
+              src={image.url}
+              style={styles.image}
+            />
+          ))}
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.tableLabel}>Location:</Text>
@@ -563,11 +545,11 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                 {/* Price Details in Tabular Format */}
                 {/* Price per Adult */}
                 {data.price !== '' && (
-                  <View style={styles.tableRow}>              
+                  <View style={styles.tableRow}>
                     <Text style={styles.tableValue}>{data.price}</Text>
                   </View>
                 )}
-                </View>
+              </View>
             </View>
           </View>
         )}
@@ -622,7 +604,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
           </View>
         )}
 
-  {/* Tour highlights removed */}
+        {/* Tour highlights removed */}
 
         {/* Flight Details */}
         {data.flightDetails.length > 0 && (

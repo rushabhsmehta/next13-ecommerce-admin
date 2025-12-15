@@ -321,19 +321,19 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
         
         <div style="${contentStyle}">
           ${initialData.packageVariants.map((variant, variantIndex) => {
-            const hotelMappings: Record<string, string> = {};
-            if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
-              variant.variantHotelMappings.forEach((mapping: any) => {
-                const dayNum = mapping.itinerary?.dayNumber;
-                if (dayNum && mapping.hotelId) {
-                  hotelMappings[String(dayNum)] = mapping.hotelId;
-                }
-              });
-            }
+      const hotelMappings: Record<string, string> = {};
+      if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
+        variant.variantHotelMappings.forEach((mapping: any) => {
+          const dayNum = mapping.itinerary?.dayNumber;
+          if (dayNum && mapping.hotelId) {
+            hotelMappings[String(dayNum)] = mapping.hotelId;
+          }
+        });
+      }
 
-            const mappingEntries = Object.entries(hotelMappings).sort(([a], [b]) => Number(a) - Number(b));
+      const mappingEntries = Object.entries(hotelMappings).sort(([a], [b]) => Number(a) - Number(b));
 
-            return `
+      return `
               <div style="margin-bottom: ${variantIndex < initialData.packageVariants!.length - 1 ? '32px' : '0'}; page-break-inside: avoid; break-inside: avoid-page;">
                 <div style="background: ${brandGradients.secondary}; padding: 16px 20px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
                   <div style="flex: 1;">
@@ -370,10 +370,10 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                     
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
                       ${mappingEntries.map(([dayNum, hotelId]) => {
-                        const hotel = hotels.find(h => h.id === hotelId);
-                        if (!hotel) return '';
-                        
-                        return `
+        const hotel = hotels.find(h => h.id === hotelId);
+        if (!hotel) return '';
+
+        return `
                           <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); page-break-inside: avoid; break-inside: avoid-page;">
                             <div style="background: ${brandGradients.primary}; padding: 8px 12px;">
                               <div style="font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.5px;">
@@ -409,7 +409,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                             </div>
                           </div>
                         `;
-                      }).join('')}
+      }).join('')}
                     </div>
                   </div>
                 ` : `
@@ -421,7 +421,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                 `}
               </div>
             `;
-          }).join('')}
+    }).join('')}
           
           <div style="background: ${brandColors.lightOrange}; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px; margin-top: 20px; text-align: center;">
             <p style="margin: 0; font-size: 12px; color: ${brandColors.secondary}; font-weight: 500; font-style: italic;">
@@ -499,10 +499,10 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     // 3. Pricing Section
     const pricingData = initialData.pricingSection;
     let dynamicPricingSection = "";
-    
+
     if (pricingData) {
       const parsedPricing = parsePricingSection(pricingData);
-      
+
       if (parsedPricing && parsedPricing.length > 0) {
         const pricingItems = parsedPricing.map((item, index) => `
           <div style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'}; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid ${brandColors.primary}; border: 1px solid #e5e7eb;">
@@ -545,26 +545,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     }
 
     // 4. Total Price
-    const totalPriceSection = initialData.totalPrice && initialData.totalPrice.trim() !== "" ? `
-      <div style="${priceCardStyle}; text-align: center;">
-        <div style="margin-bottom: 8px;">
-          <h3 style="font-size: 16px; font-weight: 600; color: #374151; margin: 0;">Total Package Cost</h3>
-        </div>
-        
-        <div style="background: white; border-radius: 6px; padding: 20px 16px; margin: 8px 0; border: 1px solid #e5e7eb; position: relative;">
-          <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: ${brandGradients.primary};"></div>
-          <div style="font-size: 26px; font-weight: 700; color: ${brandColors.primary}; margin-bottom: 4px; letter-spacing: 0.5px;">
-            ₹ ${formatINR(initialData.totalPrice)}
-          </div>
-          <div style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.75px;">
-            Complete Tour Package Cost
-          </div>
-          <div style="font-size: 11px; color: ${brandColors.muted}; font-weight: 500; margin-top: 6px; padding: 4px 8px; background: ${brandColors.lightOrange}; border-radius: 4px; display: inline-block;">
-            + GST
-          </div>
-        </div>
-      </div>
-    ` : "";
+    const totalPriceSection = "";
 
     // 5. Itinerary Section
     let itinerariesSection = "";
@@ -605,11 +586,11 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                 </h4>
                 <div style="font-size: 14px; line-height: 1.6; color: ${brandColors.muted};">
                   ${(itinerary.itineraryDescription || "")
-                    .replace(/<\/?p>/gi, "<br>")
-                    .replace(/(<br>\s*)+/gi, "<br>")
-                    .replace(/\s+/g, " ")
-                    .trim()
-                  }
+            .replace(/<\/?p>/gi, "<br>")
+            .replace(/(<br>\s*)+/gi, "<br>")
+            .replace(/\s+/g, " ")
+            .trim()
+          }
                 </div>
               </div>
             ` : ''}

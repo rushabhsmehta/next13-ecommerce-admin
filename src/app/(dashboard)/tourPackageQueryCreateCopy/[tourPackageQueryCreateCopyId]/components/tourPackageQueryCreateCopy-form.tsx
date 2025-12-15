@@ -180,7 +180,7 @@ const formSchema = z.object({
   pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
   customMarkup: z.string().optional(), // Added for custom markup percentage
   remarks: z.string().optional(),
-  locationId: z.string().min(1, "Location is required"),  flightDetails: flightDetailsSchema.array(),
+  locationId: z.string().min(1, "Location is required"), flightDetails: flightDetailsSchema.array(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
   kitchenGroupPolicy: z.array(z.string()),
@@ -551,8 +551,8 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       form.setValue('transport', selectedTourPackage.transport || '');
       form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
-  // tour_highlights removed
-      form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
+      // tour_highlights removed
+      // form.setValue('totalPrice', selectedTourPackage.totalPrice || ''); // REMOVED
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -611,7 +611,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       form.setValue('transport', selectedTourPackageQuery.transport || '');
       form.setValue('pickup_location', selectedTourPackageQuery.pickup_location || '');
       form.setValue('drop_location', selectedTourPackageQuery.drop_location || '');
-  // tour_highlights removed
+      // tour_highlights removed
       form.setValue('totalPrice', selectedTourPackageQuery.totalPrice || '');
       form.setValue('inclusions', parseJsonField(selectedTourPackageQuery.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackageQuery.exclusions) || EXCLUSIONS_DEFAULT);
@@ -779,7 +779,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
         setLoading(false);
         return;
-      }      const formattedData = {
+      } const formattedData = {
         ...data,
         // Apply timezone normalization to tour dates
         tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
@@ -999,7 +999,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
                 priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult}                selectedTemplateId={form.watch('selectedTemplateId')}
+                setPriceCalculationResult={setPriceCalculationResult} selectedTemplateId={form.watch('selectedTemplateId')}
                 selectedTemplateType={form.watch('selectedTemplateType')}
               />
             </TabsContent>

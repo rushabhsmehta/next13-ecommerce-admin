@@ -149,7 +149,7 @@ const formSchema = z.object({
   pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
-  remarks: z.string().optional(),  locationId: z.string().min(1),
+  remarks: z.string().optional(), locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
@@ -256,7 +256,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     fetchLookup();
   }, []);
 
-  
+
 
   const parsePricingSection = (data: any): Array<{ name: string, price: string, description?: string }> => {
     if (!data) return [];
@@ -306,7 +306,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
             break;
           case 'airlineCancellationPolicy':
             form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-            break;          case 'termsconditions':
+            break; case 'termsconditions':
             form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
             break;
           case 'kitchenGroupPolicy':
@@ -330,12 +330,12 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
       ...data,
       tourPackageQueryType: data.tourPackageType ?? '', // Fallback to empty string if null
       tourCategory: data.tourCategory ?? 'Domestic', // Add tour category with default
-      assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
-      assignedToMobileNumber: data.assignedToMobileNumber ?? '',
-      assignedToEmail: data.assignedToEmail ?? '',
+      assignedTo: '', // data.assignedTo ?? '', // Fallback to empty string if null
+      assignedToMobileNumber: '', // data.assignedToMobileNumber ?? '',
+      assignedToEmail: '', // data.assignedToEmail ?? '',
       // Restore dropdown field values based on saved template data
-      tourPackageTemplate: data.selectedTemplateType === 'TourPackage' ? (data.selectedTemplateId || '') : '',
-      tourPackageQueryTemplate: data.selectedTemplateType === 'TourPackageQuery' ? (data.selectedTemplateId || '') : '',
+      tourPackageTemplate: (data as any).selectedTemplateType === 'TourPackage' ? ((data as any).selectedTemplateId || '') : '',
+      tourPackageQueryTemplate: (data as any).selectedTemplateType === 'TourPackageQuery' ? ((data as any).selectedTemplateId || '') : '',
 
 
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
@@ -349,7 +349,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
         flightDuration: flightDetail.flightDuration ?? '',
       })),
 
-      itineraries: data.itineraries.map((itinerary: any) => ({
+      itineraries: (data.itineraries || []).map((itinerary: any) => ({
 
         dayNumber: itinerary.dayNumber ?? 0,
         days: itinerary.days ?? '',
@@ -378,8 +378,8 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
       pricePerChildOrExtraBed: data.pricePerChildOrExtraBed || '',
       pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed || '',
       pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years || '',
-      totalPrice: data.totalPrice || '',
-      disclaimer: data.disclaimer || '',      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
+      totalPrice: '', // data.totalPrice || '',
+      disclaimer: data.disclaimer || '', inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
       exclusions: parseJsonField(data.exclusions) || EXCLUSIONS_DEFAULT,
       kitchenGroupPolicy: parseJsonField(data.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: parseJsonField(data.importantNotes) || IMPORTANT_NOTES_DEFAULT,
@@ -488,7 +488,8 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
   };
 
 
-  const onSubmit = async (data: TourPackageQueryFromTourPackageFormValues) => {    const formattedData = {
+  const onSubmit = async (data: TourPackageQueryFromTourPackageFormValues) => {
+    const formattedData = {
       ...data,
       // Apply timezone normalization to tour dates
       tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
@@ -963,7 +964,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                               readonly: loading,
                             }}
                             onBlur={(content) => field.onChange(content)}
-                            onChange={() => {}}
+                            onChange={() => { }}
                           />
                         </FormControl>
                         <FormDescription>
@@ -1126,7 +1127,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                       }
                                       if (useLocationDefaults.airlineCancellationPolicy) {
                                         form.setValue('airlineCancellationPolicy', parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-                                      }                                      if (useLocationDefaults.termsconditions) {
+                                      } if (useLocationDefaults.termsconditions) {
                                         form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
                                       }
                                       if (useLocationDefaults.kitchenGroupPolicy) {
@@ -1423,7 +1424,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                             newItineraries[index] = { ...itinerary, itineraryTitle: content }
                                             onChange(newItineraries)
                                           }}
-                                          onChange={() => {}}
+                                          onChange={() => { }}
                                         />
                                       </FormControl>
                                     </FormItem>
@@ -1439,7 +1440,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                             newItineraries[index] = { ...itinerary, itineraryDescription: content }
                                             onChange(newItineraries)
                                           }}
-                                          onChange={() => {}}
+                                          onChange={() => { }}
                                         />
                                       </FormControl>
                                     </FormItem>
@@ -1721,7 +1722,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                                 newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: content }
                                                 onChange(newItineraries)
                                               }}
-                                              onChange={() => {}}
+                                              onChange={() => { }}
                                             />
                                           </FormControl>
                                         </FormItem>
@@ -1738,7 +1739,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                                 newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: content }
                                                 onChange(newItineraries)
                                               }}
-                                              onChange={() => {}}
+                                              onChange={() => { }}
                                             />
 
                                           </FormControl>
@@ -1835,9 +1836,9 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                               hotelId: '',
                               numberofRooms: '',
                               roomCategory: '',
-                                          locationId: form.getValues('locationId') || '',
-                                          roomAllocations: [],
-                                          transportDetails: [],
+                              locationId: form.getValues('locationId') || '',
+                              roomAllocations: [],
+                              transportDetails: [],
                             }])}
                           >
                             <Plus className="h-4 w-4 mr-2" />

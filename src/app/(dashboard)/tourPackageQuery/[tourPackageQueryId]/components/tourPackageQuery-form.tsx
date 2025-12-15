@@ -539,6 +539,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         const { data } = JSON.parse(storedDraft);
         console.log("Found auto-generated draft:", data);
 
+        // Find Location ID
+        let foundLocationId = '';
+        if (data.locationName && locations.length > 0) {
+          const search = data.locationName.toLowerCase();
+          const loc = locations.find(l => l.label && l.label.toLowerCase().includes(search));
+          if (loc) foundLocationId = loc.id;
+        }
+        // Fallback if not found
+        if (!foundLocationId && locations.length > 0) {
+          foundLocationId = locations[0].id; // Default to first location if no match
+        }
+
         // Map AI JSON to Form Values
         const mappedData: Partial<TourPackageQueryFormValues> = {
           tourPackageQueryName: data.tourPackageQueryName || '',
@@ -550,6 +562,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           transport: data.transport || '',
           pickup_location: data.pickup_location || '',
           drop_location: data.drop_location || '',
+          locationId: foundLocationId, // Set the found location ID
           numAdults: String(data.numAdults || ''),
           numChild5to12: String(data.numChild5to12 || ''),
           numChild0to5: String(data.numChild0to5 || ''),
@@ -562,10 +575,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             dayNumber: day.dayNumber,
             itineraryTitle: day.itineraryTitle || '',
             itineraryDescription: day.itineraryDescription || '',
-            mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [], // AI might send csv or array? Assuming string based on API or array. API route doesn't split.
-            // If AI sends array of strings for meals, allow it.
-            // API route used `mealsIncluded: day.mealsIncluded` directly.
-            // Form expects array of strings? `mealsIncluded: z.array(z.string()).optional()`
+            mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [],
 
             activities: Array.isArray(day.activities) ? day.activities.map((act: string) => ({
               activityTitle: act,
@@ -573,8 +583,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               activityImages: []
             })) : [],
             itineraryImages: [],
-            hotelId: '', // Logic to look up hotel by name could go here if we had access to hotels list easily, but strictly matching names is risky.
-            locationId: '', // Default to empty
+            hotelId: '',
+            locationId: foundLocationId, // Set location ID for itineraries too
             roomAllocations: [],
             transportDetails: []
           })) : [],
@@ -604,7 +614,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     };
 
     loadDraft();
-  }, [initialData, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData, form, locations]);
 
   // Auto-save form data to localStorage every 30 seconds - moved after form initialization
   useEffect(() => {
@@ -704,7 +715,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
       // tour_highlights removed
-      form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
+      // form.setValue('totalPrice', selectedTourPackage.totalPrice || ''); // REMOVED
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);

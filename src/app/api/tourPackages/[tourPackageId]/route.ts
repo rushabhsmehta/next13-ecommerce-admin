@@ -31,7 +31,7 @@ export async function GET(
                 activityImages: true,
               }
             }
-          },          orderBy: [
+          }, orderBy: [
             { dayNumber: 'asc' },
             { days: 'asc' }
           ],
@@ -95,7 +95,7 @@ export async function DELETE(
       return new NextResponse("Tour Package  Id is required", { status: 400 });
     }
 
-    
+
 
     const tourPackage = await prismadb.tourPackage.delete({
       where: {
@@ -110,7 +110,7 @@ export async function DELETE(
   }
 };
 
-async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any;  roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageId: any) {
+async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber: any; days: any; hotelId: any; numberofRooms: any; roomCategory: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageId: any) {
   // First, create the itinerary and get its id
   const createdItinerary = await prismadb.itinerary.create({
     data: {
@@ -119,7 +119,7 @@ async function createItineraryAndActivities(itinerary: { itineraryTitle: any; it
       locationId: itinerary.locationId,
       tourPackageId: tourPackageId,
       tourPackageQueryId: itinerary.tourPackageQueryId,
-      dayNumber : itinerary.dayNumber,
+      dayNumber: itinerary.dayNumber,
       days: itinerary.days,
       hotelId: itinerary.hotelId,
       numberofRooms: itinerary.numberofRooms,
@@ -139,7 +139,7 @@ async function createItineraryAndActivities(itinerary: { itineraryTitle: any; it
       console.log("Received Activities is ", activity);
       return prismadb.activity.create({
         data: {
-                    itineraryId: createdItinerary.id, // Link to the created itinerary
+          itineraryId: createdItinerary.id, // Link to the created itinerary
           activityTitle: activity.activityTitle,
           activityDescription: activity.activityDescription,
           locationId: activity.locationId,
@@ -169,23 +169,16 @@ export async function PATCH(
     const {
       tourPackageName,
       tourPackageType,
-      customerName,
-      customerNumber,
       numDaysNight,
-      locationId,
-      period,
       transport,
       pickup_location,
       drop_location,
-      numAdults,
-      numChild5to12,
-      numChild0to5,
       price,
       pricePerAdult,
       pricePerChildOrExtraBed,
       pricePerChild5to12YearsNoBed,
       pricePerChildwithSeatBelow5Years,
-      totalPrice,
+      // totalPrice, // REMOVED
       pricingSection, // Add this line
       flightDetails,
       //   hotelDetails,
@@ -193,19 +186,19 @@ export async function PATCH(
       exclusions,
       importantNotes,
       paymentPolicy,
-      usefulTip,      cancellationPolicy,
+      usefulTip, cancellationPolicy,
       airlineCancellationPolicy,
       termsconditions,
       kitchenGroupPolicy,
       //disclaimer,
+      locationId, // ADDED
       // hotelId,
       images,
       itineraries,
       isFeatured,
       isArchived,
-      assignedTo,
-      assignedToMobileNumber,
-      assignedToEmail,
+      // assignedTo,
+      // assignedToEmail,
       slug,
       packageVariants,
     } = body;
@@ -220,17 +213,17 @@ export async function PATCH(
       return new NextResponse("Tour Package id is required", { status: 400 });
     }
 
- /*    if (!tourPackageName) {
-      return new NextResponse("Tour Package  Name is required", { status: 400 });
-    }
-
-    if (!images || !images.length) {
-      return new NextResponse("Images are required", { status: 400 });
-    }
-
-    if (!price) {
-      return new NextResponse("Price is required", { status: 400 });
-    } */
+    /*    if (!tourPackageName) {
+         return new NextResponse("Tour Package  Name is required", { status: 400 });
+       }
+   
+       if (!images || !images.length) {
+         return new NextResponse("Images are required", { status: 400 });
+       }
+   
+       if (!price) {
+         return new NextResponse("Price is required", { status: 400 });
+       } */
 
     if (!locationId) {
       return new NextResponse("Location id is required", { status: 400 });
@@ -245,25 +238,25 @@ export async function PATCH(
     const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
     const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
     const processedPaymentPolicy = Array.isArray(paymentPolicy) ? paymentPolicy : paymentPolicy ? [paymentPolicy] : [];
-    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : [];    const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
+    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : []; const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
     const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];
-    
+
     // Convert arrays to JSON strings for Prisma
     const inclusionsString = JSON.stringify(processedInclusions);
     const exclusionsString = JSON.stringify(processedExclusions);
     const importantNotesString = JSON.stringify(processedImportantNotes);
     const paymentPolicyString = JSON.stringify(processedPaymentPolicy);
-    const usefulTipString = JSON.stringify(processedUsefulTip);    const cancellationPolicyString = JSON.stringify(processedCancellationPolicy);
+    const usefulTipString = JSON.stringify(processedUsefulTip); const cancellationPolicyString = JSON.stringify(processedCancellationPolicy);
     const airlineCancellationPolicyString = JSON.stringify(processedAirlineCancellationPolicy);
     const termsConditionsString = JSON.stringify(processedTermsConditions);
-    const kitchenGroupPolicyString = JSON.stringify(processedKitchenGroupPolicy);    
-    
+    const kitchenGroupPolicyString = JSON.stringify(processedKitchenGroupPolicy);
+
     // ===== CRITICAL: Get old itinerary data BEFORE deletion =====
     // This is needed for variant hotel mapping remapping (old itinerary IDs → dayNumbers)
     const oldItineraryIdToDayMap = new Map<string, number>();
-    
+
     if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
       // Get all old itinerary IDs from the variant hotel mappings
       const allOldItineraryIds = new Set<string>();
@@ -272,9 +265,9 @@ export async function PATCH(
           Object.keys(variant.hotelMappings).forEach(id => allOldItineraryIds.add(id));
         }
       }
-      
+
       console.log(`[VARIANTS PRE] Found ${allOldItineraryIds.size} unique old itinerary IDs in mappings`);
-      
+
       // Look up these old itineraries to get their dayNumbers BEFORE they're deleted
       if (allOldItineraryIds.size > 0) {
         const oldItineraries = await prismadb.itinerary.findMany({
@@ -284,19 +277,19 @@ export async function PATCH(
           },
           select: { id: true, dayNumber: true }
         });
-        
+
         oldItineraries.forEach(itin => {
           if (itin.dayNumber != null) {
             oldItineraryIdToDayMap.set(itin.id, itin.dayNumber);
             console.log(`[VARIANTS PRE] Old ID ${itin.id} → day ${itin.dayNumber}`);
           }
         });
-        
+
         console.log(`[VARIANTS PRE] Built old ID-to-day map with ${oldItineraryIdToDayMap.size} entries`);
       }
     }
     // ===== End of pre-deletion itinerary lookup =====
-    
+
     const tourPackageUpdateData = {
       //  await prismadb.tourPackage.update({
       //  where: {
@@ -305,11 +298,8 @@ export async function PATCH(
       //    data: {
       tourPackageName,
       tourPackageType,
-      customerName,
-      customerNumber,
       numDaysNight,
       locationId,
-      period,
       transport,
       pickup_location,
       inclusions: inclusionsString,
@@ -322,14 +312,12 @@ export async function PATCH(
       termsconditions: termsConditionsString,
       kitchenGroupPolicy: kitchenGroupPolicyString,
       pricePerChildwithSeatBelow5Years,
-      totalPrice,
       pricingSection, // Add this line
-     // disclaimer,
+      // disclaimer,
       isFeatured,
       isArchived,
-      assignedTo,
-      assignedToMobileNumber,
-      assignedToEmail,
+      // assignedTo,
+      // assignedToEmail,
       slug,
       images: images && images.length > 0 ? {
         deleteMany: {},
@@ -342,12 +330,12 @@ export async function PATCH(
 
       itineraries: {
         deleteMany: {},
-      },      flightDetails : {
-        deleteMany : {},
+      }, flightDetails: {
+        deleteMany: {},
         createMany: {
           data: [
-              ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
-      }
+            ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
+        }
       }
     };
 
@@ -357,29 +345,29 @@ export async function PATCH(
     });
 
 
-   /*  flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageId: string; }) => {
-      const flightDetailData =
-      {
-        date: flightDetail.date,
-        flightName: flightDetail.flightName,
-        flightNumber: flightDetail.flightNumber,
-        from: flightDetail.from,
-        to: flightDetail.to,
-        departureTime: flightDetail.departureTime,
-        arrivalTime: flightDetail.arrivalTime,
-        flightDuration: flightDetail.flightDuration,
-        tourPackageId: params.tourPackageId,
-      }
+    /*  flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageId: string; }) => {
+       const flightDetailData =
+       {
+         date: flightDetail.date,
+         flightName: flightDetail.flightName,
+         flightNumber: flightDetail.flightNumber,
+         from: flightDetail.from,
+         to: flightDetail.to,
+         departureTime: flightDetail.departureTime,
+         arrivalTime: flightDetail.arrivalTime,
+         flightDuration: flightDetail.flightDuration,
+         tourPackageId: params.tourPackageId,
+       }
+ 
+       operations.push(prismadb.flightDetails.create({ data: flightDetailData }));
+     }
+     );
+  */
 
-      operations.push(prismadb.flightDetails.create({ data: flightDetailData }));
-    }
-    );
- */
 
-    
     if (itineraries && itineraries.length > 0) {
       // Map each itinerary to a promise to create the itinerary and its activities
-      const itineraryPromises = itineraries.map((itinerary : any)=> 
+      const itineraryPromises = itineraries.map((itinerary: any) =>
         createItineraryAndActivities(itinerary, params.tourPackageId)
       );
 
@@ -392,7 +380,7 @@ export async function PATCH(
       try {
         console.log(`[VARIANTS] Processing ${packageVariants.length} package variants`);
         console.log(`[VARIANTS] Using pre-fetched old ID-to-day map with ${oldItineraryIdToDayMap.size} entries`);
-        
+
         // Fetch newly created itineraries
         const newItineraries = await prismadb.itinerary.findMany({
           where: { tourPackageId: params.tourPackageId },
@@ -403,7 +391,7 @@ export async function PATCH(
           select: { id: true, dayNumber: true }
         });
         console.log(`[VARIANTS] Found ${newItineraries.length} newly created itineraries`);
-        
+
         // Build dayNumber to new itinerary ID map
         const dayToNewIdMap = new Map<number, string>();
         newItineraries.forEach(itin => {
@@ -412,7 +400,7 @@ export async function PATCH(
             console.log(`[VARIANTS] Day ${itin.dayNumber} → new ID ${itin.id}`);
           }
         });
-        
+
         // Delete existing variants
         await prismadb.packageVariant.deleteMany({
           where: { tourPackageId: params.tourPackageId }
@@ -444,23 +432,23 @@ export async function PATCH(
                   console.log(`[VARIANTS] ⚠️ Cannot find dayNumber for old ID: ${oldItineraryId}`);
                   return null;
                 }
-                
+
                 // Get new ID from dayNumber
                 const newItineraryId = dayToNewIdMap.get(dayNumber);
                 if (!newItineraryId) {
                   console.log(`[VARIANTS] ⚠️ Cannot find new ID for day ${dayNumber}`);
                   return null;
                 }
-                
+
                 console.log(`[VARIANTS] ✅ Remapped: ${oldItineraryId} → day ${dayNumber} → ${newItineraryId}`);
-                
+
                 return {
                   packageVariantId: createdVariant.id,
                   itineraryId: newItineraryId,
                   hotelId: hotelId as string,
                 };
               })
-              .filter((m): m is { packageVariantId: string; itineraryId: string; hotelId: string } => 
+              .filter((m): m is { packageVariantId: string; itineraryId: string; hotelId: string } =>
                 m !== null && !!m.hotelId && !!m.itineraryId
               );
 
@@ -510,13 +498,13 @@ export async function PATCH(
                         vehicleTypeId: pricing.vehicleTypeId,
                         pricingComponents: pricing.pricingComponents.length > 0
                           ? {
-                              create: pricing.pricingComponents.map((component) => ({
-                                pricingAttributeId: component.pricingAttributeId,
-                                price: component.price,
-                                purchasePrice: component.purchasePrice,
-                                description: component.description,
-                              })),
-                            }
+                            create: pricing.pricingComponents.map((component) => ({
+                              pricingAttributeId: component.pricingAttributeId,
+                              price: component.price,
+                              purchasePrice: component.purchasePrice,
+                              description: component.description,
+                            })),
+                          }
                           : undefined,
                       },
                     })
@@ -529,7 +517,7 @@ export async function PATCH(
             }
           }
         }
-        
+
         console.log('[VARIANTS] Successfully saved all package variants');
       } catch (variantError: any) {
         console.error('[VARIANT_SAVE_ERROR]', variantError);
@@ -543,7 +531,7 @@ export async function PATCH(
       include: {
         location: true,
         flightDetails: true,
-        images: true,        itineraries: {
+        images: true, itineraries: {
           include: {
             itineraryImages: true,
             activities: {

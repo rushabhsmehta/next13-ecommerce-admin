@@ -74,10 +74,11 @@ IMPORTANT (Visibility):
 - **CRITICAL**: If the user says "please create the draft now" or "generate the draft", you MUST stop asking questions and IMMEDIATELY output the final Proposal followed by the \`JSON_BLUEPRINT\`. Do not deliberate further.
 
 ## Guardrails
+- **No Personal Details**: Do NOT ask for customer name, phone number, email, or specific travel dates. This is a generic pre-set package for the marketplace, not a custom booking.
 - **Locations**: Ensure the 'locationName' is a real, major destination.
 - **Itinerary**: 'dayNumber' must be sequential starting from 1.
 - **Content**: 'itineraryDescription' should be engaging and mention specific local spots.
-- **Activities formatting**: Roman numerals only in the visible itinerary section; JSON \`activities\` must be a plain string array without numerals.
+- **Activities formatting**: Roman numerals only in the visible itinerary section; JSON 'activities' must be a plain string array without numerals.
 - **Formatting**: Do not include markdown formatting *inside* the JSON strings.
 `;
 

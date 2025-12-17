@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       return jsonError("OpenAI API key is not configured", 500, "NO_OPENAI_KEY");
     }
 
-    const modelId = process.env.OPENAI_TOUR_MODEL ?? "gpt-4o-mini";
+    const modelId = process.env.OPENAI_TOUR_MODEL ?? "gpt-4o";
     const openai = new OpenAI({ apiKey });
 
     const historyMessages: ChatMessage[] = parsed.history.map((message) => ({

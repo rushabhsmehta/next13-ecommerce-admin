@@ -197,13 +197,14 @@ export function AutoTourPackageBuilder({
     }
   };
 
-  const handleSubmit = async () => {
-    if (!prompt.trim()) return;
+  const handleSubmit = async (promptOverride?: string) => {
+    const textToSubmit = promptOverride || prompt;
+    if (!textToSubmit.trim()) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      content: prompt.trim(),
+      content: textToSubmit.trim(),
       createdAt: new Date().toISOString(),
     };
 
@@ -383,7 +384,10 @@ export function AutoTourPackageBuilder({
                 {starterPrompts.map((starter) => (
                   <button
                     key={starter}
-                    onClick={() => setPrompt(starter)}
+                    onClick={() => {
+                      setPrompt(starter);
+                      handleSubmit(starter);
+                    }}
                     className="flex flex-col items-start gap-2 rounded-xl border bg-card p-4 text-left text-sm transition-all hover:bg-accent hover:text-accent-foreground"
                   >
                     <span className="font-medium">Draft a package</span>
@@ -546,7 +550,7 @@ export function AutoTourPackageBuilder({
 
             <Button
               size="sm"
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={!prompt.trim() || isSubmitting}
               className={cn("h-8 w-8 rounded-lg p-0", prompt.trim() ? "bg-primary" : "bg-muted text-muted-foreground")}
             >

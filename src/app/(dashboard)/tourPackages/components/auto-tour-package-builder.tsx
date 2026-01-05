@@ -175,9 +175,24 @@ export function AutoTourPackageBuilder({
     try {
       // Store the AI result as a draft
       const draftKey = 'autoTourPackageDraft';
+
+      // Sanitize the JSON to prevent null values in activities which crash the editor
+      const sanitizedData = { ...json };
+      if (Array.isArray(sanitizedData.itineraries)) {
+        sanitizedData.itineraries.forEach((day: any) => {
+          if (Array.isArray(day.activities)) {
+            day.activities = day.activities.map((act: any) => ({
+              ...act,
+              activityTitle: typeof act.activityTitle === 'string' ? act.activityTitle : "",
+              activityDescription: typeof act.activityDescription === 'string' ? act.activityDescription : ""
+            }));
+          }
+        });
+      }
+
       localStorage.setItem(draftKey, JSON.stringify({
         timestamp: new Date().toISOString(),
-        data: json
+        data: sanitizedData
       }));
 
       toast({

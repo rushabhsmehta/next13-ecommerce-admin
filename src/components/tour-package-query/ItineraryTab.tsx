@@ -191,11 +191,11 @@ function ItineraryTab({
       if (JSON.stringify(current) !== JSON.stringify(normalized)) {
         form.setValue('itineraries', normalized, { shouldDirty: true, shouldValidate: false });
       }
-    } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch { }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-fill itinerary date strings when tourStartsFrom is set and days are empty
+  // Auto-update itinerary date strings when tourStartsFrom changes
   useEffect(() => {
     try {
       const start = form.getValues('tourStartsFrom');
@@ -203,15 +203,21 @@ function ItineraryTab({
       if (!start || !Array.isArray(items) || items.length === 0) return;
       const startDate = new Date(start);
       if (!isValid(startDate)) return;
-      const needsFill = items.some((it: any) => !it?.days);
-      if (!needsFill) return;
+
+      // Always recalculate dates based on start date sequence
       const updated = items.map((it: any, i: number) => ({
         ...it,
-        days: it?.days || formatLocalDate(addDays(startDate, i), 'dd-MM-yyyy')
+        days: formatLocalDate(addDays(startDate, i), 'dd-MM-yyyy')
       }));
-      form.setValue('itineraries', updated, { shouldDirty: true, shouldValidate: false });
-    } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+      // Check for changes to avoid redundant updates
+      const hasChanges = items.some((it: any, i: number) => it.days !== updated[i].days);
+
+      if (hasChanges) {
+        form.setValue('itineraries', updated, { shouldDirty: true, shouldValidate: false });
+      }
+    } catch { }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch?.('tourStartsFrom')]);
 
   // Handle drag end to reorder itineraries and renumber dayNumber
@@ -252,7 +258,7 @@ function ItineraryTab({
                     days: formatLocalDate(addDays(startDate, i), 'dd-MM-yyyy')
                   }));
                   form.setValue('itineraries', updated, { shouldDirty: true, shouldValidate: false });
-                } catch {}
+                } catch { }
               }}
               className="h-8"
             >
@@ -398,298 +404,298 @@ function ItineraryTab({
                                           newItineraries[index] = { ...itinerary, itineraryTitle: newContent }
                                           onChange(newItineraries)
                                         }}
-                                        onChange={() => {}}
+                                        onChange={() => { }}
                                       />
                                     </FormControl>
                                   </FormItem>                            <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
-                                    <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
-                                      <AlignLeft className="h-4 w-4" />
-                                      <span>Description</span>
-                                    </FormLabel>
+                                      <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
+                                        <AlignLeft className="h-4 w-4" />
+                                        <span>Description</span>
+                                      </FormLabel>
+                                      <FormControl>
+                                        <JoditEditor
+                                          ref={editor}
+                                          value={itinerary.itineraryDescription || ''}
+                                          onBlur={(newContent) => {
+                                            const newItineraries = [...value]
+                                            newItineraries[index] = { ...itinerary, itineraryDescription: newContent }
+                                            onChange(newItineraries)
+                                          }}
+                                          onChange={() => { }}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  </div>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <FormItem>
+                                    <FormLabel>Day</FormLabel>
                                     <FormControl>
-                                      <JoditEditor
-                                        ref={editor}
-                                        value={itinerary.itineraryDescription || ''}
-                                        onBlur={(newContent) => {
-                                          const newItineraries = [...value]
-                                          newItineraries[index] = { ...itinerary, itineraryDescription: newContent }
-                                          onChange(newItineraries)
+                                      <Input
+                                        disabled={loading}
+                                        type="number"
+                                        className="bg-white shadow-sm"
+                                        value={itinerary.dayNumber}
+                                        onChange={(e) => {
+                                          const dayNumber = Number(e.target.value);
+                                          const newItineraries = [...value];
+                                          newItineraries[index] = normalizeItinerary({ ...itinerary, dayNumber });
+                                          onChange(newItineraries);
                                         }}
-                                        onChange={() => {}}
+                                        onKeyDown={(e) => {
+                                          // Prevent keyboard events from bubbling up to accordion
+                                          e.stopPropagation();
+                                        }}
                                       />
                                     </FormControl>
                                   </FormItem>
-                                </div>
-                              </div>
-                              <div className="grid md:grid-cols-2 gap-4">
-                                <FormItem>
-                                  <FormLabel>Day</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      disabled={loading}
-                                      type="number"
-                                      className="bg-white shadow-sm"
-                                      value={itinerary.dayNumber}
-                                      onChange={(e) => {
-                                        const dayNumber = Number(e.target.value);
-                                        const newItineraries = [...value];
-                                        newItineraries[index] = normalizeItinerary({ ...itinerary, dayNumber });
-                                        onChange(newItineraries);
-                                      }}
-                                      onKeyDown={(e) => {
-                                        // Prevent keyboard events from bubbling up to accordion
-                                        e.stopPropagation();
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
 
-                                <FormItem>
-                                  <FormLabel>Date</FormLabel>
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        disabled={loading}
-                                        className={cn("w-full justify-between text-left font-normal bg-white shadow-sm", !itinerary.days && "text-muted-foreground")}
+                                  <FormItem>
+                                    <FormLabel>Date</FormLabel>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          disabled={loading}
+                                          className={cn("w-full justify-between text-left font-normal bg-white shadow-sm", !itinerary.days && "text-muted-foreground")}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <span>{itinerary.days || 'Pick a date'}</span>
+                                          <CalendarIcon className="ml-2 h-4 w-4 opacity-60" />
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent
+                                        className="w-auto p-2"
+                                        align="start"
                                         onClick={(e) => e.stopPropagation()}
+                                        onPointerDownCapture={(e) => e.stopPropagation()}
                                       >
-                                        <span>{itinerary.days || 'Pick a date'}</span>
-                                        <CalendarIcon className="ml-2 h-4 w-4 opacity-60" />
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                      className="w-auto p-2"
-                                      align="start"
-                                      onClick={(e) => e.stopPropagation()}
-                                      onPointerDownCapture={(e) => e.stopPropagation()}
-                                    >
-                                      <div className="flex flex-col gap-2">
-                                        {/* Calendar Date Picker */}
-                                        <Calendar
-                                          mode="single"
-                                          selected={(() => {
-                                            try {
-                                              if (!itinerary.days) return undefined;
-                                              const parsed = parse(itinerary.days, 'dd-MM-yyyy', new Date());
-                                              return isValid(parsed) ? parsed : undefined;
-                                            } catch { return undefined; }
-                                          })()}
-                                          onSelect={(date) => {
-                                            const newItineraries = [...value];
-                                            const newDate = date && isValid(date) ? formatLocalDate(date, 'dd-MM-yyyy') : '';
-                                            newItineraries[index] = normalizeItinerary({ ...itinerary, days: newDate }, index);
-                                            onChange(newItineraries);
-                                            setOpenMap(prev => ({ ...prev, [index]: true }));
-                                          }}
-                                          initialFocus
-                                        />
-                                        <div className="flex items-center justify-between pt-1">
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={loading || !itinerary.days}
-                                            onClick={() => {
+                                        <div className="flex flex-col gap-2">
+                                          {/* Calendar Date Picker */}
+                                          <Calendar
+                                            mode="single"
+                                            selected={(() => {
+                                              try {
+                                                if (!itinerary.days) return undefined;
+                                                const parsed = parse(itinerary.days, 'dd-MM-yyyy', new Date());
+                                                return isValid(parsed) ? parsed : undefined;
+                                              } catch { return undefined; }
+                                            })()}
+                                            onSelect={(date) => {
                                               const newItineraries = [...value];
-                                              newItineraries[index] = normalizeItinerary({ ...itinerary, days: '' }, index);
+                                              const newDate = date && isValid(date) ? formatLocalDate(date, 'dd-MM-yyyy') : '';
+                                              newItineraries[index] = normalizeItinerary({ ...itinerary, days: newDate }, index);
                                               onChange(newItineraries);
                                               setOpenMap(prev => ({ ...prev, [index]: true }));
                                             }}
-                                          >
-                                            Clear
-                                          </Button>
-                                          <div className="text-xs text-slate-500 pr-2">Format: dd-MM-yyyy</div>
-                                        </div>
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                  {/* Manual text input removed to prevent duplicate date field */}
-                                </FormItem>
-                              </div>
-
-                              {/* Destination Images */}
-                              <div className="bg-slate-50 p-3 rounded-md mb-4">
-                                <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
-                                  <ImageIcon className="h-4 w-4 text-primary" />
-                                  Destination Images
-                                </h3>
-                                <ImageUpload
-                                  value={itinerary.itineraryImages.map(img => img.url)}
-                                  disabled={loading}
-                                  onChange={(url) => {
-                                    const newItineraries = [...value];
-                                    newItineraries[index] = {
-                                      ...itinerary,
-                                      itineraryImages: [...itinerary.itineraryImages, { url }]
-                                    };
-                                    onChange(newItineraries);
-                                  }}
-                                  onRemove={(url) => {
-                                    const newItineraries = [...value];
-                                    newItineraries[index] = {
-                                      ...itinerary,
-                                      itineraryImages: itinerary.itineraryImages.filter(img => img.url !== url)
-                                    };
-                                    onChange(newItineraries);
-                                  }}
-                                />
-                              </div>
-
-                              {/* Accommodation selection removed; now managed fully in Hotels tab */}
-
-                              <div className="md:col-span-2">
-                                <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-slate-700">
-                                  <MapPinIcon className="h-4 w-4 text-primary" />
-                                  Activities
-                                </h3>
-                                {itinerary.activities.map((activity, activityIndex) => (
-                                  <div key={activityIndex} className="mb-6 p-4 border border-slate-200 rounded-lg bg-white shadow-sm">
-                                    <div className="flex justify-between items-center mb-4">
-                                      <h4 className="text-sm font-medium text-slate-700">Activity {activityIndex + 1}</h4>
-                                      <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => {
-                                          const newItineraries = [...value];
-                                          newItineraries[index].activities = newItineraries[index].activities.filter((_, idx: number) => idx !== activityIndex);
-                                          onChange(newItineraries);
-                                        }}
-                                        className="h-8 px-3"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-1" />
-                                        Remove
-                                      </Button>
-                                    </div>
-                                    <div className="space-y-4">
-                                      <FormItem>
-                                        <div className="space-y-4">
-                                          <FormItem>
-                                            <Select
-                                              disabled={loading}
-                                              onValueChange={(selectedActivityId) =>
-                                                handleActivitySelection(selectedActivityId, index, activityIndex)
-                                              }
+                                            initialFocus
+                                          />
+                                          <div className="flex items-center justify-between pt-1">
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="ghost"
+                                              disabled={loading || !itinerary.days}
+                                              onClick={() => {
+                                                const newItineraries = [...value];
+                                                newItineraries[index] = normalizeItinerary({ ...itinerary, days: '' }, index);
+                                                onChange(newItineraries);
+                                                setOpenMap(prev => ({ ...prev, [index]: true }));
+                                              }}
                                             >
-                                              <SelectTrigger className="bg-white">
-                                                <SelectValue placeholder="Select an Activity" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {activitiesMaster?.map((activityMaster) => (
-                                                  <SelectItem key={activityMaster.id} value={activityMaster.id}>
-                                                    {activityMaster.activityMasterTitle}
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                          </FormItem>
-
-                                          {/* Activity Title */}
-                                          <FormItem>
-                                            <FormLabel>Activity Title</FormLabel>
-                                            <FormControl>
-                                              <JoditEditor
-                                                ref={editor}
-                                                value={activity.activityTitle || ''}
-                                                onBlur={(newContent) => {
-                                                  const updatedItineraries = [...value];
-                                                  updatedItineraries[index].activities[activityIndex] = {
-                                                    ...updatedItineraries[index].activities[activityIndex],
-                                                    activityTitle: newContent,
-                                                  };
-                                                  onChange(updatedItineraries);
-                                                }}
-                                                onChange={() => {}}
-                                              />
-                                            </FormControl>
-                                          </FormItem>
-
-                                          {/* Activity Description */}
-                                          <FormItem>
-                                            <FormLabel>Description</FormLabel>
-                                            <FormControl>
-                                              <JoditEditor
-                                                ref={editor}
-                                                value={activity.activityDescription || ''}
-                                                onBlur={(newContent) => {
-                                                  const updatedItineraries = [...value];
-                                                  updatedItineraries[index].activities[activityIndex] = {
-                                                    ...updatedItineraries[index].activities[activityIndex],
-                                                    activityDescription: newContent,
-                                                  };
-                                                  onChange(updatedItineraries);
-                                                }}
-                                                onChange={() => {}}
-                                              />
-                                            </FormControl>
-                                          </FormItem>
-
-                                          {/* Activity Images */}
-                                          <FormItem>
-                                            <FormLabel>Activity Images</FormLabel>
-                                            <div className="bg-slate-50 p-3 rounded-md">
-                                              <ImageUpload
-                                                value={activity.activityImages?.map(img => img.url) || []}
-                                                disabled={loading}
-                                                onChange={(url) => {
-                                                  const newItineraries = [...value];
-                                                  if (!newItineraries[index].activities[activityIndex].activityImages) {
-                                                    newItineraries[index].activities[activityIndex].activityImages = [];
-                                                  }
-                                                  newItineraries[index].activities[activityIndex].activityImages.push({ url });
-                                                  onChange(newItineraries);
-                                                }}
-                                                onRemove={(url) => {
-                                                  const newItineraries = [...value];
-                                                  newItineraries[index].activities[activityIndex].activityImages =
-                                                    newItineraries[index].activities[activityIndex].activityImages?.filter(img => img.url !== url) || [];
-                                                  onChange(newItineraries);
-                                                }}
-                                              />
-                                            </div>
-                                          </FormItem>
+                                              Clear
+                                            </Button>
+                                            <div className="text-xs text-slate-500 pr-2">Format: dd-MM-yyyy</div>
+                                          </div>
                                         </div>
-                                      </FormItem>
-                                    </div>
-                                  </div>
-                                ))}
-
-                                <div className="flex justify-end mt-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={loading}
-                                    onClick={() => {
-                                      const newItineraries = [...value];
-                                      newItineraries[index].activities = [
-                                        ...newItineraries[index].activities,
-                                        { activityTitle: '', activityDescription: '', activityImages: [] }
-                                      ];
-                                      onChange(newItineraries);
-                                    }}
-                                  >
-                                    <Plus className="mr-1 h-4 w-4" />
-                                    Add Activity
-                                  </Button>
+                                      </PopoverContent>
+                                    </Popover>
+                                    {/* Manual text input removed to prevent duplicate date field */}
+                                  </FormItem>
                                 </div>
 
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="ml-2"
-                                  onClick={() => handleSaveToMasterItinerary(itinerary)}
-                                >
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Save to Master Itinerary
-                                </Button>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                           </Accordion>
+                                {/* Destination Images */}
+                                <div className="bg-slate-50 p-3 rounded-md mb-4">
+                                  <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                                    <ImageIcon className="h-4 w-4 text-primary" />
+                                    Destination Images
+                                  </h3>
+                                  <ImageUpload
+                                    value={itinerary.itineraryImages.map(img => img.url)}
+                                    disabled={loading}
+                                    onChange={(url) => {
+                                      const newItineraries = [...value];
+                                      newItineraries[index] = {
+                                        ...itinerary,
+                                        itineraryImages: [...itinerary.itineraryImages, { url }]
+                                      };
+                                      onChange(newItineraries);
+                                    }}
+                                    onRemove={(url) => {
+                                      const newItineraries = [...value];
+                                      newItineraries[index] = {
+                                        ...itinerary,
+                                        itineraryImages: itinerary.itineraryImages.filter(img => img.url !== url)
+                                      };
+                                      onChange(newItineraries);
+                                    }}
+                                  />
+                                </div>
+
+                                {/* Accommodation selection removed; now managed fully in Hotels tab */}
+
+                                <div className="md:col-span-2">
+                                  <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-slate-700">
+                                    <MapPinIcon className="h-4 w-4 text-primary" />
+                                    Activities
+                                  </h3>
+                                  {itinerary.activities.map((activity, activityIndex) => (
+                                    <div key={activityIndex} className="mb-6 p-4 border border-slate-200 rounded-lg bg-white shadow-sm">
+                                      <div className="flex justify-between items-center mb-4">
+                                        <h4 className="text-sm font-medium text-slate-700">Activity {activityIndex + 1}</h4>
+                                        <Button
+                                          type="button"
+                                          variant="destructive"
+                                          size="sm"
+                                          onClick={() => {
+                                            const newItineraries = [...value];
+                                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx: number) => idx !== activityIndex);
+                                            onChange(newItineraries);
+                                          }}
+                                          className="h-8 px-3"
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-1" />
+                                          Remove
+                                        </Button>
+                                      </div>
+                                      <div className="space-y-4">
+                                        <FormItem>
+                                          <div className="space-y-4">
+                                            <FormItem>
+                                              <Select
+                                                disabled={loading}
+                                                onValueChange={(selectedActivityId) =>
+                                                  handleActivitySelection(selectedActivityId, index, activityIndex)
+                                                }
+                                              >
+                                                <SelectTrigger className="bg-white">
+                                                  <SelectValue placeholder="Select an Activity" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {activitiesMaster?.map((activityMaster) => (
+                                                    <SelectItem key={activityMaster.id} value={activityMaster.id}>
+                                                      {activityMaster.activityMasterTitle}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                              <FormMessage />
+                                            </FormItem>
+
+                                            {/* Activity Title */}
+                                            <FormItem>
+                                              <FormLabel>Activity Title</FormLabel>
+                                              <FormControl>
+                                                <JoditEditor
+                                                  ref={editor}
+                                                  value={activity.activityTitle || ''}
+                                                  onBlur={(newContent) => {
+                                                    const updatedItineraries = [...value];
+                                                    updatedItineraries[index].activities[activityIndex] = {
+                                                      ...updatedItineraries[index].activities[activityIndex],
+                                                      activityTitle: newContent,
+                                                    };
+                                                    onChange(updatedItineraries);
+                                                  }}
+                                                  onChange={() => { }}
+                                                />
+                                              </FormControl>
+                                            </FormItem>
+
+                                            {/* Activity Description */}
+                                            <FormItem>
+                                              <FormLabel>Description</FormLabel>
+                                              <FormControl>
+                                                <JoditEditor
+                                                  ref={editor}
+                                                  value={activity.activityDescription || ''}
+                                                  onBlur={(newContent) => {
+                                                    const updatedItineraries = [...value];
+                                                    updatedItineraries[index].activities[activityIndex] = {
+                                                      ...updatedItineraries[index].activities[activityIndex],
+                                                      activityDescription: newContent,
+                                                    };
+                                                    onChange(updatedItineraries);
+                                                  }}
+                                                  onChange={() => { }}
+                                                />
+                                              </FormControl>
+                                            </FormItem>
+
+                                            {/* Activity Images */}
+                                            <FormItem>
+                                              <FormLabel>Activity Images</FormLabel>
+                                              <div className="bg-slate-50 p-3 rounded-md">
+                                                <ImageUpload
+                                                  value={activity.activityImages?.map(img => img.url) || []}
+                                                  disabled={loading}
+                                                  onChange={(url) => {
+                                                    const newItineraries = [...value];
+                                                    if (!newItineraries[index].activities[activityIndex].activityImages) {
+                                                      newItineraries[index].activities[activityIndex].activityImages = [];
+                                                    }
+                                                    newItineraries[index].activities[activityIndex].activityImages.push({ url });
+                                                    onChange(newItineraries);
+                                                  }}
+                                                  onRemove={(url) => {
+                                                    const newItineraries = [...value];
+                                                    newItineraries[index].activities[activityIndex].activityImages =
+                                                      newItineraries[index].activities[activityIndex].activityImages?.filter(img => img.url !== url) || [];
+                                                    onChange(newItineraries);
+                                                  }}
+                                                />
+                                              </div>
+                                            </FormItem>
+                                          </div>
+                                        </FormItem>
+                                      </div>
+                                    </div>
+                                  ))}
+
+                                  <div className="flex justify-end mt-2">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      disabled={loading}
+                                      onClick={() => {
+                                        const newItineraries = [...value];
+                                        newItineraries[index].activities = [
+                                          ...newItineraries[index].activities,
+                                          { activityTitle: '', activityDescription: '', activityImages: [] }
+                                        ];
+                                        onChange(newItineraries);
+                                      }}
+                                    >
+                                      <Plus className="mr-1 h-4 w-4" />
+                                      Add Activity
+                                    </Button>
+                                  </div>
+
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="ml-2"
+                                    onClick={() => handleSaveToMasterItinerary(itinerary)}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Save to Master Itinerary
+                                  </Button>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
                         )}
                       </SortableWrapper>
                     ))}

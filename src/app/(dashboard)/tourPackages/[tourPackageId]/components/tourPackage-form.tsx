@@ -643,10 +643,11 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             hotelId: '',
             locationId: foundLocationId,
 
-            // Map activities as individuals, deviating slightly from API's "Day Highlights" block for better editing
-            activities: Array.isArray(day.activities) ? day.activities.map((act: string) => ({
-              activityTitle: act,
-              activityDescription: '',
+            // Map activities - handle both old string[] and new object[] formats
+            activities: Array.isArray(day.activities) ? day.activities.map((act: any) => ({
+              // If act is a string (old format), use it as title; if object (new format), destructure
+              activityTitle: typeof act === 'string' ? act : (act?.activityTitle || ''),
+              activityDescription: typeof act === 'string' ? '' : (act?.activityDescription || ''),
               activityImages: []
             })) : [],
             itineraryImages: [],

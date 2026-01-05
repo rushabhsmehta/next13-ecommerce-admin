@@ -332,19 +332,19 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         
         <div style="${contentStyle}">
           ${initialData.packageVariants.map((variant, variantIndex) => {
-            const hotelMappings: Record<string, string> = {};
-            if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
-              variant.variantHotelMappings.forEach((mapping: any) => {
-                const dayNum = mapping.itinerary?.dayNumber;
-                if (dayNum && mapping.hotelId) {
-                  hotelMappings[String(dayNum)] = mapping.hotelId;
-                }
-              });
-            }
+      const hotelMappings: Record<string, string> = {};
+      if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
+        variant.variantHotelMappings.forEach((mapping: any) => {
+          const dayNum = mapping.itinerary?.dayNumber;
+          if (dayNum && mapping.hotelId) {
+            hotelMappings[String(dayNum)] = mapping.hotelId;
+          }
+        });
+      }
 
-            const mappingEntries = Object.entries(hotelMappings).sort(([a], [b]) => Number(a) - Number(b));
+      const mappingEntries = Object.entries(hotelMappings).sort(([a], [b]) => Number(a) - Number(b));
 
-            return `
+      return `
               <div style="margin-bottom: ${variantIndex < initialData.packageVariants!.length - 1 ? '32px' : '0'}; page-break-inside: avoid; break-inside: avoid-page;">
                 <div style="background: ${brandGradients.secondary}; padding: 16px 20px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
                   <div style="flex: 1;">
@@ -381,10 +381,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                     
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
                       ${mappingEntries.map(([dayNum, hotelId]) => {
-                        const hotel = hotels.find(h => h.id === hotelId);
-                        if (!hotel) return '';
-                        
-                        return `
+        const hotel = hotels.find(h => h.id === hotelId);
+        if (!hotel) return '';
+
+        return `
                           <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); page-break-inside: avoid; break-inside: avoid-page;">
                             <div style="background: ${brandGradients.primary}; padding: 8px 12px;">
                               <div style="font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.5px;">
@@ -420,7 +420,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                             </div>
                           </div>
                         `;
-                      }).join('')}
+      }).join('')}
                     </div>
                   </div>
                 ` : `
@@ -432,7 +432,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 `}
               </div>
             `;
-          }).join('')}
+    }).join('')}
           
           <div style="background: ${brandColors.lightOrange}; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px; margin-top: 20px; text-align: center;">
             <p style="margin: 0; font-size: 12px; color: ${brandColors.secondary}; font-weight: 500; font-style: italic;">
@@ -533,10 +533,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     // 3. Pricing Section
     const pricingData = initialData.pricingSection;
     let dynamicPricingSection = "";
-    
+
     if (pricingData) {
       const parsedPricing = parsePricingSection(pricingData);
-      
+
       if (parsedPricing && parsedPricing.length > 0) {
         const pricingItems = parsedPricing.map((item, index) => `
           <div style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'}; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid ${brandColors.primary}; border: 1px solid #e5e7eb;">
@@ -621,7 +621,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
             </div>
             <div style="margin-left: 16px;">
               <h3 style="font-size: 20px; font-weight: 800; margin: 0; line-height: 1.05; background: ${brandGradients.primary}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.3px;">
-                ${itinerary.days}
+              ${(itinerary.days && itinerary.days !== 'null' && itinerary.days !== 'undefined') ? itinerary.days : 'Tour Day'}
               </h3>
               <div style="height: 6px; width: 96px; max-width: 96px; display: inline-block; background: ${brandGradients.secondary}; border-radius: 4px; margin-top: 8px;"></div>
               <p style="font-size: 14px; margin: 8px 0 0 0; color: ${brandColors.muted};">
@@ -639,11 +639,11 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 </h4>
                 <div style="font-size: 14px; line-height: 1.6; color: ${brandColors.muted};">
                   ${(itinerary.itineraryDescription || "")
-                    .replace(/<\/?p>/gi, "<br>")
-                    .replace(/(<br>\s*)+/gi, "<br>")
-                    .replace(/\s+/g, " ")
-                    .trim()
-                  }
+            .replace(/<\/?p>/gi, "<br>")
+            .replace(/(<br>\s*)+/gi, "<br>")
+            .replace(/\s+/g, " ")
+            .trim()
+          }
                 </div>
               </div>
             ` : ''}

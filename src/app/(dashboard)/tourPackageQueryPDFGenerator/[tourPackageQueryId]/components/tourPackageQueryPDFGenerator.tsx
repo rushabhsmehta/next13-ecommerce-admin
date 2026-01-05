@@ -26,8 +26,8 @@ interface TourPackageQueryPDFGeneratorProps {
       activities: (Activity & {
         activityImages: Images[];
       })[];
-  roomAllocations?: RoomAllocation[];
-  transportDetails?: TransportDetail[];
+      roomAllocations?: RoomAllocation[];
+      transportDetails?: TransportDetail[];
     })[];
     flightDetails: (FlightDetails & {
       images: Images[];
@@ -123,13 +123,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     muted: "#6B7280", // Muted gray
     white: "#FFFFFF",
     border: "#E5E7EB", // Light gray border
-  success: "#059669", // Green for pricing
-  // Additional unified neutrals / semantic aliases
-  panelBg: "#FFF8F5", // unified soft panel background
-  subtlePanel: "#FFFDFB", // extra subtle background
-  tableHeaderBg: "#FFF3EC", // table header background aligned with warm palette
-  slateText: "#374151", // darker text variant
-  softDivider: "#F5E8E5" // soft divider line
+    success: "#059669", // Green for pricing
+    // Additional unified neutrals / semantic aliases
+    panelBg: "#FFF8F5", // unified soft panel background
+    subtlePanel: "#FFFDFB", // extra subtle background
+    tableHeaderBg: "#FFF3EC", // table header background aligned with warm palette
+    slateText: "#374151", // darker text variant
+    softDivider: "#F5E8E5" // soft divider line
   }), []);
 
   // Brand Gradients for cleaner look
@@ -257,7 +257,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   // Policy parsing helpers aligned with display component
   const extractText = useCallback((obj: any): string => {
     if (!obj) return '';
-    for (const k of ['text','value','description','label','name']) {
+    for (const k of ['text', 'value', 'description', 'label', 'name']) {
       if (obj[k]) return String(obj[k]);
     }
     return String(obj);
@@ -468,37 +468,37 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </div>
     `;
 
-  // Legacy Tour Pricing section removed to match display page.
+    // Legacy Tour Pricing section removed to match display page.
 
-  // Function to parse pricing section JSON data
-  const parsePricingSection = (pricingData: any): Array<{name?: string, price?: string, description?: string}> => {
-    console.log('🔍 PDF Generator - Parsing pricing data:', pricingData);
-    if (!pricingData) return [];
-    try {
-      // If it's already an array, return it
-      if (Array.isArray(pricingData)) {
-        console.log('✅ Pricing data is array:', pricingData);
-        return pricingData;
+    // Function to parse pricing section JSON data
+    const parsePricingSection = (pricingData: any): Array<{ name?: string, price?: string, description?: string }> => {
+      console.log('🔍 PDF Generator - Parsing pricing data:', pricingData);
+      if (!pricingData) return [];
+      try {
+        // If it's already an array, return it
+        if (Array.isArray(pricingData)) {
+          console.log('✅ Pricing data is array:', pricingData);
+          return pricingData;
+        }
+        // If it's a JSON string, parse it
+        if (typeof pricingData === 'string') {
+          const parsed = JSON.parse(pricingData);
+          console.log('✅ Parsed pricing data from string:', parsed);
+          return parsed;
+        }
+        // If it's an object, try to extract pricing items
+        if (typeof pricingData === 'object') {
+          const values = Object.values(pricingData).filter((item: any) =>
+            item && typeof item === 'object' && (item.name || item.price)
+          ) as Array<{ name?: string, price?: string, description?: string }>;
+          console.log('✅ Extracted pricing data from object:', values);
+          return values;
+        }
+      } catch (error) {
+        console.error('❌ Error parsing pricing section:', error);
       }
-      // If it's a JSON string, parse it
-      if (typeof pricingData === 'string') {
-        const parsed = JSON.parse(pricingData);
-        console.log('✅ Parsed pricing data from string:', parsed);
-        return parsed;
-      }
-      // If it's an object, try to extract pricing items
-      if (typeof pricingData === 'object') {
-        const values = Object.values(pricingData).filter((item: any) => 
-          item && typeof item === 'object' && (item.name || item.price)
-        ) as Array<{name?: string, price?: string, description?: string}>;
-        console.log('✅ Extracted pricing data from object:', values);
-        return values;
-      }
-    } catch (error) {
-      console.error('❌ Error parsing pricing section:', error);
-    }
-    return [];
-  };
+      return [];
+    };
 
     // 5. Enhanced Total Price Section
     const formatINR = (val: string) => {
@@ -541,14 +541,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     });
 
     let dynamicPricingSection = "";
-    
+
     // Get pricing data from the pricingSection field
     const pricingData = initialData.pricingSection;
 
     if (pricingData) {
       const parsedPricing = parsePricingSection(pricingData);
       console.log("PDF Generator - parsed pricing:", parsedPricing);
-      
+
       if (parsedPricing && parsedPricing.length > 0) {
         const pricingItems = parsedPricing.map((item, index) => `
           <div style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'}; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid ${brandColors.primary}; border: 1px solid #e5e7eb;">
@@ -611,12 +611,12 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `
         : "";
 
-  // Remove Tour Highlights section to match display
-  const highlightsSection = "";
+    // Remove Tour Highlights section to match display
+    const highlightsSection = "";
 
     // 8. Flight Details Section (if applicable)
-  // Flight details not shown on display page; omit to match.
-  const flightSection = "";
+    // Flight details not shown on display page; omit to match.
+    const flightSection = "";
 
     // 9. Hotel, Room Allocation & Transport Summary (matches display order)
     const hotelSummarySection = (selectedOption !== "SupplierA" && initialData.itineraries && initialData.itineraries.length > 0)
@@ -629,8 +629,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         </div>
         <div style="${contentStyle}">
           ${initialData.itineraries.map((it, index) => {
-            const hotel = hotels.find(h => h.id === it.hotelId);
-            return `
+        const hotel = hotels.find(h => h.id === it.hotelId);
+        return `
             <div style="padding: 16px 0; ${index < initialData.itineraries.length - 1 ? `border-bottom: 1px solid ${brandColors.border};` : ''} break-inside: avoid;">
               <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom: 12px;">
                 <div style="width:32px; height:32px; background: #f1f5f9; color: #475569; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; flex-shrink: 0;">
@@ -689,21 +689,21 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                       </thead>
                       <tbody>
                         ${(() => {
-                          // Sort room allocations by occupancy type display order
-                          const sortedRoomAllocations = [...it.roomAllocations].sort((a: any, b: any) => {
-                            const aOrder = a?.occupancyType?.displayOrder ?? a?.occupancyType?.display_order ?? 999;
-                            const bOrder = b?.occupancyType?.displayOrder ?? b?.occupancyType?.display_order ?? 999;
-                            return aOrder - bOrder;
-                          });
-                          
-                          return sortedRoomAllocations.map((room: any, r_index: number) => `
+                // Sort room allocations by occupancy type display order
+                const sortedRoomAllocations = [...it.roomAllocations].sort((a: any, b: any) => {
+                  const aOrder = a?.occupancyType?.displayOrder ?? a?.occupancyType?.display_order ?? 999;
+                  const bOrder = b?.occupancyType?.displayOrder ?? b?.occupancyType?.display_order ?? 999;
+                  return aOrder - bOrder;
+                });
+
+                return sortedRoomAllocations.map((room: any, r_index: number) => `
                             <tr style="${r_index % 2 === 0 ? 'background: #fdfdfe;' : 'background: white;'}">
                               <td style="${tableCellStyle}">
                                 <div style="font-weight: 600;">
                                   ${(() => {
-                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
-                                    return customText.length > 0 ? customText : (room?.roomType?.name || room.roomType || 'Standard');
-                                  })()}
+                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+                    return customText.length > 0 ? customText : (room?.roomType?.name || room.roomType || 'Standard');
+                  })()}
                                 </div>
                               </td>
                               <td style="${tableCellStyle}">
@@ -719,18 +719,18 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                               </td>
                             </tr>
                           `).join('');
-                        })()}
+              })()}
                       </tbody>
                     </table>
                     ${(() => {
-                      const plans = Array.from(new Set((it.roomAllocations || []).map((r: any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
-                      return plans.length ? `
+                const plans = Array.from(new Set((it.roomAllocations || []).map((r: any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
+                return plans.length ? `
                         <div style="margin-top: 12px; background: #f9fafb; padding: 10px 12px; border-radius: 4px;">
                           <span style="font-weight: 600; color: #374151; font-size: 12px;">Meal Plan:</span> 
                           <span style="color: #1f2937; font-weight: 500; font-size: 12px;">${plans.join(' / ')}</span>
                         </div>
                       ` : '';
-                    })()}
+              })()}
                   </div>
                 ` : ''}
               ` : `
@@ -771,7 +771,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       initialData.itineraries &&
       initialData.itineraries.length > 0
     ) {
-  // Clean Itinerary header
+      // Clean Itinerary header
       itinerariesSection += `
     <div style="${cardStyle}; ${pageBreakBefore}">
       <div style="${headerStyleAlt}; text-align: center;">
@@ -794,7 +794,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
           <div style="margin-left: 16px;">
             <h3 style="font-size: 20px; font-weight: 800; margin: 0; line-height:1.05; background: ${brandGradients.primary}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing:0.3px; text-shadow: 0 1px 0 rgba(0,0,0,0.04);">
-              ${itinerary.days}
+              ${(itinerary.days && itinerary.days !== 'null' && itinerary.days !== 'undefined') ? itinerary.days : 'Tour Day'}
             </h3>
             <div style="height:6px; width:96px; max-width:96px; display:inline-block; background: ${brandGradients.secondary}; border-radius:4px; margin-top:8px;"></div>
             <p style="font-size: 14px; margin: 8px 0 0 0; color: ${brandColors.muted};">
@@ -813,19 +813,19 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               </h4>
               <div style="font-size: 14px; line-height: 1.6; color: ${brandColors.muted};">
                 ${(itinerary.itineraryDescription || "")
-                  .replace(/<\/?p>/gi, "<br>")
-                  .replace(/(<br>\s*)+/gi, "<br>")
-                  .replace(/\s+/g, " ")
-                  .trim().replace(/<\/?(html|body)>/gi, '')
-                  .replace(/<!--StartFragment-->/gi, '')
-                  .replace(/<!--EndFragment-->/gi, '')
-                  .replace(/<p>/gi, '<br>')
-                  .replace(/<\/p>/gi, '')
-                  .replace(/<br\s*[^>]*>/gi, '<br>')
-                  .replace(/(<br>\s*){2,}/gi, '<br>')
-                  .replace(/\s+/g, ' ')
-                  .trim()
-                }
+              .replace(/<\/?p>/gi, "<br>")
+              .replace(/(<br>\s*)+/gi, "<br>")
+              .replace(/\s+/g, " ")
+              .trim().replace(/<\/?(html|body)>/gi, '')
+              .replace(/<!--StartFragment-->/gi, '')
+              .replace(/<!--EndFragment-->/gi, '')
+              .replace(/<p>/gi, '<br>')
+              .replace(/<\/p>/gi, '')
+              .replace(/<br\s*[^>]*>/gi, '<br>')
+              .replace(/(<br>\s*){2,}/gi, '<br>')
+              .replace(/\s+/g, ' ')
+              .trim()
+            }
               </div>
             </div>
           ` : ''}
@@ -920,19 +920,19 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
     }
 
-  // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
+    // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
     const renderPolicyContent = (policyData: any): string => {
       if (!policyData) return "";
-      
+
       try {
         // If policyData is already a string (legacy data), use it directly
         if (typeof policyData === 'string') {
-          return policyData            
+          return policyData
         }
-        
+
         // If it's JSON, parse it and render as HTML
         const parsedData = typeof policyData === 'object' ? policyData : JSON.parse(policyData);
-        
+
         if (Array.isArray(parsedData)) {
           return parsedData.map(item => {
             if (typeof item === 'string') {
@@ -948,33 +948,33 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           }).join('');
         } else if (typeof parsedData === 'object' && parsedData !== null) {
           // Handle object format if needed
-          return Object.values(parsedData).map(item => 
+          return Object.values(parsedData).map(item =>
             typeof item === 'string' ? `<div style="margin-bottom: 8px;">• ${item}</div>` : ''
           ).join('');
         }
-        
+
         return JSON.stringify(parsedData);
       } catch (e) {
         // If JSON parsing fails, treat it as a string
         console.error("Policy parsing error:", e);
         return String(policyData)
-       
+
       }
     };
 
     const loc = locations.find(l => l.id === initialData.locationId) as any;
     const withFallback = (primary: any, fallback: any) => {
-  const primaryParsed = parsePolicyField(primary);
-  if (primaryParsed.length > 0) return primaryParsed;
-  return parsePolicyField(fallback);
+      const primaryParsed = parsePolicyField(primary);
+      if (primaryParsed.length > 0) return primaryParsed;
+      return parsePolicyField(fallback);
     };
 
     const inclusionsArr = withFallback(initialData.inclusions, loc?.inclusions);
     const exclusionsArr = withFallback(initialData.exclusions, loc?.exclusions);
     const importantArr = withFallback(initialData.importantNotes, loc?.importantNotes);
     const paymentArr = withFallback(initialData.paymentPolicy, loc?.paymentPolicy);
-  const kitchenArr = withFallback(initialData.kitchenGroupPolicy, loc?.kitchenGroupPolicy);
-  const usefulTipsArr = withFallback((initialData as any).usefulTip, loc?.usefulTip);
+    const kitchenArr = withFallback(initialData.kitchenGroupPolicy, loc?.kitchenGroupPolicy);
+    const usefulTipsArr = withFallback((initialData as any).usefulTip, loc?.usefulTip);
     const termsArr = withFallback(initialData.termsconditions, loc?.termsconditions);
     const cancelArr = withFallback(initialData.cancellationPolicy, loc?.cancellationPolicy);
     const airlineCancelArr = withFallback(initialData.airlineCancellationPolicy, loc?.airlineCancellationPolicy);
@@ -1153,7 +1153,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </div>
     ` : "";
 
-    
+
     // Assemble all sections.
     const fullHtml = `
       <html>
@@ -1184,7 +1184,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const htmlContent = buildHtmlContent();
 
     // Build footer HTML with company info and social links
-  const footerHtml = (() => {
+    const footerHtml = (() => {
       const c = currentCompany;
       const isAagam = selectedOption === "AH";
       const tagline = isAagam ? "Your Trusted Travel Partner" : "";
@@ -1268,7 +1268,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         </div>`;
     })();
 
-  try {
+    try {
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
         headers: {
@@ -1303,7 +1303,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("An error occurred while generating the PDF.");
-    } finally {      setLoading(false);
+    } finally {
+      setLoading(false);
     }
   }, [initialData, buildHtmlContent, currentCompany, selectedOption]);
 
@@ -1318,7 +1319,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           const log = data.auditLogs?.[0];
           if (log) setPreparedBy({ name: log.userName, email: log.userEmail });
         }
-      } catch {}
+      } catch { }
     })();
 
     // Generate and download PDF automatically
@@ -1326,7 +1327,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   }, [initialData, generatePDF]);
 
   if (!initialData) return <div>No data available</div>;
-  
+
   return (
     <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif", color: "#333" }}>
       <div style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px" }}>
@@ -1335,20 +1336,20 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       <div style={{ fontSize: "16px", color: "#666", marginBottom: "24px" }}>
         {loading ? "Please wait while we generate your PDF document." : "Your PDF will download automatically."}
       </div>
-      
+
       {loading && (
         <div style={{ marginTop: "24px" }}>
           <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ margin: "auto" }}>
             <circle cx="12" cy="12" r="10" stroke="#ea580c" strokeWidth="2" fill="none" strokeDasharray="15 60" transform="rotate(0 12 12)">
-              <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
+              <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
             </circle>
           </svg>
         </div>
       )}
-      
+
       {!loading && (
         <div style={{ marginTop: "24px" }}>
-          <button 
+          <button
             onClick={generatePDF}
             style={{
               padding: "12px 24px",
@@ -1364,7 +1365,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           >
             Download PDF Again
           </button>
-          <button 
+          <button
             onClick={() => router.push(`/tourPackageQueryDisplay/${initialData.id}?search=${selectedOption}`)}
             style={{
               padding: "12px 24px",

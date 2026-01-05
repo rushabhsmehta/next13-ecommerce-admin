@@ -568,7 +568,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
             </div>
             <div style="margin-left: 16px;">
               <h3 style="font-size: 20px; font-weight: 800; margin: 0; line-height: 1.05; background: ${brandGradients.primary}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.3px;">
-                ${itinerary.days}
+              ${(itinerary.days && itinerary.days !== 'null' && itinerary.days !== 'undefined') ? itinerary.days : 'Tour Day'}
               </h3>
               <div style="height: 6px; width: 96px; max-width: 96px; display: inline-block; background: ${brandGradients.secondary}; border-radius: 4px; margin-top: 8px;"></div>
               <p style="font-size: 14px; margin: 8px 0 0 0; color: ${brandColors.muted};">

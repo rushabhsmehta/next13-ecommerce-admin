@@ -7,9 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Customer, UnitOfMeasure, SaleReturn, TaxSlab } from '@prisma/client';
 import { formatPrice, formatSafeDate } from '@/lib/utils';
 import { SaleReturnForm } from '@/components/forms/sale-return-form';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 // Define the interface for the section props
 interface SaleReturnsSectionProps {
@@ -42,8 +45,47 @@ const SaleReturnsSection: React.FC<SaleReturnsSectionProps> = ({
 
     const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
     const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+    const [editingSaleReturn, setEditingSaleReturn] = useState<SaleReturn | null>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deletingSaleReturnId, setDeletingSaleReturnId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     // Use sales list passed in props
     const availableSales = sales || [];
+
+    const handleEdit = async (saleReturn: SaleReturn) => {
+        try {
+            // Fetch full sale return data with items
+            const response = await axios.get(`/api/sale-returns/${saleReturn.id}`);
+            setEditingSaleReturn(response.data);
+            setIsReturnModalOpen(true);
+        } catch (error) {
+            console.error('Error fetching sale return:', error);
+            toast.error('Failed to load sale return data');
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!deletingSaleReturnId) return;
+
+        setIsDeleting(true);
+        try {
+            await axios.delete(`/api/sale-returns/${deletingSaleReturnId}`);
+            toast.success('Sale return deleted successfully');
+            onRefresh();
+        } catch (error) {
+            console.error('Error deleting sale return:', error);
+            toast.error('Failed to delete sale return');
+        } finally {
+            setIsDeleting(false);
+            setDeleteConfirmOpen(false);
+            setDeletingSaleReturnId(null);
+        }
+    };
+
+    const confirmDelete = (saleReturnId: string) => {
+        setDeletingSaleReturnId(saleReturnId);
+        setDeleteConfirmOpen(true);
+    };
 
     return (
         <div className="space-y-4">
@@ -62,12 +104,13 @@ const SaleReturnsSection: React.FC<SaleReturnsSectionProps> = ({
             {saleReturnsData.length > 0 ? (
                 <Card className="shadow-lg rounded-lg border-l-4 border-amber-500">
                     <CardHeader className="py-3 bg-gray-50">
-                        <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_2fr_1fr] gap-4">
+                        <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_1.5fr_1fr_1fr] gap-4">
                             <div>Customer</div>
                             <div>Date</div>
                             <div>Amount (incl. GST)</div>
                             <div>Reason</div>
                             <div>Status</div>
+                            <div>Actions</div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="max-h-[250px] overflow-y-auto p-0">
@@ -77,7 +120,7 @@ const SaleReturnsSection: React.FC<SaleReturnsSectionProps> = ({
 
                             return (
                                 <div key={saleReturn.id}
-                                    className="grid grid-cols-[2fr_1fr_1fr_2fr_1fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
+                                    className="grid grid-cols-[2fr_1fr_1fr_1.5fr_1fr_1fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
                                     <div className="font-medium flex items-center">
                                         <UserIcon className="h-4 w-4 mr-1 text-gray-500" />
                                         {/* Find the sale that corresponds to this return's saleDetailId, then get its customer */}
@@ -108,6 +151,24 @@ const SaleReturnsSection: React.FC<SaleReturnsSectionProps> = ({
                                             {saleReturn.status}
                                         </Badge>
                                     </div>
+                                    <div className="flex items-center space-x-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleEdit(saleReturn)}
+                                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => confirmDelete(saleReturn.id)}
+                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </div>
                             );
                         })}
@@ -128,31 +189,53 @@ const SaleReturnsSection: React.FC<SaleReturnsSectionProps> = ({
             ) : (
                 <p className="text-gray-500 italic">No sale returns records available</p>
             )}            {/* Sale Return Modal */}
-            <Dialog open={isReturnModalOpen} onOpenChange={(open) => { setIsReturnModalOpen(open); if (!open) setSelectedSaleId(null); }}>
+            <Dialog open={isReturnModalOpen} onOpenChange={(open) => { setIsReturnModalOpen(open); if (!open) { setSelectedSaleId(null); setEditingSaleReturn(null); } }}>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Add Sale Return</DialogTitle>
-                        <DialogDescription>Create a new sale return record.</DialogDescription>
+                        <DialogTitle>{editingSaleReturn ? 'Edit Sale Return' : 'Add Sale Return'}</DialogTitle>
+                        <DialogDescription>{editingSaleReturn ? 'Update the sale return record.' : 'Create a new sale return record.'}</DialogDescription>
                     </DialogHeader>
 
-                    {availableSales.length === 0 ? (
+                    {availableSales.length === 0 && !editingSaleReturn ? (
                         <div className="p-6 text-center">
                             <p className="text-amber-600 mb-4">No sales available to return</p>
                             <p className="text-gray-500">You need to create at least one sale before you can record a return.</p>
                         </div>
                     ) : (
                         <SaleReturnForm
-                            initialData={null}
+                            initialData={editingSaleReturn}
                             sales={availableSales}
                             customers={customers || []}
                             units={units || []}
                             taxSlabs={taxSlabs || []}
-                            selectedSaleId={selectedSaleId || undefined}
-                            onClose={() => { setIsReturnModalOpen(false); setSelectedSaleId(null); onRefresh(); }}
+                            selectedSaleId={editingSaleReturn?.saleDetailId || selectedSaleId || undefined}
+                            onClose={() => { setIsReturnModalOpen(false); setSelectedSaleId(null); setEditingSaleReturn(null); onRefresh(); }}
                         />
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Sale Return</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this sale return? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

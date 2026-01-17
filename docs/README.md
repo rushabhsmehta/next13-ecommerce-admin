@@ -9,7 +9,7 @@
 - [PDF Generation](./features/pdf-generation.md) - PDF generation with and without variants
 - [Seasonal Pricing](./features/seasonal-pricing.md) - Location-based seasonal pricing system
 - [Tour Packages](./features/tour-packages.md) - Tour package management and enhancements
-- [Auto Tour Package](./features/auto-tour-package.md) - OpenAI-powered auto itinerary builder
+
 
 ### WhatsApp Integration 📱
 - **[Quick Start Guide](./WHATSAPP_QUICK_START.md)** ⚡ - Get WhatsApp working in 15 minutes

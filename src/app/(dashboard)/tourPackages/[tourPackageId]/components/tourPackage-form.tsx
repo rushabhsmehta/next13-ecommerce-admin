@@ -595,75 +595,61 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     defaultValues
   });
 
-  // Auto-load draft from Auto Builder
+  // Fetch lookup data required for Hotels tab
+
+  // Auto-load draft from AI Package Wizard
   useEffect(() => {
     const loadDraft = () => {
       // Only run if we are in "create" mode (no initialData)
       if (initialData) return;
 
-      const draftKey = 'autoTourPackageDraft';
+      const draftKey = 'aiPackageWizardDraft';
       const storedDraft = localStorage.getItem(draftKey);
 
       if (!storedDraft) return;
 
       try {
-        const { data } = JSON.parse(storedDraft);
-        console.log("Found auto-generated package draft:", data);
+        const { data, locationId } = JSON.parse(storedDraft);
+        console.log("[AI_WIZARD] Loading draft:", data);
 
-        // Find Location ID
-        let foundLocationId = '';
-        if (data.locationName && locations.length > 0) {
-          const search = data.locationName.toLowerCase();
-          const loc = locations.find(l => l.label && l.label.toLowerCase().includes(search));
-          if (loc) foundLocationId = loc.id;
-        }
-        // Fallback if not found (mimics API behavior)
-        if (!foundLocationId && locations.length > 0) {
-          foundLocationId = locations[0].id;
-        }
-
-        // Map AI JSON to Form Values
+        // Map AI Wizard data to Form Values
         const mappedData: Partial<TourPackageFormValues> = {
           tourPackageName: data.tourPackageName || '',
           tourCategory: data.tourCategory || 'Domestic',
           tourPackageType: data.tourPackageType || 'General',
           numDaysNight: data.numDaysNight || '',
-          // totalPrice: data.price ? String(data.price) : '', // REMOVED
           transport: data.transport || '',
           pickup_location: data.pickup_location || '',
           drop_location: data.drop_location || '',
-          locationId: foundLocationId,
+          locationId: locationId || '',
 
           // Map Itineraries
           itineraries: Array.isArray(data.itineraries) ? data.itineraries.map((day: any) => ({
             dayNumber: day.dayNumber,
             itineraryTitle: day.itineraryTitle || '',
             itineraryDescription: day.itineraryDescription || '',
-            mealsIncluded: day.mealsIncluded ? (Array.isArray(day.mealsIncluded) ? day.mealsIncluded : [day.mealsIncluded]) : [],
+            mealsIncluded: day.mealsIncluded ? (typeof day.mealsIncluded === 'string' ? day.mealsIncluded.split(' & ') : day.mealsIncluded) : [],
             hotelId: '',
-            locationId: foundLocationId,
-
-            // Map activities - handle both old string[] and new object[] formats
+            locationId: locationId || '',
             activities: Array.isArray(day.activities) ? day.activities.map((act: any) => ({
-              // If act is a string (old format), use it as title; if object (new format), destructure
-              activityTitle: typeof act === 'string' ? act : (act?.activityTitle || ''),
-              activityDescription: typeof act === 'string' ? '' : (act?.activityDescription || ''),
-              activityImages: []
+              activityTitle: act.activityTitle || '',
+              activityDescription: act.activityDescription || '',
+              activityImages: [],
+              locationId: locationId || '',
             })) : [],
             itineraryImages: [],
           })) : [],
 
-          inclusions: data.inclusions ? (Array.isArray(data.inclusions) ? data.inclusions : [data.inclusions]) : INCLUSIONS_DEFAULT,
-          exclusions: data.exclusions ? (Array.isArray(data.exclusions) ? data.exclusions : [data.exclusions]) : EXCLUSIONS_DEFAULT,
-          importantNotes: data.importantNotes ? (Array.isArray(data.importantNotes) ? data.importantNotes : [data.importantNotes]) : IMPORTANT_NOTES_DEFAULT,
-          paymentPolicy: data.paymentPolicy ? (Array.isArray(data.paymentPolicy) ? data.paymentPolicy : [data.paymentPolicy]) : PAYMENT_TERMS_DEFAULT,
-          cancellationPolicy: data.cancellationPolicy ? (Array.isArray(data.cancellationPolicy) ? data.cancellationPolicy : [data.cancellationPolicy]) : CANCELLATION_POLICY_DEFAULT,
-          termsconditions: data.termsconditions ? (Array.isArray(data.termsconditions) ? data.termsconditions : [data.termsconditions]) : TERMS_AND_CONDITIONS_DEFAULT,
-
           // Defaults
           images: [],
           flightDetails: [],
-          pricingSection: DEFAULT_PRICING_SECTION
+          pricingSection: DEFAULT_PRICING_SECTION,
+          inclusions: INCLUSIONS_DEFAULT,
+          exclusions: EXCLUSIONS_DEFAULT,
+          importantNotes: IMPORTANT_NOTES_DEFAULT,
+          paymentPolicy: PAYMENT_TERMS_DEFAULT,
+          cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+          termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
         };
 
         // Reset form with mapped data
@@ -672,14 +658,14 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           ...mappedData
         });
 
-        toast.success("Loaded properties from AI generation");
+        toast.success("Loaded itinerary from AI Wizard");
 
         // Clear the draft so it doesn't persist
         localStorage.removeItem(draftKey);
 
       } catch (err) {
-        console.error("Failed to load auto-package draft:", err);
-        toast.error("Failed to load generated draft");
+        console.error("[AI_WIZARD] Failed to load draft:", err);
+        toast.error("Failed to load AI-generated draft");
       }
     };
 
@@ -687,7 +673,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData, form, locations]);
 
-  // Fetch lookup data required for Hotels tab
 
   const {
     fields: pricingFields,

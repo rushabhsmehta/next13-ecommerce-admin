@@ -425,44 +425,69 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </div>
       )}
       {/* Enhanced Total Price Display */}
-      {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
-  <div className="mt-6 page-break-before avoid-break-inside">
-          <Card className="border-2 border-orange-200 rounded-lg shadow-xl overflow-hidden">
-            <div className="bg-gray-50 px-6 py-5">
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 text-transparent bg-clip-text print-gradient-fallback flex items-center">
-                <span className="mr-3 text-3xl">🎯</span>
-                Total Package Price
-              </h3>
-            </div>
-            <CardContent className="p-8">
-              <div className="text-center">
-                <div className="text-5xl font-bold text-gray-900 mb-4">
-                  <span className="text-orange-600">₹ </span>
-                  <span dangerouslySetInnerHTML={{
-                    __html: initialData.totalPrice ?
-                      parseFloat(initialData.totalPrice.replace(/[^\d.-]/g, '')).toLocaleString('en-IN') :
-                      initialData.totalPrice
-                  }} />
-                </div>
-                <div className="text-lg text-gray-600 bg-orange-50 px-6 py-3 rounded-full inline-block mb-4">
-                  <span className="font-semibold">Final Tour Package Cost</span>
-                </div>
-                <div className="text-sm text-orange-600 bg-orange-100 px-4 py-2 rounded-lg inline-block border border-orange-200">
-                  <span className="font-semibold">+ GST (As Applicable) </span>
-                </div>
+      {(() => {
+        const isPriceVisible = initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ';
+        
+        return (
+          <>
+            {isPriceVisible && (
+              <div className="mt-6 page-break-before avoid-break-inside">
+                <Card className="border-2 border-orange-200 rounded-lg shadow-xl overflow-hidden">
+                  <div className="bg-gray-50 px-6 py-5">
+                    <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 text-transparent bg-clip-text print-gradient-fallback flex items-center">
+                      <span className="mr-3 text-3xl">🎯</span>
+                      Total Package Price
+                    </h3>
+                  </div>
+                  <CardContent className="p-8">
+                    <div className="text-center">
+                      <div className="text-5xl font-bold text-gray-900 mb-4">
+                        <span className="text-orange-600">₹ </span>
+                        <span dangerouslySetInnerHTML={{
+                          __html: initialData.totalPrice ?
+                            parseFloat(initialData.totalPrice.replace(/[^\d.-]/g, '')).toLocaleString('en-IN') :
+                            (initialData.totalPrice || '')
+                        }} />
+                      </div>
+                      <div className="text-lg text-gray-600 bg-orange-50 px-6 py-3 rounded-full inline-block mb-4">
+                        <span className="font-semibold">Final Tour Package Cost</span>
+                      </div>
+                      <div className="block mt-2">
+                         <div className="text-sm text-orange-600 bg-orange-100 px-4 py-2 rounded-lg inline-block border border-orange-200">
+                           <span className="font-semibold">+ GST (As Applicable) </span>
+                         </div>
+                      </div>
+                    </div>
+                    {initialData.remarks && initialData.remarks !== '' && (
+                        <div className="mt-8 pt-6 border-t border-gray-100 text-left">
+                          <h4 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                             <InfoIcon className="w-5 h-5 text-orange-500" />
+                             Remarks
+                          </h4>
+                          <div className="text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-100" dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+                        </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}      {initialData.remarks !== '' && (
-        <Card className="break-inside-avoid text-2xl">
-          <CardContent>
-            <div>
-              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            )}
+
+            {/* Standalone remarks if price is hidden */}
+            {!isPriceVisible && initialData.remarks && initialData.remarks !== '' && (
+              <Card className="break-inside-avoid text-2xl mt-6">
+                 <CardHeader className="pb-2">
+                    <CardTitle className="text-xl font-bold text-gray-800">Remarks</CardTitle>
+                 </CardHeader>
+                <CardContent>
+                  <div>
+                    <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        );
+      })()}
 
 
       {/*  {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (

@@ -374,28 +374,48 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           </div>
         )}
 
-        {formattedTotalPrice && !supplierView && selectedOption !== 'Empty' && (
-          <Card data-pdf-section="true" className="border border-orange-200 shadow-sm rounded-xl">
-            <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-              <CardTitle className={`text-lg font-semibold ${sectionTitleGradient}`}>Total Package Price</CardTitle>
-              <CardDescription className="text-sm text-gray-500">Quoted value in INR</CardDescription>
-            </CardHeader>
-            <CardContent className="px-5 py-5">
-              <div className="text-2xl font-semibold text-orange-600">{formattedTotalPrice}</div>
-            </CardContent>
-          </Card>
-        )}
+        {(() => {
+          const isPriceVisible = formattedTotalPrice && !supplierView && selectedOption !== 'Empty';
 
-        {initialData.remarks !== '' && (
-          <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
-            <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-              <CardTitle className={`text-lg font-semibold ${sectionTitleGradient}`}>Additional Notes</CardTitle>
-            </CardHeader>
-            <CardContent className="px-5 py-5 text-base leading-relaxed text-gray-700">
-              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }} />
-            </CardContent>
-          </Card>
-        )}
+          return (
+            <>
+              {isPriceVisible && (
+                <Card data-pdf-section="true" className="border border-orange-200 shadow-sm rounded-xl">
+                  <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
+                    <CardTitle className={`text-lg font-semibold ${sectionTitleGradient}`}>Total Package Price</CardTitle>
+                    <CardDescription className="text-sm text-gray-500">Quoted value in INR</CardDescription>
+                  </CardHeader>
+                  <CardContent className="px-5 py-5">
+                    <div className="text-2xl font-semibold text-orange-600">{formattedTotalPrice}</div>
+
+                    {initialData.remarks && initialData.remarks !== '' && (
+                      <div className="mt-6 pt-5 border-t border-orange-100">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <InfoIcon className="w-4 h-4 text-orange-500" />
+                          Remarks
+                        </h4>
+                        <div className="text-[15px] leading-relaxed text-gray-700 bg-orange-50/50 p-4 rounded-lg border border-orange-100">
+                          <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }} />
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {!isPriceVisible && initialData.remarks !== '' && (
+                <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
+                  <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
+                    <CardTitle className={`text-lg font-semibold ${sectionTitleGradient}`}>Additional Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-5 py-5 text-base leading-relaxed text-gray-700">
+                    <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }} />
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          );
+        })()}
 
 
         {/* Itineraries */}

@@ -509,8 +509,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       } catch { return String(val); }
     };
 
+    const isPriceVisible = initialData.totalPrice && initialData.totalPrice.trim() !== "" && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB';
+
     const totalPriceSection =
-      initialData.totalPrice && initialData.totalPrice.trim() !== ""
+      isPriceVisible
         ? `
       <div style="${priceCardStyle}; text-align: center;">        
         <div style="margin-bottom: 8px;">
@@ -522,7 +524,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <div style="background: white; border-radius: 6px; padding: 20px 16px; margin: 8px 0; border: 1px solid #e5e7eb; position:relative;">
           <div style="position:absolute; top:0; left:0; right:0; height:3px; background:${brandGradients.primary};"></div>
           <div style="font-size: 26px; font-weight: 700; color: ${brandColors.primary}; margin-bottom: 4px; letter-spacing:0.5px;">
-            ₹ ${formatINR(initialData.totalPrice)}
+            ₹ ${formatINR(initialData.totalPrice as string)}
           </div>
           <div style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform:uppercase; letter-spacing:0.75px;">
             Complete Tour Package Cost
@@ -531,6 +533,17 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             + GST
           </div>
         </div>
+
+        ${initialData.remarks && initialData.remarks.trim() !== "" ? `
+          <div style="text-align: left; margin-top: 16px; padding-top: 16px; border-top: 1px solid ${brandColors.border};">
+            <h4 style="font-size: 14px; font-weight: 600; color: ${brandColors.slateText}; margin: 0 0 8px 0; display:flex; align-items:center;">
+              <span style="display:inline-block; margin-right:6px; color:${brandColors.primary};">ℹ</span> Remarks
+            </h4>
+            <div style="font-size: 13px; line-height: 1.5; color: ${brandColors.text}; background: white; padding: 12px; border-radius: 4px; border: 1px solid ${brandColors.border};">
+               ${initialData.remarks}
+            </div>
+          </div>
+        ` : ''}
       </div>
     `
         : "";
@@ -592,9 +605,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
     }
 
-    // 6. Clean Remarks Section
+    // 6. Clean Remarks Section (Render only if NOT visible in price section)
     const remarksSection =
-      initialData.remarks && initialData.remarks.trim() !== ""
+      (!isPriceVisible && initialData.remarks && initialData.remarks.trim() !== "")
         ? `
       <div style="${cardStyle};">
         <div style="${headerStyleAlt};">

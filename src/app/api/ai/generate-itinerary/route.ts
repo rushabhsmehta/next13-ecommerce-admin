@@ -111,7 +111,17 @@ export async function POST(req: Request) {
 
             let parsedResponse;
             try {
-                parsedResponse = JSON.parse(responseText);
+                // Gemini sometimes outputs literal newlines in strings instead of \n
+                // This sanitizes the response by fixing newlines inside JSON string values
+                const sanitizedResponse = responseText.replace(
+                    /("activityDescription"\s*:\s*")([^"]*?)(")/g,
+                    (_match: string, prefix: string, content: string, suffix: string) => {
+                        // Replace literal newlines with escaped \n
+                        const fixed = content.replace(/\r?\n/g, '\\n');
+                        return prefix + fixed + suffix;
+                    }
+                );
+                parsedResponse = JSON.parse(sanitizedResponse);
             } catch (e) {
                 console.error("[AI_GENERATE] Failed to parse Gemini response:", e);
                 console.error("[AI_GENERATE] Raw response:", responseText);

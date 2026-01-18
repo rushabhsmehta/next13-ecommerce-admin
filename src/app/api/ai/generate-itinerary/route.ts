@@ -54,8 +54,8 @@ Create a complete tour package based on the structured input provided. Output ON
       "suggestedHotel": "Hotel name suggestion based on budget",
       "activities": [
         {
-          "activityTitle": "Activities",
-          "activityDescription": "i. First activity details... ii. Second activity details... (Roman numerals for each sub-activity)"
+          "activityTitle": "",
+          "activityDescription": "i. First activity details...\nii. Second activity details...\niii. Third activity... (Each Roman numeral on a new line)"
         }
       ]
     }
@@ -70,7 +70,7 @@ Create a complete tour package based on the structured input provided. Output ON
 ## Rules
 1. Output ONLY the JSON object - no markdown, no explanations
 2. All fields are required
-3. Each day must have EXACTLY ONE activity object with title 'Activities'. All daily activities must be listed in the description using Roman numerals (i., ii., iii.).
+3. Each day must have EXACTLY ONE activity object. Leave activityTitle as empty string. List all activities in activityDescription using Roman numerals (i., ii., iii.) with EACH activity on a NEW LINE (use \n for newlines).
 4. Descriptions should be immersive and specific
 5. Consider the budget category when suggesting hotels and experiences`;
 

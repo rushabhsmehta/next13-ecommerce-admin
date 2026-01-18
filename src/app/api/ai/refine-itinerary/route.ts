@@ -22,7 +22,7 @@ Your task is to MODIFY the provided tour package itinerary based on the user's i
 2. Maintain the exact same JSON structure as the input.
 3. Apply the user's changes intelligently (e.g., if they say "make it luxury", update hotels to 5-star, transport to premium, and budget).
 4. Do NOT remove fields unless explicitly asked.
-5. Ensure the "Activities" rule is followed: ONE "Activities" object per day, with Roman numeral description.
+5. Ensure the "Activities" rule is followed: ONE activity object per day with EMPTY activityTitle. List activities in activityDescription using Roman numerals (i., ii., iii.) with EACH on a NEW LINE (use \\n).
 6. Output ONLY valid JSON.
 
 ## Output Format (Identical to Input)

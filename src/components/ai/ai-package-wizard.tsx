@@ -118,6 +118,10 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
     const router = useRouter();
     const { toast } = useToast();
 
+    // Refinement State
+    const [refinementInput, setRefinementInput] = useState("");
+    const [isRefining, setIsRefining] = useState(false);
+
     const form = useForm<WizardFormValues>({
         resolver: zodResolver(wizardFormSchema),
         defaultValues: {
@@ -235,6 +239,45 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
         setGeneratedData(null);
         setStep(2);
         form.handleSubmit(handleGenerate)();
+    };
+
+    const handleRefine = async () => {
+        if (!refinementInput.trim() || !generatedData) return;
+
+        setIsRefining(true);
+        try {
+            const response = await fetch("/api/ai/refine-itinerary", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    currentItinerary: generatedData,
+                    userPrompt: refinementInput,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || "Failed to refine itinerary");
+            }
+
+            const result = await response.json();
+            setGeneratedData(result.data);
+            setRefinementInput(""); // Clear input
+            toast({
+                title: "Itinerary Updated",
+                description: "Your changes have been applied successfully.",
+            });
+
+        } catch (error) {
+            console.error("[AI_REFINE] Failed:", error);
+            toast({
+                variant: "destructive",
+                title: "Refinement Failed",
+                description: error instanceof Error ? error.message : "Please try again",
+            });
+        } finally {
+            setIsRefining(false);
+        }
     };
 
     const renderStepIndicator = () => (
@@ -635,15 +678,47 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
                     </Card>
                 )}
 
+                {/* Refinement Section */}
+                <Card className="border-2 border-primary">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-primary" /> Modify Itinerary with AI
+                        </CardTitle>
+                        <CardDescription>
+                            Want to change something? Just ask Aagam AI to tweak the itinerary.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Textarea
+                            placeholder="e.g., 'Change the hotel in Jaipur to something more heritage', 'Add a visit to Hawa Mahal on Day 2', 'Make the whole trip more relaxed'..."
+                            value={refinementInput}
+                            onChange={(e) => setRefinementInput(e.target.value)}
+                            className="min-h-[80px]"
+                        />
+                        <Button
+                            onClick={handleRefine}
+                            disabled={isRefining || !refinementInput.trim()}
+                            className="w-full gap-2"
+                        >
+                            {isRefining ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" /> Updating Itinerary...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-4 w-4" /> Update Itinerary
+                                </>
+                            )}
+                        </Button>
+                    </CardContent>
+                </Card>
+
                 {/* Action Buttons */}
                 <div className="flex gap-4">
-                    <Button variant="outline" onClick={handleRegenerate} className="gap-2">
-                        <RotateCcw className="h-4 w-4" /> Regenerate
-                    </Button>
                     <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
-                        <Pencil className="h-4 w-4" /> Edit Inputs
+                        <Pencil className="h-4 w-4" /> Start Over
                     </Button>
-                    <Button onClick={handleCreateDraft} className="flex-1 gap-2">
+                    <Button onClick={handleCreateDraft} className="flex-1 gap-2" disabled={isRefining}>
                         <CheckCircle2 className="h-4 w-4" /> Create {mode === "tourPackageQuery" ? "Query" : "Package"} Draft
                     </Button>
                 </div>

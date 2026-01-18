@@ -149,11 +149,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
     // Try to restore any saved meal plan and room configuration
     const savedMealPlanId = form.getValues('selectedMealPlanId');
     const savedNumberOfRooms = form.getValues('numberOfRooms');
-    
+
     if (savedMealPlanId && !selectedMealPlanId) {
       console.log('Restoring saved meal plan ID:', savedMealPlanId);
-      setSelectedMealPlanId(savedMealPlanId);    }
-      // Only restore numberOfRooms if it's different from current state
+      setSelectedMealPlanId(savedMealPlanId);
+    }
+    // Only restore numberOfRooms if it's different from current state
     if (savedNumberOfRooms && savedNumberOfRooms > 0 && savedNumberOfRooms !== numberOfRooms) {
       console.log('Restoring saved number of rooms:', savedNumberOfRooms);
       setNumberOfRooms(savedNumberOfRooms);
@@ -166,38 +167,38 @@ const PricingTab: React.FC<PricingTabProps> = ({
         setTourPackageName(value.tourPackageTemplateName);
       }
     });
-    
+
     return () => subscription.unsubscribe();
   }, [form]);  // Initialize data from form when component loads
   useEffect(() => {
     if (!isInitialLoad) return; // Only run on initial load
-    
+
     // Initialize from form data when component mounts
     const initializeFromForm = () => {
       // Get stored data from form
       const storedMealPlanId = form.getValues('selectedMealPlanId');
       const storedNumberOfRooms = form.getValues('numberOfRooms');
       const storedTourPackageName = form.getValues('tourPackageTemplateName');
-      
+
       // Set tour package name if available
       if (storedTourPackageName) {
         setTourPackageName(storedTourPackageName);
       }
-      
+
       // Set meal plan if available
       if (storedMealPlanId) {
         setSelectedMealPlanId(storedMealPlanId);
       }
-      
+
       // Set number of rooms if available
       if (storedNumberOfRooms && storedNumberOfRooms > 0) {
         setNumberOfRooms(storedNumberOfRooms);
       }
-      
+
       // Mark initial load as complete
       setIsInitialLoad(false);
     };
-    
+
     // Run initialization
     initializeFromForm();
   }, [form, isInitialLoad]);
@@ -320,7 +321,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
       if (matchedPricings.length > 1) {
         console.warn("Multiple matching pricing periods found:", matchedPricings);
-        toast.error("Multiple pricing periods match the criteria. Cannot automatically fetch components. Please refine Tour Package pricing definitions.");        setAvailablePricingComponents([]);
+        toast.error("Multiple pricing periods match the criteria. Cannot automatically fetch components. Please refine Tour Package pricing definitions."); setAvailablePricingComponents([]);
         setPricingComponentsFetched(false);
         return;
       }
@@ -328,14 +329,14 @@ const PricingTab: React.FC<PricingTabProps> = ({
       // Get components from the matched pricing
       const selectedPricing = matchedPricings[0];
       const components = selectedPricing.pricingComponents || [];
-      
+
       setAvailablePricingComponents(components);
       setPricingComponentsFetched(true);
-      
+
       // Initially select all components and set default room quantities
       const allComponentIds = components.map((comp: any) => comp.id);
       setSelectedPricingComponentIds(allComponentIds);
-      
+
       // Initialize room quantities for all components (default to 1)
       const initialQuantities: Record<string, number> = {};
       components.forEach((comp: any) => {
@@ -376,7 +377,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // Function to get occupancy multiplier from component name
   const getOccupancyMultiplier = (componentName: string): number => {
     const name = componentName.toLowerCase();
-    
+
     if (name.includes('single')) {
       return 1;
     } else if (name.includes('double')) {
@@ -386,7 +387,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
     } else if (name.includes('quad')) {
       return 4;
     }
-    
+
     // Default to 1 if no occupancy type is detected (for components like "per person", etc.)
     return 1;
   };
@@ -396,7 +397,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
     const basePrice = parseFloat(component.price || '0');
     const componentName = component.pricingAttribute?.name || '';
     const occupancyMultiplier = getOccupancyMultiplier(componentName);
-    
+
     return basePrice * occupancyMultiplier * roomQuantity;
   };  // Function to apply selected pricing components
   const handleApplySelectedPricingComponents = () => {
@@ -406,23 +407,23 @@ const PricingTab: React.FC<PricingTabProps> = ({
     }
 
     // Filter available components by selected IDs
-    const componentsToApply = availablePricingComponents.filter((comp: any) => 
+    const componentsToApply = availablePricingComponents.filter((comp: any) =>
       selectedPricingComponentIds.includes(comp.id)
     );    // Create pricing components for the form
     const finalPricingComponents: { name: string; price: string; description: string }[] = [];
-    let totalPrice = 0;    componentsToApply.forEach((comp: any) => {
+    let totalPrice = 0; componentsToApply.forEach((comp: any) => {
       const componentName = comp.pricingAttribute?.name || 'Pricing Component';
       const basePrice = parseFloat(comp.price || '0');
       const roomQuantity = componentRoomQuantities[comp.id] || 1;
       const occupancyMultiplier = getOccupancyMultiplier(componentName);
       const totalComponentPrice = calculateComponentTotalPrice(comp, roomQuantity);
-      
+
       finalPricingComponents.push({
         name: componentName,
         price: basePrice.toString(), // Store base price per person, not total
         description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
       });
-      
+
       totalPrice += totalComponentPrice;
     });
 
@@ -523,13 +524,13 @@ const PricingTab: React.FC<PricingTabProps> = ({
           const basePrice = parseFloat(comp.price || '0');
           const occupancyMultiplier = getOccupancyMultiplier(componentName);
           const totalComponentPrice = basePrice * occupancyMultiplier * numberOfRooms;
-          
+
           finalPricingComponents.push({
             name: componentName,
             price: basePrice.toString(), // Store base price per person, not total
             description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
           });
-          
+
           totalPrice += totalComponentPrice;
         });
       }
@@ -567,7 +568,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       // If we already have a name in the form, use it
       setTourPackageName(nameFromForm);
       return;
-    }    try {
+    } try {
       const response = await axios.get(`/api/tourPackages/${packageId}`);
       const tourPackage = response.data;
       const packageName = tourPackage.name || `Package ${packageId.substring(0, 8)}...`;
@@ -676,11 +677,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200">
-              <RadioGroupItem 
-                value="autoTourPackage" 
+              <RadioGroupItem
+                value="autoTourPackage"
                 id="autoTourPackage"
-                disabled={!selectedTemplateId || !isTourPackageTemplate} 
-                className="text-purple-600" 
+                disabled={!selectedTemplateId || !isTourPackageTemplate}
+                className="text-purple-600"
               />
               <div className="flex-1">
                 <label htmlFor="autoTourPackage" className={`text-sm font-medium cursor-pointer flex items-center ${(!selectedTemplateId || !isTourPackageTemplate) ? 'text-slate-400' : 'text-slate-700'}`}>
@@ -707,7 +708,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
               <div id="price-calculating-spinner" className="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600 ml-2"></div>
               <div id="calculation-status" className="hidden text-sm px-3 py-1 rounded-full ml-2 font-medium"></div>
             </div>
-            
+
             <div className="bg-white rounded-lg p-4 border border-emerald-200 mb-4">
               <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
                 <div className="flex items-center gap-2">
@@ -728,7 +729,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     }}
                   />
                 </div>
-                
+
                 <div className="flex-1 max-w-xs">
                   <Select onValueChange={(value) => {
                     if (value === 'standard') {
@@ -1086,7 +1087,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
               <Package className="mr-2 h-5 w-5 text-purple-600" />
               <h3 className="text-lg font-semibold text-purple-800">📦 Tour Package Pricing</h3>
             </div>
-            
+
             {(!selectedTemplateId || !isTourPackageTemplate) ? (
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center">
@@ -1132,17 +1133,17 @@ const PricingTab: React.FC<PricingTabProps> = ({
                           if (tabsElement) {
                             // Try various selectors for the basic info tab
                             let basicInfoTab = tabsElement.querySelector('button[data-value="basic"], button[value="basic"], button[data-value="basicInfo"], button[value="basicInfo"]') as HTMLButtonElement;
-                            
+
                             if (!basicInfoTab) {
                               // Try finding by text content
                               const allTabs = tabsElement.querySelectorAll('button');
-                              basicInfoTab = Array.from(allTabs).find(tab => 
-                                tab.textContent?.toLowerCase().includes('basic') || 
+                              basicInfoTab = Array.from(allTabs).find(tab =>
+                                tab.textContent?.toLowerCase().includes('basic') ||
                                 tab.getAttribute('value')?.toLowerCase().includes('basic') ||
                                 tab.getAttribute('data-value')?.toLowerCase().includes('basic')
                               ) as HTMLButtonElement;
                             }
-                            
+
                             if (basicInfoTab) {
                               toast.success("Navigating to Basic Info tab");
                               console.log("Clicking on tab:", basicInfoTab);
@@ -1293,29 +1294,29 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     <p className="text-sm text-blue-700 mb-3">
                       Choose which pricing components to include in your tour package pricing breakdown:
                     </p>
-                    
+
                     {/* Select All / Deselect All */}
                     <div className="flex gap-2 mb-3">                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const allComponentIds = availablePricingComponents.map((comp: any) => comp.id);
-                          setSelectedPricingComponentIds(allComponentIds);
-                          
-                          // Initialize room quantities for all components if not already set
-                          const newQuantities = { ...componentRoomQuantities };
-                          availablePricingComponents.forEach((comp: any) => {
-                            if (!newQuantities[comp.id]) {
-                              newQuantities[comp.id] = 1;
-                            }
-                          });
-                          setComponentRoomQuantities(newQuantities);
-                        }}
-                        className="text-xs"
-                      >
-                        Select All
-                      </Button>
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const allComponentIds = availablePricingComponents.map((comp: any) => comp.id);
+                        setSelectedPricingComponentIds(allComponentIds);
+
+                        // Initialize room quantities for all components if not already set
+                        const newQuantities = { ...componentRoomQuantities };
+                        availablePricingComponents.forEach((comp: any) => {
+                          if (!newQuantities[comp.id]) {
+                            newQuantities[comp.id] = 1;
+                          }
+                        });
+                        setComponentRoomQuantities(newQuantities);
+                      }}
+                      className="text-xs"
+                    >
+                      Select All
+                    </Button>
                       <Button
                         type="button"
                         variant="outline"
@@ -1333,7 +1334,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                             checked={selectedPricingComponentIds.includes(component.id)}
                             onCheckedChange={() => handleTogglePricingComponent(component.id)}
                           />
-                          <label 
+                          <label
                             htmlFor={`component-${component.id}`}
                             className="flex-1 cursor-pointer"
                           >
@@ -1368,7 +1369,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                                     variant="outline"
                                     className="rounded-full w-6 h-6 flex-shrink-0"
                                     onClick={() => handleComponentRoomQuantityChange(
-                                      component.id, 
+                                      component.id,
                                       (componentRoomQuantities[component.id] || 1) - 1
                                     )}
                                     disabled={loading || (componentRoomQuantities[component.id] || 1) <= 1}
@@ -1380,7 +1381,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                                     type="number"
                                     value={componentRoomQuantities[component.id] || 1}
                                     onChange={(e) => handleComponentRoomQuantityChange(
-                                      component.id, 
+                                      component.id,
                                       parseInt(e.target.value) || 1
                                     )}
                                     min="1"
@@ -1393,7 +1394,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                                     variant="outline"
                                     className="rounded-full w-6 h-6 flex-shrink-0"
                                     onClick={() => handleComponentRoomQuantityChange(
-                                      component.id, 
+                                      component.id,
                                       (componentRoomQuantities[component.id] || 1) + 1
                                     )}
                                     disabled={loading}
@@ -1418,7 +1419,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                         </div>
                       ))}
                     </div>
-                      {/* Summary of selected components */}
+                    {/* Summary of selected components */}
                     {selectedPricingComponentIds.length > 0 && (
                       <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
                         <p className="text-sm font-medium text-green-800">
@@ -1434,7 +1435,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                               const totalPrice = calculateComponentTotalPrice(comp, quantity);
                               return (
                                 <div key={comp.id} className="flex justify-between text-xs">
-                                  <span>{componentName} {quantity > 1 ? `(${quantity} rooms)` : ''} 
+                                  <span>{componentName} {quantity > 1 ? `(${quantity} rooms)` : ''}
                                     {occupancyMultiplier > 1 ? ` × ${occupancyMultiplier}` : ''}
                                   </span>
                                   <span>₹{totalPrice.toFixed(2)}</span>
@@ -1489,7 +1490,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                 </div>
               </>
             )}
-          </div>        )}        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
+          </div>)}        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center">
@@ -1504,7 +1505,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
               onClick={() => handleAddPricingItem()}
               className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
             >
-              <Plus className="mr-2 h-4 w-4" /> 
+              <Plus className="mr-2 h-4 w-4" />
               ➕ Add Item
             </Button>
           </div>
@@ -1690,6 +1691,33 @@ const PricingTab: React.FC<PricingTabProps> = ({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Remarks Section */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <FormField
+            control={control}
+            name="remarks"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-indigo-600" />
+                  Remarks
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    disabled={loading}
+                    placeholder="Additional remarks for the tour package pricing"
+                    {...field}
+                  />
+                </FormControl>
+                <p className="text-xs text-slate-500 mt-1">
+                  Add any special notes or requirements for this tour package (will appear below Total Price)
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
       </CardContent>
     </Card>

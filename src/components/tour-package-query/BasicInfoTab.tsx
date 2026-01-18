@@ -305,7 +305,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             </FormItem>
           )}
         />
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           <FormField
             control={control}
@@ -557,7 +557,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             )}
           />
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           <FormField
             control={control}
@@ -604,27 +604,6 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
 
         <FormField
           control={control}
-          name="remarks"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Remarks</FormLabel>
-              <FormControl>
-                <Input
-                  disabled={loading}
-                  placeholder="Additional remarks for the tour package"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Add any special notes or requirements for this tour package
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={control}
           name="disclaimer"
           render={({ field }) => (
             <FormItem>
@@ -637,7 +616,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     readonly: loading,
                   }}
                   onBlur={(content) => field.onChange(content)}
-                  onChange={() => {}}
+                  onChange={() => { }}
                 />
               </FormControl>
               <FormDescription>

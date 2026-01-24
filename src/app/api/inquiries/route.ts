@@ -60,7 +60,8 @@ export async function POST(req: Request) {
   try {
     const { userId } = auth();
     const user = await currentUser();
-    const body = await req.json(); const {
+    const body = await req.json();
+    const {
       customerName,
       customerMobileNumber,
       associatePartnerId,
@@ -72,8 +73,6 @@ export async function POST(req: Request) {
       status,
       journeyDate,
       nextFollowUpDate,
-      remarks,
-      roomAllocations,
       remarks,
       roomAllocations,
       transportDetails,
@@ -117,7 +116,9 @@ export async function POST(req: Request) {
       });
 
       userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
-    } const inquiry = await prismadb.inquiry.create({
+    }
+
+    const inquiry = await prismadb.inquiry.create({
       data: {
         customerName,
         customerMobileNumber,
@@ -153,102 +154,100 @@ export async function POST(req: Request) {
             requirementDate: dateToUtc(detail.requirementDate),
             notes: detail.notes || null
           }))
-            notes: detail.notes || null
-        }))
-  } : undefined,
-    fb_click_id: fbclid || null,
-      fb_client_id: fbp || null,
+        } : undefined,
+        fb_click_id: fbclid || null,
+        fb_client_id: fbp || null,
         fb_browser_id: fbc || null
-},
-include: {
-  location: true,
-    associatePartner: true,
-      roomAllocations: {
-    include: {
-      roomType: true,
-        occupancyType: true,
-          mealPlan: true
-    }
-  },
-  transportDetails: {
-    include: {
-      vehicleType: true
-    }
-  }
-}
+      },
+      include: {
+        location: true,
+        associatePartner: true,
+        roomAllocations: {
+          include: {
+            roomType: true,
+            occupancyType: true,
+            mealPlan: true
+          }
+        },
+        transportDetails: {
+          include: {
+            vehicleType: true
+          }
+        }
+      }
     });
 
-// Add customer to WhatsApp customer list
-await ensureWhatsAppCustomer(customerName, customerMobileNumber);
+    // Add customer to WhatsApp customer list
+    await ensureWhatsAppCustomer(customerName, customerMobileNumber);
 
-// Send "Lead" event to Meta CAPI
-try {
-  const headersList = headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
-  const userAgent = headersList.get("user-agent") || "";
-  const requestUrl = req.url;
+    // Send "Lead" event to Meta CAPI
+    try {
+      const headersList = headers();
+      const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+      const userAgent = headersList.get("user-agent") || "";
+      const requestUrl = req.url;
 
-  await sendMetaEvent("Lead", {
-    ip,
-    userAgent,
-    email: user?.emailAddresses[0]?.emailAddress, // Or customer email if available in body?
-    phone: customerMobileNumber,
-    fbc: fbc || null,
-    fbp: fbp || null,
-    externalId: inquiry.id,
-    url: requestUrl
-  });
-} catch (metaError) {
-  console.error("[META_CAPI] Error sending Lead event:", metaError);
-}
-
-// Create a notification for the new inquiry
-try {
-  const journeyDateFormatted = formatLocalDate(journeyDate, 'dd MMM yyyy');
-  const locationName = (inquiry as any).location?.label || 'Unknown location';
-  const associateName = (inquiry as any).associatePartner?.name || 'Direct inquiry';
-
-  await prismadb.notification.create({
-    data: {
-      type: 'NEW_INQUIRY',
-      title: 'New Inquiry Received',
-      message: `${customerName} has inquired about ${locationName} for ${journeyDateFormatted}${associatePartnerId ? ` through ${associateName}` : ''}.`,
-      data: {
-        inquiryId: inquiry.id,
-        customerName,
-        customerMobileNumber,
-        locationId,
-        locationName,
-        journeyDate,
-        nextFollowUpDate
-      }
+      await sendMetaEvent("Lead", {
+        ip,
+        userAgent,
+        email: user?.emailAddresses[0]?.emailAddress, // Or customer email if available in body?
+        phone: customerMobileNumber,
+        fbc: fbc || null,
+        fbp: fbp || null,
+        externalId: inquiry.id,
+        url: requestUrl
+      });
+    } catch (metaError) {
+      console.error("[META_CAPI] Error sending Lead event:", metaError);
     }
-  });
-} catch (notificationError) {
-  // Log the error but don't fail the inquiry creation
-  console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
-}
 
-// Create audit log for the new inquiry
-await createAuditLog({
-  entityId: inquiry.id,
-  entityType: "Inquiry",
-  action: "CREATE",
-  after: inquiry,
-  userRole,
-  metadata: {
-    locationName: (inquiry as any).location?.label,
-    associatePartnerName: (inquiry as any).associatePartner?.name,
-    journeyDate: formatLocalDate(journeyDate, 'yyyy-MM-dd'),
-    nextFollowUpDate: nextFollowUpDate ? formatLocalDate(nextFollowUpDate, 'yyyy-MM-dd') : null
-  }
-});
+    // Create a notification for the new inquiry
+    try {
+      const journeyDateFormatted = formatLocalDate(journeyDate, 'dd MMM yyyy');
+      const locationName = (inquiry as any).location?.label || 'Unknown location';
+      const associateName = (inquiry as any).associatePartner?.name || 'Direct inquiry';
 
-return NextResponse.json(inquiry);
+      await prismadb.notification.create({
+        data: {
+          type: 'NEW_INQUIRY',
+          title: 'New Inquiry Received',
+          message: `${customerName} has inquired about ${locationName} for ${journeyDateFormatted}${associatePartnerId ? ` through ${associateName}` : ''}.`,
+          data: {
+            inquiryId: inquiry.id,
+            customerName,
+            customerMobileNumber,
+            locationId,
+            locationName,
+            journeyDate,
+            nextFollowUpDate
+          }
+        }
+      });
+    } catch (notificationError) {
+      // Log the error but don't fail the inquiry creation
+      console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
+    }
+
+    // Create audit log for the new inquiry
+    await createAuditLog({
+      entityId: inquiry.id,
+      entityType: "Inquiry",
+      action: "CREATE",
+      after: inquiry,
+      userRole,
+      metadata: {
+        locationName: (inquiry as any).location?.label,
+        associatePartnerName: (inquiry as any).associatePartner?.name,
+        journeyDate: formatLocalDate(journeyDate, 'yyyy-MM-dd'),
+        nextFollowUpDate: nextFollowUpDate ? formatLocalDate(nextFollowUpDate, 'yyyy-MM-dd') : null
+      }
+    });
+
+    return NextResponse.json(inquiry);
   } catch (error) {
-  console.log('[INQUIRIES_POST]', error);
-  return new NextResponse("Internal error", { status: 500 });
-}
+    console.log('[INQUIRIES_POST]', error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
 }
 
 export async function GET(req: Request) {

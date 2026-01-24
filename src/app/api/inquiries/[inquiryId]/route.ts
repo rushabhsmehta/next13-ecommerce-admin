@@ -5,6 +5,8 @@ import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { createAuditLog } from "@/lib/utils/audit-logger";
 import { normalizeWhatsAppPhone } from "@/lib/whatsapp-customers";
+import { sendMetaEvent } from "@/lib/meta-capi";
+import { headers } from "next/headers";
 
 const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"];
 
@@ -12,17 +14,17 @@ const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_
 async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string) {
   try {
     const normalizedPhone = normalizeWhatsAppPhone(phoneNumber);
-    
+
     // Check if customer already exists
     const existingCustomer = await whatsappPrisma.whatsAppCustomer.findUnique({
       where: { phoneNumber: normalizedPhone }
     });
-    
+
     if (existingCustomer) {
       console.log(`[WHATSAPP_CUSTOMER] Customer already exists: ${normalizedPhone}`);
       return existingCustomer;
     }
-    
+
     // Create new customer with "Customer" tag
     const newCustomer = await whatsappPrisma.whatsAppCustomer.create({
       data: {
@@ -35,7 +37,7 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
         importedAt: new Date()
       }
     });
-    
+
     console.log(`[WHATSAPP_CUSTOMER] Created new customer: ${normalizedPhone}`);
     return newCustomer;
   } catch (error) {
@@ -52,7 +54,7 @@ export async function GET(
   try {
     if (!params.inquiryId) {
       return new NextResponse("Inquiry ID is required", { status: 400 });
-    }    const inquiry = await prismadb.inquiry.findUnique({
+    } const inquiry = await prismadb.inquiry.findUnique({
       where: {
         id: params.inquiryId,
       },
@@ -101,11 +103,12 @@ export async function GET(
 export async function PATCH(
   req: Request,
   { params }: { params: { inquiryId: string } }
-) {  try {
+) {
+  try {
     const { userId } = auth();
     const user = await currentUser();
     const body = await req.json();
-    
+
     console.log('[INQUIRY_PATCH] Received request body:', JSON.stringify(body, null, 2));
 
     // Support lightweight partial update when only nextFollowUpDate is being patched
@@ -169,13 +172,13 @@ export async function PATCH(
         return new NextResponse("Internal error", { status: 500 });
       }
     }
-    
+
     // Add comprehensive logging for journeyDate processing
     console.log('🔍 SERVER-SIDE JOURNEY DATE PROCESSING:');
     console.log('======================================');
     console.log('1. Raw journeyDate from request body:', body.journeyDate);
     console.log('2. journeyDate type:', typeof body.journeyDate);
-    
+
     if (body.journeyDate) {
       console.log('3. Raw journeyDate string analysis:');
       console.log('   - Original string:', body.journeyDate);
@@ -262,12 +265,12 @@ export async function PATCH(
 
     console.log('4. Before dateToUtc processing:');
     console.log('   - journeyDate value:', journeyDate);
-    
-  const processedJourneyDate = dateToUtc(journeyDate);
-  // Preserve explicit null to clear the date; undefined means "no change" in some contexts
-  const processedNextFollowUpDate = (nextFollowUpDate === null)
-    ? null
-    : dateToUtc(nextFollowUpDate);
+
+    const processedJourneyDate = dateToUtc(journeyDate);
+    // Preserve explicit null to clear the date; undefined means "no change" in some contexts
+    const processedNextFollowUpDate = (nextFollowUpDate === null)
+      ? null
+      : dateToUtc(nextFollowUpDate);
     console.log('5. After dateToUtc processing:');
     console.log('   - processedJourneyDate:', processedJourneyDate);
     if (processedJourneyDate) {
@@ -293,12 +296,12 @@ export async function PATCH(
       nextFollowUpDate: processedNextFollowUpDate,
       remarks: remarks || null
     };
-    
+
     console.log('6. Final updatedData.journeyDate for database:', updatedData.journeyDate);
     console.log('======================================');    // First, check if roomAllocations and transportDetails are actually present in the request
     console.log('[INQUIRY_PATCH] Room allocations present:', roomAllocations ? `Yes, count: ${roomAllocations.length}` : 'No');
     console.log('[INQUIRY_PATCH] Transport details present:', transportDetails ? `Yes, count: ${transportDetails.length}` : 'No');
-    
+
     if (roomAllocations) {
       console.log('[INQUIRY_PATCH] Room allocations data:', JSON.stringify(roomAllocations, null, 2));
       // Delete existing room allocations
@@ -307,7 +310,7 @@ export async function PATCH(
       });
       console.log(`[INQUIRY_PATCH] Deleted ${deletedRooms.count} existing room allocations`);
     }
-    
+
     if (transportDetails) {
       console.log('[INQUIRY_PATCH] Transport details data:', JSON.stringify(transportDetails, null, 2));
       // Delete existing transport details
@@ -364,7 +367,7 @@ export async function PATCH(
     }
 
     console.log('[INQUIRY_PATCH] Updating inquiry with prepared data');
-    
+
     // Update the inquiry in the database
     const inquiry = await prismadb.inquiry.update({
       where: {
@@ -397,6 +400,52 @@ export async function PATCH(
 
     // Add customer to WhatsApp customer list
     await ensureWhatsAppCustomer(customerName, customerMobileNumber);
+
+    // Send "Purchase" event if status changed to CONFIRMED
+    if (updatedData.status === "CONFIRMED" && originalInquiry.status !== "CONFIRMED") {
+      try {
+        // Re-fetch to get latest tour package queries
+        const fullInquiry = await prismadb.inquiry.findUnique({
+          where: { id: params.inquiryId },
+          include: {
+            tourPackageQueries: {
+              orderBy: { updatedAt: 'desc' },
+              take: 1
+            }
+          }
+        });
+
+        if (fullInquiry) {
+          const headersList = headers();
+          const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+          const userAgent = headersList.get("user-agent") || "";
+
+          let purchaseValue = 0;
+          if (fullInquiry.tourPackageQueries.length > 0) {
+            const latestQuery = fullInquiry.tourPackageQueries[0];
+            const rawPrice = latestQuery.totalPrice || "0";
+            const cleanedPrice = rawPrice.replace(/[^0-9.]/g, '');
+            purchaseValue = parseFloat(cleanedPrice) || 0;
+          }
+
+          await sendMetaEvent("Purchase", {
+            ip,
+            userAgent,
+            email: undefined,
+            phone: fullInquiry.customerMobileNumber,
+            fbc: fullInquiry.fb_browser_id,
+            fbp: fullInquiry.fb_client_id,
+            externalId: fullInquiry.id,
+            url: req.url
+          }, {
+            value: purchaseValue,
+            currency: 'INR'
+          });
+        }
+      } catch (metaError) {
+        console.error("[META_CAPI] Error sending Purchase event:", metaError);
+      }
+    }
 
     // Log the audit entry
     await createAuditLog({

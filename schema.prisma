@@ -532,7 +532,8 @@ model TourPackage {
   createdAt                        DateTime              @default(now())
   updatedAt                        DateTime              @updatedAt
   numDaysNight                     String?
-  // Previous removed fields were here
+  assignedTo                       String?
+  assignedToEmail                  String?
   tourPackageName                  String?
   pricePerAdult                    String?
   pricePerChild5to12YearsNoBed     String?
@@ -919,6 +920,9 @@ model Inquiry {
   status               String             @default("pending")
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @default(now())
+  fb_click_id          String?            // Stores fbclid
+  fb_client_id         String?            // Stores _fbp
+  fb_browser_id        String?            // Stores _fbc
   journeyDate          DateTime?          @db.Date
   assignedStaffAt      DateTime?
   assignedToStaffId    String?

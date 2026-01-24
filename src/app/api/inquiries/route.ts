@@ -3,35 +3,37 @@ import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc, getUserTimezone, formatLocalDate } from "@/lib/timezone-utils";
-import { 
-  startOfDay, 
-  endOfDay, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
-  endOfMonth, 
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
   subMonths,
   parseISO,
   format
 } from "date-fns";
 import { createAuditLog } from "@/lib/utils/audit-logger";
 import { normalizeWhatsAppPhone } from "@/lib/whatsapp-customers";
+import { sendMetaEvent } from "@/lib/meta-capi";
+import { headers } from "next/headers";
 
 // Helper function to ensure customer exists in WhatsApp customer list
 async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string) {
   try {
     const normalizedPhone = normalizeWhatsAppPhone(phoneNumber);
-    
+
     // Check if customer already exists
     const existingCustomer = await whatsappPrisma.whatsAppCustomer.findUnique({
       where: { phoneNumber: normalizedPhone }
     });
-    
+
     if (existingCustomer) {
       console.log(`[WHATSAPP_CUSTOMER] Customer already exists: ${normalizedPhone}`);
       return existingCustomer;
     }
-    
+
     // Create new customer with "Customer" tag
     const newCustomer = await whatsappPrisma.whatsAppCustomer.create({
       data: {
@@ -44,7 +46,7 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
         importedAt: new Date()
       }
     });
-    
+
     console.log(`[WHATSAPP_CUSTOMER] Created new customer: ${normalizedPhone}`);
     return newCustomer;
   } catch (error) {
@@ -58,9 +60,9 @@ export async function POST(req: Request) {
   try {
     const { userId } = auth();
     const user = await currentUser();
-    const body = await req.json();    const { 
-      customerName, 
-      customerMobileNumber, 
+    const body = await req.json(); const {
+      customerName,
+      customerMobileNumber,
       associatePartnerId,
       locationId,
       numAdults,
@@ -68,11 +70,16 @@ export async function POST(req: Request) {
       numChildren5to11,
       numChildrenBelow5,
       status,
-  journeyDate,
-  nextFollowUpDate,
+      journeyDate,
+      nextFollowUpDate,
       remarks,
       roomAllocations,
-      transportDetails
+      remarks,
+      roomAllocations,
+      transportDetails,
+      fbclid,
+      fbp,
+      fbc
     } = body;
 
     if (!userId) {
@@ -108,9 +115,9 @@ export async function POST(req: Request) {
           ]
         }
       });
-      
+
       userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
-    }    const inquiry = await prismadb.inquiry.create({
+    } const inquiry = await prismadb.inquiry.create({
       data: {
         customerName,
         customerMobileNumber,
@@ -121,9 +128,9 @@ export async function POST(req: Request) {
         numChildren5to11,
         numChildrenBelow5,
         status,
-  journeyDate: dateToUtc(journeyDate),
-  // @ts-ignore prisma client may need regeneration
-  nextFollowUpDate: nextFollowUpDate ? dateToUtc(nextFollowUpDate) : null,
+        journeyDate: dateToUtc(journeyDate),
+        // @ts-ignore prisma client may need regeneration
+        nextFollowUpDate: nextFollowUpDate ? dateToUtc(nextFollowUpDate) : null,
         remarks: remarks || null,
         roomAllocations: roomAllocations ? {
           create: roomAllocations.map((allocation: any) => ({
@@ -146,91 +153,117 @@ export async function POST(req: Request) {
             requirementDate: dateToUtc(detail.requirementDate),
             notes: detail.notes || null
           }))
-        } : undefined
-      },
-      include: {
-        location: true,
-        associatePartner: true,
-        roomAllocations: {
-          include: {
-            roomType: true,
-            occupancyType: true,
-            mealPlan: true
-          }
-        },
-        transportDetails: {
-          include: {
-            vehicleType: true
-          }
-        }
-      }
+            notes: detail.notes || null
+        }))
+  } : undefined,
+    fb_click_id: fbclid || null,
+      fb_client_id: fbp || null,
+        fb_browser_id: fbc || null
+},
+include: {
+  location: true,
+    associatePartner: true,
+      roomAllocations: {
+    include: {
+      roomType: true,
+        occupancyType: true,
+          mealPlan: true
+    }
+  },
+  transportDetails: {
+    include: {
+      vehicleType: true
+    }
+  }
+}
     });
 
-    // Add customer to WhatsApp customer list
-    await ensureWhatsAppCustomer(customerName, customerMobileNumber);
+// Add customer to WhatsApp customer list
+await ensureWhatsAppCustomer(customerName, customerMobileNumber);
 
-    // Create a notification for the new inquiry
-    try {
-      const journeyDateFormatted = formatLocalDate(journeyDate, 'dd MMM yyyy');
+// Send "Lead" event to Meta CAPI
+try {
+  const headersList = headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+  const userAgent = headersList.get("user-agent") || "";
+  const requestUrl = req.url;
+
+  await sendMetaEvent("Lead", {
+    ip,
+    userAgent,
+    email: user?.emailAddresses[0]?.emailAddress, // Or customer email if available in body?
+    phone: customerMobileNumber,
+    fbc: fbc || null,
+    fbp: fbp || null,
+    externalId: inquiry.id,
+    url: requestUrl
+  });
+} catch (metaError) {
+  console.error("[META_CAPI] Error sending Lead event:", metaError);
+}
+
+// Create a notification for the new inquiry
+try {
+  const journeyDateFormatted = formatLocalDate(journeyDate, 'dd MMM yyyy');
   const locationName = (inquiry as any).location?.label || 'Unknown location';
   const associateName = (inquiry as any).associatePartner?.name || 'Direct inquiry';
-      
-      await prismadb.notification.create({
-        data: {
-          type: 'NEW_INQUIRY',
-          title: 'New Inquiry Received',
-          message: `${customerName} has inquired about ${locationName} for ${journeyDateFormatted}${associatePartnerId ? ` through ${associateName}` : ''}.`,
-          data: { 
-            inquiryId: inquiry.id,
-            customerName,
-            customerMobileNumber,
-            locationId,
-            locationName,
-            journeyDate,
-            nextFollowUpDate
-          }
-        }
-      });
-    } catch (notificationError) {
-      // Log the error but don't fail the inquiry creation
-      console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
-    }
 
-    // Create audit log for the new inquiry
-    await createAuditLog({
-      entityId: inquiry.id,
-      entityType: "Inquiry",
-      action: "CREATE",
-      after: inquiry,
-      userRole,
-      metadata: {
-  locationName: (inquiry as any).location?.label,
-  associatePartnerName: (inquiry as any).associatePartner?.name,
-  journeyDate: formatLocalDate(journeyDate, 'yyyy-MM-dd'),
-  nextFollowUpDate: nextFollowUpDate ? formatLocalDate(nextFollowUpDate, 'yyyy-MM-dd') : null
+  await prismadb.notification.create({
+    data: {
+      type: 'NEW_INQUIRY',
+      title: 'New Inquiry Received',
+      message: `${customerName} has inquired about ${locationName} for ${journeyDateFormatted}${associatePartnerId ? ` through ${associateName}` : ''}.`,
+      data: {
+        inquiryId: inquiry.id,
+        customerName,
+        customerMobileNumber,
+        locationId,
+        locationName,
+        journeyDate,
+        nextFollowUpDate
       }
-    });
-  
-    return NextResponse.json(inquiry);
-  } catch (error) {
-    console.log('[INQUIRIES_POST]', error);
-    return new NextResponse("Internal error", { status: 500 });
+    }
+  });
+} catch (notificationError) {
+  // Log the error but don't fail the inquiry creation
+  console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
+}
+
+// Create audit log for the new inquiry
+await createAuditLog({
+  entityId: inquiry.id,
+  entityType: "Inquiry",
+  action: "CREATE",
+  after: inquiry,
+  userRole,
+  metadata: {
+    locationName: (inquiry as any).location?.label,
+    associatePartnerName: (inquiry as any).associatePartner?.name,
+    journeyDate: formatLocalDate(journeyDate, 'yyyy-MM-dd'),
+    nextFollowUpDate: nextFollowUpDate ? formatLocalDate(nextFollowUpDate, 'yyyy-MM-dd') : null
   }
+});
+
+return NextResponse.json(inquiry);
+  } catch (error) {
+  console.log('[INQUIRIES_POST]', error);
+  return new NextResponse("Internal error", { status: 500 });
+}
 }
 
 export async function GET(req: Request) {
   try {
     const { userId } = auth();
-  const url = new URL(req.url);
+    const url = new URL(req.url);
 
     // Extract query parameters
     const associateId = url.searchParams.get('associateId') || undefined;
     const status = url.searchParams.get('status') || undefined;
-  const period = url.searchParams.get('period') || undefined;
-  const startDate = url.searchParams.get('startDate') || undefined;
-  const endDate = url.searchParams.get('endDate') || undefined;
-  const followUpsOnly = url.searchParams.get('followUpsOnly') === '1';
-  const noTourPackageQuery = url.searchParams.get('noTourPackageQuery') === '1';
+    const period = url.searchParams.get('period') || undefined;
+    const startDate = url.searchParams.get('startDate') || undefined;
+    const endDate = url.searchParams.get('endDate') || undefined;
+    const followUpsOnly = url.searchParams.get('followUpsOnly') === '1';
+    const noTourPackageQuery = url.searchParams.get('noTourPackageQuery') === '1';
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
     }
@@ -238,7 +271,7 @@ export async function GET(req: Request) {
     // Build date range filters based on period
     let dateFilter = {};
     const now = new Date();
-    
+
     if (period) {
       switch (period) {
         case 'TODAY':
@@ -279,11 +312,11 @@ export async function GET(req: Request) {
             try {
               const parsedStartDate = dateToUtc(startDate);
               const parsedEndDate = dateToUtc(endDate);
-              
+
               if (parsedStartDate && parsedEndDate) {
                 // Set end date to end of day to include the entire day
                 parsedEndDate.setHours(23, 59, 59, 999);
-                
+
                 dateFilter = {
                   createdAt: {
                     gte: parsedStartDate,
@@ -339,7 +372,7 @@ export async function GET(req: Request) {
           }
         }
       },
-  orderBy: followUpsOnly ? { nextFollowUpDate: 'asc' } : { updatedAt: 'desc' }
+      orderBy: followUpsOnly ? { nextFollowUpDate: 'asc' } : { updatedAt: 'desc' }
     });
 
     return NextResponse.json(inquiries);

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { sendMetaEvent } from "@/lib/meta-capi";
+import { headers } from "next/headers";
 
 const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"];
 
@@ -32,7 +34,54 @@ export async function PATCH(
         status: body.status,
       }
     });
-  
+
+    // Send "Purchase" event if status is CONFIRMED
+    if (body.status === "CONFIRMED") {
+      try {
+        const fullInquiry = await prismadb.inquiry.findUnique({
+          where: { id: params.inquiryId },
+          include: {
+            tourPackageQueries: {
+              orderBy: { updatedAt: 'desc' },
+              take: 1
+            }
+          }
+        });
+
+        if (fullInquiry) {
+          const headersList = headers();
+          const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
+          const userAgent = headersList.get("user-agent") || "";
+
+          let purchaseValue = 0;
+          if (fullInquiry.tourPackageQueries.length > 0) {
+            const latestQuery = fullInquiry.tourPackageQueries[0];
+            // Safe parse the price string which might contain currency symbols or be text
+            const rawPrice = latestQuery.totalPrice || "0";
+            // Remove non-numeric chars except dot
+            const cleanedPrice = rawPrice.replace(/[^0-9.]/g, '');
+            purchaseValue = parseFloat(cleanedPrice) || 0;
+          }
+
+          await sendMetaEvent("Purchase", {
+            ip,
+            userAgent,
+            email: undefined, // Could fetch if we needed to, but phone is main key usually
+            phone: fullInquiry.customerMobileNumber,
+            fbc: fullInquiry.fb_browser_id,
+            fbp: fullInquiry.fb_client_id,
+            externalId: fullInquiry.id,
+            url: req.url
+          }, {
+            value: purchaseValue,
+            currency: 'INR'
+          });
+        }
+      } catch (metaError) {
+        console.error("[META_CAPI] Error sending Purchase event:", metaError);
+      }
+    }
+
     return NextResponse.json(inquiry);
   } catch (error) {
     console.log('[INQUIRY_STATUS_PATCH]', error);

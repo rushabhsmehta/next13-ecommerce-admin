@@ -47,7 +47,7 @@ type CompanyProfile = {
 const COMPANY_PROFILES: Record<string, CompanyProfile> = {
   Empty: {},
   AH: {
-    logo: "https://next13-ecommerce-admin-zeta.vercel.app/aagamholidays.png",
+    logo: "https://admin.aagamholidays.com/aagamholidays.png",
     name: "Aagam Holidays",
     address:
       "B - 1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India",

@@ -516,28 +516,40 @@ function ItineraryTab({
                                 </div>
 
                                 {/* Destination Images */}
-                                <div className="bg-slate-50 p-3 rounded-md mb-4">
+                                <div className="bg-slate-50 p-3 rounded-md mb-4" key={`itinerary-images-${index}`}>
                                   <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
                                     <ImageIcon className="h-4 w-4 text-primary" />
                                     Destination Images
                                   </h3>
                                   <ImageUpload
-                                    value={itinerary.itineraryImages.map(img => img.url)}
+                                    key={`itinerary-upload-${index}`}
+                                    value={itinerary.itineraryImages?.map(img => img.url) || []}
                                     disabled={loading}
                                     onChange={(url) => {
-                                      const newItineraries = [...value];
-                                      newItineraries[index] = {
-                                        ...itinerary,
-                                        itineraryImages: [...itinerary.itineraryImages, { url }]
+                                      // Use functional update pattern to avoid stale closure issues
+                                      const currentItineraries = form.getValues('itineraries') || [];
+                                      const currentItinerary = currentItineraries[index];
+                                      if (!currentItinerary) return;
+
+                                      const updatedItinerary = {
+                                        ...currentItinerary,
+                                        itineraryImages: [...(currentItinerary.itineraryImages || []), { url }]
                                       };
+                                      const newItineraries = [...currentItineraries];
+                                      newItineraries[index] = updatedItinerary;
                                       onChange(newItineraries);
                                     }}
                                     onRemove={(url) => {
-                                      const newItineraries = [...value];
-                                      newItineraries[index] = {
-                                        ...itinerary,
-                                        itineraryImages: itinerary.itineraryImages.filter(img => img.url !== url)
+                                      const currentItineraries = form.getValues('itineraries') || [];
+                                      const currentItinerary = currentItineraries[index];
+                                      if (!currentItinerary) return;
+
+                                      const updatedItinerary = {
+                                        ...currentItinerary,
+                                        itineraryImages: (currentItinerary.itineraryImages || []).filter((img: { url: string }) => img.url !== url)
                                       };
+                                      const newItineraries = [...currentItineraries];
+                                      newItineraries[index] = updatedItinerary;
                                       onChange(newItineraries);
                                     }}
                                   />
@@ -636,22 +648,50 @@ function ItineraryTab({
                                             {/* Activity Images */}
                                             <FormItem>
                                               <FormLabel>Activity Images</FormLabel>
-                                              <div className="bg-slate-50 p-3 rounded-md">
+                                              <div className="bg-slate-50 p-3 rounded-md" key={`activity-images-${index}-${activityIndex}`}>
                                                 <ImageUpload
+                                                  key={`activity-upload-${index}-${activityIndex}`}
                                                   value={activity.activityImages?.map(img => img.url) || []}
                                                   disabled={loading}
                                                   onChange={(url) => {
-                                                    const newItineraries = [...value];
-                                                    if (!newItineraries[index].activities[activityIndex].activityImages) {
-                                                      newItineraries[index].activities[activityIndex].activityImages = [];
-                                                    }
-                                                    newItineraries[index].activities[activityIndex].activityImages.push({ url });
+                                                    // Get fresh values from form to avoid stale closure
+                                                    const currentItineraries = form.getValues('itineraries') || [];
+                                                    const currentItinerary = currentItineraries[index];
+                                                    if (!currentItinerary || !currentItinerary.activities[activityIndex]) return;
+
+                                                    const currentActivity = currentItinerary.activities[activityIndex];
+                                                    const updatedActivity = {
+                                                      ...currentActivity,
+                                                      activityImages: [...(currentActivity.activityImages || []), { url }]
+                                                    };
+
+                                                    const newItineraries = [...currentItineraries];
+                                                    newItineraries[index] = {
+                                                      ...currentItinerary,
+                                                      activities: currentItinerary.activities.map((act: any, idx: number) =>
+                                                        idx === activityIndex ? updatedActivity : act
+                                                      )
+                                                    };
                                                     onChange(newItineraries);
                                                   }}
                                                   onRemove={(url) => {
-                                                    const newItineraries = [...value];
-                                                    newItineraries[index].activities[activityIndex].activityImages =
-                                                      newItineraries[index].activities[activityIndex].activityImages?.filter(img => img.url !== url) || [];
+                                                    const currentItineraries = form.getValues('itineraries') || [];
+                                                    const currentItinerary = currentItineraries[index];
+                                                    if (!currentItinerary || !currentItinerary.activities[activityIndex]) return;
+
+                                                    const currentActivity = currentItinerary.activities[activityIndex];
+                                                    const updatedActivity = {
+                                                      ...currentActivity,
+                                                      activityImages: (currentActivity.activityImages || []).filter((img: { url: string }) => img.url !== url)
+                                                    };
+
+                                                    const newItineraries = [...currentItineraries];
+                                                    newItineraries[index] = {
+                                                      ...currentItinerary,
+                                                      activities: currentItinerary.activities.map((act: any, idx: number) =>
+                                                        idx === activityIndex ? updatedActivity : act
+                                                      )
+                                                    };
                                                     onChange(newItineraries);
                                                   }}
                                                 />

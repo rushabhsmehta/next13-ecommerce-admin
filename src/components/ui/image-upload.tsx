@@ -1,7 +1,7 @@
 "use client";
 
 import { CldUploadWidget } from 'next-cloudinary';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId, useCallback, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -12,7 +12,7 @@ interface ImageUploadProps {
   onChange: (value: string) => void;
   onRemove: (value: string) => void;
   value: string[];
-  maxFiles?: number; // Add maxFiles property as optional
+  maxFiles?: number;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -22,22 +22,29 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   value
 }) => {
   const [isMounted, setIsMounted] = useState(false);
+  // Generate a unique ID for this widget instance to prevent conflicts
+  const uniqueId = useId();
+  // Use a ref to store the widget ID to ensure it remains stable across re-renders
+  const widgetIdRef = useRef(`upload-widget-${uniqueId}-${Math.random().toString(36).substring(7)}`);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const onUpload = (result: any) => {
-    onChange(result.info.secure_url);
-  };
+  // Memoize the onUpload callback to prevent unnecessary re-renders
+  const onUpload = useCallback((result: any) => {
+    if (result?.info?.secure_url) {
+      onChange(result.info.secure_url);
+    }
+  }, [onChange]);
 
   if (!isMounted) {
     return null;
   }
 
-  return ( 
+  return (
     <div>
-      <div className="mb-4 flex items-center gap-4">
+      <div className="mb-4 flex items-center gap-4 flex-wrap">
         {value.map((url) => (
           <div key={url} className="relative w-[200px] h-[200px] rounded-md overflow-hidden">
             <div className="z-10 absolute top-2 right-2">
@@ -54,17 +61,28 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           </div>
         ))}
       </div>
-      <CldUploadWidget onUpload={onUpload} uploadPreset="ckwg6oej">
+      <CldUploadWidget
+        onUpload={onUpload}
+        uploadPreset="ckwg6oej"
+        options={{
+          multiple: false,
+          maxFiles: 1,
+          clientAllowedFormats: ['image'],
+          sources: ['local', 'url', 'camera'],
+        }}
+      >
         {({ open }) => {
-          const onClick = () => {
+          const onClick = (e: React.MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
             open();
           };
 
           return (
-            <Button 
-              type="button" 
-              disabled={disabled} 
-              variant="secondary" 
+            <Button
+              type="button"
+              disabled={disabled}
+              variant="secondary"
               onClick={onClick}
             >
               <ImagePlus className="h-4 w-4 mr-2" />
@@ -76,6 +94,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     </div>
   );
 }
- 
+
 export default ImageUpload;
 

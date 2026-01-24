@@ -30,13 +30,9 @@ const tourPackagesPage = async ({
         }
       }
     },
-    orderBy: [
-      { location: { label: 'asc' } },
-      { websiteSortOrder: 'asc' },
-      { updatedAt: 'desc' },
-      { tourCategory: 'asc' },
-      { numDaysNight: 'asc' }
-    ]
+    orderBy: {
+      updatedAt: 'desc'
+    }
   });
 
   // Check if current user is an associate (for read-only mode)
@@ -94,17 +90,17 @@ const tourPackagesPage = async ({
   return (
     <>
       {/*       <Navbar /> */}
-      
+
       <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackagesClient 
-            data={formattedtourPackages} 
+          <TourPackagesClient
+            data={formattedtourPackages}
             groupedData={groupedTourPackages}
-            readOnly={isAssociate} 
+            readOnly={isAssociate}
           />
         </div>
       </div>
-      
+
     </>
   );
 };

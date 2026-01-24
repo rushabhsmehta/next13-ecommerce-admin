@@ -66,8 +66,8 @@ const tourPackageQueryPage = async ({
     isArchived: item.isArchived,
     customerNumber: item.customerNumber ?? '',
     location: item.location.label,
-    //hotel: item.hotel.name,
-    tourStartsFrom: item.tourStartsFrom ? format(add(item.tourStartsFrom, { hours: 5, minutes: 30 }), 'dd-MM-yyyy') : '',    //createdAt: format(item.createdAt, 'MMMM d, yyyy'),
+    tourStartsFrom: item.tourStartsFrom ? format(add(item.tourStartsFrom, { hours: 5, minutes: 30 }), 'dd-MM-yyyy') : '',
+    updatedAt: item.updatedAt ? format(add(item.updatedAt, { hours: 5, minutes: 30 }), 'dd-MM-yyyy HH:mm') : '',
   }));
 
   return (

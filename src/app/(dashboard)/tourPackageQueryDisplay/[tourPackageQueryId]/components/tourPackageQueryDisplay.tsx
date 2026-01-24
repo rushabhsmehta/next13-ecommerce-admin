@@ -116,7 +116,7 @@ const parsePolicyField = (field: any): string[] => {
 
 const extractText = (obj: any): string => {
   if (!obj) return '';
-  for (const k of ['text','value','description','label','name']) {
+  for (const k of ['text', 'value', 'description', 'label', 'name']) {
     if (obj[k]) return String(obj[k]);
   }
   return String(obj);
@@ -227,7 +227,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             const log = data.auditLogs?.[0];
             if (log) setPreparedBy({ name: log.userName, email: log.userEmail });
           }
-        } catch {}
+        } catch { }
       })();
     }
   }, [initialData?.id]);
@@ -236,8 +236,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   if (!initialData) return <div>No data available</div>;
 
   return (
-  <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
-  <Card className="break-inside-avoid font-bold avoid-break-inside">
+    <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
+      <Card className="break-inside-avoid font-bold avoid-break-inside">
         <CardHeader className="bg-gray-50 rounded-t-lg flex justify-between items-center p-6">
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-500 to-orange-500 text-transparent bg-clip-text print-gradient-fallback">
             {initialData.tourPackageQueryName}
@@ -302,7 +302,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
       {/* Tour Package Details (Condensed) */}
-  <Card className="break-inside-avoid border border-orange-200 shadow-md rounded-xl avoid-break-inside">
+      <Card className="break-inside-avoid border border-orange-200 shadow-md rounded-xl avoid-break-inside">
         <CardHeader className="px-5 py-4 bg-gray-50 border-b border-orange-100">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback">Tour Information</h2>
         </CardHeader>
@@ -313,7 +313,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div><span className="font-semibold text-gray-600">Duration:</span> <span className="font-medium text-gray-900">{initialData.numDaysNight}</span></div>
             )}
             {(initialData.tourStartsFrom || initialData.tourEndsOn) && (
-              <div className="col-span-full lg:col-span-1"><span className="font-semibold text-gray-600">Period:</span> <span className="font-medium text-gray-900">{initialData.tourStartsFrom ? formatLocalDate(initialData.tourStartsFrom,'dd-MM-yyyy') : ''}{initialData.tourStartsFrom && initialData.tourEndsOn && ' → '}{initialData.tourEndsOn ? formatLocalDate(initialData.tourEndsOn,'dd-MM-yyyy') : ''}</span></div>
+              <div className="col-span-full lg:col-span-1"><span className="font-semibold text-gray-600">Period:</span> <span className="font-medium text-gray-900">{initialData.tourStartsFrom ? formatLocalDate(initialData.tourStartsFrom, 'dd-MM-yyyy') : ''}{initialData.tourStartsFrom && initialData.tourEndsOn && ' → '}{initialData.tourEndsOn ? formatLocalDate(initialData.tourEndsOn, 'dd-MM-yyyy') : ''}</span></div>
             )}
             {initialData.transport && (
               <div><span className="font-semibold text-gray-600">Transport:</span> <span className="font-medium text-gray-900">{initialData.transport}</span></div>
@@ -427,7 +427,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {/* Enhanced Total Price Display */}
       {(() => {
         const isPriceVisible = initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ';
-        
+
         return (
           <>
             {isPriceVisible && (
@@ -453,57 +453,72 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         <span className="font-semibold">Final Tour Package Cost</span>
                       </div>
                       <div className="block mt-2">
-                         <div className="text-sm text-orange-600 bg-orange-100 px-4 py-2 rounded-lg inline-block border border-orange-200">
-                           <span className="font-semibold">+ GST (As Applicable) </span>
-                         </div>
+                        <div className="text-sm text-orange-600 bg-orange-100 px-4 py-2 rounded-lg inline-block border border-orange-200">
+                          <span className="font-semibold">+ GST (As Applicable) </span>
+                        </div>
                       </div>
                     </div>
                     {initialData.remarks && initialData.remarks !== '' && (
-                        <div className="mt-8 pt-6 border-t border-gray-100 text-left">
-                          <h4 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                             <InfoIcon className="w-5 h-5 text-orange-500" />
-                             Remarks
-                          </h4>
-                          <div className="text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-100" dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-                        </div>
+                      <div className="mt-8 pt-6 border-t border-gray-100 text-left">
+                        <h4 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <InfoIcon className="w-5 h-5 text-orange-500" />
+                          Remarks
+                        </h4>
+                        <div className="text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-100" dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+                      </div>
+                    )}
+                    {initialData.disclaimer && initialData.disclaimer !== '' && (
+                      <div className="mt-4 pt-4 border-t border-gray-100 text-left">
+                        <h4 className="text-lg font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <InfoIcon className="w-5 h-5 text-orange-500" />
+                          Disclaimer
+                        </h4>
+                        <div className="text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-100" dangerouslySetInnerHTML={{ __html: initialData.disclaimer || '' }}></div>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
             )}
 
-            {/* Standalone remarks if price is hidden */}
-            {!isPriceVisible && initialData.remarks && initialData.remarks !== '' && (
-              <Card className="break-inside-avoid text-2xl mt-6">
-                 <CardHeader className="pb-2">
-                    <CardTitle className="text-xl font-bold text-gray-800">Remarks</CardTitle>
-                 </CardHeader>
-                <CardContent>
-                  <div>
-                    <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-                  </div>
-                </CardContent>
-              </Card>
+            {!isPriceVisible && (
+              <div className="flex flex-col space-y-4">
+                {initialData.remarks && initialData.remarks !== '' && (
+                  <Card className="break-inside-avoid text-2xl mt-6">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xl font-bold text-gray-800">Remarks</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div>
+                        <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {initialData.disclaimer && initialData.disclaimer !== '' && (
+                  <Card className="break-inside-avoid text-2xl mt-4">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xl font-bold text-gray-800">Disclaimer</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div>
+                        <div dangerouslySetInnerHTML={{ __html: initialData.disclaimer || '' }}></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
           </>
         );
       })()}
 
 
-      {/*  {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
-          <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
-            <CardContent>
-              <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-                <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.disclaimer || ' ' }} />
-              </div>
-            </CardContent>
-          </Card>
-        )} */}
 
 
       {/* Hotel, Room Allocation and Transport Details Day-wise */}
       {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.length > 0 && (
-  <Card className="mb-8 break-inside-avoid bg-white shadow-xl rounded-xl overflow-hidden border-2 border-gray-100 avoid-break-inside page-break-before">
+        <Card className="mb-8 break-inside-avoid bg-white shadow-xl rounded-xl overflow-hidden border-2 border-gray-100 avoid-break-inside page-break-before">
           {/* Enhanced Header */}
           <div className="bg-gray-50 p-8 border-b">
             <CardTitle className="text-4xl font-bold text-center flex items-center justify-center gap-4 bg-gradient-to-r from-red-500 to-orange-500 text-transparent bg-clip-text print-gradient-fallback">
@@ -554,102 +569,102 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       <tr className="hover:bg-gray-50">
                         <td className="px-6 pb-6 pt-0" colSpan={2}>
                           <div className="bg-white ring-1 ring-gray-200 rounded-lg p-4 shadow-sm text-sm">
-                              {itinerary.hotelId && hotels.find(h => h.id === itinerary.hotelId) && (
-                                <div className="md:flex md:items-start md:gap-6 mb-2">
-                                  {/* Left: hotel image only */}
-                                  <div className="md:w-48 w-36 flex-shrink-0">
-                                    <div className="w-36 h-24 md:w-48 md:h-32 relative rounded overflow-hidden bg-gray-100">
-                                      <Image
-                                        src={hotels.find(h => h.id === itinerary.hotelId)?.images?.[0]?.url || '/placeholder-hotel.png'}
-                                        alt={hotels.find(h => h.id === itinerary.hotelId)?.name || 'Hotel'}
-                                        fill
-                                        className="object-cover"
-                                      />
+                            {itinerary.hotelId && hotels.find(h => h.id === itinerary.hotelId) && (
+                              <div className="md:flex md:items-start md:gap-6 mb-2">
+                                {/* Left: hotel image only */}
+                                <div className="md:w-48 w-36 flex-shrink-0">
+                                  <div className="w-36 h-24 md:w-48 md:h-32 relative rounded overflow-hidden bg-gray-100">
+                                    <Image
+                                      src={hotels.find(h => h.id === itinerary.hotelId)?.images?.[0]?.url || '/placeholder-hotel.png'}
+                                      alt={hotels.find(h => h.id === itinerary.hotelId)?.name || 'Hotel'}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Right: hotel name above allocations table */}
+                                <div className="flex-1">
+                                  <div className="mb-2">
+                                    <div>
+                                      <Link href={hotels.find(h => h.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-lg md:text-xl font-semibold text-gray-900 underline">
+                                        {hotels.find(h => h.id === itinerary.hotelId)?.name}
+                                      </Link>
+                                      <div className="text-sm text-gray-600">{hotels.find(h => h.id === itinerary.hotelId)?.destination?.name || ''}</div>
                                     </div>
                                   </div>
-
-                                  {/* Right: hotel name above allocations table */}
-                                  <div className="flex-1">
-                                    <div className="mb-2">
-                                      <div>
-                                        <Link href={hotels.find(h => h.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-lg md:text-xl font-semibold text-gray-900 underline">
-                                          {hotels.find(h => h.id === itinerary.hotelId)?.name}
-                                        </Link>
-                                        <div className="text-sm text-gray-600">{hotels.find(h => h.id === itinerary.hotelId)?.destination?.name || ''}</div>
-                                      </div>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                      <table className="table-auto w-full text-left">
-                                        <thead>
-                                          <tr>
-                                            <th className="px-2 py-1 text-gray-900 font-semibold">Room Type</th>
-                                            <th className="px-2 py-1 text-gray-900 font-semibold">Occupancy</th>
-                                            <th className="px-2 py-1 text-gray-900 font-semibold text-center">Qty</th>
-                                            <th className="px-2 py-1 text-gray-900 font-semibold">Voucher No.</th>
+                                  <div className="overflow-x-auto">
+                                    <table className="table-auto w-full text-left">
+                                      <thead>
+                                        <tr>
+                                          <th className="px-2 py-1 text-gray-900 font-semibold">Room Type</th>
+                                          <th className="px-2 py-1 text-gray-900 font-semibold">Occupancy</th>
+                                          <th className="px-2 py-1 text-gray-900 font-semibold text-center">Qty</th>
+                                          <th className="px-2 py-1 text-gray-900 font-semibold">Voucher No.</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {itinerary.roomAllocations?.map((room: any, idx: number) => (
+                                          <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
+                                            <td className="px-2 py-1 whitespace-nowrap">
+                                              <div>
+                                                {(() => {
+                                                  const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+                                                  const isCustom = customText.length > 0;
+                                                  const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard');
+                                                  return (<span>{label}</span>);
+                                                })()}
+                                              </div>
+                                            </td>
+                                            <td className="px-2 py-1 whitespace-nowrap">
+                                              <span>{room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</span>
+                                            </td>
+                                            <td className="px-2 py-1 text-center whitespace-nowrap">
+                                              <span className="font-medium">{room.quantity || 1}</span>
+                                            </td>
+                                            <td className="px-2 py-1 whitespace-nowrap">
+                                              <span className="text-sm text-gray-600">{room.voucherNumber || '-'}</span>
+                                            </td>
                                           </tr>
-                                        </thead>
-                                        <tbody>
-                                          {itinerary.roomAllocations?.map((room: any, idx: number) => (
-                                            <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                                              <td className="px-2 py-1 whitespace-nowrap">
-                                                <div>
-                                                  {(() => {
-                                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
-                                                    const isCustom = customText.length > 0;
-                                                    const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard');
-                                                    return (<span>{label}</span>);
-                                                  })()}
-                                                </div>
-                                              </td>
-                                              <td className="px-2 py-1 whitespace-nowrap">
-                                                <span>{room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</span>
-                                              </td>
-                                              <td className="px-2 py-1 text-center whitespace-nowrap">
-                                                <span className="font-medium">{room.quantity || 1}</span>
-                                              </td>
-                                              <td className="px-2 py-1 whitespace-nowrap">
-                                                <span className="text-sm text-gray-600">{room.voucherNumber || '-'}</span>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-
-                                    {/* Unique Meal Plan display (below table) */}
-                                    {(() => {
-                                      const plans = Array.from(new Set((itinerary.roomAllocations || []).map((r: any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
-                                      if (plans.length === 0) return null;
-                                      return (
-                                        <div className="mt-3 text-sm text-gray-700 italic">
-                                          <span className="font-semibold">Meal Plan:</span> {plans.join(' / ')}
-                                        </div>
-                                      );
-                                    })()}
+                                        ))}
+                                      </tbody>
+                                    </table>
                                   </div>
-                                </div>
-                              )}
 
-                              {/* Transport details separate block (full width below) */}
-                              {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
-                                <div className="mt-3 border-t pt-3">
-                                  <h4 className="text-sm font-semibold text-orange-700 mb-2">Transport Details</h4>
-                                  <div className="space-y-2">
-                                    {itinerary.transportDetails.map((t: any, i: number) => (
-                                      <div key={i} className="flex items-center justify-between bg-orange-50 p-2 rounded gap-3">
-                                        <div className="flex items-center gap-2">
-                                          <CarIcon className="w-5 h-5 text-orange-700" />
-                                          <div>
-                                            <div className="font-semibold text-orange-800">{t.vehicleType?.name || 'Vehicle'}</div>
-                                            {t.capacity && <div className="text-xs text-gray-600">Capacity: {t.capacity}</div>}
-                                          </div>
-                                        </div>
-                                        <div className="text-sm font-medium text-orange-800">Qty: {t.quantity || 1}</div>
+                                  {/* Unique Meal Plan display (below table) */}
+                                  {(() => {
+                                    const plans = Array.from(new Set((itinerary.roomAllocations || []).map((r: any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
+                                    if (plans.length === 0) return null;
+                                    return (
+                                      <div className="mt-3 text-sm text-gray-700 italic">
+                                        <span className="font-semibold">Meal Plan:</span> {plans.join(' / ')}
                                       </div>
-                                    ))}
-                                  </div>
+                                    );
+                                  })()}
                                 </div>
-                              )}
+                              </div>
+                            )}
+
+                            {/* Transport details separate block (full width below) */}
+                            {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
+                              <div className="mt-3 border-t pt-3">
+                                <h4 className="text-sm font-semibold text-orange-700 mb-2">Transport Details</h4>
+                                <div className="space-y-2">
+                                  {itinerary.transportDetails.map((t: any, i: number) => (
+                                    <div key={i} className="flex items-center justify-between bg-orange-50 p-2 rounded gap-3">
+                                      <div className="flex items-center gap-2">
+                                        <CarIcon className="w-5 h-5 text-orange-700" />
+                                        <div>
+                                          <div className="font-semibold text-orange-800">{t.vehicleType?.name || 'Vehicle'}</div>
+                                          {t.capacity && <div className="text-xs text-gray-600">Capacity: {t.capacity}</div>}
+                                        </div>
+                                      </div>
+                                      <div className="text-sm font-medium text-orange-800">Qty: {t.quantity || 1}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -785,10 +800,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </div>
         ))}
-      </Card>  
-        
+      </Card>
 
-    
+
+
       {/* Footer Section with Company Details */}
 
       {/* Policies & Terms Section (moved to bottom with fallbacks) */}
@@ -796,7 +811,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         const loc = locations.find(l => l.id === initialData.locationId) as any;
         const withFallback = (primary: any, fallback: any) => {
           const primaryParsed = parsePolicyField(primary);
-            if (primaryParsed.length > 0) return primaryParsed;
+          if (primaryParsed.length > 0) return primaryParsed;
           return parsePolicyField(fallback);
         };
         const sections = [
@@ -845,7 +860,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Company Details moved to very end */}
       {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
-  <Card className="mt-8 border border-orange-200 break-inside-avoid shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
+        <Card className="mt-8 border border-orange-200 break-inside-avoid shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
           <CardDescription className="flex flex-col md:flex-row justify-between items-center px-6 py-6 gap-6 bg-gray-50">
             <div className="inline-block relative w-40 h-40 md:w-48 md:h-48">
               <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
@@ -862,7 +877,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       )}
 
       {(selectedOption === 'SupplierA' || selectedOption === 'SupplierB') && (
-  <Card className="mt-8 border border-orange-200 break-inside-avoid shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
+        <Card className="mt-8 border border-orange-200 break-inside-avoid shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
           <CardDescription className="flex flex-col md:flex-row justify-between items-center px-6 py-6 gap-6 bg-gray-50">
             <div className="inline-block relative w-40 h-40 md:w-48 md:h-48">
               <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />

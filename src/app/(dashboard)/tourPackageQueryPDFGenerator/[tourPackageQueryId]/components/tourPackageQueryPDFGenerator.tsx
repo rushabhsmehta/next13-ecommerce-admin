@@ -544,6 +544,16 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             </div>
           </div>
         ` : ''}
+        ${initialData.disclaimer && initialData.disclaimer.trim() !== "" ? `
+          <div style="text-align: left; margin-top: 12px; padding-top: 12px; border-top: 1px solid ${brandColors.border};">
+            <h4 style="font-size: 14px; font-weight: 600; color: ${brandColors.slateText}; margin: 0 0 8px 0; display:flex; align-items:center;">
+              <span style="display:inline-block; margin-right:6px; color:${brandColors.primary};">ℹ</span> Disclaimer
+            </h4>
+            <div style="font-size: 13px; line-height: 1.5; color: ${brandColors.text}; background: white; padding: 12px; border-radius: 4px; border: 1px solid ${brandColors.border};">
+               ${initialData.disclaimer}
+            </div>
+          </div>
+        ` : ''}
       </div>
     `
         : "";
@@ -607,19 +617,33 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
     // 6. Clean Remarks Section (Render only if NOT visible in price section)
     const remarksSection =
-      (!isPriceVisible && initialData.remarks && initialData.remarks.trim() !== "")
+      (!isPriceVisible && ((initialData.remarks && initialData.remarks.trim() !== "") || (initialData.disclaimer && initialData.disclaimer.trim() !== "")))
         ? `
       <div style="${cardStyle};">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle};">
-            Important Notes & Remarks
-          </h3>
-        </div>
-        <div style="${contentStyle};">
-          <div style="font-size: 14px; line-height: 1.5; color: ${brandColors.text}; background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
-            ${initialData.remarks}
+        ${initialData.remarks && initialData.remarks.trim() !== "" ? `
+          <div style="${headerStyleAlt};">
+            <h3 style="${sectionTitleStyle};">
+              Important Notes & Remarks
+            </h3>
           </div>
-        </div>
+          <div style="${contentStyle};">
+            <div style="font-size: 14px; line-height: 1.5; color: ${brandColors.text}; background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+              ${initialData.remarks}
+            </div>
+          </div>
+        ` : ''}
+        ${initialData.disclaimer && initialData.disclaimer.trim() !== "" ? `
+          <div style="${headerStyleAlt}; border-top: 1px solid ${brandColors.border};">
+            <h3 style="${sectionTitleStyle};">
+              Disclaimer
+            </h3>
+          </div>
+          <div style="${contentStyle};">
+            <div style="font-size: 14px; line-height: 1.5; color: ${brandColors.text}; background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+              ${initialData.disclaimer}
+            </div>
+          </div>
+        ` : ''}
       </div>
     `
         : "";

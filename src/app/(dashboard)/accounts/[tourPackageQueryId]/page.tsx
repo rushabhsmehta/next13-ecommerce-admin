@@ -45,9 +45,26 @@ const tourPackageQueryPage = async ({
     <>
       <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
+  const taxSlabs = await prismadb.taxSlab.findMany({
+    where: { isActive: true },
+    orderBy: { percentage: 'asc' }
+  });
+
+  const organization = await prismadb.organization.findFirst();
+
+  return (
+    <>
+      <div className="flex-col">
+        <div className="flex-1 space-y-4 p-8 pt-6">
           <TourPackageQueryAccountingForm
             initialData={tourPackageQuery}
+            taxSlabs={taxSlabs}
+            organization={organization}
           />
+        </div>
+      </div>
+    </>
+  );
         </div>
       </div>
     </>

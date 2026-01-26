@@ -29,7 +29,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
   const router = useRouter();
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' });
-  
+
   const toggleRow = (id: string) => {
     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -53,13 +53,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
       router.push(`/transfers/${transaction.id}`);
     }
   };
-  
+
   // Calculate running balance and totals
   const transactionsWithBalance = transactions.map((transaction, index) => {
     let runningBalance = openingBalance;
     for (let i = 0; i <= index; i++) {
-      transactions[i].isInflow 
-        ? runningBalance += transactions[i].amount 
+      transactions[i].isInflow
+        ? runningBalance += transactions[i].amount
         : runningBalance -= transactions[i].amount;
     }
     return { ...transaction, balance: runningBalance };
@@ -79,6 +79,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
               <TableHead>Date</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Reference</TableHead>
               <TableHead className="text-right">Inflow</TableHead>
               <TableHead className="text-right">Outflow</TableHead>
               <TableHead className="text-right">Balance</TableHead>
@@ -89,11 +90,11 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
             {/* Opening Balance Row */}
             <TableRow>
               <TableCell></TableCell>
-              <TableCell colSpan={5} className="font-medium">Opening Balance</TableCell>
+              <TableCell colSpan={6} className="font-medium">Opening Balance</TableCell>
               <TableCell className="text-right font-medium">{formatter.format(openingBalance)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
-            
+
             {/* Transaction Rows with Expandable Details */}
             {transactionsWithBalance.map((transaction) => (
               <React.Fragment key={transaction.id}>
@@ -103,8 +104,8 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
                       variant="ghost" size="icon" className="h-8 w-8 p-0"
                       onClick={() => toggleRow(transaction.id)}
                     >
-                      {expandedRows[transaction.id] 
-                        ? <ChevronDown className="h-4 w-4" /> 
+                      {expandedRows[transaction.id]
+                        ? <ChevronDown className="h-4 w-4" />
                         : <ChevronRight className="h-4 w-4" />}
                     </Button>
                   </TableCell>
@@ -116,6 +117,9 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
                   </TableCell>
                   <TableCell onClick={() => toggleRow(transaction.id)}>
                     {transaction.description}
+                  </TableCell>
+                  <TableCell onClick={() => toggleRow(transaction.id)}>
+                    {transaction.reference || '-'}
                   </TableCell>
                   <TableCell className="text-right" onClick={() => toggleRow(transaction.id)}>
                     {transaction.isInflow ? formatter.format(transaction.amount) : '-'}
@@ -135,16 +139,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
                     </Button>
                   </TableCell>
                 </TableRow>
-                
+
                 {/* Expandable Details */}
                 {expandedRows[transaction.id] && (
                   <TableRow className="bg-muted/50">
                     <TableCell></TableCell>
                     <TableCell colSpan={7} className="py-3">
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        {transaction.reference && (
-                          <div><span className="font-semibold">Reference:</span> {transaction.reference}</div>
-                        )}
                         {transaction.note && (
                           <div><span className="font-semibold">Note:</span> {transaction.note}</div>
                         )}
@@ -152,9 +153,9 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
                           <div><span className="font-semibold">Transaction ID:</span> {transaction.transactionId}</div>
                         )}
                         <div className="col-span-2 mt-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleEditTransaction(transaction)}
                           >
                             <Edit className="mr-2 h-4 w-4" />
@@ -167,11 +168,11 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
                 )}
               </React.Fragment>
             ))}
-            
+
             {/* Totals Row */}
             <TableRow className="bg-slate-100 dark:bg-slate-800">
               <TableCell></TableCell>
-              <TableCell colSpan={3} className="font-medium">Totals</TableCell>
+              <TableCell colSpan={4} className="font-medium">Totals</TableCell>
               <TableCell className="text-right font-medium">
                 {formatter.format(totalInflow)}
               </TableCell>

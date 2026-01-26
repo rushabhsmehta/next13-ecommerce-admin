@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CldUploadWidget } from 'next-cloudinary';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +17,6 @@ import toast from 'react-hot-toast';
 import { BankAccount, CashAccount, Customer, ReceiptDetail, Supplier } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 // Extended the ReceiptDetail to include images relationship
 interface ReceiptWithImages extends ReceiptDetail {
@@ -160,7 +160,8 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
     const duplicateData = {
       ...receiptData,
       note: `Copy of ${receipt.note || ''}`.trim(),
-      receiptDate: new Date(), // Set to today for the duplicate
+      receiptDate: new Date(),
+      tourPackageQueryId: tourPackageId, // Ensure it is linked to the current tour package // Set to today for the duplicate
       images: [] // Don't copy images
     };
 
@@ -168,75 +169,9 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
     setIsReceiptModalOpen(true);
   };
 
-  // Function to generate single voucher PDF
+  // Function to generate single voucher PDF - now redirects to standard voucher page
   const handleGenerateVoucher = (receipt: ReceiptWithImages) => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a5' }); // A5 is good for vouchers
-    const width = doc.internal.pageSize.getWidth();
-
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(16, 185, 129); // Emerald color
-    doc.text("RECEIPT VOUCHER", width / 2, 60, { align: 'center' });
-
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Voucher No: ${receipt.id.substring(0, 8).toUpperCase()}`, 40, 90);
-    doc.text(`Date: ${format(new Date(receipt.receiptDate), "dd MMM yyyy")}`, width - 40, 90, { align: 'right' });
-
-    // Content Box
-    doc.setDrawColor(200);
-    doc.setFillColor('#FAFAFA');
-    doc.rect(30, 110, width - 60, 240, 'FD');
-
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-
-    let y = 140;
-    const lineHeight = 30;
-    const leftCol = 50;
-    const rightCol = 180;
-
-    doc.text("Received From:", leftCol, y);
-    const partyName = receipt.receiptType === 'supplier_refund'
-      ? receipt.supplier?.name || 'N/A'
-      : receipt.customer?.name || 'N/A';
-    doc.setFont("helvetica", "bold");
-    doc.text(partyName, rightCol, y);
-    doc.setFont("helvetica", "normal");
-
-    y += lineHeight;
-    doc.text("Amount:", leftCol, y);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatPrice(receipt.amount).replace('₹', 'Rs. '), rightCol, y);
-    doc.setFont("helvetica", "normal");
-
-    y += lineHeight;
-    doc.text("Payment Mode:", leftCol, y);
-    const accountInfo = receipt.bankAccountId
-      ? `Bank (${bankAccounts.find(b => b.id === receipt.bankAccountId)?.accountName})`
-      : `Cash (${cashAccounts.find(c => c.id === receipt.cashAccountId)?.accountName})`;
-    doc.text(accountInfo, rightCol, y);
-
-    y += lineHeight;
-    doc.text("Received For:", leftCol, y);
-    doc.text(tourPackageName, rightCol, y);
-
-    if (receipt.note) {
-      y += lineHeight;
-      doc.text("Note:", leftCol, y);
-      doc.text(receipt.note, rightCol, y, { maxWidth: width - rightCol - 40 });
-    }
-
-    // Footer
-    (doc as any).setLineDash([2, 2], 0);
-    doc.line(30, 310, width - 30, 310);
-    (doc as any).setLineDash([], 0);
-
-    doc.setFontSize(10);
-    doc.text("Authorized Signatory", width - 60, 340, { align: 'right' });
-
-    doc.save(`receipt-voucher-${receipt.id.substring(0, 8)}.pdf`);
-    toast.success("Voucher downloaded");
+    window.open(`/receipts/${receipt.id}/voucher`, '_blank');
   };
 
   // Function to handle viewing images

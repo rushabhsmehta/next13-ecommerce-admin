@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,8 +17,6 @@ import toast from 'react-hot-toast';
 import { BankAccount, CashAccount, PaymentDetail, Supplier, Customer } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 // Extended the PaymentDetail to include images relationship
 interface PaymentWithImages extends PaymentDetail {
@@ -156,7 +156,8 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
     const duplicateData = {
       ...paymentData,
       note: `Copy of ${payment.note || ''}`.trim(),
-      paymentDate: new Date(), // Set to today for the duplicate
+      paymentDate: new Date(),
+      tourPackageQueryId: tourPackageId, // Ensure it is linked to the current tour package // Set to today for the duplicate
       images: [] // Don't copy images
     };
 
@@ -164,75 +165,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
     setIsPaymentModalOpen(true);
   };
 
-  // Function to generate single voucher PDF
+  // Function to generate single voucher PDF - now redirects to standard voucher page
   const handleGenerateVoucher = (payment: PaymentWithImages) => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a5' }); // A5 is good for vouchers
-    const width = doc.internal.pageSize.getWidth();
-
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(79, 70, 229); // Indigo color
-    doc.text("PAYMENT VOUCHER", width / 2, 60, { align: 'center' });
-
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Voucher No: ${payment.id.substring(0, 8).toUpperCase()}`, 40, 90);
-    doc.text(`Date: ${format(new Date(payment.paymentDate), "dd MMM yyyy")}`, width - 40, 90, { align: 'right' });
-
-    // Content Box
-    doc.setDrawColor(200);
-    doc.setFillColor('#FAFAFA');
-    doc.rect(30, 110, width - 60, 240, 'FD');
-
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-
-    let y = 140;
-    const lineHeight = 30;
-    const leftCol = 50;
-    const rightCol = 180;
-
-    doc.text("Paid To:", leftCol, y);
-    const partyName = payment.paymentType === 'customer_refund'
-      ? payment.customer?.name || 'N/A'
-      : payment.supplier?.name || 'N/A';
-    doc.setFont("helvetica", "bold");
-    doc.text(partyName, rightCol, y);
-    doc.setFont("helvetica", "normal");
-
-    y += lineHeight;
-    doc.text("Amount:", leftCol, y);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatPrice(payment.amount).replace('₹', 'Rs. '), rightCol, y);
-    doc.setFont("helvetica", "normal");
-
-    y += lineHeight;
-    doc.text("Payment Mode:", leftCol, y);
-    const accountInfo = payment.bankAccountId
-      ? `Bank (${bankAccounts.find(b => b.id === payment.bankAccountId)?.accountName})`
-      : `Cash (${cashAccounts.find(c => c.id === payment.cashAccountId)?.accountName})`;
-    doc.text(accountInfo, rightCol, y);
-
-    y += lineHeight;
-    doc.text("Paid For:", leftCol, y);
-    doc.text(tourPackageName, rightCol, y);
-
-    if (payment.note) {
-      y += lineHeight;
-      doc.text("Note:", leftCol, y);
-      doc.text(payment.note, rightCol, y, { maxWidth: width - rightCol - 40 });
-    }
-
-    // Footer
-    (doc as any).setLineDash([2, 2], 0);
-    doc.line(30, 310, width - 30, 310);
-    (doc as any).setLineDash([], 0);
-
-    doc.setFontSize(10);
-    doc.text("Authorized Signatory", width - 60, 340, { align: 'right' });
-
-    doc.save(`payment-voucher-${payment.id.substring(0, 8)}.pdf`);
-    toast.success("Voucher downloaded");
+    window.open(`/payments/${payment.id}/voucher`, '_blank');
   };
 
   // Function to handle viewing images

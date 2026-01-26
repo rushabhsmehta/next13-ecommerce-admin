@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { CalendarIcon, Edit, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +67,7 @@ const SalesSection: React.FC<SalesSectionProps> = ({
     const duplicateData = {
       ...saleData,
       saleDate: new Date(), // Set to today for the duplicate
+      tourPackageQueryId: tourPackageId, // Ensure it is linked to the current tour package
     };
 
     // Ensure nested items are also cleaned up if they exist (though sale detail row handles this usually)
@@ -82,98 +82,12 @@ const SalesSection: React.FC<SalesSectionProps> = ({
     setIsSaleModalOpen(true);
   };
 
-  // Function to generate single voucher PDF
+  // Function to generate single voucher PDF - now redirects to standard voucher page
   const handleGenerateVoucher = (sale: any) => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const width = doc.internal.pageSize.getWidth();
-
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(16, 185, 129); // Emerald color
-    doc.text("SALE INVOICE", width / 2, 60, { align: 'center' });
-
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Invoice No: ${sale.id.substring(0, 8).toUpperCase()}`, 40, 90);
-    doc.text(`Date: ${formatsafeDateForPdf(sale.saleDate)}`, width - 40, 90, { align: 'right' });
-
-    // Content Box
-    doc.setDrawColor(200);
-    doc.setFillColor('#FAFAFA');
-    doc.rect(30, 110, width - 60, 100, 'FD');
-
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-
-    let y = 140;
-    const lineHeight = 20;
-    const leftCol = 50;
-    const rightCol = 300;
-
-    doc.text("Billed To:", leftCol, y);
-    const customerName = sale.customer?.name || getCustomerName(sale.customerId);
-    doc.setFont("helvetica", "bold");
-    doc.text(customerName, leftCol, y + lineHeight);
-    doc.setFont("helvetica", "normal");
-
-    doc.text("Tour Package:", rightCol, y);
-    doc.setFont("helvetica", "bold");
-    doc.text(tourPackageName, rightCol, y + lineHeight);
-    doc.setFont("helvetica", "normal");
-
-    // Items Table if available
-    let startY = 230;
-
-    // If we had item level details we would list them here. 
-    // For now we show the main description and amount.
-
-    const rows = [
-      [
-        "1",
-        sale.description || "Tour Package Sale",
-        formatPrice(sale.salePrice).replace('₹', 'Rs. '),
-        sale.gstPercentage ? `${sale.gstPercentage}%` : "-",
-        formatPrice(sale.gstAmount || 0).replace('₹', 'Rs. '),
-        formatPrice((sale.salePrice || 0) + (sale.gstAmount || 0)).replace('₹', 'Rs. ')
-      ]
-    ];
-
-    autoTable(doc, {
-      head: [['#', 'Description', 'Amount', 'GST %', 'GST Amt', 'Total']],
-      body: rows,
-      startY: startY,
-      styles: { fontSize: 10, cellPadding: 6 },
-      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
-      columnStyles: {
-        2: { halign: 'right' },
-        3: { halign: 'center' },
-        4: { halign: 'right' },
-        5: { halign: 'right' }
-      }
-    });
-
-    const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || startY + 50;
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total: ${formatPrice((sale.salePrice || 0) + (sale.gstAmount || 0)).replace('₹', 'Rs. ')}`, width - 40, finalY + 40, { align: 'right' });
-
-    // Footer
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Authorized Signatory", width - 60, finalY + 100, { align: 'right' });
-
-    doc.save(`sale-invoice-${sale.id.substring(0, 8)}.pdf`);
-    toast.success("Invoice downloaded");
+    window.open(`/sales/${sale.id}/voucher`, '_blank');
   };
 
-  const formatsafeDateForPdf = (date: any) => {
-    try {
-      return format(new Date(date), "dd MMM yyyy");
-    } catch (e) {
-      return "N/A";
-    }
-  }
+
   const renderGSTInfo = (salePrice: number, gstAmount?: number | null, gstPercentage?: number | null) => {
     if (!gstAmount && !gstPercentage) return null;
 

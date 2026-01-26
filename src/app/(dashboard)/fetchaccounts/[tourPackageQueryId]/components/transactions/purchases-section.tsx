@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { CalendarIcon, Edit, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,101 +66,19 @@ const PurchasesSection: React.FC<PurchasesSectionProps> = ({
     const duplicateData = {
       ...purchaseData,
       purchaseDate: new Date(), // Set to today for the duplicate
+      tourPackageQueryId: tourPackageId, // Ensure it is linked to the current tour package
     };
 
     setEditItem(duplicateData);
     setIsPurchaseModalOpen(true);
   };
 
-  // Function to generate single voucher PDF
+  // Function to generate single voucher PDF - now redirects to standard voucher page
   const handleGenerateVoucher = (purchase: any) => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const width = doc.internal.pageSize.getWidth();
-
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(37, 99, 235); // Blue color
-    doc.text("PURCHASE VOUCHER", width / 2, 60, { align: 'center' });
-
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Voucher No: ${purchase.id.substring(0, 8).toUpperCase()}`, 40, 90);
-    doc.text(`Date: ${formatsafeDateForPdf(purchase.purchaseDate)}`, width - 40, 90, { align: 'right' });
-
-    // Content Box
-    doc.setDrawColor(200);
-    doc.setFillColor('#FAFAFA');
-    doc.rect(30, 110, width - 60, 100, 'FD');
-
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-
-    let y = 140;
-    const lineHeight = 20;
-    const leftCol = 50;
-    const rightCol = 300;
-
-    doc.text("Supplier:", leftCol, y);
-    const supplierName = suppliers.find(s => s.id === purchase.supplierId)?.name || 'N/A';
-    doc.setFont("helvetica", "bold");
-    doc.text(supplierName, leftCol, y + lineHeight);
-    doc.setFont("helvetica", "normal");
-
-    doc.text("Tour Package:", rightCol, y);
-    doc.setFont("helvetica", "bold");
-    doc.text(tourPackageName, rightCol, y + lineHeight);
-    doc.setFont("helvetica", "normal");
-
-    // Items Table if available
-    let startY = 230;
-
-    const rows = [
-      [
-        "1",
-        purchase.description || "Tour Package Purchase",
-        formatPrice(purchase.price).replace('₹', 'Rs. '),
-        purchase.gstPercentage ? `${purchase.gstPercentage}%` : "-",
-        formatPrice(purchase.gstAmount || 0).replace('₹', 'Rs. '),
-        formatPrice((purchase.price || 0) + (purchase.gstAmount || 0)).replace('₹', 'Rs. ')
-      ]
-    ];
-
-    autoTable(doc, {
-      head: [['#', 'Description', 'Amount', 'GST %', 'GST Amt', 'Total']],
-      body: rows,
-      startY: startY,
-      styles: { fontSize: 10, cellPadding: 6 },
-      headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
-      columnStyles: {
-        2: { halign: 'right' },
-        3: { halign: 'center' },
-        4: { halign: 'right' },
-        5: { halign: 'right' }
-      }
-    });
-
-    const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || startY + 50;
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total: ${formatPrice((purchase.price || 0) + (purchase.gstAmount || 0)).replace('₹', 'Rs. ')}`, width - 40, finalY + 40, { align: 'right' });
-
-    // Footer
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Authorized Signatory", width - 60, finalY + 100, { align: 'right' });
-
-    doc.save(`purchase-voucher-${purchase.id.substring(0, 8)}.pdf`);
-    toast.success("Voucher downloaded");
+    window.open(`/purchases/${purchase.id}/voucher`, '_blank');
   };
 
-  const formatsafeDateForPdf = (date: any) => {
-    try {
-      return format(new Date(date), "dd MMM yyyy");
-    } catch (e) {
-      return "N/A";
-    }
-  }
+
   const renderGSTInfo = (basePrice: number, gstAmount?: number | null, gstPercentage?: number | null) => {
     if (!gstAmount && !gstPercentage) return null;
 

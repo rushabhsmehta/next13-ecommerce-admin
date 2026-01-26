@@ -136,7 +136,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
     setIsCalculating(true);
     try {
       const items = form.getValues("items");
-      
+
       let totalPriceExclTax = 0;
       let totalTax = 0;
 
@@ -148,40 +148,40 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
         if (changedField?.includes(`items.${index}.totalAmount`)) {
           // Direction: Total → Price per unit
           const totalAmount = Number(parseFloat(item.totalAmount?.toString() || "0").toFixed(2));
-          
+
           // Preserve the exact total amount the user entered
           updates[`items.${index}.totalAmount`] = totalAmount;
-          
+
           const qty = Number(parseFloat(item.quantity?.toString() || "1").toFixed(2));
           const taxSlab = item.taxSlabId ? taxSlabs.find(tax => tax.id === item.taxSlabId) : null;
           const taxRate = taxSlab ? taxSlab.percentage / 100 : 0;
-          
+
           // Calculate price per unit backwards from total with precise rounding
           let pricePerUnit: number;
           let taxAmount: number;
-          
+
           if (taxRate > 0) {
             // Calculate price before tax: price = total / (1 + taxRate)
             const priceBeforeTax = totalAmount / (1 + taxRate);
             pricePerUnit = Number((priceBeforeTax / qty).toFixed(4));
-            
+
             // Calculate subtotal precisely
             const itemSubtotal = Number((pricePerUnit * qty).toFixed(2));
-            
+
             // Calculate tax amount precisely
             taxAmount = Number((totalAmount - itemSubtotal).toFixed(2));
           } else {
             pricePerUnit = Number((totalAmount / qty).toFixed(4));
             taxAmount = 0;
           }
-          
+
           updates[`items.${index}.pricePerUnit`] = pricePerUnit;
           updates[`items.${index}.taxAmount`] = taxAmount;
-          
+
           const itemSubtotal = Number((pricePerUnit * qty).toFixed(2));
           totalPriceExclTax += itemSubtotal;
           totalTax += taxAmount;
-        } 
+        }
         else {
           // Direction: Price per unit → Total (default calculation)
           const price = Number(parseFloat(item.pricePerUnit?.toString() || "0").toFixed(4));
@@ -225,7 +225,8 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
           shouldDirty: true,
           shouldTouch: false
         });
-      });    } finally {
+      });
+    } finally {
       setIsCalculating(false);
     }
   }, [isCalculating, form, taxSlabs]);
@@ -235,17 +236,17 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
     // This is the key change - we're not using the "watch" method for real-time changes
     // Instead we'll use onBlur events on inputs to trigger calculations
     recalculateTotals();
-    
+
     // Still watch for tax slab and quantity changes which should recalculate immediately
     const subscription = form.watch((value, { name, type }) => {
       if (isCalculating || !name) return;
-      
+
       // Only recalculate immediately for these specific changes
       if (name.includes('taxSlabId') || name.includes('quantity')) {
         setTimeout(() => recalculateTotals(name), 10);
       }
     });
-      return () => subscription.unsubscribe();
+    return () => subscription.unsubscribe();
   }, [form, isCalculating, fields.length, recalculateTotals]);
   // For item length changes
   useEffect(() => {
@@ -356,7 +357,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
   const handleRemoveItem = (index: number) => {
     remove(index);
     setTimeout(() => recalculateTotals(), 0);
-  };  return (
+  }; return (
     <div className="space-y-8 max-w-4xl mx-auto">
       <FormErrorSummary errors={formErrors} />
 
@@ -369,6 +370,13 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="tourPackageQueryId"
+            render={({ field }) => (
+              <input type="hidden" {...field} value={field.value || ""} />
+            )}
+          />
           {/* Modern Header with Gradient */}
           <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl border border-blue-100 p-8 text-center">
             <div className="flex justify-center mb-4">
@@ -394,85 +402,85 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
               </CardHeader>
               <CardContent className="px-6 pt-6">
                 <div className="space-y-6">                  {/* Customer Select */}
-                <FormField
-                  control={form.control}
-                  name="customerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Customer <span className="text-red-500">*</span></FormLabel>
-                      <div className="relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full h-11 justify-between border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
-                        >
-                          {field.value
-                            ? (() => {
+                  <FormField
+                    control={form.control}
+                    name="customerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Customer <span className="text-red-500">*</span></FormLabel>
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full h-11 justify-between border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
+                          >
+                            {field.value
+                              ? (() => {
                                 const customer = customers.find((customer) => customer.id === field.value);
                                 if (customer) {
                                   return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
                                 }
                                 return "Select customer";
                               })()
-                            : "Select customer"}
-                          <Check className="ml-auto h-4 w-4" />
-                        </Button>
-                        
-                        {customerDropdownOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
-                            <div className="p-2">                              <Input
+                              : "Select customer"}
+                            <Check className="ml-auto h-4 w-4" />
+                          </Button>
+
+                          {customerDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
+                              <div className="p-2">                              <Input
                                 placeholder="Search customers..."
                                 className="mb-2 h-10 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                                 value={customerSearch}
                                 onChange={(e) => setCustomerSearch(e.target.value)}
                                 autoFocus
                               />
-                              
-                              <div className="max-h-[200px] overflow-y-auto">
-                                {filteredCustomers.length === 0 ? (
-                                  <div className="text-center py-2 text-sm text-gray-500">
-                                    No customers found
-                                  </div>
-                                ) : (
-                                  filteredCustomers.map((customer) => (
-                                    <div
-                                      key={customer.id}
-                                      className={cn(
-                                        "flex items-center justify-between px-2 py-1.5 cursor-pointer rounded hover:bg-gray-100",
-                                        customer.id === field.value && "bg-gray-100"
-                                      )}
-                                      onClick={() => {
-                                        field.onChange(customer.id);
-                                        setCustomerSearch("");
-                                        setCustomerDropdownOpen(false);
-                                      }}
-                                    >
-                                      <div className="flex flex-col">
-                                        <span className="font-medium">{customer.name}</span>
-                                        {customer.contact && (
-                                          <span className="text-xs text-gray-500">{customer.contact}</span>
+
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  {filteredCustomers.length === 0 ? (
+                                    <div className="text-center py-2 text-sm text-gray-500">
+                                      No customers found
+                                    </div>
+                                  ) : (
+                                    filteredCustomers.map((customer) => (
+                                      <div
+                                        key={customer.id}
+                                        className={cn(
+                                          "flex items-center justify-between px-2 py-1.5 cursor-pointer rounded hover:bg-gray-100",
+                                          customer.id === field.value && "bg-gray-100"
+                                        )}
+                                        onClick={() => {
+                                          field.onChange(customer.id);
+                                          setCustomerSearch("");
+                                          setCustomerDropdownOpen(false);
+                                        }}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">{customer.name}</span>
+                                          {customer.contact && (
+                                            <span className="text-xs text-gray-500">{customer.contact}</span>
+                                          )}
+                                        </div>
+                                        {customer.id === field.value && (
+                                          <Check className="h-4 w-4 text-primary" />
                                         )}
                                       </div>
-                                      {customer.id === field.value && (
-                                        <Check className="h-4 w-4 text-primary" />
-                                      )}
-                                    </div>
-                                  )))                                
-                                }                                
+                                    )))
+                                  }
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )} 
-                />
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   {/* Sale Date */}
                   <FormField
                     control={form.control}
@@ -490,8 +498,8 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                               )}
                               disabled={loading}
                             >                              {field.value
-                                ? formatLocalDate(field.value, "dd/MM/yyyy")
-                                : "Select date"}
+                              ? formatLocalDate(field.value, "dd/MM/yyyy")
+                              : "Select date"}
                               <CalendarIcon className="ml-auto h-4 w-4" />
                             </Button>
                           </PopoverTrigger>
@@ -639,13 +647,13 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                             name={`items.${index}.productName`}
                             render={({ field }) => (
                               <FormItem className="mb-0">                                <FormControl>
-                                  <Input
-                                    disabled={loading}
-                                    placeholder="Product name"
-                                    className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                    {...field}
-                                  />
-                                </FormControl>
+                                <Input
+                                  disabled={loading}
+                                  placeholder="Product name"
+                                  className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                  {...field}
+                                />
+                              </FormControl>
                               </FormItem>
                             )}
                           />
@@ -658,16 +666,16 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                             name={`items.${index}.quantity`}
                             render={({ field }) => (
                               <FormItem className="mb-0">                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    disabled={loading}
-                                    placeholder="0"
-                                    className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                    {...field}
-                                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                  />
-                                </FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  disabled={loading}
+                                  placeholder="0"
+                                  className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </FormControl>
                               </FormItem>
                             )}
                           />
@@ -711,27 +719,27 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                             name={`items.${index}.pricePerUnit`}
                             render={({ field }) => (
                               <FormItem className="mb-0">                                <FormControl>
-                                  <div className="relative">
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      disabled={loading}
-                                      placeholder="0.00"
-                                      className="h-10 pl-8 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                      {...field}
-                                      onChange={(e) => {
-                                        // Just update the value without recalculation
-                                        field.onChange(parseFloat(e.target.value) || 0)
-                                      }}
-                                      onBlur={(e) => {
-                                        // Recalculate when user has finished typing and moved away
-                                        field.onBlur();
-                                        recalculateTotals(`items.${index}.pricePerUnit`);
-                                      }}
-                                    />
-                                  </div>
-                                </FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    disabled={loading}
+                                    placeholder="0.00"
+                                    className="h-10 pl-8 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                    {...field}
+                                    onChange={(e) => {
+                                      // Just update the value without recalculation
+                                      field.onChange(parseFloat(e.target.value) || 0)
+                                    }}
+                                    onBlur={(e) => {
+                                      // Recalculate when user has finished typing and moved away
+                                      field.onBlur();
+                                      recalculateTotals(`items.${index}.pricePerUnit`);
+                                    }}
+                                  />
+                                </div>
+                              </FormControl>
                               </FormItem>
                             )}
                           />
@@ -775,27 +783,27 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                             name={`items.${index}.totalAmount`}
                             render={({ field }) => (
                               <FormItem className="mb-0">                                <FormControl>
-                                  <div className="relative">
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      disabled={loading}
-                                      placeholder="0.00"
-                                      className="h-10 pl-8 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
-                                      {...field}
-                                      onChange={(e) => {
-                                        // Just update the value without recalculation
-                                        field.onChange(parseFloat(e.target.value) || 0)
-                                      }}
-                                      onBlur={(e) => {
-                                        // Recalculate when user has finished typing and moved away
-                                        field.onBlur();
-                                        recalculateTotals(`items.${index}.totalAmount`);
-                                      }}
-                                    />
-                                  </div>
-                                </FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    disabled={loading}
+                                    placeholder="0.00"
+                                    className="h-10 pl-8 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                    {...field}
+                                    onChange={(e) => {
+                                      // Just update the value without recalculation
+                                      field.onChange(parseFloat(e.target.value) || 0)
+                                    }}
+                                    onBlur={(e) => {
+                                      // Recalculate when user has finished typing and moved away
+                                      field.onBlur();
+                                      recalculateTotals(`items.${index}.totalAmount`);
+                                    }}
+                                  />
+                                </div>
+                              </FormControl>
                               </FormItem>
                             )}
                           />
@@ -851,16 +859,16 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
 
             </CardContent>
           </Card>          <div className="flex justify-end gap-4 mt-8">
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
               className="px-8 h-11 border-gray-300 hover:bg-gray-50"
               onClick={() => window.history.back()}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading}
               className="px-8 h-11 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 shadow-md"
             >

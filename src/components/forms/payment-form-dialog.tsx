@@ -103,7 +103,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 }) => {
   const paymentData = initialData || {};
   const confirmedTourPackageQueries = confirmedTourPackageQueriesProp || initialData?.confirmedTourPackageQueries || [];
-  
+
   // Ensure confirmedTourPackageQueries is always an array
   const safeConfirmedTourPackageQueries = Array.isArray(confirmedTourPackageQueries) ? confirmedTourPackageQueries : [];
 
@@ -175,22 +175,22 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   const tdsSectionsFetcher = async () => {
     try {
       const res = await fetch('/api/settings/tds-sections');
-      if(!res.ok) return [];
+      if (!res.ok) return [];
       return await res.json();
     } catch { return []; }
   };
 
   // Load TDS sections on mount
-  useEffect(()=>{ (async()=>{ try{ const data = await tdsSectionsFetcher(); setTdsSections(data||[]);}catch{} })(); },[]);
+  useEffect(() => { (async () => { try { const data = await tdsSectionsFetcher(); setTdsSections(data || []); } catch { } })(); }, []);
 
   // Load linkable TDS transactions when supplier/payment type changes
-  useEffect(()=>{ 
-    if(paymentType==='supplier_payment' && supplierId) { 
-      (async()=>{ 
-        try{ 
-          const r = await fetch(`/api/tds/transactions?status=pending&supplierId=${supplierId}`); 
-          if(r.ok){ setLinkableTds(await r.json()); } else { setLinkableTds([]);} 
-        }catch{ setLinkableTds([]);} 
+  useEffect(() => {
+    if (paymentType === 'supplier_payment' && supplierId) {
+      (async () => {
+        try {
+          const r = await fetch(`/api/tds/transactions?status=pending&supplierId=${supplierId}`);
+          if (r.ok) { setLinkableTds(await r.json()); } else { setLinkableTds([]); }
+        } catch { setLinkableTds([]); }
       })();
     } else {
       setLinkableTds([]);
@@ -218,9 +218,9 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       delete apiData.accountId;
       delete apiData.accountType;
 
-      (apiData as any).tdsMasterId = form.getValues('tdsMasterId')||null;
-      (apiData as any).tdsOverrideRate = form.getValues('tdsOverrideRate')? Number(form.getValues('tdsOverrideRate')): null;
-      (apiData as any).linkTdsTransactionId = form.getValues('linkTdsTransactionId')||null;
+      (apiData as any).tdsMasterId = form.getValues('tdsMasterId') || null;
+      (apiData as any).tdsOverrideRate = form.getValues('tdsOverrideRate') ? Number(form.getValues('tdsOverrideRate')) : null;
+      (apiData as any).linkTdsTransactionId = form.getValues('linkTdsTransactionId') || null;
 
       if (paymentData && paymentData.id) {
         await axios.patch(`/api/payments/${paymentData.id}`, apiData);
@@ -258,6 +258,13 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="tourPackageQueryId"
+            render={({ field }) => (
+              <input type="hidden" {...field} value={field.value || ""} />
+            )}
+          />
           {/* Enhanced Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white shadow-lg">
             <div className="flex items-center justify-between">
@@ -409,10 +416,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                                 !field.value && "text-muted-foreground"
                               )}
                             >                              {field.value ? (
-                                formatLocalDate(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
+                              formatLocalDate(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -558,12 +565,12 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                           >
                             {field.value
                               ? (() => {
-                                  const customer = customers.find((customer) => customer.id === field.value);
-                                  if (customer) {
-                                    return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
-                                  }
-                                  return "Select customer";
-                                })()
+                                const customer = customers.find((customer) => customer.id === field.value);
+                                if (customer) {
+                                  return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
+                                }
+                                return "Select customer";
+                              })()
                               : "Select customer"}
                             <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -696,10 +703,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-gray-700">Payment Method <span className="text-gray-400">(Optional)</span></FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="e.g. Bank Transfer, Cash, UPI" 
+                        <Input
+                          placeholder="e.g. Bank Transfer, Cash, UPI"
                           className="h-11 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -715,10 +722,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-gray-700">Transaction ID <span className="text-gray-400">(Optional)</span></FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Transaction reference number" 
+                        <Input
+                          placeholder="Transaction reference number"
                           className="h-11 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />

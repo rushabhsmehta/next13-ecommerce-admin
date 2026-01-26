@@ -231,7 +231,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
           shouldDirty: true,
           shouldTouch: false
         });
-      });    } finally {
+      });
+    } finally {
       setIsCalculating(false);
     }
   }, [isCalculating, form, taxSlabs]);
@@ -250,7 +251,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
       if (name.includes('taxSlabId') || name.includes('quantity')) {
         setTimeout(() => recalculateTotals(name), 10);
       }
-    });    return () => subscription.unsubscribe();
+    }); return () => subscription.unsubscribe();
   }, [form, isCalculating, fields.length, recalculateTotals]);  // For item length changes
   useEffect(() => {
     if (fields.length > 0) {
@@ -389,6 +390,13 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
         </div>
       )}      <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="tourPackageQueryId"
+            render={({ field }) => (
+              <input type="hidden" {...field} value={field.value || ""} />
+            )}
+          />
           {/* Modern Header with Gradient */}
           <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 rounded-xl border border-emerald-100 p-8 text-center">
             <div className="flex justify-center mb-4">
@@ -500,8 +508,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                               )}
                               disabled={loading}
                             >                              {field.value
-                                ? formatLocalDate(field.value, "dd/MM/yyyy")
-                                : "Select date"}
+                              ? formatLocalDate(field.value, "dd/MM/yyyy")
+                              : "Select date"}
                               <CalendarIcon className="ml-auto h-4 w-4" />
                             </Button>
                           </PopoverTrigger>
@@ -691,7 +699,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                 <Select
                                   disabled={loading}
                                   onValueChange={field.onChange}
-                                  value={field.value || ""}                                  defaultValue={field.value || ""}
+                                  value={field.value || ""} defaultValue={field.value || ""}
                                 >
                                   <FormControl>
                                     <SelectTrigger className="h-10 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200">
@@ -796,7 +804,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                       onBlur={(e) => {
                                         // Recalculate when user has finished typing and moved away
                                         field.onBlur();
-                                        recalculateTotals(`items.${index}.totalAmount`);                                      }}
+                                        recalculateTotals(`items.${index}.totalAmount`);
+                                      }}
                                     />
                                   </div>
                                 </FormControl>
@@ -852,16 +861,16 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
               </div>
             </CardContent>
           </Card>          <div className="flex justify-end gap-4 mt-8">
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
               className="px-8 h-11 border-gray-300 hover:bg-gray-50"
               onClick={() => window.history.back()}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading}
               className="px-8 h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 shadow-md"
             >

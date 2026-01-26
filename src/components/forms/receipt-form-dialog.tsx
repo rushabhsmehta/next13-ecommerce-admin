@@ -92,8 +92,8 @@ type ReceiptFormValues = z.infer<typeof formSchema>;
 const tdsSectionsFetcher = async () => {
   try {
     const r = await fetch('/api/settings/tds-sections');
-    if(r.ok) return r.json();
-  } catch {}
+    if (r.ok) return r.json();
+  } catch { }
   return [];
 };
 
@@ -121,21 +121,21 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   const [linkableTds, setLinkableTds] = useState<any[]>([]);
 
   // Fetch TDS sections on mount
-  useEffect(()=>{ (async()=>{ setTdsSections(await tdsSectionsFetcher()); })(); },[]);
+  useEffect(() => { (async () => { setTdsSections(await tdsSectionsFetcher()); })(); }, []);
 
   // Filtered customers and suppliers
-  const filteredCustomers = customers.filter(customer => 
+  const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
     (customer.contact && customer.contact.toLowerCase().includes(customerSearch.toLowerCase()))
   );
-  
+
   const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
   );
-  
+
   // Extract tour package queries from initialData
   const { confirmedTourPackageQueries = [], ...receiptData } = initialData;
-  
+
   // Ensure confirmedTourPackageQueries is always an array
   const safeConfirmedTourPackageQueries = Array.isArray(confirmedTourPackageQueries) ? confirmedTourPackageQueries : [];
 
@@ -188,12 +188,12 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   useEffect(() => {
     const receiptType = watchedReceiptType;
     const customerId = watchedCustomerId;
-    if(receiptType==='customer_payment' && customerId) {
-      (async()=>{
-        try{
+    if (receiptType === 'customer_payment' && customerId) {
+      (async () => {
+        try {
           const r = await fetch(`/api/tds/transactions?status=pending&customerId=${customerId}`);
-          if(r.ok) setLinkableTds(await r.json());
-        }catch{/* silent */}
+          if (r.ok) setLinkableTds(await r.json());
+        } catch {/* silent */ }
       })();
     } else {
       setLinkableTds([]);
@@ -201,13 +201,13 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   }, [watchedCustomerId, watchedReceiptType]);
 
   // Clear TDS fields if TDS disabled
-  useEffect(()=>{
-    if(!tdsEnabled){
+  useEffect(() => {
+    if (!tdsEnabled) {
       form.setValue('tdsMasterId', undefined as any);
       form.setValue('tdsOverrideRate', undefined as any);
       form.setValue('linkTdsTransactionId', undefined as any);
     }
-  },[tdsEnabled, form]);
+  }, [tdsEnabled, form]);
 
   const onSubmit = async (data: ReceiptFormValues) => {
     try {
@@ -231,10 +231,10 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       delete apiData.accountType;
 
       // Add TDS fields to apiData
-      if(tdsEnabled){
+      if (tdsEnabled) {
         (apiData as any).tdsMasterId = form.getValues('tdsMasterId') || null;
         const override = form.getValues('tdsOverrideRate');
-        (apiData as any).tdsOverrideRate = (override===undefined || override==="") ? null : Number(override);
+        (apiData as any).tdsOverrideRate = (override === undefined || override === "") ? null : Number(override);
         (apiData as any).linkTdsTransactionId = form.getValues('linkTdsTransactionId') || null;
       } else {
         (apiData as any).tdsMasterId = null;
@@ -261,14 +261,14 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
 
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
-    
+
     const errorMessages: string[] = [];
     Object.entries(errors).forEach(([key, value]: [string, any]) => {
       if (value?.message) {
         errorMessages.push(`${key}: ${value.message}`);
       }
     });
-    
+
     setFormErrors(errorMessages);
     toast.error("Please check the form for errors");
   };
@@ -276,9 +276,16 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   return (
     <div className="space-y-6 max-w-4xl mx-auto p-6">
       <FormErrorSummary errors={formErrors} />
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="tourPackageQueryId"
+            render={({ field }) => (
+              <input type="hidden" {...field} value={field.value || ""} />
+            )}
+          />
           {/* Enhanced Header */}
           <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-lg p-6 text-white shadow-lg">
             <div className="flex items-center justify-between">
@@ -336,7 +343,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                               : "Select tour package query"}
                             <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
-                          
+
                           {tourPackageQueryDropdownOpen && (
                             <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
                               <div className="p-3">
@@ -353,7 +360,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                                     </div>
                                   ) : (
                                     safeConfirmedTourPackageQueries
-                                      .filter(query => 
+                                      .filter(query =>
                                         query.tourPackageQueryName.toLowerCase().includes(tourPackageQuerySearch.toLowerCase())
                                       )
                                       .map((query) => (
@@ -431,16 +438,16 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                                 !field.value && "text-muted-foreground"
                               )}
                             >                              {field.value ? (
-                                formatLocalDate(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
+                              formatLocalDate(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>                        <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
-                            mode="single"                            selected={createDatePickerValue(field.value)}
+                            mode="single" selected={createDatePickerValue(field.value)}
                             onSelect={(date) => date && field.onChange(date)}
                             disabled={(date) =>
                               date > new Date() || date < new Date("1900-01-01")
@@ -507,12 +514,12 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                           >
                             {field.value
                               ? (() => {
-                                  const customer = customers.find((customer) => customer.id === field.value);
-                                  if (customer) {
-                                    return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
-                                  }
-                                  return "Select customer";
-                                })()
+                                const customer = customers.find((customer) => customer.id === field.value);
+                                if (customer) {
+                                  return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
+                                }
+                                return "Select customer";
+                              })()
                               : "Select customer"}
                             <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -717,10 +724,10 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-gray-700">Reference <span className="text-gray-400">(Optional)</span></FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="e.g. Transaction ID, Check number" 
+                        <Input
+                          placeholder="e.g. Transaction ID, Check number"
                           className="h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -796,7 +803,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                 <input
                   type="checkbox"
                   checked={tdsEnabled}
-                  onChange={e=>setTdsEnabled(e.target.checked)}
+                  onChange={e => setTdsEnabled(e.target.checked)}
                 />
                 Apply / Link TDS
               </label>
@@ -810,9 +817,9 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                       defaultValue=""
                     >
                       <option value="">Select</option>
-                      {tdsSections.map(s=> 
+                      {tdsSections.map(s =>
                         <option key={s.id} value={s.id}>
-                          {s.sectionCode}{s.isGstTds? ' (GST)':''}
+                          {s.sectionCode}{s.isGstTds ? ' (GST)' : ''}
                         </option>
                       )}
                     </select>
@@ -834,7 +841,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                       defaultValue=""
                     >
                       <option value="">None</option>
-                      {linkableTds.map(t=>
+                      {linkableTds.map(t =>
                         <option key={t.id} value={t.id}>
                           {t.id} {t.tdsAmount}
                         </option>

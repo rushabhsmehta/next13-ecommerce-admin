@@ -25,6 +25,169 @@ interface SaleDetailRowProps {
     remove: (index: number) => void;
 }
 
+// Extracted component to safely use hooks like useWatch
+const SaleItemRow = ({
+    item,
+    index,
+    itemIndex,
+    form,
+    taxSlabs,
+    isInterState,
+    calculateItemTax,
+    removeItem
+}: {
+    item: any;
+    index: number;
+    itemIndex: number;
+    form: UseFormReturn<any>;
+    taxSlabs: any[];
+    isInterState: string;
+    calculateItemTax: (itemIndex: number, price: number, taxSlabId: string) => void;
+    removeItem: (index: number) => void;
+}) => {
+    const { control, getValues } = form;
+
+    const taxAmount = useWatch({
+        control,
+        name: `saleDetails.${index}.items.${itemIndex}.taxAmount`
+    }) || 0;
+
+    const totalAmount = useWatch({
+        control,
+        name: `saleDetails.${index}.items.${itemIndex}.totalAmount`
+    }) || 0;
+
+    const taxSlabId = useWatch({
+        control,
+        name: `saleDetails.${index}.items.${itemIndex}.taxSlabId`
+    });
+
+    return (
+        <TableRow>
+            <TableCell>
+                <FormField
+                    control={control}
+                    name={`saleDetails.${index}.items.${itemIndex}.productName`}
+                    render={({ field }) => (
+                        <FormItem className="mb-0">
+                            <FormControl>
+                                <Input {...field} placeholder="Item Name" className="h-8" />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                />
+            </TableCell>
+            <TableCell>
+                <FormField
+                    control={control}
+                    name={`saleDetails.${index}.items.${itemIndex}.quantity`}
+                    render={({ field }) => (
+                        <FormItem className="mb-0">
+                            <FormControl>
+                                <Input
+                                    {...field}
+                                    type="number"
+                                    className="h-8"
+                                    onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        field.onChange(val);
+                                        // Recalculate
+                                        const price = getValues(`saleDetails.${index}.items.${itemIndex}.pricePerUnit`) || 0;
+                                        const slab = getValues(`saleDetails.${index}.items.${itemIndex}.taxSlabId`);
+                                        calculateItemTax(itemIndex, price * val, slab);
+                                    }}
+                                />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                />
+            </TableCell>
+            <TableCell>
+                <FormField
+                    control={control}
+                    name={`saleDetails.${index}.items.${itemIndex}.pricePerUnit`}
+                    render={({ field }) => (
+                        <FormItem className="mb-0">
+                            <FormControl>
+                                <Input
+                                    {...field}
+                                    type="number"
+                                    className="h-8"
+                                    onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        field.onChange(val);
+                                        // Recalculate
+                                        const qty = getValues(`saleDetails.${index}.items.${itemIndex}.quantity`) || 0;
+                                        const slab = getValues(`saleDetails.${index}.items.${itemIndex}.taxSlabId`);
+                                        calculateItemTax(itemIndex, val * qty, slab);
+                                    }}
+                                />
+                            </FormControl>
+                        </FormItem>
+                    )}
+                />
+            </TableCell>
+            <TableCell>
+                <FormField
+                    control={control}
+                    name={`saleDetails.${index}.items.${itemIndex}.taxSlabId`}
+                    render={({ field }) => (
+                        <FormItem className="mb-0">
+                            <Select onValueChange={(val) => {
+                                field.onChange(val);
+                                // Recalculate
+                                const qty = getValues(`saleDetails.${index}.items.${itemIndex}.quantity`) || 0;
+                                const price = getValues(`saleDetails.${index}.items.${itemIndex}.pricePerUnit`) || 0;
+                                calculateItemTax(itemIndex, price * qty, val);
+                            }} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger className="h-8">
+                                        <SelectValue placeholder="Tax" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {taxSlabs.map((slab) => (
+                                        <SelectItem key={slab.id} value={slab.id}>
+                                            {slab.name} ({slab.percentage}%)
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </FormItem>
+                    )}
+                />
+            </TableCell>
+            <TableCell className="text-right">
+                <div className="text-sm font-medium">
+                    ₹{taxAmount}
+                </div>
+                <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                    {(() => {
+                        const slab = taxSlabs.find(s => s.id === taxSlabId);
+                        if (!slab) return '-';
+                        if (slab.percentage === 0) return 'Exempt';
+                        if (isInterState) return `IGST ${slab.percentage}%`;
+                        return `CGST ${slab.percentage / 2}% + SGST ${slab.percentage / 2}%`;
+                    })()}
+                </div>
+            </TableCell>
+            <TableCell className="text-right font-medium">
+                ₹{totalAmount}
+            </TableCell>
+            <TableCell>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeItem(itemIndex)}
+                >
+                    <Trash className="h-4 w-4 text-red-500" />
+                </Button>
+            </TableCell>
+        </TableRow>
+    );
+};
+
 export const SaleDetailRow = ({
     index,
     form,
@@ -349,129 +512,17 @@ export const SaleDetailRow = ({
                             </TableHeader>
                             <TableBody>
                                 {itemFields.map((item, itemIndex) => (
-                                    <TableRow key={item.id}>
-                                        <TableCell>
-                                            <FormField
-                                                control={control}
-                                                name={`saleDetails.${index}.items.${itemIndex}.productName`}
-                                                render={({ field }) => (
-                                                    <FormItem className="mb-0">
-                                                        <FormControl>
-                                                            <Input {...field} placeholder="Item Name" className="h-8" />
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <FormField
-                                                control={control}
-                                                name={`saleDetails.${index}.items.${itemIndex}.quantity`}
-                                                render={({ field }) => (
-                                                    <FormItem className="mb-0">
-                                                        <FormControl>
-                                                            <Input
-                                                                {...field}
-                                                                type="number"
-                                                                className="h-8"
-                                                                onChange={(e) => {
-                                                                    const val = Number(e.target.value);
-                                                                    field.onChange(val);
-                                                                    // Recalculate
-                                                                    const price = getValues(`saleDetails.${index}.items.${itemIndex}.pricePerUnit`) || 0;
-                                                                    const slab = getValues(`saleDetails.${index}.items.${itemIndex}.taxSlabId`);
-                                                                    calculateItemTax(itemIndex, price * val, slab);
-                                                                }}
-                                                            />
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <FormField
-                                                control={control}
-                                                name={`saleDetails.${index}.items.${itemIndex}.pricePerUnit`}
-                                                render={({ field }) => (
-                                                    <FormItem className="mb-0">
-                                                        <FormControl>
-                                                            <Input
-                                                                {...field}
-                                                                type="number"
-                                                                className="h-8"
-                                                                onChange={(e) => {
-                                                                    const val = Number(e.target.value);
-                                                                    field.onChange(val);
-                                                                    // Recalculate
-                                                                    const qty = getValues(`saleDetails.${index}.items.${itemIndex}.quantity`) || 0;
-                                                                    const slab = getValues(`saleDetails.${index}.items.${itemIndex}.taxSlabId`);
-                                                                    calculateItemTax(itemIndex, val * qty, slab);
-                                                                }}
-                                                            />
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <FormField
-                                                control={control}
-                                                name={`saleDetails.${index}.items.${itemIndex}.taxSlabId`}
-                                                render={({ field }) => (
-                                                    <FormItem className="mb-0">
-                                                        <Select onValueChange={(val) => {
-                                                            field.onChange(val);
-                                                            // Recalculate
-                                                            const qty = getValues(`saleDetails.${index}.items.${itemIndex}.quantity`) || 0;
-                                                            const price = getValues(`saleDetails.${index}.items.${itemIndex}.pricePerUnit`) || 0;
-                                                            calculateItemTax(itemIndex, price * qty, val);
-                                                        }} value={field.value}>
-                                                            <FormControl>
-                                                                <SelectTrigger className="h-8">
-                                                                    <SelectValue placeholder="Tax" />
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                {taxSlabs.map((slab) => (
-                                                                    <SelectItem key={slab.id} value={slab.id}>
-                                                                        {slab.name} ({slab.percentage}%)
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="text-sm font-medium">
-                                                ₹{useWatch({ control, name: `saleDetails.${index}.items.${itemIndex}.taxAmount` }) || 0}
-                                            </div>
-                                            <div className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                                {(() => {
-                                                    const slabId = useWatch({ control, name: `saleDetails.${index}.items.${itemIndex}.taxSlabId` });
-                                                    const slab = taxSlabs.find(s => s.id === slabId);
-                                                    if (!slab) return '-';
-                                                    if (slab.percentage === 0) return 'Exempt';
-                                                    if (isInterState) return `IGST ${slab.percentage}%`;
-                                                    return `CGST ${slab.percentage / 2}% + SGST ${slab.percentage / 2}%`;
-                                                })()}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right font-medium">
-                                            ₹{useWatch({ control, name: `saleDetails.${index}.items.${itemIndex}.totalAmount` }) || 0}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => removeItem(itemIndex)}
-                                            >
-                                                <Trash className="h-4 w-4 text-red-500" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
+                                    <SaleItemRow
+                                        key={item.id}
+                                        item={item}
+                                        index={index}
+                                        itemIndex={itemIndex}
+                                        form={form}
+                                        taxSlabs={taxSlabs}
+                                        isInterState={isInterState || ""}
+                                        calculateItemTax={calculateItemTax}
+                                        removeItem={removeItem}
+                                    />
                                 ))}
                             </TableBody>
                         </Table>

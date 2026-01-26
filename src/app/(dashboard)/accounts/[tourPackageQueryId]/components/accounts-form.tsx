@@ -112,6 +112,7 @@ interface TourPackageQueryAccountingFormProps {
     }> | null;
     saleDetails: Array<SaleDetail & {
       customer: Customer | null;
+      items?: any[];
     }> | null;
     paymentDetails: Array<PaymentDetail & {
       supplier: Supplier | null;
@@ -121,10 +122,14 @@ interface TourPackageQueryAccountingFormProps {
     }> | null;
     expenseDetails: ExpenseDetail[] | null;
   } | null;
+  taxSlabs?: any[];
+  organization?: any;
 }
 
 export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccountingFormProps> = ({
   initialData,
+  taxSlabs = [],
+  organization = null,
 }) => {
   const params = useParams();
   const router = useRouter();
@@ -257,9 +262,9 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
 
   // Function to calculate GST amount
   const calculateGSTAmount = (price: number, percentage: number): number => {
-    if (price <= 0 || percentage <= 0) return 0;   
-      return parseFloat(((price * percentage) / 100).toFixed(2));
-    
+    if (price <= 0 || percentage <= 0) return 0;
+    return parseFloat(((price * percentage) / 100).toFixed(2));
+
   };
 
   const transformInitialData = (data: any) => {
@@ -636,43 +641,43 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                   <FormField
                     control={form.control}
                     name={`purchaseDetails.${index}.purchaseDate`}
-                    render={({ field }) => (                      <FormItem className="flex flex-col">
-                        <FormLabel>Date of Purchase</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-[240px] pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  formatLocalDate(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={createDatePickerValue(field.value)}
-                              onSelect={(day) => {
-                                if (day) {
-                                  field.onChange(day);
-                                }
+                    render={({ field }) => (<FormItem className="flex flex-col">
+                      <FormLabel>Date of Purchase</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-[240px] pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                formatLocalDate(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={createDatePickerValue(field.value)}
+                            onSelect={(day) => {
+                              if (day) {
+                                field.onChange(day);
                               }
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
+                            }
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
                     )}
                   />
 
@@ -761,7 +766,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
-             
+
                   {/* Description */}
                   <FormField
                     control={form.control}
@@ -819,12 +824,12 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                               >
                                 {field.value
                                   ? (() => {
-                                      const customer = customers.find((customer) => customer.id === field.value);
-                                      if (customer) {
-                                        return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
-                                      }
-                                      return "Select customer...";
-                                    })()
+                                    const customer = customers.find((customer) => customer.id === field.value);
+                                    if (customer) {
+                                      return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
+                                    }
+                                    return "Select customer...";
+                                  })()
                                   : "Select customer..."}
                                 <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
@@ -996,7 +1001,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
-            
+
                   {/* Description */}
                   <FormField
                     control={form.control}
@@ -1256,12 +1261,12 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                               >
                                 {field.value
                                   ? (() => {
-                                      const customer = customers.find((customer) => customer.id === field.value);
-                                      if (customer) {
-                                        return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
-                                      }
-                                      return "Select customer...";
-                                    })()
+                                    const customer = customers.find((customer) => customer.id === field.value);
+                                    if (customer) {
+                                      return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
+                                    }
+                                    return "Select customer...";
+                                  })()
                                   : "Select customer..."}
                                 <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>

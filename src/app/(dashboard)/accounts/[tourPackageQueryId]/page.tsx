@@ -22,6 +22,7 @@ const tourPackageQueryPage = async ({
       {
         include: {
           customer: true,
+          items: true,
         }
       },
       paymentDetails:
@@ -41,10 +42,6 @@ const tourPackageQueryPage = async ({
     }
   });
 
-  return (
-    <>
-      <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
   const taxSlabs = await prismadb.taxSlab.findMany({
     where: { isActive: true },
     orderBy: { percentage: 'asc' }
@@ -61,10 +58,6 @@ const tourPackageQueryPage = async ({
             taxSlabs={taxSlabs}
             organization={organization}
           />
-        </div>
-      </div>
-    </>
-  );
         </div>
       </div>
     </>

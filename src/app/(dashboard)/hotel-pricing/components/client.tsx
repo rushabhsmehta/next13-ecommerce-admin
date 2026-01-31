@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import axios from "axios"
+import axios, { AxiosError } from "axios"
 import { format } from "date-fns"
 import { formatLocalDate } from "@/lib/timezone-utils"
 import { toast } from "react-hot-toast"
@@ -238,10 +238,11 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       setEditId(null)
       form.reset()
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error && 'response' in error 
-        ? (error as any).response?.data?.message 
-        : "Something went wrong"
-      toast.error(errorMessage)
+      if (error instanceof AxiosError && error.response?.data?.message) {
+        toast.error(error.response.data.message)
+      } else {
+        toast.error("Something went wrong")
+      }
     } finally {
       setLoading(false)
     }

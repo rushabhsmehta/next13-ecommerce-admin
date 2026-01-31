@@ -120,7 +120,7 @@ const pricingFormSchema = z.object({
   mealPlanId: z.string().optional(),
 }).refine(
   (values) => values.endDate >= values.startDate,
-  { message: "End date must be after start date", path: ["endDate"] }
+  { message: "End date must be on or after start date", path: ["endDate"] }
 )
 ```
 

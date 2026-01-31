@@ -259,8 +259,8 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       return
     }
 
-    if (row.price < 0) {
-      toast.error("Price must be at least 0")
+    if (row.price <= 0) {
+      toast.error("Price must be greater than 0")
       return
     }
 
@@ -388,7 +388,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   const handleDuplicate = (pricing: PricingPeriod) => {
     const endDate = utcToLocal(pricing.endDate);
     const nextStart = endDate ? addDays(endDate, 1) : new Date();
-    const nextEnd = endDate ? addDays(endDate, 31) : addDays(new Date(), 30);
+    const nextEnd = endDate ? addDays(endDate, 30) : addDays(new Date(), 30);
     
     setEditingRow({
       id: null,

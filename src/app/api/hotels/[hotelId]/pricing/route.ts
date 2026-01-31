@@ -99,8 +99,12 @@ export async function POST(
       return new NextResponse("Hotel not found", { status: 404 });
     }
 
-    const newStart = dateToUtc(startDate)!;
-    const newEnd = dateToUtc(endDate)!;
+    const newStart = dateToUtc(startDate);
+    const newEnd = dateToUtc(endDate);
+
+    if (!newStart || !newEnd) {
+      return new NextResponse("Invalid date format", { status: 400 });
+    }
 
     // If applySplit is true, handle period splitting
     if (applySplit) {

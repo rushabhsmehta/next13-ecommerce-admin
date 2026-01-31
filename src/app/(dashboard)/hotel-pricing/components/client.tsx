@@ -386,13 +386,17 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   }
 
   const handleDuplicate = (pricing: PricingPeriod) => {
+    const endDate = utcToLocal(pricing.endDate);
+    const nextStart = endDate ? addDays(endDate, 1) : new Date();
+    const nextEnd = endDate ? addDays(endDate, 31) : addDays(new Date(), 30);
+    
     setEditingRow({
       id: null,
       roomTypeId: pricing.roomTypeId,
       occupancyTypeId: pricing.occupancyTypeId,
       mealPlanId: pricing.mealPlanId || "",
-      startDate: utcToLocal(pricing.endDate) ? addDays(utcToLocal(pricing.endDate)!, 1) : new Date(),
-      endDate: utcToLocal(pricing.endDate) ? addDays(utcToLocal(pricing.endDate)!, 31) : addDays(new Date(), 30),
+      startDate: nextStart,
+      endDate: nextEnd,
       price: pricing.price,
     })
   }
@@ -635,9 +639,13 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                               <Input
                                 type="number"
                                 value={editingRow.price}
-                                onChange={(e) => 
-                                  setEditingRow({ ...editingRow, price: parseFloat(e.target.value) || 0 })
-                                }
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  const numValue = value === '' ? 0 : parseFloat(value);
+                                  if (!isNaN(numValue) && numValue >= 0) {
+                                    setEditingRow({ ...editingRow, price: numValue });
+                                  }
+                                }}
                                 className="w-full"
                                 min={0}
                               />

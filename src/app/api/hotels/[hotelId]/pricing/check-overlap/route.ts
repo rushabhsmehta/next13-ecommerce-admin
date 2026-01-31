@@ -36,8 +36,12 @@ export async function POST(
       return new NextResponse("Room type and occupancy type are required", { status: 400 });
     }
 
-    const newStart = dateToUtc(startDate)!;
-    const newEnd = dateToUtc(endDate)!;
+    const newStart = dateToUtc(startDate);
+    const newEnd = dateToUtc(endDate);
+
+    if (!newStart || !newEnd) {
+      return new NextResponse("Invalid date format", { status: 400 });
+    }
 
     // Find overlapping pricing periods with the same attributes
     const overlappingPeriods = await prismadb.hotelPricing.findMany({

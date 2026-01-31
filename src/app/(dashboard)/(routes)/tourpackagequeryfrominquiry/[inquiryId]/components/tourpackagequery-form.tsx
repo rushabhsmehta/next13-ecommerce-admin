@@ -171,6 +171,7 @@ const formSchema = z.object({
   tourPackageTemplateName: z.string().optional(),
   selectedTourPackageVariantId: z.string().optional(),
   selectedTourPackageVariantName: z.string().optional(),
+  selectedVariantIds: z.array(z.string()).optional(),
   numberOfRooms: z.number().optional(),
   // Add fields for pricing calculations
   selectedMealPlanId: z.string().optional(),
@@ -466,12 +467,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
-  const handleTourPackageVariantSelection = (tourPackageId: string, selectedVariantId: string) => {
+  const handleTourPackageVariantSelection = (tourPackageId: string, variantIds: string[]) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === tourPackageId);
     if (!selectedTourPackage) {
       toast.error('Unable to locate selected tour package.');
       return;
     }
+
+    // Store the selected variant IDs array
+    form.setValue('selectedVariantIds', variantIds);
+
+    // Handle legacy single variant field for backward compatibility
+    const selectedVariantId = variantIds.length > 0 ? variantIds[0] : '';
 
     if (!selectedVariantId) {
       form.setValue('selectedTourPackageVariantId', '');
@@ -500,34 +507,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('tourPackageTemplateName', combinedTemplateName);
     }
 
-    const hotelDayLookup = new Map<number, string>();
-    variant.variantHotelMappings?.forEach((mapping) => {
-      const dayNumber = mapping.itinerary?.dayNumber;
-      if (typeof dayNumber === 'number') {
-        hotelDayLookup.set(dayNumber, mapping.hotelId);
-      }
-    });
-
-    const currentItineraries = form.getValues('itineraries') || [];
-    let appliedHotelCount = 0;
-
-    const updatedItineraries = currentItineraries.map((itinerary: any) => {
-      const rawDay = itinerary?.dayNumber;
-      const dayNumber = typeof rawDay === 'number' ? rawDay : Number(rawDay);
-      if (Number.isFinite(dayNumber) && hotelDayLookup.has(dayNumber)) {
-        const nextHotelId = hotelDayLookup.get(dayNumber) || itinerary.hotelId || '';
-        if (nextHotelId && nextHotelId !== itinerary.hotelId) {
-          appliedHotelCount += 1;
-        }
-        return {
-          ...itinerary,
-          hotelId: nextHotelId,
-        };
-      }
-      return itinerary;
-    });
-
-    form.setValue('itineraries', updatedItineraries);
+    // Hotel mappings are now handled via variant snapshots created on save
+    // No need to apply them here
 
     if (Array.isArray(variant.tourPackagePricings) && variant.tourPackagePricings.length > 0) {
       const sortedPricings = [...variant.tourPackagePricings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
@@ -540,12 +521,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       }
     }
 
-    if (appliedHotelCount > 0) {
-      toast.success(`Variant details applied for ${appliedHotelCount} itinerary day${appliedHotelCount === 1 ? '' : 's'}.`);
-    } else if (variant.variantHotelMappings && variant.variantHotelMappings.length > 0) {
-      toast.success('Variant selected. No matching itinerary days were updated. Please verify day numbers match the variant configuration.');
-    } else {
-      toast.success('Variant selected. This variant does not define custom hotel mappings.');
+    if (variantIds.length === 1) {
+      toast.success('Variant selected successfully.');
+    } else if (variantIds.length > 1) {
+      toast.success(`${variantIds.length} variants selected successfully.`);
     }
   };
 
@@ -629,10 +608,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     form.setValue('pricingTier', (selectedTourPackage as any).pricingTier || 'standard');
     form.setValue('customMarkup', (selectedTourPackage as any).customMarkup || '');
 
-    handleTourPackageVariantSelection(selectedTourPackageId, '');
+    handleTourPackageVariantSelection(selectedTourPackageId, []);
     const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem) => variantItem.isDefault);
     if (defaultVariant?.id) {
-      handleTourPackageVariantSelection(selectedTourPackageId, defaultVariant.id);
+      handleTourPackageVariantSelection(selectedTourPackageId, [defaultVariant.id]);
     }
   };
 

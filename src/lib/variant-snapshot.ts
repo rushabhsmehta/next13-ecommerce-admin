@@ -111,7 +111,7 @@ export async function createVariantSnapshots(
             hotelName: mapping.hotel.name,
             locationLabel: mapping.hotel.location.label,
             imageUrl: mapping.hotel.images[0]?.url || null,
-            roomCategory: mapping.hotel.roomType || null,
+            roomCategory: null, // Room category not stored at hotel level
           },
         });
       });

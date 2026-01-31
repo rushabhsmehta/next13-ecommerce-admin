@@ -761,7 +761,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       const defaultVariant = selectedTourPackage.packageVariants?.find(variantItem => variantItem.isDefault);
       if (defaultVariant?.id) {
-        handleTourPackageVariantSelection(selectedTourPackageId, defaultVariant.id);
+        handleTourPackageVariantSelection(selectedTourPackageId, [defaultVariant.id]);
       }
     }
   };
@@ -824,12 +824,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       }
     }
 
-    if (appliedHotelCount > 0) {
-      toast.success(`Variant details applied successfully for ${appliedHotelCount} itinerary day${appliedHotelCount === 1 ? '' : 's'}.`);
-    } else if (variant.variantHotelMappings && variant.variantHotelMappings.length > 0) {
-      toast.success('Variant selected. No matching itinerary days were updated. Please verify day numbers match the variant configuration.');
-    } else {
-      toast.success('Variant selected. This variant does not define custom hotel mappings.');
+    if (selectedVariantIds.length === 1) {
+      toast.success('Variant selected successfully.');
+    } else if (selectedVariantIds.length > 1) {
+      toast.success(`${selectedVariantIds.length} variants selected successfully.`);
     }
   };
   const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {

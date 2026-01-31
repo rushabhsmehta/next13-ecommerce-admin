@@ -4,6 +4,7 @@ import { dateToUtc } from '@/lib/timezone-utils';
 
 import prismadb from '@/lib/prismadb';
 import { createAuditLog } from "@/lib/utils/audit-logger";
+import { createVariantSnapshots } from '@/lib/variant-snapshot';
 
 // Enable caching for GET requests - revalidate every 5 minutes
 export const revalidate = 300;
@@ -224,6 +225,7 @@ export async function POST(
             tourPackageTemplateName,
             selectedMealPlanId,
             occupancySelections,
+            selectedVariantIds, // Array of variant IDs to snapshot
             tourStartsFrom,
             tourEndsOn,
             transport,
@@ -534,6 +536,18 @@ export async function POST(
                 // Include relevant relations
             },
         });
+
+        // Create variant snapshots if variant IDs are provided
+        if (selectedVariantIds && Array.isArray(selectedVariantIds) && selectedVariantIds.length > 0) {
+            try {
+                console.log(`📸 Creating variant snapshots for ${selectedVariantIds.length} variants...`);
+                await createVariantSnapshots(newTourPackageQuery.id, selectedVariantIds, { overwrite: true });
+                console.log('✅ Variant snapshots created successfully');
+            } catch (snapshotError) {
+                console.error('❌ Failed to create variant snapshots:', snapshotError);
+                // Non-fatal: Continue even if snapshots fail
+            }
+        }
 
         // Attempt to create an audit log capturing who prepared the query
         try {

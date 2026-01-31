@@ -6,6 +6,7 @@ import prismadb from "@/lib/prismadb";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
 import { createAuditLog } from "@/lib/utils/audit-logger";
+import { createVariantSnapshots } from '@/lib/variant-snapshot';
 
 export const dynamic = 'force-dynamic'; // Ensure API is not cached
 
@@ -50,6 +51,21 @@ export async function GET(
             { dayNumber: 'asc' },
             { days: 'asc' }
           ]
+        },
+        queryVariantSnapshots: {
+          include: {
+            hotelSnapshots: {
+              orderBy: { dayNumber: 'asc' },
+            },
+            pricingSnapshots: {
+              include: {
+                pricingComponentSnapshots: {
+                  orderBy: { createdAt: 'asc' },
+                },
+              },
+            },
+          },
+          orderBy: { sortOrder: 'asc' },
         },
       }
     });
@@ -505,6 +521,7 @@ export async function PATCH(
       tourPackageTemplateName,
       selectedMealPlanId,
       occupancySelections,
+      selectedVariantIds, // Array of variant IDs to snapshot
       itineraries,
     } = body;
 
@@ -816,6 +833,18 @@ export async function PATCH(
         },
       }
     });
+
+    // Update variant snapshots if variant IDs are provided
+    if (selectedVariantIds && Array.isArray(selectedVariantIds) && selectedVariantIds.length > 0) {
+      try {
+        console.log(`📸 Updating variant snapshots for ${selectedVariantIds.length} variants...`);
+        await createVariantSnapshots(params.tourPackageQueryId, selectedVariantIds, { overwrite: true });
+        console.log('✅ Variant snapshots updated successfully');
+      } catch (snapshotError) {
+        console.error('❌ Failed to update variant snapshots:', snapshotError);
+        // Non-fatal: Continue even if snapshots fail
+      }
+    }
 
     // Log audit entry for update (best-effort)
     try {

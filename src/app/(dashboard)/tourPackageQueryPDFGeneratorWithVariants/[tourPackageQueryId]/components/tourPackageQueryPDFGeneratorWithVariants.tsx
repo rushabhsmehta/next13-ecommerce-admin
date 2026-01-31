@@ -34,11 +34,23 @@ interface TourPackageQueryPDFGeneratorWithVariantsProps {
       images: Images[];
     })[];
     associatePartner: AssociatePartner | null;
-    packageVariants?: (PackageVariant & {
-      variantHotelMappings: (VariantHotelMapping & {
-        itinerary: Itinerary | null;
-      })[];
-    })[];
+    queryVariantSnapshots?: {
+      id: string;
+      name: string;
+      description: string | null;
+      priceModifier: number | null;
+      isDefault: boolean;
+      sortOrder: number;
+      hotelSnapshots: {
+        id: string;
+        dayNumber: number;
+        hotelId: string;
+        hotelName: string;
+        locationLabel: string;
+        imageUrl: string | null;
+        roomCategory: string | null;
+      }[];
+    }[];
   } | null;
   locations: Location[];
   hotels: (Hotel & {
@@ -304,7 +316,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
   // Build Package Variants Section
   const buildVariantsSection = useCallback((): string => {
-    if (!initialData?.packageVariants || initialData.packageVariants.length === 0) {
+    if (!initialData?.queryVariantSnapshots || initialData.queryVariantSnapshots.length === 0) {
       return "";
     }
 
@@ -331,21 +343,12 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         </div>
         
         <div style="${contentStyle}">
-          ${initialData.packageVariants.map((variant, variantIndex) => {
-      const hotelMappings: Record<string, string> = {};
-      if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
-        variant.variantHotelMappings.forEach((mapping: any) => {
-          const dayNum = mapping.itinerary?.dayNumber;
-          if (dayNum && mapping.hotelId) {
-            hotelMappings[String(dayNum)] = mapping.hotelId;
-          }
-        });
-      }
-
-      const mappingEntries = Object.entries(hotelMappings).sort(([a], [b]) => Number(a) - Number(b));
+          ${initialData.queryVariantSnapshots.map((variant, variantIndex) => {
+      // Hotel snapshots are already organized by day
+      const hotelsByDay = variant.hotelSnapshots.sort((a, b) => a.dayNumber - b.dayNumber);
 
       return `
-              <div style="margin-bottom: ${variantIndex < initialData.packageVariants!.length - 1 ? '32px' : '0'}; page-break-inside: avoid; break-inside: avoid-page;">
+              <div style="margin-bottom: ${variantIndex < initialData.queryVariantSnapshots!.length - 1 ? '32px' : '0'}; page-break-inside: avoid; break-inside: avoid-page;">
                 <div style="background: ${brandGradients.secondary}; padding: 16px 20px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
                   <div style="flex: 1;">
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: ${brandColors.white}; display: flex; align-items: center; gap: 8px;">
@@ -372,7 +375,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   </div>
                 </div>
 
-                ${mappingEntries.length > 0 ? `
+                ${hotelsByDay.length > 0 ? `
                   <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-top: none; border-radius: 0 0 8px 8px; padding: 20px;">
                     <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                       <span style="color: ${brandColors.secondary};">🏨</span>
@@ -380,21 +383,18 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                     </div>
                     
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                      ${mappingEntries.map(([dayNum, hotelId]) => {
-        const hotel = hotels.find(h => h.id === hotelId);
-        if (!hotel) return '';
-
+                      ${hotelsByDay.map((hotelSnapshot) => {
         return `
                           <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); page-break-inside: avoid; break-inside: avoid-page;">
                             <div style="background: ${brandGradients.primary}; padding: 8px 12px;">
                               <div style="font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.5px;">
-                                Day ${dayNum}
+                                Day ${hotelSnapshot.dayNumber}
                               </div>
                             </div>
                             
-                            ${hotel.images && hotel.images.length > 0 ? `
+                            ${hotelSnapshot.imageUrl ? `
                               <div style="width: 100%; height: 140px; overflow: hidden; background: #f3f4f6;">
-                                <img src="${hotel.images[0].url}" alt="${hotel.name}" style="width: 100%; height: 100%; object-fit: cover;" />
+                                <img src="${hotelSnapshot.imageUrl}" alt="${hotelSnapshot.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
                               </div>
                             ` : `
                               <div style="width: 100%; height: 140px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
@@ -404,17 +404,15 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                             
                             <div style="padding: 12px;">
                               <h4 style="margin: 0 0 6px 0; font-size: 14px; font-weight: 600; color: ${brandColors.text}; line-height: 1.3;">
-                                ${hotel.name}
+                                ${hotelSnapshot.hotelName}
                               </h4>
-                              ${hotel.destination ? `
-                                <div style="font-size: 12px; color: ${brandColors.muted}; display: flex; align-items: center; gap: 4px;">
-                                  <span>📍</span>
-                                  ${hotel.destination.name}
-                                </div>
-                              ` : hotel.location ? `
-                                <div style="font-size: 12px; color: ${brandColors.muted}; display: flex; align-items: center; gap: 4px;">
-                                  <span>📍</span>
-                                  ${hotel.location.label}
+                              <div style="font-size: 12px; color: ${brandColors.muted}; display: flex; align-items: center; gap: 4px;">
+                                <span>📍</span>
+                                ${hotelSnapshot.locationLabel}
+                              </div>
+                              ${hotelSnapshot.roomCategory ? `
+                                <div style="margin-top: 4px; font-size: 11px; color: ${brandColors.secondary}; font-weight: 500;">
+                                  ${hotelSnapshot.roomCategory}
                                 </div>
                               ` : ''}
                             </div>
@@ -442,7 +440,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         </div>
       </div>
     `;
-  }, [initialData, hotels, brandColors, brandGradients, cardStyle, contentStyle, pageBreakBefore]);
+  }, [initialData, brandColors, brandGradients, cardStyle, contentStyle, pageBreakBefore]);
 
   // Build HTML Content
   const buildHtmlContent = useCallback((): string => {

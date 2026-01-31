@@ -206,7 +206,7 @@ model TransportPricing {
 }
 
 model TourPackageQuery {
-  id                               String            @id @default(uuid())
+  id                               String                 @id @default(uuid())
   tourPackageQueryName             String?
   customerName                     String?
   numDaysNight                     String?
@@ -215,11 +215,11 @@ model TourPackageQuery {
   numAdults                        String?
   numChild5to12                    String?
   numChild0to5                     String?
-  price                            String?           @db.Text
-  isFeatured                       Boolean           @default(false)
-  isArchived                       Boolean           @default(false)
-  createdAt                        DateTime          @default(now())
-  updatedAt                        DateTime          @updatedAt
+  price                            String?                @db.Text
+  isFeatured                       Boolean                @default(false)
+  isArchived                       Boolean                @default(false)
+  createdAt                        DateTime               @default(now())
+  updatedAt                        DateTime               @updatedAt
   assignedTo                       String? // RESTORED TEMPORARILY TO FIX PARSING, WILL REMOVE CORRECTLY
   // assignedToEmail                  String?
   assignedToMobileNumber           String?
@@ -228,7 +228,7 @@ model TourPackageQuery {
   pricePerChild5to12YearsNoBed     String?
   pricePerChildOrExtraBed          String?
   pricePerChildwithSeatBelow5Years String?
-  totalPrice                       String?           @db.Text
+  totalPrice                       String?                @db.Text
   transport                        String?
   tourPackageQueryNumber           String?
   customerNumber                   String?
@@ -236,9 +236,9 @@ model TourPackageQuery {
   pickup_location                  String?
   tourEndsOn                       DateTime?
   tourStartsFrom                   DateTime?
-  remarks                          String?           @db.Text
+  remarks                          String?                @db.Text
   tourPackageQueryType             String?
-  disclaimer                       String?           @db.Text
+  disclaimer                       String?                @db.Text
   inquiryId                        String?
   associatePartnerId               String?
   pricingSection                   Json?
@@ -256,8 +256,8 @@ model TourPackageQuery {
   paymentPolicy                    Json?
   termsconditions                  Json?
   usefulTip                        Json?
-  tourCategory                     String?           @default("Domestic")
-  location                         Location          @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
+  tourCategory                     String?                @default("Domestic")
+  location                         Location               @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
   flightDetails                    FlightDetails[]
   itineraries                      Itinerary[]
   itinerariesMaster                ItineraryMaster[]
@@ -269,8 +269,9 @@ model TourPackageQuery {
   expenseDetails                   ExpenseDetail[]
   incomeDetails                    IncomeDetail[]
   flightTickets                    FlightTicket[]
-  inquiry                          Inquiry?          @relation(fields: [inquiryId], references: [id])
-  associatePartner                 AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  inquiry                          Inquiry?               @relation(fields: [inquiryId], references: [id])
+  associatePartner                 AssociatePartner?      @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  queryVariantSnapshots            QueryVariantSnapshot[]
 
   @@index([locationId])
   @@index([inquiryId])
@@ -280,6 +281,86 @@ model TourPackageQuery {
   @@index([locationId, isArchived, updatedAt])
   @@index([tourPackageQueryNumber])
   @@index([customerNumber])
+}
+
+// Variant Snapshot Models - Preserve variant state independent of source TourPackage
+model QueryVariantSnapshot {
+  id                 String                        @id @default(uuid())
+  tourPackageQueryId String
+  sourceVariantId    String // Original PackageVariant ID for reference
+  name               String // "Luxury", "Premium", "Standard"
+  description        String?                       @db.Text
+  isDefault          Boolean                       @default(false)
+  sortOrder          Int                           @default(0)
+  priceModifier      Float? // % adjustment from base price
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  tourPackageQuery   TourPackageQuery              @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  hotelSnapshots     QueryVariantHotelSnapshot[]
+  pricingSnapshots   QueryVariantPricingSnapshot[]
+
+  @@index([tourPackageQueryId])
+  @@index([sourceVariantId])
+  @@index([sortOrder])
+}
+
+model QueryVariantHotelSnapshot {
+  id                String               @id @default(uuid())
+  variantSnapshotId String
+  dayNumber         Int
+  hotelId           String // Reference to Hotel for lookups
+  hotelName         String
+  locationLabel     String
+  imageUrl          String?              @db.Text
+  roomCategory      String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  variantSnapshot   QueryVariantSnapshot @relation(fields: [variantSnapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([variantSnapshotId, dayNumber])
+  @@index([variantSnapshotId])
+  @@index([hotelId])
+  @@index([dayNumber])
+}
+
+model QueryVariantPricingSnapshot {
+  id                        String                                 @id @default(uuid())
+  variantSnapshotId         String
+  startDate                 DateTime
+  endDate                   DateTime
+  mealPlanId                String? // Reference for lookups
+  mealPlanName              String
+  numberOfRooms             Int                                    @default(1)
+  isGroupPricing            Boolean                                @default(false)
+  vehicleTypeId             String? // Reference for lookups
+  vehicleTypeName           String?
+  totalPrice                Decimal                                @db.Decimal(10, 2)
+  description               String?                                @db.Text
+  createdAt                 DateTime                               @default(now())
+  updatedAt                 DateTime                               @updatedAt
+  variantSnapshot           QueryVariantSnapshot                   @relation(fields: [variantSnapshotId], references: [id], onDelete: Cascade)
+  pricingComponentSnapshots QueryVariantPricingComponentSnapshot[]
+
+  @@index([variantSnapshotId])
+  @@index([mealPlanId])
+  @@index([vehicleTypeId])
+  @@index([startDate, endDate])
+}
+
+model QueryVariantPricingComponentSnapshot {
+  id                 String                      @id @default(uuid())
+  pricingSnapshotId  String
+  pricingAttributeId String? // Reference for lookups
+  attributeName      String // "Per Person", "Per Room", etc.
+  price              Decimal                     @db.Decimal(10, 2)
+  purchasePrice      Decimal?                    @db.Decimal(10, 2)
+  description        String?                     @db.Text
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  pricingSnapshot    QueryVariantPricingSnapshot @relation(fields: [pricingSnapshotId], references: [id], onDelete: Cascade)
+
+  @@index([pricingSnapshotId])
+  @@index([pricingAttributeId])
 }
 
 model PurchaseDetail {

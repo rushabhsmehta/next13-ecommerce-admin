@@ -164,7 +164,8 @@ const formSchema = z.object({
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
   tourPackageTemplateName: z.string().optional(),
-  selectedTourPackageVariantId: z.string().optional(),
+  selectedVariantIds: z.array(z.string()).optional(), // Array of variant IDs for snapshots
+  selectedTourPackageVariantId: z.string().optional(), // Kept for backward compatibility
   selectedTourPackageVariantName: z.string().optional(),
   numberOfRooms: z.number().optional(),
   // Added fields for storing pricing configuration
@@ -455,6 +456,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
       selectedMealPlanId: initialData.selectedMealPlanId || '',
+      selectedVariantIds: (initialData as any).selectedVariantIds || [], // Initialize from saved data
       selectedTourPackageVariantId: (initialData as any).selectedTourPackageVariantId || '',
       selectedTourPackageVariantName: (initialData as any).selectedTourPackageVariantName || '',
       numberOfRooms: (initialData as any).numberOfRooms ?? 1,
@@ -512,6 +514,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedTemplateType: '',
       tourPackageTemplateName: '',
       selectedMealPlanId: '',
+      selectedVariantIds: [], // Empty array for new queries
       selectedTourPackageVariantId: '',
       selectedTourPackageVariantName: '',
       numberOfRooms: 1,
@@ -763,69 +766,55 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
-  const handleTourPackageVariantSelection = (tourPackageId: string, selectedVariantId: string) => {
+  const handleTourPackageVariantSelection = (tourPackageId: string, selectedVariantIds: string[]) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === tourPackageId);
     if (!selectedTourPackage) {
       toast.error('Unable to locate selected tour package.');
       return;
     }
 
-    if (!selectedVariantId) {
+    // Store the array of selected variant IDs
+    form.setValue('selectedVariantIds', selectedVariantIds);
+
+    if (!selectedVariantIds || selectedVariantIds.length === 0) {
+      // Clear variant selection, revert to base package
       form.setValue('selectedTourPackageVariantId', '');
       form.setValue('selectedTourPackageVariantName', '');
       form.setValue('selectedTemplateId', tourPackageId);
       form.setValue('selectedTemplateType', 'TourPackage');
       form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${tourPackageId.substring(0, 8)}`);
+      toast.success('Variant selection cleared');
       return;
     }
 
-    const variant = selectedTourPackage.packageVariants?.find(variantItem => variantItem.id === selectedVariantId);
-    if (!variant) {
-      toast.error('Variant not found for selected tour package.');
-      return;
+    // Get variant names for display
+    const variants = selectedTourPackage.packageVariants?.filter(v => selectedVariantIds.includes(v.id)) || [];
+    const variantNames = variants.map(v => v.name).join(', ');
+
+    // Store first variant for backward compatibility (if needed by other code)
+    const firstVariant = variants[0];
+    if (firstVariant) {
+      form.setValue('selectedTourPackageVariantId', firstVariant.id);
+      form.setValue('selectedTourPackageVariantName', firstVariant.name || 'Variant');
     }
 
-    form.setValue('selectedTourPackageVariantId', selectedVariantId);
-    form.setValue('selectedTourPackageVariantName', variant.name || 'Variant');
-    form.setValue('selectedTemplateId', selectedVariantId);
+    // Set template info
+    form.setValue('selectedTemplateId', tourPackageId); // Keep package ID as template
     form.setValue('selectedTemplateType', 'TourPackageVariant');
     form.setValue('tourPackageTemplate', tourPackageId);
-    const combinedTemplateName = [selectedTourPackage.tourPackageName, variant.name].filter(Boolean).join(' - ');
+    
+    const combinedTemplateName = [selectedTourPackage.tourPackageName, variantNames].filter(Boolean).join(' - ');
     if (combinedTemplateName) {
       form.setValue('tourPackageTemplateName', combinedTemplateName);
     }
 
-    const hotelDayLookup = new Map<number, string>();
-    variant.variantHotelMappings?.forEach(mapping => {
-      const dayNumber = mapping.itinerary?.dayNumber;
-      if (typeof dayNumber === 'number') {
-        hotelDayLookup.set(dayNumber, mapping.hotelId);
-      }
-    });
+    // NOTE: Hotel mappings are NO LONGER applied to itineraries here
+    // The snapshots will store the hotel mappings per variant
+    // The UI will display multiple hotel options from different variants side-by-side
 
-    const currentItineraries = form.getValues('itineraries') || [];
-    let appliedHotelCount = 0;
-
-    const updatedItineraries = currentItineraries.map((itinerary: any) => {
-      const rawDay = itinerary?.dayNumber;
-      const dayNumber = typeof rawDay === 'number' ? rawDay : Number(rawDay);
-      if (Number.isFinite(dayNumber) && hotelDayLookup.has(dayNumber)) {
-        const nextHotelId = hotelDayLookup.get(dayNumber) || itinerary.hotelId || '';
-        if (nextHotelId && nextHotelId !== itinerary.hotelId) {
-          appliedHotelCount += 1;
-        }
-        return {
-          ...itinerary,
-          hotelId: nextHotelId,
-        };
-      }
-      return itinerary;
-    });
-
-    form.setValue('itineraries', updatedItineraries);
-
-    if (Array.isArray(variant.tourPackagePricings) && variant.tourPackagePricings.length > 0) {
-      const sortedPricings = [...variant.tourPackagePricings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    // Apply pricing from first variant if available (for backward compatibility with pricing tab)
+    if (firstVariant && Array.isArray(firstVariant.tourPackagePricings) && firstVariant.tourPackagePricings.length > 0) {
+      const sortedPricings = [...firstVariant.tourPackagePricings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
       const primaryPricing = sortedPricings[0];
       if (primaryPricing?.mealPlanId) {
         form.setValue('selectedMealPlanId', primaryPricing.mealPlanId);

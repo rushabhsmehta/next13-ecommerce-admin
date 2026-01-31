@@ -10,6 +10,7 @@ import { format, parseISO } from 'date-fns';
 import { formatLocalDate } from '@/lib/timezone-utils';
 import { Separator } from '@radix-ui/react-separator';
 import { useEffect, useState } from 'react';
+import { VariantComparisonSection } from '@/components/tour-package-query/VariantComparisonSection';
 
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
@@ -26,6 +27,36 @@ interface TourPackageQueryDisplayProps {
       images: Images[];
     })[];
     associatePartner: AssociatePartner | null;
+    queryVariantSnapshots?: {
+      id: string;
+      name: string;
+      description: string | null;
+      priceModifier: number | null;
+      isDefault: boolean;
+      sortOrder: number;
+      hotelSnapshots: {
+        id: string;
+        dayNumber: number;
+        hotelName: string;
+        locationLabel: string;
+        imageUrl: string | null;
+        roomCategory: string | null;
+      }[];
+      pricingSnapshots: {
+        id: string;
+        mealPlanName: string;
+        vehicleTypeName: string | null;
+        numberOfRooms: number;
+        totalPrice: any;
+        pricingComponentSnapshots: {
+          id: string;
+          attributeName: string;
+          price: any;
+          purchasePrice: any | null;
+          description: string | null;
+        }[];
+      }[];
+    }[];
   } | null;
   locations: Location[];
   hotels: (Hotel & {
@@ -387,7 +418,25 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardContent>
           </Card>
         )}
- */}      {/* Enhanced Pricing Options Table */}
+ */}
+      {/* Variant Comparison Section */}
+      {initialData.queryVariantSnapshots && initialData.queryVariantSnapshots.length > 0 && (
+        <Card className="break-inside-avoid border border-blue-200 shadow-md rounded-xl avoid-break-inside">
+          <CardHeader className="px-5 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-blue-100">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
+              Package Variants
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Compare different package options with varying accommodations and pricing
+            </p>
+          </CardHeader>
+          <CardContent className="px-5 py-6">
+            <VariantComparisonSection variants={initialData.queryVariantSnapshots} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Enhanced Pricing Options Table */}
       {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && parsePricingSection(initialData.pricingSection).length > 0 && (
         <div className="mt-4 border border-orange-200 rounded-lg overflow-hidden shadow-sm">
           <div className="bg-gray-50 px-4 py-3 border-b border-orange-100 flex items-center justify-between">

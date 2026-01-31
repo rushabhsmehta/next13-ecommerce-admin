@@ -12,19 +12,29 @@ export async function GET(
     }
 
     const supplier = await prismadb.supplier.findUnique({
-      where: { id: params.supplierId },
-      select: { 
-        id: true, 
-        name: true, 
-        contact: true, 
-        email: true, 
-        createdAt: true,
-        locations: {
-          select: {
-            location: true
+        where: { id: params.supplierId },
+        select: {
+          id: true,
+          name: true,
+          contact: true,
+          gstNumber: true,
+          address: true,
+          email: true,
+          createdAt: true,
+          locations: {
+            select: {
+              location: true
+            }
+          },
+          contacts: {
+            select: {
+              id: true,
+              number: true,
+              label: true,
+              isPrimary: true
+            }
           }
-        }
-      },
+        },
     });
 
     return NextResponse.json(supplier);
@@ -64,13 +74,15 @@ export async function PATCH(
     if (!params.supplierId) return new NextResponse("Supplier ID is required", { status: 400 });
 
     const body = await req.json();
-    const { name, contact, email, locationIds } = body;
+    const { name, contact, email, locationIds, gstNumber, address, contacts } = body;
     if (!name) return new NextResponse("Name is required", { status: 400 });
 
     // Delete existing supplier-location relationships
     await prismadb.supplierLocation.deleteMany({
       where: { supplierId: params.supplierId }
     });
+    // Delete existing supplier contacts and recreate if provided
+    await prismadb.supplierContact.deleteMany({ where: { supplierId: params.supplierId } });
     
     // Create new supplier-location relationships
     let locationData = {};
@@ -88,18 +100,24 @@ export async function PATCH(
 
     const supplier = await prismadb.supplier.update({
       where: { id: params.supplierId },
-      data: { 
-        name, 
-        contact, 
+      data: {
+        name,
+        contact,
         email,
-        ...locationData
+        gstNumber,
+        address,
+        ...locationData,
+        contacts: contacts && contacts.length > 0 ? {
+          create: contacts.map((num: string) => ({ number: String(num) }))
+        } : undefined
       },
       include: {
         locations: {
           include: {
             location: true
           }
-        }
+        },
+        contacts: true
       }
     });
 

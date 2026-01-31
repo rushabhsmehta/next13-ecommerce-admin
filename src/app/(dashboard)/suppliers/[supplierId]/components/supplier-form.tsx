@@ -33,6 +33,9 @@ import { MultiSelect } from "@/components/ui/multi-select"; // You'll need to im
 const formSchema = z.object({
   name: z.string().min(1),
   contact: z.string().optional(),
+  gstNumber: z.string().optional(),
+  address: z.string().optional(),
+  contacts: z.array(z.string()).optional(),
   email: z.string().optional().or(z.literal('')),
   locationIds: z.array(z.string()).optional(),
 });
@@ -48,7 +51,10 @@ interface SupplierFormProps {
   initialData: { 
     id: string; 
     name: string; 
-    contact?: string | null; 
+    contact?: string | null;
+    gstNumber?: string | null;
+    address?: string | null;
+    contacts?: Array<{id: string; number: string}>;
     email?: string | null;
     locations?: Array<{location: Location}>;
   } | null;
@@ -90,10 +96,13 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
     ? {
         name: initialData.name,
         contact: initialData.contact || "",
+        gstNumber: initialData.gstNumber || "",
+        address: initialData.address || "",
+        contacts: initialData.contacts?.map(c => c.number) || [],
         email: initialData.email || "",
         locationIds: initialData.locations?.map(l => l.location.id) || [],
       }
-    : { name: "", contact: "", email: "", locationIds: [] };
+    : { name: "", contact: "", gstNumber: "", address: "", contacts: [], email: "", locationIds: [] };
 
   const form = useForm<SupplierFormValues>({
     resolver: zodResolver(formSchema),
@@ -166,9 +175,62 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
               name="contact"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contact</FormLabel>
+                  <FormLabel>Primary Contact</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Contact info" {...field} />
+                    <Input disabled={loading} placeholder="Primary contact" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="contacts"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Other Contacts (one per line)</FormLabel>
+                  <FormControl>
+                    <textarea
+                      disabled={loading}
+                      placeholder="Enter additional contact numbers, one per line"
+                      className="w-full p-2 rounded border"
+                      value={(field.value || []).join('\n')}
+                      onChange={(e) => field.onChange(e.target.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean))}
+                      rows={4}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="gstNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>GST Number</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="GST Number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <textarea
+                      disabled={loading}
+                      placeholder="Supplier address"
+                      className="w-full p-2 rounded border"
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      rows={3}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

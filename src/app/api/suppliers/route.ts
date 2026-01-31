@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, contact, email, locationIds } = body;
+    const { name, contact, email, locationIds, gstNumber, address, contacts } = body;
 
     // Validation
     if (!name) return new NextResponse("Name is required", { status: 400 });
@@ -35,14 +35,21 @@ export async function POST(req: Request) {
         name,
         contact,
         email,
-        ...locationData
+        gstNumber,
+        address,
+        ...locationData,
+        // Create supplier contact records if provided
+        contacts: contacts && contacts.length > 0 ? {
+          create: contacts.map((num: string) => ({ number: String(num) }))
+        } : undefined
       },
       include: {
         locations: {
           include: {
             location: true
           }
-        }
+        },
+        contacts: true
       }
     });
 
@@ -61,6 +68,8 @@ export async function GET(req: Request) {
         id: true,
         name: true,
         contact: true,
+        gstNumber: true,
+        address: true,
         email: true,
         createdAt: true,
         locations: {
@@ -71,6 +80,13 @@ export async function GET(req: Request) {
                 label: true
               }
             }
+          }
+        },
+        contacts: {
+          select: {
+            number: true,
+            label: true,
+            isPrimary: true
           }
         }
       },

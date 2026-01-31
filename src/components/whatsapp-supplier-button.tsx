@@ -23,8 +23,9 @@ import { cn } from "@/lib/utils";
 interface Supplier {
   id: string;
   name: string;
-  contact: string;
+  contact?: string;
   email?: string;
+  contacts?: Array<{ number: string }>; // new contacts array
 }
 
 // Types for inquiry data
@@ -116,7 +117,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
       const response = await fetch('/api/suppliers');
       if (response.ok) {
         const suppliersData = await response.json();
-        const validSuppliers = suppliersData.filter((supplier: Supplier) => supplier.contact);
+        const validSuppliers = suppliersData.filter((supplier: Supplier) => supplier.contact || (supplier.contacts && supplier.contacts.length > 0));
         setSuppliers(validSuppliers);
         setFilteredSuppliers(validSuppliers);
       } else {
@@ -136,7 +137,8 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     } else {
       const filtered = suppliers.filter(supplier =>
         supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.contact.includes(searchTerm)
+        (supplier.contact && supplier.contact.includes(searchTerm)) ||
+        (supplier.contacts && supplier.contacts.some(c => c.number.includes(searchTerm)))
       );
       setFilteredSuppliers(filtered);
     }
@@ -154,7 +156,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     const supplier = suppliers.find(s => s.id === value);
     if (supplier) {
       setSelectedSupplier(supplier.id);
-      setSupplierPhone(supplier.contact);
+      setSupplierPhone(supplier.contact || (supplier.contacts && supplier.contacts[0]?.number) || '');
     } else {
       setSelectedSupplier('');
       setSupplierPhone('');
@@ -394,7 +396,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                       return supplier ? (
                         <div className="flex flex-col items-start text-left">
                           <span className="font-medium">{supplier.name}</span>
-                          <span className="text-xs text-muted-foreground">{supplier.contact}</span>
+                          <span className="text-xs text-muted-foreground">{supplier.contact || supplier.contacts?.[0]?.number}</span>
                         </div>
                       ) : "Select supplier...";
                     })()
@@ -442,7 +444,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                           />
                           <div className="flex flex-col">
                             <span className="font-medium">{supplier.name}</span>
-                            <span className="text-xs text-muted-foreground">{supplier.contact}</span>
+                            <span className="text-xs text-muted-foreground">{supplier.contact || supplier.contacts?.[0]?.number}</span>
                           </div>
                         </CommandItem>
                       ))}

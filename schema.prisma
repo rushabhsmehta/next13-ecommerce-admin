@@ -1,7 +1,7 @@
 generator client {
-  provider        = "prisma-client-js"
-  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
-  engineType      = "binary"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  engineType    = "binary"
 }
 
 datasource db {
@@ -840,6 +840,9 @@ model Supplier {
   id              String             @id @default(uuid())
   name            String
   contact         String?
+  gstNumber       String?
+  address         String?            @db.Text
+  contacts        SupplierContact[]
   email           String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -873,6 +876,20 @@ model SupplierLocation {
   @@unique([supplierId, locationId])
   @@index([supplierId])
   @@index([locationId])
+}
+
+model SupplierContact {
+  id         String   @id @default(uuid())
+  supplierId String
+  number     String
+  label      String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([number])
 }
 
 model AssociatePartner {
@@ -920,9 +937,9 @@ model Inquiry {
   status               String             @default("pending")
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @default(now())
-  fb_click_id          String?            // Stores fbclid
-  fb_client_id         String?            // Stores _fbp
-  fb_browser_id        String?            // Stores _fbc
+  fb_click_id          String? // Stores fbclid
+  fb_client_id         String? // Stores _fbp
+  fb_browser_id        String? // Stores _fbc
   journeyDate          DateTime?          @db.Date
   assignedStaffAt      DateTime?
   assignedToStaffId    String?

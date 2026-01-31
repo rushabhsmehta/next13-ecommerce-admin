@@ -78,6 +78,7 @@ const NAV_ITEMS = [
   {
     title: "Configuration",
     items: [
+      { title: "Hotel Pricing Dashboard", url: "/hotel-pricing" },
       { title: "Meal Plans", url: "/settings/meal-plans" },
       { title: "Room Types", url: "/settings/room-types" },
       { title: "Occupancy Types", url: "/settings/occupancy-types" },

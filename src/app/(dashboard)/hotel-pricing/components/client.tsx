@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import axios from "axios"
 import { format } from "date-fns"
 import { formatLocalDate } from "@/lib/timezone-utils"
@@ -145,7 +145,7 @@ const pricingFormSchema = z.object({
     return values.endDate >= values.startDate;
   },
   {
-    message: "End date must be after start date",
+    message: "End date must be on or after start date",
     path: ["endDate"],
   }
 )
@@ -185,19 +185,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     }
   })
 
-  // Fetch pricing when hotel is selected
-  useEffect(() => {
-    if (selectedHotelId) {
-      const hotel = hotels.find(h => h.id === selectedHotelId)
-      setSelectedHotel(hotel || null)
-      fetchPricingPeriods()
-    } else {
-      setSelectedHotel(null)
-      setPricingPeriods([])
-    }
-  }, [selectedHotelId, hotels])
-
-  const fetchPricingPeriods = async () => {
+  const fetchPricingPeriods = useCallback(async () => {
     if (!selectedHotelId) return
     
     try {
@@ -210,7 +198,19 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedHotelId])
+
+  // Fetch pricing when hotel is selected
+  useEffect(() => {
+    if (selectedHotelId) {
+      const hotel = hotels.find(h => h.id === selectedHotelId)
+      setSelectedHotel(hotel || null)
+      fetchPricingPeriods()
+    } else {
+      setSelectedHotel(null)
+      setPricingPeriods([])
+    }
+  }, [selectedHotelId, hotels, fetchPricingPeriods])
 
   const onSubmit = async (data: PricingFormValues) => {
     if (!selectedHotelId) {
@@ -237,8 +237,11 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       setIsEditMode(false)
       setEditId(null)
       form.reset()
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Something went wrong")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error 
+        ? (error as any).response?.data?.message 
+        : "Something went wrong"
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

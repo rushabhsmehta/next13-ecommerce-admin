@@ -174,7 +174,9 @@ const tourPackageQueryPage = async ({
     prismadb.tourPackage.findMany({
       where: {
         isArchived: false,
-        ...(locationId ? { locationId } : {}),
+        // For new queries, don't fetch any packages (will be loaded dynamically)
+        // For editing, fetch packages for that location
+        locationId: locationId || 'no-initial-fetch',
       },
       include: {
         images: {
@@ -230,7 +232,10 @@ const tourPackageQueryPage = async ({
           }
         },
       },
-      take: 20,
+      orderBy: {
+        tourPackageName: 'asc',
+      },
+      take: 100,
     }),
     prismadb.tourPackageQuery.findMany({
       where: {

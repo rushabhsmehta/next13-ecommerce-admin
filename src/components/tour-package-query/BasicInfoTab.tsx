@@ -40,6 +40,7 @@ import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[
 import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, TOUR_CATEGORY_DEFAULT } from "./defaultValues";
 
 type TourPackageWithVariants = TourPackage & {
+  itineraries?: Itinerary[] | null;
   packageVariants?: (PackageVariant & {
     variantHotelMappings: (VariantHotelMapping & {
       hotel: Hotel;
@@ -108,7 +109,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                         "w-full justify-between",
                         !field.value && "text-muted-foreground"
                       )}
-                      disabled={!form.getValues('locationId')}                    >
+                      disabled={!form.getValues('locationId')}
+                    >
                       {!form.getValues('locationId')
                         ? "Select a location first"
                         : field.value && tourPackages?.find(tp => tp.id === field.value)
@@ -126,24 +128,33 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     <CommandGroup>
                       {tourPackages
                         ?.filter(tp => tp.locationId === form.getValues('locationId'))
-                        .map((tourPackage) => (
-                          <CommandItem
-                            value={tourPackage.tourPackageName ?? ''}
-                            key={tourPackage.id}
-                            onSelect={() => {
-                              handleTourPackageSelection(tourPackage.id);
-                              setOpenTemplate(false); // Close the popover after selection
-                            }}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                tourPackage.id === field.value ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {tourPackage.tourPackageName}
-                          </CommandItem>
-                        ))}
+                        .map((tourPackage) => {
+                          console.log('🔍 Tour package in list:', {
+                            id: tourPackage.id,
+                            name: tourPackage.tourPackageName,
+                            hasItineraries: !!tourPackage.itineraries,
+                            hasVariants: !!tourPackage.packageVariants
+                          });
+                          return (
+                            <CommandItem
+                              value={tourPackage.tourPackageName ?? ''}
+                              key={tourPackage.id}
+                              onSelect={() => {
+                                console.log('🎯 Selected tour package:', tourPackage.id, tourPackage.tourPackageName);
+                                handleTourPackageSelection(tourPackage.id);
+                                setOpenTemplate(false);
+                              }}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  tourPackage.id === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {tourPackage.tourPackageName}
+                            </CommandItem>
+                          );
+                        })}
                     </CommandGroup>
                   </Command>
                 </PopoverContent>

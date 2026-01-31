@@ -307,11 +307,16 @@ export async function GET(
     try {
         const { searchParams } = new URL(req.url)
         const locationId = searchParams.get('locationId') || undefined;
-        //  const hotelId = searchParams.get('hotelId') || undefined;
+        const isArchivedParam = searchParams.get('isArchived');
+        const includeVariantsParam = searchParams.get('includeVariants');
+        const includeCompleteParam = searchParams.get('includeComplete');
         const isFeaturedParam = searchParams.get('isFeatured');
         const limitParam = searchParams.get('limit');
         const summaryParam = searchParams.get('summary');
 
+        const isArchived = isArchivedParam === 'true' ? true : isArchivedParam === 'false' ? false : false;
+        const includeVariants = includeVariantsParam === 'true';
+        const includeComplete = includeCompleteParam === 'true';
         const isFeatured =
             typeof isFeaturedParam === 'string'
                 ? ['true', '1'].includes(isFeaturedParam.toLowerCase())
@@ -324,7 +329,7 @@ export async function GET(
         const baseWhere = {
             locationId,
             isFeatured: isFeatured ? true : isFeatured === false ? false : undefined,
-            isArchived: false,
+            isArchived,
         } satisfies Prisma.TourPackageWhereInput;
 
         const orderBy = [
@@ -417,26 +422,67 @@ export async function GET(
             return NextResponse.json(summaries);
         }
 
-        const tourPackage = await prismadb.tourPackage.findMany({
-            where: baseWhere,
-            include: {
-                images: true,
-                location: true,
-                itineraries: {
-                    include: {
-                        itineraryImages: true,
-                        activities: {
-                            include: {
-                                activityImages: true,
-                            },
+        const includeConfig: any = {
+            images: true,
+            location: true,
+            itineraries: {
+                include: {
+                    itineraryImages: true,
+                    activities: {
+                        include: {
+                            activityImages: true,
                         },
                     },
-                    orderBy: [
-                        { dayNumber: 'asc' },
-                        { days: 'asc' }
-                    ]
                 },
+                orderBy: [
+                    { dayNumber: 'asc' },
+                    { days: 'asc' }
+                ]
             },
+        };
+
+        // Add flight details if complete data requested
+        if (includeComplete) {
+            includeConfig.flightDetails = {
+                include: {
+                    images: true,
+                }
+            };
+        }
+
+        // Add package variants if requested
+        if (includeVariants || includeComplete) {
+            includeConfig.packageVariants = {
+                include: {
+                    variantHotelMappings: {
+                        include: {
+                            hotel: {
+                                include: {
+                                    images: true,
+                                }
+                            },
+                            itinerary: true,
+                        }
+                    },
+                    tourPackagePricings: {
+                        include: {
+                            mealPlan: true,
+                            vehicleType: true,
+                            locationSeasonalPeriod: true,
+                            pricingComponents: {
+                                include: {
+                                    pricingAttribute: true,
+                                }
+                            },
+                        }
+                    },
+                }
+            };
+        }
+
+        const tourPackage = await prismadb.tourPackage.findMany({
+            where: baseWhere,
+            include: includeConfig,
             orderBy,
             take: limit,
         });

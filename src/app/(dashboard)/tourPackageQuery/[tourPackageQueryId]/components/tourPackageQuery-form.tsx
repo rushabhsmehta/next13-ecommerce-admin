@@ -85,6 +85,7 @@ import LocationTab from '@/components/tour-package-query/LocationTab'; // Update
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
 import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
 import HotelsTab from '@/components/tour-package-query/HotelsTab';
+import QueryVariantsTab from '@/components/tour-package-query/QueryVariantsTab';
 import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 
@@ -217,6 +218,7 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(), // Add associatePartnerId to the schema
+  variantHotelOverrides: z.record(z.record(z.string())).optional(), // Variant hotel modifications: { variantId: { itineraryId: hotelId } }
 });
 
 export type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -296,6 +298,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
+  const [dynamicTourPackages, setDynamicTourPackages] = useState<any[]>(tourPackages || []);
+  const [fetchingPackages, setFetchingPackages] = useState(false);
   const editor = useRef(null)
 
   // Add state for lookup data
@@ -418,6 +422,37 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     fetchCustomers();
   }, []);
 
+  // Fetch tour packages when location changes
+  useEffect(() => {
+    if (!form) return;
+    
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'locationId' && value.locationId) {
+        fetchTourPackagesByLocation(value.locationId);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []); // Empty dependency array - watch is set up once
+
+  const fetchTourPackagesByLocation = async (locationId: string) => {
+    if (!locationId) {
+      setDynamicTourPackages([]);
+      return;
+    }
+
+    setFetchingPackages(true);
+    try {
+      const response = await axios.get(`/api/tourPackages?locationId=${locationId}&isArchived=false&includeVariants=true&includeComplete=true`);
+      setDynamicTourPackages(response.data);
+      console.log('✅ Fetched tour packages for location:', response.data.length);
+    } catch (error) {
+      console.error('Error fetching tour packages:', error);
+      toast.error('Failed to load tour packages');
+      setDynamicTourPackages([]);
+    } finally {
+      setFetchingPackages(false);
+    }
+  };
 
   const toastMessage = initialData ? 'Tour Package Query updated.' : 'Tour Package Query created.';
   const action = initialData ? 'Save changes' : 'Create';
@@ -698,7 +733,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   }, [watchedItineraries, form]);
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
-    const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
+    // Use dynamicTourPackages instead of tourPackages
+    const selectedTourPackage = dynamicTourPackages?.find(tp => tp.id === selectedTourPackageId);
+    console.log('🔍 handleTourPackageSelection:', { 
+      selectedTourPackageId, 
+      found: !!selectedTourPackage,
+      availablePackages: dynamicTourPackages?.length 
+    });
+    
     if (selectedTourPackage) {
       // Add this line to update the tourPackageTemplate field 
       form.setValue('tourPackageTemplate', selectedTourPackageId);
@@ -728,15 +770,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('airlineCancellationPolicy', parseJsonField(selectedTourPackage.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
       form.setValue('termsconditions', parseJsonField(selectedTourPackage.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
       form.setValue('images', selectedTourPackage.images || []);
-      const transformedItineraries = selectedTourPackage.itineraries?.map(itinerary => ({
+      const transformedItineraries = selectedTourPackage.itineraries?.map((itinerary: any) => ({
         locationId: itinerary.locationId,
-        itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
+        itineraryImages: itinerary.itineraryImages?.map((img: any) => ({ url: img.url })) || [],
         itineraryTitle: itinerary.itineraryTitle || '',
         itineraryDescription: itinerary.itineraryDescription || '',
         dayNumber: itinerary.dayNumber || 0,
         days: itinerary.days || '',
-        activities: itinerary.activities?.map(activity => ({
-          activityImages: activity.activityImages?.map(img => ({ url: img.url })) || [],
+        activities: itinerary.activities?.map((activity: any) => ({
+          activityImages: activity.activityImages?.map((img: any) => ({ url: img.url })) || [],
           activityTitle: activity.activityTitle || '',
           activityDescription: activity.activityDescription || ''
         })) || [],
@@ -746,7 +788,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       })) || [];
       form.setValue('itineraries', transformedItineraries);
-      form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
+      form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map((flight: any) => ({
         date: flight.date || undefined,
         flightName: flight.flightName || undefined,
         flightNumber: flight.flightNumber || undefined,
@@ -759,7 +801,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       })));
       form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
 
-      const defaultVariant = selectedTourPackage.packageVariants?.find(variantItem => variantItem.isDefault);
+      const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
       if (defaultVariant?.id) {
         handleTourPackageVariantSelection(selectedTourPackageId, [defaultVariant.id]);
       }
@@ -865,15 +907,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection) || DEFAULT_PRICING_SECTION);
 
       // Convert and set itineraries
-      const transformedItineraries = selectedTourPackageQuery.itineraries?.map(itinerary => ({
+      const transformedItineraries = selectedTourPackageQuery.itineraries?.map((itinerary: any) => ({
         locationId: itinerary.locationId,
-        itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
+        itineraryImages: itinerary.itineraryImages?.map((img: any) => ({ url: img.url })) || [],
         itineraryTitle: itinerary.itineraryTitle || '',
         itineraryDescription: itinerary.itineraryDescription || '',
         dayNumber: itinerary.dayNumber || 0,
         days: itinerary.days || '',
-        activities: itinerary.activities?.map(activity => ({
-          activityImages: activity.activityImages?.map(img => ({ url: img.url })) || [],
+        activities: itinerary.activities?.map((activity: any) => ({
+          activityImages: activity.activityImages?.map((img: any) => ({ url: img.url })) || [],
           activityTitle: activity.activityTitle || '',
           activityDescription: activity.activityDescription || ''
         })) || [],
@@ -883,7 +925,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       })) || [];
       form.setValue('itineraries', transformedItineraries);
       // Set flight details
-      form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map(flight => ({
+      form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map((flight: any) => ({
         date: flight.date || undefined,
         flightName: flight.flightName || undefined,
         flightNumber: flight.flightNumber || undefined,
@@ -1160,7 +1202,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-9 w-full">
+            <TabsList className="grid grid-cols-10 w-full">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -1205,6 +1247,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Tag className="h-4 w-4" />
                 Pricing
               </TabsTrigger>
+              <TabsTrigger value="variants" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Variants
+              </TabsTrigger>
               <TabsTrigger value="policies" className="flex items-center gap-2">
                 <FileCheck className="h-4 w-4" />
                 Policies
@@ -1213,9 +1259,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             <TabsContent value="basic" className="space-y-4 mt-4">
               <BasicInfoTab // Updated component name
                 control={form.control}
-                loading={loading}
+                loading={loading || fetchingPackages}
                 associatePartners={associatePartners}
-                tourPackages={tourPackages}
+                tourPackages={dynamicTourPackages}
                 tourPackageQueries={tourPackageQueries}
                 openTemplate={openTemplate}
                 setOpenTemplate={setOpenTemplate}
@@ -1297,6 +1343,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 selectedTemplateId={form.watch('selectedTemplateId')}
                 selectedTemplateType={form.watch('selectedTemplateType')}
                 selectedTourPackageVariantId={form.watch('selectedTourPackageVariantId')}
+              />
+            </TabsContent>
+            <TabsContent value="variants" className="space-y-4 mt-4">
+              <QueryVariantsTab
+                control={form.control}
+                form={form}
+                loading={loading || fetchingPackages}
+                tourPackages={dynamicTourPackages}
+                hotels={hotels}
               />
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">

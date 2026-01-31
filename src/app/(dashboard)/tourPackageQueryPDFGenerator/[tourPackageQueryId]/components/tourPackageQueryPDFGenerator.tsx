@@ -530,7 +530,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             Complete Tour Package Cost
           </div>
           <div style="font-size: 11px; color: ${brandColors.muted}; font-weight: 500; margin-top: 6px; padding: 4px 8px; background: ${brandColors.lightOrange}; border-radius: 4px; display: inline-block;">
-            + GST
+            including GST
           </div>
         </div>
 
@@ -606,7 +606,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               ${pricingItems}
               <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 4px; padding: 12px; margin-top: 12px; text-align: center; page-break-inside: avoid; break-inside: avoid-page;">
                 <div style="font-size: 12px; color: #ea580c; font-weight: 600;">
-                  * All prices are subject to availability & taxes. + GST (As Applicable)
+                  * All prices are subject to availability & taxes including GST
                 </div>
               </div>
             </div>

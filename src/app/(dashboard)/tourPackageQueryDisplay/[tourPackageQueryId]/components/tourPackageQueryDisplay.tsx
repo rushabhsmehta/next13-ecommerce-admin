@@ -420,7 +420,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </table>
           </div>
           <div className="px-4 py-2 bg-orange-50 border-t border-orange-100">
-            <p className="text-[11px] text-orange-600 italic">* Subject to availability & taxes. + GST (As Applicable).</p>
+            <p className="text-[11px] text-orange-600 italic">* Subject to availability & taxes including GST </p>
           </div>
         </div>
       )}
@@ -454,7 +454,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       </div>
                       <div className="block mt-2">
                         <div className="text-sm text-orange-600 bg-orange-100 px-4 py-2 rounded-lg inline-block border border-orange-200">
-                          <span className="font-semibold">+ GST (As Applicable) </span>
+                          <span className="font-semibold">including GST </span>
                         </div>
                       </div>
                     </div>

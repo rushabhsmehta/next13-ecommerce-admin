@@ -535,7 +535,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
               ${pricingItems}
               <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 4px; padding: 12px; margin-top: 12px; text-align: center;">
                 <div style="font-size: 12px; color: #ea580c; font-weight: 600;">
-                  * All prices are subject to availability & taxes. + GST (As Applicable)
+                  * All prices are subject to availability & taxes including GST.
                 </div>
               </div>
             </div>

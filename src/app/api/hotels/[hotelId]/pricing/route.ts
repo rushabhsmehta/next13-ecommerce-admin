@@ -72,7 +72,8 @@ export async function POST(
       roomTypeId, 
       occupancyTypeId, 
       price,
-      mealPlanId 
+      mealPlanId,
+      applySplit 
     } = body;
 
     if (!startDate || !endDate) {
@@ -96,12 +97,110 @@ export async function POST(
 
     if (!hotel) {
       return new NextResponse("Hotel not found", { status: 404 });
-    }    // Create the hotel pricing record
+    }
+
+    const newStart = dateToUtc(startDate);
+    const newEnd = dateToUtc(endDate);
+
+    if (!newStart || !newEnd) {
+      return new NextResponse("Invalid date format", { status: 400 });
+    }
+
+    // If applySplit is true, handle period splitting
+    if (applySplit) {
+      // Find overlapping pricing periods
+      const overlappingPeriods = await prismadb.hotelPricing.findMany({
+        where: {
+          hotelId: params.hotelId,
+          roomTypeId,
+          occupancyTypeId,
+          mealPlanId: mealPlanId || null,
+          isActive: true,
+          AND: [
+            { startDate: { lte: newEnd } },
+            { endDate: { gte: newStart } }
+          ]
+        },
+        orderBy: {
+          startDate: 'asc'
+        }
+      });
+
+      // Use a transaction to handle all updates atomically
+      const result = await prismadb.$transaction(async (tx) => {
+        // For each overlapping period, split it
+        for (const period of overlappingPeriods) {
+          const periodStart = new Date(period.startDate);
+          const periodEnd = new Date(period.endDate);
+
+          // Delete the original period
+          await tx.hotelPricing.delete({
+            where: { id: period.id }
+          });
+
+          // Create before segment if exists
+          if (periodStart < newStart) {
+            const beforeEnd = new Date(newStart);
+            beforeEnd.setDate(beforeEnd.getDate() - 1);
+            await tx.hotelPricing.create({
+              data: {
+                hotelId: params.hotelId,
+                startDate: periodStart,
+                endDate: beforeEnd,
+                roomTypeId: period.roomTypeId,
+                occupancyTypeId: period.occupancyTypeId,
+                price: period.price,
+                mealPlanId: period.mealPlanId,
+                isActive: true
+              }
+            });
+          }
+
+          // Create after segment if exists
+          if (periodEnd > newEnd) {
+            const afterStart = new Date(newEnd);
+            afterStart.setDate(afterStart.getDate() + 1);
+            await tx.hotelPricing.create({
+              data: {
+                hotelId: params.hotelId,
+                startDate: afterStart,
+                endDate: periodEnd,
+                roomTypeId: period.roomTypeId,
+                occupancyTypeId: period.occupancyTypeId,
+                price: period.price,
+                mealPlanId: period.mealPlanId,
+                isActive: true
+              }
+            });
+          }
+        }
+
+        // Create the new pricing period
+        const hotelPricing = await tx.hotelPricing.create({
+          data: {
+            hotelId: params.hotelId,
+            startDate: newStart,
+            endDate: newEnd,
+            roomTypeId,
+            occupancyTypeId,
+            price,
+            mealPlanId: mealPlanId || null,
+            isActive: true
+          }
+        });
+
+        return hotelPricing;
+      });
+
+      return NextResponse.json(result);
+    }
+
+    // Create the hotel pricing record without splitting
     const hotelPricing = await prismadb.hotelPricing.create({
       data: {
         hotelId: params.hotelId,
-        startDate: dateToUtc(startDate)!,
-        endDate: dateToUtc(endDate)!,
+        startDate: newStart,
+        endDate: newEnd,
         roomTypeId,
         occupancyTypeId,
         price,

@@ -70,6 +70,56 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { LocationCombobox } from "@/components/ui/location-combobox"
 
+// TypeScript interfaces
+interface Hotel {
+  id: string;
+  name: string;
+  locationId: string;
+  destinationId: string | null;
+  location: {
+    id: string;
+    label: string;
+  };
+  destination?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+interface RoomType {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+interface OccupancyType {
+  id: string;
+  name: string;
+  maxPersons: number;
+  isActive: boolean;
+}
+
+interface MealPlan {
+  id: string;
+  name: string;
+  code: string;
+  isActive: boolean;
+}
+
+interface PricingPeriod {
+  id: string;
+  hotelId: string;
+  startDate: Date | string;
+  endDate: Date | string;
+  price: number;
+  roomTypeId: string;
+  occupancyTypeId: string;
+  mealPlanId: string | null;
+  roomType?: RoomType;
+  occupancyType?: OccupancyType;
+  mealPlan?: MealPlan | null;
+}
+
 const pricingFormSchema = z.object({
   startDate: z.date({
     required_error: "Start date is required",
@@ -103,10 +153,10 @@ const pricingFormSchema = z.object({
 type PricingFormValues = z.infer<typeof pricingFormSchema>
 
 interface HotelPricingClientProps {
-  hotels: any[];
-  roomTypes: any[];
-  occupancyTypes: any[];
-  mealPlans: any[];
+  hotels: Hotel[];
+  roomTypes: RoomType[];
+  occupancyTypes: OccupancyType[];
+  mealPlans: MealPlan[];
 }
 
 export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
@@ -116,9 +166,9 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   mealPlans
 }) => {
   const [selectedHotelId, setSelectedHotelId] = useState<string>("")
-  const [selectedHotel, setSelectedHotel] = useState<any>(null)
+  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null)
   const [loading, setLoading] = useState(false)
-  const [pricingPeriods, setPricingPeriods] = useState<any[]>([])
+  const [pricingPeriods, setPricingPeriods] = useState<PricingPeriod[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -139,13 +189,13 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   useEffect(() => {
     if (selectedHotelId) {
       const hotel = hotels.find(h => h.id === selectedHotelId)
-      setSelectedHotel(hotel)
+      setSelectedHotel(hotel || null)
       fetchPricingPeriods()
     } else {
       setSelectedHotel(null)
       setPricingPeriods([])
     }
-  }, [selectedHotelId])
+  }, [selectedHotelId, hotels])
 
   const fetchPricingPeriods = async () => {
     if (!selectedHotelId) return
@@ -194,7 +244,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     }
   }
 
-  const handleEdit = (pricing: any) => {
+  const handleEdit = (pricing: PricingPeriod) => {
     setIsEditMode(true)
     setEditId(pricing.id)
     form.setValue("startDate", utcToLocal(pricing.startDate) || new Date())

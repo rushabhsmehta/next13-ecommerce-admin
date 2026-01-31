@@ -3,13 +3,14 @@ import { useState, useRef, useEffect } from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
-import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, MapPinIcon, Check as CheckIcon, GripVertical, Calendar as CalendarIcon } from "lucide-react";
+import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, MapPinIcon, Check as CheckIcon, GripVertical, Calendar as CalendarIcon, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
 import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Added lookup types
 import { addDays, isValid, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { formatLocalDate } from '@/lib/timezone-utils';
+import { toast } from 'react-hot-toast';
 
 // Import necessary UI components
 import {
@@ -140,6 +141,44 @@ function ItineraryTab({
         activityImages: selectedActivityMaster.activityMasterImages?.map((image: { url: any }) => ({ url: image.url }))
       };
       form.setValue('itineraries', updatedItineraries);
+    }
+  };
+
+  // Helper function to strip HTML tags and copy day details to clipboard
+  const copyDayToClipboard = async (itinerary: any) => {
+    try {
+      // Helper to strip HTML tags
+      const stripHtml = (html: string) => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || '';
+      };
+
+      // Build the text to copy
+      const dayTitle = stripHtml(itinerary.itineraryTitle || '');
+      const dayDescription = stripHtml(itinerary.itineraryDescription || '');
+      
+      let textToCopy = `Day Title: ${dayTitle}\n\n`;
+      textToCopy += `Day Description: ${dayDescription}\n\n`;
+      
+      // Add activities
+      if (itinerary.activities && itinerary.activities.length > 0) {
+        textToCopy += 'Activities:\n';
+        itinerary.activities.forEach((activity: any, index: number) => {
+          const activityTitle = stripHtml(activity.activityTitle || '');
+          const activityDescription = stripHtml(activity.activityDescription || '');
+          textToCopy += `\nActivity ${index + 1}:\n`;
+          textToCopy += `  Title: ${activityTitle}\n`;
+          textToCopy += `  Description: ${activityDescription}\n`;
+        });
+      }
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(textToCopy);
+      toast.success('Day details copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      toast.error('Failed to copy to clipboard');
     }
   };
 
@@ -289,21 +328,35 @@ function ItineraryTab({
                           >
                             <AccordionItem value={`item-${index}`} className="border-0">
                               <AccordionTrigger className="bg-gradient-to-r from-white to-slate-50 px-4 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 rounded-t-lg">
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-between w-full">
+                                  <div className="flex items-center gap-3">
+                                    <button
+                                      type="button"
+                                      aria-label="Drag to reorder"
+                                      className="p-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing"
+                                      {...attributes}
+                                      {...listeners}
+                                      onClick={(e) => e.preventDefault()}
+                                    >
+                                      <GripVertical className="h-4 w-4" />
+                                    </button>
+                                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-white font-bold text-sm">
+                                      {index + 1}
+                                    </div>
+                                    <div className="font-bold" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
+                                  </div>
                                   <button
                                     type="button"
-                                    aria-label="Drag to reorder"
-                                    className="p-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing"
-                                    {...attributes}
-                                    {...listeners}
-                                    onClick={(e) => e.preventDefault()}
+                                    aria-label="Copy day details"
+                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors mr-2"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      copyDayToClipboard(itinerary);
+                                    }}
                                   >
-                                    <GripVertical className="h-4 w-4" />
+                                    <Copy className="h-4 w-4" />
                                   </button>
-                                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-white font-bold text-sm">
-                                    {index + 1}
-                                  </div>
-                                  <div className="font-bold" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
                                 </div>
                               </AccordionTrigger>
                               <AccordionContent className="pt-4 px-4 pb-6">

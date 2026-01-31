@@ -68,7 +68,6 @@ import {
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { LocationCombobox } from "@/components/ui/location-combobox"
 
 // TypeScript interfaces
 interface Hotel {
@@ -172,6 +171,13 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+
+  // Helper function to format date ranges
+  const formatDateRange = (startDate: Date | string, endDate: Date | string) => {
+    const start = formatLocalDate(utcToLocal(startDate) || new Date(), "PPP")
+    const end = formatLocalDate(utcToLocal(endDate) || new Date(), "PPP")
+    return `${start} to ${end}`
+  }
 
   const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
@@ -390,7 +396,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                     {pricingPeriods.map((pricing) => (
                       <TableRow key={pricing.id}>
                         <TableCell>
-                          {formatLocalDate(utcToLocal(pricing.startDate) || new Date(), "PPP")} to {formatLocalDate(utcToLocal(pricing.endDate) || new Date(), "PPP")}
+                          {formatDateRange(pricing.startDate, pricing.endDate)}
                         </TableCell>
                         <TableCell>
                           {pricing.roomType?.name || 

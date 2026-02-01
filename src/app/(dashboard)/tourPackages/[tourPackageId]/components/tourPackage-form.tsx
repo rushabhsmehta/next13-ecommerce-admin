@@ -597,6 +597,52 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
   // Fetch lookup data required for Hotels tab
 
+  // Helper function to escape HTML and prevent XSS
+  const escapeHtml = (text: string): string => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  // Helper function to map AI-generated activities to form format
+  const mapActivities = (activities: any[]): any[] => {
+    if (!Array.isArray(activities) || activities.length === 0) {
+      return [];
+    }
+
+    const firstActivity = activities[0];
+    
+    // Check if activities are in AI-generated format (object with activityDescription)
+    if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
+      // Escape HTML first to prevent XSS, then convert newlines to <br>
+      const escapedDescription = escapeHtml(firstActivity.activityDescription);
+      const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
+      
+      return [{
+        activityTitle: firstActivity.activityTitle || '',
+        activityDescription: descriptionWithLineBreaks,
+        activityImages: [],
+        locationId: firstActivity.locationId || '',
+      }];
+    } 
+    
+    // Legacy format: array of strings
+    if (typeof firstActivity === 'string') {
+      return activities.map((act: string) => ({
+        activityTitle: act,
+        activityDescription: '',
+        activityImages: [],
+        locationId: '',
+      }));
+    }
+    
+    // Already in correct format (has activityImages property)
+    return activities;
+  };
+
   // Auto-load draft from AI Package Wizard
   useEffect(() => {
     const loadDraft = () => {
@@ -631,12 +677,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             mealsIncluded: day.mealsIncluded ? (typeof day.mealsIncluded === 'string' ? day.mealsIncluded.split(' & ') : day.mealsIncluded) : [],
             hotelId: '',
             locationId: locationId || '',
-            activities: Array.isArray(day.activities) ? day.activities.map((act: any) => ({
-              activityTitle: act.activityTitle || '',
-              activityDescription: act.activityDescription || '',
-              activityImages: [],
-              locationId: locationId || '',
-            })) : [],
+            // Use helper function to map activities with line breaks
+            activities: mapActivities(day.activities),
             itineraryImages: [],
           })) : [],
 

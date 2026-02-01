@@ -585,7 +585,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     // Check if activities are in AI-generated format (object with activityDescription)
     if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
       // Escape HTML first to prevent XSS, then convert newlines to <br>
-      const escapedDescription = escapeHtml(firstActivity.activityDescription);
+      const description = firstActivity.activityDescription;
+      const escapedDescription = typeof description === 'string' ? escapeHtml(description) : '';
       const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
       
       return [{

@@ -244,7 +244,7 @@ npx prisma migrate dev   # Create new migration
 ## 🎯 WhatsApp Campaigns System (Latest)
 
 ### Campaign Architecture (`src/app/api/whatsapp/campaigns/`)
-- **Core Models**: `WhatsAppCampaign`, `WhatsAppCampaignRecipient`, `WhatsAppCampaignError` (11 related tables in `prisma/whatsapp-schema.prisma`)
+- **Core Models**: `WhatsAppCampaign`, `WhatsAppCampaignRecipient` (errors tracked via `errorCode`/`errorMessage` fields on `WhatsAppCampaignRecipient`; campaign-specific models in `prisma/whatsapp-schema.prisma`; the WhatsApp schema currently has 19 models in total)
 - **Statuses**: `draft` → `scheduled` → `sending` → `completed` | `cancelled` | `failed`
 - **Campaign Types**: `all` (broadcast), `segment` (query-based), `manual` (explicit recipients), `imported` (CSV)
 - **API Routes**:

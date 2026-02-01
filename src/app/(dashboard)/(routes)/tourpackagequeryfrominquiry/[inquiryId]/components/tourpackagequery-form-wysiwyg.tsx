@@ -51,8 +51,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { cn } from "@/lib/utils"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { convertJourneyDateToTourStart, createDatePickerValue, normalizeApiDate } from "@/lib/timezone-utils"
+import { convertJourneyDateToTourStart, normalizeApiDate } from "@/lib/timezone-utils"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { DevTool } from "@hookform/devtools"
 import BasicInfoTab from '@/components/tour-package-query/BasicInfoTab';
@@ -634,11 +633,19 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
       return;
     }
 
+    form.setValue('tourPackageQueryTemplate', queryId);
     form.setValue('selectedTemplateId', queryId);
     form.setValue('selectedTemplateType', 'TourPackageQuery');
     form.setValue('tourPackageTemplateName', selectedQuery.tourPackageQueryName || `Query ${queryId.substring(0, 8)}`);
     form.setValue('tourPackageQueryName', selectedQuery.tourPackageQueryName || '');
     form.setValue('numDaysNight', selectedQuery.numDaysNight || '');
+    form.setValue('transport', String(selectedQuery.transport || ''));
+    form.setValue('pickup_location', String(selectedQuery.pickup_location || ''));
+    form.setValue('drop_location', String(selectedQuery.drop_location || ''));
+    form.setValue('totalPrice', String(selectedQuery.totalPrice || ''));
+    form.setValue('remarks', String(selectedQuery.remarks || REMARKS_DEFAULT));
+    form.setValue('disclaimer', String(selectedQuery.disclaimer || DISCLAIMER_DEFAULT));
+    form.setValue('associatePartnerId', selectedQuery.associatePartnerId || '');
     form.setValue('images', selectedQuery.images || []);
     // Map itineraries to match form schema
     form.setValue('itineraries', (selectedQuery.itineraries || []).map(it => ({

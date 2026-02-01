@@ -104,16 +104,6 @@ const PDFLikeSection = ({ title, children, className, icon: Icon, action }: { ti
 );
 
 // Display Components
-const DataDisplayRow = ({ label, value, className }: { label: string, value?: string | number, className?: string }) => {
-  if (!value) return null;
-  return (
-    <div className={cn("flex justify-between py-2 border-b", className)} style={{ borderColor: brandColors.border }}>
-      <span className="font-semibold text-sm" style={{ color: brandColors.muted }}>{label}</span>
-      <span className="text-sm" style={{ color: brandColors.text }}>{value}</span>
-    </div>
-  );
-};
-
 const InfoCard = ({ label, value }: { label: string, value?: string | number }) => {
   if (!value) return null;
   return (
@@ -1115,7 +1105,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       <div className="text-xs font-semibold mb-2" style={{ color: brandColors.muted }}>TOUR IMAGES</div>
                       <div className="flex gap-2 flex-wrap">
                         {form.watch('images').map((image: { url: string }, idx: number) => (
-                          <div key={idx} className="w-20 h-16 rounded overflow-hidden border" style={{ borderColor: brandColors.border }}>
+                          <div key={image.url || `image-${idx}`} className="w-20 h-16 rounded overflow-hidden border" style={{ borderColor: brandColors.border }}>
                             <img src={image.url} alt={`Tour ${idx + 1}`} className="w-full h-full object-cover" />
                           </div>
                         ))}
@@ -2799,26 +2789,58 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
               {editingSection !== 'variants' ? (
                 // Display View - Summary
                 <div className="space-y-3">
-                  {initialData?.packageVariants && initialData.packageVariants.length > 0 ? (
-                    initialData.packageVariants.map((variant: any, index: number) => (
-                      <div key={index} className="p-3 rounded-lg border" style={{ 
-                        background: brandColors.white, 
-                        borderColor: brandColors.border 
-                      }}>
-                        <h4 className="font-semibold text-sm" style={{ color: brandColors.text }}>{variant.name}</h4>
-                        {variant.description && (
-                          <p className="text-xs mt-1" style={{ color: brandColors.muted }}>{variant.description}</p>
-                        )}
-                        {variant.tourPackagePricings && variant.tourPackagePricings.length > 0 && (
-                          <div className="mt-2 text-xs" style={{ color: brandColors.muted }}>
-                            💰 {variant.tourPackagePricings.length} pricing tier(s)
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm" style={{ color: brandColors.muted }}>No variants created yet</p>
-                  )}
+                  {(() => {
+                    const watchedVariants = form.watch("packageVariants") as any[] | undefined;
+                    const variants =
+                      watchedVariants && watchedVariants.length > 0
+                        ? watchedVariants
+                        : initialData?.packageVariants || [];
+
+                    return variants && variants.length > 0 ? (
+                      variants.map((variant: any, index: number) => (
+                        <div
+                          key={index}
+                          className="p-3 rounded-lg border"
+                          style={{
+                            background: brandColors.white,
+                            borderColor: brandColors.border,
+                          }}
+                        >
+                          <h4
+                            className="font-semibold text-sm"
+                            style={{ color: brandColors.text }}
+                          >
+                            {variant.name}
+                          </h4>
+                          {variant.description && (
+                            <p
+                              className="text-xs mt-1"
+                              style={{ color: brandColors.muted }}
+                            >
+                              {variant.description}
+                            </p>
+                          )}
+                          {variant.tourPackagePricings &&
+                            variant.tourPackagePricings.length > 0 && (
+                              <div
+                                className="mt-2 text-xs"
+                                style={{ color: brandColors.muted }}
+                              >
+                                💰 {variant.tourPackagePricings.length} pricing
+                                tier(s)
+                              </div>
+                            )}
+                        </div>
+                      ))
+                    ) : (
+                      <p
+                        className="text-sm"
+                        style={{ color: brandColors.muted }}
+                      >
+                        No variants created yet
+                      </p>
+                    );
+                  })()}
                 </div>
               ) : (
                 // Edit View

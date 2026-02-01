@@ -30,12 +30,32 @@ export function AIImageGeneratorModal({ onImageGenerated, trigger, autoPrompt, a
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+  const [lastAutoPrompt, setLastAutoPrompt] = useState<string | undefined>(autoPrompt);
   
-  // Set auto-prompt when modal opens
+  // Handle dialog open/close and keep prompt in sync with autoPrompt where appropriate
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
-    if (isOpen && autoPrompt && !prompt) {
-      setPrompt(autoPrompt);
+
+    if (isOpen) {
+      const hasPrompt = prompt.trim().length > 0;
+      const autoPromptChanged = autoPrompt !== undefined && autoPrompt !== lastAutoPrompt;
+      const wasAutoPromptApplied = lastAutoPrompt !== undefined && prompt === lastAutoPrompt;
+
+      // If there is an autoPrompt, either seed an empty prompt
+      // or refresh the prompt when autoPrompt has changed and the user
+      // has not modified the previous auto-generated prompt.
+      if (autoPrompt && (!hasPrompt || (autoPromptChanged && wasAutoPromptApplied))) {
+        setPrompt(autoPrompt);
+        setLastAutoPrompt(autoPrompt);
+      }
+    } else {
+      // When closing, clear any previously generated image URL
+      setGeneratedUrl(null);
+      // Optionally clear the prompt if it was auto-generated or empty,
+      // so that a future open can pick up a new autoPrompt.
+      if (!prompt.trim() || (lastAutoPrompt !== undefined && prompt === lastAutoPrompt)) {
+        setPrompt("");
+      }
     }
   };
 
@@ -112,7 +132,10 @@ export function AIImageGeneratorModal({ onImageGenerated, trigger, autoPrompt, a
                 <span className="text-sm">Creating magic...</span>
               </div>
             ) : generatedUrl ? (
-              <div className="relative w-full h-full aspect-square">
+              <div 
+                className="relative w-full h-full" 
+                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+              >
                  <Image 
                    src={generatedUrl} 
                    alt="Generated result" 

@@ -124,4 +124,4 @@ The feature is also available in the associate partner interface:
 /tourpackagequeryfrominquiry/associate/[inquiryId]
 ```
 
-Works identically with all the same features.
+**Note**: AI image generation is **not available** for associate partners. The API endpoint `/api/ai/images` blocks associate users (403 Forbidden) to prevent API cost abuse. Image upload functionality is still available, but associates can only upload existing images, not generate new ones with AI.

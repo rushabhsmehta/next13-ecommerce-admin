@@ -660,8 +660,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 <ImageUpload
                                   value={Array.isArray(itinerary.itineraryImages) ? itinerary.itineraryImages.map(img => img.url) : []}
                                   disabled={loading}
-                                  enableAI={true}
-                                  autoPrompt={generateItineraryImagePrompt(itinerary)}
+                                  enableAI={false}
                                   aspectRatio="4:3"
                                   onChange={(url) => {
                                     const newItineraries = [...value];
@@ -958,8 +957,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                               <ImageUpload
                                                 value={activity.activityImages?.map(img => img.url) || []}
                                                 disabled={loading}
-                                                enableAI={true}
-                                                autoPrompt={generateActivityImagePrompt(activity)}
+                                                enableAI={false}
                                                 aspectRatio="4:3"
                                                 onChange={(url) => {
                                                   const newItineraries = [...value];

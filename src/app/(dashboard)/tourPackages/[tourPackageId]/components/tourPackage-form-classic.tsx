@@ -618,7 +618,8 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     // Check if activities are in AI-generated format (object with activityDescription)
     if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
       // Escape HTML first to prevent XSS, then convert newlines to <br>
-      const escapedDescription = escapeHtml(firstActivity.activityDescription);
+      const description = firstActivity.activityDescription;
+      const escapedDescription = typeof description === 'string' ? escapeHtml(description) : '';
       const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
       
       return [{
@@ -639,8 +640,8 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
       }));
     }
     
-    // Already in correct format (has activityImages property)
-    return activities;
+    // Unknown format: align with tourPackageQuery-form by returning an empty array
+    return [];
   };
 
   // Auto-load draft from AI Package Wizard

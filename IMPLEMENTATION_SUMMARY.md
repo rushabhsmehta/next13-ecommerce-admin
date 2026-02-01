@@ -225,8 +225,8 @@ Add AI image generation functionality to Tour Package Query itineraries with aut
    - Proper TypeScript interfaces with type safety
 
 5. **src/app/(dashboard)/(routes)/tourpackagequeryfrominquiry/associate/[inquiryId]/components/ItineraryTab.tsx**
-   - Applied same changes as main ItineraryTab
-   - Ensures feature works for associate partners too
+   - Applied corresponding UI/layout updates for consistency with main ItineraryTab
+   - Maintains read-only experience; AI image generation remains unavailable for associate partners in line with API restrictions
 
 #### Documentation
 6. **docs/features/ai-image-generation-itinerary.md**

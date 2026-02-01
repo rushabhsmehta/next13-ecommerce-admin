@@ -91,10 +91,12 @@ PDF Preview Mode uses brand colors consistent with the PDF generator:
 
 ## Read-Only Mode
 
-When viewing in read-only mode (e.g., archived records):
+For forms that implement a read-only variant (e.g., archived Tour Package records):
 - Edit buttons are hidden
 - All sections show in display mode only
 - Form fields are disabled in Classic mode
+
+> **Note**: The Tour Package Query WYSIWYG "create-from-inquiry" form does **not** currently support a `readOnly` prop or a dedicated read-only variant, so edit buttons remain visible there even when the surrounding context is read-only.
 
 ## Best Practices
 

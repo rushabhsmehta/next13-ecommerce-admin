@@ -32,9 +32,7 @@ import { TourPackageQueryFormWYSIWYG } from "./tourpackagequery-form-wysiwyg"
 import { LayoutTemplate, Settings2 } from "lucide-react"
 
 interface TourPackageQueryFormProps {
-  inquiry: (Inquiry & {
-    images: Images[];
-  }) | null;
+  inquiry: Inquiry | null;
   locations: Location[];
   hotels: (Hotel & {
     images: Images[];

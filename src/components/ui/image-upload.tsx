@@ -15,6 +15,8 @@ interface ImageUploadProps {
   value: string[];
   maxFiles?: number;
   enableAI?: boolean;
+  autoPrompt?: string;
+  aspectRatio?: "1:1" | "4:3" | "16:9";
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -22,7 +24,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   onChange,
   onRemove,
   value,
-  enableAI = false
+  enableAI = false,
+  autoPrompt,
+  aspectRatio = "1:1"
 }) => {
   const [isMounted, setIsMounted] = useState(false);
   // Generate a unique ID for this widget instance to prevent conflicts
@@ -96,6 +100,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               {enableAI && (
                  <AIImageGeneratorModal 
                    onImageGenerated={(url) => onChange(url)}
+                   autoPrompt={autoPrompt}
+                   aspectRatio={aspectRatio}
                    trigger={
                      <Button type="button" disabled={disabled} variant="outline" className="border-indigo-200 hover:bg-indigo-50 text-indigo-700">
                        <Sparkles className="h-4 w-4 mr-2" />

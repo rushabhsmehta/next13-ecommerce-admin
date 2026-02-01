@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 
 const generateImageSchema = z.object({
   prompt: z.string().min(3, "Prompt is required"),
-  aspectRatio: z.string().optional().default("1:1"), // 1:1, 16:9, 9:16, 4:3, 3:4
+  aspectRatio: z.enum(["1:1", "4:3", "16:9", "9:16", "3:4"]).optional().default("1:1"),
 });
 
 export async function POST(req: Request) {
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
           ],
           parameters: {
             sampleCount: 1,
-            aspectRatio: aspectRatio === "16:9" ? "16:9" : "1:1"
+            aspectRatio: aspectRatio
           }
         },
         {

@@ -63,7 +63,7 @@ interface ActivityData {
   activityTitle?: string;
   activityDescription?: string;
   activityImages?: { url: string }[];
-  [key: string]: any; // Allow additional properties
+  [key: string]: unknown; // Allow additional properties with better type safety
 }
 
 interface ItineraryData {
@@ -71,7 +71,7 @@ interface ItineraryData {
   itineraryDescription?: string;
   activities?: ActivityData[];
   itineraryImages?: { url: string }[];
-  [key: string]: any; // Allow additional properties
+  [key: string]: unknown; // Allow additional properties with better type safety
 }
 
 // Helper function to generate AI prompt from itinerary data

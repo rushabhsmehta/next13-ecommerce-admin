@@ -22,7 +22,7 @@ interface AIImageGeneratorModalProps {
   onImageGenerated: (url: string) => void;
   trigger?: React.ReactNode;
   autoPrompt?: string;
-  aspectRatio?: "1:1" | "4:3" | "16:9";
+  aspectRatio?: "1:1" | "4:3" | "16:9" | "9:16" | "3:4";
 }
 
 export function AIImageGeneratorModal({ onImageGenerated, trigger, autoPrompt, aspectRatio = "1:1" }: AIImageGeneratorModalProps) {

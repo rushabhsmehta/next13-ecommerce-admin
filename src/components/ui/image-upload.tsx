@@ -16,7 +16,7 @@ interface ImageUploadProps {
   maxFiles?: number;
   enableAI?: boolean;
   autoPrompt?: string;
-  aspectRatio?: "1:1" | "4:3" | "16:9";
+  aspectRatio?: "1:1" | "4:3" | "16:9" | "9:16" | "3:4";
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({

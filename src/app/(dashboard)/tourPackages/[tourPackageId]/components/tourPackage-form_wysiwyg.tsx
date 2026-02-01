@@ -1217,7 +1217,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <FormLabel>Type</FormLabel>
                           <FormControl>
                             <Select
-                              disabled={loading}
+                              disabled={loading || readOnly}
                               value={field.value}
                               onValueChange={field.onChange}
                             >
@@ -1246,7 +1246,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <FormLabel>Category</FormLabel>
                           <FormControl>
                             <Select
-                              disabled={loading}
+                              disabled={loading || readOnly}
                               value={field.value}
                               onValueChange={field.onChange}
                             >

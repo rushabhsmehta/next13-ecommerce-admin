@@ -49,13 +49,33 @@ import { CSS } from "@dnd-kit/utilities";
 // Helper function to strip HTML tags
 const stripHtml = (html: string) => {
   if (!html) return '';
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
+  // Use DOMParser for safe HTML parsing in browser environment
+  if (typeof window !== 'undefined' && window.DOMParser) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || doc.body.innerText || '';
+  }
+  // Fallback for SSR: simple regex-based stripping (safe since not inserted into DOM)
+  return html.replace(/<[^>]*>/g, '').trim();
 };
 
+// Type definitions for prompt generation
+interface ActivityData {
+  activityTitle?: string;
+  activityDescription?: string;
+  activityImages?: { url: string }[];
+  [key: string]: any; // Allow additional properties
+}
+
+interface ItineraryData {
+  itineraryTitle?: string;
+  itineraryDescription?: string;
+  activities?: ActivityData[];
+  itineraryImages?: { url: string }[];
+  [key: string]: any; // Allow additional properties
+}
+
 // Helper function to generate AI prompt from itinerary data
-const generateItineraryImagePrompt = (itinerary: any): string => {
+const generateItineraryImagePrompt = (itinerary: Record<string, any>): string => {
   const dayTitle = stripHtml(itinerary.itineraryTitle || '');
   const dayDescription = stripHtml(itinerary.itineraryDescription || '');
   
@@ -77,7 +97,7 @@ const generateItineraryImagePrompt = (itinerary: any): string => {
   // Add activities
   if (itinerary.activities && itinerary.activities.length > 0) {
     const activityDescriptions = itinerary.activities
-      .map((activity: any) => {
+      .map((activity: ActivityData) => {
         const activityTitle = stripHtml(activity.activityTitle || '');
         const activityDesc = stripHtml(activity.activityDescription || '');
         return `${activityTitle}${activityDesc ? ': ' + activityDesc : ''}`;
@@ -98,7 +118,7 @@ const generateItineraryImagePrompt = (itinerary: any): string => {
 };
 
 // Helper function to generate AI prompt from activity data
-const generateActivityImagePrompt = (activity: any): string => {
+const generateActivityImagePrompt = (activity: Record<string, any>): string => {
   const activityTitle = stripHtml(activity.activityTitle || '');
   const activityDescription = stripHtml(activity.activityDescription || '');
   

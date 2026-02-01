@@ -72,7 +72,7 @@ AI Wizard (generates)
 {
   "activities": [{
     "activityTitle": "",
-    "activityDescription": "i. Activity 1<br>ii. Activity 2<br>ii. Activity 3",
+    "activityDescription": "i. Activity 1<br>ii. Activity 2<br>iii. Activity 3",
     "activityImages": []
   }]
 }

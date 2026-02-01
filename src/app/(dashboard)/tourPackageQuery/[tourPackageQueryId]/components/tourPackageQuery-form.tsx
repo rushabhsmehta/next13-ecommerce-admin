@@ -564,10 +564,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // Removing unused code
 
   // Helper function to escape HTML entities to prevent XSS
+  // Using explicit string replacement for reliable cross-environment behavior
   const escapeHtml = (text: string): string => {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   };
 
   // Helper function to map AI-generated activities to form format

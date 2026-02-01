@@ -75,7 +75,7 @@ interface ItineraryData {
 }
 
 // Helper function to generate AI prompt from itinerary data
-const generateItineraryImagePrompt = (itinerary: Record<string, any>): string => {
+const generateItineraryImagePrompt = (itinerary: ItineraryData): string => {
   const dayTitle = stripHtml(itinerary.itineraryTitle || '');
   const dayDescription = stripHtml(itinerary.itineraryDescription || '');
   
@@ -100,7 +100,20 @@ const generateItineraryImagePrompt = (itinerary: Record<string, any>): string =>
       .map((activity: ActivityData) => {
         const activityTitle = stripHtml(activity.activityTitle || '');
         const activityDesc = stripHtml(activity.activityDescription || '');
-        return `${activityTitle}${activityDesc ? ': ' + activityDesc : ''}`;
+        
+        if (activityTitle && activityDesc) {
+          return `${activityTitle}: ${activityDesc}`;
+        }
+        
+        if (activityTitle) {
+          return activityTitle;
+        }
+        
+        if (activityDesc) {
+          return activityDesc;
+        }
+        
+        return '';
       })
       .filter(Boolean)
       .slice(0, 3) // Take only first 3 activities to avoid overly long prompts
@@ -118,7 +131,7 @@ const generateItineraryImagePrompt = (itinerary: Record<string, any>): string =>
 };
 
 // Helper function to generate AI prompt from activity data
-const generateActivityImagePrompt = (activity: Record<string, any>): string => {
+const generateActivityImagePrompt = (activity: ActivityData): string => {
   const activityTitle = stripHtml(activity.activityTitle || '');
   const activityDescription = stripHtml(activity.activityDescription || '');
   

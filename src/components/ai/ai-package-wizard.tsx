@@ -646,8 +646,8 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
                                                 <div className="mt-3 space-y-3">
                                                     <p className="text-xs font-medium text-muted-foreground">ACTIVITIES</p>
                                                     {day.activities.map((act, i) => (
-                                                        <div key={i} className="p-3 border border-slate-200 rounded-lg bg-white shadow-sm">
-                                                            <h4 className="text-sm font-medium text-slate-700 mb-2">Activity {i + 1}</h4>
+                                                        <div key={i} className="p-3 border rounded-lg bg-card shadow-sm">
+                                                            <h4 className="text-sm font-medium text-foreground mb-2">Activity {i + 1}</h4>
                                                             <div className="space-y-1">
                                                                 <div className="text-sm"><strong>{act.activityTitle}</strong></div>
                                                                 <div className="text-sm text-muted-foreground">{act.activityDescription}</div>

@@ -21,6 +21,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: '*.blob.core.windows.net',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.dev',
       }
     ],
     // Fallback for older format

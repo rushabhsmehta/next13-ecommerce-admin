@@ -5,7 +5,8 @@ import { useEffect, useState, useId, useCallback, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { ImagePlus, Trash } from 'lucide-react';
+import { ImagePlus, Trash, Sparkles } from 'lucide-react';
+import { AIImageGeneratorModal } from "@/components/ui/ai-image-generator-modal";
 
 interface ImageUploadProps {
   disabled?: boolean;
@@ -13,13 +14,15 @@ interface ImageUploadProps {
   onRemove: (value: string) => void;
   value: string[];
   maxFiles?: number;
+  enableAI?: boolean;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
   disabled,
   onChange,
   onRemove,
-  value
+  value,
+  enableAI = false
 }) => {
   const [isMounted, setIsMounted] = useState(false);
   // Generate a unique ID for this widget instance to prevent conflicts
@@ -57,6 +60,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               className="object-cover"
               alt="Image"
               src={url}
+              unoptimized={!url.includes("cloudinary.com")}
             />
           </div>
         ))}
@@ -79,15 +83,28 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           };
 
           return (
-            <Button
-              type="button"
-              disabled={disabled}
-              variant="secondary"
-              onClick={onClick}
-            >
-              <ImagePlus className="h-4 w-4 mr-2" />
-              Upload an Image
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                disabled={disabled}
+                variant="secondary"
+                onClick={onClick}
+              >
+                <ImagePlus className="h-4 w-4 mr-2" />
+                Upload an Image
+              </Button>
+              {enableAI && (
+                 <AIImageGeneratorModal 
+                   onImageGenerated={(url) => onChange(url)}
+                   trigger={
+                     <Button type="button" disabled={disabled} variant="outline" className="border-indigo-200 hover:bg-indigo-50 text-indigo-700">
+                       <Sparkles className="h-4 w-4 mr-2" />
+                       Generate with AI
+                     </Button>
+                   }
+                 />
+              )}
+            </div>
           );
         }}
       </CldUploadWidget>

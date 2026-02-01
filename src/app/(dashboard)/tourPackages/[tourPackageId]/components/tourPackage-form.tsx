@@ -1074,6 +1074,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             disabled={loading || readOnly}
                             onChange={(url) => field.onChange([...field.value, { url }])}
                             onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
+                            enableAI={!readOnly}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1701,6 +1702,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                 <ImageUpload
                                                   value={itineraryImages.map((image: { url: string }) => image.url)}
                                                   disabled={loading || readOnly}
+                                                  enableAI={!readOnly}
                                                   onChange={(url) => {
                                                     updateItinerary(index, (current) => ({
                                                       ...current,
@@ -1884,6 +1886,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                         <ImageUpload
                                                           value={activityImages.map((image: { url: string }) => image.url)}
                                                           disabled={loading || readOnly}
+                                                          enableAI={!readOnly}
                                                           onChange={(url) => {
                                                             updateItinerary(index, (current) => {
                                                               const updatedActivities = [...(Array.isArray(current.activities) ? current.activities : [])];

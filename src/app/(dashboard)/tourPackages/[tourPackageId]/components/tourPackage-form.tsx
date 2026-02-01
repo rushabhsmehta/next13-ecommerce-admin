@@ -1422,27 +1422,27 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                         >
                                           <AccordionItem value={`item-${index}`} className="border-0">
                                             <AccordionTrigger className="bg-gradient-to-r from-white to-slate-50 px-4 py-3 rounded-t-lg">
-                                              <div className="flex items-center gap-3">
-                                                <button
-                                                  type="button"
-                                                  aria-label="Drag to reorder"
-                                                  className="p-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing"
-                                                  {...attributes}
-                                                  {...listeners}
-                                                  onClick={(event) => event.preventDefault()}
-                                                >
-                                                  <GripVertical className="h-4 w-4" />
-                                                </button>
-                                                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-white font-semibold text-sm">
-                                                  {index + 1}
+                                              <div className="flex items-center justify-between w-full">
+                                                <div className="flex items-center gap-3">
+                                                  <button
+                                                    type="button"
+                                                    aria-label="Drag to reorder"
+                                                    className="p-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing"
+                                                    {...attributes}
+                                                    {...listeners}
+                                                    onClick={(event) => event.preventDefault()}
+                                                  >
+                                                    <GripVertical className="h-4 w-4" />
+                                                  </button>
+                                                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-white font-semibold text-sm">
+                                                    {index + 1}
+                                                  </div>
+                                                  <div className="font-semibold text-left" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
                                                 </div>
-                                                <div className="font-semibold text-left" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
-                                              </div>
-                                              <div className="flex items-center gap-2">
                                                 <button
                                                   type="button"
                                                   aria-label="Copy day details"
-                                                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                                                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors mr-2"
                                                   onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
@@ -1451,9 +1451,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                 >
                                                   <Copy className="h-4 w-4" />
                                                 </button>
-                                                <span className="text-xs font-medium text-slate-500">
-                                                  {itinerary.days ? `Scheduled: ${itinerary.days}` : ''}
-                                                </span>
                                               </div>
                                             </AccordionTrigger>
                                             <AccordionContent className="px-4 pb-6 pt-4 space-y-6">

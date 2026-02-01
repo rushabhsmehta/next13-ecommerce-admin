@@ -33,10 +33,10 @@ tourpackagequery-form-wrapper.tsx (view switcher)
 
 ### View Switcher
 Located at the top of the form with two buttons:
-- **Classic Form**: Traditional multi-tab interface
+- **Classic Form**: Traditional multi-tab interface (default)
 - **PDF Preview Mode**: Shows sections as they appear in the PDF download
 
-Users receive a confirmation prompt when switching views to prevent accidental data loss.
+Users receive a confirmation prompt when switching views warning that unsaved changes will be lost. Note: This does not preserve data between views - users should save their work before switching.
 
 ### Classic View (tourpackagequery-form-classic.tsx)
 - Tab-based interface with 9 tabs:

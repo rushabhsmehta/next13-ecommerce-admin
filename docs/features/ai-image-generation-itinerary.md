@@ -1,7 +1,18 @@
 # AI Image Generation for Tour Package Query Itineraries
 
+> **⚠️ DEPRECATED**: This document describes the old Google Imagen implementation. 
+> See [ai-image-generation-runpod.md](./ai-image-generation-runpod.md) for the current RunPod GPU implementation.
+
 ## Overview
-This feature enables AI-powered image generation for itinerary day images and activity images in Tour Package Queries. The system automatically generates descriptive prompts based on the day/activity content and uses Google's Imagen 4.0 to create relevant travel images.
+This feature has been migrated from Google's Imagen 4.0 to RunPod GPU for cost efficiency and better control. This document is kept for historical reference.
+
+For current documentation, see: **[AI Image Generation - RunPod GPU Integration](./ai-image-generation-runpod.md)**
+
+---
+
+## Legacy Implementation (Google Imagen)
+
+This feature enabled AI-powered image generation for itinerary day images and activity images in Tour Package Queries. The system used Google's Imagen 4.0 to create relevant travel images.
 
 ## Features
 

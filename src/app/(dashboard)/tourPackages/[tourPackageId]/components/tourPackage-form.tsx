@@ -6,7 +6,7 @@ import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEf
 import { zodResolver } from "@hookform/resolvers/zod"
 import { FieldErrors, useFieldArray, useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle, ScrollText, GripVertical, ImageIcon, Type, AlignLeft, Calendar as CalendarIcon } from "lucide-react"
+import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle, ScrollText, GripVertical, ImageIcon, Type, AlignLeft, Calendar as CalendarIcon, Copy } from "lucide-react"
 import {
   Activity,
   Images,
@@ -705,6 +705,44 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     form.setValue('itineraries', updatedItineraries);
   };
 
+  // Helper function to strip HTML tags and copy day details to clipboard
+  const copyDayToClipboard = async (itinerary: any) => {
+    try {
+      // Helper to strip HTML tags
+      const stripHtml = (html: string) => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || '';
+      };
+
+      // Build the text to copy
+      const dayTitle = stripHtml(itinerary.itineraryTitle || '');
+      const dayDescription = stripHtml(itinerary.itineraryDescription || '');
+      
+      let textToCopy = `Day Title: ${dayTitle}\n\n`;
+      textToCopy += `Day Description: ${dayDescription}\n\n`;
+      
+      // Add activities
+      if (itinerary.activities && itinerary.activities.length > 0) {
+        textToCopy += 'Activities:\n';
+        itinerary.activities.forEach((activity: any, index: number) => {
+          const activityTitle = stripHtml(activity.activityTitle || '');
+          const activityDescription = stripHtml(activity.activityDescription || '');
+          textToCopy += `\nActivity ${index + 1}:\n`;
+          textToCopy += `  Title: ${activityTitle}\n`;
+          textToCopy += `  Description: ${activityDescription}\n`;
+        });
+      }
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(textToCopy);
+      toast.success('Day details copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
   const convertToSlug = (text: string) => {
     return text
       .toLowerCase()
@@ -1400,9 +1438,23 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                                 </div>
                                                 <div className="font-semibold text-left" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
                                               </div>
-                                              <span className="text-xs font-medium text-slate-500">
-                                                {itinerary.days ? `Scheduled: ${itinerary.days}` : ''}
-                                              </span>
+                                              <div className="flex items-center gap-2">
+                                                <button
+                                                  type="button"
+                                                  aria-label="Copy day details"
+                                                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    copyDayToClipboard(itinerary);
+                                                  }}
+                                                >
+                                                  <Copy className="h-4 w-4" />
+                                                </button>
+                                                <span className="text-xs font-medium text-slate-500">
+                                                  {itinerary.days ? `Scheduled: ${itinerary.days}` : ''}
+                                                </span>
+                                              </div>
                                             </AccordionTrigger>
                                             <AccordionContent className="px-4 pb-6 pt-4 space-y-6">
                                               <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-3">

@@ -6,7 +6,8 @@ import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEf
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { AlertCircle, AlignLeft, BedDouble, BuildingIcon, CheckIcon, ChevronDown, ChevronsUpDown, ChevronUp, FileCheck, FileText, HotelIcon, ImageIcon, ListChecks, ListPlus, MapPin, Plane, Plus, ScrollText, Tag, Trash, Type, Users, Utensils, Calendar as CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { AlertCircle, AlignLeft, BedDouble, BuildingIcon, CheckIcon, ChevronDown, ChevronsUpDown, ChevronUp, Edit, FileCheck, FileText, HotelIcon, ImageIcon, ListChecks, ListPlus, MapPin, Plane, Plus, ScrollText, Tag, Trash, Type, Users, Utensils, Calendar as CalendarIcon } from "lucide-react"
 import {
   Activity,
   ActivityMaster,
@@ -95,6 +96,36 @@ const PDFLikeSection = ({ title, children, className, icon: Icon, action }: { ti
     <div className="p-6">
       {children}
     </div>
+  </div>
+);
+
+// Display Components
+const DataDisplayRow = ({ label, value, className }: { label: string, value?: string | number, className?: string }) => {
+  if (!value) return null;
+  return (
+    <div className={cn("flex justify-between py-2 border-b", className)} style={{ borderColor: brandColors.border }}>
+      <span className="font-semibold text-sm" style={{ color: brandColors.muted }}>{label}</span>
+      <span className="text-sm" style={{ color: brandColors.text }}>{value}</span>
+    </div>
+  );
+};
+
+const InfoCard = ({ label, value }: { label: string, value?: string | number }) => {
+  if (!value) return null;
+  return (
+    <div className="p-3 rounded-md border-l-4" style={{ 
+      background: brandColors.panelBg, 
+      borderColor: brandColors.primary 
+    }}>
+      <div className="text-xs font-semibold mb-1" style={{ color: brandColors.muted }}>{label}</div>
+      <div className="text-sm font-semibold" style={{ color: brandColors.text }}>{value}</div>
+    </div>
+  );
+};
+
+const InfoCardGrid = ({ children }: { children: React.ReactNode }) => (
+  <div className="grid grid-cols-2 gap-3 mb-4">
+    {children}
   </div>
 );
 
@@ -291,6 +322,9 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
   const [openTemplate, setOpenTemplate] = useState(false);
   const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const editor = useRef(null);
+  
+  // Track which sections are being edited
+  const [editingSection, setEditingSection] = useState<string | null>(null);
   
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
@@ -753,200 +787,618 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
           <div className="mx-auto max-w-[850px] space-y-8 pb-20">
             
             {/* Basic Info Section */}
-            <PDFLikeSection title="Basic Information" icon={FileText}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="basic-info">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Basic Information
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <BasicInfoTab
-                      control={form.control}
-                      loading={loading}
-                      associatePartners={associatePartners}
-                      tourPackages={tourPackages}
-                      tourPackageQueries={tourPackageQueries}
-                      openTemplate={openTemplate}
-                      setOpenTemplate={setOpenTemplate}
-                      openQueryTemplate={openQueryTemplate}
-                      setOpenQueryTemplate={setOpenQueryTemplate}
-                      handleTourPackageSelection={handleTourPackageSelection}
-                      handleTourPackageVariantSelection={handleTourPackageVariantSelection}
-                      handleTourPackageQuerySelection={handleTourPackageQuerySelection}
-                      form={form}
+            <PDFLikeSection 
+              title="Basic Information" 
+              icon={FileText}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'basic-info' ? null : 'basic-info')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'basic-info' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'basic-info' ? (
+                // Display View
+                <div className="space-y-3">
+                  <DataDisplayRow label="Query Number" value={form.watch('tourPackageQueryNumber')} />
+                  <DataDisplayRow label="Query Name" value={form.watch('tourPackageQueryName')} />
+                  <DataDisplayRow label="Query Type" value={form.watch('tourPackageQueryType')} />
+                  <DataDisplayRow label="Customer Name" value={form.watch('customerName')} />
+                  <DataDisplayRow label="Customer Number" value={form.watch('customerNumber')} />
+                  {form.watch('associatePartnerId') && (
+                    <DataDisplayRow 
+                      label="Associate Partner" 
+                      value={associatePartners.find(p => p.id === form.watch('associatePartnerId'))?.name || 'Not specified'} 
                     />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+                  )}
+                  {form.watch('tourPackageTemplateName') && (
+                    <DataDisplayRow label="Template Used" value={form.watch('tourPackageTemplateName')} />
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <BasicInfoTab
+                  control={form.control}
+                  loading={loading}
+                  associatePartners={associatePartners}
+                  tourPackages={tourPackages}
+                  tourPackageQueries={tourPackageQueries}
+                  openTemplate={openTemplate}
+                  setOpenTemplate={setOpenTemplate}
+                  openQueryTemplate={openQueryTemplate}
+                  setOpenQueryTemplate={setOpenQueryTemplate}
+                  handleTourPackageSelection={handleTourPackageSelection}
+                  handleTourPackageVariantSelection={handleTourPackageVariantSelection}
+                  handleTourPackageQuerySelection={handleTourPackageQuerySelection}
+                  form={form}
+                />
+              )}
             </PDFLikeSection>
 
             {/* Guests Section */}
-            <PDFLikeSection title="Guest Information" icon={Users}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="guests">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Guest Details
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <GuestsTab
-                      control={form.control}
-                      loading={loading}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+            <PDFLikeSection 
+              title="Guest Information" 
+              icon={Users}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'guests' ? null : 'guests')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'guests' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'guests' ? (
+                // Display View
+                <div className="p-3 rounded-md" style={{ background: brandColors.panelBg }}>
+                  <div className="text-xs font-semibold mb-3" style={{ color: brandColors.muted }}>TRAVELLERS</div>
+                  <div className="flex gap-6 flex-wrap">
+                    {form.watch('numAdults') && (
+                      <div className="text-center">
+                        <div className="text-2xl font-bold" style={{ color: brandColors.text }}>{form.watch('numAdults')}</div>
+                        <div className="text-xs font-medium" style={{ color: brandColors.muted }}>Adults</div>
+                      </div>
+                    )}
+                    {form.watch('numChild5to12') && (
+                      <div className="text-center">
+                        <div className="text-2xl font-bold" style={{ color: brandColors.text }}>{form.watch('numChild5to12')}</div>
+                        <div className="text-xs font-medium" style={{ color: brandColors.muted }}>Children (5-12)</div>
+                      </div>
+                    )}
+                    {form.watch('numChild0to5') && (
+                      <div className="text-center">
+                        <div className="text-2xl font-bold" style={{ color: brandColors.text }}>{form.watch('numChild0to5')}</div>
+                        <div className="text-xs font-medium" style={{ color: brandColors.muted }}>Children (0-5)</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Edit View
+                <GuestsTab
+                  control={form.control}
+                  loading={loading}
+                />
+              )}
             </PDFLikeSection>
 
             {/* Location Section */}
-            <PDFLikeSection title="Tour Information" icon={MapPin}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="location">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Tour Details
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <LocationTab
-                      control={form.control}
-                      loading={loading}
-                      locations={locations}
-                      form={form}
-                      updateLocationDefaults={handleUseLocationDefaultsChange}
+            <PDFLikeSection 
+              title="Tour Information" 
+              icon={MapPin}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'location' ? null : 'location')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'location' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'location' ? (
+                // Display View
+                <div className="space-y-4">
+                  <InfoCardGrid>
+                    <InfoCard 
+                      label="DESTINATION" 
+                      value={locations.find(l => l.id === form.watch('locationId'))?.label || 'Not specified'} 
                     />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+                    {form.watch('numDaysNight') && (
+                      <InfoCard label="DURATION" value={form.watch('numDaysNight')} />
+                    )}
+                  </InfoCardGrid>
+                  
+                  {form.watch('transport') && (
+                    <InfoCard label="TRANSPORT" value={form.watch('transport')} />
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {form.watch('pickup_location') && (
+                      <InfoCard label="PICKUP" value={form.watch('pickup_location')} />
+                    )}
+                    {form.watch('drop_location') && (
+                      <InfoCard label="DROP" value={form.watch('drop_location')} />
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Edit View
+                <LocationTab
+                  control={form.control}
+                  loading={loading}
+                  locations={locations}
+                  form={form}
+                  updateLocationDefaults={handleUseLocationDefaultsChange}
+                />
+              )}
             </PDFLikeSection>
 
             {/* Dates Section */}
-            <PDFLikeSection title="Dates & Duration" icon={CalendarIcon}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="dates">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Dates
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <DatesTab
-                      control={form.control}
-                      loading={loading}
-                      form={form}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+            <PDFLikeSection 
+              title="Dates & Duration" 
+              icon={CalendarIcon}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'dates' ? null : 'dates')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'dates' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'dates' ? (
+                // Display View
+                <div>
+                  {(form.watch('tourStartsFrom') || form.watch('tourEndsOn')) && (
+                    <div className="p-3 rounded-md border-l-4" style={{ 
+                      background: brandColors.panelBg, 
+                      borderColor: brandColors.primary 
+                    }}>
+                      <div className="text-xs font-semibold mb-2" style={{ color: brandColors.muted }}>TRAVEL DATES</div>
+                      <div className="flex gap-6 items-center">
+                        {form.watch('tourStartsFrom') && (
+                          <div>
+                            <div className="text-xs font-semibold" style={{ color: brandColors.muted }}>FROM</div>
+                            <div className="text-sm font-bold" style={{ color: brandColors.text }}>
+                              {format(new Date(form.watch('tourStartsFrom')!), "dd MMM, yyyy")}
+                            </div>
+                          </div>
+                        )}
+                        {form.watch('tourStartsFrom') && form.watch('tourEndsOn') && (
+                          <div className="text-lg" style={{ color: brandColors.muted }}>→</div>
+                        )}
+                        {form.watch('tourEndsOn') && (
+                          <div>
+                            <div className="text-xs font-semibold" style={{ color: brandColors.muted }}>TO</div>
+                            <div className="text-sm font-bold" style={{ color: brandColors.text }}>
+                              {format(new Date(form.watch('tourEndsOn')!), "dd MMM, yyyy")}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <DatesTab
+                  control={form.control}
+                  loading={loading}
+                  form={form}
+                />
+              )}
             </PDFLikeSection>
 
             {/* Itinerary Section */}
-            <PDFLikeSection title="Itinerary Details" icon={ListPlus}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="itinerary">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Itinerary
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <ItineraryTab
-                      control={form.control}
-                      loading={loading}
-                      hotels={hotels}
-                      activitiesMaster={activitiesMaster}
-                      itinerariesMaster={itinerariesMaster}
-                      form={form}
-                      roomTypes={roomTypes}
-                      occupancyTypes={occupancyTypes}
-                      mealPlans={mealPlans}
-                      vehicleTypes={vehicleTypes}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+            <PDFLikeSection 
+              title="Itinerary Details" 
+              icon={ListPlus}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'itinerary' ? null : 'itinerary')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'itinerary' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'itinerary' ? (
+                // Display View - Summary
+                <div className="space-y-4">
+                  {form.watch('itineraries') && form.watch('itineraries').length > 0 ? (
+                    form.watch('itineraries').map((itinerary: any, index: number) => {
+                      const hotel = hotels.find(h => h.id === itinerary.hotelId);
+                      return (
+                        <div key={index} className="p-4 rounded-lg border-l-4" style={{ 
+                          background: brandColors.subtlePanel, 
+                          borderColor: brandColors.primary 
+                        }}>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" style={{
+                              background: brandColors.primary,
+                              color: brandColors.white
+                            }}>
+                              {itinerary.dayNumber || index + 1}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-sm" style={{ color: brandColors.text }}>
+                                {itinerary.days || `Day ${itinerary.dayNumber || index + 1}`}
+                              </h4>
+                              {itinerary.itineraryTitle && (
+                                <p className="text-xs" style={{ color: brandColors.muted }}>{itinerary.itineraryTitle}</p>
+                              )}
+                            </div>
+                          </div>
+                          {hotel && (
+                            <div className="mt-2 text-xs" style={{ color: brandColors.muted }}>
+                              🏨 {hotel.name}
+                            </div>
+                          )}
+                          {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
+                            <div className="mt-2 text-xs" style={{ color: brandColors.muted }}>
+                              🛏️ {itinerary.roomAllocations.length} room allocation(s)
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No itinerary added yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <ItineraryTab
+                  control={form.control}
+                  loading={loading}
+                  hotels={hotels}
+                  activitiesMaster={activitiesMaster}
+                  itinerariesMaster={itinerariesMaster}
+                  form={form}
+                  roomTypes={roomTypes}
+                  occupancyTypes={occupancyTypes}
+                  mealPlans={mealPlans}
+                  vehicleTypes={vehicleTypes}
+                />
+              )}
             </PDFLikeSection>
 
             {/* Hotels Section */}
-            <PDFLikeSection title="Hotel Details" icon={BuildingIcon}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="hotels">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Hotels
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <HotelsTab
-                      control={form.control}
-                      form={form}
-                      loading={loading}
-                      hotels={hotels}
-                      roomTypes={roomTypes}
-                      occupancyTypes={occupancyTypes}
-                      mealPlans={mealPlans}
-                      vehicleTypes={vehicleTypes}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+            <PDFLikeSection 
+              title="Hotel Details" 
+              icon={BuildingIcon}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'hotels' ? null : 'hotels')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'hotels' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'hotels' ? (
+                // Display View - Summary
+                <div className="space-y-3">
+                  {form.watch('itineraries') && form.watch('itineraries').length > 0 ? (
+                    form.watch('itineraries').map((itinerary: any, index: number) => {
+                      const hotel = hotels.find(h => h.id === itinerary.hotelId);
+                      if (!hotel) return null;
+                      
+                      return (
+                        <div key={index} className="p-3 rounded-lg border" style={{ 
+                          background: brandColors.white, 
+                          borderColor: brandColors.border 
+                        }}>
+                          <div className="flex gap-3">
+                            <div className="flex-shrink-0 w-20 h-16 rounded overflow-hidden" style={{ background: '#f3f4f6' }}>
+                              {hotel.images && hotel.images.length > 0 ? (
+                                <img src={hotel.images[0].url} alt={hotel.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: brandColors.muted }}>
+                                  No Image
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-sm" style={{ color: brandColors.text }}>{hotel.name}</h4>
+                              <p className="text-xs mt-1" style={{ color: brandColors.muted }}>
+                                Day {itinerary.dayNumber || index + 1}
+                              </p>
+                              {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
+                                <p className="text-xs mt-1" style={{ color: brandColors.muted }}>
+                                  {itinerary.roomAllocations.length} room(s) allocated
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }).filter(Boolean)
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No hotels assigned yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <HotelsTab
+                  control={form.control}
+                  form={form}
+                  loading={loading}
+                  hotels={hotels}
+                  roomTypes={roomTypes}
+                  occupancyTypes={occupancyTypes}
+                  mealPlans={mealPlans}
+                  vehicleTypes={vehicleTypes}
+                />
+              )}
             </PDFLikeSection>
 
             {/* Flights Section */}
-            <PDFLikeSection title="Flight Details" icon={Plane}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="flights">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Flights
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <FlightsTab
-                      control={form.control}
-                      loading={loading}
-                      form={form}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+            <PDFLikeSection 
+              title="Flight Details" 
+              icon={Plane}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'flights' ? null : 'flights')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'flights' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'flights' ? (
+                // Display View - Table format
+                <div>
+                  {form.watch('flightDetails') && form.watch('flightDetails').length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr style={{ background: brandColors.tableHeaderBg }}>
+                            <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: brandColors.text }}>Flight</th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: brandColors.text }}>Route</th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: brandColors.text }}>Time</th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold" style={{ color: brandColors.text }}>Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {form.watch('flightDetails').map((flight: any, index: number) => (
+                            <tr key={index} className="border-b" style={{ borderColor: brandColors.border }}>
+                              <td className="px-3 py-2 text-sm">
+                                <div className="font-semibold" style={{ color: brandColors.text }}>{flight.flightName}</div>
+                                <div className="text-xs" style={{ color: brandColors.muted }}>{flight.flightNumber}</div>
+                              </td>
+                              <td className="px-3 py-2 text-sm" style={{ color: brandColors.text }}>
+                                {flight.from} → {flight.to}
+                              </td>
+                              <td className="px-3 py-2 text-sm" style={{ color: brandColors.text }}>
+                                {flight.departureTime} - {flight.arrivalTime}
+                              </td>
+                              <td className="px-3 py-2 text-sm" style={{ color: brandColors.text }}>
+                                {flight.date}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No flight details added yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <FlightsTab
+                  control={form.control}
+                  loading={loading}
+                  form={form}
+                />
+              )}
             </PDFLikeSection>
 
             {/* Pricing Section */}
-            <PDFLikeSection title="Pricing Details" icon={Tag}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="pricing">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Pricing
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <PricingTab
-                      control={form.control}
-                      loading={loading}
-                      form={form}
-                      hotels={hotels}
-                      roomTypes={roomTypes}
-                      occupancyTypes={occupancyTypes}
-                      mealPlans={mealPlans}
-                      vehicleTypes={vehicleTypes}
-                      priceCalculationResult={priceCalculationResult}
-                      setPriceCalculationResult={setPriceCalculationResult}
-                      selectedTemplateId={form.watch('selectedTemplateId')}
-                      selectedTemplateType={form.watch('selectedTemplateType')}
-                      selectedTourPackageVariantId={form.watch('selectedTourPackageVariantId')}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+            <PDFLikeSection 
+              title="Pricing Details" 
+              icon={Tag}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'pricing' ? null : 'pricing')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'pricing' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'pricing' ? (
+                // Display View - Card format
+                <div className="space-y-3">
+                  {form.watch('pricingSection') && form.watch('pricingSection').length > 0 ? (
+                    form.watch('pricingSection').map((item: any, index: number) => (
+                      <div key={index} className="p-4 rounded-lg border-l-4" style={{ 
+                        background: brandColors.subtlePanel, 
+                        borderColor: brandColors.success 
+                      }}>
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-bold text-sm" style={{ color: brandColors.text }}>
+                            {item.name || 'Pricing Component'}
+                          </h4>
+                          <span className="px-3 py-1 rounded-full text-sm font-bold" style={{ 
+                            background: brandColors.success, 
+                            color: brandColors.white 
+                          }}>
+                            ₹{item.price || '0'}
+                          </span>
+                        </div>
+                        {item.description && (
+                          <p className="text-xs" style={{ color: brandColors.muted }}>{item.description}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No pricing details added yet</p>
+                  )}
+                  {form.watch('totalPrice') && (
+                    <div className="mt-4 p-4 rounded-lg" style={{ background: brandColors.lightOrange }}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold" style={{ color: brandColors.text }}>Total Price</span>
+                        <span className="text-xl font-bold" style={{ color: brandColors.success }}>
+                          ₹{form.watch('totalPrice')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <PricingTab
+                  control={form.control}
+                  loading={loading}
+                  form={form}
+                  hotels={hotels}
+                  roomTypes={roomTypes}
+                  occupancyTypes={occupancyTypes}
+                  mealPlans={mealPlans}
+                  vehicleTypes={vehicleTypes}
+                  priceCalculationResult={priceCalculationResult}
+                  setPriceCalculationResult={setPriceCalculationResult}
+                  selectedTemplateId={form.watch('selectedTemplateId')}
+                  selectedTemplateType={form.watch('selectedTemplateType')}
+                  selectedTourPackageVariantId={form.watch('selectedTourPackageVariantId')}
+                />
+              )}
             </PDFLikeSection>
 
             {/* Policies Section */}
-            <PDFLikeSection title="Policies & Terms" icon={FileCheck}>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="policies">
-                  <AccordionTrigger className="text-sm font-medium">
-                    Edit Policies
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-4">
-                    <PoliciesTab
-                      control={form.control}
-                      loading={loading}
-                      form={form}
-                      useLocationDefaults={useLocationDefaults}
-                      onUseLocationDefaultsChange={handleUseLocationDefaultsChange}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+            <PDFLikeSection 
+              title="Policies & Terms" 
+              icon={FileCheck}
+              action={
+                <Button 
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingSection(editingSection === 'policies' ? null : 'policies')}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  {editingSection === 'policies' ? 'Close' : 'Edit'}
+                </Button>
+              }
+            >
+              {editingSection !== 'policies' ? (
+                // Display View - List format
+                <div className="space-y-4">
+                  {form.watch('inclusions') && form.watch('inclusions').length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-sm mb-2" style={{ color: brandColors.text }}>✓ Inclusions</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {form.watch('inclusions').slice(0, 3).map((item: string, index: number) => (
+                          <li key={index} className="text-sm" style={{ color: brandColors.muted }}>{item}</li>
+                        ))}
+                        {form.watch('inclusions').length > 3 && (
+                          <li className="text-sm italic" style={{ color: brandColors.muted }}>
+                            +{form.watch('inclusions').length - 3} more...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {form.watch('exclusions') && form.watch('exclusions').length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-sm mb-2" style={{ color: brandColors.text }}>✗ Exclusions</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {form.watch('exclusions').slice(0, 3).map((item: string, index: number) => (
+                          <li key={index} className="text-sm" style={{ color: brandColors.muted }}>{item}</li>
+                        ))}
+                        {form.watch('exclusions').length > 3 && (
+                          <li className="text-sm italic" style={{ color: brandColors.muted }}>
+                            +{form.watch('exclusions').length - 3} more...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {form.watch('importantNotes') && form.watch('importantNotes').length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-sm mb-2" style={{ color: brandColors.text }}>📌 Important Notes</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {form.watch('importantNotes').slice(0, 3).map((item: string, index: number) => (
+                          <li key={index} className="text-sm" style={{ color: brandColors.muted }}>{item}</li>
+                        ))}
+                        {form.watch('importantNotes').length > 3 && (
+                          <li className="text-sm italic" style={{ color: brandColors.muted }}>
+                            +{form.watch('importantNotes').length - 3} more...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {form.watch('cancellationPolicy') && form.watch('cancellationPolicy').length > 0 && (
+                    <div>
+                      <h4 className="font-bold text-sm mb-2" style={{ color: brandColors.text }}>🔄 Cancellation Policy</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {form.watch('cancellationPolicy').slice(0, 2).map((item: string, index: number) => (
+                          <li key={index} className="text-sm" style={{ color: brandColors.muted }}>{item}</li>
+                        ))}
+                        {form.watch('cancellationPolicy').length > 2 && (
+                          <li className="text-sm italic" style={{ color: brandColors.muted }}>
+                            +{form.watch('cancellationPolicy').length - 2} more...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs italic mt-4" style={{ color: brandColors.muted }}>
+                    Click Edit to view all policies and terms
+                  </p>
+                </div>
+              ) : (
+                // Edit View
+                <PoliciesTab
+                  control={form.control}
+                  loading={loading}
+                  form={form}
+                  useLocationDefaults={useLocationDefaults}
+                  onUseLocationDefaultsChange={handleUseLocationDefaultsChange}
+                />
+              )}
             </PDFLikeSection>
 
           </div>

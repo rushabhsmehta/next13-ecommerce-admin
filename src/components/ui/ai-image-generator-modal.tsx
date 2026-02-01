@@ -21,13 +21,23 @@ import { toast } from "react-hot-toast";
 interface AIImageGeneratorModalProps {
   onImageGenerated: (url: string) => void;
   trigger?: React.ReactNode;
+  autoPrompt?: string;
+  aspectRatio?: "1:1" | "4:3" | "16:9" | "9:16" | "3:4";
 }
 
-export function AIImageGeneratorModal({ onImageGenerated, trigger }: AIImageGeneratorModalProps) {
+export function AIImageGeneratorModal({ onImageGenerated, trigger, autoPrompt, aspectRatio = "1:1" }: AIImageGeneratorModalProps) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+  
+  // Set auto-prompt when modal opens
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen && autoPrompt && !prompt) {
+      setPrompt(autoPrompt);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -38,7 +48,7 @@ export function AIImageGeneratorModal({ onImageGenerated, trigger }: AIImageGene
 
       const response = await axios.post("/api/ai/images", {
         prompt,
-        aspectRatio: "1:1"
+        aspectRatio: aspectRatio
       });
 
       if (response.data.success && response.data.url) {
@@ -63,7 +73,7 @@ export function AIImageGeneratorModal({ onImageGenerated, trigger }: AIImageGene
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm" className="gap-2">

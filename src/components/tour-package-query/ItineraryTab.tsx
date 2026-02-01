@@ -46,6 +46,103 @@ import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, us
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+// Helper function to strip HTML tags
+const stripHtml = (html: string) => {
+  if (!html) return '';
+  // Use DOMParser for safe HTML parsing in browser environment
+  if (typeof window !== 'undefined' && window.DOMParser) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || doc.body.innerText || '';
+  }
+  // Fallback for SSR: simple regex-based stripping (safe since not inserted into DOM)
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
+// Type definitions for prompt generation
+interface ActivityData {
+  activityTitle?: string;
+  activityDescription?: string;
+  activityImages?: { url: string }[];
+  [key: string]: unknown; // Allow additional properties with better type safety
+}
+
+interface ItineraryData {
+  itineraryTitle?: string;
+  itineraryDescription?: string;
+  activities?: ActivityData[];
+  itineraryImages?: { url: string }[];
+  [key: string]: unknown; // Allow additional properties with better type safety
+}
+
+// Helper function to generate AI prompt from itinerary data
+const generateItineraryImagePrompt = (itinerary: Record<string, any>): string => {
+  const dayTitle = stripHtml(itinerary.itineraryTitle || '');
+  const dayDescription = stripHtml(itinerary.itineraryDescription || '');
+  
+  let prompt = '';
+  
+  // Add day title if available
+  if (dayTitle) {
+    prompt += `${dayTitle}. `;
+  }
+  
+  // Add day description (truncate if too long)
+  if (dayDescription) {
+    const truncatedDescription = dayDescription.length > 200 
+      ? dayDescription.substring(0, 200) + '...' 
+      : dayDescription;
+    prompt += `${truncatedDescription} `;
+  }
+  
+  // Add activities
+  if (itinerary.activities && itinerary.activities.length > 0) {
+    const activityDescriptions = itinerary.activities
+      .map((activity: ActivityData) => {
+        const activityTitle = stripHtml(activity.activityTitle || '');
+        const activityDesc = stripHtml(activity.activityDescription || '');
+        return `${activityTitle}${activityDesc ? ': ' + activityDesc : ''}`;
+      })
+      .filter(Boolean)
+      .slice(0, 3) // Take only first 3 activities to avoid overly long prompts
+      .join('. ');
+    
+    if (activityDescriptions) {
+      prompt += `Activities include: ${activityDescriptions}. `;
+    }
+  }
+  
+  // Add context for image generation
+  prompt += 'Create a beautiful, scenic travel destination image that captures the essence of this day\'s activities in 4:3 aspect ratio, suitable for a travel itinerary.';
+  
+  return prompt.trim();
+};
+
+// Helper function to generate AI prompt from activity data
+const generateActivityImagePrompt = (activity: Record<string, any>): string => {
+  const activityTitle = stripHtml(activity.activityTitle || '');
+  const activityDescription = stripHtml(activity.activityDescription || '');
+  
+  let prompt = '';
+  
+  // Add activity title if available
+  if (activityTitle) {
+    prompt += `${activityTitle}. `;
+  }
+  
+  // Add activity description (truncate if too long)
+  if (activityDescription) {
+    const truncatedDescription = activityDescription.length > 200 
+      ? activityDescription.substring(0, 200) + '...' 
+      : activityDescription;
+    prompt += `${truncatedDescription} `;
+  }
+  
+  // Add context for image generation
+  prompt += 'Create a beautiful, scenic image that captures the essence of this activity in 4:3 aspect ratio, suitable for a travel itinerary.';
+  
+  return prompt.trim();
+};
+
 // Define the props interface with a union type for control
 interface ItineraryTabProps {
   control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
@@ -144,16 +241,9 @@ function ItineraryTab({
     }
   };
 
-  // Helper function to strip HTML tags and copy day details to clipboard
+  // Helper function to copy day details to clipboard
   const copyDayToClipboard = async (itinerary: any) => {
     try {
-      // Helper to strip HTML tags
-      const stripHtml = (html: string) => {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || '';
-      };
-
       // Build the text to copy
       const dayTitle = stripHtml(itinerary.itineraryTitle || '');
       const dayDescription = stripHtml(itinerary.itineraryDescription || '');
@@ -578,6 +668,9 @@ function ItineraryTab({
                                     key={`itinerary-upload-${index}`}
                                     value={itinerary.itineraryImages?.map(img => img.url) || []}
                                     disabled={loading}
+                                    enableAI={true}
+                                    autoPrompt={generateItineraryImagePrompt(itinerary)}
+                                    aspectRatio="4:3"
                                     onChange={(url) => {
                                       // Use functional update pattern to avoid stale closure issues
                                       const currentItineraries = form.getValues('itineraries') || [];
@@ -706,6 +799,9 @@ function ItineraryTab({
                                                   key={`activity-upload-${index}-${activityIndex}`}
                                                   value={activity.activityImages?.map(img => img.url) || []}
                                                   disabled={loading}
+                                                  enableAI={true}
+                                                  autoPrompt={generateActivityImagePrompt(activity)}
+                                                  aspectRatio="4:3"
                                                   onChange={(url) => {
                                                     // Get fresh values from form to avoid stale closure
                                                     const currentItineraries = form.getValues('itineraries') || [];

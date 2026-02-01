@@ -1154,7 +1154,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                            <FormItem className="m-0">
                              <FormControl>
                                <Input
-                                 disabled={loading}
+                                 disabled={loading || readOnly}
                                  placeholder="Enter Tour Name"
                                  className="border-0 bg-transparent p-0 text-sm font-bold text-gray-900 focus-visible:ring-0 h-auto"
                                  {...field}
@@ -1175,7 +1175,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                            <FormItem className="m-0">
                              <FormControl>
                                <Input
-                                 disabled={loading}
+                                 disabled={loading || readOnly}
                                  placeholder="e.g. 5 Days / 4 Nights"
                                  className="border-0 bg-transparent p-0 text-sm font-bold text-gray-900 focus-visible:ring-0 h-auto"
                                  {...field}
@@ -1197,10 +1197,10 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                         <FormControl>
                           <ImageUpload
                             value={field.value.map((image) => image.url)}
-                            disabled={loading}
+                            disabled={loading || readOnly}
                             onChange={(url) => field.onChange([...field.value, { url }])}
                             onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
-                            enableAI={true}
+                            enableAI={!readOnly}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1276,6 +1276,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
+                              disabled={readOnly}
                               // @ts-ignore
                               onCheckedChange={field.onChange}
                             />
@@ -1356,7 +1357,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                   hotels={hotels}
                   enableRoomAllocations={false}
                   enableTransportDetails={false}
-                  readOnly={false}
+                  readOnly={readOnly}
                 />
               )}
             </PDFLikeSection>

@@ -51,8 +51,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { cn } from "@/lib/utils"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { convertJourneyDateToTourStart, createDatePickerValue, normalizeApiDate } from "@/lib/timezone-utils"
+import { convertJourneyDateToTourStart, normalizeApiDate } from "@/lib/timezone-utils"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { DevTool } from "@hookform/devtools"
 import BasicInfoTab from '@/components/tour-package-query/BasicInfoTab';

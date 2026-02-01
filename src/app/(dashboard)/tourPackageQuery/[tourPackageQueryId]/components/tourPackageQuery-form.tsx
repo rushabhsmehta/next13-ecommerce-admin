@@ -592,7 +592,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         // Map AI JSON to Form Values
         const mappedData: Partial<TourPackageQueryFormValues> = {
-          tourPackageQueryName: data.tourPackageQueryName || '',
+          tourPackageQueryName: data.tourPackageName || data.tourPackageQueryName || '',
           customerName: data.customerName || '',
           customerNumber: data.customerNumber || '',
           tourCategory: data.tourCategory || 'Domestic',
@@ -603,7 +603,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           drop_location: data.drop_location || '',
           locationId: foundLocationId, // Set the found location ID
           numAdults: String(data.numAdults || ''),
-          numChild5to12: String(data.numChild5to12 || ''),
+          numChild5to12: String(data.numChildren || data.numChild5to12 || ''),
           numChild0to5: String(data.numChild0to5 || ''),
 
           // Handle Date
@@ -616,11 +616,37 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             itineraryDescription: day.itineraryDescription || '',
             mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [],
 
-            activities: Array.isArray(day.activities) ? day.activities.map((act: string) => ({
-              activityTitle: act,
-              activityDescription: '',
-              activityImages: []
-            })) : [],
+            // Handle activities from AI generation
+            // AI generates: [{ activityTitle: "", activityDescription: "i. ...\nii. ...\niii. ..." }]
+            // We want to map the activityDescription to the first activity and convert \n to <br> for HTML display
+            activities: Array.isArray(day.activities) && day.activities.length > 0 
+              ? (() => {
+                  // Check if activities are objects with activityDescription field
+                  const firstActivity = day.activities[0];
+                  if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
+                    // AI-generated format: single activity object with description containing all activities
+                    // Convert newline characters to HTML line breaks for JoditEditor
+                    const descriptionWithLineBreaks = firstActivity.activityDescription
+                      .replace(/\n/g, '<br>');
+                    
+                    return [{
+                      activityTitle: firstActivity.activityTitle || '',
+                      activityDescription: descriptionWithLineBreaks,
+                      activityImages: []
+                    }];
+                  } else if (typeof firstActivity === 'string') {
+                    // Legacy format: array of strings
+                    return day.activities.map((act: string) => ({
+                      activityTitle: act,
+                      activityDescription: '',
+                      activityImages: []
+                    }));
+                  } else {
+                    // Unknown format, return empty array
+                    return [];
+                  }
+                })()
+              : [],
             itineraryImages: [],
             hotelId: '',
             locationId: foundLocationId, // Set location ID for itineraries too

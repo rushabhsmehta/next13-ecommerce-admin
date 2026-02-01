@@ -212,7 +212,8 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
         const selectedLocationId = form.getValues("destination");
 
         // Store in localStorage for the form to pick up
-        const draftKey = "aiPackageWizardDraft";
+        // Use "autoQueryDraft" to match what the form expects
+        const draftKey = mode === "tourPackageQuery" ? "autoQueryDraft" : "aiPackageWizardDraft";
         localStorage.setItem(draftKey, JSON.stringify({
             timestamp: new Date().toISOString(),
             locationId: selectedLocationId,

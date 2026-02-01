@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     }
 
     // Role check: Ensure associates (read-only) cannot generate images (save costs)
-    const isAssociate = await isCurrentUserAssociate(userId);
+    const isAssociate = await isCurrentUserAssociate();
     if (isAssociate) {
       return jsonError("Associates are not authorized to generate AI images", 403, "FORBIDDEN");
     }

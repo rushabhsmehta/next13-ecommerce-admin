@@ -2616,18 +2616,18 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                     )}
                   </InfoCardGrid>
                   
-                  {(form.watch('importantNotes') && form.watch('importantNotes').length > 0) ||
-                   (form.watch('usefulTip') && form.watch('usefulTip').length > 0) ||
-                   (form.watch('termsconditions') && form.watch('termsconditions').length > 0) ? (
+                  {((form.watch('importantNotes')?.length ?? 0) > 0) ||
+                   ((form.watch('usefulTip')?.length ?? 0) > 0) ||
+                   ((form.watch('termsconditions')?.length ?? 0) > 0) ? (
                     <div className="p-3 rounded-md border-l-4" style={{ 
                       background: brandColors.panelBg, 
                       borderColor: brandColors.primary 
                     }}>
                       <div className="text-xs font-semibold mb-1" style={{ color: brandColors.muted }}>ADDITIONAL POLICIES</div>
                       <div className="text-sm" style={{ color: brandColors.text }}>
-                        {form.watch('importantNotes')?.length > 0 && <span>Important Notes • </span>}
-                        {form.watch('usefulTip')?.length > 0 && <span>Useful Tips • </span>}
-                        {form.watch('termsconditions')?.length > 0 && <span>Terms & Conditions</span>}
+                        {(form.watch('importantNotes')?.length ?? 0) > 0 && <span>Important Notes • </span>}
+                        {(form.watch('usefulTip')?.length ?? 0) > 0 && <span>Useful Tips • </span>}
+                        {(form.watch('termsconditions')?.length ?? 0) > 0 && <span>Terms & Conditions</span>}
                       </div>
                     </div>
                   ) : (

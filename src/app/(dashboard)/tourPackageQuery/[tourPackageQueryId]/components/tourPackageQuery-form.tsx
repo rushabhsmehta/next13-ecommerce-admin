@@ -563,6 +563,47 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // This useFieldArray is now handled in the PricingTab component
   // Removing unused code
 
+  // Helper function to escape HTML entities to prevent XSS
+  const escapeHtml = (text: string): string => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  };
+
+  // Helper function to map AI-generated activities to form format
+  const mapActivities = (activities: any[]): any[] => {
+    if (!Array.isArray(activities) || activities.length === 0) {
+      return [];
+    }
+
+    const firstActivity = activities[0];
+    
+    // Check if activities are in AI-generated format (object with activityDescription)
+    if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
+      // Escape HTML first to prevent XSS, then convert newlines to <br>
+      const escapedDescription = escapeHtml(firstActivity.activityDescription);
+      const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
+      
+      return [{
+        activityTitle: firstActivity.activityTitle || '',
+        activityDescription: descriptionWithLineBreaks,
+        activityImages: []
+      }];
+    } 
+    
+    // Legacy format: array of strings
+    if (typeof firstActivity === 'string') {
+      return activities.map((act: string) => ({
+        activityTitle: act,
+        activityDescription: '',
+        activityImages: []
+      }));
+    }
+    
+    // Unknown format
+    return [];
+  };
+
   // Auto-load draft from Auto Builder
   useEffect(() => {
     const loadDraft = () => {
@@ -615,44 +656,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             itineraryTitle: day.itineraryTitle || '',
             itineraryDescription: day.itineraryDescription || '',
             mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [],
-
-            // Handle activities from AI generation
-            // AI generates: [{ activityTitle: "", activityDescription: "i. ...\nii. ...\niii. ..." }]
-            // We want to map the activityDescription to the first activity and convert \n to <br> for HTML display
-            activities: Array.isArray(day.activities) && day.activities.length > 0 
-              ? (() => {
-                  // Check if activities are objects with activityDescription field
-                  const firstActivity = day.activities[0];
-                  if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
-                    // AI-generated format: single activity object with description containing all activities
-                    // Escape HTML entities first to prevent XSS, then convert newlines to <br>
-                    const escapeHtml = (text: string) => {
-                      const div = document.createElement('div');
-                      div.textContent = text;
-                      return div.innerHTML;
-                    };
-                    
-                    const escapedDescription = escapeHtml(firstActivity.activityDescription);
-                    const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
-                    
-                    return [{
-                      activityTitle: firstActivity.activityTitle || '',
-                      activityDescription: descriptionWithLineBreaks,
-                      activityImages: []
-                    }];
-                  } else if (typeof firstActivity === 'string') {
-                    // Legacy format: array of strings
-                    return day.activities.map((act: string) => ({
-                      activityTitle: act,
-                      activityDescription: '',
-                      activityImages: []
-                    }));
-                  } else {
-                    // Unknown format, return empty array
-                    return [];
-                  }
-                })()
-              : [],
+            // Use helper function to map activities
+            activities: mapActivities(day.activities),
             itineraryImages: [],
             hotelId: '',
             locationId: foundLocationId, // Set location ID for itineraries too

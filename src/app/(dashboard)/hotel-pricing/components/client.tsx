@@ -677,7 +677,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                         {pricingPeriods.length === 0 && !editingRow ? (
                           <TableRow>
                             <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                              No pricing periods defined yet. Click "Add Pricing Period" to get started.
+                              No pricing periods defined yet. Click &quot;Add Pricing Period&quot; to get started.
                             </TableCell>
                           </TableRow>
                         ) : (

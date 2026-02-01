@@ -47,17 +47,19 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert"
+import { Check, ChevronsUpDown } from "lucide-react"
 import { PricingSplitDialog } from "./pricing-split-dialog"
 
 // TypeScript interfaces
@@ -421,21 +423,51 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Select
-                value={selectedLocationId}
-                onValueChange={setSelectedLocationId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a location..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    {selectedLocationId ? (
+                      <div className="flex items-center">
+                        <MapPin className="mr-2 h-4 w-4" />
+                        {locations.find((l) => l.id === selectedLocationId)?.label}
+                      </div>
+                    ) : (
+                      "Select a location..."
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search locations..." />
+                    <CommandList>
+                      <CommandEmpty>No location found.</CommandEmpty>
+                      <CommandGroup>
+                        {locations.map((location) => (
+                          <CommandItem
+                            key={location.id}
+                            value={location.label}
+                            onSelect={() => setSelectedLocationId(location.id)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedLocationId === location.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <MapPin className="mr-2 h-4 w-4" />
+                            {location.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </CardContent>
           </Card>
 
@@ -448,23 +480,55 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Select
-                value={selectedHotelId}
-                onValueChange={setSelectedHotelId}
-                disabled={!selectedLocationId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={selectedLocationId ? "Select a hotel..." : "Select location first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredHotels.map((hotel) => (
-                    <SelectItem key={hotel.id} value={hotel.id}>
-                      {hotel.name}
-                      {hotel.destination && ` (${hotel.destination.name})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                    disabled={!selectedLocationId}
+                  >
+                    {selectedHotelId ? (
+                      <div className="flex items-center">
+                        <HotelIcon className="mr-2 h-4 w-4" />
+                        {filteredHotels.find((h) => h.id === selectedHotelId)?.name}
+                      </div>
+                    ) : selectedLocationId ? (
+                      "Select a hotel..."
+                    ) : (
+                      "Select location first"
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search hotels..." />
+                    <CommandList>
+                      <CommandEmpty>No hotel found.</CommandEmpty>
+                      <CommandGroup>
+                        {filteredHotels.map((hotel) => (
+                          <CommandItem
+                            key={hotel.id}
+                            value={hotel.name}
+                            onSelect={() => setSelectedHotelId(hotel.id)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedHotelId === hotel.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <HotelIcon className="mr-2 h-4 w-4" />
+                            {hotel.name}
+                            {hotel.destination && ` (${hotel.destination.name})`}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </CardContent>
           </Card>
         </div>
@@ -530,62 +594,153 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                         {editingRow && (
                           <TableRow className="bg-blue-50 border-2 border-blue-200">
                             <TableCell>
-                              <Select
-                                value={editingRow.roomTypeId}
-                                onValueChange={(value) => 
-                                  setEditingRow({ ...editingRow, roomTypeId: value })
-                                }
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {roomTypes.map((rt) => (
-                                    <SelectItem key={rt.id} value={rt.id}>
-                                      {rt.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between h-10 px-3"
+                                  >
+                                    {editingRow.roomTypeId ? (
+                                      roomTypes.find((rt) => rt.id === editingRow.roomTypeId)?.name
+                                    ) : (
+                                      <span className="text-muted-foreground">Select...</span>
+                                    )}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Search room types..." />
+                                    <CommandList>
+                                      <CommandEmpty>No room type found.</CommandEmpty>
+                                      <CommandGroup>
+                                        {roomTypes.map((rt) => (
+                                          <CommandItem
+                                            key={rt.id}
+                                            value={rt.name}
+                                            onSelect={() =>
+                                              setEditingRow({ ...editingRow, roomTypeId: rt.id })
+                                            }
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                editingRow.roomTypeId === rt.id ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                            {rt.name}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                             </TableCell>
                             <TableCell>
-                              <Select
-                                value={editingRow.occupancyTypeId}
-                                onValueChange={(value) => 
-                                  setEditingRow({ ...editingRow, occupancyTypeId: value })
-                                }
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {occupancyTypes.map((ot) => (
-                                    <SelectItem key={ot.id} value={ot.id}>
-                                      {ot.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between h-10 px-3"
+                                  >
+                                    {editingRow.occupancyTypeId ? (
+                                      occupancyTypes.find((ot) => ot.id === editingRow.occupancyTypeId)?.name
+                                    ) : (
+                                      <span className="text-muted-foreground">Select...</span>
+                                    )}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Search occupancy types..." />
+                                    <CommandList>
+                                      <CommandEmpty>No occupancy type found.</CommandEmpty>
+                                      <CommandGroup>
+                                        {occupancyTypes.map((ot) => (
+                                          <CommandItem
+                                            key={ot.id}
+                                            value={ot.name}
+                                            onSelect={() =>
+                                              setEditingRow({ ...editingRow, occupancyTypeId: ot.id })
+                                            }
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                editingRow.occupancyTypeId === ot.id ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                            {ot.name}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                             </TableCell>
                             <TableCell>
-                              <Select
-                                value={editingRow.mealPlanId}
-                                onValueChange={(value) => 
-                                  setEditingRow({ ...editingRow, mealPlanId: value })
-                                }
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="None" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
-                                  {mealPlans.map((mp) => (
-                                    <SelectItem key={mp.id} value={mp.id}>
-                                      {mp.code}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between h-10 px-3"
+                                  >
+                                    {editingRow.mealPlanId ? (
+                                      mealPlans.find((mp) => mp.id === editingRow.mealPlanId)?.code
+                                    ) : (
+                                      <span className="text-muted-foreground">None</span>
+                                    )}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Search meal plans..." />
+                                    <CommandList>
+                                      <CommandEmpty>No meal plan found.</CommandEmpty>
+                                      <CommandGroup>
+                                        <CommandItem
+                                          value=""
+                                          onSelect={() =>
+                                            setEditingRow({ ...editingRow, mealPlanId: "" })
+                                          }
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              editingRow.mealPlanId === "" ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          None
+                                        </CommandItem>
+                                        {mealPlans.map((mp) => (
+                                          <CommandItem
+                                            key={mp.id}
+                                            value={mp.code}
+                                            onSelect={() =>
+                                              setEditingRow({ ...editingRow, mealPlanId: mp.id })
+                                            }
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                editingRow.mealPlanId === mp.id ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                            {mp.code}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                             </TableCell>
                             <TableCell>
                               <Popover>

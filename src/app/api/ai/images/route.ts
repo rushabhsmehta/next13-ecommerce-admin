@@ -12,6 +12,9 @@ export const dynamic = 'force-dynamic';
 const generateImageSchema = z.object({
   prompt: z.string().min(3, "Prompt is required"),
   aspectRatio: z.enum(["1:1", "4:3", "16:9", "9:16", "3:4"]).optional().default("1:1"),
+  negativePrompt: z.string().optional(),
+  steps: z.number().min(1).max(100).optional().default(30),
+  guidanceScale: z.number().min(1).max(20).optional().default(7.5),
 });
 
 export async function POST(req: Request) {
@@ -34,52 +37,98 @@ export async function POST(req: Request) {
       return jsonError("Invalid input", 400, "VALIDATION", result.error);
     }
 
-    const { prompt, aspectRatio } = result.data;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const { prompt, aspectRatio, negativePrompt, steps, guidanceScale } = result.data;
+    const runpodApiKey = process.env.RUNPOD_API_KEY;
+    const runpodApiUrl = process.env.RUNPOD_API_URL;
 
-    if (!apiKey) {
-      return jsonError("Google API key is not configured", 500, "NO_API_KEY");
+    if (!runpodApiKey || !runpodApiUrl) {
+      return jsonError("RunPod API is not configured. Please set RUNPOD_API_KEY and RUNPOD_API_URL in environment variables.", 500, "NO_API_KEY");
     }
 
-    const modelName = "models/imagen-4.0-generate-001";
-    console.log(`[AI_IMAGE] Generating image with ${modelName} for prompt: "${prompt.substring(0, 50)}..."`);
+    console.log(`[AI_IMAGE] Generating image with RunPod for prompt: "${prompt.substring(0, 50)}..."`);
+
+    // Convert aspect ratio to width/height dimensions
+    const dimensionsMap: Record<string, { width: number; height: number }> = {
+      "1:1": { width: 512, height: 512 },
+      "4:3": { width: 768, height: 576 },
+      "16:9": { width: 768, height: 432 },
+      "9:16": { width: 432, height: 768 },
+      "3:4": { width: 576, height: 768 },
+    };
+
+    const dimensions = dimensionsMap[aspectRatio] || dimensionsMap["1:1"];
 
     try {
-      // 1. Generate Image via Google Gemini API (Imagen 4)
-      // Note: Endpoint and model name are subject to change as Imagen rolls out to Gemini API.
+      // 1. Generate Image via RunPod API
+      // RunPod typically expects: POST to endpoint with input containing prompt, parameters
       
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/${modelName}:predict?key=${apiKey}`,
+        runpodApiUrl,
         {
-          instances: [
-            {
-              prompt: prompt
-            }
-          ],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: aspectRatio
+          input: {
+            prompt: prompt,
+            negative_prompt: negativePrompt || "blurry, low quality, distorted, ugly, bad anatomy",
+            width: dimensions.width,
+            height: dimensions.height,
+            num_inference_steps: steps,
+            guidance_scale: guidanceScale,
+            num_outputs: 1
           }
         },
         {
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${runpodApiKey}`
+          },
+          timeout: 120000 // 2 minutes timeout for image generation
         }
       );
 
-      // Response structure for Imagen on Vertex/AI Studio usually involves 'predictions' with bytesBase64Encoded
-      const predictions = response.data.predictions;
-      
-      const firstPrediction = predictions?.[0];
-      const base64Image = firstPrediction?.bytesBase64Encoded || firstPrediction?.bytesBase64;
-      
-      if (!base64Image) {
-        console.error("[AI_IMAGE] Unexpected response format:", JSON.stringify(response.data).substring(0, 200));
-        return jsonError("Failed to generate image (unexpected API response)", 502, "AI_ERROR");
+      // RunPod response structure varies by model/endpoint
+      // Common patterns: response.data.output, response.data.image, response.data[0]
+      let base64Image: string | null = null;
+      let imageUrl: string | null = null;
+
+      // Try to extract image from various possible response structures
+      if (response.data.output) {
+        if (Array.isArray(response.data.output)) {
+          imageUrl = response.data.output[0];
+        } else if (typeof response.data.output === 'string') {
+          // Could be base64 or URL
+          if (response.data.output.startsWith('http')) {
+            imageUrl = response.data.output;
+          } else {
+            base64Image = response.data.output;
+          }
+        } else if (response.data.output.images && Array.isArray(response.data.output.images)) {
+          imageUrl = response.data.output.images[0];
+        }
+      } else if (response.data.image) {
+        if (typeof response.data.image === 'string') {
+          base64Image = response.data.image;
+        }
+      } else if (Array.isArray(response.data) && response.data.length > 0) {
+        imageUrl = response.data[0];
       }
 
-      const buffer = Buffer.from(base64Image, 'base64');
+      let buffer: Buffer;
+
+      // If we have a URL, download the image
+      if (imageUrl) {
+        console.log(`[AI_IMAGE] Downloading image from: ${imageUrl}`);
+        const imageResponse = await axios.get(imageUrl, {
+          responseType: 'arraybuffer',
+          timeout: 30000
+        });
+        buffer = Buffer.from(imageResponse.data);
+      } else if (base64Image) {
+        // Clean base64 string (remove data URI prefix if present)
+        const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
+        buffer = Buffer.from(cleanBase64, 'base64');
+      } else {
+        console.error("[AI_IMAGE] Unexpected response format:", JSON.stringify(response.data).substring(0, 500));
+        return jsonError("Failed to generate image (unexpected API response format)", 502, "AI_ERROR");
+      }
 
       // 2. Upload to R2
       const filename = `ai-gen-${Date.now()}.png`;
@@ -94,18 +143,31 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        url: uploadResult.url
+        url: uploadResult.url,
+        metadata: {
+          provider: 'runpod',
+          dimensions: dimensions,
+          aspectRatio: aspectRatio
+        }
       });
 
     } catch (error: any) {
       console.error("[AI_IMAGE] Generation failed:", error.response?.data || error.message);
       
-      // Fallback: If Imagen 3 is not available, try generic Gemini 2.0 Flash? 
-      // Gemini 2.0 Flash is multimodal but primarily for understanding, not generating images yet in all regions via this specific endpoint.
-      // We will stick to reporting the error to help debug connection issues.
+      // Provide helpful error messages
+      let errorMessage = "AI Generation failed";
+      if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+        errorMessage = "Image generation timed out. The RunPod GPU may be busy or starting up. Please try again.";
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
+        errorMessage = "RunPod API authentication failed. Please check your RUNPOD_API_KEY.";
+      } else if (error.response?.data?.error) {
+        errorMessage = `RunPod API error: ${error.response.data.error}`;
+      } else if (error.message) {
+        errorMessage = `Generation failed: ${error.message}`;
+      }
       
       return jsonError(
-        `AI Generation failed: ${error.response?.data?.error?.message || error.message}`, 
+        errorMessage, 
         error.response?.status || 500, 
         "AI_ERROR"
       );

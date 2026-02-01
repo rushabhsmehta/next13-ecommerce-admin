@@ -90,7 +90,7 @@ interface TourPackageQueryFormProps {
 }
 
 export const TourPackageQueryFormWrapper: React.FC<TourPackageQueryFormProps> = (props) => {
-  const [mode, setMode] = useState<'classic' | 'wysiwyg'>('wysiwyg');
+  const [mode, setMode] = useState<'classic' | 'wysiwyg'>('classic');
 
   return (
     <div className="space-y-4">

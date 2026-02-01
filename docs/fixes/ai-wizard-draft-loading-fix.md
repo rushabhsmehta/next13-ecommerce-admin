@@ -93,13 +93,26 @@ activities: Array.isArray(day.activities) && day.activities.length > 0
 
 ## Testing
 
-Created test script: `scripts/tests/test-ai-wizard-draft-mapping.js`
+Created test scripts in `scripts/tests/`:
+
+1. **test-ai-wizard-draft-mapping.js**
+   - Tests data structure mapping
+   - Validates field transformations
+   - Tests XSS prevention with malicious input
+   
+2. **test-ai-wizard-e2e-flow.js**
+   - Simulates complete end-to-end flow
+   - Tests all 5 steps: Storage → Retrieval → Mapping → Validation → Results
+   - Comprehensive validation of user experience
 
 **Test Results:**
+- ✅ Draft Storage and Retrieval
 - ✅ Basic fields mapped correctly (name, customer, dates, etc.)
 - ✅ Activities preserved in single object structure
 - ✅ Line breaks converted from `\n` to `<br>` tags
 - ✅ Roman numerals preserved in activity descriptions
+- ✅ HTML properly escaped to prevent XSS attacks
+- ✅ All itineraries mapped correctly
 
 ## User Experience After Fix
 

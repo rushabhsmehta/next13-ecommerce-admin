@@ -476,64 +476,121 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
     }
 
     form.setValue('selectedTourPackageVariantId', selectedVariantId);
-    form.setValue('selectedTourPackageVariantName', variant.name || 'Standard');
-    form.setValue('selectedTemplateId', tourPackageId);
-    form.setValue('selectedTemplateType', 'TourPackage');
-    form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${tourPackageId.substring(0, 8)}`);
+    form.setValue('selectedTourPackageVariantName', variant.name || 'Variant');
+    form.setValue('selectedTemplateId', selectedVariantId);
+    form.setValue('selectedTemplateType', 'TourPackageVariant');
+    form.setValue('tourPackageTemplate', tourPackageId);
+    const combinedTemplateName = [selectedTourPackage.tourPackageName, variant.name].filter(Boolean).join(' - ');
+    if (combinedTemplateName) {
+      form.setValue('tourPackageTemplateName', combinedTemplateName);
+    }
+
+    // Hotel mappings are now handled via variant snapshots created on save
+    // No need to apply them here
+
+    if (Array.isArray(variant.tourPackagePricings) && variant.tourPackagePricings.length > 0) {
+      const sortedPricings = [...variant.tourPackagePricings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      const primaryPricing = sortedPricings[0];
+      if (primaryPricing?.mealPlanId) {
+        form.setValue('selectedMealPlanId', primaryPricing.mealPlanId);
+      }
+      if (typeof primaryPricing?.numberOfRooms === 'number') {
+        form.setValue('numberOfRooms', primaryPricing.numberOfRooms);
+      }
+    }
+
+    if (variantIds.length === 1) {
+      toast.success('Variant selected successfully.');
+    } else if (variantIds.length > 1) {
+      toast.success(`${variantIds.length} variants selected successfully.`);
+    }
   };
 
-  const handleTourPackageSelection = (packageId: string) => {
-    const selectedPackage = tourPackages?.find(tp => tp.id === packageId);
-    if (!selectedPackage) {
-      toast.error("Tour Package not found");
+  const handleTourPackageSelection = (selectedTourPackageId: string) => {
+    const selectedTourPackage = tourPackages?.find((tp) => tp.id === selectedTourPackageId);
+    if (!selectedTourPackage) {
+      toast.error('Unable to locate selected tour package.');
       return;
     }
 
-    form.setValue('selectedTemplateId', packageId);
-    form.setValue('selectedTemplateType', 'TourPackage');
-    form.setValue('tourPackageTemplateName', selectedPackage.tourPackageName || `Package ${packageId.substring(0, 8)}`);
-    form.setValue('tourPackageQueryName', selectedPackage.tourPackageName || '');
-    form.setValue('numDaysNight', selectedPackage.numDaysNight || '');
-    form.setValue('images', selectedPackage.images || []);
-    // Map itineraries to match form schema
-    form.setValue('itineraries', (selectedPackage.itineraries || []).map(it => ({
-      itineraryImages: it.itineraryImages || [],
-      itineraryTitle: it.itineraryTitle || '',
-      itineraryDescription: it.itineraryDescription || '',
-      dayNumber: it.dayNumber || 0,
-      days: '',
-      activities: (it.activities || []).map(act => ({
-        activityTitle: act.activityTitle || '',
-        activityDescription: act.activityDescription || '',
-        activityImages: act.activityImages || []
-      })),
-      hotelId: it.hotelId || '',
-      locationId: it.locationId || '',
-      roomAllocations: [],
-      transportDetails: []
-    })));
-    // Map flight details to match form schema
-    form.setValue('flightDetails', (selectedPackage.flightDetails || []).map(fd => ({
-      date: fd.date || '',
-      flightName: fd.flightName || '',
-      flightNumber: fd.flightNumber || '',
-      from: fd.from || '',
-      to: fd.to || '',
-      departureTime: fd.departureTime || '',
-      arrivalTime: fd.arrivalTime || '',
-      flightDuration: fd.flightDuration || ''
-    })));
-    form.setValue('inclusions', parseJsonField(selectedPackage.inclusions) || []);
-    form.setValue('exclusions', parseJsonField(selectedPackage.exclusions) || []);
-    form.setValue('importantNotes', parseJsonField(selectedPackage.importantNotes) || []);
-    form.setValue('paymentPolicy', parseJsonField(selectedPackage.paymentPolicy) || []);
-    form.setValue('usefulTip', parseJsonField(selectedPackage.usefulTip) || []);
-    form.setValue('cancellationPolicy', parseJsonField(selectedPackage.cancellationPolicy) || []);
-    form.setValue('airlineCancellationPolicy', parseJsonField(selectedPackage.airlineCancellationPolicy) || []);
-    form.setValue('termsconditions', parseJsonField(selectedPackage.termsconditions) || []);
+    form.setValue('tourPackageTemplate', selectedTourPackageId);
+    form.setValue('tourPackageQueryTemplate', '');
 
-    toast.success("Tour Package loaded as template");
-    setOpenTemplate(false);
+    const customerName = form.getValues('customerName');
+    const packageName = selectedTourPackage.tourPackageName || '';
+
+    const queryNameParts: string[] = [];
+    if (customerName) queryNameParts.push(customerName);
+    if (packageName) queryNameParts.push(packageName);
+    if (queryNameParts.length > 0) {
+      form.setValue('tourPackageQueryName', queryNameParts.join(' - '));
+    }
+
+    form.setValue('tourPackageQueryType', String(selectedTourPackage.tourPackageType || ''));
+    form.setValue('locationId', selectedTourPackage.locationId || '');
+    form.setValue('numDaysNight', String(selectedTourPackage.numDaysNight || ''));
+    form.setValue('transport', String(selectedTourPackage.transport || ''));
+    form.setValue('pickup_location', String(selectedTourPackage.pickup_location || ''));
+    form.setValue('drop_location', String(selectedTourPackage.drop_location || ''));
+    // form.setValue('totalPrice', String(selectedTourPackage.totalPrice || '')); // REMOVED
+    form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
+    form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
+    form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
+    form.setValue('paymentPolicy', parseJsonField(selectedTourPackage.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
+    form.setValue('usefulTip', parseJsonField(selectedTourPackage.usefulTip) || USEFUL_TIPS_DEFAULT);
+    form.setValue('cancellationPolicy', parseJsonField(selectedTourPackage.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
+    form.setValue('airlineCancellationPolicy', parseJsonField(selectedTourPackage.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
+    form.setValue('termsconditions', parseJsonField(selectedTourPackage.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+    form.setValue('images', selectedTourPackage.images || []);
+
+    const transformedItineraries = selectedTourPackage.itineraries?.map((itinerary) => ({
+      locationId: itinerary.locationId || '',
+      itineraryImages: itinerary.itineraryImages?.map((img) => ({ url: img.url })) || [],
+      itineraryTitle: itinerary.itineraryTitle || '',
+      itineraryDescription: itinerary.itineraryDescription || '',
+      dayNumber: itinerary.dayNumber || 0,
+      days: itinerary.days || '',
+      activities: itinerary.activities?.map((activity) => ({
+        activityImages: activity.activityImages?.map((img) => ({ url: img.url })) || [],
+        activityTitle: activity.activityTitle || '',
+        activityDescription: activity.activityDescription || '',
+      })) || [],
+      hotelId: itinerary.hotelId || '',
+      roomAllocations: (itinerary as any).roomAllocations?.map((alloc: any) => ({
+        roomTypeId: alloc.roomTypeId || alloc.roomType || '',
+        occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
+        mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
+        quantity: Number(alloc.quantity) || 1,
+        guestNames: alloc.guestNames || '',
+      })) || [],
+      transportDetails: (itinerary as any).transportDetails?.map((detail: any) => ({
+        vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
+        transportType: detail.transportType || '',
+        quantity: Number(detail.quantity) || 1,
+        description: detail.description || '',
+      })) || [],
+    })) || [];
+
+    form.setValue('itineraries', transformedItineraries);
+    form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map((flight) => ({
+      date: flight.date || undefined,
+      flightName: flight.flightName || undefined,
+      flightNumber: flight.flightNumber || undefined,
+      from: flight.from || undefined,
+      to: flight.to || undefined,
+      departureTime: flight.departureTime || undefined,
+      arrivalTime: flight.arrivalTime || undefined,
+      flightDuration: flight.flightDuration || undefined,
+    })));
+    form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
+    form.setValue('pricingTier', (selectedTourPackage as any).pricingTier || 'standard');
+    form.setValue('customMarkup', (selectedTourPackage as any).customMarkup || '');
+
+    handleTourPackageVariantSelection(selectedTourPackageId, []);
+    const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem) => variantItem.isDefault);
+    if (defaultVariant?.id) {
+      handleTourPackageVariantSelection(selectedTourPackageId, [defaultVariant.id]);
+    }
   };
 
   const handleTourPackageQuerySelection = (queryId: string) => {
@@ -555,7 +612,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
       itineraryTitle: it.itineraryTitle || '',
       itineraryDescription: it.itineraryDescription || '',
       dayNumber: it.dayNumber || 0,
-      days: '',
+      days: it.days || '',
       activities: (it.activities || []).map(act => ({
         activityTitle: act.activityTitle || '',
         activityDescription: act.activityDescription || '',
@@ -563,8 +620,20 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
       })),
       hotelId: it.hotelId || '',
       locationId: it.locationId || '',
-      roomAllocations: [],
-      transportDetails: []
+      // Map roomAllocations and transportDetails from query template
+      roomAllocations: (it as any).roomAllocations?.map((alloc: any) => ({
+        roomTypeId: alloc.roomTypeId || alloc.roomType || '',
+        occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
+        mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
+        quantity: Number(alloc.quantity) || 1,
+        guestNames: alloc.guestNames || ''
+      })) || [],
+      transportDetails: (it as any).transportDetails?.map((detail: any) => ({
+        vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
+        transportType: detail.transportType || '',
+        quantity: Number(detail.quantity) || 1,
+        description: detail.description || ''
+      })) || [],
     })));
     // Map flight details to match form schema  
     form.setValue('flightDetails', (selectedQuery.flightDetails || []).map(fd => ({

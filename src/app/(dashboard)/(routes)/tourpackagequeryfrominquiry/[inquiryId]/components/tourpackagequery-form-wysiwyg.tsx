@@ -495,8 +495,34 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
     form.setValue('tourPackageQueryName', selectedPackage.tourPackageName || '');
     form.setValue('numDaysNight', selectedPackage.numDaysNight || '');
     form.setValue('images', selectedPackage.images || []);
-    form.setValue('itineraries', selectedPackage.itineraries || []);
-    form.setValue('flightDetails', selectedPackage.flightDetails || []);
+    // Map itineraries to match form schema
+    form.setValue('itineraries', (selectedPackage.itineraries || []).map(it => ({
+      itineraryImages: it.itineraryImages || [],
+      itineraryTitle: it.itineraryTitle || '',
+      itineraryDescription: it.itineraryDescription || '',
+      dayNumber: it.dayNumber || 0,
+      days: '',
+      activities: (it.activities || []).map(act => ({
+        activityTitle: act.activityTitle || '',
+        activityDescription: act.activityDescription || '',
+        activityImages: act.activityImages || []
+      })),
+      hotelId: it.hotelId || '',
+      locationId: it.locationId || '',
+      roomAllocations: [],
+      transportDetails: []
+    })));
+    // Map flight details to match form schema
+    form.setValue('flightDetails', (selectedPackage.flightDetails || []).map(fd => ({
+      date: fd.date || '',
+      flightName: fd.flightName || '',
+      flightNumber: fd.flightNumber || '',
+      from: fd.from || '',
+      to: fd.to || '',
+      departureTime: fd.departureTime || '',
+      arrivalTime: fd.arrivalTime || '',
+      flightDuration: fd.flightDuration || ''
+    })));
     form.setValue('inclusions', parseJsonField(selectedPackage.inclusions) || []);
     form.setValue('exclusions', parseJsonField(selectedPackage.exclusions) || []);
     form.setValue('importantNotes', parseJsonField(selectedPackage.importantNotes) || []);
@@ -523,8 +549,34 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
     form.setValue('tourPackageQueryName', selectedQuery.tourPackageQueryName || '');
     form.setValue('numDaysNight', selectedQuery.numDaysNight || '');
     form.setValue('images', selectedQuery.images || []);
-    form.setValue('itineraries', selectedQuery.itineraries || []);
-    form.setValue('flightDetails', selectedQuery.flightDetails || []);
+    // Map itineraries to match form schema
+    form.setValue('itineraries', (selectedQuery.itineraries || []).map(it => ({
+      itineraryImages: it.itineraryImages || [],
+      itineraryTitle: it.itineraryTitle || '',
+      itineraryDescription: it.itineraryDescription || '',
+      dayNumber: it.dayNumber || 0,
+      days: '',
+      activities: (it.activities || []).map(act => ({
+        activityTitle: act.activityTitle || '',
+        activityDescription: act.activityDescription || '',
+        activityImages: act.activityImages || []
+      })),
+      hotelId: it.hotelId || '',
+      locationId: it.locationId || '',
+      roomAllocations: [],
+      transportDetails: []
+    })));
+    // Map flight details to match form schema  
+    form.setValue('flightDetails', (selectedQuery.flightDetails || []).map(fd => ({
+      date: fd.date || '',
+      flightName: fd.flightName || '',
+      flightNumber: fd.flightNumber || '',
+      from: fd.from || '',
+      to: fd.to || '',
+      departureTime: fd.departureTime || '',
+      arrivalTime: fd.arrivalTime || '',
+      flightDuration: fd.flightDuration || ''
+    })));
     form.setValue('inclusions', parseJsonField(selectedQuery.inclusions) || []);
     form.setValue('exclusions', parseJsonField(selectedQuery.exclusions) || []);
     form.setValue('importantNotes', parseJsonField(selectedQuery.importantNotes) || []);

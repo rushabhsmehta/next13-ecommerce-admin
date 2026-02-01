@@ -46,13 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import SearchableSelect from "@/components/ui/searchable-select"
 import {
   Alert,
   AlertDescription,
@@ -421,21 +415,12 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Select
+              <SearchableSelect
+                options={locations.map((l) => ({ value: l.id, label: l.label, icon: <MapPin className="h-4 w-4" /> }))}
                 value={selectedLocationId}
                 onValueChange={setSelectedLocationId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a location..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select a location..."
+              />
             </CardContent>
           </Card>
 
@@ -448,23 +433,13 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Select
+              <SearchableSelect
+                options={filteredHotels.map((h) => ({ value: h.id, label: h.destination ? `${h.name} (${h.destination.name})` : h.name, icon: <HotelIcon className="h-4 w-4" /> }))}
                 value={selectedHotelId}
                 onValueChange={setSelectedHotelId}
+                placeholder={selectedLocationId ? "Select a hotel..." : "Select location first"}
                 disabled={!selectedLocationId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={selectedLocationId ? "Select a hotel..." : "Select location first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredHotels.map((hotel) => (
-                    <SelectItem key={hotel.id} value={hotel.id}>
-                      {hotel.name}
-                      {hotel.destination && ` (${hotel.destination.name})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </CardContent>
           </Card>
         </div>
@@ -530,62 +505,28 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                         {editingRow && (
                           <TableRow className="bg-blue-50 border-2 border-blue-200">
                             <TableCell>
-                              <Select
+                              <SearchableSelect
+                                options={roomTypes.map((rt) => ({ value: rt.id, label: rt.name }))}
                                 value={editingRow.roomTypeId}
-                                onValueChange={(value) => 
-                                  setEditingRow({ ...editingRow, roomTypeId: value })
-                                }
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {roomTypes.map((rt) => (
-                                    <SelectItem key={rt.id} value={rt.id}>
-                                      {rt.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                onValueChange={(value) => setEditingRow({ ...editingRow, roomTypeId: value })}
+                                placeholder="Select room type"
+                              />
                             </TableCell>
                             <TableCell>
-                              <Select
+                              <SearchableSelect
+                                options={occupancyTypes.map((ot) => ({ value: ot.id, label: ot.name }))}
                                 value={editingRow.occupancyTypeId}
-                                onValueChange={(value) => 
-                                  setEditingRow({ ...editingRow, occupancyTypeId: value })
-                                }
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {occupancyTypes.map((ot) => (
-                                    <SelectItem key={ot.id} value={ot.id}>
-                                      {ot.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                onValueChange={(value) => setEditingRow({ ...editingRow, occupancyTypeId: value })}
+                                placeholder="Select occupancy"
+                              />
                             </TableCell>
                             <TableCell>
-                              <Select
+                              <SearchableSelect
+                                options={[{ value: "", label: "None" }, ...mealPlans.map((mp) => ({ value: mp.id, label: mp.code }))]}
                                 value={editingRow.mealPlanId}
-                                onValueChange={(value) => 
-                                  setEditingRow({ ...editingRow, mealPlanId: value })
-                                }
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="None" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
-                                  {mealPlans.map((mp) => (
-                                    <SelectItem key={mp.id} value={mp.id}>
-                                      {mp.code}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                onValueChange={(value) => setEditingRow({ ...editingRow, mealPlanId: value })}
+                                placeholder="None"
+                              />
                             </TableCell>
                             <TableCell>
                               <Popover>

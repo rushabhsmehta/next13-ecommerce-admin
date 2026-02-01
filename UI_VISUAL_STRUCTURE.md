@@ -7,6 +7,7 @@
 │  ⚙️ Editor Mode                                                      │
 │                                                                      │
 │  [ Classic Form ]  [ 📄 PDF Preview Mode ]  ← Toggle Buttons       │
+│  (Default view is Classic Form)                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -207,7 +208,7 @@ Best for:
 ```
 1. User loads page
    ↓
-2. View switcher shown (defaults to PDF Preview)
+2. View switcher shown (defaults to Classic Form)
    ↓
 3. User selects view:
    ├─→ Classic: Traditional tabbed interface

@@ -423,6 +423,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   }, []);
 
   // Fetch tour packages when location changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!form) return;
     

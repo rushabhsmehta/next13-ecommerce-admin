@@ -53,6 +53,17 @@ const aiGeneratedData = {
 
 // Simulate the mapping logic from tourPackageQuery-form.tsx
 function mapAIDataToFormValues(data, locationId = "location123") {
+  // Helper function to escape HTML (same as in the actual code)
+  const escapeHtml = (text) => {
+    // Node.js doesn't have DOM, so we'll use a simple regex approach for testing
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
   const mappedData = {
     tourPackageQueryName: data.tourPackageName || data.tourPackageQueryName || '',
     customerName: data.customerName || '',
@@ -78,8 +89,9 @@ function mapAIDataToFormValues(data, locationId = "location123") {
         ? (() => {
             const firstActivity = day.activities[0];
             if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
-              // AI-generated format: convert \n to <br> for HTML display
-              const descriptionWithLineBreaks = firstActivity.activityDescription.replace(/\n/g, '<br>');
+              // AI-generated format: escape HTML first, then convert \n to <br>
+              const escapedDescription = escapeHtml(firstActivity.activityDescription);
+              const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
               
               return [{
                 activityTitle: firstActivity.activityTitle || '',
@@ -154,3 +166,31 @@ console.log('  1. ✅ Basic fields should be mapped correctly');
 console.log('  2. ✅ Activities should be in a single activity object');
 console.log('  3. ✅ Activity description should contain <br> tags instead of \\n');
 console.log('  4. ✅ Roman numerals (i., ii., iii.) should be preserved');
+
+// Additional security test: XSS prevention
+console.log('\n🔒 Security Test: XSS Prevention');
+const maliciousData = {
+  tourPackageName: "Test Tour",
+  itineraries: [{
+    dayNumber: 1,
+    itineraryTitle: "Test Day",
+    itineraryDescription: "Test description",
+    mealsIncluded: "Breakfast",
+    activities: [{
+      activityTitle: "",
+      activityDescription: "i. Normal activity\nii. <script>alert('XSS')</script>\niii. Another activity"
+    }]
+  }]
+};
+
+const securityResult = mapAIDataToFormValues(maliciousData);
+const secureActivity = securityResult.itineraries[0].activities[0].activityDescription;
+
+console.log('  Input with potential XSS:');
+console.log('    "i. Normal activity\\nii. <script>alert(\'XSS\')</script>\\niii. Another activity"');
+console.log('  Output (should escape HTML):');
+console.log(`    "${secureActivity}"`);
+
+const isSecure = secureActivity.includes('&lt;script&gt;') && !secureActivity.includes('<script>');
+console.log(`  ✓ HTML properly escaped: ${isSecure ? '✅ YES' : '❌ NO (SECURITY ISSUE!)'}`);
+

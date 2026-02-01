@@ -625,9 +625,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   const firstActivity = day.activities[0];
                   if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
                     // AI-generated format: single activity object with description containing all activities
-                    // Convert newline characters to HTML line breaks for JoditEditor
-                    const descriptionWithLineBreaks = firstActivity.activityDescription
-                      .replace(/\n/g, '<br>');
+                    // Escape HTML entities first to prevent XSS, then convert newlines to <br>
+                    const escapeHtml = (text: string) => {
+                      const div = document.createElement('div');
+                      div.textContent = text;
+                      return div.innerHTML;
+                    };
+                    
+                    const escapedDescription = escapeHtml(firstActivity.activityDescription);
+                    const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
                     
                     return [{
                       activityTitle: firstActivity.activityTitle || '',

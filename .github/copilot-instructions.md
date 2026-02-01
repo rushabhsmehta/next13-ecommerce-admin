@@ -241,6 +241,41 @@ npx prisma migrate dev   # Create new migration
 - Multi-line keys (like `WHATSAPP_FLOW_PRIVATE_KEY`) must include `-----BEGIN/END-----` markers
 - See `docs/VERCEL_ENV_SETUP.md` for step-by-step
 
+## 🎯 WhatsApp Campaigns System (Latest)
+
+### Campaign Architecture (`src/app/api/whatsapp/campaigns/`)
+- **Core Models**: `WhatsAppCampaign`, `WhatsAppCampaignRecipient`, `WhatsAppCampaignError` (11 related tables in `prisma/whatsapp-schema.prisma`)
+- **Statuses**: `draft` → `scheduled` → `sending` → `completed` | `cancelled` | `failed`
+- **Campaign Types**: `all` (broadcast), `segment` (query-based), `manual` (explicit recipients), `imported` (CSV)
+- **API Routes**:
+  - `GET /campaigns` - List with pagination, filtering by status
+  - `POST /campaigns` - Create with recipients array
+  - `GET /campaigns/[id]` - Details with recipient counts grouped by status
+  - `POST /campaigns/[id]/send` - Start background sending (rate-limited)
+  - `GET /campaigns/[id]/stats` - Analytics: delivery %, read %, failure breakdown
+  - `POST /campaigns/[id]/recipients` - Add/remove recipients dynamically
+
+### Campaign Sending Flow
+```typescript
+// 1. POST /send initiates background processing
+// 2. Processes recipients in batches (respecting rateLimit)
+// 3. Calls sendWhatsAppTemplate() from src/lib/whatsapp.ts
+// 4. Stores delivery status in WhatsAppCampaignRecipient
+// 5. Webhook updates stats when Meta delivers/reads
+// Stats auto-refresh in UI every 5 seconds via polling
+```
+
+### Rate Limiting & Throttling
+- **rateLimit** field: messages per minute (default 10)
+- Each batch respects time windows to avoid Meta API throttling
+- Failed messages tracked by error code (131049, 131050 for rate limits)
+- Retry logic with exponential backoff for recoverable errors
+
+### Testing Campaigns
+- Script: `scripts/whatsapp/test-campaign-api.js` for CRUD operations
+- Check `scripts/whatsapp/check-campaign-status.js` for stats debugging
+- Use campaign `/stats` endpoint to verify delivery rates
+
 ## 🎯 Common Patterns Summary
 
 | Task | Pattern |
@@ -249,11 +284,37 @@ npx prisma migrate dev   # Create new migration
 | **Date handling** | Use `dateToUtc()` for storage, `formatLocalDate()` for display |
 | **Auth check** | `auth()` in API, `isCurrentUserAssociate()` for read-only checks |
 | **Database query** | Import `@/lib/prismadb`, prefer `select` over `include` |
+| **WhatsApp DB** | Use `whatsappPrisma` from `@/lib/whatsapp-prismadb` for campaign/catalog queries |
 | **UI component** | Check `src/components/ui/` for existing wrappers before adding deps |
 | **Logging** | Emoji-prefix console logs for DebugLogPanel categorization |
 | **Multi-domain** | Test on admin + associate domains, check middleware restrictions |
+| **Campaign ops** | Use `whatsappPrisma.whatsAppCampaign.findMany()` with `include: { _count: { select: { recipients } } }` |
+
+## 📚 Key Utilities & Imports
+
+### Dual Prisma Clients
+```typescript
+// Main database (tours, inquiries, finance)
+import prismadb from '@/lib/prismadb';
+
+// WhatsApp schema (campaigns, catalog, messages)
+import whatsappPrisma from '@/lib/whatsapp-prismadb';
+```
+
+### WhatsApp Core Library (`src/lib/whatsapp.ts`)
+```typescript
+import { sendWhatsAppTemplate } from '@/lib/whatsapp';
+// Handles: template substitution, delivery tracking, error codes
+```
+
+### Campaign Utilities (`src/lib/whatsapp.ts`)
+- `graphRequest<T>(endpoint, options)` - Meta Graph API wrapper
+- `sendWhatsAppTemplate(phoneNumber, templateName, variables)` - Send with variable substitution
+- Auto-resolves WABA ID from env if needed
 
 ## 📖 Further Reading
 - **Main README**: `README.md` - Project overview, setup instructions
 - **Scripts catalog**: `scripts/README.md` - All 44 scripts organized by category
 - **Docs index**: `docs/README.md` - Complete documentation navigation
+- **Campaign deep-dive**: `docs/CAMPAIGN_IMPLEMENTATION_SUMMARY.md` - Phase 1 architecture
+- **Campaign quick ref**: `docs/CAMPAIGN_API_QUICK_REFERENCE.md` - API cheat sheet

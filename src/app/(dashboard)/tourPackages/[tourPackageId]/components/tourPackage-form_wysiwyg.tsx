@@ -6,7 +6,7 @@ import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEf
 import { zodResolver } from "@hookform/resolvers/zod"
 import { FieldErrors, useFieldArray, useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle, ScrollText, GripVertical, ImageIcon, Type, AlignLeft, Calendar as CalendarIcon, Copy, Plane, Tag, Sparkles, FileText, FileCheck, Users, MapPin, ListPlus, Building2 } from "lucide-react"
+import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle, ScrollText, GripVertical, ImageIcon, Type, AlignLeft, Calendar as CalendarIcon, Copy, Plane, Tag, Sparkles, FileText, FileCheck, Users, MapPin, ListPlus, Building2, Edit } from "lucide-react"
 import {
   Activity,
   Images,
@@ -100,6 +100,36 @@ const PDFLikeSection = ({ title, children, className, icon: Icon, action }: { ti
     <div className="p-6">
       {children}
     </div>
+  </div>
+);
+
+// Display Components
+const DataDisplayRow = ({ label, value, className }: { label: string, value?: string | number, className?: string }) => {
+  if (!value) return null;
+  return (
+    <div className={cn("flex justify-between py-2 border-b", className)} style={{ borderColor: brandColors.border }}>
+      <span className="font-semibold text-sm" style={{ color: brandColors.muted }}>{label}</span>
+      <span className="text-sm" style={{ color: brandColors.text }}>{value}</span>
+    </div>
+  );
+};
+
+const InfoCard = ({ label, value }: { label: string, value?: string | number }) => {
+  if (!value) return null;
+  return (
+    <div className="p-3 rounded-md border-l-4" style={{ 
+      background: brandColors.panelBg, 
+      borderColor: brandColors.primary 
+    }}>
+      <div className="text-xs font-semibold mb-1" style={{ color: brandColors.muted }}>{label}</div>
+      <div className="text-sm font-semibold" style={{ color: brandColors.text }}>{value}</div>
+    </div>
+  );
+};
+
+const InfoCardGrid = ({ children }: { children: React.ReactNode }) => (
+  <div className="grid grid-cols-2 gap-3 mb-4">
+    {children}
   </div>
 );
 
@@ -310,6 +340,9 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
   });
 
   const [useDefaultPricing, setUseDefaultPricing] = useState(false);
+  
+  // Track which sections are being edited
+  const [editingSection, setEditingSection] = useState<string | null>(null);
 
   const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
     setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
@@ -1051,9 +1084,67 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
           <div className="mx-auto max-w-[850px] space-y-8 pb-20">
 
 
-            <PDFLikeSection title="Tour Information" icon={FileText} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Destination Card Style */}
+            <PDFLikeSection 
+              title="Tour Information" 
+              icon={FileText}
+              action={
+                !readOnly && (
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingSection(editingSection === 'tourInfo' ? null : 'tourInfo')}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    {editingSection === 'tourInfo' ? 'Close' : 'Edit'}
+                  </Button>
+                )
+              }
+            >
+              {editingSection !== 'tourInfo' ? (
+                // Display View
+                <div className="space-y-4">
+                  <InfoCardGrid>
+                    <InfoCard label="TOUR NAME" value={form.watch('tourPackageName') || 'Not specified'} />
+                    <InfoCard label="DURATION" value={form.watch('numDaysNight') || 'Not specified'} />
+                  </InfoCardGrid>
+                  
+                  {form.watch('images') && form.watch('images').length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-2" style={{ color: brandColors.muted }}>TOUR IMAGES</div>
+                      <div className="flex gap-2 flex-wrap">
+                        {form.watch('images').map((image: { url: string }, idx: number) => (
+                          <div key={idx} className="w-20 h-16 rounded overflow-hidden border" style={{ borderColor: brandColors.border }}>
+                            <img src={image.url} alt={`Tour ${idx + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <InfoCardGrid>
+                    {form.watch('tourPackageType') && (
+                      <InfoCard label="TYPE" value={form.watch('tourPackageType')} />
+                    )}
+                    {form.watch('tourCategory') && (
+                      <InfoCard label="CATEGORY" value={form.watch('tourCategory')} />
+                    )}
+                  </InfoCardGrid>
+                  
+                  {form.watch('isFeatured') && (
+                    <div className="p-3 rounded-md border-l-4" style={{ 
+                      background: brandColors.panelBg, 
+                      borderColor: brandColors.success 
+                    }}>
+                      <div className="text-xs font-semibold" style={{ color: brandColors.success }}>✓ Available on Website</div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '4px', borderLeft: `4px solid ${brandColors.primary}` }}>
                        <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>TOUR NAME</div>
                        <FormField
@@ -1063,7 +1154,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                            <FormItem className="m-0">
                              <FormControl>
                                <Input
-                                 disabled={loading || readOnly}
+                                 disabled={loading}
                                  placeholder="Enter Tour Name"
                                  className="border-0 bg-transparent p-0 text-sm font-bold text-gray-900 focus-visible:ring-0 h-auto"
                                  {...field}
@@ -1075,7 +1166,6 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                        />
                     </div>
 
-                    {/* Duration Card Style */}
                     <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '4px', borderLeft: `4px solid ${brandColors.primary}` }}>
                        <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>DURATION</div>
                        <FormField
@@ -1085,7 +1175,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                            <FormItem className="m-0">
                              <FormControl>
                                <Input
-                                 disabled={loading || readOnly}
+                                 disabled={loading}
                                  placeholder="e.g. 5 Days / 4 Nights"
                                  className="border-0 bg-transparent p-0 text-sm font-bold text-gray-900 focus-visible:ring-0 h-auto"
                                  {...field}
@@ -1096,9 +1186,8 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                          )}
                        />
                     </div>
-                </div>
+                  </div>
 
-                <div className="space-y-4 pt-4">
                   <FormField
                     control={form.control}
                     name="images"
@@ -1108,10 +1197,10 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                         <FormControl>
                           <ImageUpload
                             value={field.value.map((image) => image.url)}
-                            disabled={loading || readOnly}
+                            disabled={loading}
                             onChange={(url) => field.onChange([...field.value, { url }])}
                             onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
-                            enableAI={!readOnly}
+                            enableAI={true}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1128,7 +1217,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <FormLabel>Type</FormLabel>
                           <FormControl>
                             <Select
-                              disabled={loading || readOnly}
+                              disabled={loading}
                               value={field.value}
                               onValueChange={field.onChange}
                             >
@@ -1157,7 +1246,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <FormLabel>Category</FormLabel>
                           <FormControl>
                             <Select
-                              disabled={loading || readOnly}
+                              disabled={loading}
                               value={field.value}
                               onValueChange={field.onChange}
                             >
@@ -1187,7 +1276,6 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              disabled={readOnly}
                               // @ts-ignore
                               onCheckedChange={field.onChange}
                             />
@@ -1201,23 +1289,107 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       )}
                     />
                 </div>
+              )}
             </PDFLikeSection>
 
-            <PDFLikeSection title="Hotel Allocations" icon={Building2}>
-              <HotelsTab
-                control={form.control}
-                form={form}
-                loading={loading}
-                hotels={hotels}
-                enableRoomAllocations={false}
-                enableTransportDetails={false}
-                readOnly={readOnly}
-              />
+            <PDFLikeSection 
+              title="Hotel Allocations" 
+              icon={Building2}
+              action={
+                !readOnly && (
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingSection(editingSection === 'hotels' ? null : 'hotels')}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    {editingSection === 'hotels' ? 'Close' : 'Edit'}
+                  </Button>
+                )
+              }
+            >
+              {editingSection !== 'hotels' ? (
+                // Display View
+                <div className="space-y-3">
+                  {form.watch('itineraries') && form.watch('itineraries').length > 0 ? (
+                    form.watch('itineraries').map((itinerary: any, index: number) => {
+                      const hotel = hotels.find(h => h.id === itinerary.hotelId);
+                      if (!hotel) return null;
+                      
+                      return (
+                        <div key={index} className="p-3 rounded-lg border" style={{ 
+                          background: brandColors.white, 
+                          borderColor: brandColors.border 
+                        }}>
+                          <div className="flex gap-3">
+                            <div className="flex-shrink-0 w-20 h-16 rounded overflow-hidden" style={{ background: '#f3f4f6' }}>
+                              {hotel.images && hotel.images.length > 0 ? (
+                                <img src={hotel.images[0].url} alt={hotel.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: brandColors.muted }}>
+                                  No Image
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-sm" style={{ color: brandColors.text }}>{hotel.name}</h4>
+                              <p className="text-xs mt-1" style={{ color: brandColors.muted }}>
+                                Day {itinerary.dayNumber || index + 1}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }).filter(Boolean)
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No hotels assigned yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <HotelsTab
+                  control={form.control}
+                  form={form}
+                  loading={loading}
+                  hotels={hotels}
+                  enableRoomAllocations={false}
+                  enableTransportDetails={false}
+                  readOnly={false}
+                />
+              )}
             </PDFLikeSection>
 
-            <PDFLikeSection title="Destination" icon={MapPin} className="space-y-4">
+            <PDFLikeSection 
+              title="Destination" 
+              icon={MapPin}
+              action={
+                !readOnly && (
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingSection(editingSection === 'destination' ? null : 'destination')}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    {editingSection === 'destination' ? 'Close' : 'Edit'}
+                  </Button>
+                )
+              }
+            >
+              {editingSection !== 'destination' ? (
+                // Display View
+                <div>
+                  <InfoCard 
+                    label="DESTINATION" 
+                    value={locations.find(l => l.id === form.watch('locationId'))?.label || 'Not specified'} 
+                  />
+                </div>
+              ) : (
+                // Edit View
                 <div className="space-y-4">
-                  {/* Move location form fields here */}
                   <FormField
                     control={form.control}
                     name="locationId"
@@ -1318,24 +1490,88 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                     )}
                   />
                 </div>
+              )}
             </PDFLikeSection>
 
             <PDFLikeSection 
                 title="Itinerary Details" 
                 icon={ListPlus}
-                action={!readOnly && (
-                      <Button
+                action={
+                  !readOnly && (
+                    <div className="flex items-center gap-2">
+                      <Button 
                         type="button"
                         size="sm"
-                        onClick={handleAddNewDay}
-                        disabled={loading}
-                        className="shadow-sm"
+                        variant="outline"
+                        onClick={() => setEditingSection(editingSection === 'itinerary' ? null : 'itinerary')}
+                        className="flex items-center gap-2"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Day
+                        <Edit className="h-4 w-4" />
+                        {editingSection === 'itinerary' ? 'Close' : 'Edit'}
                       </Button>
-                )}
+                      {editingSection === 'itinerary' && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAddNewDay}
+                          disabled={loading}
+                          className="shadow-sm"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Day
+                        </Button>
+                      )}
+                    </div>
+                  )
+                }
             >
+              {editingSection !== 'itinerary' ? (
+                // Display View - Summary
+                <div className="space-y-4">
+                  {form.watch('itineraries') && form.watch('itineraries').length > 0 ? (
+                    form.watch('itineraries').map((itinerary: any, index: number) => {
+                      const hotel = hotels.find(h => h.id === itinerary.hotelId);
+                      const location = locations.find(l => l.id === itinerary.locationId);
+                      return (
+                        <div key={index} className="p-4 rounded-lg border-l-4" style={{ 
+                          background: brandColors.subtlePanel, 
+                          borderColor: brandColors.primary 
+                        }}>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" style={{
+                              background: brandColors.primary,
+                              color: brandColors.white
+                            }}>
+                              {itinerary.dayNumber || index + 1}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-sm" style={{ color: brandColors.text }}>
+                                {itinerary.days || `Day ${itinerary.dayNumber || index + 1}`}
+                              </h4>
+                              {itinerary.itineraryTitle && (
+                                <p className="text-xs" style={{ color: brandColors.muted }}>{itinerary.itineraryTitle}</p>
+                              )}
+                            </div>
+                          </div>
+                          {location && (
+                            <div className="mt-2 text-xs" style={{ color: brandColors.muted }}>
+                              📍 {location.label}
+                            </div>
+                          )}
+                          {hotel && (
+                            <div className="mt-2 text-xs" style={{ color: brandColors.muted }}>
+                              🏨 {hotel.name}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No itinerary added yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
                 <div>
                   <FormField
                     control={form.control}
@@ -1896,11 +2132,77 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                     }}
                   />
                 </div>
+              )}
             </PDFLikeSection>
 
             {/* Hotels tab content removed */}
 
-            <PDFLikeSection title="Flight Details" icon={Plane} className="space-y-4">
+            <PDFLikeSection 
+              title="Flight Details" 
+              icon={Plane}
+              action={
+                !readOnly && (
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingSection(editingSection === 'flights' ? null : 'flights')}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    {editingSection === 'flights' ? 'Close' : 'Edit'}
+                  </Button>
+                )
+              }
+            >
+              {editingSection !== 'flights' ? (
+                // Display View - Summary
+                <div className="space-y-3">
+                  {form.watch('flightDetails') && form.watch('flightDetails').length > 0 ? (
+                    form.watch('flightDetails').map((flight: any, index: number) => (
+                      <div key={index} className="p-3 rounded-lg border" style={{ 
+                        background: brandColors.white, 
+                        borderColor: brandColors.border 
+                      }}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="font-semibold text-sm" style={{ color: brandColors.text }}>
+                              {flight.flightName || 'Flight'} {flight.flightNumber && `- ${flight.flightNumber}`}
+                            </h4>
+                            {flight.date && (
+                              <p className="text-xs mt-1" style={{ color: brandColors.muted }}>
+                                📅 {flight.date}
+                              </p>
+                            )}
+                          </div>
+                          {flight.flightDuration && (
+                            <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                              background: brandColors.light,
+                              color: brandColors.primary 
+                            }}>
+                              {flight.flightDuration}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs" style={{ color: brandColors.muted }}>
+                          {flight.from && <span>✈️ {flight.from}</span>}
+                          {flight.from && flight.to && <span>→</span>}
+                          {flight.to && <span>{flight.to}</span>}
+                        </div>
+                        {(flight.departureTime || flight.arrivalTime) && (
+                          <div className="flex items-center gap-3 text-xs mt-2" style={{ color: brandColors.muted }}>
+                            {flight.departureTime && <span>🕐 Dep: {flight.departureTime}</span>}
+                            {flight.arrivalTime && <span>Arr: {flight.arrivalTime}</span>}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No flight details added yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
                 <div className="space-y-4">
                   {/* Move flights form fields here */}
                   <FormField
@@ -2094,9 +2396,55 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                     )}
                   />
                 </div>
+              )}
             </PDFLikeSection>
 
-            <PDFLikeSection title="Pricing" icon={Tag} className="space-y-4">
+            <PDFLikeSection 
+              title="Pricing" 
+              icon={Tag}
+              action={
+                !readOnly && (
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingSection(editingSection === 'pricing' ? null : 'pricing')}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    {editingSection === 'pricing' ? 'Close' : 'Edit'}
+                  </Button>
+                )
+              }
+            >
+              {editingSection !== 'pricing' ? (
+                // Display View - Summary
+                <div className="space-y-3">
+                  {form.watch('pricingSection') && form.watch('pricingSection').length > 0 ? (
+                    form.watch('pricingSection').map((item: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center p-3 rounded-lg border" style={{ 
+                        background: brandColors.white, 
+                        borderColor: brandColors.border 
+                      }}>
+                        <div>
+                          <h4 className="font-semibold text-sm" style={{ color: brandColors.text }}>{item.name}</h4>
+                          {item.description && (
+                            <p className="text-xs mt-1" style={{ color: brandColors.muted }}>{item.description}</p>
+                          )}
+                        </div>
+                        {item.price && (
+                          <span className="text-sm font-bold" style={{ color: brandColors.primary }}>
+                            ₹{item.price}
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No pricing items added yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
               <div className="space-y-4">
                   {/* Add switch for default pricing options at the top */}
                   <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md mb-4">
@@ -2225,9 +2573,68 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                     />
                   </div>
                 </div>
+              )}
             </PDFLikeSection>
 
-            <PDFLikeSection title="Policies & Terms" icon={FileCheck}>
+            <PDFLikeSection 
+              title="Policies & Terms" 
+              icon={FileCheck}
+              action={
+                !readOnly && (
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingSection(editingSection === 'policies' ? null : 'policies')}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    {editingSection === 'policies' ? 'Close' : 'Edit'}
+                  </Button>
+                )
+              }
+            >
+              {editingSection !== 'policies' ? (
+                // Display View - Summary
+                <div className="space-y-3">
+                  <InfoCardGrid>
+                    {form.watch('inclusions') && form.watch('inclusions').length > 0 && (
+                      <InfoCard label="INCLUSIONS" value={`${form.watch('inclusions').length} items`} />
+                    )}
+                    {form.watch('exclusions') && form.watch('exclusions').length > 0 && (
+                      <InfoCard label="EXCLUSIONS" value={`${form.watch('exclusions').length} items`} />
+                    )}
+                  </InfoCardGrid>
+                  
+                  <InfoCardGrid>
+                    {form.watch('paymentPolicy') && form.watch('paymentPolicy').length > 0 && (
+                      <InfoCard label="PAYMENT TERMS" value={`${form.watch('paymentPolicy').length} terms`} />
+                    )}
+                    {form.watch('cancellationPolicy') && form.watch('cancellationPolicy').length > 0 && (
+                      <InfoCard label="CANCELLATION POLICY" value={`${form.watch('cancellationPolicy').length} terms`} />
+                    )}
+                  </InfoCardGrid>
+                  
+                  {(form.watch('importantNotes') && form.watch('importantNotes').length > 0) ||
+                   (form.watch('usefulTip') && form.watch('usefulTip').length > 0) ||
+                   (form.watch('termsconditions') && form.watch('termsconditions').length > 0) ? (
+                    <div className="p-3 rounded-md border-l-4" style={{ 
+                      background: brandColors.panelBg, 
+                      borderColor: brandColors.primary 
+                    }}>
+                      <div className="text-xs font-semibold mb-1" style={{ color: brandColors.muted }}>ADDITIONAL POLICIES</div>
+                      <div className="text-sm" style={{ color: brandColors.text }}>
+                        {form.watch('importantNotes')?.length > 0 && <span>Important Notes • </span>}
+                        {form.watch('usefulTip')?.length > 0 && <span>Useful Tips • </span>}
+                        {form.watch('termsconditions')?.length > 0 && <span>Terms & Conditions</span>}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No policies added yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
                 <div>
                   <div className="space-y-8 p-1">
                     
@@ -2367,18 +2774,63 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
 
                   </div>
                 </div>
+              )}
             </PDFLikeSection>
 
-            <PDFLikeSection title="Package Variants" icon={Sparkles}>
-              <PackageVariantsTab
-                control={form.control}
-                form={form}
-                loading={loading}
-                hotels={hotels}
-                availableTourPackages={availableTourPackages}
-                variantPricingLookup={variantPricingLookup}
-                tourPackageId={initialData?.id}
-              />
+            <PDFLikeSection 
+              title="Package Variants" 
+              icon={Sparkles}
+              action={
+                !readOnly && (
+                  <Button 
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingSection(editingSection === 'variants' ? null : 'variants')}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    {editingSection === 'variants' ? 'Close' : 'Edit'}
+                  </Button>
+                )
+              }
+            >
+              {editingSection !== 'variants' ? (
+                // Display View - Summary
+                <div className="space-y-3">
+                  {initialData?.packageVariants && initialData.packageVariants.length > 0 ? (
+                    initialData.packageVariants.map((variant: any, index: number) => (
+                      <div key={index} className="p-3 rounded-lg border" style={{ 
+                        background: brandColors.white, 
+                        borderColor: brandColors.border 
+                      }}>
+                        <h4 className="font-semibold text-sm" style={{ color: brandColors.text }}>{variant.name}</h4>
+                        {variant.description && (
+                          <p className="text-xs mt-1" style={{ color: brandColors.muted }}>{variant.description}</p>
+                        )}
+                        {variant.tourPackagePricings && variant.tourPackagePricings.length > 0 && (
+                          <div className="mt-2 text-xs" style={{ color: brandColors.muted }}>
+                            💰 {variant.tourPackagePricings.length} pricing tier(s)
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm" style={{ color: brandColors.muted }}>No variants created yet</p>
+                  )}
+                </div>
+              ) : (
+                // Edit View
+                <PackageVariantsTab
+                  control={form.control}
+                  form={form}
+                  loading={loading}
+                  hotels={hotels}
+                  availableTourPackages={availableTourPackages}
+                  variantPricingLookup={variantPricingLookup}
+                  tourPackageId={initialData?.id}
+                />
+              )}
             </PDFLikeSection>
 
           </div >

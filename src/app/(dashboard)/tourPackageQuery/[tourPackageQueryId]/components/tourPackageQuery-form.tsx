@@ -563,6 +563,51 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // This useFieldArray is now handled in the PricingTab component
   // Removing unused code
 
+  // Helper function to escape HTML entities to prevent XSS
+  // Using explicit string replacement for reliable cross-environment behavior
+  const escapeHtml = (text: string): string => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  // Helper function to map AI-generated activities to form format
+  const mapActivities = (activities: any[]): any[] => {
+    if (!Array.isArray(activities) || activities.length === 0) {
+      return [];
+    }
+
+    const firstActivity = activities[0];
+    
+    // Check if activities are in AI-generated format (object with activityDescription)
+    if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
+      // Escape HTML first to prevent XSS, then convert newlines to <br>
+      const escapedDescription = escapeHtml(firstActivity.activityDescription);
+      const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
+      
+      return [{
+        activityTitle: firstActivity.activityTitle || '',
+        activityDescription: descriptionWithLineBreaks,
+        activityImages: []
+      }];
+    } 
+    
+    // Legacy format: array of strings
+    if (typeof firstActivity === 'string') {
+      return activities.map((act: string) => ({
+        activityTitle: act,
+        activityDescription: '',
+        activityImages: []
+      }));
+    }
+    
+    // Unknown format
+    return [];
+  };
+
   // Auto-load draft from Auto Builder
   useEffect(() => {
     const loadDraft = () => {
@@ -592,7 +637,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         // Map AI JSON to Form Values
         const mappedData: Partial<TourPackageQueryFormValues> = {
-          tourPackageQueryName: data.tourPackageQueryName || '',
+          tourPackageQueryName: data.tourPackageName || data.tourPackageQueryName || '',
           customerName: data.customerName || '',
           customerNumber: data.customerNumber || '',
           tourCategory: data.tourCategory || 'Domestic',
@@ -603,7 +648,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           drop_location: data.drop_location || '',
           locationId: foundLocationId, // Set the found location ID
           numAdults: String(data.numAdults || ''),
-          numChild5to12: String(data.numChild5to12 || ''),
+          numChild5to12: String(data.numChildren || data.numChild5to12 || ''),
           numChild0to5: String(data.numChild0to5 || ''),
 
           // Handle Date
@@ -615,12 +660,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             itineraryTitle: day.itineraryTitle || '',
             itineraryDescription: day.itineraryDescription || '',
             mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [],
-
-            activities: Array.isArray(day.activities) ? day.activities.map((act: string) => ({
-              activityTitle: act,
-              activityDescription: '',
-              activityImages: []
-            })) : [],
+            // Use helper function to map activities
+            activities: mapActivities(day.activities),
             itineraryImages: [],
             hotelId: '',
             locationId: foundLocationId, // Set location ID for itineraries too

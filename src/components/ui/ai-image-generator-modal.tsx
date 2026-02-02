@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Dialog,
@@ -63,6 +63,39 @@ export function AIImageGeneratorModal({ onImageGenerated, trigger, autoPrompt, a
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [lastAutoPrompt, setLastAutoPrompt] = useState<string | undefined>(autoPrompt);
   const [generationTime, setGenerationTime] = useState<number | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  
+  // Show scroll indicator when modal content is scrollable
+  useEffect(() => {
+    if (!open) return;
+    
+    const checkScrollable = () => {
+      const dialogContent = document.querySelector('[role="dialog"]');
+      const indicator = document.getElementById('scroll-indicator');
+      
+      if (dialogContent && indicator) {
+        const isScrollable = dialogContent.scrollHeight > dialogContent.clientHeight;
+        const isScrolledToBottom = dialogContent.scrollHeight - dialogContent.scrollTop <= dialogContent.clientHeight + 10;
+        
+        // Show indicator only if content is scrollable and not at bottom
+        if (isScrollable && !isScrolledToBottom) {
+          indicator.style.opacity = '1';
+        } else {
+          indicator.style.opacity = '0';
+        }
+      }
+    };
+    
+    // Check on mount and when modal opens
+    setTimeout(checkScrollable, 100);
+    
+    // Add scroll listener to hide indicator when scrolled to bottom
+    const dialogContent = document.querySelector('[role="dialog"]');
+    if (dialogContent) {
+      dialogContent.addEventListener('scroll', checkScrollable);
+      return () => dialogContent.removeEventListener('scroll', checkScrollable);
+    }
+  }, [open, loading, generatedUrl]);
   
   // Handle dialog open/close and keep prompt in sync with autoPrompt where appropriate
   const handleOpenChange = (isOpen: boolean) => {
@@ -155,7 +188,10 @@ export function AIImageGeneratorModal({ onImageGenerated, trigger, autoPrompt, a
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto relative">
+        {/* Scroll indicator gradient - shows when content is scrollable */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent z-10 opacity-0 transition-opacity" id="scroll-indicator" />
+        
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Wand2 className="h-6 w-6 text-indigo-500" />

@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
       // Try to extract image from various possible response structures
       if (response.data.output) {
-        if (Array.isArray(response.data.output)) {
+        if (Array.isArray(response.data.output) && response.data.output.length > 0) {
           imageUrl = response.data.output[0];
         } else if (typeof response.data.output === 'string') {
           // Could be base64 or URL
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
           } else {
             base64Image = response.data.output;
           }
-        } else if (response.data.output.images && Array.isArray(response.data.output.images)) {
+        } else if (response.data.output.images && Array.isArray(response.data.output.images) && response.data.output.images.length > 0) {
           imageUrl = response.data.output.images[0];
         }
       } else if (response.data.image) {
@@ -116,11 +116,25 @@ export async function POST(req: Request) {
       // If we have a URL, download the image
       if (imageUrl) {
         console.log(`[AI_IMAGE] Downloading image from: ${imageUrl}`);
-        const imageResponse = await axios.get(imageUrl, {
-          responseType: 'arraybuffer',
-          timeout: 30000
-        });
-        buffer = Buffer.from(imageResponse.data);
+        try {
+          const imageResponse = await axios.get(imageUrl, {
+            responseType: 'arraybuffer',
+            timeout: 30000
+          });
+          buffer = Buffer.from(imageResponse.data);
+        } catch (downloadError: any) {
+          console.error("[AI_IMAGE] Failed to download generated image from URL:", {
+            url: imageUrl,
+            status: downloadError?.response?.status,
+            error: downloadError?.response?.data || downloadError?.message,
+          });
+
+          return jsonError(
+            "Image was generated but downloading it from the provider failed. Please try again.",
+            downloadError?.response?.status || 502,
+            "AI_IMAGE_DOWNLOAD_ERROR"
+          );
+        }
       } else if (base64Image) {
         // Clean base64 string (remove data URI prefix if present)
         const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');

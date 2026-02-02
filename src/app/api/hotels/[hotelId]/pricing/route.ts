@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { ROOM_TYPES, OCCUPANCY_TYPES, MEAL_PLANS } from "@/lib/constants";
-import { dateToUtc } from '@/lib/timezone-utils';
+import { dateToUtc, MILLISECONDS_PER_DAY } from '@/lib/timezone-utils';
 
 // GET hotel pricing for a specific hotelId
 export async function GET(
@@ -142,7 +142,7 @@ export async function POST(
           // Create before segment if exists
           if (periodStart < newStart) {
             // Calculate beforeEnd by subtracting 1 day from newStart in UTC
-            const beforeEndTimestamp = newStart.getTime() - (24 * 60 * 60 * 1000);
+            const beforeEndTimestamp = newStart.getTime() - MILLISECONDS_PER_DAY;
             const beforeEnd = new Date(beforeEndTimestamp);
             
             await tx.hotelPricing.create({
@@ -162,7 +162,7 @@ export async function POST(
           // Create after segment if exists
           if (periodEnd > newEnd) {
             // Calculate afterStart by adding 1 day to newEnd in UTC
-            const afterStartTimestamp = newEnd.getTime() + (24 * 60 * 60 * 1000);
+            const afterStartTimestamp = newEnd.getTime() + MILLISECONDS_PER_DAY;
             const afterStart = new Date(afterStartTimestamp);
             
             await tx.hotelPricing.create({

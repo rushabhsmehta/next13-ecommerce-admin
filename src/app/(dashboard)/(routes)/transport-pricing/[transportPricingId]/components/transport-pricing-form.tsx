@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import axios from "axios";
 import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
+import { createDatePickerValue, formatLocalDate, utcToLocal } from "@/lib/timezone-utils";
 import { CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -84,8 +84,8 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
     price: parseFloat(String(initialData.price)),
     transportType: initialData.transportType as "PerDay" | "PerTrip",
     description: initialData.description || "",
-    startDate: new Date(initialData.startDate),
-    endDate: new Date(initialData.endDate),
+    startDate: utcToLocal(initialData.startDate) || new Date(),
+    endDate: utcToLocal(initialData.endDate) || new Date(),
     isActive: initialData.isActive,
   };
 

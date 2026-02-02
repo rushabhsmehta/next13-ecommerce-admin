@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { ROOM_TYPES, OCCUPANCY_TYPES, MEAL_PLANS } from "@/lib/constants";
-import { dateToUtc } from '@/lib/timezone-utils';
+import { dateToUtc, MILLISECONDS_PER_DAY } from '@/lib/timezone-utils';
 
 // GET hotel pricing for a specific hotelId
 export async function GET(
@@ -130,8 +130,9 @@ export async function POST(
       const result = await prismadb.$transaction(async (tx) => {
         // For each overlapping period, split it
         for (const period of overlappingPeriods) {
-          const periodStart = new Date(period.startDate);
-          const periodEnd = new Date(period.endDate);
+          // Use the dates directly from the database (already stored as UTC)
+          const periodStart = period.startDate;
+          const periodEnd = period.endDate;
 
           // Delete the original period
           await tx.hotelPricing.delete({
@@ -140,8 +141,10 @@ export async function POST(
 
           // Create before segment if exists
           if (periodStart < newStart) {
-            const beforeEnd = new Date(newStart);
-            beforeEnd.setDate(beforeEnd.getDate() - 1);
+            // Calculate beforeEnd by subtracting 1 day from newStart in UTC
+            const beforeEndTimestamp = newStart.getTime() - MILLISECONDS_PER_DAY;
+            const beforeEnd = new Date(beforeEndTimestamp);
+            
             await tx.hotelPricing.create({
               data: {
                 hotelId: params.hotelId,
@@ -158,8 +161,10 @@ export async function POST(
 
           // Create after segment if exists
           if (periodEnd > newEnd) {
-            const afterStart = new Date(newEnd);
-            afterStart.setDate(afterStart.getDate() + 1);
+            // Calculate afterStart by adding 1 day to newEnd in UTC
+            const afterStartTimestamp = newEnd.getTime() + MILLISECONDS_PER_DAY;
+            const afterStart = new Date(afterStartTimestamp);
+            
             await tx.hotelPricing.create({
               data: {
                 hotelId: params.hotelId,

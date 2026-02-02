@@ -9,6 +9,9 @@ import { formatInTimeZone, zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
 // Default timezone - can be configured or detected from user's browser
 const DEFAULT_TIMEZONE = 'Asia/Kolkata'; // IST timezone for India
 
+// Constant for milliseconds in a day - used in date arithmetic to avoid timezone issues
+export const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
 /**
  * Get the user's timezone from browser or default to IST
  */

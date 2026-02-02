@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
-import { dateToUtc } from '@/lib/timezone-utils';
+import { dateToUtc, MILLISECONDS_PER_DAY } from '@/lib/timezone-utils';
 
 // Check for overlapping pricing periods and return split preview
 export async function POST(
@@ -99,13 +99,16 @@ export async function POST(
 
     // For each overlapping period, calculate split segments
     for (const period of overlappingPeriods) {
-      const periodStart = new Date(period.startDate);
-      const periodEnd = new Date(period.endDate);
+      // Use the dates directly from the database (already stored as UTC)
+      const periodStart = period.startDate;
+      const periodEnd = period.endDate;
 
       // Before segment (if exists)
       if (periodStart < newStart) {
-        const beforeEnd = new Date(newStart);
-        beforeEnd.setDate(beforeEnd.getDate() - 1);
+        // Calculate beforeEnd by subtracting 1 day from newStart in UTC
+        const beforeEndTimestamp = newStart.getTime() - MILLISECONDS_PER_DAY;
+        const beforeEnd = new Date(beforeEndTimestamp);
+        
         resultingPeriods.push({
           startDate: periodStart,
           endDate: beforeEnd,
@@ -117,8 +120,10 @@ export async function POST(
 
       // After segment (if exists)
       if (periodEnd > newEnd) {
-        const afterStart = new Date(newEnd);
-        afterStart.setDate(afterStart.getDate() + 1);
+        // Calculate afterStart by adding 1 day to newEnd in UTC
+        const afterStartTimestamp = newEnd.getTime() + MILLISECONDS_PER_DAY;
+        const afterStart = new Date(afterStartTimestamp);
+        
         resultingPeriods.push({
           startDate: afterStart,
           endDate: periodEnd,

@@ -33,7 +33,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import * as z from "zod";
 import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
+import { createDatePickerValue, formatLocalDate, utcToLocal } from "@/lib/timezone-utils";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -90,8 +90,8 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
       ? {
           ...initialData,
           price: parseFloat(initialData.price),
-          startDate: new Date(initialData.startDate),
-          endDate: new Date(initialData.endDate),
+          startDate: utcToLocal(initialData.startDate) || new Date(),
+          endDate: utcToLocal(initialData.endDate) || new Date(),
         }
       : {          locationId: "",
           vehicleType: "",
@@ -115,8 +115,8 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
         price: parseFloat(initialData.price),
         transportType: initialData.transportType,
         description: initialData.description || "",
-        startDate: new Date(initialData.startDate),
-        endDate: new Date(initialData.endDate),
+        startDate: utcToLocal(initialData.startDate) || new Date(),
+        endDate: utcToLocal(initialData.endDate) || new Date(),
         isActive: initialData.isActive,
       });
     } else {

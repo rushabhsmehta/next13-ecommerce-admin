@@ -68,7 +68,7 @@ interface ActivityData {
 
 interface ItineraryData {
   itineraryTitle?: string;
-  itineraryDescription?: string;
+  itineraryDescription?: string | null;
   activities?: ActivityData[];
   itineraryImages?: { url: string }[];
   [key: string]: unknown; // Allow additional properties with better type safety

@@ -1,5 +1,15 @@
 # AI Image Generation Feature - UI Location Guide
 
+> **⚠️ DEPRECATED**: This document describes the old Google Imagen implementation. 
+> See [ai-image-generation-runpod.md](./ai-image-generation-runpod.md) for the current RunPod GPU implementation.
+
+## Overview
+This document is kept for historical reference. The system has been migrated from Google Imagen to RunPod GPU for cost efficiency and better control.
+
+For current documentation, see: **[AI Image Generation - RunPod GPU Integration](./ai-image-generation-runpod.md)**
+
+---
+
 ## Where to Find the Feature
 
 ### Navigation Path

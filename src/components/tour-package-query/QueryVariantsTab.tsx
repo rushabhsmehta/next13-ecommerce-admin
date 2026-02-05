@@ -354,9 +354,26 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
                             {/* Room Allocations Section - NEW */}
                             {(() => {
-                              // Find corresponding query itinerary for this day
+                              // Find corresponding query itinerary for this day with defensive checks
+                              let targetDayNumber: number | undefined;
+                              if (itinerary && typeof itinerary.dayNumber === "number") {
+                                targetDayNumber = itinerary.dayNumber;
+                              } else {
+                                targetDayNumber = idx + 1;
+                                if (typeof window !== "undefined") {
+                                  console.warn(
+                                    "⚠️ [QueryVariantsTab] Falling back to index-based dayNumber for query itinerary match",
+                                    {
+                                      itineraryId: itinerary?.id,
+                                      itineraryDayNumber: itinerary?.dayNumber,
+                                      indexBasedDayNumber: targetDayNumber,
+                                    }
+                                  );
+                                }
+                              }
+
                               const queryItinerary = queryItineraries?.find(
-                                (qi: any) => qi.dayNumber === (itinerary?.dayNumber || idx + 1)
+                                (qi: any) => qi.dayNumber === targetDayNumber
                               );
                               const roomAllocations = queryItinerary?.roomAllocations || [];
                               
@@ -640,6 +657,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       return sum + periodTotal;
                     }, 0);
 
+                    // Apply price modifier to get adjusted grand total
+                    const adjustedGrandTotal = grandTotal * (1 + (variant.priceModifier || 0) / 100);
+                    const hasModifier = variant.priceModifier && variant.priceModifier !== 0;
+
                     const avgPricePerPeriod = grandTotal / variant.tourPackagePricings.length;
                     
                     // Get date range
@@ -675,12 +696,22 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           </div>
                           <div className="p-3 bg-white rounded-lg border border-emerald-100 md:col-span-1 col-span-2">
                             <div className="text-[10px] font-medium text-slate-600 uppercase tracking-wide mb-1">
-                              Grand Total
+                              {hasModifier ? 'Base Total' : 'Grand Total'}
                             </div>
                             <div className="text-2xl font-bold text-emerald-700">
                               {formatCurrency(grandTotal)}
                             </div>
                           </div>
+                          {hasModifier && (
+                            <div className="p-3 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg border-2 border-emerald-300 md:col-span-3 col-span-2">
+                              <div className="text-[10px] font-medium text-slate-600 uppercase tracking-wide mb-1">
+                                Final Price (with {variant.priceModifier > 0 ? '+' : ''}{variant.priceModifier}% modifier)
+                              </div>
+                              <div className="text-2xl font-bold text-emerald-800">
+                                {formatCurrency(adjustedGrandTotal)}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         
                         {earliestDate && latestDate && (
@@ -702,17 +733,6 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                   month: 'short', 
                                   year: 'numeric' 
                                 })}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        {variant.priceModifier && variant.priceModifier !== 0 && (
-                          <div className="p-3 bg-amber-50/50 rounded-lg border border-amber-200">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Info className="h-4 w-4 text-amber-600" />
-                              <span className="font-medium text-amber-900">
-                                This variant has a {variant.priceModifier > 0 ? '+' : ''}{variant.priceModifier}% price modifier applied
                               </span>
                             </div>
                           </div>

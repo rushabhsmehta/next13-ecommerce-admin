@@ -135,18 +135,6 @@ async function testVariantPersistence() {
     console.log('\n🔄 Step 4: Testing update with new variant selection...');
     
     // Just verify we can read and write the fields
-    const currentVariantIds = hasSelectedVariantIds 
-      ? (typeof testQuery.selectedVariantIds === 'string' 
-          ? JSON.parse(testQuery.selectedVariantIds)
-          : testQuery.selectedVariantIds)
-      : [];
-    
-    const currentOverrides = hasVariantHotelOverrides
-      ? (typeof testQuery.variantHotelOverrides === 'string'
-          ? JSON.parse(testQuery.variantHotelOverrides)
-          : testQuery.variantHotelOverrides)
-      : {};
-
     console.log(`   Current state successfully read from database`);
     console.log(`   ✅ Fields can be read and parsed correctly`);
 

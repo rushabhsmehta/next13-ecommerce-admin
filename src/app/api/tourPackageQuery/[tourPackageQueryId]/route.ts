@@ -522,6 +522,7 @@ export async function PATCH(
       selectedMealPlanId,
       occupancySelections,
       selectedVariantIds, // Array of variant IDs to snapshot
+      variantHotelOverrides, // Hotel overrides per variant
       itineraries,
     } = body;
 
@@ -613,6 +614,8 @@ export async function PATCH(
       tourPackageTemplateName,
       selectedMealPlanId,
       occupancySelections: occupancySelections || undefined,
+      selectedVariantIds: selectedVariantIds || undefined, // Store selected variant IDs
+      variantHotelOverrides: variantHotelOverrides || undefined, // Store hotel overrides
 
       images: images && images.length > 0 ? {
         deleteMany: {},

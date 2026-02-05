@@ -226,6 +226,7 @@ export async function POST(
             selectedMealPlanId,
             occupancySelections,
             selectedVariantIds, // Array of variant IDs to snapshot
+            variantHotelOverrides, // Hotel overrides per variant
             tourStartsFrom,
             tourEndsOn,
             transport,
@@ -395,7 +396,10 @@ export async function POST(
                 selectedTemplateType,
                 tourPackageTemplateName,
                 selectedMealPlanId,                // Store occupancy selections directly - don't transform it
-                occupancySelections: occupancySelections || undefined, tourStartsFrom: dateToUtc(tourStartsFrom),
+                occupancySelections: occupancySelections || undefined, 
+                selectedVariantIds: selectedVariantIds || undefined, // Store selected variant IDs
+                variantHotelOverrides: variantHotelOverrides || undefined, // Store hotel overrides
+                tourStartsFrom: dateToUtc(tourStartsFrom),
                 tourEndsOn: dateToUtc(tourEndsOn),
                 transport,
                 pickup_location,

@@ -372,6 +372,18 @@ npx prisma migrate dev   # Create new migration
 | **Logging** | Emoji-prefix console logs for DebugLogPanel categorization |
 | **Multi-domain** | Test on admin + associate domains, check middleware restrictions |
 | **Campaign ops** | Use `whatsappPrisma.whatsAppCampaign.findMany()` with `include: { _count: { select: { recipients } } }` |
+| **Temp files** | Delete temporary files after operations (e.g., `Remove-Item "temp-*.txt"`), never commit temp files to repo |
+
+## 🧹 Development Best Practices
+
+### File Management
+- **Temporary files**: Always clean up after creating temporary files during development
+  - Use naming convention: `temp-*.txt`, `temp-*.js`, etc.
+  - Delete immediately after use: `Remove-Item "temp-file.txt" -ErrorAction SilentlyContinue`
+  - Never commit temporary files to version control
+  - Add to `.gitignore` if pattern-based temp files are needed: `temp-*.*`
+- **Code generation**: When generating large code blocks, use temp files for intermediate steps, then delete
+- **Testing artifacts**: Clean up test data, mock files, and debug outputs after testing sessions
 
 ## 📚 Key Utilities & Imports
 

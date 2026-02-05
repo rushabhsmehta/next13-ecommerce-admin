@@ -27,6 +27,8 @@ model Location {
   paymentPolicy             Json?
   termsconditions           Json?
   usefulTip                 Json?
+  isActive                  Boolean                  @default(true)
+  value                     String?
   hotels                    Hotel[]
   activities                Activity[]
   activitiesMaster          ActivityMaster[]
@@ -39,8 +41,6 @@ model Location {
   suppliers                 SupplierLocation[]
   tourDestinations          TourDestination[]
   seasonalPeriods           LocationSeasonalPeriod[]
-  isActive                  Boolean                  @default(true)
-  value                     String?
 
   @@index([id])
   @@index([isActive])
@@ -220,8 +220,7 @@ model TourPackageQuery {
   isArchived                       Boolean                @default(false)
   createdAt                        DateTime               @default(now())
   updatedAt                        DateTime               @updatedAt
-  assignedTo                       String? // RESTORED TEMPORARILY TO FIX PARSING, WILL REMOVE CORRECTLY
-  // assignedToEmail                  String?
+  assignedTo                       String?
   assignedToMobileNumber           String?
   assignedToEmail                  String?
   pricePerAdult                    String?
@@ -247,8 +246,6 @@ model TourPackageQuery {
   tourPackageTemplateName          String?
   occupancySelections              Json?
   selectedMealPlanId               String?
-  selectedVariantIds               Json? // Array of variant IDs selected for this query
-  variantHotelOverrides            Json? // Hotel overrides per variant: { variantId: { itineraryId: hotelId } }
   airlineCancellationPolicy        Json?
   cancellationPolicy               Json?
   exclusions                       Json?
@@ -285,16 +282,15 @@ model TourPackageQuery {
   @@index([customerNumber])
 }
 
-// Variant Snapshot Models - Preserve variant state independent of source TourPackage
 model QueryVariantSnapshot {
   id                 String                        @id @default(uuid())
   tourPackageQueryId String
-  sourceVariantId    String // Original PackageVariant ID for reference
-  name               String // "Luxury", "Premium", "Standard"
+  sourceVariantId    String
+  name               String
   description        String?                       @db.Text
   isDefault          Boolean                       @default(false)
   sortOrder          Int                           @default(0)
-  priceModifier      Float? // % adjustment from base price
+  priceModifier      Float?
   createdAt          DateTime                      @default(now())
   updatedAt          DateTime                      @updatedAt
   tourPackageQuery   TourPackageQuery              @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
@@ -310,7 +306,7 @@ model QueryVariantHotelSnapshot {
   id                String               @id @default(uuid())
   variantSnapshotId String
   dayNumber         Int
-  hotelId           String // Reference to Hotel for lookups
+  hotelId           String
   hotelName         String
   locationLabel     String
   imageUrl          String?              @db.Text
@@ -330,11 +326,11 @@ model QueryVariantPricingSnapshot {
   variantSnapshotId         String
   startDate                 DateTime
   endDate                   DateTime
-  mealPlanId                String? // Reference for lookups
+  mealPlanId                String?
   mealPlanName              String
   numberOfRooms             Int                                    @default(1)
   isGroupPricing            Boolean                                @default(false)
-  vehicleTypeId             String? // Reference for lookups
+  vehicleTypeId             String?
   vehicleTypeName           String?
   totalPrice                Decimal                                @db.Decimal(10, 2)
   description               String?                                @db.Text
@@ -352,8 +348,8 @@ model QueryVariantPricingSnapshot {
 model QueryVariantPricingComponentSnapshot {
   id                 String                      @id @default(uuid())
   pricingSnapshotId  String
-  pricingAttributeId String? // Reference for lookups
-  attributeName      String // "Per Person", "Per Room", etc.
+  pricingAttributeId String?
+  attributeName      String
   price              Decimal                     @db.Decimal(10, 2)
   purchasePrice      Decimal?                    @db.Decimal(10, 2)
   description        String?                     @db.Text
@@ -611,12 +607,11 @@ model TourPackage {
   price                            String?
   isFeatured                       Boolean               @default(false)
   isArchived                       Boolean               @default(false)
-  websiteSortOrder                 Int                   @default(0)
   createdAt                        DateTime              @default(now())
   updatedAt                        DateTime              @updatedAt
-  numDaysNight                     String?
   assignedTo                       String?
   assignedToEmail                  String?
+  numDaysNight                     String?
   tourPackageName                  String?
   pricePerAdult                    String?
   pricePerChild5to12YearsNoBed     String?
@@ -638,6 +633,7 @@ model TourPackage {
   termsconditions                  Json?
   usefulTip                        Json?
   tourCategory                     String?               @default("Domestic")
+  websiteSortOrder                 Int                   @default(0)
   location                         Location              @relation("LocationTotourPackage", fields: [locationId], references: [id])
   flightDetails                    FlightDetails[]
   itineraries                      Itinerary[]
@@ -704,7 +700,6 @@ model PricingComponent {
 model TourPackagePricing {
   id                       String                  @id @default(uuid())
   tourPackageId            String
-  packageVariantId         String?
   startDate                DateTime
   endDate                  DateTime
   isActive                 Boolean                 @default(true)
@@ -716,6 +711,7 @@ model TourPackagePricing {
   locationSeasonalPeriodId String?
   isGroupPricing           Boolean                 @default(false)
   vehicleTypeId            String?
+  packageVariantId         String?
   tourPackage              TourPackage             @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   mealPlan                 MealPlan                @relation(fields: [mealPlanId], references: [id])
   locationSeasonalPeriod   LocationSeasonalPeriod? @relation(fields: [locationSeasonalPeriodId], references: [id])
@@ -890,31 +886,25 @@ model Images {
 }
 
 model Customer {
-  id                  String    @id @default(uuid())
+  id                  String            @id @default(uuid())
   name                String
   contact             String?
   email               String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @default(now())
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @default(now())
   associatePartnerId  String?
-  birthdate           DateTime? @db.Date
-  marriageAnniversary DateTime? @db.Date
-  isTdsDeductor       Boolean   @default(false)
+  birthdate           DateTime?         @db.Date
+  marriageAnniversary DateTime?         @db.Date
+  isTdsDeductor       Boolean           @default(false)
   tanNumber           String?
-
-  // Marketing Preferences
-  marketingOptIn    Boolean   @default(true)
-  marketingOptInAt  DateTime?
-  marketingOptOutAt DateTime?
-
-  // Relations
-  saleDetails      SaleDetail[]
-  receiptDetails   ReceiptDetail[]
-  refundPayments   PaymentDetail[]
-  associatePartner AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
-  tdsTransactions  TDSTransaction[]
-
-  // Note: WhatsApp-related relations have been moved to the separate whatsapp-schema.prisma
+  marketingOptIn      Boolean           @default(true)
+  marketingOptInAt    DateTime?
+  marketingOptOutAt   DateTime?
+  saleDetails         SaleDetail[]
+  receiptDetails      ReceiptDetail[]
+  refundPayments      PaymentDetail[]
+  associatePartner    AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  tdsTransactions     TDSTransaction[]
 
   @@index([associatePartnerId])
 }
@@ -923,9 +913,6 @@ model Supplier {
   id              String             @id @default(uuid())
   name            String
   contact         String?
-  gstNumber       String?
-  address         String?            @db.Text
-  contacts        SupplierContact[]
   email           String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -937,6 +924,9 @@ model Supplier {
   msmeStatus      String?
   panNumber       String?
   tdsApplicable   Boolean            @default(false)
+  address         String?            @db.Text
+  gstNumber       String?
+  contacts        SupplierContact[]
   locations       SupplierLocation[]
   purchaseDetails PurchaseDetail[]
   paymentDetails  PaymentDetail[]
@@ -1020,13 +1010,13 @@ model Inquiry {
   status               String             @default("pending")
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @default(now())
-  fb_click_id          String? // Stores fbclid
-  fb_client_id         String? // Stores _fbp
-  fb_browser_id        String? // Stores _fbc
   journeyDate          DateTime?          @db.Date
   assignedStaffAt      DateTime?
   assignedToStaffId    String?
   nextFollowUpDate     DateTime?          @db.Date
+  fb_browser_id        String?
+  fb_click_id          String?
+  fb_client_id         String?
   location             Location           @relation("LocationToInquiry", fields: [locationId], references: [id])
   associatePartner     AssociatePartner?  @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
   actions              InquiryAction[]
@@ -1430,11 +1420,6 @@ model Notification {
   updatedAt DateTime @default(now())
 }
 
-// ============================================================================
-// WhatsApp Models have been moved to prisma/whatsapp-schema.prisma
-// The WhatsApp integration now uses a separate PostgreSQL database
-// ============================================================================
-
 model AuditLog {
   id         String   @id @default(uuid())
   entityId   String
@@ -1562,12 +1547,12 @@ model TDSReturn {
 
 model PackageVariant {
   id                   String                @id @default(uuid())
-  name                 String // "Luxury", "Premium", "Standard"
+  name                 String
   description          String?               @db.Text
   tourPackageId        String?
   isDefault            Boolean               @default(false)
   sortOrder            Int                   @default(0)
-  priceModifier        Float? // % increase/decrease from base
+  priceModifier        Float?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   tourPackage          TourPackage?          @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
@@ -1595,6 +1580,15 @@ model VariantHotelMapping {
   @@index([hotelId])
 }
 
+model AiSettings {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  customInstructions String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  systemInstruction  String?  @db.Text
+}
+
 enum OrganizationRole {
   OWNER
   ADMIN
@@ -1606,13 +1600,4 @@ enum OrganizationRole {
 enum OperationalStaffRole {
   OPERATIONS
   ADMIN
-}
-
-model AiSettings {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
-  customInstructions String?  @db.Text
-  systemInstruction  String?  @db.Text
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
 }

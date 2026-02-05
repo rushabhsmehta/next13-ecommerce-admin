@@ -1,5 +1,5 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\BasicInfoTab.tsx
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Control } from "react-hook-form";
 import { FileText, ChevronDown, CheckIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -86,6 +86,31 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
   const selectedVariantIds = form.watch('selectedVariantIds') || []; // Now array
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const availableVariants = selectedTourPackage?.packageVariants || [];
+
+  // 🔧 FIX: Ensure variant selection is properly initialized when form loads
+  useEffect(() => {
+    const formVariantIds = form.getValues('selectedVariantIds');
+    const formTourPackageId = form.getValues('tourPackageTemplate');
+    
+    console.log('🔍 [BasicInfoTab] Component mounted/updated', {
+      formVariantIds,
+      formTourPackageId,
+      watchedVariantIds: selectedVariantIds,
+      watchedPackageId: selectedTourPackageId,
+      availableVariantsCount: availableVariants.length
+    });
+    
+    // If we have saved variant selections but the UI isn't showing them, trigger a re-render
+    if (formVariantIds && Array.isArray(formVariantIds) && formVariantIds.length > 0) {
+      if (selectedVariantIds.length !== formVariantIds.length) {
+        console.log('⚠️ [BasicInfoTab] Variant selection mismatch detected, forcing sync');
+        form.setValue('selectedVariantIds', formVariantIds, { 
+          shouldDirty: false, 
+          shouldTouch: false 
+        });
+      }
+    }
+  }, [form, selectedVariantIds, selectedTourPackageId, availableVariants.length]);
 
   return (
     <Card>
@@ -235,6 +260,14 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                                 const newSelection = isSelected
                                   ? selectedVariantIds.filter((id: string) => id !== variant.id)
                                   : [...selectedVariantIds, variant.id];
+                                
+                                console.log('🎯 [BasicInfoTab] Variant selection changed:', {
+                                  variantId: variant.id,
+                                  variantName: variant.name,
+                                  action: isSelected ? 'removed' : 'added',
+                                  newSelection,
+                                  previousSelection: selectedVariantIds
+                                });
                                 
                                 form.setValue('selectedVariantIds', newSelection);
                                 

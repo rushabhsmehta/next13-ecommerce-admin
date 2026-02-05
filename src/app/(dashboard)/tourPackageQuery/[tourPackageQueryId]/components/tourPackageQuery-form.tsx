@@ -219,6 +219,9 @@ const formSchema = z.object({
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(), // Add associatePartnerId to the schema
   variantHotelOverrides: z.record(z.record(z.string())).optional(), // Variant hotel modifications: { variantId: { itineraryId: hotelId } }
+  variantRoomAllocations: z.record(z.record(z.array(z.any()))).optional(), // Room allocations per variant: { variantId: { itineraryId: [allocations] } }
+  variantTransportDetails: z.record(z.record(z.array(z.any()))).optional(), // Transport details per variant: { variantId: { itineraryId: [transports] } }
+  variantPricingData: z.record(z.any()).optional(), // Pricing data per variant: { variantId: { components, totals } }
 });
 
 export type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -494,6 +497,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedMealPlanId: initialData.selectedMealPlanId || '',
       selectedVariantIds: (initialData as any).selectedVariantIds || [], // Initialize from saved data
       variantHotelOverrides: (initialData as any).variantHotelOverrides || {}, // Initialize hotel overrides from saved data
+      variantRoomAllocations: (initialData as any).variantRoomAllocations || {}, // Initialize room allocations from saved data
+      variantTransportDetails: (initialData as any).variantTransportDetails || {}, // Initialize transport details from saved data
+      variantPricingData: (initialData as any).variantPricingData || {}, // Initialize pricing data from saved data
       selectedTourPackageVariantId: (initialData as any).selectedTourPackageVariantId || '',
       selectedTourPackageVariantName: (initialData as any).selectedTourPackageVariantName || '',
       numberOfRooms: (initialData as any).numberOfRooms ?? 1,
@@ -553,6 +559,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedMealPlanId: '',
       selectedVariantIds: [], // Empty array for new queries
       variantHotelOverrides: {}, // Empty object for new queries
+      variantRoomAllocations: {}, // Empty object for new queries
+      variantTransportDetails: {}, // Empty object for new queries
+      variantPricingData: {}, // Empty object for new queries
       selectedTourPackageVariantId: '',
       selectedTourPackageVariantName: '',
       numberOfRooms: 1,
@@ -854,17 +863,28 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
 
   const handleTourPackageVariantSelection = (tourPackageId: string, selectedVariantIds: string[]) => {
+    console.log('🎯 [Form] handleTourPackageVariantSelection called:', {
+      tourPackageId,
+      selectedVariantIds,
+      count: selectedVariantIds.length
+    });
+    
     const selectedTourPackage = tourPackages?.find(tp => tp.id === tourPackageId);
     if (!selectedTourPackage) {
+      console.error('❌ [Form] Tour package not found:', tourPackageId);
       toast.error('Unable to locate selected tour package.');
       return;
     }
 
+    console.log('✅ [Form] Found tour package:', selectedTourPackage.tourPackageName);
+
     // Store the array of selected variant IDs
     form.setValue('selectedVariantIds', selectedVariantIds);
+    console.log('📝 [Form] Set selectedVariantIds in form:', form.getValues('selectedVariantIds'));
 
     if (!selectedVariantIds || selectedVariantIds.length === 0) {
       // Clear variant selection, revert to base package
+      console.log('🧹 [Form] Clearing variant selection');
       form.setValue('selectedTourPackageVariantId', '');
       form.setValue('selectedTourPackageVariantName', '');
       form.setValue('selectedTemplateId', tourPackageId);
@@ -877,12 +897,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     // Get variant names for display
     const variants = selectedTourPackage.packageVariants?.filter(v => selectedVariantIds.includes(v.id)) || [];
     const variantNames = variants.map(v => v.name).join(', ');
+    console.log('📋 [Form] Selected variants:', variants.map(v => ({ id: v.id, name: v.name })));
 
     // Store first variant for backward compatibility (if needed by other code)
     const firstVariant = variants[0];
     if (firstVariant) {
       form.setValue('selectedTourPackageVariantId', firstVariant.id);
       form.setValue('selectedTourPackageVariantName', firstVariant.name || 'Variant');
+      console.log('🔖 [Form] Set first variant for compatibility:', firstVariant.name);
     }
 
     // Set template info
@@ -893,6 +915,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     const combinedTemplateName = [selectedTourPackage.tourPackageName, variantNames].filter(Boolean).join(' - ');
     if (combinedTemplateName) {
       form.setValue('tourPackageTemplateName', combinedTemplateName);
+      console.log('🏷️ [Form] Set template name:', combinedTemplateName);
     }
 
     // NOTE: Hotel mappings are NO LONGER applied to itineraries here
@@ -905,9 +928,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       const primaryPricing = sortedPricings[0];
       if (primaryPricing?.mealPlanId) {
         form.setValue('selectedMealPlanId', primaryPricing.mealPlanId);
+        console.log('🍽️ [Form] Set meal plan:', primaryPricing.mealPlanId);
       }
       if (primaryPricing?.numberOfRooms) {
         form.setValue('numberOfRooms', primaryPricing.numberOfRooms);
+        console.log('🛏️ [Form] Set number of rooms:', primaryPricing.numberOfRooms);
       }
     }
 
@@ -916,6 +941,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     } else if (selectedVariantIds.length > 1) {
       toast.success(`${selectedVariantIds.length} variants selected successfully.`);
     }
+    
+    console.log('✅ [Form] Variant selection complete. Current form state:', {
+      selectedVariantIds: form.getValues('selectedVariantIds'),
+      selectedTemplateType: form.getValues('selectedTemplateType'),
+      selectedTemplateId: form.getValues('selectedTemplateId'),
+      tourPackageTemplateName: form.getValues('tourPackageTemplateName')
+    });
   };
   const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
     // Find the selected tour package query template
@@ -1125,6 +1157,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         totalPrice: data.totalPrice || '',
         disclaimer: data.disclaimer || '',
       };
+
+      // 🔍 LOG: Verify variant data is included in submission
+      console.log('📤 [onSubmit] Submitting form data:', {
+        selectedVariantIds: formattedData.selectedVariantIds,
+        variantHotelOverrides: formattedData.variantHotelOverrides,
+        selectedTemplateType: formattedData.selectedTemplateType,
+        selectedTemplateId: formattedData.selectedTemplateId,
+        tourPackageTemplateName: formattedData.tourPackageTemplateName,
+        hasItineraries: formattedData.itineraries?.length || 0
+      });
 
       if (initialData) {
         console.log("Updating existing query...");

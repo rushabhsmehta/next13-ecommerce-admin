@@ -523,6 +523,9 @@ export async function PATCH(
       occupancySelections,
       selectedVariantIds, // Array of variant IDs to snapshot
       variantHotelOverrides, // Hotel overrides per variant
+      variantRoomAllocations, // Room allocations per variant
+      variantTransportDetails, // Transport details per variant
+      variantPricingData, // Pricing data per variant
       itineraries,
     } = body;
 
@@ -651,6 +654,9 @@ export async function PATCH(
       occupancySelections: occupancySelections || undefined,
       selectedVariantIds: selectedVariantIds || undefined, // Store selected variant IDs
       variantHotelOverrides: variantHotelOverrides || undefined, // Store hotel overrides
+      variantRoomAllocations: variantRoomAllocations || undefined, // Store room allocations per variant
+      variantTransportDetails: variantTransportDetails || undefined, // Store transport details per variant
+      variantPricingData: variantPricingData || undefined, // Store pricing data per variant
 
       images: images && images.length > 0 ? {
         deleteMany: {},

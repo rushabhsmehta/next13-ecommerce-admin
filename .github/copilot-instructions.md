@@ -25,6 +25,81 @@
 - **Ops domain** (`ops.aagamholidays.com`): Operational staff workflows with auth enforcement
 - Middleware bypasses auth for: webhooks (`/api/whatsapp/webhook`), Puppeteer (HeadlessChrome user-agent), public routes
 
+## 🎯 Variant System (Tour Package Queries)
+
+### Complete Implementation (Phases 1-3)
+**Purpose:** Allow tour operators to configure and price multiple package variants within a single query
+
+**Phase 1: Variant Selection Persistence** ✅
+- Fixed: Variant selection now persists after save/reload
+- Modified: `BasicInfoTab.tsx` with proper form value initialization
+- Status: Production-ready
+
+**Phase 2: Room Allocations & Transport Details** ✅
+- Added: Variant-specific room allocations (room type, occupancy, meal plan, quantity, guests, vouchers)
+- Added: Variant-specific transport details (vehicle type, quantity, description)
+- Database: 3 new JSON fields in `TourPackageQuery` model
+  - `variantRoomAllocations Json?`
+  - `variantTransportDetails Json?`
+  - `variantPricingData Json?`
+- UI: Complete accordion-based interface in `QueryVariantsTab.tsx`
+- Status: Production-ready
+
+**Phase 3: Pricing Calculator** ✅
+- Added: Real-time pricing calculation for variants
+- Service: `src/lib/pricing-calculator.ts` - Shared pricing logic
+- API: `POST /api/pricing/calculate-variant` - Variant-specific pricing
+- Features:
+  - Calculates accommodation costs from hotel pricing tables
+  - Calculates transport costs from transport pricing tables
+  - Applies custom markup percentage per variant
+  - Shows day-by-day breakdown with room/transport details
+  - Stores results in `variantPricingData` field
+- UI: Pricing calculator card in `QueryVariantsTab.tsx`
+- Status: Production-ready
+
+**Key Files:**
+- Service: `src/lib/pricing-calculator.ts` - Pricing calculation logic
+- API: `src/app/api/pricing/calculate-variant/route.ts` - Variant pricing endpoint
+- UI: `src/components/tour-package-query/QueryVariantsTab.tsx` - Main variant interface
+- Schema: `schema.prisma` - TourPackageQuery model with JSON fields
+
+**Data Structure:**
+```typescript
+// variantRoomAllocations format
+{
+  "variant-uuid": {
+    "itinerary-id": [
+      {
+        roomTypeId: string,
+        occupancyTypeId: string,
+        mealPlanId: string,
+        quantity: number,
+        guestNames?: string,
+        voucherNumber?: string
+      }
+    ]
+  }
+}
+
+// variantPricingData format
+{
+  "variant-uuid": {
+    totalCost: number,
+    basePrice: number,
+    appliedMarkup: { percentage: number, amount: number },
+    breakdown: { accommodation: number, transport: number },
+    itineraryBreakdown: [...],
+    calculatedAt: string
+  }
+}
+```
+
+**Documentation:**
+- Overview: `docs/VARIANT_SYSTEM_COMPLETE_IMPLEMENTATION_SUMMARY.md`
+- Phase 3: `docs/PHASE_3_VARIANT_PRICING_CALCULATOR_COMPLETE.md`
+- API Reference: `docs/VARIANT_PRICING_API_REFERENCE.md`
+
 ## 🗄️ Database & Prisma Patterns
 
 ### Dual-Schema Setup

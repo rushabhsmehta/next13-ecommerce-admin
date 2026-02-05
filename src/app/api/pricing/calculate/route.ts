@@ -1,49 +1,21 @@
 import { NextResponse } from 'next/server';
-import prismadb from '@/lib/prismadb';
-import { dateToUtc } from '@/lib/timezone-utils';
+import { calculatePricing } from '@/lib/pricing-calculator';
 
-interface RoomCostDetail {
-  roomTypeId: string;
-  occupancyTypeId: string;
-  mealPlanId: string | undefined;
-  quantity: number;
-  pricePerNight: number;
-  totalCost: number;
-}
+export const dynamic = 'force-dynamic';
 
-interface ItineraryResult {
-  day: number;
-  accommodationCost: number;
-  transportCost: number;
-  totalCost: number;
-  roomBreakdown?: RoomCostDetail[]; // Renamed from roomCostDetails
-}
-
-interface TransportDetail {
-  day: number;
-  vehicleType: string;
-  quantity: number;
-  pricePerUnit: number;
-  pricingType: string;
-  totalCost: number;
-}
-
-interface PricingResult {
-  totalCost: number;
-  basePrice: number;
-  appliedMarkup: {
-    percentage: number;
-    amount: number;
-  };
-  breakdown: {
-    accommodation: number;
-    transport: number;
-  };
-  dailyBreakdown: any[];
-  itineraryBreakdown: ItineraryResult[];
-  transportDetails: TransportDetail[];
-}
-
+/**
+ * POST /api/pricing/calculate
+ * 
+ * Calculate pricing for a tour package query based on itineraries, rooms, and transport.
+ * This is the standard pricing calculation endpoint (non-variant).
+ * 
+ * @body tourStartsFrom - Tour start date
+ * @body tourEndsOn - Tour end date
+ * @body itineraries - Array of itinerary objects with roomAllocations and transportDetails
+ * @body markup - Optional markup percentage (default 0)
+ * 
+ * @returns PricingCalculationResult with complete breakdown
+ */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -52,151 +24,42 @@ export async function POST(req: Request) {
       tourEndsOn, 
       itineraries,
       markup = 0,
-    } = body;    if (!tourStartsFrom || !tourEndsOn || !itineraries || !itineraries.length) {
+    } = body;
+
+    if (!tourStartsFrom || !tourEndsOn || !itineraries || !itineraries.length) {
       return new NextResponse("Missing required fields", { status: 400 });
-    }    // Ensure dates are handled consistently using timezone-aware conversion
-    const startDate = dateToUtc(tourStartsFrom) || new Date();
-    const endDate = dateToUtc(tourEndsOn) || new Date();
-    const durationMs = endDate.getTime() - startDate.getTime();
-    const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24)) + 1;
-
-    const result: PricingResult = {
-      totalCost: 0,
-      basePrice: 0,
-      appliedMarkup: {
-        percentage: 0,
-        amount: 0,
-      },
-      breakdown: {
-        accommodation: 0,
-        transport: 0,
-      },
-      dailyBreakdown: [],
-      itineraryBreakdown: [],
-      transportDetails: []
-    };
-
-    for (const itinerary of itineraries) {
-      const { hotelId, locationId, dayNumber, roomAllocations, transportDetails } = itinerary;
-
-      if (!hotelId || !locationId) continue;
-
-      const itineraryResult: ItineraryResult = {
-        day: dayNumber,
-        accommodationCost: 0,
-        transportCost: 0,
-        totalCost: 0
-      };
-
-      if (roomAllocations && roomAllocations.length) {
-        for (const room of roomAllocations) {
-          const { quantity, roomTypeId, occupancyTypeId, mealPlanId } = room;
-
-          if (!quantity) continue;
-
-          const pricing = await prismadb.hotelPricing.findFirst({
-            where: {
-              hotelId,
-              roomTypeId,
-              occupancyTypeId,
-              mealPlanId,
-              isActive: true,
-              startDate: { lte: endDate },
-              endDate: { gte: startDate }
-            },
-            orderBy: {
-              startDate: 'desc'
-            }
-          });          if (pricing) {
-            const roomCost = pricing.price * quantity;
-            
-            // Store the detailed room pricing information for the frontend
-            if (!itineraryResult.roomBreakdown) { // Use renamed property
-              itineraryResult.roomBreakdown = []; // Use renamed property
-            }
-            
-            itineraryResult.roomBreakdown.push({ // Use renamed property
-              roomTypeId,
-              occupancyTypeId,
-              mealPlanId,
-              quantity,
-              pricePerNight: pricing.price, // Store price per night
-              totalCost: roomCost // Store total cost for this allocation
-            });
-            
-            itineraryResult.accommodationCost += roomCost;
-          }
-        }
-      }
-
-      if (transportDetails && transportDetails.length > 0) {
-        for (const transport of transportDetails) {
-          const { vehicleTypeId, quantity = 1 } = transport;
-
-          if (!vehicleTypeId) continue;
-
-          const transportPricing = await prismadb.transportPricing.findFirst({
-            where: {
-              locationId,
-              vehicleTypeId,
-              isActive: true,
-              startDate: { lte: endDate },
-              endDate: { gte: startDate }
-            },
-            include: {
-              vehicleType: true
-            },
-            orderBy: {
-              startDate: 'desc'
-            }
-          });
-
-          if (transportPricing && transportPricing.vehicleType) {
-            let vehicleCost = 0;
-
-            if (transportPricing.transportType === "PerDay") {
-              vehicleCost = transportPricing.price * quantity;
-            } else {
-              vehicleCost = transportPricing.price * quantity;
-            }
-
-            itineraryResult.transportCost += vehicleCost;
-
-            result.transportDetails.push({
-              day: dayNumber,
-              vehicleType: transportPricing.vehicleType.name,
-              quantity: quantity,
-              pricePerUnit: transportPricing.price,
-              pricingType: transportPricing.transportType,
-              totalCost: vehicleCost
-            });
-          }
-        }
-      }
-
-      itineraryResult.totalCost = itineraryResult.accommodationCost + itineraryResult.transportCost;
-      result.breakdown.accommodation += itineraryResult.accommodationCost;
-      result.breakdown.transport += itineraryResult.transportCost;
-      result.totalCost += itineraryResult.totalCost;
-      result.itineraryBreakdown.push(itineraryResult);
     }
 
-    const baseTotal = result.totalCost;
-    const markupPercentage = typeof markup === 'string' ? parseFloat(markup) : markup;
-    const markupAmount = baseTotal * (markupPercentage / 100);
-    const totalWithMarkup = baseTotal + markupAmount;
+    console.log('🧮 [PRICING-CALCULATE] Starting calculation');
+    console.log('📅 [PRICING-CALCULATE] Tour dates:', { tourStartsFrom, tourEndsOn });
+    console.log('🗓️ [PRICING-CALCULATE] Itineraries:', itineraries.length);
 
-    result.totalCost = Math.round(totalWithMarkup);
-    result.basePrice = baseTotal;
-    result.appliedMarkup = {
-      percentage: markupPercentage,
-      amount: markupAmount
-    };
+    // Use the shared pricing calculator service
+    const result = await calculatePricing({
+      tourStartsFrom,
+      tourEndsOn,
+      itineraries,
+      markup,
+      includeNames: true // Include room type/occupancy/meal plan names for display
+    });
+
+    console.log('✅ [PRICING-CALCULATE] Calculation complete:', {
+      totalCost: result.totalCost,
+      basePrice: result.basePrice,
+      markup: result.appliedMarkup
+    });
 
     return NextResponse.json(result);
 
-  } catch (error) {
-    console.log('[PACKAGE_PRICING_CALCULATE]', error);
-    return new NextResponse("Internal error", { status: 500 });
+  } catch (error: any) {
+    console.error('❌ [PRICING-CALCULATE-ERROR]', error);
+    return new NextResponse(
+      JSON.stringify({
+        error: 'Internal server error',
+        message: error?.message || 'Unknown error occurred',
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }

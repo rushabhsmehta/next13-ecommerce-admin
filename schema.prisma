@@ -248,6 +248,9 @@ model TourPackageQuery {
   selectedMealPlanId               String?
   selectedVariantIds               Json? // Array of variant IDs selected for this query
   variantHotelOverrides            Json? // Hotel overrides per variant: { variantId: { itineraryId: hotelId } }
+  variantRoomAllocations           Json? // Room allocations per variant: { variantId: { itineraryId: [allocations] } }
+  variantTransportDetails          Json? // Transport details per variant: { variantId: { itineraryId: [transports] } }
+  variantPricingData               Json? // Pricing data per variant: { variantId: { components, totals } }
   airlineCancellationPolicy        Json?
   cancellationPolicy               Json?
   exclusions                       Json?

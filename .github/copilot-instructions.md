@@ -58,10 +58,18 @@
 - UI: Pricing calculator card in `QueryVariantsTab.tsx`
 - Status: Production-ready
 
+**Phase 4: Calculation Method Selection** ✅
+- Added: Pricing calculation method selector in Variants tab
+- Options: Manual Entry, Auto Calculate (Hotel + Transport), Use Tour Package Pricing
+- Implementation: Radio button selector at top of each variant's Pricing tab
+- State: Per-variant calculation method stored in component state
+- UI: `QueryVariantsTab.tsx` with RadioGroup from shadcn/ui
+- Status: Production-ready
+
 **Key Files:**
 - Service: `src/lib/pricing-calculator.ts` - Pricing calculation logic
 - API: `src/app/api/pricing/calculate-variant/route.ts` - Variant pricing endpoint
-- UI: `src/components/tour-package-query/QueryVariantsTab.tsx` - Main variant interface
+- UI: `src/components/tour-package-query/QueryVariantsTab.tsx` - Main variant interface with calculation methods
 - Schema: `schema.prisma` - TourPackageQuery model with JSON fields
 
 **Data Structure:**

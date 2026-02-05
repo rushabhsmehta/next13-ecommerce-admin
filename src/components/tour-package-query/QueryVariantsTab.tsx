@@ -10,10 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash } from "lucide-react";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
 import { formatSafeDate } from "@/lib/utils";
 import { toast } from "react-hot-toast";
+
+// Calculation method type for pricing
+type CalculationMethod = 'manual' | 'autoHotelTransport' | 'useTourPackagePricing';
 
 type VariantWithDetails = PackageVariant & {
   variantHotelMappings: (VariantHotelMapping & {
@@ -72,6 +76,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   
   const [editingMapping, setEditingMapping] = useState<string | null>(null);
   const [tempHotelId, setTempHotelId] = useState<string>("");
+  const [variantCalcMethods, setVariantCalcMethods] = useState<Record<string, CalculationMethod>>({});
   
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
@@ -897,8 +902,56 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                 )}
               </TabsContent>
 
-              {/* Pricing Tab */}{/* Pricing Tab */}
+              {/* Pricing Tab */}
               <TabsContent value="pricing" className="mt-4">
+                {/* Calculation Method Card */}
+                <Card className="shadow-sm border-2 border-blue-200/60 bg-gradient-to-br from-blue-50/30 to-white mb-4">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-blue-600" />
+                      💰 Pricing Configuration
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-white rounded-lg border border-slate-200 p-4">
+                      <div className="flex items-center mb-3">
+                        <Settings className="mr-2 h-4 w-4 text-indigo-600" />
+                        <h3 className="text-sm font-semibold">💼 Calculation Method</h3>
+                      </div>
+                      <RadioGroup value={variantCalcMethods[variant.id] || 'useTourPackagePricing'} onValueChange={(v: CalculationMethod) => setVariantCalcMethods(prev => ({...prev, [variant.id]: v}))} className="space-y-2">
+                        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:border-indigo-300 hover:bg-indigo-50 transition">
+                          <RadioGroupItem value="manual" id={`m-${variant.id}`} />
+                          <div className="flex-1">
+                            <label htmlFor={`m-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
+                              <Receipt className="mr-2 h-3.5 w-3.5" />✍️ Manual Pricing Entry
+                            </label>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Enter pricing components manually</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:border-green-300 hover:bg-green-50 transition">
+                          <RadioGroupItem value="autoHotelTransport" id={`a-${variant.id}`} />
+                          <div className="flex-1">
+                            <label htmlFor={`a-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
+                              <Calculator className="mr-2 h-3.5 w-3.5" />🤖 Auto Calculate (Hotel + Transport)
+                            </label>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Calculate from room allocations and transport</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 p-3 rounded-lg border hover:border-purple-300 hover:bg-purple-50 transition">
+                          <RadioGroupItem value="useTourPackagePricing" id={`u-${variant.id}`} />
+                          <div className="flex-1">
+                            <label htmlFor={`u-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
+                              <Package className="mr-2 h-3.5 w-3.5" />📦 Use Tour Package Pricing
+                            </label>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Use pre-defined variant pricing</p>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Pricing Content */}
                 <Card className="shadow-sm border border-slate-200/70">
               <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-50 via-emerald-25 to-transparent">
                 <CardTitle className="text-sm flex items-center gap-2 font-semibold">

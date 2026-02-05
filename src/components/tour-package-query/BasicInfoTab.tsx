@@ -1,5 +1,5 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\BasicInfoTab.tsx
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Control } from "react-hook-form";
 import { FileText, ChevronDown, CheckIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -83,7 +83,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
   const editor = useRef(null);
   const [openVariantPopover, setOpenVariantPopover] = useState(false);
   const selectedTourPackageId = form.watch('tourPackageTemplate');
-  const selectedVariantIds = form.watch('selectedVariantIds') || []; // Now array
+  const watchedVariantIds = form.watch('selectedVariantIds');
+  const selectedVariantIds = useMemo(() => watchedVariantIds || [], [watchedVariantIds]);
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const availableVariants = selectedTourPackage?.packageVariants || [];
 

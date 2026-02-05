@@ -2,6 +2,7 @@
 
 import * as z from "zod"
 import axios from "axios"
+import Image from "next/image"
 import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useMemo, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { FieldErrors, useFieldArray, useForm } from "react-hook-form"
@@ -1106,7 +1107,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       <div className="flex gap-2 flex-wrap">
                         {form.watch('images').map((image: { url: string }, idx: number) => (
                           <div key={image.url || `image-${idx}`} className="w-20 h-16 rounded overflow-hidden border" style={{ borderColor: brandColors.border }}>
-                            <img src={image.url} alt={`Tour ${idx + 1}`} className="w-full h-full object-cover" />
+                            <Image src={image.url} alt={`Tour ${idx + 1}`} width={80} height={64} className="w-full h-full object-cover" />
                           </div>
                         ))}
                       </div>
@@ -1317,7 +1318,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <div className="flex gap-3">
                             <div className="flex-shrink-0 w-20 h-16 rounded overflow-hidden" style={{ background: '#f3f4f6' }}>
                               {hotel.images && hotel.images.length > 0 ? (
-                                <img src={hotel.images[0].url} alt={hotel.name} className="w-full h-full object-cover" />
+                                <Image src={hotel.images[0].url} alt={hotel.name} width={80} height={64} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: brandColors.muted }}>
                                   No Image

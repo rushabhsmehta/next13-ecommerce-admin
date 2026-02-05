@@ -436,7 +436,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       }
     });
     return () => subscription.unsubscribe();
-  }, []); // Empty dependency array - watch is set up once
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - watch is set up once, form not available yet
 
   const fetchTourPackagesByLocation = async (locationId: string) => {
     if (!locationId) {

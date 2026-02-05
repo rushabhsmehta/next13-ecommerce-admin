@@ -2,6 +2,7 @@
 
 import * as z from "zod"
 import axios from "axios"
+import Image from "next/image"
 import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -1125,7 +1126,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                           <div className="flex gap-3">
                             <div className="flex-shrink-0 w-20 h-16 rounded overflow-hidden" style={{ background: '#f3f4f6' }}>
                               {hotel.images && hotel.images.length > 0 ? (
-                                <img src={hotel.images[0].url} alt={hotel.name} className="w-full h-full object-cover" />
+                                <Image src={hotel.images[0].url} alt={hotel.name} width={80} height={64} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: brandColors.muted }}>
                                   No Image

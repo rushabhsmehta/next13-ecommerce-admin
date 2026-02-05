@@ -9,7 +9,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash } from "lucide-react";
 import Image from "next/image";
 import { formatSafeDate } from "@/lib/utils";
 import { toast } from "react-hot-toast";
@@ -63,6 +64,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const selectedTourPackageId = useWatch({ control, name: "tourPackageTemplate" }) as string | undefined;
   const selectedVariantIds = useWatch({ control, name: "selectedVariantIds" }) as string[] | undefined;
   const variantHotelOverrides = useWatch({ control, name: "variantHotelOverrides" }) as Record<string, Record<string, string>> | undefined;
+  const variantRoomAllocations = useWatch({ control, name: "variantRoomAllocations" }) as Record<string, Record<string, any[]>> | undefined;
+  const variantTransportDetails = useWatch({ control, name: "variantTransportDetails" }) as Record<string, Record<string, any[]>> | undefined;
   const queryItineraries = useWatch({ control, name: "itineraries" }) as any[] | undefined; // Get query itineraries
   const queryStartDate = useWatch({ control, name: "startDate" });
   const queryEndDate = useWatch({ control, name: "endDate" });
@@ -115,6 +118,121 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  // 🆕 Room Allocation Helper Functions
+  const addRoomAllocation = (variantId: string, itineraryId: string) => {
+    const current = variantRoomAllocations || {};
+    const variantData = current[variantId] || {};
+    const itineraryAllocations = variantData[itineraryId] || [];
+    
+    const newAllocation = {
+      roomTypeId: '',
+      occupancyTypeId: '',
+      mealPlanId: '',
+      quantity: 1,
+      guestNames: '',
+      voucherNumber: '',
+      useCustomRoomType: false,
+      customRoomType: ''
+    };
+    
+    form.setValue('variantRoomAllocations', {
+      ...current,
+      [variantId]: {
+        ...variantData,
+        [itineraryId]: [...itineraryAllocations, newAllocation]
+      }
+    });
+  };
+
+  const removeRoomAllocation = (variantId: string, itineraryId: string, allocationIndex: number) => {
+    const current = variantRoomAllocations || {};
+    const variantData = current[variantId] || {};
+    const itineraryAllocations = variantData[itineraryId] || [];
+    
+    const newAllocations = itineraryAllocations.filter((_: any, i: number) => i !== allocationIndex);
+    
+    form.setValue('variantRoomAllocations', {
+      ...current,
+      [variantId]: {
+        ...variantData,
+        [itineraryId]: newAllocations
+      }
+    });
+  };
+
+  const updateRoomAllocation = (variantId: string, itineraryId: string, allocationIndex: number, field: string, value: any) => {
+    const current = variantRoomAllocations || {};
+    const variantData = current[variantId] || {};
+    const itineraryAllocations = variantData[itineraryId] || [];
+    
+    const updatedAllocations = itineraryAllocations.map((allocation: any, i: number) => 
+      i === allocationIndex ? { ...allocation, [field]: value } : allocation
+    );
+    
+    form.setValue('variantRoomAllocations', {
+      ...current,
+      [variantId]: {
+        ...variantData,
+        [itineraryId]: updatedAllocations
+      }
+    });
+  };
+
+  // 🆕 Transport Details Helper Functions
+  const addTransportDetail = (variantId: string, itineraryId: string) => {
+    const current = variantTransportDetails || {};
+    const variantData = current[variantId] || {};
+    const itineraryTransports = variantData[itineraryId] || [];
+    
+    const newTransport = {
+      vehicleTypeId: '',
+      quantity: 1,
+      description: ''
+    };
+    
+    form.setValue('variantTransportDetails', {
+      ...current,
+      [variantId]: {
+        ...variantData,
+        [itineraryId]: [...itineraryTransports, newTransport]
+      }
+    });
+  };
+
+  const removeTransportDetail = (variantId: string, itineraryId: string, transportIndex: number) => {
+    const current = variantTransportDetails || {};
+    const variantData = current[variantId] || {};
+    const itineraryTransports = variantData[itineraryId] || [];
+    
+    const newTransports = itineraryTransports.filter((_: any, i: number) => i !== transportIndex);
+    
+    form.setValue('variantTransportDetails', {
+      ...current,
+      [variantId]: {
+        ...variantData,
+        [itineraryId]: newTransports
+      }
+    });
+  };
+
+  const updateTransportDetail = (variantId: string, itineraryId: string, transportIndex: number, field: string, value: any) => {
+    const current = variantTransportDetails || {};
+    const variantData = current[variantId] || {};
+    const itineraryTransports = variantData[itineraryId] || [];
+    
+    const updatedTransports = itineraryTransports.map((transport: any, i: number) => 
+      i === transportIndex ? { ...transport, [field]: value } : transport
+    );
+    
+    form.setValue('variantTransportDetails', {
+      ...current,
+      [variantId]: {
+        ...variantData,
+        [itineraryId]: updatedTransports
+      }
+    });
   };
 
   const getEffectiveHotelId = (variantId: string, itineraryId: string, originalHotelId: string) => {
@@ -229,8 +347,26 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
               </CardContent>
             </Card>
 
-            {/* Hotel Mappings */}
-            <Card className="shadow-sm border border-slate-200/70">
+            {/* Sub-tabs for Hotels, Room Allocation, and Pricing */}
+            <Tabs defaultValue="hotels" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-50 to-slate-100 p-1">
+                <TabsTrigger value="hotels" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <HotelIcon className="h-3.5 w-3.5 mr-2" />
+                  Hotels
+                </TabsTrigger>
+                <TabsTrigger value="rooms" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <BedDouble className="h-3.5 w-3.5 mr-2" />
+                  Room Allocation
+                </TabsTrigger>
+                <TabsTrigger value="pricing" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Calculator className="h-3.5 w-3.5 mr-2" />
+                  Pricing
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Hotels Tab */}
+              <TabsContent value="hotels" className="mt-4">
+                <Card className="shadow-sm border border-slate-200/70">
               <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-25 to-transparent">
                 <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                   <HotelIcon className="h-4 w-4 text-blue-600" />
@@ -503,9 +639,267 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                 )}
               </CardContent>
             </Card>
+              </TabsContent>
 
-            {/* Pricing Details */}
-            <Card className="shadow-sm border border-slate-200/70">
+              {/* Room Allocation Tab */}
+              <TabsContent value="rooms" className="mt-4">
+                {itineraries.length === 0 ? (
+                  <Card className="shadow-sm border border-slate-200/70">
+                    <CardContent className="pt-4">
+                      <div className="text-center py-8 text-sm text-muted-foreground">
+                        <BedDouble className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                        <p>No itineraries configured for this package.</p>
+                        <p className="text-xs mt-2">Add itineraries in the Hotels tab first.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Accordion type="multiple" className="space-y-3">
+                    {itineraries.map((itinerary, idx) => {
+                      const variantRooms = variantRoomAllocations?.[variant.id]?.[itinerary.id] || [];
+                      const variantTransports = variantTransportDetails?.[variant.id]?.[itinerary.id] || [];
+                      
+                      return (
+                        <AccordionItem 
+                          key={itinerary.id} 
+                          value={itinerary.id}
+                          className="border rounded-md shadow-sm bg-white"
+                        >
+                          <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                                {itinerary.dayNumber || idx + 1}
+                              </div>
+                              <div className="text-left">
+                                <div className="font-medium text-sm" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${itinerary.dayNumber || idx + 1}` }} />
+                                <div className="text-xs text-muted-foreground">
+                                  {variantRooms.length} room(s), {variantTransports.length} transport(s)
+                                </div>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4 space-y-4">
+                            {/* Room Allocations */}
+                            <Card className="border-blue-200/60">
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className="text-sm flex items-center gap-2">
+                                    <BedDouble className="h-4 w-4 text-blue-600" />
+                                    Room Allocations
+                                  </CardTitle>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => addRoomAllocation(variant.id, itinerary.id)}
+                                    className="h-8 text-xs"
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Add Room
+                                  </Button>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-3">
+                                {variantRooms.length === 0 ? (
+                                  <div className="text-center py-4 text-sm text-muted-foreground">
+                                    No room allocations yet. Click &quot;Add Room&quot; to get started.
+                                  </div>
+                                ) : (
+                                  variantRooms.map((room: any, roomIdx: number) => (
+                                    <div key={roomIdx} className="p-3 border rounded-md space-y-2 bg-gradient-to-r from-blue-50/50 to-transparent">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium text-slate-600">Room {roomIdx + 1}</span>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => removeRoomAllocation(variant.id, itinerary.id, roomIdx)}
+                                          className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                        >
+                                          <Trash className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Room Type</label>
+                                          <Select
+                                            value={room.roomTypeId}
+                                            onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'roomTypeId', value)}
+                                          >
+                                            <SelectTrigger className="h-8 text-xs">
+                                              <SelectValue placeholder="Select room type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {roomTypes.map((rt: any) => (
+                                                <SelectItem key={rt.id} value={rt.id} className="text-xs">
+                                                  {rt.name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Occupancy</label>
+                                          <Select
+                                            value={room.occupancyTypeId}
+                                            onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'occupancyTypeId', value)}
+                                          >
+                                            <SelectTrigger className="h-8 text-xs">
+                                              <SelectValue placeholder="Select occupancy" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {occupancyTypes.map((ot: any) => (
+                                                <SelectItem key={ot.id} value={ot.id} className="text-xs">
+                                                  {ot.name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Meal Plan</label>
+                                          <Select
+                                            value={room.mealPlanId}
+                                            onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'mealPlanId', value)}
+                                          >
+                                            <SelectTrigger className="h-8 text-xs">
+                                              <SelectValue placeholder="Select meal plan" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {mealPlans.map((mp: any) => (
+                                                <SelectItem key={mp.id} value={mp.id} className="text-xs">
+                                                  {mp.name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Quantity</label>
+                                          <Input
+                                            type="number"
+                                            min={1}
+                                            value={room.quantity || 1}
+                                            onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'quantity', parseInt(e.target.value) || 1)}
+                                            className="h-8 text-xs"
+                                          />
+                                        </div>
+                                        <div className="space-y-1 col-span-2">
+                                          <label className="text-[10px] font-medium text-slate-600">Guest Names</label>
+                                          <Input
+                                            value={room.guestNames || ''}
+                                            onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'guestNames', e.target.value)}
+                                            placeholder="Guest names (optional)"
+                                            className="h-8 text-xs"
+                                          />
+                                        </div>
+                                        <div className="space-y-1 col-span-2">
+                                          <label className="text-[10px] font-medium text-slate-600">Voucher Number</label>
+                                          <Input
+                                            value={room.voucherNumber || ''}
+                                            onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'voucherNumber', e.target.value)}
+                                            placeholder="Voucher number (optional)"
+                                            className="h-8 text-xs"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </CardContent>
+                            </Card>
+
+                            {/* Transport Details */}
+                            <Card className="border-emerald-200/60">
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <CardTitle className="text-sm flex items-center gap-2">
+                                    <Car className="h-4 w-4 text-emerald-600" />
+                                    Transport Details
+                                  </CardTitle>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => addTransportDetail(variant.id, itinerary.id)}
+                                    className="h-8 text-xs"
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Add Transport
+                                  </Button>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-3">
+                                {variantTransports.length === 0 ? (
+                                  <div className="text-center py-4 text-sm text-muted-foreground">
+                                    No transport details yet. Click &quot;Add Transport&quot; to get started.
+                                  </div>
+                                ) : (
+                                  variantTransports.map((transport: any, transportIdx: number) => (
+                                    <div key={transportIdx} className="p-3 border rounded-md space-y-2 bg-gradient-to-r from-emerald-50/50 to-transparent">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-medium text-slate-600">Transport {transportIdx + 1}</span>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => removeTransportDetail(variant.id, itinerary.id, transportIdx)}
+                                          className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                        >
+                                          <Trash className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Vehicle Type</label>
+                                          <Select
+                                            value={transport.vehicleTypeId}
+                                            onValueChange={(value) => updateTransportDetail(variant.id, itinerary.id, transportIdx, 'vehicleTypeId', value)}
+                                          >
+                                            <SelectTrigger className="h-8 text-xs">
+                                              <SelectValue placeholder="Select vehicle" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {vehicleTypes.map((vt: any) => (
+                                                <SelectItem key={vt.id} value={vt.id} className="text-xs">
+                                                  {vt.name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Quantity</label>
+                                          <Input
+                                            type="number"
+                                            min={1}
+                                            value={transport.quantity || 1}
+                                            onChange={(e) => updateTransportDetail(variant.id, itinerary.id, transportIdx, 'quantity', parseInt(e.target.value) || 1)}
+                                            className="h-8 text-xs"
+                                          />
+                                        </div>
+                                        <div className="space-y-1 col-span-2">
+                                          <label className="text-[10px] font-medium text-slate-600">Description</label>
+                                          <Input
+                                            value={transport.description || ''}
+                                            onChange={(e) => updateTransportDetail(variant.id, itinerary.id, transportIdx, 'description', e.target.value)}
+                                            placeholder="Transport description (optional)"
+                                            className="h-8 text-xs"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </CardContent>
+                            </Card>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                )}
+              </TabsContent>
+
+              {/* Pricing Tab */}{/* Pricing Tab */}
+              <TabsContent value="pricing" className="mt-4">
+                <Card className="shadow-sm border border-slate-200/70">
               <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-50 via-emerald-25 to-transparent">
                 <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                   <IndianRupee className="h-4 w-4 text-emerald-600" />
@@ -744,6 +1138,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                 </CardContent>
               </Card>
             )}
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         ))}
       </Tabs>

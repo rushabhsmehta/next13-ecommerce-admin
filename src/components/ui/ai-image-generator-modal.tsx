@@ -275,7 +275,7 @@ export function AIImageGeneratorModal({ onImageGenerated, trigger, autoPrompt, a
                     className="resize-none"
                   />
                   <p className="text-xs text-muted-foreground">
-                    ℹ️ Describe what you don't want in the image
+                    ℹ️ Describe what you don&apos;t want in the image
                   </p>
                 </div>
               </TabsContent>

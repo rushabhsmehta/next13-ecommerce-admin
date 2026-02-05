@@ -493,6 +493,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
       selectedMealPlanId: initialData.selectedMealPlanId || '',
       selectedVariantIds: (initialData as any).selectedVariantIds || [], // Initialize from saved data
+      variantHotelOverrides: (initialData as any).variantHotelOverrides || {}, // Initialize hotel overrides from saved data
       selectedTourPackageVariantId: (initialData as any).selectedTourPackageVariantId || '',
       selectedTourPackageVariantName: (initialData as any).selectedTourPackageVariantName || '',
       numberOfRooms: (initialData as any).numberOfRooms ?? 1,
@@ -551,6 +552,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageTemplateName: '',
       selectedMealPlanId: '',
       selectedVariantIds: [], // Empty array for new queries
+      variantHotelOverrides: {}, // Empty object for new queries
       selectedTourPackageVariantId: '',
       selectedTourPackageVariantName: '',
       numberOfRooms: 1,
@@ -1395,6 +1397,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 loading={loading || fetchingPackages}
                 tourPackages={dynamicTourPackages}
                 hotels={hotels}
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
               />
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">

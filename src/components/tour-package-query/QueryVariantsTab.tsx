@@ -9,7 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt } from "lucide-react";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator } from "lucide-react";
 import Image from "next/image";
 import { formatSafeDate } from "@/lib/utils";
 import { toast } from "react-hot-toast";
@@ -43,6 +43,10 @@ interface QueryVariantsTabProps {
   loading?: boolean;
   tourPackages: TourPackageWithVariants[] | null;
   hotels: (Hotel & { images: Images[] })[];
+  roomTypes?: any[];
+  occupancyTypes?: any[];
+  mealPlans?: any[];
+  vehicleTypes?: any[];
 }
 
 const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
@@ -51,10 +55,15 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   loading,
   tourPackages,
   hotels,
+  roomTypes = [],
+  occupancyTypes = [],
+  mealPlans = [],
+  vehicleTypes = [],
 }) => {
   const selectedTourPackageId = useWatch({ control, name: "tourPackageTemplate" }) as string | undefined;
   const selectedVariantIds = useWatch({ control, name: "selectedVariantIds" }) as string[] | undefined;
   const variantHotelOverrides = useWatch({ control, name: "variantHotelOverrides" }) as Record<string, Record<string, string>> | undefined;
+  const queryItineraries = useWatch({ control, name: "itineraries" }) as any[] | undefined; // Get query itineraries
   const queryStartDate = useWatch({ control, name: "startDate" });
   const queryEndDate = useWatch({ control, name: "endDate" });
   
@@ -343,6 +352,74 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               </Card>
                             )}
 
+                            {/* Room Allocations Section - NEW */}
+                            {(() => {
+                              // Find corresponding query itinerary for this day
+                              const queryItinerary = queryItineraries?.find(
+                                (qi: any) => qi.dayNumber === (itinerary?.dayNumber || idx + 1)
+                              );
+                              const roomAllocations = queryItinerary?.roomAllocations || [];
+                              
+                              if (roomAllocations.length > 0) {
+                                return (
+                                  <Card className="border-blue-200/60 bg-gradient-to-br from-blue-50/40 to-transparent">
+                                    <CardContent className="pt-4 pb-4">
+                                      <div className="space-y-3">
+                                        <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+                                          <BedDouble className="h-3.5 w-3.5 text-blue-600" />
+                                          Room Allocations ({roomAllocations.length})
+                                        </div>
+                                        {roomAllocations.map((room: any, roomIdx: number) => {
+                                          const roomType = roomTypes?.find((rt: any) => rt.id === room.roomTypeId);
+                                          const occupancyType = occupancyTypes?.find((ot: any) => ot.id === room.occupancyTypeId);
+                                          const mealPlan = mealPlans?.find((mp: any) => mp.id === room.mealPlanId);
+                                          
+                                          return (
+                                            <div 
+                                              key={roomIdx} 
+                                              className="flex items-start gap-3 py-2 px-3 bg-white/80 rounded-md border border-blue-100 text-xs"
+                                            >
+                                              <Users className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                              <div className="flex-1 space-y-1">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-blue-50">
+                                                    {room.customRoomType || roomType?.name || 'Room'}
+                                                  </Badge>
+                                                  {occupancyType && (
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                                                      {occupancyType.name}
+                                                    </Badge>
+                                                  )}
+                                                  {mealPlan && (
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5">
+                                                      <UtensilsIcon className="h-2.5 w-2.5" />
+                                                      {mealPlan.name}
+                                                    </Badge>
+                                                  )}
+                                                  <span className="text-slate-600">×{room.quantity || 1}</span>
+                                                </div>
+                                                {room.guestNames && (
+                                                  <div className="text-slate-600 text-[10px]">
+                                                    Guests: {room.guestNames}
+                                                  </div>
+                                                )}
+                                                {room.voucherNumber && (
+                                                  <div className="text-slate-500 text-[10px]">
+                                                    Voucher: {room.voucherNumber}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                );
+                              }
+                              return null;
+                            })()}
+
                             {/* Hotel Change Controls */}
                             <div className="flex items-center gap-2 pt-2 border-t">
                               {isEditing ? (
@@ -542,6 +619,110 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                 )}
               </CardContent>
             </Card>
+
+            {/* Pricing Summary Card - NEW */}
+            {variant.tourPackagePricings.length > 0 && (
+              <Card className="shadow-sm border border-emerald-200/70 bg-gradient-to-br from-emerald-50/30 to-white">
+                <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-50 via-emerald-25 to-transparent">
+                  <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                    <Calculator className="h-4 w-4 text-emerald-600" />
+                    Price Calculation Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {(() => {
+                    // Calculate total across all pricing periods
+                    const grandTotal = variant.tourPackagePricings.reduce((sum, pricing) => {
+                      const periodTotal = pricing.pricingComponents.reduce(
+                        (compSum, comp) => compSum + Number(comp.price || 0),
+                        0
+                      );
+                      return sum + periodTotal;
+                    }, 0);
+
+                    const avgPricePerPeriod = grandTotal / variant.tourPackagePricings.length;
+                    
+                    // Get date range
+                    const allDates = variant.tourPackagePricings.map(p => ({
+                      start: new Date(p.startDate),
+                      end: new Date(p.endDate)
+                    }));
+                    const earliestDate = allDates.length > 0 
+                      ? new Date(Math.min(...allDates.map(d => d.start.getTime())))
+                      : null;
+                    const latestDate = allDates.length > 0
+                      ? new Date(Math.max(...allDates.map(d => d.end.getTime())))
+                      : null;
+
+                    return (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="p-3 bg-white rounded-lg border border-emerald-100">
+                            <div className="text-[10px] font-medium text-slate-600 uppercase tracking-wide mb-1">
+                              Total Pricing Periods
+                            </div>
+                            <div className="text-2xl font-bold text-emerald-700">
+                              {variant.tourPackagePricings.length}
+                            </div>
+                          </div>
+                          <div className="p-3 bg-white rounded-lg border border-emerald-100">
+                            <div className="text-[10px] font-medium text-slate-600 uppercase tracking-wide mb-1">
+                              Avg. Price/Period
+                            </div>
+                            <div className="text-2xl font-bold text-emerald-700">
+                              {formatCurrency(avgPricePerPeriod)}
+                            </div>
+                          </div>
+                          <div className="p-3 bg-white rounded-lg border border-emerald-100 md:col-span-1 col-span-2">
+                            <div className="text-[10px] font-medium text-slate-600 uppercase tracking-wide mb-1">
+                              Grand Total
+                            </div>
+                            <div className="text-2xl font-bold text-emerald-700">
+                              {formatCurrency(grandTotal)}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {earliestDate && latestDate && (
+                          <div className="p-3 bg-gradient-to-r from-blue-50/50 to-transparent rounded-lg border border-blue-100">
+                            <div className="text-[10px] font-medium text-slate-600 uppercase tracking-wide mb-2">
+                              Pricing Date Range
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Calendar className="h-4 w-4 text-blue-600" />
+                              <span className="font-medium">
+                                {earliestDate.toLocaleDateString('en-IN', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric' 
+                                })}
+                                {' - '}
+                                {latestDate.toLocaleDateString('en-IN', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric' 
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {variant.priceModifier && variant.priceModifier !== 0 && (
+                          <div className="p-3 bg-amber-50/50 rounded-lg border border-amber-200">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Info className="h-4 w-4 text-amber-600" />
+                              <span className="font-medium text-amber-900">
+                                This variant has a {variant.priceModifier > 0 ? '+' : ''}{variant.priceModifier}% price modifier applied
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         ))}
       </Tabs>

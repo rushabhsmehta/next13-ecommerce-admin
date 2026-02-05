@@ -534,6 +534,41 @@ export async function PATCH(
       return new NextResponse("Tour package query id is required", { status: 400 });
     }
 
+    // Validate selectedVariantIds
+    if (selectedVariantIds !== undefined && selectedVariantIds !== null) {
+      if (!Array.isArray(selectedVariantIds)) {
+        return NextResponse.json(
+          { error: "selectedVariantIds must be an array" },
+          { status: 400 }
+        );
+      }
+      if (!selectedVariantIds.every((id: any) => typeof id === "string")) {
+        return NextResponse.json(
+          { error: "All variant IDs must be strings" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate variantHotelOverrides
+    if (variantHotelOverrides !== undefined && variantHotelOverrides !== null) {
+      if (typeof variantHotelOverrides !== "object" || Array.isArray(variantHotelOverrides)) {
+        return NextResponse.json(
+          { error: "variantHotelOverrides must be an object" },
+          { status: 400 }
+        );
+      }
+      // Validate structure: { variantId: { itineraryId: hotelId } }
+      for (const [variantId, overrides] of Object.entries(variantHotelOverrides)) {
+        if (typeof overrides !== "object" || Array.isArray(overrides)) {
+          return NextResponse.json(
+            { error: `Invalid override structure for variant ${variantId}` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Validate itineraries before processing to prevent transaction issues
     if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
       // Check for basic validation to prevent transaction failures

@@ -1397,6 +1397,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 loading={loading || fetchingPackages}
                 tourPackages={dynamicTourPackages}
                 hotels={hotels}
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
               />
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">

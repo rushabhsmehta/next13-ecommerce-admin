@@ -658,8 +658,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     }, 0);
 
                     // Apply price modifier to get adjusted grand total
-                    const adjustedGrandTotal = grandTotal * (1 + (variant.priceModifier || 0) / 100);
-                    const hasModifier = variant.priceModifier && variant.priceModifier !== 0;
+                    const priceModifier = variant.priceModifier ?? 0;
+                    const adjustedGrandTotal = grandTotal * (1 + priceModifier / 100);
+                    const hasModifier = priceModifier !== 0;
 
                     const avgPricePerPeriod = grandTotal / variant.tourPackagePricings.length;
                     
@@ -705,7 +706,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           {hasModifier && (
                             <div className="p-3 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-lg border-2 border-emerald-300 md:col-span-3 col-span-2">
                               <div className="text-[10px] font-medium text-slate-600 uppercase tracking-wide mb-1">
-                                Final Price (with {variant.priceModifier > 0 ? '+' : ''}{variant.priceModifier}% modifier)
+                                Final Price (with {priceModifier > 0 ? '+' : ''}{priceModifier}% modifier)
                               </div>
                               <div className="text-2xl font-bold text-emerald-800">
                                 {formatCurrency(adjustedGrandTotal)}

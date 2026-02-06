@@ -951,15 +951,85 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   </CardContent>
                 </Card>
                 
-                {/* Pricing Content */}
-                <Card className="shadow-sm border border-slate-200/70">
-              <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-50 via-emerald-25 to-transparent">
-                <CardTitle className="text-sm flex items-center gap-2 font-semibold">
-                  <IndianRupee className="h-4 w-4 text-emerald-600" />
-                  Pricing Details ({variant.tourPackagePricings.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
+                {/* Pricing Content - Conditional based on Calculation Method */}
+                {(() => {
+                  const calcMethod = variantCalcMethods[variant.id] || 'useTourPackagePricing';
+                  
+                  // Manual Pricing Entry
+                  if (calcMethod === 'manual') {
+                    return (
+                      <Card className="shadow-sm border border-slate-200/70">
+                        <CardHeader className="pb-3 border-b bg-gradient-to-r from-indigo-50 via-indigo-25 to-transparent">
+                          <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                            <Receipt className="h-4 w-4 text-indigo-600" />
+                            ✍️ Manual Pricing Entry
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                          <Alert className="mb-4">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                              Manual pricing entry allows you to define custom pricing components for this variant. 
+                              This will override any pre-defined tour package pricing.
+                            </AlertDescription>
+                          </Alert>
+                          <div className="text-center py-12 text-muted-foreground">
+                            <Receipt className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                            <p className="text-sm font-medium">Manual Pricing Form</p>
+                            <p className="text-xs mt-2">Coming soon: Add custom pricing components manually</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                  
+                  // Auto Calculate (Hotel + Transport)
+                  if (calcMethod === 'autoHotelTransport') {
+                    return (
+                      <Card className="shadow-sm border border-slate-200/70">
+                        <CardHeader className="pb-3 border-b bg-gradient-to-r from-green-50 via-green-25 to-transparent">
+                          <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                            <Calculator className="h-4 w-4 text-green-600" />
+                            🤖 Auto Calculate Pricing
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                          <Alert className="mb-4">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                              Automatically calculate pricing based on selected hotels in the Hotels tab 
+                              and transport details in the Room Allocation tab. The system will use hotel 
+                              pricing tables and transport rates.
+                            </AlertDescription>
+                          </Alert>
+                          <div className="text-center py-12 text-muted-foreground">
+                            <Calculator className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                            <p className="text-sm font-medium">Auto-Calculation Interface</p>
+                            <p className="text-xs mt-2">Coming soon: Calculate from room allocations and transport</p>
+                            <Button 
+                              className="mt-4"
+                              disabled
+                              variant="outline"
+                            >
+                              <Calculator className="h-4 w-4 mr-2" />
+                              Calculate Pricing
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                  
+                  // Use Tour Package Pricing (Default)
+                  return (
+                    <Card className="shadow-sm border border-slate-200/70">
+                      <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-50 via-emerald-25 to-transparent">
+                        <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                          <IndianRupee className="h-4 w-4 text-emerald-600" />
+                          Pricing Details ({variant.tourPackagePricings.length})
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
                 {variant.tourPackagePricings.length === 0 ? (
                   <div className="text-center py-8">
                     <AlertCircle className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
@@ -1083,9 +1153,11 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                 )}
               </CardContent>
             </Card>
+                  );
+                })()}
 
-            {/* Pricing Summary Card - NEW */}
-            {variant.tourPackagePricings.length > 0 && (
+            {/* Pricing Summary Card - Only show for Tour Package Pricing */}
+            {(variantCalcMethods[variant.id] || 'useTourPackagePricing') === 'useTourPackagePricing' && variant.tourPackagePricings.length > 0 && (
               <Card className="shadow-sm border border-emerald-200/70 bg-gradient-to-br from-emerald-50/30 to-white">
                 <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-50 via-emerald-25 to-transparent">
                   <CardTitle className="text-sm flex items-center gap-2 font-semibold">

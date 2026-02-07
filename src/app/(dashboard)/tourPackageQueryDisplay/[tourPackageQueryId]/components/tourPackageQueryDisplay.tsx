@@ -368,7 +368,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Flight Details Section */}
       {initialData.flightDetails && initialData.flightDetails.length > 0 && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
-        <Card className="break-inside-avoid border border-blue-200 shadow-md rounded-xl avoid-break-inside">
+        <Card className="break-inside-avoid border border-blue-200 shadow-md rounded-xl">
           <CardHeader className="px-5 py-4 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-blue-100">
             <h2 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-600 text-transparent bg-clip-text print-gradient-fallback">
               <PlaneIcon className="w-6 h-6 text-blue-600" />

@@ -654,7 +654,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     // 8. Flight Details Section
     const flightSection = (selectedOption !== "SupplierA" && selectedOption !== "SupplierB" && initialData.flightDetails && initialData.flightDetails.length > 0)
       ? `
-      <div style="${cardStyle}; page-break-inside: avoid; break-inside: avoid-page;">
+      <div style="${cardStyle}; page-break-inside: avoid;">
         <div style="${headerStyleAlt};">
           <h2 style="${sectionTitleStyle}; display: flex; align-items: center; gap: 8px;">
             ✈️ Flight Details
@@ -663,11 +663,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             Complete flight itinerary and travel information
           </p>
         </div>
-        <div style="${contentStyle}; page-break-inside: avoid; break-inside: avoid-page;">
+        <div style="${contentStyle}; page-break-inside: avoid;">
           ${initialData.flightDetails.map((flight, index) => `
-            <div style="border: 1px solid #dbeafe; border-radius: 6px; padding: 16px; margin-bottom: ${index < initialData.flightDetails.length - 1 ? '12px' : '0'}; background: linear-gradient(to right, #eff6ff, #f0f9ff); break-inside: avoid;">
+            <div style="border: 1px solid #dbeafe; border-radius: 6px; padding: 16px; margin-bottom: ${index < initialData.flightDetails.length - 1 ? '12px' : '0'}; background: linear-gradient(to right, #eff6ff, #f0f9ff);">
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                <!-- Left Column -->
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 14px; font-weight: 600; color: ${brandColors.slateText};">Flight ${index + 1}</span>
@@ -691,7 +690,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </div>
                   ` : ''}
                 </div>
-                <!-- Right Column -->
                 <div>
                   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                     <div>

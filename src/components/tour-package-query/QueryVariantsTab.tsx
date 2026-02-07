@@ -19,6 +19,7 @@ import { formatSafeDate } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import axios from "axios";
 import { utcToLocal } from "@/lib/timezone-utils";
+import { PricingBreakdownTable } from "./PricingBreakdownTable";
 
 // Calculation method type for pricing
 type CalculationMethod = 'manual' | 'autoHotelTransport' | 'useTourPackagePricing';
@@ -1398,23 +1399,44 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             </div>
                           </div>
 
-                          {/* Calculate Button */}
-                          <Button
-                            type="button"
-                            onClick={() => handleAutoCalculate(variant.id)}
-                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md"
-                            disabled={loading || isCalcLoading}
-                          >
-                            {isCalcLoading ? (
-                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Calculating...</>
-                            ) : (
-                              <><Calculator className="mr-2 h-4 w-4" /> Calculate Price</>
-                            )}
-                          </Button>
+                          {/* Calculate and Reset Buttons */}
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              onClick={() => handleAutoCalculate(variant.id)}
+                              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md"
+                              disabled={loading || isCalcLoading}
+                            >
+                              {isCalcLoading ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Calculating...</>
+                              ) : (
+                                <><Calculator className="mr-2 h-4 w-4" /> Calculate Price</>
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setVariantAutoCalcResults(prev => {
+                                  const newResults = { ...prev };
+                                  delete newResults[variant.id];
+                                  return newResults;
+                                });
+                                setVariantMarkupValues(prev => ({ ...prev, [variant.id]: '0' }));
+                                toast.success('Price calculation reset');
+                              }}
+                              variant="outline"
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                              disabled={loading || !calcResult}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Reset
+                            </Button>
+                          </div>
 
-                          {/* Results Display */}
+                          {/* Results Display - Using Shared Detailed Breakdown Table */}
                           {calcResult && (
                             <div className="space-y-3">
+                              {/* Summary Card */}
                               <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
                                 <p className="text-sm font-semibold text-green-800 flex justify-between">
                                   <span>Total Cost:</span>
@@ -1448,26 +1470,37 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 )}
                               </div>
 
-                              {/* Day-by-Day Breakdown */}
-                              {calcResult.itineraryBreakdown?.length > 0 && (
-                                <Accordion type="single" collapsible>
-                                  <AccordionItem value="breakdown" className="border rounded-md">
-                                    <AccordionTrigger className="px-4 py-2 text-xs font-medium">
-                                      📊 Day-by-Day Breakdown ({calcResult.itineraryBreakdown.length} days)
-                                    </AccordionTrigger>
-                                    <AccordionContent className="px-4 pb-3">
-                                      <div className="space-y-2">
-                                        {calcResult.itineraryBreakdown.map((day: any, idx: number) => (
-                                          <div key={idx} className="flex justify-between text-xs p-2 bg-slate-50 rounded">
-                                            <span>Day {day.dayNumber || idx + 1}</span>
-                                            <span className="font-medium">{formatCurrency(day.totalDayCost || 0)}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                </Accordion>
-                              )}
+                              {/* Detailed Breakdown Table */}
+                              {(() => {
+                                // Build itineraries array for the table
+                                const variantMappings = variant.variantHotelMappings || [];
+                                const variantItineraries = variantMappings.map(mapping => {
+                                  const itineraryId = mapping.itinerary?.id || '';
+                                  const effectiveHotelId = getEffectiveHotelId(variant.id, itineraryId, mapping.hotel?.id || '');
+                                  const dayRooms = variantRoomAllocations?.[variant.id]?.[itineraryId] || [];
+                                  const dayTransport = variantTransportDetails?.[variant.id]?.[itineraryId] || [];
+
+                                  return {
+                                    dayNumber: mapping.itinerary?.dayNumber || 0,
+                                    hotelId: effectiveHotelId,
+                                    roomAllocations: dayRooms,
+                                    transportDetails: dayTransport,
+                                  };
+                                });
+
+                                return (
+                                  <PricingBreakdownTable
+                                    priceCalculationResult={calcResult}
+                                    hotels={hotels}
+                                    roomTypes={roomTypes}
+                                    occupancyTypes={occupancyTypes}
+                                    mealPlans={mealPlans}
+                                    vehicleTypes={vehicleTypes}
+                                    itineraries={variantItineraries}
+                                    variant={true}
+                                  />
+                                );
+                              })()}
                             </div>
                           )}
 

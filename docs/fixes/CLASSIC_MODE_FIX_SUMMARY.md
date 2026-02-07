@@ -25,6 +25,6 @@ node scripts/tests/verify-classic-mode-default.js
 | Component | Before | After |
 |-----------|--------|-------|
 | Tour Package | wysiwyg | ✅ classic |
-| Tour Package Query | classic | ✅ classic |
+| Tour Package Query | classic | classic |
 
 Both forms now consistently open in Classic Mode by default.

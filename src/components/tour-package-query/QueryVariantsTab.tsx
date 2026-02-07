@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, Loader2, RefreshCw, Target } from "lucide-react";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, Loader2, RefreshCw, Target, Copy, LayoutGrid, List } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
@@ -89,6 +89,13 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [variantSelectedComponentIds, setVariantSelectedComponentIds] = useState<Record<string, string[]>>({});
   const [variantComponentQuantities, setVariantComponentQuantities] = useState<Record<string, Record<string, number>>>({});
   const [variantComponentsFetched, setVariantComponentsFetched] = useState<Record<string, boolean>>({});
+  
+  // Manual pricing state per variant
+  const [variantManualPricingItems, setVariantManualPricingItems] = useState<Record<string, { name: string; price: string; description: string }[]>>({});
+  
+  // Auto-calculate state per variant
+  const [variantAutoCalcResults, setVariantAutoCalcResults] = useState<Record<string, any>>({});
+  const [variantAutoCalcLoading, setVariantAutoCalcLoading] = useState<Record<string, boolean>>({});
   
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
@@ -247,9 +254,195 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     const available = variantAvailableComponents[variantId] || [];
     const toApply = available.filter(comp => selectedIds.includes(comp.id));
 
-    toast.success(`Applied ${toApply.length} component${toApply.length !== 1 ? 's' : ''} for pricing.`);
-    console.log("Applied components:", toApply);
-    // Here you would update the query form with the selected pricing
+    // Build pricing items and calculate total
+    const pricingItems: { name: string; price: string; description: string }[] = [];
+    let totalPrice = 0;
+
+    toApply.forEach((comp: any) => {
+      const componentName = comp.pricingAttribute?.name || 'Pricing Component';
+      const basePrice = parseFloat(comp.price || '0');
+      const roomQuantity = (variantComponentQuantities[variantId] || {})[comp.id] || 1;
+      const occupancyMultiplier = getOccupancyMultiplier(componentName);
+      const totalComponentPrice = calculateComponentTotalPrice(comp, roomQuantity);
+
+      pricingItems.push({
+        name: componentName,
+        price: basePrice.toString(),
+        description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
+      });
+
+      totalPrice += totalComponentPrice;
+    });
+
+    // Persist to variantPricingData in form
+    const currentPricingData = form.getValues('variantPricingData') || {};
+    form.setValue('variantPricingData', {
+      ...currentPricingData,
+      [variantId]: {
+        method: 'useTourPackagePricing',
+        pricingItems,
+        totalPrice: totalPrice.toString(),
+        calculatedAt: new Date().toISOString()
+      }
+    });
+
+    toast.success(`Applied ${toApply.length} component${toApply.length !== 1 ? 's' : ''} — Total: ₹${totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+  };
+
+  // Manual Pricing Helpers
+  const addManualPricingItem = (variantId: string) => {
+    setVariantManualPricingItems(prev => ({
+      ...prev,
+      [variantId]: [...(prev[variantId] || []), { name: '', price: '', description: '' }]
+    }));
+  };
+
+  const removeManualPricingItem = (variantId: string, index: number) => {
+    setVariantManualPricingItems(prev => ({
+      ...prev,
+      [variantId]: (prev[variantId] || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateManualPricingItem = (variantId: string, index: number, field: string, value: string) => {
+    setVariantManualPricingItems(prev => ({
+      ...prev,
+      [variantId]: (prev[variantId] || []).map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      )
+    }));
+  };
+
+  const applyManualPricing = (variantId: string) => {
+    const items = variantManualPricingItems[variantId] || [];
+    if (items.length === 0) {
+      toast.error("Add at least one pricing item.");
+      return;
+    }
+    const totalPrice = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+
+    const currentPricingData = form.getValues('variantPricingData') || {};
+    form.setValue('variantPricingData', {
+      ...currentPricingData,
+      [variantId]: {
+        method: 'manual',
+        pricingItems: items,
+        totalPrice: totalPrice.toString(),
+        calculatedAt: new Date().toISOString()
+      }
+    });
+
+    toast.success(`Manual pricing applied — Total: ₹${totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+  };
+
+  // Auto Calculate (Hotel + Transport) Handler
+  const handleAutoCalculate = async (variantId: string) => {
+    if (!queryStartDate || !queryEndDate) {
+      toast.error('Please select tour start and end dates in the Dates tab.');
+      return;
+    }
+
+    // Build itinerary data from variant hotel mappings and room/transport allocations
+    const variantMappings = selectedVariants.find(v => v.id === variantId)?.variantHotelMappings || [];
+    if (variantMappings.length === 0) {
+      toast.error('No hotel mappings found for this variant.');
+      return;
+    }
+
+    const pricingItineraries = variantMappings.map(mapping => {
+      const itineraryId = mapping.itinerary?.id || '';
+      const effectiveHotelId = getEffectiveHotelId(variantId, itineraryId, mapping.hotel?.id || '');
+      const dayRooms = variantRoomAllocations?.[variantId]?.[itineraryId] || [];
+      const dayTransport = variantTransportDetails?.[variantId]?.[itineraryId] || [];
+
+      return {
+        locationId: locationId || '',
+        dayNumber: mapping.itinerary?.dayNumber || 0,
+        hotelId: effectiveHotelId,
+        roomAllocations: dayRooms,
+        transportDetails: dayTransport,
+      };
+    }).filter(it => it.hotelId);
+
+    if (pricingItineraries.length === 0) {
+      toast.error('Please select hotels for at least one day to calculate pricing.');
+      return;
+    }
+
+    const markupEl = document.getElementById(`markup-${variantId}`) as HTMLInputElement | null;
+    const markupPercentage = parseFloat(markupEl?.value || '0');
+
+    setVariantAutoCalcLoading(prev => ({ ...prev, [variantId]: true }));
+    toast.loading('Calculating pricing...');
+
+    try {
+      const response = await axios.post('/api/pricing/calculate', {
+        tourStartsFrom: queryStartDate,
+        tourEndsOn: queryEndDate,
+        itineraries: pricingItineraries,
+        markup: markupPercentage
+      });
+      toast.dismiss();
+
+      const result = response.data;
+      if (result && typeof result === 'object') {
+        setVariantAutoCalcResults(prev => ({ ...prev, [variantId]: result }));
+
+        const totalCost = result.totalCost || 0;
+        const pricingItems: { name: string; price: string; description: string }[] = [];
+
+        pricingItems.push({
+          name: 'Total Cost',
+          price: totalCost.toString(),
+          description: 'Total package cost with markup'
+        });
+
+        if (result.breakdown) {
+          if (result.breakdown.accommodation) {
+            pricingItems.push({
+              name: 'Accommodation',
+              price: result.breakdown.accommodation.toString(),
+              description: 'Hotel room costs'
+            });
+          }
+          if (result.breakdown.transport > 0) {
+            pricingItems.push({
+              name: 'Transport',
+              price: result.breakdown.transport.toString(),
+              description: 'Vehicle costs'
+            });
+          }
+        }
+
+        // Persist to variantPricingData
+        const currentPricingData = form.getValues('variantPricingData') || {};
+        form.setValue('variantPricingData', {
+          ...currentPricingData,
+          [variantId]: {
+            method: 'autoHotelTransport',
+            totalCost,
+            basePrice: result.basePrice || 0,
+            appliedMarkup: result.appliedMarkup || { percentage: 0, amount: 0 },
+            breakdown: result.breakdown || {},
+            itineraryBreakdown: result.itineraryBreakdown || [],
+            pricingItems,
+            totalPrice: totalCost.toString(),
+            calculatedAt: new Date().toISOString()
+          }
+        });
+
+        toast.success(`Price calculation complete! Total: ₹${totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
+      } else {
+        toast.error('Invalid price calculation result.');
+      }
+    } catch (error: any) {
+      toast.dismiss();
+      console.error('Price calculation error:', error);
+      const errorMsg = error?.response?.data?.message || error?.message || 'Failed to calculate pricing';
+      toast.error(`Price calculation failed: ${errorMsg}`);
+    } finally {
+      setVariantAutoCalcLoading(prev => ({ ...prev, [variantId]: false }));
+    }
   };
 
   // Handler to update room count
@@ -538,37 +731,456 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                 </TabsTrigger>
               </TabsList>
 
-              {/* Hotels Tab - TRUNCATED FOR BREVITY, keeping existing hotels tab content */}
+              {/* Hotels Tab - Full Implementation */}
               <TabsContent value="hotels" className="mt-4">
                 <Card className="shadow-sm border border-slate-200/70">
                   <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-25 to-transparent">
-                    <CardTitle className="text-sm flex items-center gap-2 font-semibold">
-                      <HotelIcon className="h-4 w-4 text-blue-600" />
-                      Hotel Mappings ({variant.variantHotelMappings.length})
-                    </CardTitle>
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                        <HotelIcon className="h-4 w-4 text-blue-600" />
+                        Hotel Mappings ({variant.variantHotelMappings.length})
+                      </CardTitle>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          Days: {itineraries.length}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Hotels: {variant.variantHotelMappings.filter(m => {
+                            const effectiveId = getEffectiveHotelId(variant.id, m.itinerary?.id || '', m.hotel?.id || '');
+                            return !!effectiveId;
+                          }).length}/{variant.variantHotelMappings.length}
+                        </Badge>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-4">
                     {variant.variantHotelMappings.length === 0 ? (
                       <div className="text-center py-8 text-sm text-muted-foreground">
                         <HotelIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                        No hotel mappings configured.
+                        No hotel mappings configured for this variant.
                       </div>
                     ) : (
-                      <div className="text-sm text-muted-foreground">
-                        {variant.variantHotelMappings.length} hotel(s) mapped. (Full hotel tab implementation retained from original file)
-                      </div>
+                      <Accordion type="multiple" className="space-y-3">
+                        {variant.variantHotelMappings.map((mapping, mIndex) => {
+                          const itineraryId = mapping.itinerary?.id || '';
+                          const originalHotelId = mapping.hotel?.id || '';
+                          const effectiveHotelId = getEffectiveHotelId(variant.id, itineraryId, originalHotelId);
+                          const effectiveHotel = hotels.find(h => h.id === effectiveHotelId) || mapping.hotel;
+                          const isOverridden = variantHotelOverrides?.[variant.id]?.[itineraryId] && variantHotelOverrides[variant.id][itineraryId] !== originalHotelId;
+                          const mappingKey = `${variant.id}-${itineraryId}`;
+                          const isEditing = editingMapping === mappingKey;
+                          const hotelImages = effectiveHotel?.images?.slice(0, 4) || [];
+
+                          return (
+                            <AccordionItem key={mIndex} value={`mapping-${mIndex}`} className={`border rounded-md overflow-hidden shadow-sm ${!effectiveHotelId ? 'border-rose-200 bg-rose-50/40' : 'bg-white hover:shadow-md'}`}>
+                              <AccordionTrigger className="px-4 py-3 data-[state=open]:bg-gradient-to-r data-[state=open]:from-blue-50 data-[state=open]:to-blue-100/30">
+                                <div className="flex items-center gap-3 w-full text-left">
+                                  <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border ${effectiveHotelId ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300'}`}>
+                                    {mapping.itinerary?.dayNumber || mIndex + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate" dangerouslySetInnerHTML={{ __html: mapping.itinerary?.itineraryTitle || `Day ${mIndex + 1}` }} />
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {effectiveHotel ? (
+                                        <Badge className="h-5 px-1.5 flex items-center gap-1 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs">
+                                          <HotelIcon className="h-3 w-3" /> {effectiveHotel.name}
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="destructive" className="h-5 px-1.5 animate-pulse text-xs">No Hotel</Badge>
+                                      )}
+                                      {isOverridden && (
+                                        <Badge variant="outline" className="h-5 px-1.5 text-xs text-amber-600 border-amber-300">
+                                          <Edit2 className="h-2.5 w-2.5 mr-1" /> Overridden
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="px-4 pb-4 pt-3 border-t space-y-3">
+                                {/* Hotel Images */}
+                                {hotelImages.length > 0 && (
+                                  <div className="grid grid-cols-4 gap-2">
+                                    {hotelImages.map((img: any, idx: number) => (
+                                      <div key={idx} className="relative h-16 w-full rounded-md overflow-hidden border bg-slate-100">
+                                        <Image src={img.url} alt={effectiveHotel?.name || 'Hotel'} fill className="object-cover" />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Hotel Info */}
+                                <div className="bg-slate-50 rounded-md p-3 space-y-1">
+                                  <p className="text-xs text-slate-500">Current Hotel</p>
+                                  <p className="text-sm font-medium">{effectiveHotel?.name || 'No hotel assigned'}</p>
+                                  {isOverridden && (
+                                    <p className="text-xs text-amber-600">
+                                      Original: {mapping.hotel?.name || 'Unknown'}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Edit Hotel */}
+                                {!isEditing ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                    disabled={loading}
+                                    onClick={() => handleStartEdit(mappingKey, effectiveHotelId)}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5 mr-2" /> Change Hotel
+                                  </Button>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <Select
+                                      value={tempHotelId}
+                                      onValueChange={setTempHotelId}
+                                      disabled={loading}
+                                    >
+                                      <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue placeholder="Select hotel..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableHotels.map(h => (
+                                          <SelectItem key={h.id} value={h.id} className="text-xs">
+                                            {h.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        className="flex-1"
+                                        disabled={loading || !tempHotelId}
+                                        onClick={() => handleSaveHotelChange(variant.id, itineraryId, tempHotelId)}
+                                      >
+                                        <Check className="h-3.5 w-3.5 mr-1" /> Save
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1"
+                                        onClick={handleCancelEdit}
+                                      >
+                                        <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
                     )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Room Allocation Tab - TRUNCATED FOR BREVITY */}
+              {/* Room Allocation Tab - Full Implementation */}
               <TabsContent value="rooms" className="mt-4">
                 <Card className="shadow-sm border border-slate-200/70">
-                  <CardContent className="pt-4">
-                    <div className="text-sm text-muted-foreground">
-                      Room allocation interface (Full implementation retained from original file)
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-50 via-emerald-25 to-transparent">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                        <BedDouble className="h-4 w-4 text-emerald-600" />
+                        Room Allocations & Transport
+                      </CardTitle>
+                      <div className="flex flex-wrap gap-2">
+                        {variant.variantHotelMappings.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs flex items-center gap-1 border-emerald-400/40 hover:bg-emerald-50"
+                            disabled={loading}
+                            onClick={() => {
+                              const mappings = variant.variantHotelMappings;
+                              if (mappings.length <= 1) return;
+                              const firstItineraryId = mappings[0].itinerary?.id || '';
+                              const currentAllocations = variantRoomAllocations || {};
+                              const variantData = currentAllocations[variant.id] || {};
+                              const firstRooms = variantData[firstItineraryId] || [];
+                              const currentTransport = variantTransportDetails || {};
+                              const variantTransport = currentTransport[variant.id] || {};
+                              const firstTransport = variantTransport[firstItineraryId] || [];
+                              
+                              if (firstRooms.length === 0 && firstTransport.length === 0) {
+                                toast.error('No room allocations or transport details on first day to copy');
+                                return;
+                              }
+
+                              const newAllocations = { ...variantData };
+                              const newTransports = { ...variantTransport };
+                              mappings.slice(1).forEach(m => {
+                                const itId = m.itinerary?.id || '';
+                                if (firstRooms.length > 0) {
+                                  newAllocations[itId] = firstRooms.map((r: any) => ({ ...r }));
+                                }
+                                if (firstTransport.length > 0) {
+                                  newTransports[itId] = firstTransport.map((t: any) => ({ ...t }));
+                                }
+                              });
+                              
+                              if (firstRooms.length > 0) {
+                                form.setValue('variantRoomAllocations', { ...currentAllocations, [variant.id]: newAllocations });
+                              }
+                              if (firstTransport.length > 0) {
+                                form.setValue('variantTransportDetails', { ...currentTransport, [variant.id]: newTransports });
+                              }
+                              toast.success('Copied first day rooms & transport to all days');
+                            }}
+                          >
+                            <Copy className="h-3 w-3" /> Copy First Day
+                          </Button>
+                        )}
+                      </div>
                     </div>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {variant.variantHotelMappings.length === 0 ? (
+                      <div className="text-center py-8 text-sm text-muted-foreground">
+                        <BedDouble className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                        No itinerary days available. Hotel mappings needed first.
+                      </div>
+                    ) : (
+                      <Accordion type="multiple" className="space-y-3">
+                        {variant.variantHotelMappings.map((mapping, mIndex) => {
+                          const itineraryId = mapping.itinerary?.id || '';
+                          const effectiveHotelId = getEffectiveHotelId(variant.id, itineraryId, mapping.hotel?.id || '');
+                          const effectiveHotel = hotels.find(h => h.id === effectiveHotelId) || mapping.hotel;
+                          const dayRoomAllocations = variantRoomAllocations?.[variant.id]?.[itineraryId] || [];
+                          const dayTransportDetails = variantTransportDetails?.[variant.id]?.[itineraryId] || [];
+
+                          return (
+                            <AccordionItem key={mIndex} value={`room-${mIndex}`} className="border rounded-md overflow-hidden shadow-sm bg-white hover:shadow-md">
+                              <AccordionTrigger className="px-4 py-3 data-[state=open]:bg-gradient-to-r data-[state=open]:from-emerald-50 data-[state=open]:to-emerald-100/30">
+                                <div className="flex items-center gap-3 w-full text-left">
+                                  <div className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border bg-emerald-600 text-white border-emerald-600">
+                                    {mapping.itinerary?.dayNumber || mIndex + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate" dangerouslySetInnerHTML={{ __html: mapping.itinerary?.itineraryTitle || `Day ${mIndex + 1}` }} />
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {effectiveHotel && (
+                                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                                          <HotelIcon className="h-2.5 w-2.5 mr-1" /> {effectiveHotel.name}
+                                        </Badge>
+                                      )}
+                                      <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                                        <BedDouble className="h-2.5 w-2.5 mr-1" /> {dayRoomAllocations.length} room{dayRoomAllocations.length !== 1 ? 's' : ''}
+                                      </Badge>
+                                      {dayTransportDetails.length > 0 && (
+                                        <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                                          <Car className="h-2.5 w-2.5 mr-1" /> {dayTransportDetails.length} transport
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="px-4 pb-4 pt-3 border-t space-y-4">
+                                {/* Room Allocations Section */}
+                                {roomTypes.length > 0 && occupancyTypes.length > 0 && mealPlans.length > 0 && (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="text-xs font-semibold uppercase tracking-wide text-emerald-700 flex items-center gap-1">
+                                        <Users className="h-3.5 w-3.5" /> Room Allocations
+                                      </h4>
+                                    </div>
+                                    {dayRoomAllocations.map((room: any, rIndex: number) => (
+                                      <Card key={rIndex} className="border-muted/40 shadow-sm">
+                                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
+                                          <CardTitle className="text-xs font-medium flex items-center gap-1">
+                                            <BedDouble className="h-3.5 w-3.5 text-emerald-600" /> Room {rIndex + 1}
+                                          </CardTitle>
+                                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600 h-7 w-7" disabled={loading}
+                                            onClick={() => removeRoomAllocation(variant.id, itineraryId, rIndex)}>
+                                            <Trash className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </CardHeader>
+                                        <CardContent className="pt-3 space-y-3">
+                                          {/* Custom Room Type Toggle */}
+                                          <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                              id={`custom-room-${variant.id}-${itineraryId}-${rIndex}`}
+                                              checked={room.useCustomRoomType || false}
+                                              onCheckedChange={(checked) => {
+                                                updateRoomAllocation(variant.id, itineraryId, rIndex, 'useCustomRoomType', checked);
+                                                if (checked) {
+                                                  updateRoomAllocation(variant.id, itineraryId, rIndex, 'roomTypeId', '');
+                                                } else {
+                                                  updateRoomAllocation(variant.id, itineraryId, rIndex, 'customRoomType', '');
+                                                }
+                                              }}
+                                              disabled={loading}
+                                            />
+                                            <label htmlFor={`custom-room-${variant.id}-${itineraryId}-${rIndex}`} className="text-xs font-medium text-gray-700 cursor-pointer">
+                                              Custom Room Type
+                                            </label>
+                                          </div>
+
+                                          {/* Main Fields Grid */}
+                                          <div className="grid gap-3 md:grid-cols-4">
+                                            {/* Room Type - Conditional */}
+                                            {room.useCustomRoomType ? (
+                                              <div>
+                                                <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Custom Room Type</label>
+                                                <Input
+                                                  placeholder="Enter room type"
+                                                  className="h-8 text-xs"
+                                                  value={room.customRoomType || ''}
+                                                  onChange={(e) => updateRoomAllocation(variant.id, itineraryId, rIndex, 'customRoomType', e.target.value)}
+                                                  disabled={loading}
+                                                />
+                                              </div>
+                                            ) : (
+                                              <div>
+                                                <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Room Type</label>
+                                                <Select disabled={loading}
+                                                  value={room.roomTypeId || undefined}
+                                                  onValueChange={(val) => updateRoomAllocation(variant.id, itineraryId, rIndex, 'roomTypeId', val)}>
+                                                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room" /></SelectTrigger>
+                                                  <SelectContent>
+                                                    {roomTypes.map(rt => <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
+                                            )}
+
+                                            {/* Occupancy Type */}
+                                            <div>
+                                              <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Occupancy</label>
+                                              <Select disabled={loading}
+                                                value={room.occupancyTypeId || undefined}
+                                                onValueChange={(val) => updateRoomAllocation(variant.id, itineraryId, rIndex, 'occupancyTypeId', val)}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Occupancy" /></SelectTrigger>
+                                                <SelectContent>
+                                                  {occupancyTypes.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+
+                                            {/* Meal Plan */}
+                                            <div>
+                                              <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Meal Plan</label>
+                                              <Select disabled={loading}
+                                                value={room.mealPlanId || undefined}
+                                                onValueChange={(val) => updateRoomAllocation(variant.id, itineraryId, rIndex, 'mealPlanId', val)}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal" /></SelectTrigger>
+                                                <SelectContent>
+                                                  {mealPlans.map(mp => <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+
+                                            {/* Quantity */}
+                                            <div>
+                                              <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Qty</label>
+                                              <Input type="number" min={0} className="h-8 text-xs"
+                                                value={room.quantity || ''}
+                                                onChange={(e) => updateRoomAllocation(variant.id, itineraryId, rIndex, 'quantity', parseInt(e.target.value) || 0)}
+                                                disabled={loading} />
+                                            </div>
+                                          </div>
+
+                                          {/* Voucher Number */}
+                                          <div>
+                                            <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 flex items-center gap-1 mb-1">
+                                              <Receipt className="h-3 w-3" /> Hotel Voucher Number
+                                            </label>
+                                            <Input
+                                              placeholder="Enter hotel booking voucher number"
+                                              className="h-8 text-xs"
+                                              value={room.voucherNumber || ''}
+                                              onChange={(e) => updateRoomAllocation(variant.id, itineraryId, rIndex, 'voucherNumber', e.target.value)}
+                                              disabled={loading}
+                                            />
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    ))}
+                                    <Button type="button" variant="outline" size="sm" disabled={loading}
+                                      onClick={() => addRoomAllocation(variant.id, itineraryId)}
+                                      className="w-full border-dashed hover:border-solid">
+                                      <Plus className="h-4 w-4 mr-1" /> Add Room
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Transport Details Section */}
+                                {vehicleTypes.length > 0 && (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="text-xs font-semibold uppercase tracking-wide text-sky-700 flex items-center gap-1">
+                                        <Car className="h-3.5 w-3.5" /> Transport Details
+                                      </h4>
+                                    </div>
+                                    {dayTransportDetails.map((transport: any, tIndex: number) => (
+                                      <Card key={tIndex} className="border-muted/40 shadow-sm">
+                                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
+                                          <CardTitle className="text-xs font-medium flex items-center gap-1">
+                                            <Car className="h-3.5 w-3.5 text-sky-600" /> Transport {tIndex + 1}
+                                          </CardTitle>
+                                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600 h-7 w-7" disabled={loading}
+                                            onClick={() => removeTransportDetail(variant.id, itineraryId, tIndex)}>
+                                            <Trash className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </CardHeader>
+                                        <CardContent className="pt-3">
+                                          <div className="grid gap-3 md:grid-cols-3">
+                                            {/* Vehicle Type */}
+                                            <div>
+                                              <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Vehicle Type</label>
+                                              <Select disabled={loading}
+                                                value={transport.vehicleTypeId || undefined}
+                                                onValueChange={(val) => updateTransportDetail(variant.id, itineraryId, tIndex, 'vehicleTypeId', val)}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vehicle" /></SelectTrigger>
+                                                <SelectContent>
+                                                  {vehicleTypes.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+
+                                            {/* Quantity */}
+                                            <div>
+                                              <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Qty</label>
+                                              <Input type="number" min={0} className="h-8 text-xs"
+                                                value={transport.quantity || ''}
+                                                onChange={(e) => updateTransportDetail(variant.id, itineraryId, tIndex, 'quantity', parseInt(e.target.value) || 0)}
+                                                disabled={loading} />
+                                            </div>
+
+                                            {/* Description */}
+                                            <div>
+                                              <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Description</label>
+                                              <Input placeholder="Notes" className="h-8 text-xs"
+                                                value={transport.description || ''}
+                                                onChange={(e) => updateTransportDetail(variant.id, itineraryId, tIndex, 'description', e.target.value)}
+                                                disabled={loading} />
+                                            </div>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    ))}
+                                    <Button type="button" variant="outline" size="sm" disabled={loading}
+                                      onClick={() => addTransportDetail(variant.id, itineraryId)}
+                                      className="w-full border-dashed hover:border-solid">
+                                      <Plus className="h-4 w-4 mr-1" /> Add Transport
+                                    </Button>
+                                  </div>
+                                )}
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -632,6 +1244,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   
                   // Manual Pricing Entry
                   if (calcMethod === 'manual') {
+                    const items = variantManualPricingItems[variant.id] || [];
+                    const manualTotal = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                    const savedPricingData = (form.getValues('variantPricingData') || {})[variant.id];
+                    
                     return (
                       <Card className="shadow-sm border border-slate-200/70">
                         <CardHeader className="pb-3 border-b bg-gradient-to-r from-indigo-50 via-indigo-25 to-transparent">
@@ -640,18 +1256,85 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             ✍️ Manual Pricing Entry
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="pt-4">
-                          <Alert className="mb-4">
+                        <CardContent className="pt-4 space-y-4">
+                          <Alert className="mb-2">
                             <Info className="h-4 w-4" />
                             <AlertDescription>
-                              Manual pricing entry allows you to define custom pricing components for this variant.
+                              Add custom pricing components for this variant. Each item has a name, price, and optional description.
                             </AlertDescription>
                           </Alert>
-                          <div className="text-center py-12 text-muted-foreground">
-                            <Receipt className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                            <p className="text-sm font-medium">Manual Pricing Form</p>
-                            <p className="text-xs mt-2">Coming soon: Add custom pricing components manually</p>
-                          </div>
+
+                          {/* Pricing Items */}
+                          {items.map((item, idx) => (
+                            <Card key={idx} className="border-muted/40 shadow-sm">
+                              <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
+                                <CardTitle className="text-xs font-medium flex items-center gap-1">
+                                  <IndianRupee className="h-3.5 w-3.5 text-indigo-600" /> Item {idx + 1}
+                                </CardTitle>
+                                <Button type="button" variant="ghost" size="icon" className="hover:text-red-600 h-7 w-7"
+                                  onClick={() => removeManualPricingItem(variant.id, idx)}>
+                                  <Trash className="h-3.5 w-3.5" />
+                                </Button>
+                              </CardHeader>
+                              <CardContent className="pt-3">
+                                <div className="grid gap-3 md:grid-cols-3">
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Name</label>
+                                    <Input placeholder="e.g. Accommodation" className="h-8 text-xs"
+                                      value={item.name}
+                                      onChange={(e) => updateManualPricingItem(variant.id, idx, 'name', e.target.value)} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Price (₹)</label>
+                                    <Input type="number" placeholder="0" className="h-8 text-xs"
+                                      value={item.price}
+                                      onChange={(e) => updateManualPricingItem(variant.id, idx, 'price', e.target.value)} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Description</label>
+                                    <Input placeholder="Details..." className="h-8 text-xs"
+                                      value={item.description}
+                                      onChange={(e) => updateManualPricingItem(variant.id, idx, 'description', e.target.value)} />
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+
+                          <Button type="button" variant="outline" size="sm"
+                            onClick={() => addManualPricingItem(variant.id)}
+                            className="w-full border-dashed hover:border-solid">
+                            <Plus className="h-4 w-4 mr-1" /> Add Pricing Item
+                          </Button>
+
+                          {/* Summary */}
+                          {items.length > 0 && (
+                            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-md">
+                              <p className="text-sm font-semibold text-indigo-800 flex justify-between">
+                                <span>Total ({items.length} item{items.length !== 1 ? 's' : ''}):</span>
+                                <span>{formatCurrency(manualTotal)}</span>
+                              </p>
+                            </div>
+                          )}
+
+                          <Button type="button"
+                            onClick={() => applyManualPricing(variant.id)}
+                            className="w-full bg-indigo-500 hover:bg-indigo-600 text-white"
+                            disabled={loading || items.length === 0}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Apply Manual Pricing
+                          </Button>
+
+                          {/* Show saved pricing data if exists */}
+                          {savedPricingData?.method === 'manual' && savedPricingData?.totalPrice && (
+                            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                              <p className="text-xs text-green-700 flex items-center gap-1">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Saved: {formatCurrency(parseFloat(savedPricingData.totalPrice))}
+                                <span className="text-green-500 ml-1">({new Date(savedPricingData.calculatedAt).toLocaleString()})</span>
+                              </p>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     );
@@ -659,6 +1342,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   
                   // Auto Calculate (Hotel + Transport)
                   if (calcMethod === 'autoHotelTransport') {
+                    const calcResult = variantAutoCalcResults[variant.id];
+                    const isCalcLoading = variantAutoCalcLoading[variant.id] || false;
+                    const savedPricingData = (form.getValues('variantPricingData') || {})[variant.id];
+                    
                     return (
                       <Card className="shadow-sm border border-slate-200/70">
                         <CardHeader className="pb-3 border-b bg-gradient-to-r from-green-50 via-green-25 to-transparent">
@@ -667,18 +1354,133 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             🤖 Auto Calculate Pricing
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="pt-4">
-                          <Alert className="mb-4">
+                        <CardContent className="pt-4 space-y-4">
+                          <Alert className="mb-2">
                             <Info className="h-4 w-4" />
                             <AlertDescription>
-                              Automatically calculate pricing based on selected hotels and transport details from Room Allocation tab.
+                              Calculate pricing automatically based on hotel room rates and transport costs from the Room Allocation tab.
                             </AlertDescription>
                           </Alert>
-                          <div className="text-center py-12 text-muted-foreground">
-                            <Calculator className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                            <p className="text-sm font-medium">Auto-Calculation Interface</p>
-                            <p className="text-xs mt-2">Coming soon: Calculate from room allocations and transport</p>
+
+                          {/* Markup Configuration */}
+                          <div className="bg-white rounded-lg p-4 border border-green-200">
+                            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
+                              <div className="flex items-center gap-2">
+                                <Target className="h-4 w-4 text-green-600" />
+                                <label htmlFor={`markup-${variant.id}`} className="text-sm font-medium text-green-700 whitespace-nowrap">Markup %:</label>
+                                <Input
+                                  id={`markup-${variant.id}`}
+                                  type="number"
+                                  className="w-20 h-8 bg-white border-green-300 focus:border-green-500"
+                                  defaultValue="0"
+                                  min="0"
+                                  max="100"
+                                />
+                              </div>
+                              <div className="flex-1 max-w-xs">
+                                <Select onValueChange={(value) => {
+                                  const markupInput = document.getElementById(`markup-${variant.id}`) as HTMLInputElement;
+                                  if (!markupInput) return;
+                                  const tiers: Record<string, string> = { standard: '10', premium: '20', luxury: '30' };
+                                  if (tiers[value]) markupInput.value = tiers[value];
+                                }}>
+                                  <SelectTrigger className="h-8 bg-white border-green-300">
+                                    <SelectValue placeholder="🎯 Pricing Tier" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="standard">⭐ Standard (10%)</SelectItem>
+                                    <SelectItem value="premium">🌟 Premium (20%)</SelectItem>
+                                    <SelectItem value="luxury">✨ Luxury (30%)</SelectItem>
+                                    <SelectItem value="custom">🎛️ Custom</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
                           </div>
+
+                          {/* Calculate Button */}
+                          <Button
+                            type="button"
+                            onClick={() => handleAutoCalculate(variant.id)}
+                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md"
+                            disabled={loading || isCalcLoading}
+                          >
+                            {isCalcLoading ? (
+                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Calculating...</>
+                            ) : (
+                              <><Calculator className="mr-2 h-4 w-4" /> Calculate Price</>
+                            )}
+                          </Button>
+
+                          {/* Results Display */}
+                          {calcResult && (
+                            <div className="space-y-3">
+                              <div className="p-4 bg-green-50 border border-green-200 rounded-md space-y-2">
+                                <p className="text-sm font-semibold text-green-800 flex justify-between">
+                                  <span>Total Cost:</span>
+                                  <span>{formatCurrency(calcResult.totalCost || 0)}</span>
+                                </p>
+                                {calcResult.basePrice !== undefined && calcResult.basePrice !== calcResult.totalCost && (
+                                  <p className="text-xs text-green-700 flex justify-between">
+                                    <span>Base Price:</span>
+                                    <span>{formatCurrency(calcResult.basePrice)}</span>
+                                  </p>
+                                )}
+                                {calcResult.appliedMarkup?.percentage > 0 && (
+                                  <p className="text-xs text-green-700 flex justify-between">
+                                    <span>Markup ({calcResult.appliedMarkup.percentage}%):</span>
+                                    <span>+{formatCurrency(calcResult.appliedMarkup.amount)}</span>
+                                  </p>
+                                )}
+                                {calcResult.breakdown && (
+                                  <div className="border-t border-green-300 pt-2 mt-2 space-y-1">
+                                    <p className="text-xs text-green-700 flex justify-between">
+                                      <span>Accommodation:</span>
+                                      <span>{formatCurrency(calcResult.breakdown.accommodation || 0)}</span>
+                                    </p>
+                                    {calcResult.breakdown.transport > 0 && (
+                                      <p className="text-xs text-green-700 flex justify-between">
+                                        <span>Transport:</span>
+                                        <span>{formatCurrency(calcResult.breakdown.transport)}</span>
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Day-by-Day Breakdown */}
+                              {calcResult.itineraryBreakdown?.length > 0 && (
+                                <Accordion type="single" collapsible>
+                                  <AccordionItem value="breakdown" className="border rounded-md">
+                                    <AccordionTrigger className="px-4 py-2 text-xs font-medium">
+                                      📊 Day-by-Day Breakdown ({calcResult.itineraryBreakdown.length} days)
+                                    </AccordionTrigger>
+                                    <AccordionContent className="px-4 pb-3">
+                                      <div className="space-y-2">
+                                        {calcResult.itineraryBreakdown.map((day: any, idx: number) => (
+                                          <div key={idx} className="flex justify-between text-xs p-2 bg-slate-50 rounded">
+                                            <span>Day {day.dayNumber || idx + 1}</span>
+                                            <span className="font-medium">{formatCurrency(day.totalDayCost || 0)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                </Accordion>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Show saved pricing data */}
+                          {savedPricingData?.method === 'autoHotelTransport' && savedPricingData?.totalPrice && !calcResult && (
+                            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                              <p className="text-xs text-green-700 flex items-center gap-1">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Saved: {formatCurrency(parseFloat(savedPricingData.totalPrice))}
+                                <span className="text-green-500 ml-1">({new Date(savedPricingData.calculatedAt).toLocaleString()})</span>
+                              </p>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     );
@@ -984,6 +1786,28 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           </CardContent>
                         </Card>
                       )}
+
+                      {/* Saved Pricing Data Indicator */}
+                      {(() => {
+                        const savedData = (form.getValues('variantPricingData') || {})[variant.id];
+                        if (savedData?.method === 'useTourPackagePricing' && savedData?.totalPrice) {
+                          return (
+                            <Card className="shadow-sm border border-green-200 bg-green-50/50">
+                              <CardContent className="py-3">
+                                <p className="text-xs text-green-700 flex items-center gap-1">
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                  <span className="font-medium">Pricing Applied:</span> {formatCurrency(parseFloat(savedData.totalPrice))}
+                                  {savedData.pricingItems?.length > 0 && (
+                                    <span className="text-green-500 ml-1">({savedData.pricingItems.length} component{savedData.pricingItems.length !== 1 ? 's' : ''})</span>
+                                  )}
+                                  <span className="text-green-500 ml-auto text-[10px]">{new Date(savedData.calculatedAt).toLocaleString()}</span>
+                                </p>
+                              </CardContent>
+                            </Card>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   );
                 })()}

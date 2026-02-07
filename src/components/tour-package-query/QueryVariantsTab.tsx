@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, Loader2, RefreshCw, Target, Copy, LayoutGrid, List } from "lucide-react";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, Loader2, RefreshCw, Target, Copy } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
@@ -96,6 +96,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   // Auto-calculate state per variant
   const [variantAutoCalcResults, setVariantAutoCalcResults] = useState<Record<string, any>>({});
   const [variantAutoCalcLoading, setVariantAutoCalcLoading] = useState<Record<string, boolean>>({});
+  const [variantMarkupValues, setVariantMarkupValues] = useState<Record<string, string>>({});
   
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
@@ -369,8 +370,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       return;
     }
 
-    const markupEl = document.getElementById(`markup-${variantId}`) as HTMLInputElement | null;
-    const markupPercentage = parseFloat(markupEl?.value || '0');
+    const markupPercentage = parseFloat(variantMarkupValues[variantId] || '0');
 
     setVariantAutoCalcLoading(prev => ({ ...prev, [variantId]: true }));
     toast.loading('Calculating pricing...');
@@ -1367,22 +1367,22 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
                               <div className="flex items-center gap-2">
                                 <Target className="h-4 w-4 text-green-600" />
-                                <label htmlFor={`markup-${variant.id}`} className="text-sm font-medium text-green-700 whitespace-nowrap">Markup %:</label>
+                                <label className="text-sm font-medium text-green-700 whitespace-nowrap">Markup %:</label>
                                 <Input
-                                  id={`markup-${variant.id}`}
                                   type="number"
                                   className="w-20 h-8 bg-white border-green-300 focus:border-green-500"
-                                  defaultValue="0"
+                                  value={variantMarkupValues[variant.id] || '0'}
+                                  onChange={(e) => setVariantMarkupValues(prev => ({ ...prev, [variant.id]: e.target.value }))}
                                   min="0"
                                   max="100"
                                 />
                               </div>
                               <div className="flex-1 max-w-xs">
                                 <Select onValueChange={(value) => {
-                                  const markupInput = document.getElementById(`markup-${variant.id}`) as HTMLInputElement;
-                                  if (!markupInput) return;
                                   const tiers: Record<string, string> = { standard: '10', premium: '20', luxury: '30' };
-                                  if (tiers[value]) markupInput.value = tiers[value];
+                                  if (tiers[value]) {
+                                    setVariantMarkupValues(prev => ({ ...prev, [variant.id]: tiers[value] }));
+                                  }
                                 }}>
                                   <SelectTrigger className="h-8 bg-white border-green-300">
                                     <SelectValue placeholder="🎯 Pricing Tier" />

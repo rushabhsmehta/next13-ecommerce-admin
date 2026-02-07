@@ -651,9 +651,87 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     // Remove Tour Highlights section to match display
     const highlightsSection = "";
 
-    // 8. Flight Details Section (if applicable)
-    // Flight details not shown on display page; omit to match.
-    const flightSection = "";
+    // 8. Flight Details Section
+    const flightSection = (selectedOption !== "SupplierA" && selectedOption !== "SupplierB" && initialData.flightDetails && initialData.flightDetails.length > 0)
+      ? `
+      <div style="${cardStyle}; page-break-inside: avoid; break-inside: avoid-page;">
+        <div style="${headerStyleAlt};">
+          <h2 style="${sectionTitleStyle}; display: flex; align-items: center; gap: 8px;">
+            ✈️ Flight Details
+          </h2>
+          <p style="font-size: 12px; color: ${brandColors.muted}; margin-top: 4px;">
+            Complete flight itinerary and travel information
+          </p>
+        </div>
+        <div style="${contentStyle}; page-break-inside: avoid; break-inside: avoid-page;">
+          ${initialData.flightDetails.map((flight, index) => `
+            <div style="border: 1px solid #dbeafe; border-radius: 6px; padding: 16px; margin-bottom: ${index < initialData.flightDetails.length - 1 ? '12px' : '0'}; background: linear-gradient(to right, #eff6ff, #f0f9ff); break-inside: avoid;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <!-- Left Column -->
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 14px; font-weight: 600; color: ${brandColors.slateText};">Flight ${index + 1}</span>
+                  </div>
+                  ${flight.flightName ? `
+                    <div style="margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 600; color: #6b7280;">Airline:</span>
+                      <span style="margin-left: 8px; font-size: 12px; color: #1f2937; font-weight: 500;">${flight.flightName}</span>
+                    </div>
+                  ` : ''}
+                  ${flight.flightNumber ? `
+                    <div style="margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 600; color: #6b7280;">Flight Number:</span>
+                      <span style="margin-left: 8px; font-size: 12px; color: #1f2937; font-weight: 500;">${flight.flightNumber}</span>
+                    </div>
+                  ` : ''}
+                  ${flight.date ? `
+                    <div>
+                      <span style="font-size: 12px; font-weight: 600; color: #6b7280;">Date:</span>
+                      <span style="margin-left: 8px; font-size: 12px; color: #1f2937; font-weight: 500;">${flight.date}</span>
+                    </div>
+                  ` : ''}
+                </div>
+                <!-- Right Column -->
+                <div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div>
+                      ${flight.from ? `
+                        <div style="margin-bottom: 4px;">
+                          <span style="font-size: 12px; font-weight: 600; color: #6b7280;">From:</span>
+                          <span style="margin-left: 8px; font-size: 12px; color: #1f2937; font-weight: 500;">${flight.from}</span>
+                        </div>
+                      ` : ''}
+                      ${flight.departureTime ? `
+                        <div style="font-size: 10px; color: #6b7280;">Departure: ${flight.departureTime}</div>
+                      ` : ''}
+                    </div>
+                    <div style="color: #2563eb; font-weight: bold; font-size: 16px; margin: 0 8px;">→</div>
+                    <div>
+                      ${flight.to ? `
+                        <div style="margin-bottom: 4px;">
+                          <span style="font-size: 12px; font-weight: 600; color: #6b7280;">To:</span>
+                          <span style="margin-left: 8px; font-size: 12px; color: #1f2937; font-weight: 500;">${flight.to}</span>
+                        </div>
+                      ` : ''}
+                      ${flight.arrivalTime ? `
+                        <div style="font-size: 10px; color: #6b7280;">Arrival: ${flight.arrivalTime}</div>
+                      ` : ''}
+                    </div>
+                  </div>
+                  ${flight.flightDuration ? `
+                    <div style="text-align: center; margin-top: 8px;">
+                      <span style="font-size: 11px; font-weight: 600; color: #6b7280;">Duration:</span>
+                      <span style="margin-left: 8px; font-size: 11px; color: #1f2937; font-weight: 500;">${flight.flightDuration}</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `
+      : "";
 
     // 9. Hotel, Room Allocation & Transport Summary (matches display order)
     const hotelSummarySection = (selectedOption !== "SupplierA" && initialData.itineraries && initialData.itineraries.length > 0)
@@ -1202,6 +1280,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             ${headerSection}
             ${customerSection}
             ${tourInfoSection}
+            ${flightSection}
             ${dynamicPricingSection}
             ${totalPriceSection}
             ${remarksSection}

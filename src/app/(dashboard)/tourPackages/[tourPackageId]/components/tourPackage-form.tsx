@@ -87,7 +87,7 @@ interface TourPackageFormProps {
 };
 
 export const TourPackageForm: React.FC<TourPackageFormProps> = (props) => {
-  const [mode, setMode] = useState<'classic' | 'wysiwyg'>('wysiwyg');
+  const [mode, setMode] = useState<'classic' | 'wysiwyg'>('classic');
 
   return (
     <div className="space-y-4">

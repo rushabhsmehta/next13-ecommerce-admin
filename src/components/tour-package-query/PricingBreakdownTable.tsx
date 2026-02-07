@@ -97,7 +97,6 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
                         
                         const allocationTotalCost = roomCost ? roomCost.totalCost : 0;
                         const pricePerNight = roomCost ? roomCost.pricePerNight : 0;
-                        const purchasePrice = roomCost ? roomCost.purchasePrice : 0;
 
                         return (
                           <div key={allocIdx} className={`text-xs text-gray-600 mb-1 pl-2 border-l-2 ${variant ? 'border-green-100' : 'border-blue-100'}`}>
@@ -115,11 +114,6 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
                                     ? `₹${allocationTotalCost.toFixed(2)}`
                                     : '₹0.00'}
                               </span>
-                              {purchasePrice > 0 && (
-                                <span className="text-gray-500 text-[10px] ml-2">
-                                  (Purchase: ₹{purchasePrice.toFixed(2)})
-                                </span>
-                              )}
                             </div>
                           </div>
                         );

@@ -47,6 +47,31 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
   });
   const sortedDays = Array.from(days).sort((a, b) => a - b);
 
+  // Performance optimization: Precompute maps to avoid repeated searches
+  const accommodationByDay = new Map<number, any>();
+  priceCalculationResult.itineraryBreakdown?.forEach((item: any) => {
+    accommodationByDay.set(item.day, item);
+  });
+
+  const transportsByDay = new Map<number, any[]>();
+  priceCalculationResult.transportDetails?.forEach((transport: any) => {
+    const dayTransports = transportsByDay.get(transport.day) || [];
+    dayTransports.push(transport);
+    transportsByDay.set(transport.day, dayTransports);
+  });
+
+  const itinerariesByDay = new Map<number, any>();
+  itineraries.forEach((it: any) => {
+    if (it.dayNumber) {
+      itinerariesByDay.set(it.dayNumber, it);
+    }
+  });
+
+  const hotelsById = new Map<string, any>();
+  hotels.forEach((h: any) => {
+    hotelsById.set(h.id, h);
+  });
+
   return (
     <div className={`mt-6 border ${variant ? 'border-green-200' : 'border-blue-200'} rounded-lg overflow-hidden bg-white shadow-sm`}>
       <Table>
@@ -64,12 +89,12 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
         </TableHeader>
         <TableBody>
           {sortedDays.map(day => {
-            const accommodation = priceCalculationResult.itineraryBreakdown?.find((item: any) => item.day === day);
-            const transports = priceCalculationResult.transportDetails?.filter((transport: any) => transport.day === day);
-            const transportCost = transports?.reduce((sum: number, transport: any) => sum + transport.totalCost, 0) || 0;
+            const accommodation = accommodationByDay.get(day);
+            const transports = transportsByDay.get(day) || [];
+            const transportCost = transports.reduce((sum: number, transport: any) => sum + transport.totalCost, 0);
             
-            const originalItinerary = itineraries.find((it: any) => it.dayNumber === day);
-            const hotelName = originalItinerary && hotels.find((h: any) => h.id === originalItinerary.hotelId)?.name;
+            const originalItinerary = itinerariesByDay.get(day);
+            const hotelName = originalItinerary && hotelsById.get(originalItinerary.hotelId)?.name;
             const roomAllocations = originalItinerary?.roomAllocations || [];
             
             const accommodationCost = accommodation?.accommodationCost || 0;
@@ -79,9 +104,9 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
               <TableRow key={`day-${day}`}>
                 <TableCell className="font-medium">Day {day}</TableCell>
                 <TableCell>
-                  {hotelName ? (
+                  {(hotelName || (Array.isArray(roomAllocations) && roomAllocations.length > 0)) ? (
                     <div>
-                      <span className="font-medium text-sm text-gray-800 block mb-1">{hotelName}</span>
+                      <span className="font-medium text-sm text-gray-800 block mb-1">{hotelName || "No hotel selected"}</span>
                       {roomAllocations.map((allocation: any, allocIdx: number) => {
                         const roomTypeName = roomTypes.find(rt => rt.id === allocation.roomTypeId)?.name || "N/A";
                         const occupancyTypeName = occupancyTypes.find(ot => ot.id === allocation.occupancyTypeId)?.name || "N/A";
@@ -123,7 +148,18 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
                         const transportCost = transport.totalCost || 0;
                         const pricePerUnit = transport.pricePerUnit || 0;
                         const quantity = transport.quantity || 1;
-                        const description = transport.description || '';
+                        
+                        // Prefer description from pricing result; fall back to form itineraries' transportDetails
+                        let description = transport.description as string | undefined;
+                        if (!description && itineraries && itineraries.length > 0 && transport.vehicleTypeId) {
+                          const matchingItineraryTransport = itineraries
+                            .flatMap((itinerary: any) => (itinerary?.transportDetails as any[]) || [])
+                            .find((td: any) => td && td.vehicleTypeId === transport.vehicleTypeId);
+                          if (matchingItineraryTransport && typeof matchingItineraryTransport.description === "string") {
+                            description = matchingItineraryTransport.description;
+                          }
+                        }
+                        description = description || '';
 
                         return (
                           <div key={`transport-${transportIdx}`} className={`text-xs text-gray-600 mt-1 pl-2 border-l-2 ${variant ? 'border-green-200' : 'border-green-100'}`}>
@@ -155,7 +191,18 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
                         const transportCost = transport.totalCost || 0;
                         const pricePerUnit = transport.pricePerUnit || 0;
                         const quantity = transport.quantity || 1;
-                        const description = transport.description || '';
+                        
+                        // Prefer description from pricing result; fall back to form itineraries' transportDetails
+                        let description = transport.description as string | undefined;
+                        if (!description && itineraries && itineraries.length > 0 && transport.vehicleTypeId) {
+                          const matchingItineraryTransport = itineraries
+                            .flatMap((itinerary: any) => (itinerary?.transportDetails as any[]) || [])
+                            .find((td: any) => td && td.vehicleTypeId === transport.vehicleTypeId);
+                          if (matchingItineraryTransport && typeof matchingItineraryTransport.description === "string") {
+                            description = matchingItineraryTransport.description;
+                          }
+                        }
+                        description = description || '';
 
                         return (
                           <div key={`transport-only-${transportIdx}`} className="text-xs text-gray-600 pl-2 border-l-2 border-green-100">

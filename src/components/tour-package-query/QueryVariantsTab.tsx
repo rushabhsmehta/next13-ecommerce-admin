@@ -1416,12 +1416,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             <Button
                               type="button"
                               onClick={() => {
+                                // Clear auto-calculation preview result for this variant
                                 setVariantAutoCalcResults(prev => {
                                   const newResults = { ...prev };
                                   delete newResults[variant.id];
                                   return newResults;
                                 });
+                                // Reset markup value for this variant
                                 setVariantMarkupValues(prev => ({ ...prev, [variant.id]: '0' }));
+                                // Also clear persisted pricing data in the form for this variant, if available
+                                try {
+                                  // form is expected to be the react-hook-form instance used in this component
+                                  // and to contain a "variantPricingData" field shaped as a record keyed by variant id.
+                                  const currentPricingData: Record<string, unknown> =
+                                    (form as any)?.getValues?.("variantPricingData") || {};
+                                  if (currentPricingData && typeof currentPricingData === "object") {
+                                    const updatedPricingData = { ...currentPricingData };
+                                    delete (updatedPricingData as any)[variant.id];
+                                    (form as any)?.setValue?.("variantPricingData", updatedPricingData, {
+                                      shouldDirty: true,
+                                    });
+                                  }
+                                } catch {
+                                  // Silently ignore if form is not available; preview state is still reset.
+                                }
                                 toast.success('Price calculation reset');
                               }}
                               variant="outline"

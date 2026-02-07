@@ -110,9 +110,9 @@ Total Cost: ₹28,800
 
 ## Related Documentation
 
-- [Implementation Guide](./docs/VARIANT_PRICING_DETAILED_BREAKDOWN_IMPLEMENTATION.md) - Complete technical details
-- [Before/After Comparison](./docs/VARIANT_PRICING_BEFORE_AFTER_COMPARISON.md) - Feature comparison and impact
-- [Phase 3 Pricing Calculator](./docs/PHASE_3_VARIANT_PRICING_CALCULATOR_COMPLETE.md) - Original pricing implementation
+- [Implementation Guide](./VARIANT_PRICING_DETAILED_BREAKDOWN_IMPLEMENTATION.md) - Complete technical details
+- [Before/After Comparison](./VARIANT_PRICING_BEFORE_AFTER_COMPARISON.md) - Feature comparison and impact
+- [Phase 3 Pricing Calculator](./PHASE_3_VARIANT_PRICING_CALCULATOR_COMPLETE.md) - Original pricing implementation
 
 ## Deployment Notes
 

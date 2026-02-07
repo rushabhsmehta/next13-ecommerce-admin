@@ -16,12 +16,12 @@ const checks = [
   {
     name: 'Tour Package Form',
     file: 'src/app/(dashboard)/tourPackages/[tourPackageId]/components/tourPackage-form.tsx',
-    expectedPattern: /useState<'classic'\s*\|\s*'wysiwyg'>\('classic'\)/,
+    expectedPattern: /const\s*\[\s*mode\s*,\s*setMode\s*\]\s*=\s*useState\s*(?:<[^>]*>)?\s*\(\s*['"]classic['"]\s*\)/,
   },
   {
     name: 'Tour Package Query Form Wrapper',
     file: 'src/app/(dashboard)/(routes)/tourpackagequeryfrominquiry/[inquiryId]/components/tourpackagequery-form-wrapper.tsx',
-    expectedPattern: /useState<'classic'\s*\|\s*'wysiwyg'>\('classic'\)/,
+    expectedPattern: /const\s*\[\s*mode\s*,\s*setMode\s*\]\s*=\s*useState\s*(?:<[^>]*>)?\s*\(\s*['"]classic['"]\s*\)/,
   }
 ];
 

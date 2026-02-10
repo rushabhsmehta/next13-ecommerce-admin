@@ -24,6 +24,10 @@ import { PricingBreakdownTable } from "./PricingBreakdownTable";
 // Calculation method type for pricing
 type CalculationMethod = 'manual' | 'autoHotelTransport' | 'useTourPackagePricing';
 
+// Generate a stable unique ID for pricing items to use as React keys
+let _pricingItemCounter = 0;
+const generateItemId = (): string => `pi-${Date.now()}-${++_pricingItemCounter}`;
+
 type VariantWithDetails = PackageVariant & {
   variantHotelMappings: (VariantHotelMapping & {
     hotel: Hotel & { images: Images[] };
@@ -90,9 +94,6 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [variantSelectedComponentIds, setVariantSelectedComponentIds] = useState<Record<string, string[]>>({});
   const [variantComponentQuantities, setVariantComponentQuantities] = useState<Record<string, Record<string, number>>>({});
   const [variantComponentsFetched, setVariantComponentsFetched] = useState<Record<string, boolean>>({});
-  
-  // Manual pricing state per variant
-  const [variantManualPricingItems, setVariantManualPricingItems] = useState<Record<string, { name: string; price: string; description: string }[]>>({});
   
   // Auto-calculate state per variant
   const [variantAutoCalcResults, setVariantAutoCalcResults] = useState<Record<string, any>>({});
@@ -260,7 +261,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     const toApply = available.filter(comp => selectedIds.includes(comp.id));
 
     // Build pricing items and calculate total
-    const pricingItems: { name: string; price: string; description: string }[] = [];
+    const pricingItems: { id: string; name: string; price: string; description: string }[] = [];
     let totalPrice = 0;
 
     toApply.forEach((comp: any) => {
@@ -271,6 +272,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       const totalComponentPrice = calculateComponentTotalPrice(comp, roomQuantity);
 
       pricingItems.push({
+        id: generateItemId(),
         name: componentName,
         price: basePrice.toString(),
         description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
@@ -294,44 +296,55 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     toast.success(`Applied ${toApply.length} component${toApply.length !== 1 ? 's' : ''} — Total: ₹${totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
   };
 
-  // Manual Pricing Helpers
+  // Manual Pricing Helpers - driven directly from variantPricingData to avoid dual state
   const addManualPricingItem = (variantId: string) => {
-    setVariantManualPricingItems(prev => ({
-      ...prev,
-      [variantId]: [...(prev[variantId] || []), { name: '', price: '', description: '' }]
-    }));
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    const items = [...(variantData.pricingItems || [])];
+    items.push({ id: generateItemId(), name: '', price: '', description: '' });
+    form.setValue('variantPricingData', {
+      ...currentData,
+      [variantId]: { ...variantData, pricingItems: items }
+    });
   };
 
   const removeManualPricingItem = (variantId: string, index: number) => {
-    setVariantManualPricingItems(prev => ({
-      ...prev,
-      [variantId]: (prev[variantId] || []).filter((_, i) => i !== index)
-    }));
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    const items = (variantData.pricingItems || []).filter((_: any, i: number) => i !== index);
+    form.setValue('variantPricingData', {
+      ...currentData,
+      [variantId]: { ...variantData, pricingItems: items }
+    });
   };
 
   const updateManualPricingItem = (variantId: string, index: number, field: string, value: string) => {
-    setVariantManualPricingItems(prev => ({
-      ...prev,
-      [variantId]: (prev[variantId] || []).map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      )
-    }));
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    const items = [...(variantData.pricingItems || [])];
+    const existing = items[index] ?? { id: generateItemId(), name: '', price: '', description: '' };
+    items[index] = { ...existing, [field]: value };
+    form.setValue('variantPricingData', {
+      ...currentData,
+      [variantId]: { ...variantData, pricingItems: items }
+    });
   };
 
   const applyManualPricing = (variantId: string) => {
-    const items = variantManualPricingItems[variantId] || [];
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    const items = variantData.pricingItems || [];
     if (items.length === 0) {
       toast.error("Add at least one pricing item.");
       return;
     }
-    const totalPrice = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+    const totalPrice = items.reduce((sum: number, item: any) => sum + (parseFloat(item.price) || 0), 0);
 
-    const currentPricingData = form.getValues('variantPricingData') || {};
     form.setValue('variantPricingData', {
-      ...currentPricingData,
+      ...currentData,
       [variantId]: {
+        ...variantData,
         method: 'manual',
-        pricingItems: items,
         totalPrice: totalPrice.toString(),
         calculatedAt: new Date().toISOString()
       }
@@ -393,9 +406,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         setVariantAutoCalcResults(prev => ({ ...prev, [variantId]: result }));
 
         const totalCost = result.totalCost || 0;
-        const pricingItems: { name: string; price: string; description: string }[] = [];
+        const pricingItems: { id: string; name: string; price: string; description: string }[] = [];
 
         pricingItems.push({
+          id: generateItemId(),
           name: 'Total Cost',
           price: totalCost.toString(),
           description: 'Total package cost with markup'
@@ -404,6 +418,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         if (result.breakdown) {
           if (result.breakdown.accommodation) {
             pricingItems.push({
+              id: generateItemId(),
               name: 'Accommodation',
               price: result.breakdown.accommodation.toString(),
               description: 'Hotel room costs'
@@ -411,6 +426,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           }
           if (result.breakdown.transport > 0) {
             pricingItems.push({
+              id: generateItemId(),
               name: 'Transport',
               price: result.breakdown.transport.toString(),
               description: 'Vehicle costs'
@@ -618,7 +634,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     const currentData = form.getValues('variantPricingData') || {};
     const variantData = currentData[variantId] || {};
     const items = [...(variantData.pricingItems || [])];
-    items[index] = { ...items[index], [field]: value };
+    const existing = items[index] ?? { id: generateItemId(), name: '', price: '', description: '' };
+    items[index] = { ...existing, [field]: value };
     form.setValue('variantPricingData', {
       ...currentData,
       [variantId]: { ...variantData, pricingItems: items }
@@ -629,7 +646,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     const currentData = form.getValues('variantPricingData') || {};
     const variantData = currentData[variantId] || {};
     const items = [...(variantData.pricingItems || [])];
-    const newItem = { name: '', price: '', description: '' };
+    const newItem = { id: generateItemId(), name: '', price: '', description: '' };
     if (insertAfterIndex !== undefined) {
       items.splice(insertAfterIndex + 1, 0, newItem);
     } else {
@@ -1319,8 +1336,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   
                   // Manual Pricing Entry
                   if (calcMethod === 'manual') {
-                    const items = variantManualPricingItems[variant.id] || [];
-                    const manualTotal = items.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+                    const items = getVariantPricingItems(variant.id);
+                    const manualTotal = items.reduce((sum: number, item: any) => sum + (parseFloat(item.price) || 0), 0);
                     const savedPricingData = (form.getValues('variantPricingData') || {})[variant.id];
                     
                     return (
@@ -1340,8 +1357,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           </Alert>
 
                           {/* Pricing Items */}
-                          {items.map((item, idx) => (
-                            <Card key={idx} className="border-muted/40 shadow-sm">
+                          {items.map((item: any, idx: number) => (
+                            <Card key={item.id ?? `manual-${variant.id}-${idx}`} className="border-muted/40 shadow-sm">
                               <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
                                 <CardTitle className="text-xs font-medium flex items-center gap-1">
                                   <IndianRupee className="h-3.5 w-3.5 text-indigo-600" /> Item {idx + 1}
@@ -1356,19 +1373,19 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                   <div>
                                     <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Name</label>
                                     <Input placeholder="e.g. Accommodation" className="h-8 text-xs"
-                                      value={item.name}
+                                      value={item.name || ''}
                                       onChange={(e) => updateManualPricingItem(variant.id, idx, 'name', e.target.value)} />
                                   </div>
                                   <div>
                                     <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Price (₹)</label>
                                     <Input type="number" placeholder="0" className="h-8 text-xs"
-                                      value={item.price}
+                                      value={item.price || ''}
                                       onChange={(e) => updateManualPricingItem(variant.id, idx, 'price', e.target.value)} />
                                   </div>
                                   <div>
                                     <label className="text-[10px] uppercase tracking-wide font-medium text-slate-600 block mb-1">Description</label>
                                     <Input placeholder="Details..." className="h-8 text-xs"
-                                      value={item.description}
+                                      value={item.description || ''}
                                       onChange={(e) => updateManualPricingItem(variant.id, idx, 'description', e.target.value)} />
                                   </div>
                                 </div>
@@ -2004,7 +2021,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         );
                       }
                       return items.map((item: any, index: number) => (
-                        <div key={index} className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
+                        <div key={item.id ?? `${variant.id}-${index}`} className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow">
                             <div>
                               <label className="text-xs font-semibold text-slate-700 flex items-center mb-1">

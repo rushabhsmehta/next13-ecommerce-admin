@@ -870,7 +870,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       count: selectedVariantIds.length
     });
     
-    const selectedTourPackage = tourPackages?.find(tp => tp.id === tourPackageId);
+    // Use dynamicTourPackages (which includes dynamically loaded packages) with fallback to tourPackages
+    const selectedTourPackage = dynamicTourPackages?.find(tp => tp.id === tourPackageId) || tourPackages?.find(tp => tp.id === tourPackageId);
     if (!selectedTourPackage) {
       console.error('❌ [Form] Tour package not found:', tourPackageId);
       toast.error('Unable to locate selected tour package.');

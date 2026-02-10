@@ -99,6 +99,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [variantAutoCalcLoading, setVariantAutoCalcLoading] = useState<Record<string, boolean>>({});
   const [variantMarkupValues, setVariantMarkupValues] = useState<Record<string, string>>({});
   
+  // Editable pricing breakdown state per variant (mirrors PricingTab's pricingSection field array)
+  const variantPricingData = useWatch({ control, name: "variantPricingData" }) as Record<string, any> | undefined;
+
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
   const selectedVariants = allVariants.filter(v => selectedVariantIds?.includes(v.id));
@@ -603,6 +606,77 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const handleCancelEdit = () => {
     setEditingMapping(null);
     setTempHotelId("");
+  };
+
+  // Editable Pricing Breakdown helpers (per variant) - mirrors PricingTab functionality
+  const getVariantPricingItems = (variantId: string): { name: string; price: string; description: string }[] => {
+    const data = variantPricingData?.[variantId];
+    return data?.pricingItems || [];
+  };
+
+  const updateVariantPricingItem = (variantId: string, index: number, field: string, value: string) => {
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    const items = [...(variantData.pricingItems || [])];
+    items[index] = { ...items[index], [field]: value };
+    form.setValue('variantPricingData', {
+      ...currentData,
+      [variantId]: { ...variantData, pricingItems: items }
+    });
+  };
+
+  const addVariantPricingBreakdownItem = (variantId: string, insertAfterIndex?: number) => {
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    const items = [...(variantData.pricingItems || [])];
+    const newItem = { name: '', price: '', description: '' };
+    if (insertAfterIndex !== undefined) {
+      items.splice(insertAfterIndex + 1, 0, newItem);
+    } else {
+      items.push(newItem);
+    }
+    form.setValue('variantPricingData', {
+      ...currentData,
+      [variantId]: { ...variantData, pricingItems: items }
+    });
+  };
+
+  const removeVariantPricingBreakdownItem = (variantId: string, index: number) => {
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    const items = (variantData.pricingItems || []).filter((_: any, i: number) => i !== index);
+    form.setValue('variantPricingData', {
+      ...currentData,
+      [variantId]: { ...variantData, pricingItems: items }
+    });
+  };
+
+  const getVariantTotalPrice = (variantId: string): string => {
+    const data = variantPricingData?.[variantId];
+    return data?.totalPrice || '';
+  };
+
+  const setVariantTotalPrice = (variantId: string, value: string) => {
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    form.setValue('variantPricingData', {
+      ...currentData,
+      [variantId]: { ...variantData, totalPrice: value }
+    });
+  };
+
+  const getVariantRemarks = (variantId: string): string => {
+    const data = variantPricingData?.[variantId];
+    return data?.remarks || '';
+  };
+
+  const setVariantRemarks = (variantId: string, value: string) => {
+    const currentData = form.getValues('variantPricingData') || {};
+    const variantData = currentData[variantId] || {};
+    form.setValue('variantPricingData', {
+      ...currentData,
+      [variantId]: { ...variantData, remarks: value }
+    });
   };
 
   if (!selectedTourPackageId) {
@@ -1723,10 +1797,15 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                             {component.pricingAttribute?.name || 'Component'}
                                           </p>
                                           <p className="text-xs text-gray-500 mt-1">
-                                            <span className="font-medium">Base:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                            <span className="font-medium">Sales Price:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                            {component.purchasePrice && (
+                                              <span className="ml-3">
+                                                <span className="font-medium text-orange-600">Purchase Price:</span> ₹{parseFloat(component.purchasePrice || '0').toFixed(2)} per person
+                                              </span>
+                                            )}
                                             {getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 && (
-                                              <span className="text-blue-600 ml-2">
-                                                (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} occupancy)
+                                              <span className="text-blue-600 ml-1 block">
+                                                (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
                                               </span>
                                             )}
                                           </p>
@@ -1785,6 +1864,24 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 <p className="text-sm font-medium text-green-800">
                                   Selected: {(variantSelectedComponentIds[variant.id] || []).length} component{(variantSelectedComponentIds[variant.id] || []).length !== 1 ? 's' : ''}
                                 </p>
+                                <div className="text-sm text-green-700 mt-1 space-y-1">
+                                  {variantAvailableComponents[variant.id]
+                                    .filter((comp: any) => (variantSelectedComponentIds[variant.id] || []).includes(comp.id))
+                                    .map((comp: any) => {
+                                      const quantity = (variantComponentQuantities[variant.id] || {})[comp.id] || 1;
+                                      const componentName = comp.pricingAttribute?.name || 'Component';
+                                      const occupancyMultiplier = getOccupancyMultiplier(componentName);
+                                      const compTotalPrice = calculateComponentTotalPrice(comp, quantity);
+                                      return (
+                                        <div key={comp.id} className="flex justify-between text-xs">
+                                          <span>{componentName} {quantity > 1 ? `(${quantity} rooms)` : ''}
+                                            {occupancyMultiplier > 1 ? ` × ${occupancyMultiplier}` : ''}
+                                          </span>
+                                          <span>₹{compTotalPrice.toFixed(2)}</span>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
                                 <div className="border-t border-green-300 mt-2 pt-2">
                                   <p className="text-sm font-semibold text-green-800 flex justify-between">
                                     <span>Total:</span>
@@ -1862,6 +1959,209 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     </div>
                   );
                 })()}
+
+                {/* Pricing Breakdown Section (Always visible and editable) - mirrors PricingTab */}
+                <Card className="shadow-sm border border-slate-200/70 mt-4">
+                  <CardHeader className="pb-3 border-b">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                        <Receipt className="h-4 w-4 text-blue-600" />
+                        💰 Pricing Breakdown
+                      </CardTitle>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => addVariantPricingBreakdownItem(variant.id)}
+                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        ➕ Add Item
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-4">
+                    {(() => {
+                      const items = getVariantPricingItems(variant.id);
+                      if (items.length === 0) {
+                        return (
+                          <div className="text-center py-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300">
+                            <Receipt className="mx-auto h-12 w-12 text-blue-400 mb-3" />
+                            <p className="text-slate-600 mb-4">No pricing items added yet</p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="border-dashed border-blue-400 text-blue-600 hover:bg-blue-50"
+                              disabled={loading}
+                              onClick={() => addVariantPricingBreakdownItem(variant.id)}
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              ➕ Add Your First Pricing Option
+                            </Button>
+                          </div>
+                        );
+                      }
+                      return items.map((item: any, index: number) => (
+                        <div key={index} className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow">
+                            <div>
+                              <label className="text-xs font-semibold text-slate-700 flex items-center mb-1">
+                                <Sparkles className="mr-1 h-3 w-3 text-yellow-500" />
+                                Item Name
+                              </label>
+                              <Input
+                                value={item.name || ''}
+                                disabled={loading}
+                                placeholder="e.g., Per Person Cost"
+                                className="bg-white border-slate-300 focus:border-blue-500 h-8 text-xs"
+                                onChange={(e) => updateVariantPricingItem(variant.id, index, 'name', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-slate-700 flex items-center mb-1">
+                                <IndianRupee className="mr-1 h-3 w-3 text-green-500" />
+                                Price (Base)
+                              </label>
+                              <Input
+                                value={item.price || ''}
+                                disabled={loading}
+                                placeholder="e.g., 15000"
+                                type="number"
+                                className="bg-white border-slate-300 focus:border-blue-500 h-8 text-xs"
+                                onChange={(e) => updateVariantPricingItem(variant.id, index, 'price', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-slate-700 flex items-center mb-1">
+                                <Calculator className="mr-1 h-3 w-3 text-blue-500" />
+                                Calculation & Total
+                              </label>
+                              <Input
+                                value={item.description || ''}
+                                disabled={loading}
+                                placeholder="e.g., 15000.00 × 3 occupancy × 3 rooms = Rs. 135000"
+                                className="bg-white border-slate-300 focus:border-blue-500 h-8 text-xs"
+                                onChange={(e) => updateVariantPricingItem(variant.id, index, 'description', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end mt-3">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              disabled={loading}
+                              onClick={() => removeVariantPricingBreakdownItem(variant.id, index)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors h-7 w-7"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </CardContent>
+                </Card>
+
+                {/* Total Package Price (Always visible and editable) - mirrors PricingTab */}
+                <Card className="shadow-sm border border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 mt-4">
+                  <CardContent className="p-6">
+                    <div className="flex items-center mb-3">
+                      <Target className="mr-2 h-6 w-6 text-orange-600" />
+                      <h3 className="text-xl font-bold text-orange-800">🎯 Total Package Price</h3>
+                    </div>
+                    <div>
+                      <label className="text-base font-semibold text-orange-700 flex items-center mb-2">
+                        💰 Final Amount
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
+                        <Input
+                          value={getVariantTotalPrice(variant.id)}
+                          disabled={loading}
+                          placeholder="Total price for the package"
+                          className="text-2xl font-bold pl-8 bg-white border-orange-300 focus:border-orange-500 h-14"
+                          type="number"
+                          onChange={(e) => setVariantTotalPrice(variant.id, e.target.value)}
+                        />
+                      </div>
+                      <p className="text-sm text-orange-600 mt-2 flex items-center">
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        This represents the final total price for this variant
+                      </p>
+                      <p className="text-xs text-orange-500 mt-1 bg-orange-50 px-2 py-1 rounded border border-orange-200">
+                        including GST
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Configuration Summary - mirrors PricingTab */}
+                {(() => {
+                  const mealPlanId = variantMealPlanIds[variant.id];
+                  const roomCount = variantRoomCounts[variant.id] || 1;
+                  if (!mealPlanId && roomCount <= 1) return null;
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {mealPlanId && (
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 shadow-sm">
+                          <div className="flex items-center mb-2">
+                            <ShoppingCart className="mr-2 h-4 w-4 text-green-600" />
+                            <p className="text-sm font-semibold text-green-700">Selected Meal Plan:</p>
+                          </div>
+                          <div className="flex items-center bg-white p-2 rounded-md border border-green-200">
+                            <span className="text-lg mr-2">🍽️</span>
+                            <p className="font-semibold text-green-800">
+                              {mealPlans.find(mp => mp.id === mealPlanId)?.name || 'Unknown Meal Plan'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {roomCount > 0 && (
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+                          <div className="flex items-center mb-2">
+                            <Wallet className="mr-2 h-4 w-4 text-blue-600" />
+                            <p className="text-sm font-semibold text-blue-700">Room Configuration:</p>
+                          </div>
+                          <div className="flex items-center justify-between bg-white p-2 rounded-md border border-blue-200">
+                            <div className="flex items-center">
+                              <span className="text-lg mr-2">🏨</span>
+                              <span className="font-semibold text-blue-800">Number of Rooms</span>
+                            </div>
+                            <div className="bg-blue-100 px-3 py-1 rounded-full">
+                              <span className="text-sm font-bold text-blue-700">
+                                {roomCount} room{roomCount > 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Remarks Section - mirrors PricingTab */}
+                <Card className="shadow-sm border border-slate-200/70 mt-4">
+                  <CardContent className="p-5">
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium mb-2">
+                        <Receipt className="h-4 w-4 text-indigo-600" />
+                        Remarks
+                      </label>
+                      <Input
+                        disabled={loading}
+                        placeholder="Additional remarks for this variant's pricing"
+                        value={getVariantRemarks(variant.id)}
+                        onChange={(e) => setVariantRemarks(variant.id, e.target.value)}
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        Add any special notes or requirements for this variant (will appear below Total Price)
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </TabsContent>

@@ -1804,7 +1804,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                               </span>
                                             )}
                                             {getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 && (
-                                              <span className="text-blue-600 ml-1 block">
+                                              <span className="text-blue-600 mt-1 block">
                                                 (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
                                               </span>
                                             )}

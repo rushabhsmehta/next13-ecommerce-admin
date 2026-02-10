@@ -897,9 +897,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
 
     // Get variant names for display
-    const variants = selectedTourPackage.packageVariants?.filter(v => selectedVariantIds.includes(v.id)) || [];
-    const variantNames = variants.map(v => v.name).join(', ');
-    console.log('📋 [Form] Selected variants:', variants.map(v => ({ id: v.id, name: v.name })));
+    const variants = selectedTourPackage.packageVariants?.filter((v: PackageVariant) => selectedVariantIds.includes(v.id)) || [];
+    const variantNames = variants.map((v: PackageVariant) => v.name).join(', ');
+    console.log('📋 [Form] Selected variants:', variants.map((v: PackageVariant) => ({ id: v.id, name: v.name })));
 
     // Store first variant for backward compatibility (if needed by other code)
     const firstVariant = variants[0];

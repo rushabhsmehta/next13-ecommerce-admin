@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { Control, useWatch } from "react-hook-form";
 import { Hotel, Images, PackageVariant, VariantHotelMapping, Itinerary, TourPackagePricing, PricingComponent, PricingAttribute, MealPlan, VehicleType, LocationSeasonalPeriod } from "@prisma/client";
@@ -121,7 +121,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   };
 
   const formatCurrency = (amount: number): string => {
-    return `Γé╣${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   // Handler to fetch available pricing components for a variant
@@ -263,7 +263,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       finalComponents.push({
         name: componentName,
         price: basePrice.toString(),
-        description: `${basePrice.toFixed(2)} ├ù ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` ├ù ${roomQuantity} rooms` : ''} = Γé╣${totalComponentPrice.toFixed(2)}`
+        description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = ₹${totalComponentPrice.toFixed(2)}`
       });
 
       totalPrice += totalComponentPrice;
@@ -843,7 +843,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                                             {mealPlan.name}
                                                           </Badge>
                                                         )}
-                                                        <span className="text-slate-600">├ù{room.quantity || 1}</span>
+                                                        <span className="text-slate-600">×{room.quantity || 1}</span>
                                                       </div>
                                                       {room.guestNames && (
                                                         <div className="text-slate-600 text-[10px]">
@@ -1193,14 +1193,14 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <CreditCard className="h-4 w-4 text-blue-600" />
-                      ≡ƒÆ░ Pricing Configuration
+                      💰 Pricing Configuration
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="bg-white rounded-lg border border-slate-200 p-4">
                       <div className="flex items-center mb-3">
                         <Settings className="mr-2 h-4 w-4 text-indigo-600" />
-                        <h3 className="text-sm font-semibold">≡ƒÆ╝ Calculation Method</h3>
+                        <h3 className="text-sm font-semibold">💼 Calculation Method</h3>
                       </div>
                       <RadioGroup
                         value={variantCalcMethods[variant.id] || 'useTourPackagePricing'}
@@ -1211,7 +1211,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <RadioGroupItem value="manual" id={`m-${variant.id}`} />
                           <div className="flex-1">
                             <label htmlFor={`m-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
-                              <Receipt className="mr-2 h-3.5 w-3.5" />Γ£ì∩╕Å Manual Pricing Entry
+                              <Receipt className="mr-2 h-3.5 w-3.5" />✍️ Manual Pricing Entry
                             </label>
                             <p className="text-[10px] text-slate-500 mt-0.5">Enter pricing components manually with full control</p>
                           </div>
@@ -1220,7 +1220,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <RadioGroupItem value="autoHotelTransport" id={`a-${variant.id}`} />
                           <div className="flex-1">
                             <label htmlFor={`a-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
-                              <Calculator className="mr-2 h-3.5 w-3.5" />≡ƒñû Auto Calculate (Hotel + Transport)
+                              <Calculator className="mr-2 h-3.5 w-3.5" />🤖 Auto Calculate (Hotel + Transport)
                             </label>
                             <p className="text-[10px] text-slate-500 mt-0.5">Automatically calculate based on itinerary hotels and transport</p>
                           </div>
@@ -1229,7 +1229,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <RadioGroupItem value="useTourPackagePricing" id={`u-${variant.id}`} />
                           <div className="flex-1">
                             <label htmlFor={`u-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
-                              <Package className="mr-2 h-3.5 w-3.5" />≡ƒôª Use Tour Package Pricing
+                              <Package className="mr-2 h-3.5 w-3.5" />📦 Use Tour Package Pricing
                             </label>
                             <p className="text-[10px] text-slate-500 mt-0.5">Use pre-defined pricing from selected tour package template</p>
                           </div>
@@ -1252,7 +1252,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         <CardHeader className="pb-3 border-b bg-gradient-to-r from-indigo-50 via-indigo-25 to-transparent">
                           <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                             <Receipt className="h-4 w-4 text-indigo-600" />
-                            Γ£ì∩╕Å Manual Pricing Entry
+                            ✍️ Manual Pricing Entry
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-4">
@@ -1267,7 +1267,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               <div className="text-center py-6 text-muted-foreground">
                                 <Receipt className="h-10 w-10 mx-auto mb-2 text-muted-foreground/50" />
                                 <p className="text-sm font-medium">No manual pricing items yet.</p>
-                                <p className="text-xs mt-1">Click ΓÇ£Add ItemΓÇ¥ to get started.</p>
+                                <p className="text-xs mt-1">Click “Add Item” to get started.</p>
                               </div>
                             ) : (
                               manualItems.map((item, idx) => (
@@ -1346,7 +1346,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <CardHeader className="pb-3 border-b bg-gradient-to-r from-green-50 via-green-25 to-transparent">
                             <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                               <Calculator className="h-4 w-4 text-green-600" />
-                              ≡ƒñû Auto Calculate Pricing
+                              🤖 Auto Calculate Pricing
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="pt-4">
@@ -1383,13 +1383,13 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                     }}
                                   >
                                     <SelectTrigger className="h-8 bg-white border-emerald-300 focus:border-emerald-500">
-                                      <SelectValue placeholder="≡ƒÄ» Pricing Tier" />
+                                      <SelectValue placeholder="🎯 Pricing Tier" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="standard">Γ¡É Standard (10%)</SelectItem>
-                                      <SelectItem value="premium">≡ƒîƒ Premium (20%)</SelectItem>
-                                      <SelectItem value="luxury">Γ£¿ Luxury (30%)</SelectItem>
-                                      <SelectItem value="custom">≡ƒÄ¢∩╕Å Custom</SelectItem>
+                                      <SelectItem value="standard">⭐ Standard (10%)</SelectItem>
+                                      <SelectItem value="premium">🌟 Premium (20%)</SelectItem>
+                                      <SelectItem value="luxury">✨ Luxury (30%)</SelectItem>
+                                      <SelectItem value="custom">🎛️ Custom</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -1402,7 +1402,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                     disabled={loading}
                                   >
                                     <Calculator className="mr-2 h-4 w-4" />
-                                    ≡ƒº« Calculate Price
+                                    🧮 Calculate Price
                                   </Button>
                                   <Button
                                     type="button"
@@ -1450,43 +1450,43 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                               <div className="text-xs text-gray-600">
                                                 {accommodation?.roomBreakdown?.map((rb: any, idx: number) => (
                                                   <div key={idx} className="mb-1">
-                                                    {rb.roomTypeName || 'Room'} ({rb.occupancyTypeName || 'Occupancy'}) - Γé╣{rb.totalCost.toFixed(2)}
+                                                    {rb.roomTypeName || 'Room'} ({rb.occupancyTypeName || 'Occupancy'}) - ₹{rb.totalCost.toFixed(2)}
                                                   </div>
                                                 ))}
                                               </div>
                                             </TableCell>
                                             <TableCell className="text-right text-sm">
-                                              {accommodation?.accommodationCost ? `Γé╣${accommodation.accommodationCost.toFixed(2)}` : '-'}
+                                              {accommodation?.accommodationCost ? `₹${accommodation.accommodationCost.toFixed(2)}` : '-'}
                                             </TableCell>
                                             <TableCell className="text-right text-sm">
-                                              {transportCost ? `Γé╣${transportCost.toFixed(2)}` : '-'}
+                                              {transportCost ? `₹${transportCost.toFixed(2)}` : '-'}
                                             </TableCell>
-                                            <TableCell className="text-right font-medium text-sm">Γé╣{dayTotal.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right font-medium text-sm">₹{dayTotal.toFixed(2)}</TableCell>
                                           </TableRow>
                                         );
                                       });
                                     })()}
                                     <TableRow className="bg-blue-50">
                                       <TableCell colSpan={4} className="font-medium text-right text-sm">Base Accommodation Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-sm">Γé╣{calcResult.breakdown.accommodation.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-bold text-sm">₹{calcResult.breakdown.accommodation.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow className="bg-blue-50">
                                       <TableCell colSpan={4} className="font-medium text-right text-sm">Base Transport Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-sm">Γé╣{calcResult.breakdown.transport.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-bold text-sm">₹{calcResult.breakdown.transport.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow className="bg-blue-100">
                                       <TableCell colSpan={4} className="font-medium text-right text-sm">Total Base Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-sm">Γé╣{(calcResult.breakdown.accommodation + calcResult.breakdown.transport).toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-bold text-sm">₹{(calcResult.breakdown.accommodation + calcResult.breakdown.transport).toFixed(2)}</TableCell>
                                     </TableRow>
                                     {calcResult.appliedMarkup && (
                                       <TableRow className="bg-blue-100">
                                         <TableCell colSpan={4} className="font-medium text-right text-sm">Markup ({calcResult.appliedMarkup.percentage}%)</TableCell>
-                                        <TableCell className="text-right font-bold text-sm">Γé╣{calcResult.appliedMarkup.amount.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right font-bold text-sm">₹{calcResult.appliedMarkup.amount.toFixed(2)}</TableCell>
                                       </TableRow>
                                     )}
                                     <TableRow className="bg-blue-200">
                                       <TableCell colSpan={4} className="font-medium text-right text-base">Final Total Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-base">Γé╣{calcResult.totalCost.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-bold text-base">₹{calcResult.totalCost.toFixed(2)}</TableCell>
                                     </TableRow>
                                   </TableBody>
                                 </Table>
@@ -1505,7 +1505,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         <CardHeader className="pb-3">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Package className="h-4 w-4 text-purple-600" />
-                            ≡ƒôª Tour Package Pricing Configuration
+                            📦 Tour Package Pricing Configuration
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -1513,7 +1513,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             <FormItem className="space-y-3">
                               <FormLabel className="font-semibold text-purple-700 flex items-center">
                                 <ShoppingCart className="mr-2 h-4 w-4" />
-                                ≡ƒì╜∩╕Å Meal Plan <span className="text-red-500">*</span>
+                                🍽️ Meal Plan <span className="text-red-500">*</span>
                               </FormLabel>
                               <Select
                                 disabled={loading}
@@ -1532,7 +1532,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 <SelectContent>
                                   {mealPlans.map((plan) => (
                                     <SelectItem key={plan.id} value={plan.id}>
-                                      ≡ƒì╜∩╕Å {plan.name}
+                                      🍽️ {plan.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1545,7 +1545,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             <FormItem className="space-y-3">
                               <FormLabel className="font-semibold text-purple-700 flex items-center">
                                 <Wallet className="mr-2 h-4 w-4" />
-                                ≡ƒÅ¿ Number of Rooms <span className="text-red-500">*</span>
+                                🏨 Number of Rooms <span className="text-red-500">*</span>
                               </FormLabel>
                               <div className="flex items-center gap-4">
                                 <Button
@@ -1578,7 +1578,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 </Button>
                                 <div className="flex items-center bg-purple-100 px-3 py-2 rounded-lg">
                                   <span className="text-sm font-medium text-purple-700">
-                                    ≡ƒÅ¿ {variantRoomCounts[variant.id] || 1} room{(variantRoomCounts[variant.id] || 1) > 1 ? 's' : ''}
+                                    🏨 {variantRoomCounts[variant.id] || 1} room{(variantRoomCounts[variant.id] || 1) > 1 ? 's' : ''}
                                   </span>
                                 </div>
                               </div>
@@ -1592,7 +1592,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             disabled={loading || !variantMealPlanIds[variant.id] || (variantRoomCounts[variant.id] || 1) <= 0}
                           >
                             <Calculator className="mr-2 h-4 w-4" />
-                            ≡ƒöì Fetch Available Pricing Components
+                            🔍 Fetch Available Pricing Components
                           </Button>
                         </CardContent>
                       </Card>
@@ -1669,7 +1669,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                             {component.pricingAttribute?.name || 'Pricing Component'}
                                           </p>
                                           <p className="text-xs text-gray-500 mt-1">
-                                            <span className="font-medium">Base:</span> Γé╣{parseFloat(component.price || '0').toFixed(2)} per person
+                                            <span className="font-medium">Base:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
                                           </p>
                                         </div>
                                         <div className="flex items-center gap-4">

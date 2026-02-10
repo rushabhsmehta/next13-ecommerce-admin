@@ -145,9 +145,12 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     }
 
     if (!queryStartDate || !queryEndDate) {
+      console.log('🚫 [Variants] Missing dates:', { queryStartDate, queryEndDate });
       toast.error("Please select tour start and end dates in the Dates tab.");
       return;
     }
+    
+    console.log('✅ [Variants] Dates available:', { queryStartDate, queryEndDate });
 
     toast.loading("Fetching available pricing components...");
     try {
@@ -331,9 +334,12 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     const tourEndsOn = queryEndDate;
 
     if (!tourStartsFrom || !tourEndsOn) {
+      console.log('🚫 [Variants] Missing dates for calculation:', { tourStartsFrom, tourEndsOn });
       toast.error("Please select tour start and end dates first.");
       return;
     }
+    
+    console.log('✅ [Variants] Starting price calculation with dates:', { tourStartsFrom, tourEndsOn });
 
     const pricingItineraries = itineraries.map((itinerary, idx) => {
       const mapping = variant.variantHotelMappings.find(m => m.itineraryId === itinerary.id);

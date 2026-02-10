@@ -366,6 +366,102 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </CardContent>
       </Card>
 
+      {/* Flight Details Section */}
+      {initialData.flightDetails && initialData.flightDetails.length > 0 && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
+        <Card className="break-inside-avoid border border-blue-200 shadow-md rounded-xl">
+          <CardHeader className="px-5 py-4 bg-gradient-to-r from-blue-50 to-sky-50 border-b border-blue-100">
+            <h2 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-600 text-transparent bg-clip-text print-gradient-fallback">
+              <PlaneIcon className="w-6 h-6 text-blue-600" />
+              Flight Details
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Complete flight itinerary and travel information
+            </p>
+          </CardHeader>
+          <CardContent className="px-5 py-6">
+            <div className="space-y-4">
+              {initialData.flightDetails.map((flight, index) => (
+                <div key={flight.id} className="border border-blue-100 rounded-lg p-4 bg-gradient-to-r from-blue-50/50 to-sky-50/50 hover:shadow-md transition-shadow">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <PlaneTakeoffIcon className="w-5 h-5 text-blue-600" />
+                        <span className="font-semibold text-gray-700">Flight {index + 1}</span>
+                      </div>
+                      {flight.flightName && (
+                        <div>
+                          <span className="text-sm font-semibold text-gray-600">Airline:</span>
+                          <span className="ml-2 text-sm text-gray-900 font-medium">{flight.flightName}</span>
+                        </div>
+                      )}
+                      {flight.flightNumber && (
+                        <div>
+                          <span className="text-sm font-semibold text-gray-600">Flight Number:</span>
+                          <span className="ml-2 text-sm text-gray-900 font-medium">{flight.flightNumber}</span>
+                        </div>
+                      )}
+                      {flight.date && (
+                        <div>
+                          <span className="text-sm font-semibold text-gray-600">Date:</span>
+                          <span className="ml-2 text-sm text-gray-900 font-medium">{flight.date}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {flight.from && (
+                            <div>
+                              <span className="text-sm font-semibold text-gray-600">From:</span>
+                              <span className="ml-2 text-sm text-gray-900 font-medium">{flight.from}</span>
+                            </div>
+                          )}
+                          {flight.departureTime && (
+                            <div className="text-xs text-gray-500 mt-1">Departure: {flight.departureTime}</div>
+                          )}
+                        </div>
+                        <div className="text-blue-600 font-bold">→</div>
+                        <div>
+                          {flight.to && (
+                            <div>
+                              <span className="text-sm font-semibold text-gray-600">To:</span>
+                              <span className="ml-2 text-sm text-gray-900 font-medium">{flight.to}</span>
+                            </div>
+                          )}
+                          {flight.arrivalTime && (
+                            <div className="text-xs text-gray-500 mt-1">Arrival: {flight.arrivalTime}</div>
+                          )}
+                        </div>
+                      </div>
+                      {flight.flightDuration && (
+                        <div className="text-center">
+                          <span className="text-xs font-semibold text-gray-600">Duration:</span>
+                          <span className="ml-2 text-xs text-gray-900 font-medium">{flight.flightDuration}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {flight.images && flight.images.length > 0 && (
+                    <div className="mt-4 flex gap-2 flex-wrap">
+                      {flight.images.map((image, imgIndex) => (
+                        <div key={imgIndex} className="relative w-20 h-20 rounded overflow-hidden border border-blue-200">
+                          <Image
+                            src={image.url}
+                            alt={`Flight ${index + 1} Image ${imgIndex + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* <div className="break-inside-avoid">
         {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
           <Card className="border shadow-lg rounded-lg">

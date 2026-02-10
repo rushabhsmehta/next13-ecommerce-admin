@@ -75,8 +75,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const variantRoomAllocations = useWatch({ control, name: "variantRoomAllocations" }) as Record<string, Record<string, any[]>> | undefined;
   const variantTransportDetails = useWatch({ control, name: "variantTransportDetails" }) as Record<string, Record<string, any[]>> | undefined;
   const queryItineraries = useWatch({ control, name: "itineraries" }) as any[] | undefined;
-  const queryStartDate = useWatch({ control, name: "startDate" });
-  const queryEndDate = useWatch({ control, name: "endDate" });
+  const queryStartDate = useWatch({ control, name: "tourStartsFrom" });
+  const queryEndDate = useWatch({ control, name: "tourEndsOn" });
 
   const [editingMapping, setEditingMapping] = useState<string | null>(null);
   const [tempHotelId, setTempHotelId] = useState<string>("");

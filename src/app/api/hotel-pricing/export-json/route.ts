@@ -55,7 +55,15 @@ export async function POST(req: Request) {
     };
 
     // Fetch pricing entries (if requested)
-    let pricingEntries = [];
+    let pricingEntries: Array<{
+      startDate: string;
+      endDate: string;
+      roomTypeId: string | null;
+      occupancyTypeId: string | null;
+      mealPlanId: string | null;
+      price: number;
+      isActive: boolean;
+    }> = [];
     if (includeExistingPricing) {
       const existingPricing = await prismadb.hotelPricing.findMany({
         where: {

@@ -7,6 +7,7 @@ const REQUIRED_HEADERS = ["first name", "mobile number"] as const;
 export type WhatsAppCustomerCsvParseOptions = {
   sourceName?: string;
   defaultTags?: string[];
+  partnerNameToIdMap?: Map<string, string>;
 };
 
 export type WhatsAppCustomerCsvDuplicate = {
@@ -152,6 +153,26 @@ export function parseWhatsAppCustomerCsv(
     const tags = mergeTags(splitTags(get("tags")), options.defaultTags);
     const notes = get("notes");
 
+    const associatePartnerName = get("associate partner");
+    let associatePartnerId: string | undefined;
+    if (associatePartnerName && options.partnerNameToIdMap) {
+      // Case-insensitive lookup
+      const lowerName = associatePartnerName.toLowerCase();
+      for (const [name, id] of options.partnerNameToIdMap.entries()) {
+        if (name.toLowerCase() === lowerName) {
+          associatePartnerId = id;
+          break;
+        }
+      }
+      if (!associatePartnerId) {
+        errors.push({
+          rowNumber,
+          message: `Associate Partner "${associatePartnerName}" not found`,
+          row: rowSnapshot
+        });
+      }
+    }
+
     const customer: WhatsAppCustomerInput = {
       firstName,
       lastName,
@@ -159,6 +180,7 @@ export function parseWhatsAppCustomerCsv(
       email,
       tags,
       notes,
+      associatePartnerId,
       importedFrom: options.sourceName,
       importedAt: new Date(),
     };

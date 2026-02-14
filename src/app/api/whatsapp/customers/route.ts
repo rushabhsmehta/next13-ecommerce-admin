@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
       notes,
       isOptedIn,
       metadata,
+      associatePartnerId,
     } = body || {};
 
     if (!firstName || !phoneNumber) {
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
       notes,
       isOptedIn,
       metadata,
+      associatePartnerId,
       importedFrom: 'manual',
       importedAt: new Date(),
     });

@@ -43,6 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       notes,
       isOptedIn,
       metadata,
+      associatePartnerId,
     } = body || {};
 
     if (firstName !== undefined && !firstName) {
@@ -57,6 +58,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       notes,
       isOptedIn,
       metadata,
+      associatePartnerId,
     };
 
     if (phoneNumber !== undefined) {

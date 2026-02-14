@@ -14,6 +14,7 @@ export type WhatsAppCustomerInput = {
   importedFrom?: string | null;
   importedAt?: Date | null;
   lastContactedAt?: Date | null;
+  associatePartnerId?: string | null;
 };
 
 export type WhatsAppCustomerFilters = {
@@ -69,6 +70,7 @@ function buildCreateData(input: WhatsAppCustomerInput): Prisma.WhatsAppCustomerC
     importedFrom: input.importedFrom || undefined,
     importedAt: input.importedAt || undefined,
     lastContactedAt: input.lastContactedAt || undefined,
+    associatePartnerId: input.associatePartnerId || null,
   };
 }
 
@@ -110,6 +112,9 @@ function buildUpdateData(input: Partial<WhatsAppCustomerInput>): Prisma.WhatsApp
   }
   if (input.lastContactedAt !== undefined) {
     data.lastContactedAt = input.lastContactedAt || null;
+  }
+  if (input.associatePartnerId !== undefined) {
+    data.associatePartnerId = input.associatePartnerId || null;
   }
 
   return data;

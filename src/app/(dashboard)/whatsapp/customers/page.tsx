@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   XCircle,
   Edit,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,9 +47,29 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import clsx from 'clsx';
+
+interface AssociatePartner {
+  id: string;
+  name: string;
+  mobileNumber: string;
+  email: string | null;
+  isActive: boolean;
+}
 
 interface WhatsAppCustomerRow {
   id: string;
@@ -58,6 +80,7 @@ interface WhatsAppCustomerRow {
   tags: string[];
   isOptedIn: boolean;
   notes: string | null;
+  associatePartnerId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -110,6 +133,7 @@ type PendingCustomer = {
   email: string;
   tags: string;
   notes: string;
+  associatePartnerId: string;
 };
 
 const DEFAULT_FORM: PendingCustomer = {
@@ -119,6 +143,7 @@ const DEFAULT_FORM: PendingCustomer = {
   email: '',
   tags: '',
   notes: '',
+  associatePartnerId: '',
 };
 
 function parseTagInput(raw: string) {
@@ -151,11 +176,36 @@ export default function WhatsAppCustomersPage() {
   const [csvSummary, setCsvSummary] = useState<CsvImportSummary | null>(null);
   const [csvErrors, setCsvErrors] = useState<CsvErrorEntry[]>([]);
   const [optInFilter, setOptInFilter] = useState<'all' | 'opted-in' | 'opted-out'>('all');
+  const [associatePartners, setAssociatePartners] = useState<AssociatePartner[]>([]);
+  const [partnerIdToNameMap, setPartnerIdToNameMap] = useState<Map<string, string>>(new Map());
+  const [partnerPopoverOpen, setPartnerPopoverOpen] = useState(false);
+  const [editPartnerPopoverOpen, setEditPartnerPopoverOpen] = useState(false);
 
   useEffect(() => {
     const handle = setTimeout(() => setSearchTerm(searchInput), 400);
     return () => clearTimeout(handle);
   }, [searchInput]);
+
+  useEffect(() => {
+    const fetchAssociatePartners = async () => {
+      try {
+        const response = await fetch('/api/associate-partners');
+        if (response.ok) {
+          const data = await response.json();
+          const activePartners = (data.partners || []).filter((p: AssociatePartner) => p.isActive);
+          setAssociatePartners(activePartners);
+          const nameMap = new Map<string, string>();
+          activePartners.forEach((p: AssociatePartner) => {
+            nameMap.set(p.id, p.name);
+          });
+          setPartnerIdToNameMap(nameMap);
+        }
+      } catch (error) {
+        console.error('Failed to fetch associate partners', error);
+      }
+    };
+    fetchAssociatePartners();
+  }, []);
 
   const fetchCustomers = useCallback(async () => {
     try {
@@ -251,6 +301,21 @@ export default function WhatsAppCustomersPage() {
             )}
           </div>
         ),
+      },
+      {
+        accessorKey: 'associatePartnerId',
+        header: 'Associate Partner',
+        cell: ({ row }) => {
+          const partnerId = row.original.associatePartnerId;
+          const partnerName = partnerId ? partnerIdToNameMap.get(partnerId) : null;
+          return partnerId && partnerName ? (
+            <Badge variant="outline" className="font-medium">
+              {partnerName}
+            </Badge>
+          ) : (
+            <span className="text-sm text-muted-foreground">—</span>
+          );
+        },
       },
       {
         accessorKey: 'isOptedIn',
@@ -351,6 +416,7 @@ export default function WhatsAppCustomersPage() {
         email: formValues.email.trim() || undefined,
         tags: parseTagInput(formValues.tags),
         notes: formValues.notes.trim() || undefined,
+        associatePartnerId: formValues.associatePartnerId || undefined,
         isOptedIn: true,
       };
       if (!payload.firstName || !payload.phoneNumber) {
@@ -389,6 +455,7 @@ export default function WhatsAppCustomersPage() {
         email: editingCustomer.email?.trim() || undefined,
         tags: editingCustomer.tags || undefined,
         notes: editingCustomer.notes?.trim() || undefined,
+        associatePartnerId: editingCustomer.associatePartnerId || undefined,
         isOptedIn: editingCustomer.isOptedIn,
       };
       
@@ -790,6 +857,65 @@ export default function WhatsAppCustomersPage() {
                     />
                   </div>
                   <div className="grid gap-2">
+                    <Label htmlFor="associate-partner">Associate Partner</Label>
+                    <Popover open={partnerPopoverOpen} onOpenChange={setPartnerPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={partnerPopoverOpen}
+                          className="w-full justify-between"
+                        >
+                          {formValues.associatePartnerId
+                            ? partnerIdToNameMap.get(formValues.associatePartnerId) || 'Unknown Partner'
+                            : 'Select partner...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search partners..." />
+                          <CommandEmpty>No partner found.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value=""
+                              onSelect={() => {
+                                setFormValues((prev) => ({ ...prev, associatePartnerId: '' }));
+                                setPartnerPopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={clsx(
+                                  'mr-2 h-4 w-4',
+                                  formValues.associatePartnerId === '' ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              None
+                            </CommandItem>
+                            {associatePartners.map((partner) => (
+                              <CommandItem
+                                key={partner.id}
+                                value={partner.name}
+                                onSelect={() => {
+                                  setFormValues((prev) => ({ ...prev, associatePartnerId: partner.id }));
+                                  setPartnerPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={clsx(
+                                    'mr-2 h-4 w-4',
+                                    formValues.associatePartnerId === partner.id ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {partner.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="grid gap-2">
                     <Label htmlFor="tags">Tags (comma or | separated)</Label>
                     <Input
                       id="tags"
@@ -1002,6 +1128,65 @@ export default function WhatsAppCustomersPage() {
                   onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
                   placeholder="customer@example.com"
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-associate-partner">Associate Partner</Label>
+                <Popover open={editPartnerPopoverOpen} onOpenChange={setEditPartnerPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={editPartnerPopoverOpen}
+                      className="w-full justify-between"
+                    >
+                      {editingCustomer.associatePartnerId
+                        ? partnerIdToNameMap.get(editingCustomer.associatePartnerId) || 'Unknown Partner'
+                        : 'Select partner...'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search partners..." />
+                      <CommandEmpty>No partner found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value=""
+                          onSelect={() => {
+                            setEditingCustomer({ ...editingCustomer, associatePartnerId: null });
+                            setEditPartnerPopoverOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={clsx(
+                              'mr-2 h-4 w-4',
+                              !editingCustomer.associatePartnerId ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          None
+                        </CommandItem>
+                        {associatePartners.map((partner) => (
+                          <CommandItem
+                            key={partner.id}
+                            value={partner.name}
+                            onSelect={() => {
+                              setEditingCustomer({ ...editingCustomer, associatePartnerId: partner.id });
+                              setEditPartnerPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={clsx(
+                                'mr-2 h-4 w-4',
+                                editingCustomer.associatePartnerId === partner.id ? 'opacity-100' : 'opacity-0'
+                              )}
+                            />
+                            {partner.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-tags">Tags (comma or | separated)</Label>

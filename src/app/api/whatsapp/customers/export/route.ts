@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { exportWhatsAppCustomers } from '@/lib/whatsapp-customers';
 import type { WhatsAppCustomer } from '@prisma/whatsapp-client';
+import prisma from '@/lib/prismadb';
 
 function parseTags(raw: string | null) {
   if (!raw) {
@@ -49,6 +50,15 @@ export async function GET(request: NextRequest) {
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
 
+    // Fetch associate partners to create ID→name mapping
+    const partners = await prisma.associatePartner.findMany({
+      select: { id: true, name: true },
+    });
+    const partnerIdToNameMap = new Map<string, string>();
+    partners.forEach(p => {
+      partnerIdToNameMap.set(p.id, p.name);
+    });
+
     const headers = [
       'First Name',
       'Last Name',
@@ -57,6 +67,7 @@ export async function GET(request: NextRequest) {
       'Tags',
       'Opt-In Status',
       'Notes',
+      'Associate Partner',
       'Imported From',
       'Imported At',
       'Last Contacted At',
@@ -70,6 +81,9 @@ export async function GET(request: NextRequest) {
             .filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0)
             .join('|')
         : '';
+      const partnerName = customer.associatePartnerId
+        ? partnerIdToNameMap.get(customer.associatePartnerId) ?? ''
+        : '';
       return [
         formatCsvValue(customer.firstName),
         formatCsvValue(customer.lastName ?? ''),
@@ -78,6 +92,7 @@ export async function GET(request: NextRequest) {
         formatCsvValue(tagsValue),
         formatCsvValue(customer.isOptedIn ? 'Opted In' : 'Opted Out'),
         formatCsvValue(customer.notes ?? ''),
+        formatCsvValue(partnerName),
         formatCsvValue(customer.importedFrom ?? ''),
         formatCsvValue(customer.importedAt ? customer.importedAt.toISOString() : ''),
         formatCsvValue(customer.lastContactedAt ? customer.lastContactedAt.toISOString() : ''),

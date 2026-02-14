@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { upsertWhatsAppCustomers } from '@/lib/whatsapp-customers';
 import { parseWhatsAppCustomerCsv } from '@/lib/whatsapp-customer-csv';
+import prisma from '@/lib/prismadb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,9 +30,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Uploaded file is empty' }, { status: 400 });
     }
 
+    // Fetch associate partners to create name→ID mapping for CSV parsing
+    const partners = await prisma.associatePartner.findMany({
+      select: { id: true, name: true },
+    });
+    const partnerNameToIdMap = new Map<string, string>();
+    partners.forEach(p => {
+      partnerNameToIdMap.set(p.name, p.id);
+    });
+
     let parsed;
     try {
-      parsed = parseWhatsAppCustomerCsv(csvText, { sourceName: file.name });
+      parsed = parseWhatsAppCustomerCsv(csvText, {
+        sourceName: file.name,
+        partnerNameToIdMap,
+      });
       console.info('[whatsapp-import] CSV parsed', {
         totalRows: parsed.totalRows,
         validRows: parsed.validRows,

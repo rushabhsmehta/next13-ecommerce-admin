@@ -158,7 +158,7 @@ export function parseWhatsAppCustomerCsv(
     if (associatePartnerName && options.partnerNameToIdMap) {
       // Case-insensitive lookup
       const lowerName = associatePartnerName.toLowerCase();
-      for (const [name, id] of options.partnerNameToIdMap.entries()) {
+      for (const [name, id] of Array.from(options.partnerNameToIdMap.entries())) {
         if (name.toLowerCase() === lowerName) {
           associatePartnerId = id;
           break;

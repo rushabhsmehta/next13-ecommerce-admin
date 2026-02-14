@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/alert"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { PricingSplitDialog } from "./pricing-split-dialog"
+import { JsonImportExportDialog } from "./json-import-export-dialog"
 
 // TypeScript interfaces
 interface Location {
@@ -557,10 +558,20 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                   {selectedHotel.destination && ` • ${selectedHotel.destination.name}`}
                 </p>
               </div>
-              <Button onClick={handleAddNew} disabled={!!editingRow}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Pricing Period
-              </Button>
+              <div className="flex gap-2">
+                <JsonImportExportDialog
+                  hotelId={selectedHotelId}
+                  hotelName={selectedHotel.name}
+                  locationId={selectedHotel.locationId}
+                  locationName={selectedHotel.location.label}
+                  onImportSuccess={fetchPricingPeriods}
+                  disabled={!selectedHotelId}
+                />
+                <Button onClick={handleAddNew} disabled={!!editingRow}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Pricing Period
+                </Button>
+              </div>
             </div>
 
             <Card>

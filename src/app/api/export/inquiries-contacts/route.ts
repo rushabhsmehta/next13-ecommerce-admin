@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
+import { auth } from "@clerk/nextjs";
 import prismadb from '@/lib/prismadb';
+import { rateLimit } from '@/lib/rate-limit';
+
+const limiter = rateLimit('export');
 
 // Force dynamic rendering to prevent static generation errors
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
+    const limited = limiter.check(req);
+    if (limited) return limited;
+
+    const { userId } = auth();
+    if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
+
     console.log('[INQUIRIES_EXPORT] Starting export...');
     
     // Fetch all inquiries with customer details and associate partner info

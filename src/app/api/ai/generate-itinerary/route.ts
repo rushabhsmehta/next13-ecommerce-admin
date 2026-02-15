@@ -4,6 +4,9 @@ import { auth } from "@clerk/nextjs";
 import { z } from "zod";
 
 import { handleApi, jsonError } from "@/lib/api-response";
+import { rateLimit } from "@/lib/rate-limit";
+
+const limiter = rateLimit('expensive');
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +78,9 @@ Create a complete tour package based on the structured input provided. Output ON
 5. Consider the budget category when suggesting hotels and experiences`;
 
 export async function POST(req: Request) {
+    const limited = limiter.check(req);
+    if (limited) return limited;
+
     return handleApi(async () => {
         const { userId } = auth();
         if (!userId) {

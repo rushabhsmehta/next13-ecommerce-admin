@@ -5,7 +5,8 @@ import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, MapPinIcon, Check as CheckIcon, GripVertical, Calendar as CalendarIcon, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import JoditEditor from "jodit-react";
+import dynamic from "next/dynamic";
+const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse rounded-md bg-muted" /> });
 import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Added lookup types
 import { addDays, isValid, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";

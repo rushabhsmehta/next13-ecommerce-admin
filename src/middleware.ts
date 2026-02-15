@@ -7,13 +7,7 @@ export default authMiddleware({
     "/tourPackageQueryPDFGenerator/:path*",
     "/sign-in",
     "/sign-up",
-    // Remove ops routes from public routes to enforce Clerk authentication
-    // "/ops/:path*",
-    // "/login",
-    // Only make specific API routes public that don't need authentication
     "/api/auth/:path*",
-    "/api/debug-whatsapp",
-    "/api/public-debug",
     "/api/whatsapp/webhook",  // Only webhook is public for Meta callbacks
   ],
   
@@ -24,10 +18,10 @@ export default authMiddleware({
   ],
   
   async beforeAuth(req) {
-    const userAgent = req.headers.get("user-agent") || "";
-
-    // ✅ Allow Puppeteer (Headless Chrome) to bypass authentication
-    if (userAgent.includes("HeadlessChrome") || userAgent.includes("Puppeteer")) {
+    // Validate internal service token for headless PDF generation
+    // instead of trusting User-Agent strings which are trivially spoofable
+    const serviceToken = req.headers.get("x-internal-service-token");
+    if (serviceToken && serviceToken === process.env.INTERNAL_SERVICE_TOKEN) {
       return NextResponse.next();
     }
   },

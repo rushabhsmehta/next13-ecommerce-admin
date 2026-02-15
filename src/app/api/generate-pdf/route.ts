@@ -1,8 +1,23 @@
 import { generatePDF } from "@/utils/generatepdf";
 import { pdfCache } from "@/lib/pdf-cache";
+import { auth } from "@clerk/nextjs";
+import { rateLimit } from "@/lib/rate-limit";
+
+const limiter = rateLimit('expensive');
 
 export async function POST(req: Request): Promise<Response> {
   try {
+    const limited = limiter.check(req);
+    if (limited) return limited;
+
+    const { userId } = auth();
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "Unauthenticated" }),
+        { status: 403 }
+      );
+    }
+
   const { htmlContent, headerHtml, footerHtml, margin, scale }: { htmlContent: string; headerHtml?: string; footerHtml?: string; margin?: any; scale?: number } = await req.json();
 
     if (!htmlContent) {

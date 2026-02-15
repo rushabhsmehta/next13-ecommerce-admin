@@ -1,14 +1,15 @@
 "use client"
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import dynamic from "next/dynamic";
 
 interface OverviewProps {
   data: any[]
 };
 
-export const Overview: React.FC<OverviewProps> = ({
+const OverviewContent: React.FC<OverviewProps> = ({
   data
 }) => {
+  const { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } = require("recharts");
   return (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={data}>
@@ -24,7 +25,7 @@ export const Overview: React.FC<OverviewProps> = ({
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `₹ ${value}`}
+          tickFormatter={(value: number) => `₹ ${value}`}
         />
         <Bar dataKey="total" fill="#3498db" radius={[4, 4, 0, 0]} />
       </BarChart>
@@ -32,3 +33,7 @@ export const Overview: React.FC<OverviewProps> = ({
   )
 };
 
+export const Overview = dynamic(
+  () => Promise.resolve(OverviewContent),
+  { ssr: false, loading: () => <div className="h-[350px] w-full animate-pulse rounded-md bg-muted" /> }
+);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface AssociatePartner {
   id: string;
@@ -8,78 +8,78 @@ interface AssociatePartner {
   [key: string]: any;
 }
 
-// Create a module-level cache to avoid duplicate requests
+// Module-level cache for the fetched data
 let cachedAssociatePartner: AssociatePartner | null = null;
-let isLoadingGlobal = false;
-let listeners: Array<(data: AssociatePartner | null) => void> = [];
+let fetchPromise: Promise<AssociatePartner | null> | null = null;
+
+/** Reset cached state on logout or domain change */
+export function clearAssociatePartnerCache() {
+  cachedAssociatePartner = null;
+  fetchPromise = null;
+}
 
 export function useAssociatePartner() {
-  const [isAssociatePartner, setIsAssociatePartner] = useState<boolean>(false);
+  const [isAssociatePartner, setIsAssociatePartner] = useState<boolean>(!!cachedAssociatePartner);
   const [associatePartner, setAssociatePartner] = useState<AssociatePartner | null>(cachedAssociatePartner);
-  const [isLoading, setIsLoading] = useState<boolean>(isLoadingGlobal);
+  const [isLoading, setIsLoading] = useState<boolean>(!cachedAssociatePartner);
   const [error, setError] = useState<Error | null>(null);
-  useEffect(() => {
-    // Add this component as a listener for updates
-    const updateData = (data: AssociatePartner | null) => {
-      setAssociatePartner(data);
-      setIsAssociatePartner(!!data);
-    };
-    
-    listeners.push(updateData);
+  const mountedRef = useRef(true);
 
-    // If data is already loaded or being loaded, use it
+  useEffect(() => {
+    mountedRef.current = true;
+
+    // Already have data
     if (cachedAssociatePartner) {
       setAssociatePartner(cachedAssociatePartner);
-      setIsAssociatePartner(!!cachedAssociatePartner);
+      setIsAssociatePartner(true);
+      setIsLoading(false);
       return;
     }
 
-    // Only fetch if no one else is currently fetching
-    if (!isLoadingGlobal) {
-      isLoadingGlobal = true;
-      setIsLoading(true);
+    // Check if we're on an associate domain
+    const hostname = window.location.hostname;
+    if (!hostname.includes('associate.aagamholidays.com')) {
+      setIsLoading(false);
+      return;
+    }
 
-      // Check if we're on an associate domain
-      const hostname = window.location.hostname;
-      const isAssociate = hostname.includes('associate.aagamholidays.com');
-      
-      if (!isAssociate) {
-        isLoadingGlobal = false;
-        setIsLoading(false);
-        return;
-      }
-
-      fetch('/api/associate-partners/me')
-        .then(response => {
-          if (response.ok) return response.json();
-          return null;
-        })
+    // Deduplicate concurrent requests using a shared promise
+    if (!fetchPromise) {
+      fetchPromise = fetch('/api/associate-partners/me')
+        .then(response => (response.ok ? response.json() : null))
         .then(data => {
           cachedAssociatePartner = data;
-          // Notify all listeners
-          listeners.forEach(listener => listener(data));
-          setIsAssociatePartner(!!data);
-          setIsLoading(false);
-          isLoadingGlobal = false;
+          return data;
         })
         .catch(err => {
           console.error("Error fetching associate details:", err);
-          setError(err);
-          setIsLoading(false);
-          isLoadingGlobal = false;
+          fetchPromise = null; // allow retry on error
+          throw err;
         });
     }
 
-    // Cleanup: remove the listener when the component unmounts
+    fetchPromise
+      .then(data => {
+        if (!mountedRef.current) return;
+        setAssociatePartner(data);
+        setIsAssociatePartner(!!data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        if (!mountedRef.current) return;
+        setError(err);
+        setIsLoading(false);
+      });
+
     return () => {
-      listeners = listeners.filter(listener => listener !== updateData);
+      mountedRef.current = false;
     };
   }, []);
 
-  return { 
-    isAssociatePartner, 
-    associatePartner, 
-    isLoading, 
+  return {
+    isAssociatePartner,
+    associatePartner,
+    isLoading,
     error
   };
 }

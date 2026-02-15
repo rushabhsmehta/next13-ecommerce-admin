@@ -10,7 +10,8 @@ import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle
 import { Activity, Images, ItineraryMaster, TourPackageQuery } from "@prisma/client"
 import { Location, Hotel, TourPackage, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
-import JoditEditor from "jodit-react";
+import dynamic from "next/dynamic";
+const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse rounded-md bg-muted" /> });
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"

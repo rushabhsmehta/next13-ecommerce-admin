@@ -106,6 +106,9 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    const { userId } = auth();
+    if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
+
     // Get search params for filtering
     const { searchParams } = new URL(req.url);
     const associatePartnerId = searchParams.get('associatePartnerId');
@@ -123,7 +126,7 @@ export async function GET(req: Request) {
         createdAt: 'desc'
       }
     });
-    
+
     return NextResponse.json(customers);
   } catch (error) {
     console.log("[CUSTOMERS_GET]", error);

@@ -95,8 +95,8 @@ model Hotel {
   link                 String?               @db.Text
   destinationId        String?
   images               Images[]
-  location             Location              @relation(fields: [locationId], references: [id])
-  destination          TourDestination?      @relation(fields: [destinationId], references: [id])
+  location             Location              @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  destination          TourDestination?      @relation(fields: [destinationId], references: [id], onDelete: SetNull)
   itineraries          Itinerary[]           @relation("ItineraryToHotel")
   itinerariesMaster    ItineraryMaster[]     @relation("ItineraryMasterToHotel")
   seasonalPricing      HotelPricing[]
@@ -174,9 +174,9 @@ model HotelPricing {
   occupancyTypeId String?
   roomTypeId      String?
   hotel           Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  roomType        RoomType?      @relation(fields: [roomTypeId], references: [id])
-  occupancyType   OccupancyType? @relation(fields: [occupancyTypeId], references: [id])
-  mealPlan        MealPlan?      @relation(fields: [mealPlanId], references: [id])
+  roomType        RoomType?      @relation(fields: [roomTypeId], references: [id], onDelete: SetNull)
+  occupancyType   OccupancyType? @relation(fields: [occupancyTypeId], references: [id], onDelete: SetNull)
+  mealPlan        MealPlan?      @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
 
   @@index([hotelId])
   @@index([roomTypeId])
@@ -463,6 +463,7 @@ model PaymentDetail {
   @@index([saleReturnId])
   @@index([tourPackageQueryId])
   @@index([tdsTransactionId])
+  @@index([paymentDate])
 }
 
 model SaleDetail {
@@ -546,6 +547,7 @@ model ReceiptDetail {
   @@index([supplierId])
   @@index([purchaseReturnId])
   @@index([tourPackageQueryId])
+  @@index([receiptDate])
 }
 
 model ExpenseDetail {
@@ -582,6 +584,7 @@ model ExpenseDetail {
   @@index([isAccrued])
   @@index([tdsMasterId])
   @@index([tdsChallanId])
+  @@index([expenseDate])
 }
 
 model FlightDetails {
@@ -1107,6 +1110,7 @@ model IncomeDetail {
   @@index([tourPackageQueryId])
   @@index([bankAccountId])
   @@index([cashAccountId])
+  @@index([incomeDate])
 }
 
 model IncomeCategory {

@@ -3,7 +3,8 @@ import { useState, useRef } from "react";
 import { Control } from "react-hook-form";
 import { FileText, ChevronDown, CheckIcon, BedIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import JoditEditor from "jodit-react";
+import dynamic from "next/dynamic";
+const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse rounded-md bg-muted" /> });
 import { AssociatePartner, TourPackage, TourPackageQuery } from "@prisma/client";
 
 import {

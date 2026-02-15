@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Control, useWatch } from "react-hook-form";
 import { Hotel, Images, PackageVariant, VariantHotelMapping, Itinerary, TourPackagePricing, PricingComponent, PricingAttribute, MealPlan, VehicleType, LocationSeasonalPeriod } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +77,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const queryItineraries = useWatch({ control, name: "itineraries" }) as any[] | undefined;
   const queryStartDate = useWatch({ control, name: "tourStartsFrom" });
   const queryEndDate = useWatch({ control, name: "tourEndsOn" });
+  const savedVariantPricingData = useWatch({ control, name: "variantPricingData" }) as Record<string, any> | undefined;
 
   const [editingMapping, setEditingMapping] = useState<string | null>(null);
   const [tempHotelId, setTempHotelId] = useState<string>("");
@@ -97,6 +98,44 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [variantPricingItems, setVariantPricingItems] = useState<Record<string, { name: string; price: string; description: string }[]>>({});
   const [variantTotalPrices, setVariantTotalPrices] = useState<Record<string, string>>({});
   const [variantRemarks, setVariantRemarks] = useState<Record<string, string>>({});
+
+  // Hydrate state from saved form data when component mounts or when variants change
+  useEffect(() => {
+    if (savedVariantPricingData && selectedVariantIds && selectedVariantIds.length > 0) {
+      const newPricingItems: Record<string, { name: string; price: string; description: string }[]> = {};
+      const newTotalPrices: Record<string, string> = {};
+      const newRemarks: Record<string, string> = {};
+
+      selectedVariantIds.forEach(variantId => {
+        const savedData = savedVariantPricingData[variantId];
+        if (savedData) {
+          // Hydrate pricing items (components)
+          if (Array.isArray(savedData.components) && savedData.components.length > 0) {
+            newPricingItems[variantId] = savedData.components;
+          }
+          // Hydrate total price
+          if (typeof savedData.totalCost === 'number' && Number.isFinite(savedData.totalCost)) {
+            newTotalPrices[variantId] = savedData.totalCost.toString();
+          }
+          // Hydrate remarks
+          if (typeof savedData.remarks === 'string' && savedData.remarks.trim() !== '') {
+            newRemarks[variantId] = savedData.remarks;
+          }
+        }
+      });
+
+      // Only update if we have data to hydrate
+      if (Object.keys(newPricingItems).length > 0) {
+        setVariantPricingItems(prev => ({ ...prev, ...newPricingItems }));
+      }
+      if (Object.keys(newTotalPrices).length > 0) {
+        setVariantTotalPrices(prev => ({ ...prev, ...newTotalPrices }));
+      }
+      if (Object.keys(newRemarks).length > 0) {
+        setVariantRemarks(prev => ({ ...prev, ...newRemarks }));
+      }
+    }
+  }, [savedVariantPricingData, selectedVariantIds]);
 
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
@@ -591,17 +630,39 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
   // Sync variant pricing items and total back to form data
   const syncVariantPricingToForm = (variantId: string) => {
-    const items = variantPricingItems[variantId] || [];
-    const totalPrice = variantTotalPrices[variantId] || '0';
     const currentPricingData = form.getValues('variantPricingData') || {};
     const existingData = currentPricingData[variantId] || {};
+
+    // For items: Check if state is defined (not undefined). If defined, use it (even if empty array).
+    // If undefined, fall back to existing saved data.
+    const stateItems = variantPricingItems[variantId];
+    const items = stateItems !== undefined
+      ? stateItems
+      : (Array.isArray(existingData.components) ? existingData.components : []);
+
+    // For totalPrice: Similar logic - if state is defined, use it; otherwise fall back
+    const stateTotalPrice = variantTotalPrices[variantId];
+    const parsedStateTotal = stateTotalPrice && stateTotalPrice.trim() !== '' ? parseFloat(stateTotalPrice) : NaN;
+    const totalCost = stateTotalPrice !== undefined && Number.isFinite(parsedStateTotal)
+      ? parsedStateTotal
+      : (typeof existingData.totalCost === 'number' && Number.isFinite(existingData.totalCost)
+          ? existingData.totalCost
+          : 0);
+
+    // For remarks: Check if state is defined (not undefined). If defined, use it (even if empty string).
+    // If undefined, fall back to existing saved remarks.
+    const stateRemarks = variantRemarks[variantId];
+    const remarks = stateRemarks !== undefined
+      ? stateRemarks
+      : (typeof existingData.remarks === 'string' ? existingData.remarks : '');
+
     form.setValue('variantPricingData', {
       ...currentPricingData,
       [variantId]: {
         ...existingData,
         components: items,
-        totalCost: parseFloat(totalPrice) || 0,
-        remarks: variantRemarks[variantId] || '',
+        totalCost,
+        remarks,
         updatedAt: new Date().toISOString()
       }
     });
@@ -884,7 +945,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
               {/* Hotels Tab */}
               <TabsContent value="hotels" className="mt-4">
                 <Card className="shadow-sm border border-slate-200/70">
-                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-25 to-transparent">
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-100 to-transparent">
                     <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                       <HotelIcon className="h-4 w-4 text-blue-600" />
                       Hotel Mappings ({variant.variantHotelMappings.length})
@@ -2039,7 +2100,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
                 {/* Pricing Breakdown Section - Always visible and editable */}
                 <Card className="shadow-sm border border-slate-200/70 mt-4">
-                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-25 to-transparent">
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-100 to-transparent">
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                         <Receipt className="h-4 w-4 text-blue-600" />

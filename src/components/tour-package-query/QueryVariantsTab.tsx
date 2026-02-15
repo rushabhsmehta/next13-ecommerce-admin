@@ -109,31 +109,25 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       selectedVariantIds.forEach(variantId => {
         const savedData = savedVariantPricingData[variantId];
         if (savedData) {
-          // Hydrate pricing items (components)
-          if (Array.isArray(savedData.components) && savedData.components.length > 0) {
+          // Hydrate pricing items (components) - include empty arrays to maintain consistency with sync logic
+          if (Array.isArray(savedData.components)) {
             newPricingItems[variantId] = savedData.components;
           }
-          // Hydrate total price
+          // Hydrate total price - include zero values
           if (typeof savedData.totalCost === 'number' && Number.isFinite(savedData.totalCost)) {
             newTotalPrices[variantId] = savedData.totalCost.toString();
           }
-          // Hydrate remarks
-          if (typeof savedData.remarks === 'string' && savedData.remarks.trim() !== '') {
+          // Hydrate remarks - include empty strings to allow cleared remarks
+          if (typeof savedData.remarks === 'string') {
             newRemarks[variantId] = savedData.remarks;
           }
         }
       });
 
-      // Only update if we have data to hydrate
-      if (Object.keys(newPricingItems).length > 0) {
-        setVariantPricingItems(prev => ({ ...prev, ...newPricingItems }));
-      }
-      if (Object.keys(newTotalPrices).length > 0) {
-        setVariantTotalPrices(prev => ({ ...prev, ...newTotalPrices }));
-      }
-      if (Object.keys(newRemarks).length > 0) {
-        setVariantRemarks(prev => ({ ...prev, ...newRemarks }));
-      }
+      // Replace state entirely for selected variants (don't spread to avoid stale data)
+      setVariantPricingItems(newPricingItems);
+      setVariantTotalPrices(newTotalPrices);
+      setVariantRemarks(newRemarks);
     }
   }, [savedVariantPricingData, selectedVariantIds]);
 

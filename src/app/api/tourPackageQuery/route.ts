@@ -630,6 +630,9 @@ export async function GET(
         const associatePartnerId = searchParams.get('associatePartnerId') || undefined;  // Add this line
         //  const hotelId = searchParams.get('hotelId') || undefined;
         const isFeatured = searchParams.get('isFeatured');
+        const summaryParam = searchParams.get('summary');
+        const summary = summaryParam ? ['true', '1'].includes(summaryParam.toLowerCase()) : false;
+
         // Pagination params (page starts at 1)
         const pageParam = searchParams.get('page');
         const pageSizeParam = searchParams.get('pageSize');
@@ -642,6 +645,33 @@ export async function GET(
             isFeatured: isFeatured ? true : undefined,
             isArchived: false,
         };
+
+        // Summary mode: return lightweight list for dropdowns/selectors
+        if (summary) {
+            const queries = await prismadb.tourPackageQuery.findMany({
+                where: whereClause,
+                select: {
+                    id: true,
+                    tourPackageQueryName: true,
+                    tourPackageQueryType: true,
+                    numDaysNight: true,
+                    customerName: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+                orderBy: { updatedAt: 'desc' },
+            });
+
+            const summaries = queries.map((q) => ({
+                id: q.id,
+                tourPackageName: q.tourPackageQueryName,
+                tourPackageType: q.tourPackageQueryType || '',
+                numDaysNight: q.numDaysNight || '',
+                customerName: q.customerName || '',
+            }));
+
+            return NextResponse.json(summaries);
+        }
 
         // Count total for pagination (only if client requests pagination explicitly via page/pageSize param or defaults)
         const total = await prismadb.tourPackageQuery.count({ where: whereClause });

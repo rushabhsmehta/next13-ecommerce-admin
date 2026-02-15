@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,13 +31,17 @@ import {
     FileText,
     Eye,
     Pencil,
-    RotateCcw
+    RotateCcw,
+    Package,
+    PlusCircle,
+    RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Form schema for Step 1
 const wizardFormSchema = z.object({
     destination: z.string().min(1, "Please select a destination"),
+    selectedTourPackageId: z.string().optional(),
     nights: z.number().min(1, "Minimum 1 night").max(30, "Maximum 30 nights"),
     days: z.number().min(1, "Minimum 1 day").max(31, "Maximum 31 days"),
     groupType: z.enum(["family", "couple", "friends", "solo", "corporate", "seniors"]),
@@ -55,6 +59,13 @@ type WizardFormValues = z.infer<typeof wizardFormSchema>;
 interface Location {
     id: string;
     label: string;
+}
+
+interface TourPackageSummary {
+    id: string;
+    tourPackageName: string;
+    tourPackageType: string;
+    numDaysNight: string;
 }
 
 interface AIPackageWizardProps {
@@ -118,6 +129,10 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
     const router = useRouter();
     const { toast } = useToast();
 
+    // Tour package selection state
+    const [locationPackages, setLocationPackages] = useState<TourPackageSummary[]>([]);
+    const [isLoadingPackages, setIsLoadingPackages] = useState(false);
+
     // Refinement State
     const [refinementInput, setRefinementInput] = useState("");
     const [isRefining, setIsRefining] = useState(false);
@@ -126,6 +141,7 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
         resolver: zodResolver(wizardFormSchema),
         defaultValues: {
             destination: "",
+            selectedTourPackageId: "",
             nights: 3,
             days: 4,
             groupType: "family",
@@ -143,6 +159,45 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
     useEffect(() => {
         form.setValue("days", nights + 1);
     }, [nights, form]);
+
+    // Fetch tour packages when destination changes
+    const destination = form.watch("destination");
+    const fetchPackagesForLocation = useCallback(async (locationId: string) => {
+        if (!locationId) {
+            setLocationPackages([]);
+            return;
+        }
+        setIsLoadingPackages(true);
+        try {
+            const apiPath = mode === "tourPackageQuery"
+                ? `/api/tourPackageQuery?locationId=${locationId}&summary=true`
+                : `/api/tourPackages?locationId=${locationId}&summary=true`;
+            const response = await fetch(apiPath);
+            if (response.ok) {
+                const data = await response.json();
+                const packages: TourPackageSummary[] = data.map((pkg: any) => ({
+                    id: pkg.id,
+                    tourPackageName: pkg.tourPackageName || pkg.tourPackageQueryName || "Untitled",
+                    tourPackageType: pkg.tourPackageType || "",
+                    numDaysNight: pkg.numDaysNight || "",
+                }));
+                setLocationPackages(packages);
+            }
+        } catch (error) {
+            console.error("[AI_WIZARD] Failed to fetch packages:", error);
+        } finally {
+            setIsLoadingPackages(false);
+        }
+    }, [mode]);
+
+    useEffect(() => {
+        // Reset selected package when destination changes
+        form.setValue("selectedTourPackageId", "");
+        fetchPackagesForLocation(destination);
+    }, [destination, fetchPackagesForLocation, form]);
+
+    const selectedTourPackageId = form.watch("selectedTourPackageId");
+    const selectedPackage = locationPackages.find(p => p.id === selectedTourPackageId);
 
     const handleGenerate = async (values: WizardFormValues) => {
         setIsGenerating(true);
@@ -212,7 +267,6 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
         const selectedLocationId = form.getValues("destination");
 
         // Store in localStorage for the form to pick up
-        // Use "autoQueryDraft" to match what the form expects
         const draftKey = mode === "tourPackageQuery" ? "autoQueryDraft" : "aiPackageWizardDraft";
         localStorage.setItem(draftKey, JSON.stringify({
             timestamp: new Date().toISOString(),
@@ -225,7 +279,7 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
 
         toast({
             title: "Draft Ready",
-            description: "Redirecting to complete your package...",
+            description: "Redirecting to create a new package...",
         });
 
         // Navigate to create page
@@ -233,6 +287,35 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
             router.push("/tourPackageQuery/new");
         } else {
             router.push("/tourPackages/new");
+        }
+    };
+
+    const handleApplyToExisting = () => {
+        if (!generatedData || !selectedTourPackageId) return;
+
+        const selectedLocationId = form.getValues("destination");
+
+        // Store in localStorage with a special key for "apply to existing" mode
+        const draftKey = mode === "tourPackageQuery" ? "aiApplyToQueryDraft" : "aiApplyToPackageDraft";
+        localStorage.setItem(draftKey, JSON.stringify({
+            timestamp: new Date().toISOString(),
+            locationId: selectedLocationId,
+            data: {
+                ...generatedData,
+                locationId: selectedLocationId,
+            },
+        }));
+
+        toast({
+            title: "Applying AI Itinerary",
+            description: `Redirecting to update "${selectedPackage?.tourPackageName}"...`,
+        });
+
+        // Navigate to the existing package's edit page
+        if (mode === "tourPackageQuery") {
+            router.push(`/tourPackageQuery/${selectedTourPackageId}`);
+        } else {
+            router.push(`/tourPackages/${selectedTourPackageId}`);
         }
     };
 
@@ -343,6 +426,84 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
                                 </FormItem>
                             )}
                         />
+
+                        {/* Tour Package Selection (filtered by location) */}
+                        {destination && (
+                            <FormField
+                                control={form.control}
+                                name="selectedTourPackageId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="flex items-center gap-2">
+                                            <Package className="h-4 w-4" /> Existing {mode === "tourPackageQuery" ? "Query" : "Tour Package"} (Optional)
+                                        </FormLabel>
+                                        <FormDescription className="text-xs">
+                                            Select an existing {mode === "tourPackageQuery" ? "query" : "package"} to apply the AI-generated itinerary to, or leave empty to create a new one.
+                                        </FormDescription>
+                                        {isLoadingPackages ? (
+                                            <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <span className="text-sm text-muted-foreground">Loading packages...</span>
+                                            </div>
+                                        ) : locationPackages.length === 0 ? (
+                                            <div className="p-3 border rounded-lg bg-muted/50">
+                                                <p className="text-sm text-muted-foreground">
+                                                    No existing {mode === "tourPackageQuery" ? "queries" : "packages"} found for this destination. A new one will be created.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <FormControl>
+                                                <Select
+                                                    value={field.value || ""}
+                                                    onValueChange={field.onChange}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={`Select a ${mode === "tourPackageQuery" ? "query" : "package"} or leave empty for new...`} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="__none__">
+                                                            <span className="flex items-center gap-2">
+                                                                <PlusCircle className="h-4 w-4" /> Create New {mode === "tourPackageQuery" ? "Query" : "Package"}
+                                                            </span>
+                                                        </SelectItem>
+                                                        {locationPackages.map((pkg) => (
+                                                            <SelectItem key={pkg.id} value={pkg.id}>
+                                                                <div className="flex flex-col">
+                                                                    <span>{pkg.tourPackageName}</span>
+                                                                    {pkg.numDaysNight && (
+                                                                        <span className="text-xs text-muted-foreground">{pkg.numDaysNight} | {pkg.tourPackageType}</span>
+                                                                    )}
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormControl>
+                                        )}
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+
+                        {/* Selected Package Info */}
+                        {selectedPackage && (
+                            <Card className="bg-blue-50 border-blue-200">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 text-blue-800">
+                                        <Package className="h-4 w-4" />
+                                        <span className="text-sm font-medium">
+                                            AI itinerary will be applied to: <strong>{selectedPackage.tourPackageName}</strong>
+                                        </span>
+                                    </div>
+                                    {selectedPackage.numDaysNight && (
+                                        <p className="text-xs text-blue-600 mt-1 ml-6">
+                                            {selectedPackage.numDaysNight} | {selectedPackage.tourPackageType}
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Duration */}
                         <div className="grid grid-cols-2 gap-4">
@@ -585,6 +746,8 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
     const renderStep3 = () => {
         if (!generatedData) return null;
 
+        const entityLabel = mode === "tourPackageQuery" ? "Query" : "Package";
+
         return (
             <div className="space-y-6">
                 {/* Header Card */}
@@ -718,14 +881,49 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
                 </Card>
 
                 {/* Action Buttons */}
-                <div className="flex gap-4">
-                    <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
-                        <Pencil className="h-4 w-4" /> Start Over
-                    </Button>
-                    <Button onClick={handleCreateDraft} className="flex-1 gap-2" disabled={isRefining}>
-                        <CheckCircle2 className="h-4 w-4" /> Create {mode === "tourPackageQuery" ? "Query" : "Package"} Draft
-                    </Button>
-                </div>
+                <Card className="border-2">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-lg">What would you like to do?</CardTitle>
+                        <CardDescription>
+                            {selectedPackage
+                                ? `You selected "${selectedPackage.tourPackageName}". You can apply this AI itinerary to it or create a new ${entityLabel.toLowerCase()}.`
+                                : `Create a new ${entityLabel.toLowerCase()} from this AI-generated itinerary.`
+                            }
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {/* Apply to Existing Package Button */}
+                        {selectedPackage && (
+                            <Button
+                                onClick={handleApplyToExisting}
+                                className="w-full gap-2"
+                                disabled={isRefining}
+                                variant="default"
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                                Apply to &quot;{selectedPackage.tourPackageName}&quot;
+                            </Button>
+                        )}
+
+                        {/* Create New Package Button */}
+                        <Button
+                            onClick={handleCreateDraft}
+                            className="w-full gap-2"
+                            disabled={isRefining}
+                            variant={selectedPackage ? "outline" : "default"}
+                        >
+                            <PlusCircle className="h-4 w-4" />
+                            Create New {entityLabel}
+                        </Button>
+
+                        <Separator />
+
+                        {/* Start Over Button */}
+                        <Button variant="ghost" onClick={() => setStep(1)} className="w-full gap-2">
+                            <Pencil className="h-4 w-4" /> Start Over
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     };

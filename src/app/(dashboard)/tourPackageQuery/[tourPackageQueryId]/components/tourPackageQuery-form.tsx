@@ -710,6 +710,64 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData, form, locations]);
 
+  // Auto-load AI draft in edit mode (apply to existing query)
+  useEffect(() => {
+    const loadApplyDraft = () => {
+      // Only run if we are in "edit" mode (initialData exists)
+      if (!initialData) return;
+
+      const draftKey = 'aiApplyToQueryDraft';
+      const storedDraft = localStorage.getItem(draftKey);
+
+      if (!storedDraft) return;
+
+      try {
+        const { data, locationId } = JSON.parse(storedDraft);
+        console.log("[AI_WIZARD] Applying AI draft to existing query:", data);
+
+        // Get current form values to preserve existing data
+        const currentValues = form.getValues();
+        const resolvedLocationId = locationId || currentValues.locationId;
+
+        // Apply AI-generated itinerary data while preserving existing query metadata
+        form.setValue('tourPackageQueryName', data.tourPackageName || currentValues.tourPackageQueryName);
+        form.setValue('tourCategory', data.tourCategory || currentValues.tourCategory);
+        form.setValue('numDaysNight', data.numDaysNight || currentValues.numDaysNight);
+        form.setValue('transport', data.transport || currentValues.transport);
+        form.setValue('pickup_location', data.pickup_location || currentValues.pickup_location);
+        form.setValue('drop_location', data.drop_location || currentValues.drop_location);
+
+        // Replace itineraries with AI-generated ones
+        const mappedItineraries = Array.isArray(data.itineraries) ? data.itineraries.map((day: any) => ({
+          dayNumber: day.dayNumber,
+          itineraryTitle: day.itineraryTitle || '',
+          itineraryDescription: day.itineraryDescription || '',
+          mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [],
+          activities: mapActivities(day.activities),
+          itineraryImages: [],
+          hotelId: '',
+          locationId: resolvedLocationId,
+          roomAllocations: [],
+          transportDetails: []
+        })) : [];
+
+        form.setValue('itineraries', mappedItineraries);
+
+        toast.success("Applied AI-generated itinerary to this query. Review and save when ready.");
+
+        // Clear the draft so it doesn't persist
+        localStorage.removeItem(draftKey);
+
+      } catch (err) {
+        console.error("[AI_WIZARD] Failed to apply draft:", err);
+        toast.error("Failed to apply AI-generated draft");
+      }
+    };
+
+    loadApplyDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData, form]);
+
   // Auto-save form data to localStorage every 30 seconds - moved after form initialization
   useEffect(() => {
     // Don't auto-save if we're in loading state

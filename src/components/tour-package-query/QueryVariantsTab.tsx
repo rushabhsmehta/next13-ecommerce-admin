@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target } from "lucide-react";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
@@ -93,6 +93,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [variantPriceCalculationResults, setVariantPriceCalculationResults] = useState<Record<string, any>>({});
   const [variantMarkupValues, setVariantMarkupValues] = useState<Record<string, string>>({});
   const [variantPricingTiers, setVariantPricingTiers] = useState<Record<string, 'standard' | 'premium' | 'luxury' | 'custom'>>({});
+  // Pricing breakdown items (always-visible, editable), total price, and remarks per variant
+  const [variantPricingItems, setVariantPricingItems] = useState<Record<string, { name: string; price: string; description: string }[]>>({});
+  const [variantTotalPrices, setVariantTotalPrices] = useState<Record<string, string>>({});
+  const [variantRemarks, setVariantRemarks] = useState<Record<string, string>>({});
 
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
@@ -283,6 +287,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       }
     });
 
+    // Also update the always-visible pricing breakdown and total
+    setVariantPricingItems(prev => ({ ...prev, [variantId]: finalComponents }));
+    setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalPrice.toString() }));
+
     toast.success(`Applied ${components.length} component${components.length !== 1 ? 's' : ''} successfully!`);
   };
 
@@ -325,6 +333,11 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         calculatedAt: new Date().toISOString()
       }
     });
+
+    // Also update the always-visible pricing breakdown and total
+    setVariantPricingItems(prev => ({ ...prev, [variantId]: items }));
+    setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalPrice.toString() }));
+
     toast.success("Manual pricing applied successfully!");
   };
 
@@ -392,6 +405,35 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         }
       });
 
+      // Also update the always-visible pricing breakdown and total
+      if (result && typeof result === 'object') {
+        const totalCost = result.totalCost || 0;
+        const pricingItems: { name: string; price: string; description: string }[] = [];
+        pricingItems.push({
+          name: 'Total Cost',
+          price: totalCost.toString(),
+          description: 'Total package cost with markup'
+        });
+        if (result.breakdown && typeof result.breakdown === 'object') {
+          const accommodationCost = result.breakdown.accommodation || 0;
+          pricingItems.push({
+            name: 'Accommodation',
+            price: accommodationCost.toString(),
+            description: 'Hotel room costs'
+          });
+          const transportCost = result.breakdown.transport || 0;
+          if (transportCost > 0) {
+            pricingItems.push({
+              name: 'Transport',
+              price: transportCost.toString(),
+              description: 'Vehicle costs'
+            });
+          }
+        }
+        setVariantPricingItems(prev => ({ ...prev, [variantId]: pricingItems }));
+        setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalCost.toString() }));
+      }
+
       toast.success("Variant price calculation complete!");
     } catch (error: any) {
       toast.dismiss();
@@ -405,6 +447,164 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     setVariantMarkupValues(prev => ({ ...prev, [variantId]: '0' }));
     setVariantPricingTiers(prev => ({ ...prev, [variantId]: 'standard' }));
     toast.success("Pricing calculation reset");
+  };
+
+  // Legacy: Fetch & Apply All Components directly for a variant
+  const handleFetchAndApplyAllComponents = async (variantId: string) => {
+    const baseTourPackageId = selectedTourPackageId;
+    if (!baseTourPackageId) {
+      toast.error("Tour package not found.");
+      return;
+    }
+
+    const mealPlanId = variantMealPlanIds[variantId];
+    if (!mealPlanId) {
+      toast.error("Please select a Meal Plan first.");
+      return;
+    }
+
+    const roomCount = variantRoomCounts[variantId] || 1;
+    if (roomCount <= 0) {
+      toast.error("Number of rooms must be greater than 0.");
+      return;
+    }
+
+    if (!queryStartDate || !queryEndDate) {
+      toast.error("Please select tour start and end dates in the Dates tab.");
+      return;
+    }
+
+    toast.loading("Fetching and matching tour package pricing...");
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('packageVariantId', variantId);
+      queryParams.append('includeGlobal', '1');
+
+      const requestUrl = `/api/tourPackages/${baseTourPackageId}/pricing?${queryParams.toString()}`;
+      const response = await axios.get(requestUrl);
+      const tourPackagePricings = response.data;
+      toast.dismiss();
+
+      if (!tourPackagePricings || tourPackagePricings.length === 0) {
+        toast.error("No pricing periods found for this variant.");
+        return;
+      }
+
+      const matchedPricings = tourPackagePricings.filter((p: any) => {
+        const periodStart = utcToLocal(p.startDate) || new Date(p.startDate);
+        const periodEnd = utcToLocal(p.endDate) || new Date(p.endDate);
+        const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
+        const isMealPlanMatch = p.mealPlanId === mealPlanId;
+        const isRoomMatch = p.numberOfRooms === roomCount;
+        return isDateMatch && isMealPlanMatch && isRoomMatch;
+      });
+
+      if (matchedPricings.length === 0) {
+        toast.error(`No matching pricing period found for ${roomCount} room${roomCount > 1 ? 's' : ''} with selected meal plan.`);
+        return;
+      }
+
+      if (matchedPricings.length > 1) {
+        toast.error("Multiple pricing periods match. Please refine criteria.");
+        return;
+      }
+
+      const selectedPricing = matchedPricings[0];
+      const finalComponents: { name: string; price: string; description: string }[] = [];
+      let totalPrice = 0;
+
+      if (selectedPricing.pricingComponents && selectedPricing.pricingComponents.length > 0) {
+        selectedPricing.pricingComponents.forEach((comp: any) => {
+          const componentName = comp.pricingAttribute?.name || 'Pricing Component';
+          const basePrice = parseFloat(comp.price || '0');
+          const occupancyMultiplier = getOccupancyMultiplier(componentName);
+          const totalComponentPrice = basePrice * occupancyMultiplier * roomCount;
+
+          finalComponents.push({
+            name: componentName,
+            price: basePrice.toString(),
+            description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${roomCount} room${roomCount > 1 ? 's' : ''} = ₹${totalComponentPrice.toFixed(2)}`
+          });
+
+          totalPrice += totalComponentPrice;
+        });
+      }
+
+      if (finalComponents.length === 0) {
+        finalComponents.push({
+          name: 'Tour Package Price',
+          price: '0',
+          description: `Package price for ${roomCount} room${roomCount > 1 ? 's' : ''}`
+        });
+      }
+
+      const currentPricingData = form.getValues('variantPricingData') || {};
+      form.setValue('variantPricingData', {
+        ...currentPricingData,
+        [variantId]: {
+          calculationMethod: 'useTourPackagePricing',
+          components: finalComponents,
+          totalCost: totalPrice,
+          calculatedAt: new Date().toISOString()
+        }
+      });
+
+      // Also update the always-visible pricing breakdown and total
+      setVariantPricingItems(prev => ({ ...prev, [variantId]: finalComponents }));
+      setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalPrice.toString() }));
+
+      toast.success("Tour package pricing applied successfully!");
+    } catch (error) {
+      toast.dismiss();
+      console.error("Error fetching/applying tour package pricing:", error);
+      toast.error("Failed to fetch or apply tour package pricing.");
+    }
+  };
+
+  // Helper functions for variant pricing breakdown items
+  const handleAddVariantPricingItem = (variantId: string, insertAtIndex?: number) => {
+    const newItem = { name: '', price: '', description: '' };
+    setVariantPricingItems(prev => {
+      const items = prev[variantId] || [];
+      if (insertAtIndex !== undefined) {
+        const newItems = [...items];
+        newItems.splice(insertAtIndex + 1, 0, newItem);
+        return { ...prev, [variantId]: newItems };
+      }
+      return { ...prev, [variantId]: [...items, newItem] };
+    });
+  };
+
+  const handleRemoveVariantPricingItem = (variantId: string, index: number) => {
+    setVariantPricingItems(prev => ({
+      ...prev,
+      [variantId]: (prev[variantId] || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleUpdateVariantPricingItem = (variantId: string, index: number, field: 'name' | 'price' | 'description', value: string) => {
+    setVariantPricingItems(prev => ({
+      ...prev,
+      [variantId]: (prev[variantId] || []).map((item, i) => i === index ? { ...item, [field]: value } : item)
+    }));
+  };
+
+  // Sync variant pricing items and total back to form data
+  const syncVariantPricingToForm = (variantId: string) => {
+    const items = variantPricingItems[variantId] || [];
+    const totalPrice = variantTotalPrices[variantId] || '0';
+    const currentPricingData = form.getValues('variantPricingData') || {};
+    const existingData = currentPricingData[variantId] || {};
+    form.setValue('variantPricingData', {
+      ...currentPricingData,
+      [variantId]: {
+        ...existingData,
+        components: items,
+        totalCost: parseFloat(totalPrice) || 0,
+        remarks: variantRemarks[variantId] || '',
+        updatedAt: new Date().toISOString()
+      }
+    });
   };
 
   if (!selectedTourPackageId) {
@@ -1515,6 +1715,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                          {/* Selected Tour Package Name Display */}
+                          <div className="bg-white border border-purple-200 rounded-lg p-3 shadow-sm">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center">
+                                <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                <div>
+                                  <p className="text-xs text-slate-600">Selected Tour Package:</p>
+                                  <p className="font-semibold text-sm text-purple-700">
+                                    📋 {selectedTourPackage?.tourPackageName || `Package ID: ${selectedTourPackageId}`}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Info Message */}
+                          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2.5">
+                            <p className="text-xs text-indigo-700 flex items-center">
+                              <Star className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
+                              Fetch pre-defined pricing based on the selected Tour Package Template, Number of Rooms, and Meal Plan.
+                              This will overwrite the current Total Price and Pricing Options below.
+                            </p>
+                          </div>
+
                           <div className="bg-white rounded-lg p-4 border border-purple-200">
                             <FormItem className="space-y-3">
                               <FormLabel className="font-semibold text-purple-700 flex items-center">
@@ -1674,8 +1898,21 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                           <p className="font-medium text-gray-900 text-sm">
                                             {component.pricingAttribute?.name || 'Pricing Component'}
                                           </p>
+                                          {component.description && (
+                                            <p className="text-xs text-gray-600">{component.description}</p>
+                                          )}
                                           <p className="text-xs text-gray-500 mt-1">
-                                            <span className="font-medium">Base:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                            <span className="font-medium">Sales Price:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                            {component.purchasePrice && (
+                                              <span className="ml-3">
+                                                <span className="font-medium text-orange-600">Purchase Price:</span> ₹{parseFloat(component.purchasePrice || '0').toFixed(2)} per person
+                                              </span>
+                                            )}
+                                            {getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 && (
+                                              <span className="text-blue-600 ml-1 block">
+                                                (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
+                                              </span>
+                                            )}
                                           </p>
                                         </div>
                                         <div className="flex items-center gap-4">
@@ -1710,6 +1947,11 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                           </div>
                                           <div className="text-right">
                                             <p className="font-semibold text-gray-900">{formatCurrency(totalPrice)}</p>
+                                            {(quantity > 1 || getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1) && (
+                                              <p className="text-[10px] text-gray-500">
+                                                {quantity} rooms × ₹{parseFloat(component.price || '0').toFixed(2)} × {getOccupancyMultiplier(component.pricingAttribute?.name || '')} occupancy
+                                              </p>
+                                            )}
                                           </div>
                                         </div>
                                       </div>
@@ -1724,6 +1966,24 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 <p className="text-sm font-medium text-green-800">
                                   Selected: {(variantSelectedComponentIds[variant.id] || []).length} component{(variantSelectedComponentIds[variant.id] || []).length !== 1 ? 's' : ''}
                                 </p>
+                                <div className="text-sm text-green-700 mt-1 space-y-1">
+                                  {variantAvailableComponents[variant.id]
+                                    .filter((comp: any) => (variantSelectedComponentIds[variant.id] || []).includes(comp.id))
+                                    .map((comp: any) => {
+                                      const qty = (variantComponentQuantities[variant.id] || {})[comp.id] || 1;
+                                      const componentName = comp.pricingAttribute?.name || 'Component';
+                                      const occupancyMultiplier = getOccupancyMultiplier(componentName);
+                                      const compTotal = calculateComponentTotalPrice(comp, qty);
+                                      return (
+                                        <div key={comp.id} className="flex justify-between text-xs">
+                                          <span>{componentName} {qty > 1 ? `(${qty} rooms)` : ''}
+                                            {occupancyMultiplier > 1 ? ` × ${occupancyMultiplier}` : ''}
+                                          </span>
+                                          <span>₹{compTotal.toFixed(2)}</span>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
                                 <div className="border-t border-green-300 mt-2 pt-2">
                                   <p className="text-sm font-semibold text-green-800 flex justify-between">
                                     <span>Total:</span>
@@ -1754,9 +2014,244 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           </CardContent>
                         </Card>
                       )}
+
+                      {/* Legacy Direct Apply Button */}
+                      <div className="pt-4 border-t border-gray-200">
+                        <p className="text-xs text-gray-600 mb-2">
+                          Or apply all pricing components directly:
+                        </p>
+                        <Button
+                          type="button"
+                          onClick={() => handleFetchAndApplyAllComponents(variant.id)}
+                          variant="outline"
+                          className="w-full bg-gray-500 hover:bg-gray-600 text-white border-gray-600"
+                          disabled={loading || !variantMealPlanIds[variant.id] || (variantRoomCounts[variant.id] || 1) <= 0}
+                        >
+                          <Calculator className="mr-2 h-4 w-4" />
+                          Fetch & Apply All Components (Legacy)
+                        </Button>
+                      </div>
                     </div>
                   );
                 })()}
+
+                {/* ===== ALWAYS-VISIBLE SECTIONS (matching main PricingTab) ===== */}
+
+                {/* Pricing Breakdown Section - Always visible and editable */}
+                <Card className="shadow-sm border border-slate-200/70 mt-4">
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-25 to-transparent">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                        <Receipt className="h-4 w-4 text-blue-600" />
+                        💰 Pricing Breakdown
+                      </CardTitle>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => handleAddVariantPricingItem(variant.id)}
+                        className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                      >
+                        <Plus className="mr-2 h-3.5 w-3.5" />
+                        Add Item
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <div className="space-y-3">
+                      {(variantPricingItems[variant.id] || []).length === 0 ? (
+                        <div className="text-center py-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300">
+                          <Receipt className="mx-auto h-10 w-10 text-blue-400 mb-2" />
+                          <p className="text-slate-600 text-sm mb-3">No pricing items added yet</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="border-dashed border-blue-400 text-blue-600 hover:bg-blue-50"
+                            disabled={loading}
+                            onClick={() => handleAddVariantPricingItem(variant.id)}
+                          >
+                            <Plus className="mr-2 h-3.5 w-3.5" />
+                            Add Your First Pricing Option
+                          </Button>
+                        </div>
+                      ) : (
+                        (variantPricingItems[variant.id] || []).map((item, idx) => (
+                          <div key={idx} className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-3 hover:shadow-md transition-all duration-200">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-semibold text-slate-700 flex items-center">
+                                  <Star className="mr-1 h-2.5 w-2.5 text-yellow-500" />
+                                  Item Name
+                                </label>
+                                <Input
+                                  value={item.name}
+                                  disabled={loading}
+                                  placeholder="e.g., Per Person Cost"
+                                  onChange={(e) => {
+                                    handleUpdateVariantPricingItem(variant.id, idx, 'name', e.target.value);
+                                  }}
+                                  onBlur={() => syncVariantPricingToForm(variant.id)}
+                                  className="h-8 text-xs bg-white border-slate-300 focus:border-blue-500"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-semibold text-slate-700 flex items-center">
+                                  <DollarSign className="mr-1 h-2.5 w-2.5 text-green-500" />
+                                  Price (Base)
+                                </label>
+                                <Input
+                                  value={item.price}
+                                  disabled={loading}
+                                  placeholder="e.g., 15000"
+                                  type="number"
+                                  onChange={(e) => {
+                                    handleUpdateVariantPricingItem(variant.id, idx, 'price', e.target.value);
+                                  }}
+                                  onBlur={() => syncVariantPricingToForm(variant.id)}
+                                  className="h-8 text-xs bg-white border-slate-300 focus:border-blue-500"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-semibold text-slate-700 flex items-center">
+                                  <Calculator className="mr-1 h-2.5 w-2.5 text-blue-500" />
+                                  Calculation & Total
+                                </label>
+                                <Input
+                                  value={item.description}
+                                  disabled={loading}
+                                  placeholder="e.g., 15000.00 × 3 occupancy × 3 rooms = ₹135000"
+                                  onChange={(e) => {
+                                    handleUpdateVariantPricingItem(variant.id, idx, 'description', e.target.value);
+                                  }}
+                                  onBlur={() => syncVariantPricingToForm(variant.id)}
+                                  className="h-8 text-xs bg-white border-slate-300 focus:border-blue-500"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end mt-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                disabled={loading}
+                                onClick={() => {
+                                  handleRemoveVariantPricingItem(variant.id, idx);
+                                  // Sync after removal (need slight delay for state to update)
+                                  setTimeout(() => syncVariantPricingToForm(variant.id), 0);
+                                }}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7"
+                              >
+                                <Trash className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Total Package Price - Always visible and editable */}
+                <Card className="shadow-sm border-2 border-orange-200/60 bg-gradient-to-r from-orange-50 to-red-50 mt-4">
+                  <CardContent className="pt-5 pb-5">
+                    <div className="flex items-center mb-3">
+                      <Target className="mr-2 h-5 w-5 text-orange-600" />
+                      <h3 className="text-base font-bold text-orange-800">🎯 Total Package Price</h3>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-orange-700 flex items-center">
+                        <Trophy className="mr-2 h-4 w-4" />
+                        💰 Final Amount
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
+                        <Input
+                          value={variantTotalPrices[variant.id] || ''}
+                          disabled={loading}
+                          placeholder="Total price for the package"
+                          className="text-xl font-bold pl-8 bg-white border-orange-300 focus:border-orange-500 h-12"
+                          type="number"
+                          onChange={(e) => {
+                            setVariantTotalPrices(prev => ({ ...prev, [variant.id]: e.target.value }));
+                          }}
+                          onBlur={() => syncVariantPricingToForm(variant.id)}
+                        />
+                      </div>
+                      <p className="text-xs text-orange-600 mt-1 flex items-center">
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        This represents the final total price for this variant
+                      </p>
+                      <p className="text-[10px] text-orange-500 bg-orange-50 px-2 py-1 rounded border border-orange-200 inline-block">
+                        including GST
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Configuration Summary */}
+                {(variantMealPlanIds[variant.id] || (variantRoomCounts[variant.id] || 0) > 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                    {variantMealPlanIds[variant.id] && (
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 shadow-sm">
+                        <div className="flex items-center mb-1.5">
+                          <ShoppingCart className="mr-2 h-3.5 w-3.5 text-green-600" />
+                          <p className="text-xs font-semibold text-green-700">Selected Meal Plan:</p>
+                        </div>
+                        <div className="flex items-center bg-white p-2 rounded-md border border-green-200">
+                          <span className="text-sm mr-2">🍽️</span>
+                          <p className="font-semibold text-sm text-green-800">
+                            {mealPlans.find((mp: any) => mp.id === variantMealPlanIds[variant.id])?.name || 'Unknown Meal Plan'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {(variantRoomCounts[variant.id] || 0) > 0 && (
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 shadow-sm">
+                        <div className="flex items-center mb-1.5">
+                          <Wallet className="mr-2 h-3.5 w-3.5 text-blue-600" />
+                          <p className="text-xs font-semibold text-blue-700">Room Configuration:</p>
+                        </div>
+                        <div className="flex items-center justify-between bg-white p-2 rounded-md border border-blue-200">
+                          <div className="flex items-center">
+                            <span className="text-sm mr-2">🏨</span>
+                            <span className="font-semibold text-sm text-blue-800">Number of Rooms</span>
+                          </div>
+                          <div className="bg-blue-100 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-bold text-blue-700">
+                              {variantRoomCounts[variant.id] || 1} room{(variantRoomCounts[variant.id] || 1) > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Remarks Section */}
+                <Card className="shadow-sm border border-slate-200/70 mt-4">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-indigo-600" />
+                        Remarks
+                      </label>
+                      <Input
+                        disabled={loading}
+                        placeholder="Additional remarks for this variant's pricing"
+                        value={variantRemarks[variant.id] || ''}
+                        onChange={(e) => {
+                          setVariantRemarks(prev => ({ ...prev, [variant.id]: e.target.value }));
+                        }}
+                        onBlur={() => syncVariantPricingToForm(variant.id)}
+                      />
+                      <p className="text-[10px] text-slate-500">
+                        Add any special notes or requirements for this variant (will appear below Total Price)
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </TabsContent>

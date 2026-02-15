@@ -644,7 +644,21 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     return [];
   };
 
-  // Auto-load draft from AI Package Wizard
+  // Helper to map AI draft data to form itineraries
+  const mapDraftToItineraries = (data: any, locationId: string) => {
+    return Array.isArray(data.itineraries) ? data.itineraries.map((day: any) => ({
+      dayNumber: day.dayNumber,
+      itineraryTitle: day.itineraryTitle || '',
+      itineraryDescription: day.itineraryDescription || '',
+      mealsIncluded: day.mealsIncluded ? (typeof day.mealsIncluded === 'string' ? day.mealsIncluded.split(' & ') : day.mealsIncluded) : [],
+      hotelId: '',
+      locationId: locationId || '',
+      activities: mapActivities(day.activities),
+      itineraryImages: [],
+    })) : [];
+  };
+
+  // Auto-load draft from AI Package Wizard (create mode)
   useEffect(() => {
     const loadDraft = () => {
       // Only run if we are in "create" mode (no initialData)
@@ -671,17 +685,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
           locationId: locationId || '',
 
           // Map Itineraries
-          itineraries: Array.isArray(data.itineraries) ? data.itineraries.map((day: any) => ({
-            dayNumber: day.dayNumber,
-            itineraryTitle: day.itineraryTitle || '',
-            itineraryDescription: day.itineraryDescription || '',
-            mealsIncluded: day.mealsIncluded ? (typeof day.mealsIncluded === 'string' ? day.mealsIncluded.split(' & ') : day.mealsIncluded) : [],
-            hotelId: '',
-            locationId: locationId || '',
-            // Use helper function to map activities with line breaks
-            activities: mapActivities(day.activities),
-            itineraryImages: [],
-          })) : [],
+          itineraries: mapDraftToItineraries(data, locationId),
 
           // Defaults
           images: [],
@@ -715,6 +719,52 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     loadDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData, form, locations]);
+
+  // Auto-load AI draft in edit mode (apply to existing package)
+  useEffect(() => {
+    const loadApplyDraft = () => {
+      // Only run if we are in "edit" mode (initialData exists)
+      if (!initialData) return;
+
+      const draftKey = 'aiApplyToPackageDraft';
+      const storedDraft = localStorage.getItem(draftKey);
+
+      if (!storedDraft) return;
+
+      try {
+        const { data, locationId } = JSON.parse(storedDraft);
+        console.log("[AI_WIZARD] Applying AI draft to existing package:", data);
+
+        // Get current form values to preserve existing data
+        const currentValues = form.getValues();
+
+        // Apply AI-generated itinerary data while preserving existing package metadata
+        form.setValue('tourPackageName', data.tourPackageName || currentValues.tourPackageName);
+        form.setValue('tourCategory', data.tourCategory || currentValues.tourCategory);
+        form.setValue('tourPackageType', data.tourPackageType || currentValues.tourPackageType);
+        form.setValue('numDaysNight', data.numDaysNight || currentValues.numDaysNight);
+        form.setValue('transport', data.transport || currentValues.transport);
+        form.setValue('pickup_location', data.pickup_location || currentValues.pickup_location);
+        form.setValue('drop_location', data.drop_location || currentValues.drop_location);
+
+        // Replace itineraries with AI-generated ones
+        const mappedItineraries = mapDraftToItineraries(data, locationId || currentValues.locationId);
+        form.setValue('itineraries', mappedItineraries);
+
+        toast.success("Applied AI-generated itinerary to this package. Review and save when ready.");
+
+        // Clear the draft so it doesn't persist
+        localStorage.removeItem(draftKey);
+
+      } catch (err) {
+        console.error("[AI_WIZARD] Failed to apply draft:", err);
+        toast.error("Failed to apply AI-generated draft");
+      }
+    };
+
+    loadApplyDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData, form]);
 
 
   const {

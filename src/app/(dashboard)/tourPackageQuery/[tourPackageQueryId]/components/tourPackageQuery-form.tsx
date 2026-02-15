@@ -672,7 +672,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             dayNumber: day.dayNumber,
             itineraryTitle: day.itineraryTitle || '',
             itineraryDescription: day.itineraryDescription || '',
-            mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [],
+            mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(' & ') : [],
             // Use helper function to map activities
             activities: mapActivities(day.activities),
             itineraryImages: [],
@@ -742,7 +742,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           dayNumber: day.dayNumber,
           itineraryTitle: day.itineraryTitle || '',
           itineraryDescription: day.itineraryDescription || '',
-          mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(',') : [],
+          mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(' & ') : [],
           activities: mapActivities(day.activities),
           itineraryImages: [],
           hotelId: '',

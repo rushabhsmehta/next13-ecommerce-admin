@@ -175,16 +175,26 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
             const response = await fetch(apiPath);
             if (response.ok) {
                 const data = await response.json();
-                const packages: TourPackageSummary[] = data.map((pkg: any) => ({
-                    id: pkg.id,
-                    tourPackageName: pkg.tourPackageName || pkg.tourPackageQueryName || "Untitled",
-                    tourPackageType: pkg.tourPackageType || "",
-                    numDaysNight: pkg.numDaysNight || "",
-                }));
+                const packages: TourPackageSummary[] = data.map((pkg: any) => {
+                    const name = mode === "tourPackageQuery" ? pkg.tourPackageQueryName : pkg.tourPackageName;
+                    return {
+                        id: pkg.id,
+                        tourPackageName: name || "Untitled",
+                        tourPackageType: pkg.tourPackageType || "",
+                        numDaysNight: pkg.numDaysNight || "",
+                    };
+                });
                 setLocationPackages(packages);
+            } else {
+                console.error("[AI_WIZARD] Failed to fetch packages: non-OK response", {
+                    status: response.status,
+                    statusText: response.statusText,
+                });
+                setLocationPackages([]);
             }
         } catch (error) {
             console.error("[AI_WIZARD] Failed to fetch packages:", error);
+            setLocationPackages([]);
         } finally {
             setIsLoadingPackages(false);
         }
@@ -194,10 +204,22 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
         // Reset selected package when destination changes
         form.setValue("selectedTourPackageId", "");
         fetchPackagesForLocation(destination);
-    }, [destination, fetchPackagesForLocation, form]);
+    }, [destination, fetchPackagesForLocation]);
 
-    const selectedTourPackageId = form.watch("selectedTourPackageId");
-    const selectedPackage = locationPackages.find(p => p.id === selectedTourPackageId);
+    const rawSelectedTourPackageId = form.watch("selectedTourPackageId");
+
+    // Normalize sentinel "__none__" value to an empty string in form state
+    useEffect(() => {
+        if (rawSelectedTourPackageId === "__none__") {
+            form.setValue("selectedTourPackageId", "");
+        }
+    }, [rawSelectedTourPackageId, form]);
+
+    const selectedTourPackageId =
+        rawSelectedTourPackageId === "__none__" ? "" : rawSelectedTourPackageId;
+    const selectedPackage = selectedTourPackageId
+        ? locationPackages.find((p) => p.id === selectedTourPackageId)
+        : undefined;
 
     const handleGenerate = async (values: WizardFormValues) => {
         setIsGenerating(true);
@@ -291,7 +313,17 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
     };
 
     const handleApplyToExisting = () => {
-        if (!generatedData || !selectedTourPackageId) return;
+        if (!generatedData) return;
+
+        // Ensure a valid existing package is selected before proceeding
+        if (!selectedTourPackageId || selectedTourPackageId === "__none__") {
+            toast({
+                title: "No package selected",
+                description: "Please select an existing tour package before applying the AI itinerary.",
+                variant: "destructive",
+            });
+            return;
+        }
 
         const selectedLocationId = form.getValues("destination");
 

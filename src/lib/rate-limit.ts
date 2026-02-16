@@ -1,5 +1,25 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * ⚠️ IMPORTANT LIMITATION FOR SERVERLESS DEPLOYMENTS ⚠️
+ * 
+ * This in-memory rate limiter will NOT work correctly in serverless environments
+ * like Vercel because:
+ * 1. Each serverless function invocation has isolated memory
+ * 2. The Map will be reset on cold starts
+ * 3. Rate limits won't be enforced across different function instances
+ * 
+ * For production use on Vercel, use one of these alternatives:
+ * - @upstash/ratelimit with Redis (recommended for Vercel)
+ * - Vercel Edge Config for rate limiting
+ * - Database-backed rate limiting (slower but works)
+ * 
+ * This implementation is suitable for:
+ * - Development/testing
+ * - Traditional server deployments (non-serverless)
+ * - As a basic fallback layer
+ */
+
 interface RateLimitEntry {
   count: number;
   resetTime: number;
@@ -8,6 +28,9 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 // Clean up expired entries periodically
+// ⚠️ WARNING: This setInterval creates resource leaks in serverless environments
+// Each function invocation creates a new interval timer that may not complete
+// before the function is frozen/terminated. Consider lazy cleanup instead.
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateLimitStore) {
@@ -56,8 +79,23 @@ export function rateLimit(preset: RateLimitPreset | RateLimitConfig = 'standard'
 
   return {
     check(req: Request): NextResponse | null {
+      // ⚠️ IP SPOOFING WARNING: x-forwarded-for can be spoofed by clients
+      // For Vercel deployments, use x-real-ip or Vercel's platform headers instead
+      // TODO: Replace with more secure IP identification for production
       const forwarded = req.headers.get('x-forwarded-for');
-      const ip = forwarded?.split(',')[0]?.trim() || 'unknown';
+      const realIp = req.headers.get('x-real-ip'); // More reliable on Vercel
+      const ip = realIp || forwarded?.split(',')[0]?.trim();
+      
+      // ⚠️ SECURITY ISSUE: Never use a shared fallback for rate limiting
+      // If IP cannot be determined, reject the request instead of allowing
+      // unlimited requests from the same 'unknown' bucket
+      if (!ip) {
+        return NextResponse.json(
+          { error: 'Unable to determine client IP for rate limiting' },
+          { status: 400 }
+        );
+      }
+      
       const url = new URL(req.url);
       const key = `${ip}:${url.pathname}`;
 

@@ -95,7 +95,7 @@ model Hotel {
   link                 String?               @db.Text
   destinationId        String?
   images               Images[]
-  location             Location              @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location             Location              @relation(fields: [locationId], references: [id], onDelete: Restrict)
   destination          TourDestination?      @relation(fields: [destinationId], references: [id], onDelete: SetNull)
   itineraries          Itinerary[]           @relation("ItineraryToHotel")
   itinerariesMaster    ItineraryMaster[]     @relation("ItineraryMasterToHotel")

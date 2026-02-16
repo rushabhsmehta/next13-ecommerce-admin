@@ -1,5 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable instrumentation for environment validation at startup
+  experimental: {
+    instrumentationHook: true,
+    outputFileTracingIncludes: {
+      '/api/**/*': [
+        './node_modules/@prisma/client/**/*',
+        './node_modules/.prisma/client/**/*',
+        './node_modules/@prisma/whatsapp-client/**/*',
+        './node_modules/.prisma/whatsapp-client/**/*',
+      ],
+      '/(dashboard)/**/*': [
+        './node_modules/@prisma/client/**/*',
+        './node_modules/.prisma/client/**/*',
+        './node_modules/@prisma/whatsapp-client/**/*',
+        './node_modules/.prisma/whatsapp-client/**/*',
+      ],
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -33,23 +51,6 @@ const nextConfig = {
       "images.unsplash.com",
       "naidalleeapiproducts.blob.core.windows.net"
     ],
-  },
-  // Fix Prisma client bundling for Vercel deployment
-  experimental: {
-    outputFileTracingIncludes: {
-      '/api/**/*': [
-        './node_modules/@prisma/client/**/*',
-        './node_modules/.prisma/client/**/*',
-        './node_modules/@prisma/whatsapp-client/**/*',
-        './node_modules/.prisma/whatsapp-client/**/*',
-      ],
-      '/(dashboard)/**/*': [
-        './node_modules/@prisma/client/**/*',
-        './node_modules/.prisma/client/**/*',
-        './node_modules/@prisma/whatsapp-client/**/*',
-        './node_modules/.prisma/whatsapp-client/**/*',
-      ],
-    },
   },
   // Ensure Prisma binaries are included in the output
   outputFileTracing: true,

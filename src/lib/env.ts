@@ -13,9 +13,6 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, 'Clerk publishable key is required'),
   CLERK_SECRET_KEY: z.string().min(1, 'Clerk secret key is required'),
 
-  // Internal service auth (for headless PDF generation etc.)
-  INTERNAL_SERVICE_TOKEN: z.string().min(16, 'INTERNAL_SERVICE_TOKEN must be at least 16 characters').optional(),
-
   // Cloudinary (optional but validated if present)
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().optional(),
 

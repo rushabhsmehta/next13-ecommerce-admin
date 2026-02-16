@@ -3,6 +3,8 @@ import { pdfCache } from "@/lib/pdf-cache";
 import { auth } from "@clerk/nextjs";
 import { rateLimit } from "@/lib/rate-limit";
 
+export const dynamic = 'force-dynamic';
+
 const limiter = rateLimit('expensive');
 
 export async function POST(req: Request): Promise<Response> {

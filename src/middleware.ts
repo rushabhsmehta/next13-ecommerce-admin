@@ -17,14 +17,6 @@ export default authMiddleware({
     "/api/whatsapp/webhook",
   ],
   
-  async beforeAuth(req) {
-    // Validate internal service token for headless PDF generation
-    // instead of trusting User-Agent strings which are trivially spoofable
-    const serviceToken = req.headers.get("x-internal-service-token");
-    if (serviceToken && serviceToken === process.env.INTERNAL_SERVICE_TOKEN) {
-      return NextResponse.next();
-    }
-  },
   async afterAuth(auth, req) {
     // Check if the request is from an associate domain
     const hostname = req.headers.get('host') || '';

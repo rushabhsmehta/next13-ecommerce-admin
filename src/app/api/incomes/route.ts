@@ -2,13 +2,16 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 import { dateToUtc } from '@/lib/timezone-utils';
+import { requireFinanceOrAdmin } from '@/lib/authz';
 
 export async function POST(req: Request) {
   try {
     const { userId } = auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
-    }    const body = await req.json();
+    }
+    await requireFinanceOrAdmin(userId);
+    const body = await req.json();
     const { 
       incomeCategoryId,
       tourPackageQueryId,
@@ -99,6 +102,7 @@ export async function GET(req: Request) {
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    await requireFinanceOrAdmin(userId);
 
     const { searchParams } = new URL(req.url);
     const tourPackageQueryId = searchParams.get('tourPackageQueryId');

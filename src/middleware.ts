@@ -7,13 +7,7 @@ export default authMiddleware({
     "/tourPackageQueryPDFGenerator/:path*",
     "/sign-in",
     "/sign-up",
-    // Remove ops routes from public routes to enforce Clerk authentication
-    // "/ops/:path*",
-    // "/login",
-    // Only make specific API routes public that don't need authentication
     "/api/auth/:path*",
-    "/api/debug-whatsapp",
-    "/api/public-debug",
     "/api/whatsapp/webhook",  // Only webhook is public for Meta callbacks
   ],
   
@@ -23,14 +17,6 @@ export default authMiddleware({
     "/api/whatsapp/webhook",
   ],
   
-  async beforeAuth(req) {
-    const userAgent = req.headers.get("user-agent") || "";
-
-    // ✅ Allow Puppeteer (Headless Chrome) to bypass authentication
-    if (userAgent.includes("HeadlessChrome") || userAgent.includes("Puppeteer")) {
-      return NextResponse.next();
-    }
-  },
   async afterAuth(auth, req) {
     // Check if the request is from an associate domain
     const hostname = req.headers.get('host') || '';

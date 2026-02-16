@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { useAssociatePartner } from "@/hooks/use-associate-partner";
+import { useAssociatePartner, clearAssociatePartnerCache } from "@/hooks/use-associate-partner";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -166,10 +166,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [navItems, setNavItems] = useState(NAV_ITEMS);
   const { associatePartner } = useAssociatePartner();
   const isMobile = useIsMobile();
+  const previousDomainRef = React.useRef<boolean | null>(null);
+  
   // Check if the domain is associate domain
   useEffect(() => {
     const hostname = window.location.hostname;
     const isAssociate = hostname.includes('associate.aagamholidays.com');
+    
+    // Clear cache when domain changes (not on initial mount)
+    if (previousDomainRef.current !== null && previousDomainRef.current !== isAssociate) {
+      clearAssociatePartnerCache();
+    }
+    
+    previousDomainRef.current = isAssociate;
     setIsAssociateDomain(isAssociate);
 
     // Set nav items based on domain
@@ -178,7 +187,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     } else {
       setNavItems(NAV_ITEMS);
     }
-  }, []);
+  }, []); // Empty dependency array - runs only on mount
 
   // Check if a section should be expanded
   const isSectionActive = (section: { title: string; items: { url: string }[] }) =>
@@ -188,6 +197,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const handleSignOut = async () => {
     try {
+      // Clear associate partner cache on logout
+      clearAssociatePartnerCache();
       await signOut();
       router.push("/sign-in");
     } catch (error) {

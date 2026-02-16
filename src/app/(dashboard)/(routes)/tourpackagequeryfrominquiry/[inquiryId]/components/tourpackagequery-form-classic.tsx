@@ -73,7 +73,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "@radix-ui/react-icons"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { format } from "date-fns"
-import JoditEditor from "jodit-react";
+import dynamic from "next/dynamic";
+const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse rounded-md bg-muted" /> });
 import { Switch } from "@/components/ui/switch"
 import { convertJourneyDateToTourStart, createDatePickerValue, normalizeApiDate } from "@/lib/timezone-utils"
 

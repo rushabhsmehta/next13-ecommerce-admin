@@ -52,6 +52,9 @@ export async function GET(
   { params }: { params: { customerId: string } }
 ) {
   try {
+    const { userId } = auth();
+    if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
+
     if (!params.customerId) {
       return new NextResponse("Customer ID is required", { status: 400 });
     }

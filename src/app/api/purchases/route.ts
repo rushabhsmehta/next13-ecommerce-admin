@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 import { dateToUtc } from '@/lib/timezone-utils';
 import { computeBaseAmount, getFinancialYear, getQuarter, pickApplicableRate, calcTdsAmount } from '@/lib/tds';
+import { requireFinanceOrAdmin } from '@/lib/authz';
 
 export async function POST(req: Request) {
   try {
@@ -10,6 +11,7 @@ export async function POST(req: Request) {
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    await requireFinanceOrAdmin(userId);
 
     const body = await req.json();
     const { 
@@ -187,6 +189,7 @@ export async function GET(req: Request) {
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    await requireFinanceOrAdmin(userId);
 
     const { searchParams } = new URL(req.url);
     const tourPackageQueryId = searchParams.get('tourPackageQueryId');

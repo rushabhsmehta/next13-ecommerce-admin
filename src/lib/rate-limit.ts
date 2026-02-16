@@ -33,11 +33,11 @@ const rateLimitStore = new Map<string, RateLimitEntry>();
 // before the function is frozen/terminated. Consider lazy cleanup instead.
 setInterval(() => {
   const now = Date.now();
-  for (const [key, entry] of rateLimitStore) {
+  rateLimitStore.forEach((entry, key) => {
     if (now > entry.resetTime) {
       rateLimitStore.delete(key);
     }
-  }
+  });
 }, 60_000); // Clean every minute
 
 interface RateLimitConfig {

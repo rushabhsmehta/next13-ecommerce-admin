@@ -27,19 +27,6 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-// Clean up expired entries periodically
-// ⚠️ WARNING: This setInterval creates resource leaks in serverless environments
-// Each function invocation creates a new interval timer that may not complete
-// before the function is frozen/terminated. Consider lazy cleanup instead.
-setInterval(() => {
-  const now = Date.now();
-  rateLimitStore.forEach((entry, key) => {
-    if (now > entry.resetTime) {
-      rateLimitStore.delete(key);
-    }
-  });
-}, 60_000); // Clean every minute
-
 interface RateLimitConfig {
   /** Maximum number of requests allowed in the window */
   maxRequests: number;
@@ -61,6 +48,26 @@ const PRESETS = {
 export type RateLimitPreset = keyof typeof PRESETS;
 
 /**
+ * Lazy cleanup: Remove expired entries to keep Map size bounded.
+ * Called periodically during check() to avoid setInterval resource leaks.
+ */
+function cleanupExpiredEntries() {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+  
+  rateLimitStore.forEach((entry, key) => {
+    if (now > entry.resetTime) {
+      keysToDelete.push(key);
+    }
+  });
+  
+  keysToDelete.forEach(key => rateLimitStore.delete(key));
+}
+
+let lastCleanupTime = Date.now();
+const CLEANUP_INTERVAL = 60_000; // Clean every 60 seconds
+
+/**
  * In-memory rate limiter for API routes.
  *
  * Usage:
@@ -79,6 +86,13 @@ export function rateLimit(preset: RateLimitPreset | RateLimitConfig = 'standard'
 
   return {
     check(req: Request): NextResponse | null {
+      // Lazy cleanup: run periodically to avoid setInterval resource leaks
+      const now = Date.now();
+      if (now - lastCleanupTime > CLEANUP_INTERVAL) {
+        cleanupExpiredEntries();
+        lastCleanupTime = now;
+      }
+      
       // ⚠️ IP SPOOFING WARNING: x-forwarded-for can be spoofed by clients
       // For Vercel deployments, use x-real-ip or Vercel's platform headers instead
       // TODO: Replace with more secure IP identification for production
@@ -99,10 +113,16 @@ export function rateLimit(preset: RateLimitPreset | RateLimitConfig = 'standard'
       const url = new URL(req.url);
       const key = `${ip}:${url.pathname}`;
 
-      const now = Date.now();
       const entry = rateLimitStore.get(key);
 
-      if (!entry || now > entry.resetTime) {
+      // Lazy cleanup: remove expired entry for this specific key
+      if (entry && now > entry.resetTime) {
+        rateLimitStore.delete(key);
+      }
+
+      const freshEntry = rateLimitStore.get(key);
+
+      if (!freshEntry) {
         rateLimitStore.set(key, {
           count: 1,
           resetTime: now + config.windowSeconds * 1000,
@@ -110,10 +130,10 @@ export function rateLimit(preset: RateLimitPreset | RateLimitConfig = 'standard'
         return null;
       }
 
-      entry.count++;
+      freshEntry.count++;
 
-      if (entry.count > config.maxRequests) {
-        const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+      if (freshEntry.count > config.maxRequests) {
+        const retryAfter = Math.ceil((freshEntry.resetTime - now) / 1000);
         return NextResponse.json(
           { error: 'Too many requests. Please try again later.' },
           {
@@ -122,7 +142,7 @@ export function rateLimit(preset: RateLimitPreset | RateLimitConfig = 'standard'
               'Retry-After': retryAfter.toString(),
               'X-RateLimit-Limit': config.maxRequests.toString(),
               'X-RateLimit-Remaining': '0',
-              'X-RateLimit-Reset': new Date(entry.resetTime).toISOString(),
+              'X-RateLimit-Reset': new Date(freshEntry.resetTime).toISOString(),
             },
           }
         );

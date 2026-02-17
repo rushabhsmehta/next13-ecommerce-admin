@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign } from "lucide-react";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign, Copy } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
@@ -82,6 +82,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [editingMapping, setEditingMapping] = useState<string | null>(null);
   const [tempHotelId, setTempHotelId] = useState<string>("");
   const [variantCalcMethods, setVariantCalcMethods] = useState<Record<string, CalculationMethod>>({});
+  const [copyFromVariantId, setCopyFromVariantId] = useState<Record<string, string>>({});
 
   // Pricing state for each variant
   const [variantMealPlanIds, setVariantMealPlanIds] = useState<Record<string, string>>({});
@@ -694,62 +695,146 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
   // Room Allocation Helper Functions
   const addRoomAllocation = (variantId: string, itineraryId: string) => {
-    const current = variantRoomAllocations || {};
-    const variantData = current[variantId] || {};
-    const itineraryAllocations = variantData[itineraryId] || [];
+    try {
+      const current = variantRoomAllocations || {};
+      const variantData = current[variantId] || {};
+      const itineraryAllocations = variantData[itineraryId] || [];
 
-    const newAllocation = {
-      roomTypeId: '',
-      occupancyTypeId: '',
-      mealPlanId: '',
-      quantity: 1,
-      guestNames: '',
-      voucherNumber: '',
-      useCustomRoomType: false,
-      customRoomType: ''
-    };
+      const newAllocation = {
+        roomTypeId: '',
+        occupancyTypeId: '',
+        mealPlanId: '',
+        quantity: 1,
+        guestNames: '',
+        voucherNumber: '',
+        useCustomRoomType: false,
+        customRoomType: ''
+      };
 
-    form.setValue('variantRoomAllocations', {
-      ...current,
-      [variantId]: {
-        ...variantData,
-        [itineraryId]: [...itineraryAllocations, newAllocation]
-      }
-    });
+      form.setValue('variantRoomAllocations', {
+        ...current,
+        [variantId]: {
+          ...variantData,
+          [itineraryId]: [...itineraryAllocations, newAllocation]
+        }
+      }, { shouldValidate: false, shouldDirty: true });
+      
+      toast.success('Room added successfully');
+    } catch (error) {
+      console.error('Error adding room allocation:', error);
+      toast.error('Failed to add room. Please try again.');
+    }
   };
 
   const removeRoomAllocation = (variantId: string, itineraryId: string, allocationIndex: number) => {
-    const current = variantRoomAllocations || {};
-    const variantData = current[variantId] || {};
-    const itineraryAllocations = variantData[itineraryId] || [];
+    try {
+      const current = variantRoomAllocations || {};
+      const variantData = current[variantId] || {};
+      const itineraryAllocations = variantData[itineraryId] || [];
 
-    const newAllocations = itineraryAllocations.filter((_: any, i: number) => i !== allocationIndex);
+      const newAllocations = itineraryAllocations.filter((_: any, i: number) => i !== allocationIndex);
 
-    form.setValue('variantRoomAllocations', {
-      ...current,
-      [variantId]: {
-        ...variantData,
-        [itineraryId]: newAllocations
-      }
-    });
+      form.setValue('variantRoomAllocations', {
+        ...current,
+        [variantId]: {
+          ...variantData,
+          [itineraryId]: newAllocations
+        }
+      }, { shouldValidate: false, shouldDirty: true });
+      
+      toast.success('Room removed successfully');
+    } catch (error) {
+      console.error('Error removing room allocation:', error);
+      toast.error('Failed to remove room. Please try again.');
+    }
   };
 
   const updateRoomAllocation = (variantId: string, itineraryId: string, allocationIndex: number, field: string, value: any) => {
-    const current = variantRoomAllocations || {};
-    const variantData = current[variantId] || {};
-    const itineraryAllocations = variantData[itineraryId] || [];
+    try {
+      const current = variantRoomAllocations || {};
+      const variantData = current[variantId] || {};
+      const itineraryAllocations = variantData[itineraryId] || [];
 
-    const updatedAllocations = itineraryAllocations.map((allocation: any, i: number) =>
-      i === allocationIndex ? { ...allocation, [field]: value } : allocation
-    );
+      const updatedAllocations = itineraryAllocations.map((allocation: any, i: number) =>
+        i === allocationIndex ? { ...allocation, [field]: value } : allocation
+      );
 
-    form.setValue('variantRoomAllocations', {
-      ...current,
-      [variantId]: {
-        ...variantData,
-        [itineraryId]: updatedAllocations
+      form.setValue('variantRoomAllocations', {
+        ...current,
+        [variantId]: {
+          ...variantData,
+          [itineraryId]: updatedAllocations
+        }
+      }, { shouldValidate: false, shouldDirty: true });
+    } catch (error) {
+      console.error('Error updating room allocation:', error);
+      toast.error('Failed to update room. Please try again.');
+    }
+  };
+
+  // Copy first day's room allocations to all days for a variant
+  const copyFirstDayToAllDays = (variantId: string) => {
+    try {
+      const current = variantRoomAllocations || {};
+      const variantData = current[variantId] || {};
+      
+      if (!itineraries || itineraries.length === 0) {
+        toast.error('No itineraries available');
+        return;
       }
-    });
+
+      // Get first day's room allocations
+      const firstItinerary = itineraries[0];
+      const firstDayAllocations = variantData[firstItinerary.id] || [];
+      
+      if (firstDayAllocations.length === 0) {
+        toast.error('No room allocations on first day to copy');
+        return;
+      }
+
+      // Copy to all other days
+      const newVariantData = { ...variantData };
+      itineraries.forEach((itinerary) => {
+        // Deep copy the allocations to avoid reference issues
+        newVariantData[itinerary.id] = JSON.parse(JSON.stringify(firstDayAllocations));
+      });
+
+      form.setValue('variantRoomAllocations', {
+        ...current,
+        [variantId]: newVariantData
+      }, { shouldValidate: false, shouldDirty: true });
+      
+      toast.success(`Copied room allocations to all ${itineraries.length} days`);
+    } catch (error) {
+      console.error('Error copying room allocations to all days:', error);
+      toast.error('Failed to copy room allocations. Please try again.');
+    }
+  };
+
+  // Copy room allocations from one variant to another
+  const copyRoomAllocationsFromVariant = (fromVariantId: string, toVariantId: string) => {
+    try {
+      const current = variantRoomAllocations || {};
+      const fromVariantData = current[fromVariantId] || {};
+      
+      if (Object.keys(fromVariantData).length === 0) {
+        toast.error('No room allocations to copy from selected variant');
+        return;
+      }
+
+      // Deep copy the allocations to avoid reference issues
+      const copiedData = JSON.parse(JSON.stringify(fromVariantData));
+
+      form.setValue('variantRoomAllocations', {
+        ...current,
+        [toVariantId]: copiedData
+      }, { shouldValidate: false, shouldDirty: true });
+      
+      toast.success('Room allocations copied successfully');
+    } catch (error) {
+      console.error('Error copying room allocations from variant:', error);
+      toast.error('Failed to copy room allocations. Please try again.');
+    }
   };
 
   // Transport Details Helper Functions
@@ -1206,6 +1291,62 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     </CardContent>
                   </Card>
                 ) : (
+                  <div className="space-y-3">
+                    {/* Action Buttons for Room Allocations */}
+                    <Card className="shadow-sm border border-blue-200/60 bg-gradient-to-r from-blue-50/30 to-transparent">
+                      <CardContent className="pt-4 pb-3">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyFirstDayToAllDays(variant.id)}
+                            className="h-9 text-xs border-blue-300 hover:bg-blue-50"
+                            disabled={itineraries.length === 0}
+                          >
+                            <Copy className="h-3.5 w-3.5 mr-1.5" />
+                            Copy Day 1 to All Days
+                          </Button>
+                          
+                          <div className="flex gap-2 flex-1">
+                            <Select 
+                              value={copyFromVariantId[variant.id] || ""} 
+                              onValueChange={(value) => setCopyFromVariantId({...copyFromVariantId, [variant.id]: value})}
+                            >
+                              <SelectTrigger className="h-9 text-xs flex-1 border-blue-300">
+                                <SelectValue placeholder="Select variant to copy from..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {selectedVariants
+                                  .filter(v => v.id !== variant.id)
+                                  .map((v) => (
+                                    <SelectItem key={v.id} value={v.id} className="text-xs">
+                                      {v.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const fromId = copyFromVariantId[variant.id];
+                                if (fromId) {
+                                  copyRoomAllocationsFromVariant(fromId, variant.id);
+                                } else {
+                                  toast.error('Please select a variant to copy from');
+                                }
+                              }}
+                              className="h-9 text-xs border-blue-300 hover:bg-blue-50"
+                              disabled={!copyFromVariantId[variant.id]}
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-1.5" />
+                              Copy Rooms
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
                   <Accordion type="multiple" className="space-y-3">
                     {itineraries.map((itinerary, idx) => {
                       const variantRooms = variantRoomAllocations?.[variant.id]?.[itinerary.id] || [];
@@ -1444,6 +1585,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       );
                     })}
                   </Accordion>
+                  </div>
                 )}
               </TabsContent>
 

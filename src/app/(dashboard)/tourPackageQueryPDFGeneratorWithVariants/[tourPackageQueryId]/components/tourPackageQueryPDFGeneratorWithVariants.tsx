@@ -50,6 +50,22 @@ interface TourPackageQueryPDFGeneratorWithVariantsProps {
         imageUrl: string | null;
         roomCategory: string | null;
       }[];
+      pricingSnapshots: {
+        id: string;
+        mealPlanId: string | null;
+        mealPlanName: string;
+        numberOfRooms: number;
+        vehicleTypeId: string | null;
+        vehicleTypeName: string | null;
+        totalPrice: any; // Decimal
+        description: string | null;
+        pricingComponentSnapshots: {
+          id: string;
+          attributeName: string;
+          price: any; // Decimal
+          description: string | null;
+        }[];
+      }[];
     }[];
   } | null;
   locations: Location[];
@@ -428,6 +444,65 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                     </p>
                   </div>
                 `}
+                
+                ${variant.pricingSnapshots && variant.pricingSnapshots.length > 0 ? `
+                  <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-top: none; padding: 20px; margin-top: -1px;">
+                    <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                      <span style="color: ${brandColors.secondary};">💰</span>
+                      Variant Pricing
+                    </div>
+                    
+                    ${variant.pricingSnapshots.map((pricing, idx) => {
+                      const componentTotal = pricing.pricingComponentSnapshots.reduce((sum, comp) => {
+                        return sum + (parseFloat(comp.price.toString()) || 0);
+                      }, 0);
+                      
+                      return `
+                        <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-radius: 6px; padding: 16px; margin-bottom: ${idx < variant.pricingSnapshots.length - 1 ? '12px' : '0'};">
+                          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div>
+                              ${pricing.mealPlanName ? `
+                                <div style="font-size: 13px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 4px;">
+                                  🍽️ ${pricing.mealPlanName}
+                                </div>
+                              ` : ''}
+                              <div style="font-size: 11px; color: ${brandColors.muted};">
+                                ${pricing.numberOfRooms} Room(s) ${pricing.vehicleTypeName ? `• 🚗 ${pricing.vehicleTypeName}` : ''}
+                              </div>
+                            </div>
+                            <div style="text-align: right;">
+                              <div style="font-size: 18px; font-weight: 700; color: ${brandColors.primary};">
+                                ₹ ${formatINR(pricing.totalPrice.toString())}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          ${pricing.pricingComponentSnapshots.length > 0 ? `
+                            <div style="border-top: 1px solid ${brandColors.border}; padding-top: 12px; margin-top: 8px;">
+                              <div style="font-size: 11px; font-weight: 600; color: ${brandColors.muted}; margin-bottom: 8px; text-transform: uppercase;">
+                                Price Breakdown
+                              </div>
+                              ${pricing.pricingComponentSnapshots.map(comp => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px;">
+                                  <span style="color: ${brandColors.text};">${comp.attributeName}</span>
+                                  <span style="color: ${brandColors.muted}; font-weight: 500;">₹ ${formatINR(comp.price.toString())}</span>
+                                </div>
+                              `).join('')}
+                            </div>
+                          ` : ''}
+                          
+                          ${pricing.description ? `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid ${brandColors.border};">
+                              <div style="font-size: 11px; color: ${brandColors.muted}; line-height: 1.4;">
+                                ${pricing.description}
+                              </div>
+                            </div>
+                          ` : ''}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                ` : ''}
               </div>
             `;
     }).join('')}

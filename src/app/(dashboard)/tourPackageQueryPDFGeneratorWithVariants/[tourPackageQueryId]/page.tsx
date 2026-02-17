@@ -52,6 +52,27 @@ const TourPackageQueryPDFWithVariantsPage = async ({
         }
       },
       associatePartner: true,
+      queryVariantSnapshots: {
+        include: {
+          hotelSnapshots: {
+            orderBy: {
+              dayNumber: 'asc',
+            },
+          },
+          pricingSnapshots: {
+            include: {
+              pricingComponentSnapshots: {
+                orderBy: {
+                  createdAt: 'asc',
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+      },
     }
   });
 

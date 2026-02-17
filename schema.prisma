@@ -1610,3 +1610,120 @@ enum OperationalStaffRole {
   OPERATIONS
   ADMIN
 }
+
+// =============================================
+// Travel App & Chat System Models
+// =============================================
+
+model TravelAppUser {
+  id                String             @id @default(uuid())
+  name              String
+  email             String             @unique
+  phone             String?
+  avatarUrl         String?
+  isApproved        Boolean            @default(false)
+  isActive          Boolean            @default(true)
+  clerkUserId       String?            @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  chatMemberships   ChatGroupMember[]
+  chatMessages      ChatMessage[]
+  pushSubscriptions PushSubscription[]
+
+  @@index([email])
+  @@index([clerkUserId])
+  @@index([isApproved])
+}
+
+model ChatGroup {
+  id                 String            @id @default(uuid())
+  name               String
+  description        String?           @db.Text
+  tourPackageQueryId String?
+  imageUrl           String?
+  isActive           Boolean           @default(true)
+  createdBy          String
+  tourStartDate      DateTime?
+  tourEndDate        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  members            ChatGroupMember[]
+  messages           ChatMessage[]
+
+  @@index([tourPackageQueryId])
+  @@index([isActive])
+  @@index([createdBy])
+}
+
+enum ChatMemberRole {
+  ADMIN
+  OPERATIONS
+  TOURIST
+  COMPANION
+}
+
+model ChatGroupMember {
+  id              String         @id @default(uuid())
+  chatGroupId     String
+  travelAppUserId String
+  role            ChatMemberRole @default(TOURIST)
+  isActive        Boolean        @default(true)
+  joinedAt        DateTime       @default(now())
+  leftAt          DateTime?
+  chatGroup       ChatGroup      @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
+  travelAppUser   TravelAppUser  @relation(fields: [travelAppUserId], references: [id], onDelete: Cascade)
+
+  @@unique([chatGroupId, travelAppUserId])
+  @@index([chatGroupId])
+  @@index([travelAppUserId])
+}
+
+enum ChatMessageType {
+  TEXT
+  IMAGE
+  LOCATION
+  CONTACT
+  TOUR_LINK
+  PDF
+  FILE
+}
+
+model ChatMessage {
+  id            String          @id @default(uuid())
+  chatGroupId   String
+  senderId      String
+  messageType   ChatMessageType @default(TEXT)
+  content       String?         @db.Text
+  fileUrl       String?         @db.Text
+  fileName      String?
+  fileSize      Int?
+  latitude      Float?
+  longitude     Float?
+  contactName   String?
+  contactPhone  String?
+  tourPackageId String?
+  isDeleted     Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  chatGroup     ChatGroup       @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
+  sender        TravelAppUser   @relation(fields: [senderId], references: [id])
+
+  @@index([chatGroupId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model PushSubscription {
+  id              String        @id @default(uuid())
+  travelAppUserId String
+  endpoint        String        @db.Text
+  p256dh          String        @db.Text
+  auth            String
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  travelAppUser   TravelAppUser @relation(fields: [travelAppUserId], references: [id], onDelete: Cascade)
+
+  @@index([travelAppUserId])
+  @@index([isActive])
+}

@@ -94,12 +94,13 @@ export async function POST(req: Request) {
 
     // Add members if provided
     if (memberIds && Array.isArray(memberIds)) {
+      const validRoles = ["ADMIN", "OPERATIONS", "TOURIST", "COMPANION"] as const;
       await prismadb.chatGroupMember.createMany({
         data: memberIds.map(
           (m: { userId: string; role: string }) => ({
             chatGroupId: group.id,
             travelAppUserId: m.userId,
-            role: m.role || "TOURIST",
+            role: (validRoles.includes(m.role as any) ? m.role : "TOURIST") as any,
           })
         ),
         skipDuplicates: true,

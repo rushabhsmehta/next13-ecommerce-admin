@@ -73,24 +73,33 @@ export default function ChatPage() {
   const [showMembers, setShowMembers] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [isMobileGroupList, setIsMobileGroupList] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch groups
+  // Fetch groups and extract current user ID from membership data
   const fetchGroups = useCallback(async () => {
     try {
       const res = await fetch("/api/chat/groups");
       if (res.ok) {
         const data = await res.json();
         setGroups(data.groups);
+        // Derive current user ID from the first group's membership
+        if (data.groups.length > 0 && !currentUserId) {
+          const meRes = await fetch("/api/chat/me");
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            setCurrentUserId(meData.userId);
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to fetch groups:", error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUserId]);
 
   // Fetch messages for a group
   const fetchMessages = useCallback(async (groupId: string) => {
@@ -479,9 +488,7 @@ export default function ChatPage() {
                   </div>
                 )}
                 {messages.map((msg, idx) => {
-                  const isOwn = activeGroup.members.find(
-                    (m) => m.travelAppUser.id === msg.senderId && m.role === activeGroup.myRole
-                  );
+                  const isOwn = currentUserId === msg.senderId;
                   const showSenderName =
                     idx === 0 || messages[idx - 1].senderId !== msg.senderId;
 

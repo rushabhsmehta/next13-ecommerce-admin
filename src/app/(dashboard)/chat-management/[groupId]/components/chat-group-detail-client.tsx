@@ -39,8 +39,8 @@ interface ChatGroup {
   name: string;
   description: string | null;
   tourPackageQueryId: string | null;
-  tourStartDate: string | null;
-  tourEndDate: string | null;
+  tourStartDate: Date | string | null;
+  tourEndDate: Date | string | null;
   isActive: boolean;
   members: Member[];
   _count: { messages: number };
@@ -64,10 +64,14 @@ export function ChatGroupDetailClient({
     group?.tourPackageQueryId || ""
   );
   const [tourStartDate, setTourStartDate] = useState(
-    group?.tourStartDate?.split("T")[0] || ""
+    group?.tourStartDate
+      ? new Date(group.tourStartDate).toISOString().split("T")[0]
+      : ""
   );
   const [tourEndDate, setTourEndDate] = useState(
-    group?.tourEndDate?.split("T")[0] || ""
+    group?.tourEndDate
+      ? new Date(group.tourEndDate).toISOString().split("T")[0]
+      : ""
   );
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedRole, setSelectedRole] = useState("TOURIST");

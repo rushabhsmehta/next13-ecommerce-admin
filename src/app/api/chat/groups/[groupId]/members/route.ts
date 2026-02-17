@@ -104,7 +104,12 @@ export async function POST(
           travelAppUserId,
         },
       },
-      update: { isActive: true, role, leftAt: null },
+      update: {
+        isActive: true,
+        leftAt: null,
+        // Only ADMIN can change roles on re-addition
+        ...(requestorMembership.role === "ADMIN" ? { role } : {}),
+      },
       create: {
         chatGroupId: params.groupId,
         travelAppUserId,

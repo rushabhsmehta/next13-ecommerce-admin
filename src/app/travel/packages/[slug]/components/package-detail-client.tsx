@@ -480,7 +480,7 @@ export function PackageDetailClient({
 
                 {/* CTA */}
                 <a
-                  href={`https://wa.me/919876543210?text=Hi, I'm interested in the tour package: ${tourPackage.tourPackageName}`}
+                  href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_PHONE || ""}?text=Hi, I'm interested in the tour package: ${tourPackage.tourPackageName}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-center rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all shadow-md hover:shadow-lg"

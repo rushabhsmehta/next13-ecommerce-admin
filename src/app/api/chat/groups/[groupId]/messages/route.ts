@@ -119,11 +119,13 @@ export async function POST(
       case "IMAGE":
       case "PDF":
       case "FILE":
-        if (!fileUrl) return jsonError("fileUrl is required for " + messageType + " messages", 400);
+        if (!fileUrl) return jsonError(`fileUrl is required for ${messageType} messages`, 400);
         break;
-      case "LOCATION":
-        if (latitude == null || longitude == null) return jsonError("latitude and longitude are required for LOCATION messages", 400);
+      case "LOCATION": {
+        const missingCoords = latitude == null || longitude == null;
+        if (missingCoords) return jsonError("latitude and longitude are required for LOCATION messages", 400);
         break;
+      }
       case "CONTACT":
         if (!contactName) return jsonError("contactName is required for CONTACT messages", 400);
         break;

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
+import { getUserOrgRole, roleAtLeast } from "@/lib/authz";
+import { dateToUtc } from "@/lib/timezone-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +71,12 @@ export async function POST(req: Request) {
     const { userId } = auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
+    // Only ADMIN or OWNER can create chat groups
+    const role = await getUserOrgRole(userId);
+    if (!roleAtLeast(role, "ADMIN")) {
+      return jsonError("Forbidden: only admins can create chat groups", 403);
+    }
+
     const body = await req.json();
     const {
       name,
@@ -86,8 +94,8 @@ export async function POST(req: Request) {
         name,
         description,
         tourPackageQueryId,
-        tourStartDate: tourStartDate ? new Date(tourStartDate) : undefined,
-        tourEndDate: tourEndDate ? new Date(tourEndDate) : undefined,
+        tourStartDate: tourStartDate ? dateToUtc(tourStartDate) : undefined,
+        tourEndDate: tourEndDate ? dateToUtc(tourEndDate) : undefined,
         createdBy: userId,
       },
     });

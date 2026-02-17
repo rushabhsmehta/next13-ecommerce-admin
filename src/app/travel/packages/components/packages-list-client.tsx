@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { PackageCard } from "../../components/package-card";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface Package {
   id: string;

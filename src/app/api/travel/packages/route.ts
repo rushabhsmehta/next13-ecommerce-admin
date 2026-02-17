@@ -9,8 +9,8 @@ export async function GET(req: Request) {
     const locationId = searchParams.get("locationId") || undefined;
     const category = searchParams.get("category") || undefined;
     const search = searchParams.get("search") || undefined;
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
-    const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "50", 10), 1), 100);
+    const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
     const where: any = {
       isFeatured: true,

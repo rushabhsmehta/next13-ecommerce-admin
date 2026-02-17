@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, MapPin, Star, Users, ArrowRight } from "lucide-react";
+import { Clock, MapPin, Star, ArrowRight } from "lucide-react";
 
 interface PackageCardProps {
   id: string;

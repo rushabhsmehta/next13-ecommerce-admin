@@ -2,14 +2,20 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
+import { getUserOrgRole, roleAtLeast } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/travel-users - List all travel app users
+// GET /api/travel-users - List all travel app users (admin only)
 export async function GET() {
   return handleApi(async () => {
     const { userId } = auth();
     if (!userId) return jsonError("Unauthorized", 401);
+
+    const role = await getUserOrgRole(userId);
+    if (!roleAtLeast(role, "ADMIN")) {
+      return jsonError("Forbidden: admin access required", 403);
+    }
 
     const users = await prismadb.travelAppUser.findMany({
       include: {
@@ -27,11 +33,16 @@ export async function GET() {
   });
 }
 
-// POST /api/travel-users - Create a new travel app user
+// POST /api/travel-users - Create a new travel app user (admin only)
 export async function POST(req: Request) {
   return handleApi(async () => {
     const { userId } = auth();
     if (!userId) return jsonError("Unauthorized", 401);
+
+    const role = await getUserOrgRole(userId);
+    if (!roleAtLeast(role, "ADMIN")) {
+      return jsonError("Forbidden: admin access required", 403);
+    }
 
     const body = await req.json();
     const { name, email, phone, clerkUserId, isApproved = false } = body;

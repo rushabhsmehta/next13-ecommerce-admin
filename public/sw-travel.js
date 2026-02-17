@@ -51,9 +51,13 @@ self.addEventListener("notificationclick", function (event) {
 });
 
 self.addEventListener("pushsubscriptionchange", function (event) {
+  var options = event.oldSubscription && event.oldSubscription.options
+    ? event.oldSubscription.options
+    : { userVisibleOnly: true };
+
   event.waitUntil(
     self.registration.pushManager
-      .subscribe(event.oldSubscription.options)
+      .subscribe(options)
       .then(function (subscription) {
         return fetch("/api/push/subscribe", {
           method: "POST",

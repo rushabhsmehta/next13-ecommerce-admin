@@ -103,10 +103,8 @@ export function ChatGroupDetailClient({
           router.refresh();
         }
       } else {
-        // For existing groups, we'd need a PATCH endpoint
-        // For now, navigate back
-        router.push("/chat-management");
-        router.refresh();
+        // Editing existing groups is not yet supported
+        window.alert("Editing existing chat groups is not yet supported. Your changes have not been saved.");
       }
     } catch (error) {
       console.error("Failed to save group:", error);

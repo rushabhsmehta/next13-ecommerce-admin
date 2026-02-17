@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import "../globals.css";
 import { TravelNavbar } from "./components/travel-navbar";
 import { TravelFooter } from "./components/travel-footer";
 

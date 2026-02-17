@@ -58,7 +58,7 @@ export async function GET(
 
     return NextResponse.json({
       messages: items.reverse(),
-      nextCursor: hasMore ? items[0]?.id : null,
+      nextCursor: hasMore ? items[items.length - 1]?.id : null,
       hasMore,
     });
   });
@@ -111,8 +111,25 @@ export async function POST(
       tourPackageId,
     } = body;
 
-    if (messageType === "TEXT" && !content) {
-      return jsonError("Message content is required", 400);
+    // Per-messageType validation
+    switch (messageType) {
+      case "TEXT":
+        if (!content) return jsonError("Message content is required", 400);
+        break;
+      case "IMAGE":
+      case "PDF":
+      case "FILE":
+        if (!fileUrl) return jsonError("fileUrl is required for " + messageType + " messages", 400);
+        break;
+      case "LOCATION":
+        if (latitude == null || longitude == null) return jsonError("latitude and longitude are required for LOCATION messages", 400);
+        break;
+      case "CONTACT":
+        if (!contactName) return jsonError("contactName is required for CONTACT messages", 400);
+        break;
+      case "TOUR_LINK":
+        if (!tourPackageId) return jsonError("tourPackageId is required for TOUR_LINK messages", 400);
+        break;
     }
 
     const message = await prismadb.chatMessage.create({

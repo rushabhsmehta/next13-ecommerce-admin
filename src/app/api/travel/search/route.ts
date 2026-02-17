@@ -9,7 +9,7 @@ export async function GET(req: Request) {
     const query = searchParams.get("q") || "";
 
     if (!query || query.length < 2) {
-      return NextResponse.json({ results: [] });
+      return NextResponse.json({ results: { packages: [], destinations: [] } });
     }
 
     const [packages, destinations] = await Promise.all([

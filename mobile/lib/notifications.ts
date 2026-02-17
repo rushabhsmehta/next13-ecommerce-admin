@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { pushApi } from "./api";
 import { getToken } from "./auth";
 
@@ -38,7 +39,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   // Get Expo push token
-  const tokenData = await Notifications.getExpoPushTokenAsync();
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+  const tokenData = await Notifications.getExpoPushTokenAsync({
+    projectId,
+  });
   const pushToken = tokenData.data;
 
   // Register with our backend

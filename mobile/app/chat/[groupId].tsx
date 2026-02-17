@@ -71,8 +71,8 @@ export default function ChatRoomScreen() {
   useEffect(() => {
     fetchUserAndMessages();
 
-    // Poll for new messages every 3 seconds
-    pollingRef.current = setInterval(fetchMessages, 3000);
+    // Poll for new messages every 5 seconds
+    pollingRef.current = setInterval(fetchMessages, 5000);
 
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);

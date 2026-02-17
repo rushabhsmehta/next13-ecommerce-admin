@@ -48,7 +48,10 @@ export default function HomeScreen() {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      router.push(`/packages/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      router.push({
+        pathname: "/(tabs)/explore",
+        params: { q: searchQuery.trim() },
+      });
     }
   };
 

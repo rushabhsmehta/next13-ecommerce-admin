@@ -9,6 +9,14 @@ export default authMiddleware({
     "/sign-up",
     "/api/auth/:path*",
     "/api/whatsapp/webhook",  // Only webhook is public for Meta callbacks
+    "/travel",                // Travel app public pages
+    "/travel/packages",
+    "/travel/packages/:path*",
+    "/travel/destinations",
+    "/travel/destinations/:path*",
+    "/api/travel/packages",   // Travel app public APIs
+    "/api/travel/destinations",
+    "/api/travel/search",
   ],
   
   // Use ignoredRoutes for webhook endpoints to completely bypass authentication

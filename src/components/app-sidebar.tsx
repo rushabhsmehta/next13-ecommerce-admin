@@ -140,6 +140,14 @@ const NAV_ITEMS = [
       { title: "Invoice Settings", url: "/settings/invoice" },
     ],
   },
+  {
+    title: "Travel App",
+    items: [
+      { title: "Travel Users", url: "/travel-users" },
+      { title: "Chat Management", url: "/chat-management" },
+      { title: "🌐 Travel Website", url: "/travel" },
+    ],
+  },
 ];
 
 // Sidebar items for associate users - only show inquiries, tour package queries, and view-only tour packages

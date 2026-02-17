@@ -3,10 +3,12 @@
 // The travel website is served at https://aagamholidays.com (Next.js /travel routes)
 // The mobile app connects to the same backend API
 
+// DEV: use local development host reachable from your phone (LAN IP)
 export const API_BASE_URL = __DEV__
-  ? "http://localhost:3000"
+  ? "http://192.168.29.133:3000"
   : "https://admin.aagamholidays.com";
 
+// DEV: mobile app will use the local backend's /travel path when in development
 export const WEBSITE_URL = __DEV__
-  ? "http://localhost:3000/travel"
+  ? "http://192.168.29.133:3000/travel"
   : "https://aagamholidays.com";

@@ -33,7 +33,6 @@ src/
   app/
     (auth)/              # Sign-in/sign-up routes
     (dashboard)/         # Admin dashboard (50+ modules)
-      [storeId]/         # Store-scoped routes
       accounts/          # Financial accounts
       customers/         # Customer management
       hotels/            # Hotel management
@@ -55,8 +54,8 @@ src/
   providers/             # Context providers (theme, modal, toast)
   types/                 # TypeScript type definitions
   middleware.ts          # Auth & routing middleware
+schema.prisma            # Main MySQL schema (~1,700 lines)
 prisma/
-  schema.prisma          # Main MySQL schema (~1,700 lines)
   whatsapp-schema.prisma # PostgreSQL WhatsApp schema
 ```
 
@@ -64,7 +63,7 @@ prisma/
 
 Two Prisma schemas with separate clients:
 
-- **`prisma/schema.prisma`** (MySQL) - Main business data: tour packages, hotels, itineraries, financial transactions, customers, inquiries. Client: `@prisma/client`
+- **`schema.prisma`** (MySQL) - Main business data: tour packages, hotels, itineraries, financial transactions, customers, inquiries. Client: `@prisma/client`
 - **`prisma/whatsapp-schema.prisma`** (PostgreSQL) - WhatsApp messages, campaigns, catalogs, orders. Client: `@prisma/whatsapp-client`
 
 Both clients are generated during `npm run build` and `postinstall`.
@@ -75,7 +74,6 @@ Both clients are generated during `npm run build` and `postinstall`.
 
 ## Key Patterns
 
-- **Multi-tenant:** Store-based routing via `[storeId]` dynamic segments
 - **Domain-based access:** Main domain = full admin, `ops.*` = operations, `associate.*` = limited partner access
 - **Roles:** OWNER, ADMIN, FINANCE, OPERATIONS, VIEWER (organization-based)
 - **API routes** are in `src/app/api/` following Next.js App Router conventions

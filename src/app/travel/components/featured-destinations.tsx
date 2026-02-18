@@ -18,32 +18,32 @@ export function FeaturedDestinations({
   if (destinations.length === 0) return null;
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+    <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50/80 to-white">
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-12">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 sm:mb-12">
           <div>
-            <span className="text-emerald-600 font-semibold text-sm uppercase tracking-wider">
+            <span className="text-orange-600 font-semibold text-sm uppercase tracking-wider">
               Explore
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mt-2">
               Popular Destinations
             </h2>
-            <p className="text-gray-500 mt-3 max-w-lg">
+            <p className="text-gray-500 mt-3 max-w-lg text-sm sm:text-base">
               Discover breathtaking locations curated just for you. From serene
               beaches to majestic mountains.
             </p>
           </div>
           <Link
             href="/travel/destinations"
-            className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-emerald-600 font-semibold hover:gap-3 transition-all"
+            className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-orange-600 font-semibold hover:gap-3 transition-all text-sm"
           >
             View All Destinations <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
         {/* Destination Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {destinations.slice(0, 6).map((destination) => (
             <DestinationCard
               key={destination.id}

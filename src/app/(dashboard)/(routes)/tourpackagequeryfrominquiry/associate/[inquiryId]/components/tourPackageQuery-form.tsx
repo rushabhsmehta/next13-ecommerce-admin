@@ -7,8 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { AlertCircle, AlignLeft, BedDouble, CheckIcon, ChevronDown, ChevronsUpDown, ChevronUp, FileCheck, FileText, HotelIcon, ImageIcon, ListChecks, ListPlus, MapPin, Plane, Plus, ScrollText, Tag, Trash, Type, Users, Utensils } from "lucide-react"
-import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, Inquiry, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, RoomAllocation, SaleDetail, Supplier, TourPackage, TransportDetail } from "@prisma/client"
-import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
+import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, Inquiry, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, RoomAllocation, SaleDetail, Supplier, TourPackage, TransportDetail, PackageVariant, VariantHotelMapping } from "@prisma/client"
+import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, TourPackagePricing, PricingComponent, PricingAttribute, LocationSeasonalPeriod } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import {
   Command,
@@ -61,7 +61,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DevTool } from "@hookform/devtools"
 import { Textarea } from "@/components/ui/textarea";
 // Update imports for shared tab components
-import BasicInfoTab from "./BasicInfoTab"
+import BasicInfoTab from "@/components/tour-package-query/BasicInfoTab"
 import DatesTab from "./DatesTab"
 import FlightsTab from "./FlightsTab"
 import GuestsTab from "./GuestsTab"
@@ -228,6 +228,22 @@ interface TourPackageQueryFormProps {
       activities: (Activity & {
         activityImages: Images[];
       })[] | null;
+    })[] | null;
+    packageVariants?: (PackageVariant & {
+      variantHotelMappings: (VariantHotelMapping & {
+        hotel: Hotel & {
+          images: Images[];
+        };
+        itinerary: Itinerary | null;
+      })[];
+      tourPackagePricings: (TourPackagePricing & {
+        mealPlan: MealPlan | null;
+        vehicleType: VehicleType | null;
+        locationSeasonalPeriod: LocationSeasonalPeriod | null;
+        pricingComponents: (PricingComponent & {
+          pricingAttribute: PricingAttribute;
+        })[];
+      })[];
     })[] | null;
   })[] | null;
   // Add lookup types
@@ -643,6 +659,75 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION); // Ensure pricing section is handled
       form.setValue('pricingTier', (selectedTourPackage as any).pricingTier || 'standard'); // Handle pricing tier
       form.setValue('customMarkup', (selectedTourPackage as any).customMarkup || ''); // Handle custom markup
+      
+      // Check if there's a default variant and select it
+      const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
+      if (defaultVariant?.id) {
+        handleTourPackageVariantSelection(selectedTourPackageId, [defaultVariant.id]);
+      }
+    }
+  };
+
+  const handleTourPackageVariantSelection = (tourPackageId: string, selectedVariantIds: string[]) => {
+    console.log('🎯 [Associate Form] handleTourPackageVariantSelection called:', {
+      tourPackageId,
+      selectedVariantIds,
+      count: selectedVariantIds.length
+    });
+    
+    const selectedTourPackage = tourPackages?.find(tp => tp.id === tourPackageId);
+    if (!selectedTourPackage) {
+      console.error('❌ [Associate Form] Tour package not found:', tourPackageId);
+      toast.error('Unable to locate selected tour package.');
+      return;
+    }
+
+    console.log('✅ [Associate Form] Found tour package:', selectedTourPackage.tourPackageName);
+
+    // Store the array of selected variant IDs
+    form.setValue('selectedVariantIds', selectedVariantIds);
+    console.log('📝 [Associate Form] Set selectedVariantIds in form:', form.getValues('selectedVariantIds'));
+
+    if (!selectedVariantIds || selectedVariantIds.length === 0) {
+      // Clear variant selection, revert to base package
+      console.log('🧹 [Associate Form] Clearing variant selection');
+      form.setValue('selectedTourPackageVariantId', '');
+      form.setValue('selectedTourPackageVariantName', '');
+      form.setValue('selectedTemplateId', tourPackageId);
+      form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${tourPackageId.substring(0, 8)}`);
+      toast.success('Variant selection cleared');
+      return;
+    }
+
+    // Get variant names for display
+    const variants = selectedTourPackage.packageVariants?.filter((v: PackageVariant) => selectedVariantIds.includes(v.id)) || [];
+    const variantNames = variants.map((v: PackageVariant) => v.name).join(', ');
+    console.log('📋 [Associate Form] Selected variants:', variants.map((v: PackageVariant) => ({ id: v.id, name: v.name })));
+
+    // Store first variant for backward compatibility (if needed by other code)
+    const firstVariant = variants[0];
+    if (firstVariant) {
+      form.setValue('selectedTourPackageVariantId', firstVariant.id);
+      form.setValue('selectedTourPackageVariantName', firstVariant.name || 'Variant');
+      console.log('🔖 [Associate Form] Set first variant for compatibility:', firstVariant.name);
+    }
+
+    // Set template info
+    form.setValue('selectedTemplateId', tourPackageId);
+    form.setValue('selectedTemplateType', 'TourPackageVariant');
+    form.setValue('tourPackageTemplate', tourPackageId);
+    
+    const combinedTemplateName = [selectedTourPackage.tourPackageName, variantNames].filter(Boolean).join(' - ');
+    if (combinedTemplateName) {
+      form.setValue('tourPackageTemplateName', combinedTemplateName);
+      console.log('🏷️ [Associate Form] Set template name:', combinedTemplateName);
+    }
+
+    if (selectedVariantIds.length === 1) {
+      toast.success('Variant selected successfully.');
+    } else {
+      toast.success(`${selectedVariantIds.length} variants selected successfully.`);
     }
   };
 
@@ -915,14 +1000,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 loading={loading}
                 associatePartners={associatePartners}
                 tourPackages={tourPackages}
+                tourPackageQueries={null}
                 openTemplate={openTemplate}
                 setOpenTemplate={setOpenTemplate}
+                openQueryTemplate={false}
+                setOpenQueryTemplate={() => {}}
                 handleTourPackageSelection={handleTourPackageSelection}
+                handleTourPackageVariantSelection={handleTourPackageVariantSelection}
+                handleTourPackageQuerySelection={() => {}}
                 form={form}
-                isAssociatePartner={true}
-                enableTourPackageSelection={true}
-                inquiry={inquiry}
-                applyInquiryRoomAllocationsToAllDays={applyInquiryRoomAllocationsToAllDays}
               />
             </TabsContent>
 

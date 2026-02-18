@@ -67,7 +67,33 @@ const TourPackageQueryPage = async ({
           }
         },
         orderBy: { dayNumber: 'asc' }
-      }
+      },
+      packageVariants: {
+        include: {
+          variantHotelMappings: {
+            include: {
+              hotel: {
+                include: {
+                  images: true,
+                }
+              },
+              itinerary: true,
+            }
+          },
+          tourPackagePricings: {
+            include: {
+              mealPlan: true,
+              vehicleType: true,
+              locationSeasonalPeriod: true,
+              pricingComponents: {
+                include: {
+                  pricingAttribute: true,
+                }
+              },
+            }
+          },
+        }
+      },
     }
   });
 

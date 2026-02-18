@@ -1,11 +1,11 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\BasicInfoTab.tsx
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Control } from "react-hook-form";
-import { FileText, ChevronDown, CheckIcon, BedIcon } from "lucide-react";
+import { FileText, ChevronDown, CheckIcon, BedIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse rounded-md bg-muted" /> });
-import { AssociatePartner, TourPackage, TourPackageQuery } from "@prisma/client";
+import { AssociatePartner, TourPackage, TourPackageQuery, PackageVariant, VariantHotelMapping, Hotel, Itinerary } from "@prisma/client";
 
 import {
   Command,
@@ -33,20 +33,32 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import ImageUpload from "@/components/ui/image-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, TOUR_CATEGORY_DEFAULT } from "./defaultValues";
 
+type TourPackageWithVariants = TourPackage & {
+  itineraries?: Itinerary[] | null;
+  packageVariants?: (PackageVariant & {
+    variantHotelMappings: (VariantHotelMapping & {
+      hotel: Hotel;
+      itinerary: Itinerary | null;
+    })[];
+  })[] | null;
+};
+
 interface BasicInfoProps {
   control: Control<TourPackageQueryFormValues>;
   loading: boolean;
   associatePartners: AssociatePartner[];
-  tourPackages: TourPackage[] | null;
+  tourPackages: TourPackageWithVariants[] | null;
   openTemplate: boolean;
   setOpenTemplate: (open: boolean) => void;
   handleTourPackageSelection: (id: string) => void;
+  handleTourPackageVariantSelection?: (tourPackageId: string, variantIds: string[]) => void;
   form: any; // Use a more specific type if available
   // Add props for associate partner restrictions
   isAssociatePartner?: boolean;
@@ -64,6 +76,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
   openTemplate,
   setOpenTemplate,
   handleTourPackageSelection,
+  handleTourPackageVariantSelection,
   form,
   isAssociatePartner = false,
   enableTourPackageSelection = true,
@@ -71,6 +84,37 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
   applyInquiryRoomAllocationsToAllDays
 }) => {
   const editor = useRef(null);
+  const [openVariantPopover, setOpenVariantPopover] = useState(false);
+  const selectedTourPackageId = form.watch('tourPackageTemplate');
+  const watchedVariantIds = form.watch('selectedVariantIds');
+  const selectedVariantIds = useMemo(() => watchedVariantIds || [], [watchedVariantIds]);
+  const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
+  const availableVariants = selectedTourPackage?.packageVariants || [];
+
+  // 🔧 FIX: Ensure variant selection is properly initialized when form loads
+  useEffect(() => {
+    const formVariantIds = form.getValues('selectedVariantIds');
+    const formTourPackageId = form.getValues('tourPackageTemplate');
+    
+    console.log('🔍 [Associate BasicInfoTab] Component mounted/updated', {
+      formVariantIds,
+      formTourPackageId,
+      watchedVariantIds: selectedVariantIds,
+      watchedPackageId: selectedTourPackageId,
+      availableVariantsCount: availableVariants.length
+    });
+    
+    // If we have saved variant selections but the UI isn't showing them, trigger a re-render
+    if (formVariantIds && Array.isArray(formVariantIds) && formVariantIds.length > 0) {
+      if (selectedVariantIds.length !== formVariantIds.length) {
+        console.log('⚠️ [Associate BasicInfoTab] Variant selection mismatch detected, forcing sync');
+        form.setValue('selectedVariantIds', formVariantIds, { 
+          shouldDirty: false, 
+          shouldTouch: false 
+        });
+      }
+    }
+  }, [form, selectedVariantIds, selectedTourPackageId, availableVariants.length]);
 
   // For associate partners, disable all fields except tour package selection
   const getFieldDisabled = (fieldEnabled: boolean = true) => {
@@ -159,6 +203,136 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             </FormItem>
           )}
         />
+
+        {handleTourPackageVariantSelection && (
+          <FormField
+            control={control}
+            name="selectedVariantIds"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={!enableTourPackageSelection && isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Select Package Variants to Include
+                  {enableTourPackageSelection && isAssociatePartner && <span className="text-xs ml-2 text-green-600">(Editable)</span>}
+                  {!enableTourPackageSelection && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
+                <Popover open={openVariantPopover} onOpenChange={setOpenVariantPopover}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between min-h-[40px] h-auto",
+                          (!selectedVariantIds || selectedVariantIds.length === 0) && "text-muted-foreground",
+                          getFieldDisabled(enableTourPackageSelection) && "opacity-50",
+                          enableTourPackageSelection && isAssociatePartner && "border-green-200 bg-green-50"
+                        )}
+                        disabled={getFieldDisabled(enableTourPackageSelection) || !selectedTourPackageId || availableVariants.length === 0}
+                      >
+                        <div className="flex flex-wrap gap-1 flex-1">
+                          {!selectedTourPackageId ? (
+                            "Select a tour package first"
+                          ) : availableVariants.length === 0 ? (
+                            "No variants configured for this package"
+                          ) : selectedVariantIds.length === 0 ? (
+                            "Select variants to compare"
+                          ) : (
+                            selectedVariantIds.map((id: string) => {
+                              const variant = availableVariants.find(v => v.id === id);
+                              return variant ? (
+                                <Badge key={id} variant="secondary" className="mr-1">
+                                  {variant.name}
+                                </Badge>
+                              ) : null;
+                            })
+                          )}
+                        </div>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[450px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search variants..." />
+                      <CommandEmpty>No variant found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={() => {
+                            if (handleTourPackageVariantSelection && selectedTourPackageId) {
+                              handleTourPackageVariantSelection(selectedTourPackageId, []);
+                            }
+                            form.setValue('selectedVariantIds', []);
+                          }}
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Clear All Selections
+                        </CommandItem>
+                        {availableVariants.map((variant) => {
+                          const isSelected = selectedVariantIds.includes(variant.id);
+                          return (
+                            <CommandItem
+                              value={variant.name ?? ''}
+                              key={variant.id}
+                              onSelect={() => {
+                                const newSelection = isSelected
+                                  ? selectedVariantIds.filter((id: string) => id !== variant.id)
+                                  : [...selectedVariantIds, variant.id];
+                                
+                                console.log('🎯 [Associate BasicInfoTab] Variant selection changed:', {
+                                  variantId: variant.id,
+                                  variantName: variant.name,
+                                  action: isSelected ? 'removed' : 'added',
+                                  newSelection,
+                                  previousSelection: selectedVariantIds
+                                });
+                                
+                                form.setValue('selectedVariantIds', newSelection);
+                                
+                                if (handleTourPackageVariantSelection && selectedTourPackageId) {
+                                  handleTourPackageVariantSelection(selectedTourPackageId, newSelection);
+                                }
+                              }}
+                            >
+                              <div className={cn(
+                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                isSelected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "opacity-50 [&_svg]:invisible"
+                              )}>
+                                <CheckIcon className={cn("h-4 w-4")} />
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium">{variant.name}</div>
+                                {variant.description && (
+                                  <div className="text-xs text-muted-foreground line-clamp-1">
+                                    {variant.description}
+                                  </div>
+                                )}
+                                {variant.priceModifier && (
+                                  <div className="text-xs text-blue-600">
+                                    {variant.priceModifier > 0 ? '+' : ''}{variant.priceModifier}%
+                                  </div>
+                                )}
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormDescription className="text-xs md:text-sm">
+                  {selectedTourPackageId
+                    ? availableVariants.length === 0
+                      ? "This tour package has no variants defined."
+                      : "Select multiple variants to create side-by-side comparisons with different hotel and pricing options."
+                    : "Choose a tour package first to enable variant selection."}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         
         {/* Inquiry Room Allocation Summary */}
         {inquiry?.roomAllocations && inquiry.roomAllocations.length > 0 && (

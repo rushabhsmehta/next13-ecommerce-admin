@@ -614,7 +614,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       // Check if there's a default variant and select it
       const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
       if (defaultVariant?.id) {
-        handleTourPackageVariantSelection(selectedTourPackageId, [defaultVariant.id]);
+        handleTourPackageVariantSelection?.(selectedTourPackageId, [defaultVariant.id]);
       }
     }
   };
@@ -673,6 +673,20 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     if (combinedTemplateName) {
       form.setValue('tourPackageTemplateName', combinedTemplateName);
       console.log('🏷️ [CreateCopy Form] Set template name:', combinedTemplateName);
+    }
+
+    // Apply pricing from first variant if available (for backward compatibility with pricing tab)
+    if (firstVariant && Array.isArray(firstVariant.tourPackagePricings) && firstVariant.tourPackagePricings.length > 0) {
+      const sortedPricings = [...firstVariant.tourPackagePricings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      const primaryPricing = sortedPricings[0];
+      if (primaryPricing?.mealPlanId) {
+        form.setValue('selectedMealPlanId', primaryPricing.mealPlanId);
+        console.log('🍽️ [CreateCopy Form] Set meal plan:', primaryPricing.mealPlanId);
+      }
+      if (primaryPricing?.numberOfRooms) {
+        form.setValue('numberOfRooms', primaryPricing.numberOfRooms);
+        console.log('🛏️ [CreateCopy Form] Set number of rooms:', primaryPricing.numberOfRooms);
+      }
     }
 
     if (selectedVariantIds.length === 1) {

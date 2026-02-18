@@ -61,7 +61,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DevTool } from "@hookform/devtools"
 import { Textarea } from "@/components/ui/textarea";
 // Update imports for shared tab components
-import BasicInfoTab from "@/components/tour-package-query/BasicInfoTab"
+import BasicInfoTab from "./BasicInfoTab"
 import DatesTab from "./DatesTab"
 import FlightsTab from "./FlightsTab"
 import GuestsTab from "./GuestsTab"
@@ -663,7 +663,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       // Check if there's a default variant and select it
       const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
       if (defaultVariant?.id) {
-        handleTourPackageVariantSelection(selectedTourPackageId, [defaultVariant.id]);
+        handleTourPackageVariantSelection?.(selectedTourPackageId, [defaultVariant.id]);
       }
     }
   };
@@ -722,6 +722,20 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     if (combinedTemplateName) {
       form.setValue('tourPackageTemplateName', combinedTemplateName);
       console.log('🏷️ [Associate Form] Set template name:', combinedTemplateName);
+    }
+
+    // Apply pricing from first variant if available (for backward compatibility with pricing tab)
+    if (firstVariant && Array.isArray(firstVariant.tourPackagePricings) && firstVariant.tourPackagePricings.length > 0) {
+      const sortedPricings = [...firstVariant.tourPackagePricings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      const primaryPricing = sortedPricings[0];
+      if (primaryPricing?.mealPlanId) {
+        form.setValue('selectedMealPlanId', primaryPricing.mealPlanId);
+        console.log('🍽️ [Associate Form] Set meal plan:', primaryPricing.mealPlanId);
+      }
+      if (primaryPricing?.numberOfRooms) {
+        form.setValue('numberOfRooms', primaryPricing.numberOfRooms);
+        console.log('🛏️ [Associate Form] Set number of rooms:', primaryPricing.numberOfRooms);
+      }
     }
 
     if (selectedVariantIds.length === 1) {
@@ -1000,15 +1014,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 loading={loading}
                 associatePartners={associatePartners}
                 tourPackages={tourPackages}
-                tourPackageQueries={null}
                 openTemplate={openTemplate}
                 setOpenTemplate={setOpenTemplate}
-                openQueryTemplate={false}
-                setOpenQueryTemplate={() => {}}
                 handleTourPackageSelection={handleTourPackageSelection}
                 handleTourPackageVariantSelection={handleTourPackageVariantSelection}
-                handleTourPackageQuerySelection={() => {}}
                 form={form}
+                isAssociatePartner={true}
+                enableTourPackageSelection={true}
+                inquiry={inquiry}
+                applyInquiryRoomAllocationsToAllDays={applyInquiryRoomAllocationsToAllDays}
               />
             </TabsContent>
 

@@ -5,10 +5,10 @@
 
 // DEV: use local development host reachable from your phone (LAN IP)
 export const API_BASE_URL = __DEV__
-  ? "http://192.168.29.133:3000"
+  ? " 10.80.136.40:3000"
   : "https://admin.aagamholidays.com";
 
 // DEV: mobile app will use the local backend's /travel path when in development
 export const WEBSITE_URL = __DEV__
-  ? "http://192.168.29.133:3000/travel"
+  ? " 10.80.136.40:3000/travel"
   : "https://aagamholidays.com";

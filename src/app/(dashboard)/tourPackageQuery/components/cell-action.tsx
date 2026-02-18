@@ -68,6 +68,7 @@ export const CellAction: React.FC<CellActionProps> = ({
     window.open(`/tourPackageQueryPDFGeneratorWithVariants/${data.id}?search=AH`, "_blank");
   };
 
+
   const openVoucher = () => {
     setMenuOpen(false);
     window.open(`/tourPackageQueryVoucherDisplay/${data.id}?search=AH`, "_blank");

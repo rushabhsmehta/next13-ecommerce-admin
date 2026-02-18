@@ -17,6 +17,47 @@ import {
 } from "@prisma/client";
 import { format } from "date-fns";
 
+// Variant snapshot types for standard PDF generator
+interface QueryVariantHotelSnapshotForPDF {
+  id: string;
+  dayNumber: number;
+  hotelId: string;
+  hotelName: string;
+  locationLabel: string;
+  imageUrl: string | null;
+  roomCategory: string | null;
+}
+
+interface QueryVariantPricingComponentSnapshotForPDF {
+  id: string;
+  attributeName: string;
+  price: any;
+  description: string | null;
+}
+
+interface QueryVariantPricingSnapshotForPDF {
+  id: string;
+  mealPlanId: string | null;
+  mealPlanName: string;
+  numberOfRooms: number;
+  vehicleTypeId: string | null;
+  vehicleTypeName: string | null;
+  totalPrice: any;
+  description: string | null;
+  pricingComponentSnapshots: QueryVariantPricingComponentSnapshotForPDF[];
+}
+
+interface QueryVariantSnapshotForPDF {
+  id: string;
+  name: string;
+  description: string | null;
+  priceModifier: number | null;
+  isDefault: boolean;
+  sortOrder: number;
+  hotelSnapshots: QueryVariantHotelSnapshotForPDF[];
+  pricingSnapshots: QueryVariantPricingSnapshotForPDF[];
+}
+
 // Define the props interface.
 interface TourPackageQueryPDFGeneratorProps {
   initialData: TourPackageQuery & {
@@ -33,6 +74,7 @@ interface TourPackageQueryPDFGeneratorProps {
       images: Images[];
     })[];
     associatePartner: AssociatePartner | null;
+    queryVariantSnapshots?: QueryVariantSnapshotForPDF[];
   } | null;
   locations: Location[];
   hotels: (Hotel & {
@@ -292,6 +334,169 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       return [];
     }
   }, [extractText]);
+
+  // --- Build Variant Comparison Table ---
+  const buildVariantComparisonTable = useCallback((): string => {
+    const variants = (initialData as any)?.queryVariantSnapshots as QueryVariantSnapshotForPDF[] | undefined;
+    if (!variants || variants.length < 2) return "";
+
+    const fmtINR = (val: string | number): string => {
+      try {
+        const n = parseFloat(String(val).replace(/[^\d.-]/g, ''));
+        return isNaN(n) ? String(val) : n.toLocaleString('en-IN');
+      } catch { return String(val); }
+    };
+
+    const allDays = Array.from(new Set(
+      variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
+    )).sort((a, b) => a - b);
+
+    const allComponents = Array.from(new Set(
+      variants.flatMap(v =>
+        v.pricingSnapshots.flatMap(p =>
+          p.pricingComponentSnapshots.map(c => c.attributeName)
+        )
+      )
+    ));
+
+    const variantCount = variants.length;
+    const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1)));
+    const dataColPct = Math.round((100 - labelColPct) / variantCount);
+
+    const thBase = `padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid ${brandColors.border};`;
+    const tdBase = `padding: 10px 12px; font-size: 13px; border: 1px solid ${brandColors.border}; vertical-align: top;`;
+    const tdLabel = `${tdBase} background: ${brandColors.tableHeaderBg}; font-weight: 600; white-space: nowrap; color: ${brandColors.slateText};`;
+
+    const variantHeaders = variants.map(v => `
+      <th style="${thBase} background: ${brandColors.primary}; color: white; width: ${dataColPct}%;">
+        ${v.name}
+        ${v.priceModifier && v.priceModifier !== 0 ? `
+          <span style="display: block; font-size: 10px; font-weight: 500; opacity: 0.9; margin-top: 2px;">
+            ${v.priceModifier > 0 ? '+' : ''}${v.priceModifier}% adjustment
+          </span>
+        ` : ''}
+      </th>
+    `).join('');
+
+    const hotelRows = allDays.map((day, i) => {
+      const cells = variants.map(v => {
+        const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
+        return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
+          ${h ? `
+            <div style="display: flex; align-items: center; gap: 10px;">
+              ${h.imageUrl ? `
+                <div style="flex-shrink: 0; width: 60px; height: 44px; border-radius: 4px; overflow: hidden; background: #f3f4f6;">
+                  <img src="${h.imageUrl}" alt="${h.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                </div>
+              ` : `
+                <div style="flex-shrink: 0; width: 60px; height: 44px; border-radius: 4px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
+                  <span style="font-size: 18px;">🏨</span>
+                </div>
+              `}
+              <div>
+                <div style="font-size: 12px; font-weight: 600; color: ${brandColors.text}; line-height: 1.3;">${h.hotelName}</div>
+                <div style="font-size: 10px; color: ${brandColors.muted}; margin-top: 2px;">📍 ${h.locationLabel}</div>
+                ${h.roomCategory ? `<div style="font-size: 10px; color: ${brandColors.secondary}; margin-top: 1px; font-weight: 500;">${h.roomCategory}</div>` : ''}
+              </div>
+            </div>
+          ` : `<span style="color: ${brandColors.muted}; font-size: 11px; font-style: italic;">Not specified</span>`}
+        </td>`;
+      }).join('');
+      return `<tr><td style="${tdLabel}">Day ${day}</td>${cells}</tr>`;
+    }).join('');
+
+    const metaRows = [
+      { label: '🍽️ Meal Plan', fn: (v: QueryVariantSnapshotForPDF) => v.pricingSnapshots[0]?.mealPlanName || '—' },
+      {
+        label: '🛏️ Rooms',
+        fn: (v: QueryVariantSnapshotForPDF) => {
+          const ps = v.pricingSnapshots[0];
+          return ps ? `${ps.numberOfRooms} Room(s)${ps.vehicleTypeName ? ` · ${ps.vehicleTypeName}` : ''}` : '—';
+        },
+      },
+    ].map(({ label, fn }, i) => {
+      const cells = variants.map(v => `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">${fn(v)}</td>`).join('');
+      return `<tr><td style="${tdLabel}">${label}</td>${cells}</tr>`;
+    }).join('');
+
+    const compRows = allComponents.map((compName, i) => {
+      const cells = variants.map(v => {
+        const ps = v.pricingSnapshots[0];
+        const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
+        return `<td style="${tdBase} background: ${(i + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
+          ${comp ? `₹ ${fmtINR(comp.price.toString())}` : '—'}
+        </td>`;
+      }).join('');
+      return `<tr><td style="${tdLabel}">${compName}</td>${cells}</tr>`;
+    }).join('');
+
+    const totalRow = (() => {
+      const cells = variants.map(v => {
+        const ps = v.pricingSnapshots[0];
+        return `<td style="${tdBase} background: ${brandColors.light}; font-weight: 700; font-size: 15px; color: ${brandColors.primary};">
+          ${ps ? `₹ ${fmtINR(ps.totalPrice.toString())}` : '—'}
+        </td>`;
+      }).join('');
+      return `<tr><td style="${tdLabel} background: ${brandColors.light}; color: ${brandColors.primary};">💰 Total Price</td>${cells}</tr>`;
+    })();
+
+    return `
+      <div style="${cardStyle} ${pageBreakBefore} page-break-inside: avoid; break-inside: avoid-page; margin-bottom: 24px;">
+        <div style="background: ${brandGradients.primary}; padding: 16px 20px;">
+          <h3 style="color: white; font-size: 18px; font-weight: 700; margin: 0; letter-spacing: 0.3px;">
+            📊 Variant Comparison at a Glance
+          </h3>
+          <p style="color: rgba(255,255,255,0.88); font-size: 12px; margin: 4px 0 0 0;">
+            Side-by-side comparison of all package variants — hotels &amp; pricing
+          </p>
+        </div>
+
+        <div style="${contentStyle}">
+          ${allDays.length > 0 ? `
+            <div style="margin-bottom: 24px;">
+              <div style="font-size: 13px; font-weight: 700; color: ${brandColors.text}; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>🏨</span> Hotel Comparison by Day
+              </div>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+                  <thead>
+                    <tr>
+                      <th style="${thBase} background: ${brandColors.tableHeaderBg}; color: ${brandColors.text}; width: ${labelColPct}%;">Day</th>
+                      ${variantHeaders}
+                    </tr>
+                  </thead>
+                  <tbody>${hotelRows}</tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
+
+          ${variants.some(v => v.pricingSnapshots.length > 0) ? `
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: ${brandColors.text}; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>💰</span> Pricing Comparison
+              </div>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+                  <thead>
+                    <tr>
+                      <th style="${thBase} background: ${brandColors.tableHeaderBg}; color: ${brandColors.text}; width: ${labelColPct}%;">Component</th>
+                      ${variantHeaders}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${metaRows}
+                    ${compRows}
+                    ${totalRow}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }, [initialData, brandColors, brandGradients, cardStyle, contentStyle, pageBreakBefore]);
 
   // --- Build HTML content ---
   const buildHtmlContent = useCallback((): string => {
@@ -1267,6 +1472,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     ` : "";
 
 
+    // Variant comparison table (only shown when 2+ variants exist)
+    const variantComparisonTable = buildVariantComparisonTable();
+
     // Assemble all sections.
     const fullHtml = `
       <html>
@@ -1283,15 +1491,16 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             ${totalPriceSection}
             ${remarksSection}
             ${hotelSummarySection}
-            
+
             ${itinerariesSection}
+            ${variantComparisonTable}
             ${policiesAndTermsSection}
           </div>
         </body>
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, hotels, selectedOption, preparedBy, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, tableCellStyle, tableHeaderStyle, tableStyle]);
+  }, [initialData, currentCompany, locations, hotels, selectedOption, preparedBy, buildVariantComparisonTable, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, tableCellStyle, tableHeaderStyle, tableStyle]);
   // --- Function to generate the PDF via the API ---
   const generatePDF = useCallback(async () => {
     setLoading(true);

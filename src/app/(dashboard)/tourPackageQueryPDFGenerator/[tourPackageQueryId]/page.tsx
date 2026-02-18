@@ -57,6 +57,21 @@ const tourPackageQueryPage = async ({
         }
       },
       associatePartner: true,
+      queryVariantSnapshots: {
+        include: {
+          hotelSnapshots: {
+            orderBy: { dayNumber: 'asc' },
+          },
+          pricingSnapshots: {
+            include: {
+              pricingComponentSnapshots: {
+                orderBy: { createdAt: 'asc' },
+              },
+            },
+          },
+        },
+        orderBy: { sortOrder: 'asc' },
+      },
     }
   });
   console.log("Fetched tourPackage Query:", tourPackageQuery);

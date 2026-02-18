@@ -5,18 +5,29 @@ import Constants from "expo-constants";
 import { pushApi } from "./api";
 import { getToken } from "./auth";
 
+// Skip push notification setup in Expo Go (unsupported since SDK 53)
+const isExpoGo = Constants.appOwnership === "expo";
+
 // Configure notification handling
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === "web") {
     return null; // Web push handled by service worker
+  }
+
+  // Push notifications are not supported in Expo Go (SDK 53+)
+  if (isExpoGo) {
+    console.log("Push notifications are not supported in Expo Go. Use a development build.");
+    return null;
   }
 
   if (!Device.isDevice) {

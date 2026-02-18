@@ -3,7 +3,8 @@
     "allow": [
       "Bash(wc:*)",
       "Bash(echo:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx expo install:*)"
     ]
   }
 }

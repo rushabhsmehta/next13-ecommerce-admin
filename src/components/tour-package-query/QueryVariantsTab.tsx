@@ -1238,6 +1238,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                             </SelectContent>
                                           </Select>
                                           <Button
+                                            type="button"
                                             size="sm"
                                             variant="default"
                                             onClick={() => handleSaveHotelChange(variant.id, mapping.itineraryId, tempHotelId)}
@@ -1247,6 +1248,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                             <Check className="h-3.5 w-3.5" />
                                           </Button>
                                           <Button
+                                            type="button"
                                             size="sm"
                                             variant="outline"
                                             onClick={handleCancelEdit}
@@ -1258,6 +1260,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                       </Card>
                                     ) : (
                                       <Button
+                                        type="button"
                                         size="sm"
                                         variant="outline"
                                         onClick={() => handleStartEdit(mapping.id, effectiveHotelId)}
@@ -1297,6 +1300,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       <CardContent className="pt-4 pb-3">
                         <div className="flex flex-col sm:flex-row gap-2">
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline"
                             onClick={() => copyFirstDayToAllDays(variant.id)}
@@ -1326,6 +1330,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               </SelectContent>
                             </Select>
                             <Button
+                              type="button"
                               size="sm"
                               variant="outline"
                               onClick={() => {
@@ -1380,6 +1385,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                     Room Allocations
                                   </CardTitle>
                                   <Button
+                                    type="button"
                                     size="sm"
                                     variant="outline"
                                     onClick={() => addRoomAllocation(variant.id, itinerary.id)}
@@ -1401,6 +1407,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                       <div className="flex items-center justify-between">
                                         <span className="text-xs font-medium text-slate-600">Room {roomIdx + 1}</span>
                                         <Button
+                                          type="button"
                                           size="sm"
                                           variant="ghost"
                                           onClick={() => removeRoomAllocation(variant.id, itinerary.id, roomIdx)}
@@ -1507,6 +1514,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                     Transport Details
                                   </CardTitle>
                                   <Button
+                                    type="button"
                                     size="sm"
                                     variant="outline"
                                     onClick={() => addTransportDetail(variant.id, itinerary.id)}
@@ -1528,6 +1536,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                       <div className="flex items-center justify-between">
                                         <span className="text-xs font-medium text-slate-600">Transport {transportIdx + 1}</span>
                                         <Button
+                                          type="button"
                                           size="sm"
                                           variant="ghost"
                                           onClick={() => removeTransportDetail(variant.id, itinerary.id, transportIdx)}
@@ -1678,6 +1687,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                   <div className="flex items-center justify-between">
                                     <span className="text-xs font-medium text-slate-600">Item {idx + 1}</span>
                                     <Button
+                                      type="button"
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => handleRemoveManualPricingItem(variant.id, idx)}

@@ -415,7 +415,7 @@ export function PackageDetailClient({
                   {displayPrice ? (
                     <>
                       <span className="text-xs text-gray-400 uppercase tracking-wider">Starting from</span>
-                      <p className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                      <p className="text-3xl font-bold text-orange-700">
                         ₹{Number(displayPrice).toLocaleString("en-IN")}
                       </p>
                       <span className="text-sm text-gray-500">per person</span>

@@ -39,7 +39,7 @@ export function HeroSection() {
           <div className="relative w-5 h-5 mr-2.5">
             <Image
               src="/aagamholidays.png"
-              alt=""
+              alt="Aagam Holidays logo"
               fill
               className="object-contain"
               sizes="20px"

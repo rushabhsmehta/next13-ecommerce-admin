@@ -425,7 +425,7 @@ export default function ChatPage() {
                   <ArrowLeft className="w-5 h-5 text-gray-600" />
                 </button>
                 <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Users className="w-4.5 h-4.5 text-white" />
+                  <Users className="w-[18px] h-[18px] text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 text-sm truncate">
@@ -516,7 +516,7 @@ export default function ChatPage() {
                         >
                           {renderMessage(msg)}
                           <p
-                            className={`text-[10px] mt-1 ${
+                            className={`text-xs mt-1 ${
                               isOwn ? "text-orange-100" : "text-gray-400"
                             }`}
                           >

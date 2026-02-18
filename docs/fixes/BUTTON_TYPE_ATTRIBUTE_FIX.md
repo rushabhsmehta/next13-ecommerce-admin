@@ -110,4 +110,3 @@ February 18, 2026
 ## Related Issues
 - User report: "clicking copy all rooms causes auto-save and exit from edit mode"
 - Component: Tour Package Query - Variants Tab
-- PR: #[PR_NUMBER]

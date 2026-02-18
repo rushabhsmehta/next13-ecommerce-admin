@@ -434,8 +434,11 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       selectedTemplateType: initialData.selectedTemplateType || '',
       tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
       // Restore dropdown field values based on saved template data
-      tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
+      tourPackageTemplate: (initialData.selectedTemplateType === 'TourPackage' || initialData.selectedTemplateType === 'TourPackageVariant') ? (initialData.selectedTemplateId || '') : '',
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
+      selectedVariantIds: (initialData as any).selectedVariantIds || [], // Initialize from saved data
+      selectedTourPackageVariantId: (initialData as any).selectedTourPackageVariantId || '',
+      selectedTourPackageVariantName: (initialData as any).selectedTourPackageVariantName || '',
       inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       importantNotes: parseJsonField(initialData.importantNotes),

@@ -493,7 +493,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedTemplateType: initialData.selectedTemplateType || '',
       tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
       // Restore dropdown field values based on saved template data
-      tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
+      tourPackageTemplate: (initialData.selectedTemplateType === 'TourPackage' || initialData.selectedTemplateType === 'TourPackageVariant') ? (initialData.selectedTemplateId || '') : '',
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
       selectedMealPlanId: initialData.selectedMealPlanId || '',
       selectedVariantIds: (initialData as any).selectedVariantIds || [], // Initialize from saved data

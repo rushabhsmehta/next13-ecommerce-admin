@@ -50,7 +50,7 @@ export function TravelNavbar() {
               <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-orange-500 via-red-500 to-purple-700 bg-clip-text text-transparent leading-tight">
                 AAGAM
               </span>
-              <span className="text-[9px] font-semibold tracking-[0.2em] text-purple-700/70 -mt-0.5 uppercase">
+              <span className="text-xs font-semibold tracking-[0.2em] text-purple-700/70 -mt-0.5 uppercase">
                 Holidays
               </span>
             </div>
@@ -136,7 +136,7 @@ export function TravelNavbar() {
                   className="text-gray-700 hover:text-orange-600 font-medium px-4 py-3 rounded-xl hover:bg-white/80 flex items-center gap-3 transition-all duration-200 active:scale-[0.98]"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <item.icon className="w-4.5 h-4.5 text-orange-500/70" />
+                  <item.icon className="w-[18px] h-[18px] text-orange-500/70" />
                   {item.label}
                 </Link>
               ))}

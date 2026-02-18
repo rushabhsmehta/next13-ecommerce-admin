@@ -23,7 +23,7 @@ export function TravelFooter() {
                 <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-orange-400 via-red-400 to-purple-400 bg-clip-text text-transparent leading-tight">
                   AAGAM
                 </span>
-                <span className="text-[9px] font-semibold tracking-[0.2em] text-purple-400/60 -mt-0.5 uppercase">
+                <span className="text-xs font-semibold tracking-[0.2em] text-purple-400/60 -mt-0.5 uppercase">
                   Holidays
                 </span>
               </div>

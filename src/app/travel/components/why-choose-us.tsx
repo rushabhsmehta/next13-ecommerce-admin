@@ -15,6 +15,7 @@ const features = [
       "Every trip is meticulously planned by our travel experts to ensure unforgettable experiences.",
     gradient: "from-orange-500 to-red-500",
     lightBg: "from-orange-50 to-red-50",
+    hoverGradient: "group-hover:from-orange-500 group-hover:to-red-500",
   },
   {
     icon: Shield,
@@ -23,6 +24,7 @@ const features = [
       "Your safety is our priority. We ensure all tours meet the highest safety standards.",
     gradient: "from-red-500 to-purple-600",
     lightBg: "from-red-50 to-purple-50",
+    hoverGradient: "group-hover:from-red-500 group-hover:to-purple-600",
   },
   {
     icon: Headphones,
@@ -31,6 +33,7 @@ const features = [
       "Our dedicated support team is available round the clock to assist you during your journey.",
     gradient: "from-purple-600 to-purple-700",
     lightBg: "from-purple-50 to-indigo-50",
+    hoverGradient: "group-hover:from-purple-600 group-hover:to-purple-700",
   },
   {
     icon: Heart,
@@ -39,6 +42,7 @@ const features = [
       "Customize your tour to match your preferences. We make your dream vacation a reality.",
     gradient: "from-orange-500 to-amber-500",
     lightBg: "from-orange-50 to-amber-50",
+    hoverGradient: "group-hover:from-orange-500 group-hover:to-amber-500",
   },
   {
     icon: Star,
@@ -47,6 +51,7 @@ const features = [
       "Get the best value for your money with our competitive pricing and exclusive deals.",
     gradient: "from-amber-500 to-orange-600",
     lightBg: "from-amber-50 to-orange-50",
+    hoverGradient: "group-hover:from-amber-500 group-hover:to-orange-600",
   },
   {
     icon: MessageCircle,
@@ -55,6 +60,7 @@ const features = [
       "Stay connected with your tour group and our operations team through our in-app chat.",
     gradient: "from-red-500 to-orange-500",
     lightBg: "from-red-50 to-orange-50",
+    hoverGradient: "group-hover:from-red-500 group-hover:to-orange-500",
   },
 ];
 
@@ -81,7 +87,7 @@ export function WhyChooseUs() {
               key={feature.title}
               className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300 hover:-translate-y-1 group border border-gray-100/60"
             >
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${feature.lightBg} rounded-xl flex items-center justify-center mb-5 group-hover:bg-gradient-to-br group-hover:${feature.gradient} transition-all duration-300`}>
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${feature.lightBg} rounded-xl flex items-center justify-center mb-5 ${feature.hoverGradient} transition-all duration-300`}>
                 <feature.icon className={`w-6 h-6 sm:w-7 sm:h-7 text-orange-600 group-hover:text-white transition-colors duration-300`} />
               </div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">

@@ -103,7 +103,7 @@ export function PackageDetailClient({
     <div className="min-h-screen pt-16 bg-white">
       {/* Image Gallery */}
       <div className="relative">
-        <div className="relative h-[50vh] sm:h-[60vh] overflow-hidden">
+        <div className="relative h-[45vh] sm:h-[55vh] lg:h-[60vh] overflow-hidden">
           {images.length > 0 ? (
             <Image
               src={images[activeImageIndex]?.url}
@@ -113,7 +113,7 @@ export function PackageDetailClient({
               priority
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-600" />
+            <div className="w-full h-full bg-gradient-to-br from-orange-500 via-red-600 to-purple-700" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
@@ -121,32 +121,32 @@ export function PackageDetailClient({
           <div className="absolute top-4 left-4 right-4 flex justify-between">
             <Link
               href="/travel/packages"
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-xl rounded-xl text-white hover:bg-white/25 transition-all duration-200 text-sm"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </Link>
             <div className="flex gap-2">
-              <button className="p-2.5 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors" aria-label="Share">
+              <button className="p-2.5 bg-white/15 backdrop-blur-xl rounded-xl text-white hover:bg-white/25 transition-all duration-200" aria-label="Share">
                 <Share2 className="w-5 h-5" />
               </button>
-              <button className="p-2.5 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors" aria-label="Save">
+              <button className="p-2.5 bg-white/15 backdrop-blur-xl rounded-xl text-white hover:bg-white/25 transition-all duration-200" aria-label="Save">
                 <Heart className="w-5 h-5" />
               </button>
             </div>
           </div>
 
           {/* Package Info Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+          <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
               {tourPackage.tourCategory && (
-                <span className="inline-block px-3 py-1 bg-emerald-500 text-white text-xs font-semibold rounded-full mb-3">
+                <span className="inline-block px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-semibold rounded-lg mb-3">
                   {tourPackage.tourCategory}
                 </span>
               )}
-              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">
+              <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-white mb-2 leading-tight">
                 {tourPackage.tourPackageName || "Tour Package"}
               </h1>
-              <div className="flex flex-wrap items-center gap-4 text-white/90 text-sm">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-white/90 text-sm">
                 <span className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" /> {tourPackage.location?.label}
                 </span>
@@ -167,15 +167,15 @@ export function PackageDetailClient({
 
         {/* Thumbnail Strip */}
         {images.length > 1 && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-10">
-            <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-5 relative z-10">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {images.map((img: any, i: number) => (
                 <button
                   key={img.id || i}
                   onClick={() => setActiveImageIndex(i)}
-                  className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
+                  className={`relative w-14 h-14 sm:w-20 sm:h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all duration-200 ${
                     i === activeImageIndex
-                      ? "border-emerald-500 shadow-lg"
+                      ? "border-orange-500 shadow-lg shadow-orange-500/20"
                       : "border-white/50 opacity-70 hover:opacity-100"
                   }`}
                 >
@@ -188,12 +188,12 @@ export function PackageDetailClient({
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-10">
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Tabs */}
-            <div className="flex border-b border-gray-200 mb-8">
+            <div className="flex border-b border-gray-200 mb-6 sm:mb-8 overflow-x-auto scrollbar-hide">
               {[
                 { key: "itinerary" as const, label: "Itinerary", icon: Calendar },
                 { key: "inclusions" as const, label: "Inclusions & Exclusions", icon: Check },
@@ -202,9 +202,9 @@ export function PackageDetailClient({
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     activeTab === tab.key
-                      ? "border-emerald-500 text-emerald-600"
+                      ? "border-orange-500 text-orange-600"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -216,9 +216,9 @@ export function PackageDetailClient({
 
             {/* Itinerary Tab */}
             {activeTab === "itinerary" && (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {itineraries.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
+                  <p className="text-gray-500 text-center py-8 text-sm">
                     Detailed itinerary coming soon.
                   </p>
                 ) : (
@@ -227,18 +227,18 @@ export function PackageDetailClient({
                     return (
                       <div
                         key={day.id}
-                        className="bg-white border border-gray-200 rounded-xl overflow-hidden"
+                        className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-orange-200/50 transition-colors"
                       >
                         <button
                           onClick={() => toggleDay(String(index))}
-                          className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+                          className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-orange-50/30 transition-colors"
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center font-bold text-sm">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-orange-100 to-red-50 text-orange-600 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm">
                               D{day.dayNumber || index + 1}
                             </div>
                             <div className="text-left">
-                              <h3 className="font-semibold text-gray-900">
+                              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
                                 {day.itineraryTitle || `Day ${day.dayNumber || index + 1}`}
                               </h3>
                               {day.hotel && (
@@ -256,7 +256,7 @@ export function PackageDetailClient({
                         </button>
 
                         {isExpanded && (
-                          <div className="px-5 pb-5 border-t border-gray-100 pt-4">
+                          <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-gray-100 pt-4">
                             {day.itineraryDescription && (
                               <p className="text-gray-600 text-sm leading-relaxed mb-4">
                                 {day.itineraryDescription}
@@ -267,27 +267,27 @@ export function PackageDetailClient({
                             {day.activities?.length > 0 && (
                               <div className="space-y-3 mb-4">
                                 <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                  <Camera className="w-4 h-4 text-emerald-500" /> Activities
+                                  <Camera className="w-4 h-4 text-orange-500" /> Activities
                                 </h4>
                                 {day.activities.map((activity: any) => (
                                   <div
                                     key={activity.id}
-                                    className="bg-emerald-50 rounded-lg p-3"
+                                    className="bg-orange-50/60 rounded-xl p-3"
                                   >
                                     {activity.activityTitle && (
-                                      <p className="text-sm font-medium text-emerald-800">
+                                      <p className="text-sm font-medium text-orange-800">
                                         {activity.activityTitle}
                                       </p>
                                     )}
                                     {activity.activityDescription && (
-                                      <p className="text-xs text-emerald-700 mt-1">
+                                      <p className="text-xs text-orange-700/70 mt-1">
                                         {activity.activityDescription}
                                       </p>
                                     )}
                                     {activity.activityImages?.length > 0 && (
-                                      <div className="flex gap-2 mt-2 overflow-x-auto">
+                                      <div className="flex gap-2 mt-2 overflow-x-auto scrollbar-hide">
                                         {activity.activityImages.map((img: any) => (
-                                          <div key={img.id} className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                                          <div key={img.id} className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden flex-shrink-0">
                                             <Image src={img.url} alt="" fill className="object-cover" />
                                           </div>
                                         ))}
@@ -300,9 +300,9 @@ export function PackageDetailClient({
 
                             {/* Itinerary Images */}
                             {day.itineraryImages?.length > 0 && (
-                              <div className="flex gap-2 overflow-x-auto">
+                              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                                 {day.itineraryImages.map((img: any) => (
-                                  <div key={img.id} className="relative w-32 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                                  <div key={img.id} className="relative w-28 h-20 sm:w-32 sm:h-24 rounded-lg overflow-hidden flex-shrink-0">
                                     <Image src={img.url} alt="" fill className="object-cover" />
                                   </div>
                                 ))}
@@ -319,19 +319,19 @@ export function PackageDetailClient({
 
             {/* Inclusions & Exclusions Tab */}
             {activeTab === "inclusions" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 {inclusions.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
-                        <Check className="w-4 h-4 text-emerald-600" />
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                        <Check className="w-4 h-4 text-green-600" />
                       </div>
                       Inclusions
                     </h3>
                     <ul className="space-y-2">
                       {inclusions.map((item, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                          <Check className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                          <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                           {item}
                         </li>
                       ))}
@@ -340,7 +340,7 @@ export function PackageDetailClient({
                 )}
                 {exclusions.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
                         <XIcon className="w-4 h-4 text-red-600" />
                       </div>
@@ -358,7 +358,7 @@ export function PackageDetailClient({
                 )}
                 {importantNotes.length > 0 && (
                   <div className="md:col-span-2">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Important Notes</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Important Notes</h3>
                     <ul className="space-y-2">
                       {importantNotes.map((note, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
@@ -377,12 +377,12 @@ export function PackageDetailClient({
               <div className="space-y-8">
                 {cancellationPolicy.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                       Cancellation Policy
                     </h3>
                     <ul className="space-y-2">
                       {cancellationPolicy.map((item, i) => (
-                        <li key={i} className="text-sm text-gray-600 pl-4 border-l-2 border-emerald-200">
+                        <li key={i} className="text-sm text-gray-600 pl-4 border-l-2 border-orange-200">
                           {item}
                         </li>
                       ))}
@@ -391,12 +391,12 @@ export function PackageDetailClient({
                 )}
                 {paymentPolicy.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                       Payment Policy
                     </h3>
                     <ul className="space-y-2">
                       {paymentPolicy.map((item, i) => (
-                        <li key={i} className="text-sm text-gray-600 pl-4 border-l-2 border-emerald-200">
+                        <li key={i} className="text-sm text-gray-600 pl-4 border-l-2 border-orange-200">
                           {item}
                         </li>
                       ))}
@@ -410,12 +410,12 @@ export function PackageDetailClient({
           {/* Sidebar - Pricing Card */}
           <div className="lg:col-span-1">
             <div className="sticky top-20">
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+              <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-lg shadow-orange-500/5">
                 <div className="mb-6">
                   {displayPrice ? (
                     <>
-                      <span className="text-sm text-gray-500">Starting from</span>
-                      <p className="text-3xl font-bold text-gray-900">
+                      <span className="text-xs text-gray-400 uppercase tracking-wider">Starting from</span>
+                      <p className="text-3xl font-bold text-orange-700">
                         ₹{Number(displayPrice).toLocaleString("en-IN")}
                       </p>
                       <span className="text-sm text-gray-500">per person</span>
@@ -431,21 +431,21 @@ export function PackageDetailClient({
                 <div className="space-y-3 mb-6 pb-6 border-b border-gray-100">
                   {tourPackage.numDaysNight && (
                     <div className="flex items-center gap-3 text-sm">
-                      <Clock className="w-4 h-4 text-emerald-500" />
+                      <Clock className="w-4 h-4 text-orange-500" />
                       <span className="text-gray-600">
                         Duration: {tourPackage.numDaysNight}
                       </span>
                     </div>
                   )}
                   <div className="flex items-center gap-3 text-sm">
-                    <MapPin className="w-4 h-4 text-emerald-500" />
+                    <MapPin className="w-4 h-4 text-orange-500" />
                     <span className="text-gray-600">
                       {tourPackage.location?.label}
                     </span>
                   </div>
                   {tourPackage.transport && (
                     <div className="flex items-center gap-3 text-sm">
-                      <Plane className="w-4 h-4 text-emerald-500" />
+                      <Plane className="w-4 h-4 text-orange-500" />
                       <span className="text-gray-600">
                         Transport: {tourPackage.transport}
                       </span>
@@ -483,7 +483,7 @@ export function PackageDetailClient({
                   href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_PHONE || ""}?text=Hi, I'm interested in the tour package: ${tourPackage.tourPackageName}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-center rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 transition-all shadow-md hover:shadow-lg"
+                  className="block w-full py-3.5 bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 text-white text-center rounded-xl font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-300 active:scale-[0.98]"
                 >
                   Enquire Now
                 </a>
@@ -497,11 +497,11 @@ export function PackageDetailClient({
 
         {/* Related Packages */}
         {relatedPackages.length > 0 && (
-          <div className="mt-16 pt-10 border-t border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900 mb-8">
+          <div className="mt-14 sm:mt-16 pt-8 sm:pt-10 border-t border-gray-100">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8">
               Similar Packages
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
               {relatedPackages.map((pkg: any) => (
                 <PackageCard
                   key={pkg.id}

@@ -23,32 +23,32 @@ export function FeaturedPackages({
   if (packages.length === 0) return null;
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8">
+    <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-12">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 sm:mb-12">
           <div>
-            <span className="text-emerald-600 font-semibold text-sm uppercase tracking-wider">
+            <span className="text-orange-600 font-semibold text-sm uppercase tracking-wider">
               Featured
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mt-2">
               Trending Tour Packages
             </h2>
-            <p className="text-gray-500 mt-3 max-w-lg">
+            <p className="text-gray-500 mt-3 max-w-lg text-sm sm:text-base">
               Our most popular packages, handpicked by travel experts for an
               unforgettable experience.
             </p>
           </div>
           <Link
             href="/travel/packages"
-            className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-emerald-600 font-semibold hover:gap-3 transition-all"
+            className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-orange-600 font-semibold hover:gap-3 transition-all text-sm"
           >
             View All Packages <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
         {/* Package Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
           {packages.map((pkg) => (
             <PackageCard
               key={pkg.id}

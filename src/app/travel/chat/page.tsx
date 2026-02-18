@@ -246,7 +246,7 @@ export default function ChatPage() {
                 href={`https://maps.google.com/?q=${msg.latitude},${msg.longitude}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-emerald-600 underline"
+                className="text-xs text-orange-600 underline"
               >
                 Open in Google Maps
               </a>
@@ -274,7 +274,7 @@ export default function ChatPage() {
             {msg.tourPackageId && (
               <a
                 href={`/travel/packages/${msg.tourPackageId}`}
-                className="text-xs text-emerald-600 underline"
+                className="text-xs text-orange-600 underline"
               >
                 View Tour Package
               </a>
@@ -298,7 +298,7 @@ export default function ChatPage() {
                 href={msg.fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-emerald-600 underline"
+                className="text-xs text-orange-600 underline"
               >
                 Download
               </a>
@@ -315,8 +315,8 @@ export default function ChatPage() {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mx-auto mb-4" />
-          <p className="text-gray-500">Loading your chats...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-orange-500 mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Loading your chats...</p>
         </div>
       </div>
     );
@@ -329,12 +329,12 @@ export default function ChatPage() {
         <div
           className={`${
             isMobileGroupList ? "flex" : "hidden"
-          } md:flex flex-col w-full md:w-80 lg:w-96 bg-white border-r border-gray-200`}
+          } md:flex flex-col w-full md:w-80 lg:w-96 bg-white border-r border-gray-100`}
         >
           {/* Groups Header */}
           <div className="p-4 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-emerald-500" />
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-orange-500" />
               Trip Chats
             </h2>
             <p className="text-xs text-gray-500 mt-1">
@@ -346,9 +346,11 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto">
             {groups.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-gray-700 font-medium mb-1">No chats yet</h3>
-                <p className="text-gray-400 text-sm">
+                <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="w-7 h-7 text-orange-300" />
+                </div>
+                <h3 className="text-gray-700 font-medium mb-1 text-sm">No chats yet</h3>
+                <p className="text-gray-400 text-xs">
                   Chat groups will appear here when you&apos;re added to a tour group
                   by our team.
                 </p>
@@ -358,22 +360,22 @@ export default function ChatPage() {
                 <button
                   key={group.id}
                   onClick={() => handleSelectGroup(group)}
-                  className={`w-full flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 ${
-                    activeGroup?.id === group.id ? "bg-emerald-50" : ""
+                  className={`w-full flex items-start gap-3 p-4 hover:bg-orange-50/50 transition-colors border-b border-gray-50 ${
+                    activeGroup?.id === group.id ? "bg-orange-50/70" : ""
                   }`}
                 >
                   {/* Group Avatar */}
-                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-11 h-11 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
                     {group.imageUrl ? (
                       <Image
                         src={group.imageUrl}
                         alt=""
-                        width={48}
-                        height={48}
-                        className="rounded-full object-cover"
+                        width={44}
+                        height={44}
+                        className="rounded-xl object-cover"
                       />
                     ) : (
-                      <Users className="w-6 h-6 text-white" />
+                      <Users className="w-5 h-5 text-white" />
                     )}
                   </div>
 
@@ -383,7 +385,7 @@ export default function ChatPage() {
                         {group.name}
                       </h3>
                       {group.lastMessage && (
-                        <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                        <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
                           {format(new Date(group.lastMessage.createdAt), "HH:mm")}
                         </span>
                       )}
@@ -395,7 +397,7 @@ export default function ChatPage() {
                     </p>
                     <div className="flex items-center gap-1 mt-1">
                       <Users className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-gray-400">
+                      <span className="text-[10px] text-gray-400">
                         {group.members.length} members
                       </span>
                     </div>
@@ -415,15 +417,15 @@ export default function ChatPage() {
           {activeGroup ? (
             <>
               {/* Chat Header */}
-              <div className="flex items-center gap-3 p-4 bg-white border-b border-gray-200 shadow-sm">
+              <div className="flex items-center gap-3 p-4 bg-white border-b border-gray-100 shadow-sm">
                 <button
                   onClick={() => setIsMobileGroupList(true)}
-                  className="md:hidden p-2 hover:bg-gray-100 rounded-full"
+                  className="md:hidden p-2 hover:bg-orange-50 rounded-xl transition-colors"
                 >
                   <ArrowLeft className="w-5 h-5 text-gray-600" />
                 </button>
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Users className="w-5 h-5 text-white" />
+                <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Users className="w-[18px] h-[18px] text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 text-sm truncate">
@@ -436,7 +438,7 @@ export default function ChatPage() {
                 </div>
                 <button
                   onClick={() => setShowMembers(!showMembers)}
-                  className="p-2 hover:bg-gray-100 rounded-full"
+                  className="p-2 hover:bg-orange-50 rounded-xl transition-colors"
                   title="View Members"
                 >
                   <Users className="w-5 h-5 text-gray-600" />
@@ -445,29 +447,29 @@ export default function ChatPage() {
 
               {/* Members Panel */}
               {showMembers && (
-                <div className="bg-white border-b border-gray-200 p-4 max-h-48 overflow-y-auto">
+                <div className="bg-white border-b border-gray-100 p-4 max-h-48 overflow-y-auto">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Group Members</h4>
                   <div className="space-y-2">
                     {activeGroup.members.map((member) => (
                       <div key={member.travelAppUser.id} className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
                           {member.travelAppUser.avatarUrl ? (
                             <Image
                               src={member.travelAppUser.avatarUrl}
                               alt=""
                               width={32}
                               height={32}
-                              className="rounded-full object-cover"
+                              className="rounded-lg object-cover"
                             />
                           ) : (
-                            <UserIcon className="w-4 h-4 text-gray-500" />
+                            <UserIcon className="w-4 h-4 text-orange-500" />
                           )}
                         </div>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-800">
                             {member.travelAppUser.name}
                           </p>
-                          <p className="text-xs text-gray-400 capitalize">
+                          <p className="text-[10px] text-gray-400 capitalize">
                             {member.role.toLowerCase()}
                           </p>
                         </div>
@@ -478,11 +480,13 @@ export default function ChatPage() {
               )}
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-orange-50/30 to-white">
                 {messages.length === 0 && (
                   <div className="text-center py-12">
-                    <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-400">
+                    <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <MessageCircle className="w-7 h-7 text-orange-300" />
+                    </div>
+                    <p className="text-gray-400 text-sm">
                       No messages yet. Start the conversation!
                     </p>
                   </div>
@@ -497,23 +501,23 @@ export default function ChatPage() {
                       key={msg.id}
                       className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
                     >
-                      <div className={`max-w-[75%] ${isOwn ? "items-end" : "items-start"}`}>
+                      <div className={`max-w-[80%] sm:max-w-[75%] ${isOwn ? "items-end" : "items-start"}`}>
                         {showSenderName && !isOwn && (
-                          <p className="text-xs text-gray-500 mb-1 ml-1">
+                          <p className="text-[10px] text-gray-500 mb-1 ml-1 font-medium">
                             {msg.sender.name}
                           </p>
                         )}
                         <div
                           className={`rounded-2xl px-4 py-2.5 ${
                             isOwn
-                              ? "bg-emerald-500 text-white rounded-br-md"
+                              ? "bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-br-md"
                               : "bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-md"
                           }`}
                         >
                           {renderMessage(msg)}
                           <p
-                            className={`text-[10px] mt-1 ${
-                              isOwn ? "text-emerald-100" : "text-gray-400"
+                            className={`text-xs mt-1 ${
+                              isOwn ? "text-orange-100" : "text-gray-400"
                             }`}
                           >
                             {format(new Date(msg.createdAt), "HH:mm")}
@@ -529,15 +533,15 @@ export default function ChatPage() {
               {/* Attachment Options */}
               {showAttachments && (
                 <div className="bg-white border-t border-gray-100 p-3">
-                  <div className="flex justify-center gap-6">
+                  <div className="flex justify-center gap-5 sm:gap-6">
                     <button
                       onClick={handleShareLocation}
-                      className="flex flex-col items-center gap-1 text-gray-600 hover:text-emerald-600"
+                      className="flex flex-col items-center gap-1.5 text-gray-600 hover:text-orange-600 transition-colors"
                     >
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <MapPin className="w-6 h-6 text-blue-600" />
+                      <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-blue-600" />
                       </div>
-                      <span className="text-xs">Location</span>
+                      <span className="text-[10px] font-medium">Location</span>
                     </button>
                     <button
                       onClick={() => {
@@ -551,12 +555,12 @@ export default function ChatPage() {
                           });
                         }
                       }}
-                      className="flex flex-col items-center gap-1 text-gray-600 hover:text-emerald-600"
+                      className="flex flex-col items-center gap-1.5 text-gray-600 hover:text-orange-600 transition-colors"
                     >
-                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                        <Phone className="w-6 h-6 text-purple-600" />
+                      <div className="w-11 h-11 bg-purple-50 rounded-xl flex items-center justify-center">
+                        <Phone className="w-5 h-5 text-purple-600" />
                       </div>
-                      <span className="text-xs">Contact</span>
+                      <span className="text-[10px] font-medium">Contact</span>
                     </button>
                     <button
                       onClick={() => {
@@ -568,12 +572,12 @@ export default function ChatPage() {
                           });
                         }
                       }}
-                      className="flex flex-col items-center gap-1 text-gray-600 hover:text-emerald-600"
+                      className="flex flex-col items-center gap-1.5 text-gray-600 hover:text-orange-600 transition-colors"
                     >
-                      <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                        <LinkIcon className="w-6 h-6 text-emerald-600" />
+                      <div className="w-11 h-11 bg-orange-50 rounded-xl flex items-center justify-center">
+                        <LinkIcon className="w-5 h-5 text-orange-600" />
                       </div>
-                      <span className="text-xs">Tour Link</span>
+                      <span className="text-[10px] font-medium">Tour Link</span>
                     </button>
                     <button
                       onClick={() => {
@@ -588,25 +592,25 @@ export default function ChatPage() {
                           });
                         }
                       }}
-                      className="flex flex-col items-center gap-1 text-gray-600 hover:text-emerald-600"
+                      className="flex flex-col items-center gap-1.5 text-gray-600 hover:text-orange-600 transition-colors"
                     >
-                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                        <Paperclip className="w-6 h-6 text-orange-600" />
+                      <div className="w-11 h-11 bg-amber-50 rounded-xl flex items-center justify-center">
+                        <Paperclip className="w-5 h-5 text-amber-600" />
                       </div>
-                      <span className="text-xs">File</span>
+                      <span className="text-[10px] font-medium">File</span>
                     </button>
                   </div>
                 </div>
               )}
 
               {/* Message Input */}
-              <div className="bg-white border-t border-gray-200 p-3">
+              <div className="bg-white border-t border-gray-100 p-3">
                 <div className="flex items-end gap-2 max-w-4xl mx-auto">
                   <button
                     onClick={() => setShowAttachments(!showAttachments)}
-                    className={`p-2.5 rounded-full transition-colors ${
+                    className={`p-2.5 rounded-xl transition-all duration-200 ${
                       showAttachments
-                        ? "bg-emerald-100 text-emerald-600"
+                        ? "bg-orange-100 text-orange-600"
                         : "hover:bg-gray-100 text-gray-500"
                     }`}
                     title="Attachments"
@@ -621,14 +625,14 @@ export default function ChatPage() {
                       onKeyDown={handleKeyDown}
                       placeholder="Type a message..."
                       rows={1}
-                      className="w-full px-4 py-2.5 bg-gray-100 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none text-sm"
+                      className="w-full px-4 py-2.5 bg-gray-100 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 resize-none text-sm"
                       style={{ maxHeight: "120px" }}
                     />
                   </div>
                   <button
                     onClick={() => handleSendMessage()}
                     disabled={sendingMessage || !newMessage.trim()}
-                    className="p-2.5 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:shadow-md hover:shadow-orange-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.95]"
                     title="Send"
                   >
                     {sendingMessage ? (
@@ -641,15 +645,15 @@ export default function ChatPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-emerald-50">
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-orange-50/30 to-white">
               <div className="text-center">
-                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MessageCircle className="w-10 h-10 text-emerald-500" />
+                <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="w-8 h-8 text-orange-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   Trip Chat
                 </h3>
-                <p className="text-gray-500 max-w-sm">
+                <p className="text-gray-500 max-w-sm text-sm">
                   Select a chat group to start messaging with your tour group and
                   operations team.
                 </p>

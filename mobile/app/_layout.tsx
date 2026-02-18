@@ -5,20 +5,21 @@ import { Colors } from "@/constants/theme";
 export default function RootLayout() {
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: Colors.background },
           headerTintColor: Colors.text,
-          headerTitleStyle: { fontWeight: "600" },
+          headerTitleStyle: { fontWeight: "700" },
           contentStyle: { backgroundColor: Colors.background },
+          headerShadowVisible: false,
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="packages/[id]"
           options={{
-            headerTitle: "Package Details",
+            headerTitle: "",
             headerTransparent: true,
             headerTintColor: "#fff",
           }}

@@ -12,7 +12,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 
 export default function ExploreScreen() {
@@ -33,7 +34,6 @@ export default function ExploreScreen() {
         const data = await travelApi.getPackages(params);
         setPackages(data.packages || []);
 
-        // Extract unique categories
         const cats = [
           ...new Set(
             (data.packages || [])
@@ -74,39 +74,50 @@ export default function ExploreScreen() {
       style={styles.card}
       onPress={() => router.push(`/packages/${item.slug || item.id}`)}
     >
-      <Image
-        source={{ uri: item.images?.[0]?.url }}
-        style={styles.cardImage}
-      />
-      {item.tourCategory && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{item.tourCategory}</Text>
-        </View>
-      )}
-      {item.numDaysNight && (
-        <View style={styles.durationBadge}>
-          <Ionicons name="time-outline" size={10} color="#fff" />
-          <Text style={styles.durationText}>{item.numDaysNight}</Text>
-        </View>
-      )}
+      <View style={styles.cardImageWrap}>
+        <Image
+          source={{ uri: item.images?.[0]?.url }}
+          style={styles.cardImage}
+        />
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.35)"]}
+          style={styles.cardImageOverlay}
+        />
+        {item.tourCategory && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{item.tourCategory}</Text>
+          </View>
+        )}
+        {item.numDaysNight && (
+          <View style={styles.durationBadge}>
+            <Ionicons name="time-outline" size={10} color="#fff" />
+            <Text style={styles.durationText}>{item.numDaysNight}</Text>
+          </View>
+        )}
+      </View>
       <View style={styles.cardBody}>
-        <Text style={styles.location}>
-          <Ionicons name="location" size={11} color={Colors.primary} />{" "}
-          {item.location?.label}
-        </Text>
-        <Text style={styles.name} numberOfLines={2}>
-          {item.tourPackageName || "Tour Package"}
-        </Text>
-        <View style={styles.cardFooter}>
-          {item.pricePerAdult ? (
-            <Text style={styles.price}>
-              ₹{Number(item.pricePerAdult).toLocaleString("en-IN")}
-              <Text style={styles.priceUnit}>/person</Text>
-            </Text>
-          ) : (
-            <Text style={styles.contactPrice}>Contact for pricing</Text>
-          )}
-          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+        <View style={styles.cardAccent} />
+        <View style={styles.cardContent}>
+          <View style={styles.locationRow}>
+            <Ionicons name="location" size={11} color={Colors.primary} />
+            <Text style={styles.location}>{item.location?.label}</Text>
+          </View>
+          <Text style={styles.name} numberOfLines={2}>
+            {item.tourPackageName || "Tour Package"}
+          </Text>
+          <View style={styles.cardFooter}>
+            {item.pricePerAdult ? (
+              <Text style={styles.price}>
+                ₹{Number(item.pricePerAdult).toLocaleString("en-IN")}
+                <Text style={styles.priceUnit}> /person</Text>
+              </Text>
+            ) : (
+              <Text style={styles.contactPrice}>Contact for pricing</Text>
+            )}
+            <View style={styles.arrowBtn}>
+              <Ionicons name="arrow-forward" size={14} color="#fff" />
+            </View>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -116,7 +127,9 @@ export default function ExploreScreen() {
     <View style={styles.container}>
       {/* Search */}
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color={Colors.textTertiary} />
+        <View style={styles.searchIconWrap}>
+          <Ionicons name="search" size={14} color="#fff" />
+        </View>
         <TextInput
           style={styles.searchInput}
           placeholder="Search packages..."
@@ -154,14 +167,22 @@ export default function ExploreScreen() {
               ]}
               onPress={() => handleCategoryChange(item)}
             >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  item === activeCategory && styles.categoryChipTextActive,
-                ]}
-              >
-                {item === "all" ? "All Packages" : item}
-              </Text>
+              {item === activeCategory ? (
+                <LinearGradient
+                  colors={[Colors.gradient1, Colors.gradient2]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.categoryChipGradient}
+                >
+                  <Text style={styles.categoryChipTextActive}>
+                    {item === "all" ? "All Packages" : item}
+                  </Text>
+                </LinearGradient>
+              ) : (
+                <Text style={styles.categoryChipText}>
+                  {item === "all" ? "All Packages" : item}
+                </Text>
+              )}
             </Pressable>
           )}
         />
@@ -174,7 +195,9 @@ export default function ExploreScreen() {
         </View>
       ) : packages.length === 0 ? (
         <View style={styles.centered}>
-          <Ionicons name="search" size={48} color={Colors.textTertiary} />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="search" size={32} color={Colors.primary} />
+          </View>
           <Text style={styles.emptyTitle}>No packages found</Text>
           <Text style={styles.emptySubtitle}>
             Try adjusting your search or filters
@@ -218,12 +241,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: Colors.background,
     margin: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    ...Shadows.light,
+  },
+  searchIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchInput: { flex: 1, fontSize: FontSize.md, color: Colors.text },
 
@@ -234,63 +264,84 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   categoryChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.border,
+    overflow: "hidden",
   },
   categoryChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    borderColor: "transparent",
+    borderWidth: 0,
+  },
+  categoryChipGradient: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 1,
+    borderRadius: BorderRadius.full,
   },
   categoryChipText: {
     fontSize: FontSize.sm,
     fontWeight: "500",
     color: Colors.textSecondary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
-  categoryChipTextActive: { color: "#fff" },
+  categoryChipTextActive: {
+    color: "#fff",
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+  },
 
   // Cards
-  listContent: { padding: Spacing.lg, gap: Spacing.lg },
+  listContent: { padding: Spacing.lg, paddingBottom: 100, gap: Spacing.lg },
   card: {
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    ...Shadows.medium,
   },
-  cardImage: { width: "100%", height: 160 },
+  cardImageWrap: { position: "relative" },
+  cardImage: { width: "100%", height: 180 },
+  cardImageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
   badge: {
     position: "absolute",
     top: Spacing.sm,
     left: Spacing.sm,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 4,
     borderRadius: BorderRadius.full,
   },
-  badgeText: { fontSize: FontSize.xs, fontWeight: "600", color: Colors.primary },
+  badgeText: { fontSize: FontSize.xs, fontWeight: "700", color: "#fff" },
   durationBadge: {
     position: "absolute",
     top: Spacing.sm,
     right: Spacing.sm,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 4,
     borderRadius: BorderRadius.full,
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
   },
-  durationText: { fontSize: FontSize.xs, color: "#fff" },
-  cardBody: { padding: Spacing.lg },
-  location: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: 4 },
-  name: { fontSize: FontSize.lg, fontWeight: "600", color: Colors.text, marginBottom: Spacing.md },
+  durationText: { fontSize: FontSize.xs, color: "#fff", fontWeight: "600" },
+  cardBody: { flexDirection: "row" },
+  cardAccent: {
+    width: 4,
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+  },
+  cardContent: { flex: 1, padding: Spacing.lg },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
+  location: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  name: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.text, marginBottom: Spacing.md, lineHeight: 22 },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -299,10 +350,28 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.borderLight,
     paddingTop: Spacing.md,
   },
-  price: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.primary },
+  price: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.primary },
   priceUnit: { fontSize: FontSize.xs, fontWeight: "400", color: Colors.textSecondary },
   contactPrice: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  arrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "600", color: Colors.text },
+  // Empty state
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  emptyTitle: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.text },
   emptySubtitle: { fontSize: FontSize.md, color: Colors.textSecondary },
 });

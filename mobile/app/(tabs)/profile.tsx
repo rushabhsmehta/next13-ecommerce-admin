@@ -9,7 +9,8 @@ import {
   Switch,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { getUser, clearAuth } from "@/lib/auth";
 import {
   registerForPushNotifications,
@@ -57,9 +58,12 @@ export default function ProfileScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={40} color="#fff" />
-        </View>
+        <LinearGradient
+          colors={[Colors.gradient1, Colors.gradient2]}
+          style={styles.avatar}
+        >
+          <Ionicons name="person" size={36} color="#fff" />
+        </LinearGradient>
         {user ? (
           <>
             <Text style={styles.userName}>{user.name}</Text>
@@ -79,7 +83,9 @@ export default function ProfileScreen() {
 
         <View style={styles.settingRow}>
           <View style={styles.settingInfo}>
-            <Ionicons name="notifications" size={20} color={Colors.primary} />
+            <View style={styles.settingIconWrap}>
+              <Ionicons name="notifications" size={16} color={Colors.primary} />
+            </View>
             <Text style={styles.settingLabel}>Push Notifications</Text>
           </View>
           <Switch
@@ -105,7 +111,9 @@ export default function ProfileScreen() {
           { icon: "information-circle", label: "Version", value: "1.0.0" },
         ].map((item) => (
           <View key={item.label} style={styles.aboutRow}>
-            <Ionicons name={item.icon as any} size={18} color={Colors.textSecondary} />
+            <View style={styles.aboutIconWrap}>
+              <Ionicons name={item.icon as any} size={14} color={Colors.primary} />
+            </View>
             <Text style={styles.aboutLabel}>{item.label}</Text>
             <Text style={styles.aboutValue}>{item.value}</Text>
           </View>
@@ -120,7 +128,7 @@ export default function ProfileScreen() {
         </Pressable>
       )}
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -135,17 +143,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxxl,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primary,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.lg,
   },
   userName: {
     fontSize: FontSize.xxl,
-    fontWeight: "700",
+    fontWeight: "800",
     color: Colors.text,
     marginBottom: 4,
   },
@@ -160,12 +167,13 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
+    ...Shadows.light,
   },
   sectionTitle: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     fontWeight: "700",
     color: Colors.textSecondary,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     marginBottom: Spacing.lg,
     textTransform: "uppercase",
   },
@@ -177,19 +185,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   settingInfo: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
-  settingLabel: { fontSize: FontSize.md, color: Colors.text },
+  settingIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  settingLabel: { fontSize: FontSize.md, color: Colors.text, fontWeight: "500" },
 
   // About
   aboutRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    paddingVertical: Spacing.sm + 2,
+  },
+  aboutIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
   },
   aboutLabel: { fontSize: FontSize.md, color: Colors.text, flex: 1 },
-  aboutValue: { fontSize: FontSize.md, color: Colors.textSecondary },
+  aboutValue: { fontSize: FontSize.sm, color: Colors.textSecondary },
 
   // Sign out
   signOutButton: {
@@ -201,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.error,
+    borderColor: "#fecaca",
   },
   signOutText: { fontSize: FontSize.md, fontWeight: "600", color: Colors.error },
 });

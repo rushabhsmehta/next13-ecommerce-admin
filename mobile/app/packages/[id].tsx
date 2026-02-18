@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,16 +10,16 @@ import {
   Dimensions,
   Linking,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function PackageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const [pkg, setPkg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -85,7 +85,9 @@ export default function PackageDetailScreen() {
   if (!pkg) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="alert-circle" size={48} color={Colors.textTertiary} />
+        <View style={styles.errorIconWrap}>
+          <Ionicons name="alert-circle" size={32} color={Colors.primary} />
+        </View>
         <Text style={styles.errorText}>Package not found</Text>
       </View>
     );
@@ -98,6 +100,12 @@ export default function PackageDetailScreen() {
   const cancellationPolicy = parseJsonContent(pkg.cancellationPolicy);
   const paymentPolicy = parseJsonContent(pkg.paymentPolicy);
   const displayPrice = pkg.pricePerAdult || pkg.price;
+
+  const tabs = [
+    { key: "itinerary" as const, label: "Itinerary", icon: "calendar" },
+    { key: "inclusions" as const, label: "Inclusions", icon: "checkmark-circle" },
+    { key: "policies" as const, label: "Policies", icon: "document-text" },
+  ];
 
   return (
     <View style={styles.container}>
@@ -125,10 +133,19 @@ export default function PackageDetailScreen() {
               ))}
             </ScrollView>
           ) : (
-            <View style={[styles.heroImage, styles.placeholderImage]}>
-              <Ionicons name="image" size={48} color="#fff" />
-            </View>
+            <LinearGradient
+              colors={[Colors.gradient1, Colors.gradient2]}
+              style={[styles.heroImage, styles.placeholderImage]}
+            >
+              <Ionicons name="image" size={48} color="rgba(255,255,255,0.5)" />
+            </LinearGradient>
           )}
+
+          {/* Gradient overlay for dots */}
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.4)"]}
+            style={styles.imageBottomGradient}
+          />
 
           {/* Dots */}
           {images.length > 1 && (
@@ -146,41 +163,38 @@ export default function PackageDetailScreen() {
         {/* Package Info */}
         <View style={styles.infoSection}>
           {pkg.tourCategory && (
-            <View style={styles.categoryBadge}>
+            <LinearGradient
+              colors={[Colors.gradient1, Colors.gradient2]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.categoryBadge}
+            >
               <Text style={styles.categoryText}>{pkg.tourCategory}</Text>
-            </View>
+            </LinearGradient>
           )}
           <Text style={styles.packageName}>
             {pkg.tourPackageName || "Tour Package"}
           </Text>
 
           <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Ionicons name="location" size={14} color={Colors.primary} />
-              <Text style={styles.metaText}>{pkg.location?.label}</Text>
-            </View>
-            {pkg.numDaysNight && (
-              <View style={styles.metaItem}>
-                <Ionicons name="time" size={14} color={Colors.primary} />
-                <Text style={styles.metaText}>{pkg.numDaysNight}</Text>
+            {[
+              { icon: "location", text: pkg.location?.label },
+              { icon: "time", text: pkg.numDaysNight },
+              itineraries.length > 0 ? { icon: "calendar", text: `${itineraries.length} Days` } : null,
+            ].filter(Boolean).map((meta: any, i) => (
+              <View key={i} style={styles.metaItem}>
+                <View style={styles.metaIconWrap}>
+                  <Ionicons name={meta.icon} size={12} color={Colors.primary} />
+                </View>
+                <Text style={styles.metaText}>{meta.text}</Text>
               </View>
-            )}
-            {itineraries.length > 0 && (
-              <View style={styles.metaItem}>
-                <Ionicons name="calendar" size={14} color={Colors.primary} />
-                <Text style={styles.metaText}>{itineraries.length} Days</Text>
-              </View>
-            )}
+            ))}
           </View>
         </View>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation — Pill Style */}
         <View style={styles.tabBar}>
-          {[
-            { key: "itinerary" as const, label: "Itinerary", icon: "calendar" },
-            { key: "inclusions" as const, label: "Inclusions", icon: "checkmark-circle" },
-            { key: "policies" as const, label: "Policies", icon: "document-text" },
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <Pressable
               key={tab.key}
               style={[styles.tab, activeTab === tab.key && styles.tabActive]}
@@ -188,8 +202,8 @@ export default function PackageDetailScreen() {
             >
               <Ionicons
                 name={tab.icon as any}
-                size={16}
-                color={activeTab === tab.key ? Colors.primary : Colors.textTertiary}
+                size={14}
+                color={activeTab === tab.key ? "#fff" : Colors.textTertiary}
               />
               <Text
                 style={[
@@ -219,19 +233,23 @@ export default function PackageDetailScreen() {
                       onPress={() => toggleDay(index)}
                     >
                       <View style={styles.dayHeader}>
-                        <View style={styles.dayBadge}>
+                        <LinearGradient
+                          colors={[Colors.gradient1, Colors.gradient2]}
+                          style={styles.dayBadge}
+                        >
                           <Text style={styles.dayBadgeText}>
                             D{day.dayNumber || index + 1}
                           </Text>
-                        </View>
+                        </LinearGradient>
                         <View style={styles.dayTitleWrap}>
                           <Text style={styles.dayTitle}>
                             {day.itineraryTitle || `Day ${day.dayNumber || index + 1}`}
                           </Text>
                           {day.hotel && (
-                            <Text style={styles.dayHotel}>
-                              🏨 {day.hotel.name}
-                            </Text>
+                            <View style={styles.hotelRow}>
+                              <Ionicons name="bed-outline" size={11} color={Colors.textSecondary} />
+                              <Text style={styles.dayHotel}>{day.hotel.name}</Text>
+                            </View>
                           )}
                         </View>
                         <Ionicons
@@ -249,14 +267,17 @@ export default function PackageDetailScreen() {
                         <View style={styles.activitiesSection}>
                           {day.activities.map((act: any) => (
                             <View key={act.id} style={styles.activityItem}>
-                              <Text style={styles.activityTitle}>
-                                🎯 {act.activityTitle}
-                              </Text>
-                              {act.activityDescription && (
-                                <Text style={styles.activityDesc}>
-                                  {act.activityDescription}
+                              <View style={styles.activityDot} />
+                              <View style={styles.activityContent}>
+                                <Text style={styles.activityTitle}>
+                                  {act.activityTitle}
                                 </Text>
-                              )}
+                                {act.activityDescription && (
+                                  <Text style={styles.activityDesc}>
+                                    {act.activityDescription}
+                                  </Text>
+                                )}
+                              </View>
                             </View>
                           ))}
                         </View>
@@ -272,17 +293,33 @@ export default function PackageDetailScreen() {
             <View style={styles.inclusionsGrid}>
               {inclusions.length > 0 && (
                 <View style={styles.listSection}>
-                  <Text style={styles.listTitle}>✅ Inclusions</Text>
+                  <View style={styles.listTitleRow}>
+                    <View style={[styles.listTitleIcon, { backgroundColor: Colors.primaryBg }]}>
+                      <Ionicons name="checkmark" size={14} color={Colors.primary} />
+                    </View>
+                    <Text style={styles.listTitle}>Inclusions</Text>
+                  </View>
                   {inclusions.map((item, i) => (
-                    <Text key={i} style={styles.listItem}>• {item}</Text>
+                    <View key={i} style={styles.listItemRow}>
+                      <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
+                      <Text style={styles.listItem}>{item}</Text>
+                    </View>
                   ))}
                 </View>
               )}
               {exclusions.length > 0 && (
                 <View style={styles.listSection}>
-                  <Text style={styles.listTitleRed}>❌ Exclusions</Text>
+                  <View style={styles.listTitleRow}>
+                    <View style={[styles.listTitleIcon, { backgroundColor: "#fef2f2" }]}>
+                      <Ionicons name="close" size={14} color={Colors.error} />
+                    </View>
+                    <Text style={styles.listTitleRed}>Exclusions</Text>
+                  </View>
                   {exclusions.map((item, i) => (
-                    <Text key={i} style={styles.listItem}>• {item}</Text>
+                    <View key={i} style={styles.listItemRow}>
+                      <Ionicons name="close-circle" size={14} color={Colors.error} />
+                      <Text style={styles.listItem}>{item}</Text>
+                    </View>
                   ))}
                 </View>
               )}
@@ -293,17 +330,33 @@ export default function PackageDetailScreen() {
             <View>
               {cancellationPolicy.length > 0 && (
                 <View style={styles.listSection}>
-                  <Text style={styles.listTitle}>Cancellation Policy</Text>
+                  <View style={styles.listTitleRow}>
+                    <View style={[styles.listTitleIcon, { backgroundColor: "#fef3c7" }]}>
+                      <Ionicons name="alert-circle" size={14} color={Colors.warning} />
+                    </View>
+                    <Text style={styles.listTitle}>Cancellation Policy</Text>
+                  </View>
                   {cancellationPolicy.map((item, i) => (
-                    <Text key={i} style={styles.listItem}>• {item}</Text>
+                    <View key={i} style={styles.listItemRow}>
+                      <View style={styles.bulletDot} />
+                      <Text style={styles.listItem}>{item}</Text>
+                    </View>
                   ))}
                 </View>
               )}
               {paymentPolicy.length > 0 && (
                 <View style={styles.listSection}>
-                  <Text style={styles.listTitle}>Payment Policy</Text>
+                  <View style={styles.listTitleRow}>
+                    <View style={[styles.listTitleIcon, { backgroundColor: Colors.primaryBg }]}>
+                      <Ionicons name="card" size={14} color={Colors.primary} />
+                    </View>
+                    <Text style={styles.listTitle}>Payment Policy</Text>
+                  </View>
                   {paymentPolicy.map((item, i) => (
-                    <Text key={i} style={styles.listItem}>• {item}</Text>
+                    <View key={i} style={styles.listItemRow}>
+                      <View style={styles.bulletDot} />
+                      <Text style={styles.listItem}>{item}</Text>
+                    </View>
                   ))}
                 </View>
               )}
@@ -311,7 +364,7 @@ export default function PackageDetailScreen() {
           )}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Bottom CTA */}
@@ -322,7 +375,7 @@ export default function PackageDetailScreen() {
               <Text style={styles.ctaPriceLabel}>Starting from</Text>
               <Text style={styles.ctaPrice}>
                 ₹{Number(displayPrice).toLocaleString("en-IN")}
-                <Text style={styles.ctaPriceUnit}>/person</Text>
+                <Text style={styles.ctaPriceUnit}> /person</Text>
               </Text>
             </>
           ) : (
@@ -330,15 +383,21 @@ export default function PackageDetailScreen() {
           )}
         </View>
         <Pressable
-          style={styles.ctaButton}
           onPress={() => {
             Linking.openURL(
               `https://wa.me/?text=Hi, I'm interested in: ${pkg.tourPackageName}`
             );
           }}
         >
-          <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
-          <Text style={styles.ctaButtonText}>Enquire Now</Text>
+          <LinearGradient
+            colors={[Colors.gradient1, Colors.gradient2]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.ctaButton}
+          >
+            <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+            <Text style={styles.ctaButtonText}>Enquire Now</Text>
+          </LinearGradient>
         </Pressable>
       </View>
     </View>
@@ -353,15 +412,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.md,
   },
+  errorIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   errorText: { fontSize: FontSize.md, color: Colors.textSecondary },
 
   // Image gallery
   imageContainer: { position: "relative" },
-  heroImage: { width: SCREEN_WIDTH, height: 300 },
+  heroImage: { width: SCREEN_WIDTH, height: 320 },
   placeholderImage: {
-    backgroundColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
+  },
+  imageBottomGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
   },
   dotsContainer: {
     position: "absolute",
@@ -376,54 +449,67 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.4)",
   },
-  dotActive: { backgroundColor: "#fff", width: 20 },
+  dotActive: { backgroundColor: "#fff", width: 24, borderRadius: 4 },
 
   // Info
   infoSection: { padding: Spacing.xl },
   categoryBadge: {
     alignSelf: "flex-start",
-    backgroundColor: Colors.primaryBg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   categoryText: {
     fontSize: FontSize.xs,
-    fontWeight: "600",
-    color: Colors.primary,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.3,
   },
   packageName: {
     fontSize: FontSize.xxxl,
-    fontWeight: "700",
+    fontWeight: "800",
     color: Colors.text,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
+    lineHeight: 32,
   },
-  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.lg },
-  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  metaText: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.md },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  metaIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  metaText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "500" },
 
-  // Tabs
+  // Tabs — pill style
   tabBar: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingHorizontal: Spacing.lg,
+    marginHorizontal: Spacing.xl,
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: 4,
+    gap: 4,
   },
   tab: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 4,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
   },
-  tabActive: { borderBottomColor: Colors.primary },
+  tabActive: {
+    backgroundColor: Colors.primary,
+  },
   tabText: { fontSize: FontSize.sm, color: Colors.textTertiary, fontWeight: "500" },
-  tabTextActive: { color: Colors.primary, fontWeight: "600" },
+  tabTextActive: { color: "#fff", fontWeight: "700" },
   tabContent: { padding: Spacing.xl },
   emptyTab: {
     fontSize: FontSize.md,
@@ -434,10 +520,13 @@ const styles = StyleSheet.create({
 
   // Day cards
   dayCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+    ...Shadows.light,
   },
   dayHeader: {
     flexDirection: "row",
@@ -445,39 +534,62 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   dayBadge: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primaryBg,
     justifyContent: "center",
     alignItems: "center",
   },
-  dayBadgeText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.primary },
+  dayBadgeText: { fontSize: FontSize.sm, fontWeight: "800", color: "#fff" },
   dayTitleWrap: { flex: 1 },
-  dayTitle: { fontSize: FontSize.md, fontWeight: "600", color: Colors.text },
-  dayHotel: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
+  dayTitle: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
+  hotelRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  dayHotel: { fontSize: FontSize.xs, color: Colors.textSecondary },
   dayDescription: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: Spacing.md,
-    lineHeight: 20,
+    lineHeight: 21,
   },
-  activitiesSection: { marginTop: Spacing.md },
+  activitiesSection: { marginTop: Spacing.md, gap: Spacing.sm },
   activityItem: {
-    backgroundColor: Colors.primaryBg,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.sm,
+    flexDirection: "row",
+    gap: Spacing.md,
+    alignItems: "flex-start",
   },
-  activityTitle: { fontSize: FontSize.sm, fontWeight: "600", color: Colors.primaryDark },
-  activityDesc: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 4 },
+  activityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primaryLight,
+    marginTop: 6,
+  },
+  activityContent: { flex: 1 },
+  activityTitle: { fontSize: FontSize.sm, fontWeight: "600", color: Colors.text },
+  activityDesc: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2, lineHeight: 18 },
 
   // Inclusions
-  inclusionsGrid: { gap: Spacing.xl },
+  inclusionsGrid: { gap: Spacing.xxl },
   listSection: { gap: Spacing.sm },
-  listTitle: { fontSize: FontSize.lg, fontWeight: "600", color: Colors.text },
-  listTitleRed: { fontSize: FontSize.lg, fontWeight: "600", color: Colors.error },
-  listItem: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 22 },
+  listTitleRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, marginBottom: Spacing.sm },
+  listTitleIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listTitle: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.text },
+  listTitleRed: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.error },
+  listItemRow: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.sm, paddingLeft: 4 },
+  listItem: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 22, flex: 1 },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.textTertiary,
+    marginTop: 8,
+  },
 
   // Bottom CTA
   bottomBar: {
@@ -490,26 +602,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.lg,
+    paddingBottom: Spacing.xxl,
     backgroundColor: Colors.background,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    borderTopColor: Colors.borderLight,
+    ...Shadows.heavy,
   },
   ctaPriceLabel: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  ctaPrice: { fontSize: FontSize.xxl, fontWeight: "700", color: Colors.text },
+  ctaPrice: { fontSize: FontSize.xxl, fontWeight: "800", color: Colors.text },
   ctaPriceUnit: { fontSize: FontSize.xs, fontWeight: "400", color: Colors.textSecondary },
   ctaButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.md + 2,
+    borderRadius: BorderRadius.full,
   },
-  ctaButtonText: { fontSize: FontSize.md, fontWeight: "600", color: "#fff" },
+  ctaButtonText: { fontSize: FontSize.md, fontWeight: "700", color: "#fff" },
 });

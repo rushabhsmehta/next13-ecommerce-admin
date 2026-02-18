@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 
 export default function DestinationsScreen() {
@@ -42,15 +43,22 @@ export default function DestinationsScreen() {
       onPress={() => router.push(`/destinations/${item.id}`)}
     >
       <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
-      <View style={styles.overlay}>
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.65)"]}
+        style={styles.overlay}
+      >
         <Text style={styles.cardTitle}>{item.label}</Text>
-        <Text style={styles.cardCount}>
-          {item._count?.tourPackages || 0} Packages Available
-        </Text>
-        <View style={styles.arrowContainer}>
-          <Ionicons name="arrow-forward" size={16} color="#fff" />
+        <View style={styles.countRow}>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>
+              {item._count?.tourPackages || 0} Packages
+            </Text>
+          </View>
+          <View style={styles.arrowContainer}>
+            <Ionicons name="arrow-forward" size={14} color="#fff" />
+          </View>
         </View>
-      </View>
+      </LinearGradient>
     </Pressable>
   );
 
@@ -65,7 +73,7 @@ export default function DestinationsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.subtitle}>
-        Choose from our handpicked destinations across the globe
+        Handpicked destinations across the globe
       </Text>
 
       <FlatList
@@ -88,7 +96,9 @@ export default function DestinationsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.centered}>
-            <Ionicons name="map-outline" size={48} color={Colors.textTertiary} />
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="map-outline" size={32} color={Colors.primary} />
+            </View>
             <Text style={styles.emptyText}>No destinations available yet</Text>
           </View>
         }
@@ -112,13 +122,14 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
   },
-  listContent: { padding: Spacing.md },
+  listContent: { padding: Spacing.md, paddingBottom: 100 },
   row: { gap: Spacing.md, marginBottom: Spacing.md },
   card: {
     flex: 1,
-    height: 200,
+    height: 220,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
+    ...Shadows.medium,
   },
   cardImage: { width: "100%", height: "100%" },
   overlay: {
@@ -127,24 +138,50 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: Spacing.md,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingTop: 60,
   },
-  cardTitle: { fontSize: FontSize.lg, fontWeight: "700", color: "#fff" },
-  cardCount: { fontSize: FontSize.xs, color: "rgba(255,255,255,0.8)" },
+  cardTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: Spacing.xs,
+  },
+  countRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  countBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  countText: {
+    fontSize: FontSize.xs,
+    color: "#fff",
+    fontWeight: "600",
+  },
   arrowContainer: {
-    position: "absolute",
-    right: Spacing.md,
-    top: Spacing.md,
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.md,
   },
   emptyText: {
     fontSize: FontSize.md,
     color: Colors.textSecondary,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
 });

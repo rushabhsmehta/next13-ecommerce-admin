@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -79,17 +80,27 @@ export default function HomeScreen() {
         />
       }
     >
-      {/* Hero Section */}
-      <View style={styles.hero}>
-        <View style={styles.heroOverlay}>
-          <Text style={styles.heroTitle}>Discover Your{"\n"}Next Adventure</Text>
+      {/* Hero Section with Gradient */}
+      <LinearGradient
+        colors={[Colors.gradient1, Colors.gradient2]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
+        <View style={styles.heroContent}>
+          <Text style={styles.heroBrand}>AAGAM HOLIDAYS</Text>
+          <Text style={styles.heroTitle}>
+            Discover Your{"\n"}Next Adventure
+          </Text>
           <Text style={styles.heroSubtitle}>
             Handcrafted tours to stunning destinations
           </Text>
 
-          {/* Search Bar */}
+          {/* Premium Search Bar */}
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={Colors.textTertiary} />
+            <View style={styles.searchIconWrap}>
+              <Ionicons name="search" size={16} color="#fff" />
+            </View>
             <TextInput
               style={styles.searchInput}
               placeholder="Where do you want to go?"
@@ -101,17 +112,22 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* Stats */}
+      {/* Curved bottom overlay */}
+      <View style={styles.curveOverlay} />
+
+      {/* Stats Cards */}
       <View style={styles.statsRow}>
         {[
           { icon: "map", label: "Destinations", value: `${destinations.length}+` },
-          { icon: "calendar", label: "Packages", value: `${packages.length}+` },
-          { icon: "people", label: "Happy Travelers", value: "10K+" },
+          { icon: "briefcase", label: "Packages", value: `${packages.length}+` },
+          { icon: "heart", label: "Happy Travelers", value: "10K+" },
         ].map((stat) => (
-          <View key={stat.label} style={styles.statItem}>
-            <Ionicons name={stat.icon as any} size={20} color={Colors.primary} />
+          <View key={stat.label} style={styles.statCard}>
+            <View style={styles.statIconWrap}>
+              <Ionicons name={stat.icon as any} size={18} color={Colors.primary} />
+            </View>
             <Text style={styles.statValue}>{stat.value}</Text>
             <Text style={styles.statLabel}>{stat.label}</Text>
           </View>
@@ -126,8 +142,12 @@ export default function HomeScreen() {
               <Text style={styles.sectionLabel}>EXPLORE</Text>
               <Text style={styles.sectionTitle}>Popular Destinations</Text>
             </View>
-            <Pressable onPress={() => router.push("/(tabs)/destinations")}>
-              <Text style={styles.seeAll}>See All →</Text>
+            <Pressable
+              style={styles.seeAllBtn}
+              onPress={() => router.push("/(tabs)/destinations")}
+            >
+              <Text style={styles.seeAllText}>See All</Text>
+              <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
             </Pressable>
           </View>
 
@@ -146,12 +166,15 @@ export default function HomeScreen() {
                   source={{ uri: dest.imageUrl }}
                   style={styles.destinationImage}
                 />
-                <View style={styles.destinationOverlay}>
+                <LinearGradient
+                  colors={["transparent", "rgba(0,0,0,0.7)"]}
+                  style={styles.destinationGradient}
+                >
                   <Text style={styles.destinationName}>{dest.label}</Text>
                   <Text style={styles.destinationCount}>
                     {dest._count?.tourPackages || 0} Packages
                   </Text>
-                </View>
+                </LinearGradient>
               </Pressable>
             ))}
           </ScrollView>
@@ -166,8 +189,12 @@ export default function HomeScreen() {
               <Text style={styles.sectionLabel}>FEATURED</Text>
               <Text style={styles.sectionTitle}>Trending Packages</Text>
             </View>
-            <Pressable onPress={() => router.push("/(tabs)/explore")}>
-              <Text style={styles.seeAll}>See All →</Text>
+            <Pressable
+              style={styles.seeAllBtn}
+              onPress={() => router.push("/(tabs)/explore")}
+            >
+              <Text style={styles.seeAllText}>See All</Text>
+              <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
             </Pressable>
           </View>
 
@@ -177,46 +204,53 @@ export default function HomeScreen() {
               style={styles.packageCard}
               onPress={() => router.push(`/packages/${pkg.slug || pkg.id}`)}
             >
-              <Image
-                source={{ uri: pkg.images?.[0]?.url }}
-                style={styles.packageImage}
-              />
-              {pkg.tourCategory && (
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>{pkg.tourCategory}</Text>
-                </View>
-              )}
-              {pkg.numDaysNight && (
-                <View style={styles.durationBadge}>
-                  <Ionicons name="time-outline" size={12} color="#fff" />
-                  <Text style={styles.durationBadgeText}>{pkg.numDaysNight}</Text>
-                </View>
-              )}
+              <View style={styles.packageImageWrap}>
+                <Image
+                  source={{ uri: pkg.images?.[0]?.url }}
+                  style={styles.packageImage}
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(0,0,0,0.4)"]}
+                  style={styles.packageImageOverlay}
+                />
+                {pkg.tourCategory && (
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{pkg.tourCategory}</Text>
+                  </View>
+                )}
+                {pkg.numDaysNight && (
+                  <View style={styles.durationBadge}>
+                    <Ionicons name="time-outline" size={11} color="#fff" />
+                    <Text style={styles.durationBadgeText}>{pkg.numDaysNight}</Text>
+                  </View>
+                )}
+              </View>
               <View style={styles.packageInfo}>
-                <Text style={styles.packageLocation}>
-                  <Ionicons name="location" size={12} color={Colors.primary} />{" "}
-                  {pkg.location?.label}
-                </Text>
-                <Text style={styles.packageName} numberOfLines={2}>
-                  {pkg.tourPackageName || "Tour Package"}
-                </Text>
-                <View style={styles.packageFooter}>
-                  {pkg.pricePerAdult ? (
-                    <View>
-                      <Text style={styles.priceLabel}>Starting from</Text>
-                      <Text style={styles.priceValue}>
-                        ₹{Number(pkg.pricePerAdult).toLocaleString("en-IN")}
-                        <Text style={styles.priceUnit}>/person</Text>
-                      </Text>
+                <View style={styles.packageAccent} />
+                <View style={styles.packageDetails}>
+                  <View style={styles.packageLocationRow}>
+                    <Ionicons name="location" size={12} color={Colors.primary} />
+                    <Text style={styles.packageLocation}>{pkg.location?.label}</Text>
+                  </View>
+                  <Text style={styles.packageName} numberOfLines={2}>
+                    {pkg.tourPackageName || "Tour Package"}
+                  </Text>
+                  <View style={styles.packageFooter}>
+                    {pkg.pricePerAdult ? (
+                      <View>
+                        <Text style={styles.priceLabel}>Starting from</Text>
+                        <Text style={styles.priceValue}>
+                          ₹{Number(pkg.pricePerAdult).toLocaleString("en-IN")}
+                          <Text style={styles.priceUnit}> /person</Text>
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.priceLabel}>Contact for pricing</Text>
+                    )}
+                    <View style={styles.arrowBtn}>
+                      <Ionicons name="arrow-forward" size={16} color="#fff" />
                     </View>
-                  ) : (
-                    <Text style={styles.priceLabel}>Contact for pricing</Text>
-                  )}
-                  <Ionicons
-                    name="arrow-forward-circle"
-                    size={28}
-                    color={Colors.primary}
-                  />
+                  </View>
                 </View>
               </View>
             </Pressable>
@@ -225,9 +259,12 @@ export default function HomeScreen() {
       )}
 
       {/* Why Choose Us */}
-      <View style={styles.whySection}>
+      <LinearGradient
+        colors={[Colors.primaryBg, "#e6fffa"]}
+        style={styles.whySection}
+      >
         <Text style={styles.sectionLabel}>WHY TRAVEL WITH US</Text>
-        <Text style={styles.whyTitle}>The Aagam Holidays Difference</Text>
+        <Text style={styles.whyTitle}>The Aagam Difference</Text>
 
         {[
           { icon: "sparkles", title: "Handcrafted Itineraries", desc: "Every trip is meticulously planned by our travel experts." },
@@ -236,18 +273,22 @@ export default function HomeScreen() {
           { icon: "chatbubbles", title: "Live Trip Chat", desc: "Stay connected with your tour group via in-app chat." },
         ].map((feature) => (
           <View key={feature.title} style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Ionicons name={feature.icon as any} size={24} color={Colors.primary} />
-            </View>
+            <LinearGradient
+              colors={[Colors.gradient1, Colors.gradient2]}
+              style={styles.featureIcon}
+            >
+              <Ionicons name={feature.icon as any} size={22} color="#fff" />
+            </LinearGradient>
             <View style={styles.featureText}>
               <Text style={styles.featureTitle}>{feature.title}</Text>
               <Text style={styles.featureDesc}>{feature.desc}</Text>
             </View>
           </View>
         ))}
-      </View>
+      </LinearGradient>
 
-      <View style={{ height: 40 }} />
+      {/* Bottom spacer for floating tab bar */}
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -268,56 +309,97 @@ const styles = StyleSheet.create({
 
   // Hero
   hero: {
-    height: 280,
-    backgroundColor: Colors.primaryDark,
-    justifyContent: "flex-end",
+    paddingTop: 60,
+    paddingBottom: 40,
   },
-  heroOverlay: {
-    padding: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
+  heroContent: {
+    paddingHorizontal: Spacing.xxl,
+  },
+  heroBrand: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.7)",
+    letterSpacing: 3,
+    marginBottom: Spacing.sm,
   },
   heroTitle: {
     fontSize: FontSize.hero,
     fontWeight: "800",
     color: "#fff",
-    lineHeight: 38,
+    lineHeight: 42,
     marginBottom: Spacing.sm,
   },
   heroSubtitle: {
     fontSize: FontSize.lg,
-    color: "rgba(255,255,255,0.8)",
-    marginBottom: Spacing.lg,
+    color: "rgba(255,255,255,0.85)",
+    marginBottom: Spacing.xxl,
+    lineHeight: 24,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     gap: Spacing.sm,
+  },
+  searchIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchInput: {
     flex: 1,
     fontSize: FontSize.md,
     color: Colors.text,
+    paddingVertical: Spacing.xs,
+  },
+
+  // Curved overlay
+  curveOverlay: {
+    height: 24,
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -24,
   },
 
   // Stats
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface,
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.xl,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.sm,
+    ...Shadows.medium,
+  },
+  statIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: Spacing.sm,
   },
-  statItem: { alignItems: "center", gap: 2 },
-  statValue: { fontSize: FontSize.xl, fontWeight: "700", color: Colors.text },
-  statLabel: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  statValue: { fontSize: FontSize.xl, fontWeight: "800", color: Colors.text },
+  statLabel: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
 
   // Section
-  section: { paddingVertical: Spacing.xl },
+  section: { paddingVertical: Spacing.lg },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -329,28 +411,46 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: "700",
     color: Colors.primary,
-    letterSpacing: 1,
-    marginBottom: 2,
+    letterSpacing: 2,
+    marginBottom: 4,
   },
-  sectionTitle: { fontSize: FontSize.xxl, fontWeight: "700", color: Colors.text },
-  seeAll: { fontSize: FontSize.sm, fontWeight: "600", color: Colors.primary },
+  sectionTitle: {
+    fontSize: FontSize.xxl,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  seeAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+  },
+  seeAllText: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.primary,
+  },
 
-  // Destination cards (horizontal scroll)
+  // Destination cards
   horizontalList: { paddingHorizontal: Spacing.xl, gap: Spacing.md },
   destinationCard: {
-    width: 160,
-    height: 200,
+    width: 180,
+    height: 220,
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
+    ...Shadows.medium,
   },
   destinationImage: { width: "100%", height: "100%" },
-  destinationOverlay: {
+  destinationGradient: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    padding: Spacing.md,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    padding: Spacing.lg,
+    paddingTop: 48,
   },
   destinationName: {
     fontSize: FontSize.lg,
@@ -359,7 +459,8 @@ const styles = StyleSheet.create({
   },
   destinationCount: {
     fontSize: FontSize.xs,
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
   },
 
   // Package cards
@@ -368,52 +469,78 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     borderRadius: BorderRadius.lg,
     backgroundColor: Colors.background,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
     overflow: "hidden",
+    ...Shadows.medium,
   },
-  packageImage: { width: "100%", height: 180 },
+  packageImageWrap: { position: "relative" },
+  packageImage: { width: "100%", height: 200 },
+  packageImageOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+  },
   categoryBadge: {
     position: "absolute",
     top: Spacing.md,
     left: Spacing.md,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
   },
   categoryBadgeText: {
     fontSize: FontSize.xs,
-    fontWeight: "600",
-    color: Colors.primary,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.3,
   },
   durationBadge: {
     position: "absolute",
     top: Spacing.md,
     right: Spacing.md,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
-  durationBadgeText: { fontSize: FontSize.xs, color: "#fff", fontWeight: "500" },
-  packageInfo: { padding: Spacing.lg },
+  durationBadgeText: {
+    fontSize: FontSize.xs,
+    color: "#fff",
+    fontWeight: "600",
+  },
+  packageInfo: {
+    flexDirection: "row",
+  },
+  packageAccent: {
+    width: 4,
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+  },
+  packageDetails: {
+    flex: 1,
+    padding: Spacing.lg,
+  },
+  packageLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 6,
+  },
   packageLocation: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginBottom: 4,
   },
   packageName: {
     fontSize: FontSize.lg,
-    fontWeight: "600",
+    fontWeight: "700",
     color: Colors.text,
     marginBottom: Spacing.md,
+    lineHeight: 22,
   },
   packageFooter: {
     flexDirection: "row",
@@ -424,14 +551,23 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
   },
   priceLabel: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  priceValue: { fontSize: FontSize.xl, fontWeight: "700", color: Colors.primary },
+  priceValue: { fontSize: FontSize.xl, fontWeight: "800", color: Colors.primary },
   priceUnit: { fontSize: FontSize.xs, fontWeight: "400", color: Colors.textSecondary },
+  arrowBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
   // Why section
   whySection: {
     padding: Spacing.xl,
-    backgroundColor: Colors.primaryBg,
     marginTop: Spacing.lg,
+    marginHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.xl,
   },
   whyTitle: {
     fontSize: FontSize.xxl,
@@ -443,7 +579,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
@@ -452,11 +588,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primaryBg,
     justifyContent: "center",
     alignItems: "center",
   },
   featureText: { flex: 1 },
-  featureTitle: { fontSize: FontSize.md, fontWeight: "600", color: Colors.text },
-  featureDesc: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
+  featureTitle: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
+  featureDesc: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 3, lineHeight: 19 },
 });

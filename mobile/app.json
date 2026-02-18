@@ -7,7 +7,7 @@
     "scheme": "aagamholidays",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#059669"
+      "backgroundColor": "#0d9488"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#059669"
+        "backgroundColor": "#0d9488"
       },
       "package": "com.aagamholidays.app",
       "permissions": [
@@ -42,7 +42,7 @@
       [
         "expo-notifications",
         {
-          "color": "#059669"
+          "color": "#0d9488"
         }
       ],
       [

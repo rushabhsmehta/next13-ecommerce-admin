@@ -1,35 +1,59 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors } from "@/constants/theme";
+import { View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors, Shadows } from "@/constants/theme";
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Colors.background,
-          borderTopColor: Colors.border,
-          height: 60,
+          position: "absolute",
+          bottom: Math.max(insets.bottom, 8) + 4,
+          left: 16,
+          right: 16,
+          backgroundColor: "rgba(255,255,255,0.97)",
+          borderTopWidth: 0,
+          borderRadius: 24,
+          height: 64,
           paddingBottom: 8,
-          paddingTop: 4,
+          paddingTop: 8,
+          ...Shadows.heavy,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: "600",
+          letterSpacing: 0.2,
         },
-        headerStyle: { backgroundColor: Colors.background },
-        headerTitleStyle: { fontWeight: "700", color: Colors.text },
+        tabBarIconStyle: {
+          marginBottom: -2,
+        },
+        headerStyle: {
+          backgroundColor: Colors.background,
+          shadowColor: "transparent",
+          elevation: 0,
+        },
+        headerTitleStyle: {
+          fontWeight: "700",
+          color: Colors.text,
+          fontSize: 18,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
-          headerTitle: "Aagam Holidays",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+            </View>
           ),
         }}
       />
@@ -38,28 +62,34 @@ export default function TabLayout() {
         options={{
           title: "Explore",
           headerTitle: "Tour Packages",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="compass" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="destinations"
         options={{
-          title: "Destinations",
+          title: "Places",
           headerTitle: "Destinations",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="map" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons name={focused ? "map" : "map-outline"} size={22} color={color} />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Trip Chat",
+          title: "Chat",
           headerTitle: "Trip Chat",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={22} color={color} />
+            </View>
           ),
         }}
       />
@@ -68,11 +98,21 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           headerTitle: "My Profile",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+            </View>
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  activeIconWrap: {
+    backgroundColor: Colors.primaryBg,
+    borderRadius: 12,
+    padding: 6,
+  },
+});

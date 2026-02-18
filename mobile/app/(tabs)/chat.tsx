@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { chatApi } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 import { format } from "date-fns";
@@ -45,12 +46,12 @@ export default function ChatListScreen() {
   const getMessagePreview = (msg: any) => {
     if (!msg) return "No messages yet";
     switch (msg.messageType) {
-      case "IMAGE": return "📷 Photo";
-      case "LOCATION": return "📍 Location";
-      case "CONTACT": return "👤 Contact";
-      case "TOUR_LINK": return "🔗 Tour Package";
-      case "PDF": return "📄 Document";
-      case "FILE": return "📎 File";
+      case "IMAGE": return "Photo";
+      case "LOCATION": return "Location";
+      case "CONTACT": return "Contact";
+      case "TOUR_LINK": return "Tour Package";
+      case "PDF": return "Document";
+      case "FILE": return "File";
       default: return msg.content || "Message";
     }
   };
@@ -60,13 +61,16 @@ export default function ChatListScreen() {
       style={styles.groupItem}
       onPress={() => router.push(`/chat/${item.id}`)}
     >
-      <View style={styles.groupAvatar}>
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} style={styles.avatarImage} />
-        ) : (
-          <Ionicons name="people" size={24} color="#fff" />
-        )}
-      </View>
+      {item.imageUrl ? (
+        <Image source={{ uri: item.imageUrl }} style={styles.groupAvatar} />
+      ) : (
+        <LinearGradient
+          colors={[Colors.gradient1, Colors.gradient2]}
+          style={styles.groupAvatar}
+        >
+          <Ionicons name="people" size={22} color="#fff" />
+        </LinearGradient>
+      )}
       <View style={styles.groupInfo}>
         <View style={styles.groupHeader}>
           <Text style={styles.groupName} numberOfLines={1}>
@@ -84,12 +88,13 @@ export default function ChatListScreen() {
             : "No messages yet"}
         </Text>
         <View style={styles.memberRow}>
-          <Ionicons name="people-outline" size={12} color={Colors.textTertiary} />
+          <Ionicons name="people-outline" size={11} color={Colors.textTertiary} />
           <Text style={styles.memberCount}>
             {item.members?.length || 0} members
           </Text>
         </View>
       </View>
+      <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
     </Pressable>
   );
 
@@ -105,7 +110,9 @@ export default function ChatListScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="lock-closed" size={48} color={Colors.textTertiary} />
+        <View style={styles.emptyIconWrap}>
+          <Ionicons name="lock-closed" size={28} color={Colors.primary} />
+        </View>
         <Text style={styles.errorTitle}>Sign In Required</Text>
         <Text style={styles.errorText}>{error}</Text>
       </View>
@@ -116,7 +123,9 @@ export default function ChatListScreen() {
     <View style={styles.container}>
       {groups.length === 0 ? (
         <View style={styles.centered}>
-          <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="chatbubbles-outline" size={32} color={Colors.primary} />
+          </View>
           <Text style={styles.emptyTitle}>No chats yet</Text>
           <Text style={styles.emptyText}>
             Chat groups will appear here when you are added to a tour group by our team.
@@ -142,30 +151,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: Spacing.xxxl,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   loadingText: { fontSize: FontSize.md, color: Colors.textSecondary },
-  listContent: { paddingTop: Spacing.sm },
+  listContent: { paddingTop: Spacing.sm, paddingBottom: 100 },
 
   // Group item
   groupItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
     gap: Spacing.md,
   },
   groupAvatar: {
     width: 52,
     height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.primary,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
   },
-  avatarImage: { width: 52, height: 52 },
   groupInfo: { flex: 1 },
   groupHeader: {
     flexDirection: "row",
@@ -174,7 +183,7 @@ const styles = StyleSheet.create({
   },
   groupName: {
     fontSize: FontSize.md,
-    fontWeight: "600",
+    fontWeight: "700",
     color: Colors.text,
     flex: 1,
     marginRight: Spacing.sm,
@@ -183,7 +192,7 @@ const styles = StyleSheet.create({
   lastMessage: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginTop: 2,
+    marginTop: 3,
   },
   memberRow: {
     flexDirection: "row",
@@ -194,14 +203,23 @@ const styles = StyleSheet.create({
   memberCount: { fontSize: FontSize.xs, color: Colors.textTertiary },
 
   // Empty / Error
-  emptyTitle: { fontSize: FontSize.xl, fontWeight: "600", color: Colors.text },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  emptyTitle: { fontSize: FontSize.xl, fontWeight: "700", color: Colors.text },
   emptyText: {
     fontSize: FontSize.md,
     color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 22,
   },
-  errorTitle: { fontSize: FontSize.xl, fontWeight: "600", color: Colors.text },
+  errorTitle: { fontSize: FontSize.xl, fontWeight: "700", color: Colors.text },
   errorText: {
     fontSize: FontSize.md,
     color: Colors.textSecondary,

@@ -13,7 +13,6 @@ const features = [
     title: "Handcrafted Itineraries",
     description:
       "Every trip is meticulously planned by our travel experts to ensure unforgettable experiences.",
-    gradient: "from-orange-500 to-red-500",
     lightBg: "from-orange-50 to-red-50",
     hoverGradient: "group-hover:from-orange-500 group-hover:to-red-500",
   },
@@ -22,7 +21,6 @@ const features = [
     title: "Safe & Secure Travel",
     description:
       "Your safety is our priority. We ensure all tours meet the highest safety standards.",
-    gradient: "from-red-500 to-purple-600",
     lightBg: "from-red-50 to-purple-50",
     hoverGradient: "group-hover:from-red-500 group-hover:to-purple-600",
   },
@@ -31,7 +29,6 @@ const features = [
     title: "24/7 Support",
     description:
       "Our dedicated support team is available round the clock to assist you during your journey.",
-    gradient: "from-purple-600 to-purple-700",
     lightBg: "from-purple-50 to-indigo-50",
     hoverGradient: "group-hover:from-purple-600 group-hover:to-purple-700",
   },
@@ -40,7 +37,6 @@ const features = [
     title: "Personalized Experience",
     description:
       "Customize your tour to match your preferences. We make your dream vacation a reality.",
-    gradient: "from-orange-500 to-amber-500",
     lightBg: "from-orange-50 to-amber-50",
     hoverGradient: "group-hover:from-orange-500 group-hover:to-amber-500",
   },
@@ -49,7 +45,6 @@ const features = [
     title: "Best Price Guarantee",
     description:
       "Get the best value for your money with our competitive pricing and exclusive deals.",
-    gradient: "from-amber-500 to-orange-600",
     lightBg: "from-amber-50 to-orange-50",
     hoverGradient: "group-hover:from-amber-500 group-hover:to-orange-600",
   },
@@ -58,7 +53,6 @@ const features = [
     title: "Live Trip Chat",
     description:
       "Stay connected with your tour group and our operations team through our in-app chat.",
-    gradient: "from-red-500 to-orange-500",
     lightBg: "from-red-50 to-orange-50",
     hoverGradient: "group-hover:from-red-500 group-hover:to-orange-500",
   },

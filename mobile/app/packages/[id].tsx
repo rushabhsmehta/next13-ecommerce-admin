@@ -27,9 +27,7 @@ export default function PackageDetailScreen() {
   const [activeTab, setActiveTab] = useState<"itinerary" | "inclusions" | "policies">("itinerary");
 
   useEffect(() => {
-    if (id) {
-      loadPackage();
-    }
+    if (id) loadPackage();
   }, [id]);
 
   const loadPackage = async () => {
@@ -118,18 +116,12 @@ export default function PackageDetailScreen() {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(e) => {
-                const index = Math.round(
-                  e.nativeEvent.contentOffset.x / SCREEN_WIDTH
-                );
+                const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
                 setActiveImageIndex(index);
               }}
             >
               {images.map((img: any, i: number) => (
-                <Image
-                  key={img.id || i}
-                  source={{ uri: img.url }}
-                  style={styles.heroImage}
-                />
+                <Image key={img.id || i} source={{ uri: img.url }} style={styles.heroImage} />
               ))}
             </ScrollView>
           ) : (
@@ -140,21 +132,11 @@ export default function PackageDetailScreen() {
               <Ionicons name="image" size={48} color="rgba(255,255,255,0.5)" />
             </LinearGradient>
           )}
-
-          {/* Gradient overlay for dots */}
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.4)"]}
-            style={styles.imageBottomGradient}
-          />
-
-          {/* Dots */}
+          <LinearGradient colors={["transparent", "rgba(0,0,0,0.4)"]} style={styles.imageBottomGradient} />
           {images.length > 1 && (
             <View style={styles.dotsContainer}>
               {images.map((_: any, i: number) => (
-                <View
-                  key={i}
-                  style={[styles.dot, i === activeImageIndex && styles.dotActive]}
-                />
+                <View key={i} style={[styles.dot, i === activeImageIndex && styles.dotActive]} />
               ))}
             </View>
           )}
@@ -172,14 +154,12 @@ export default function PackageDetailScreen() {
               <Text style={styles.categoryText}>{pkg.tourCategory}</Text>
             </LinearGradient>
           )}
-          <Text style={styles.packageName}>
-            {pkg.tourPackageName || "Tour Package"}
-          </Text>
+          <Text style={styles.packageName}>{pkg.tourPackageName || "Tour Package"}</Text>
 
           <View style={styles.metaRow}>
             {[
-              { icon: "location", text: pkg.location?.label },
-              { icon: "time", text: pkg.numDaysNight },
+              pkg.location?.label ? { icon: "location", text: pkg.location.label } : null,
+              pkg.numDaysNight ? { icon: "time", text: pkg.numDaysNight } : null,
               itineraries.length > 0 ? { icon: "calendar", text: `${itineraries.length} Days` } : null,
             ].filter(Boolean).map((meta: any, i) => (
               <View key={i} style={styles.metaItem}>
@@ -192,7 +172,7 @@ export default function PackageDetailScreen() {
           </View>
         </View>
 
-        {/* Tab Navigation — Pill Style */}
+        {/* Tab Navigation */}
         <View style={styles.tabBar}>
           {tabs.map((tab) => (
             <Pressable
@@ -205,12 +185,7 @@ export default function PackageDetailScreen() {
                 size={14}
                 color={activeTab === tab.key ? "#fff" : Colors.textTertiary}
               />
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab.key && styles.tabTextActive,
-                ]}
-              >
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
                 {tab.label}
               </Text>
             </Pressable>
@@ -226,29 +201,29 @@ export default function PackageDetailScreen() {
               ) : (
                 itineraries.map((day: any, index: number) => {
                   const isExpanded = expandedDays.has(index);
+                  const dayImages = day.itineraryImages || [];
+                  const hotel = day.hotel;
+                  const hotelImages = hotel?.images || [];
+                  const activities = day.activities || [];
+
                   return (
-                    <Pressable
-                      key={day.id}
-                      style={styles.dayCard}
-                      onPress={() => toggleDay(index)}
-                    >
-                      <View style={styles.dayHeader}>
+                    <View key={day.id} style={styles.dayCard}>
+                      {/* Day Header */}
+                      <Pressable style={styles.dayHeader} onPress={() => toggleDay(index)}>
                         <LinearGradient
                           colors={[Colors.gradient1, Colors.gradient2]}
                           style={styles.dayBadge}
                         >
-                          <Text style={styles.dayBadgeText}>
-                            D{day.dayNumber || index + 1}
-                          </Text>
+                          <Text style={styles.dayBadgeText}>D{day.dayNumber || index + 1}</Text>
                         </LinearGradient>
                         <View style={styles.dayTitleWrap}>
                           <Text style={styles.dayTitle}>
                             {day.itineraryTitle || `Day ${day.dayNumber || index + 1}`}
                           </Text>
-                          {day.hotel && (
-                            <View style={styles.hotelRow}>
-                              <Ionicons name="bed-outline" size={11} color={Colors.textSecondary} />
-                              <Text style={styles.dayHotel}>{day.hotel.name}</Text>
+                          {hotel && (
+                            <View style={styles.hotelChip}>
+                              <Ionicons name="bed-outline" size={10} color={Colors.primary} />
+                              <Text style={styles.hotelChipText}>{hotel.name}</Text>
                             </View>
                           )}
                         </View>
@@ -257,32 +232,119 @@ export default function PackageDetailScreen() {
                           size={18}
                           color={Colors.textTertiary}
                         />
-                      </View>
-                      {isExpanded && day.itineraryDescription && (
-                        <Text style={styles.dayDescription}>
-                          {day.itineraryDescription}
-                        </Text>
-                      )}
-                      {isExpanded && day.activities?.length > 0 && (
-                        <View style={styles.activitiesSection}>
-                          {day.activities.map((act: any) => (
-                            <View key={act.id} style={styles.activityItem}>
-                              <View style={styles.activityDot} />
-                              <View style={styles.activityContent}>
-                                <Text style={styles.activityTitle}>
-                                  {act.activityTitle}
-                                </Text>
-                                {act.activityDescription && (
-                                  <Text style={styles.activityDesc}>
-                                    {act.activityDescription}
-                                  </Text>
+                      </Pressable>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <View style={styles.dayExpandedContent}>
+                          {/* Day Images */}
+                          {dayImages.length > 0 && (
+                            <ScrollView
+                              horizontal
+                              showsHorizontalScrollIndicator={false}
+                              contentContainerStyle={styles.dayImagesList}
+                            >
+                              {dayImages.map((img: any) => (
+                                <Image
+                                  key={img.id}
+                                  source={{ uri: img.url }}
+                                  style={styles.dayImage}
+                                />
+                              ))}
+                            </ScrollView>
+                          )}
+
+                          {/* Description */}
+                          {day.itineraryDescription && (
+                            <Text style={styles.dayDescription}>{day.itineraryDescription}</Text>
+                          )}
+
+                          {/* Hotel Section */}
+                          {hotel && (
+                            <View style={styles.hotelSection}>
+                              <View style={styles.sectionLabelRow}>
+                                <Ionicons name="business" size={14} color={Colors.primary} />
+                                <Text style={styles.sectionLabelText}>Accommodation</Text>
+                              </View>
+                              <View style={styles.hotelCard}>
+                                {hotelImages.length > 0 ? (
+                                  <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={styles.hotelImagesList}
+                                  >
+                                    {hotelImages.map((img: any) => (
+                                      <Image
+                                        key={img.id}
+                                        source={{ uri: img.url }}
+                                        style={styles.hotelImage}
+                                      />
+                                    ))}
+                                  </ScrollView>
+                                ) : (
+                                  <View style={styles.hotelImagePlaceholder}>
+                                    <Ionicons name="business-outline" size={24} color={Colors.textTertiary} />
+                                  </View>
                                 )}
+                                <View style={styles.hotelInfo}>
+                                  <Text style={styles.hotelName}>{hotel.name}</Text>
+                                  <View style={styles.hotelMeta}>
+                                    {day.roomCategory && (
+                                      <View style={styles.hotelMetaChip}>
+                                        <Ionicons name="bed-outline" size={10} color={Colors.primary} />
+                                        <Text style={styles.hotelMetaText}>{day.roomCategory}</Text>
+                                      </View>
+                                    )}
+                                    {day.mealsIncluded && (
+                                      <View style={styles.hotelMetaChip}>
+                                        <Ionicons name="restaurant-outline" size={10} color={Colors.primary} />
+                                        <Text style={styles.hotelMetaText}>{day.mealsIncluded}</Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                </View>
                               </View>
                             </View>
-                          ))}
+                          )}
+
+                          {/* Activities Section */}
+                          {activities.length > 0 && (
+                            <View style={styles.activitiesSection}>
+                              <View style={styles.sectionLabelRow}>
+                                <Ionicons name="flag" size={14} color={Colors.primary} />
+                                <Text style={styles.sectionLabelText}>Activities</Text>
+                              </View>
+                              {activities.map((act: any) => {
+                                const actImages = act.activityImages || [];
+                                return (
+                                  <View key={act.id} style={styles.activityCard}>
+                                    {actImages.length > 0 && (
+                                      <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.activityImagesList}
+                                      >
+                                        {actImages.map((img: any) => (
+                                          <Image
+                                            key={img.id}
+                                            source={{ uri: img.url }}
+                                            style={styles.activityImage}
+                                          />
+                                        ))}
+                                      </ScrollView>
+                                    )}
+                                    <Text style={styles.activityTitle}>{act.activityTitle}</Text>
+                                    {act.activityDescription && (
+                                      <Text style={styles.activityDesc}>{act.activityDescription}</Text>
+                                    )}
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          )}
                         </View>
                       )}
-                    </Pressable>
+                    </View>
                   );
                 })
               )}
@@ -404,6 +466,8 @@ export default function PackageDetailScreen() {
   );
 }
 
+const IMAGE_CARD_WIDTH = SCREEN_WIDTH * 0.65;
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
@@ -425,10 +489,7 @@ const styles = StyleSheet.create({
   // Image gallery
   imageContainer: { position: "relative" },
   heroImage: { width: SCREEN_WIDTH, height: 320 },
-  placeholderImage: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  placeholderImage: { justifyContent: "center", alignItems: "center" },
   imageBottomGradient: {
     position: "absolute",
     bottom: 0,
@@ -487,7 +548,7 @@ const styles = StyleSheet.create({
   },
   metaText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "500" },
 
-  // Tabs — pill style
+  // Tabs
   tabBar: {
     flexDirection: "row",
     marginHorizontal: Spacing.xl,
@@ -505,9 +566,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm + 2,
     borderRadius: BorderRadius.md,
   },
-  tabActive: {
-    backgroundColor: Colors.primary,
-  },
+  tabActive: { backgroundColor: Colors.primary },
   tabText: { fontSize: FontSize.sm, color: Colors.textTertiary, fontWeight: "500" },
   tabTextActive: { color: "#fff", fontWeight: "700" },
   tabContent: { padding: Spacing.xl },
@@ -522,16 +581,17 @@ const styles = StyleSheet.create({
   dayCard: {
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
     marginBottom: Spacing.md,
     borderLeftWidth: 3,
     borderLeftColor: Colors.primary,
+    overflow: "hidden",
     ...Shadows.light,
   },
   dayHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
+    padding: Spacing.lg,
   },
   dayBadge: {
     width: 42,
@@ -543,30 +603,113 @@ const styles = StyleSheet.create({
   dayBadgeText: { fontSize: FontSize.sm, fontWeight: "800", color: "#fff" },
   dayTitleWrap: { flex: 1 },
   dayTitle: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
-  hotelRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
-  dayHotel: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  hotelChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    alignSelf: "flex-start",
+  },
+  hotelChipText: { fontSize: FontSize.xs, color: Colors.primary, fontWeight: "500" },
+
+  // Expanded day content
+  dayExpandedContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+  },
+
+  // Day images
+  dayImagesList: { gap: Spacing.sm, marginBottom: Spacing.md },
+  dayImage: {
+    width: IMAGE_CARD_WIDTH,
+    height: 160,
+    borderRadius: BorderRadius.md,
+  },
+
+  // Description
   dayDescription: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginTop: Spacing.md,
     lineHeight: 21,
+    marginBottom: Spacing.md,
   },
-  activitiesSection: { marginTop: Spacing.md, gap: Spacing.sm },
-  activityItem: {
+
+  // Hotel section
+  hotelSection: { marginBottom: Spacing.md },
+  sectionLabelRow: {
     flexDirection: "row",
-    gap: Spacing.md,
-    alignItems: "flex-start",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  activityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primaryLight,
-    marginTop: 6,
+  sectionLabelText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.text,
+    letterSpacing: 0.3,
   },
-  activityContent: { flex: 1 },
-  activityTitle: { fontSize: FontSize.sm, fontWeight: "600", color: Colors.text },
-  activityDesc: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2, lineHeight: 18 },
+  hotelCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+  },
+  hotelImagesList: { gap: Spacing.xs },
+  hotelImage: {
+    width: 200,
+    height: 120,
+    borderRadius: 0,
+  },
+  hotelImagePlaceholder: {
+    height: 80,
+    backgroundColor: Colors.surfaceAlt,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  hotelInfo: { padding: Spacing.md },
+  hotelName: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text, marginBottom: 6 },
+  hotelMeta: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
+  hotelMetaChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+  },
+  hotelMetaText: { fontSize: FontSize.xs, color: Colors.primary, fontWeight: "500" },
+
+  // Activities section
+  activitiesSection: { marginBottom: Spacing.sm },
+  activityCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    overflow: "hidden",
+    marginBottom: Spacing.sm,
+  },
+  activityImagesList: { gap: Spacing.xs },
+  activityImage: {
+    width: 180,
+    height: 100,
+  },
+  activityTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.text,
+    padding: Spacing.md,
+    paddingBottom: 4,
+  },
+  activityDesc: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+    lineHeight: 18,
+  },
 
   // Inclusions
   inclusionsGrid: { gap: Spacing.xxl },

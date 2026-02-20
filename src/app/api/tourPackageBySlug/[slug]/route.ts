@@ -24,14 +24,20 @@ export async function GET(
         itineraries: {
           include: {
             itineraryImages: true,
+            hotel: {
+              include: {
+                images: true,
+              },
+            },
             activities: {
               include: {
                 activityImages: true,
-              }
-            }
-          },          orderBy: [
+              },
+            },
+          },
+          orderBy: [
             { dayNumber: 'asc' },
-            { days: 'asc' }
+            { days: 'asc' },
           ],
         },
       },

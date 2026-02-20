@@ -205,10 +205,19 @@ export default function HomeScreen() {
               onPress={() => router.push(`/packages/${pkg.slug || pkg.id}`)}
             >
               <View style={styles.packageImageWrap}>
-                <Image
-                  source={{ uri: pkg.images?.[0]?.url }}
-                  style={styles.packageImage}
-                />
+                {pkg.images?.[0]?.url ? (
+                  <Image
+                    source={{ uri: pkg.images[0].url }}
+                    style={styles.packageImage}
+                  />
+                ) : (
+                  <LinearGradient
+                    colors={[Colors.gradient1, Colors.gradient2]}
+                    style={[styles.packageImage, { justifyContent: "center", alignItems: "center" }]}
+                  >
+                    <Ionicons name="image-outline" size={40} color="rgba(255,255,255,0.5)" />
+                  </LinearGradient>
+                )}
                 <LinearGradient
                   colors={["transparent", "rgba(0,0,0,0.4)"]}
                   style={styles.packageImageOverlay}
@@ -260,7 +269,7 @@ export default function HomeScreen() {
 
       {/* Why Choose Us */}
       <LinearGradient
-        colors={[Colors.primaryBg, "#e6fffa"]}
+        colors={[Colors.primaryBg, "#fff1e6"]}
         style={styles.whySection}
       >
         <Text style={styles.sectionLabel}>WHY TRAVEL WITH US</Text>

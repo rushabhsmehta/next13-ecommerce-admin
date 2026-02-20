@@ -1,41 +1,41 @@
-// Aagam Holidays brand colors — deep teal/cyan premium theme
+// Aagam Holidays brand colors — Orange → Red-Purple gradient (from logo)
 import { Platform } from "react-native";
 
 export const Colors = {
-  primary: "#0d9488",        // teal-600
-  primaryDark: "#0f766e",    // teal-700
-  primaryLight: "#2dd4bf",   // teal-400
-  primaryBg: "#f0fdfa",      // teal-50
-  secondary: "#06b6d4",      // cyan-500
-  secondaryLight: "#22d3ee", // cyan-400
+  primary: "#e8612d",        // warm orange (logo primary)
+  primaryDark: "#d4461a",    // darker orange
+  primaryLight: "#f09050",   // light orange
+  primaryBg: "#fff7ed",      // orange-50
+  secondary: "#9b3a8d",      // purple (logo accent)
+  secondaryLight: "#c05bae", // light purple
 
-  gradient1: "#0d9488",      // teal
-  gradient2: "#06b6d4",      // cyan
+  gradient1: "#f0862a",      // orange (logo top)
+  gradient2: "#c23a5e",      // red-purple (logo bottom)
 
   background: "#ffffff",
-  surface: "#f8fafc",        // slate-50
-  surfaceAlt: "#f1f5f9",     // slate-100
-  border: "#e2e8f0",         // slate-200
-  borderLight: "#f1f5f9",    // slate-100
+  surface: "#faf9f8",        // warm gray-50
+  surfaceAlt: "#f5f3f1",     // warm gray-100
+  border: "#e8e5e1",         // warm gray-200
+  borderLight: "#f5f3f1",    // warm gray-100
 
-  text: "#0f172a",           // slate-900
-  textSecondary: "#64748b",  // slate-500
-  textTertiary: "#94a3b8",   // slate-400
+  text: "#1c1917",           // warm gray-900
+  textSecondary: "#78716c",  // warm gray-500
+  textTertiary: "#a8a29e",   // warm gray-400
   textInverse: "#ffffff",
 
-  success: "#10b981",
+  success: "#16a34a",
   warning: "#f59e0b",
   error: "#ef4444",
   info: "#3b82f6",
 
   overlay: "rgba(0, 0, 0, 0.5)",
-  cardShadow: "rgba(13, 148, 136, 0.08)",
+  cardShadow: "rgba(232, 97, 45, 0.08)",
 
   // Chat colors
-  chatBubbleOwn: "#0d9488",
+  chatBubbleOwn: "#e8612d",
   chatBubbleOther: "#ffffff",
   chatBubbleOwnText: "#ffffff",
-  chatBubbleOtherText: "#0f172a",
+  chatBubbleOtherText: "#1c1917",
 };
 
 export const Spacing = {

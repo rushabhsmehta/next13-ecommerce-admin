@@ -42,7 +42,14 @@ export default function DestinationsScreen() {
       style={styles.card}
       onPress={() => router.push(`/destinations/${item.id}`)}
     >
-      <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+      {item.imageUrl ? (
+        <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+      ) : (
+        <LinearGradient
+          colors={[Colors.gradient1, Colors.gradient2]}
+          style={styles.cardImage}
+        />
+      )}
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.65)"]}
         style={styles.overlay}

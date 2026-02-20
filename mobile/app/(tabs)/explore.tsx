@@ -75,10 +75,19 @@ export default function ExploreScreen() {
       onPress={() => router.push(`/packages/${item.slug || item.id}`)}
     >
       <View style={styles.cardImageWrap}>
-        <Image
-          source={{ uri: item.images?.[0]?.url }}
-          style={styles.cardImage}
-        />
+        {item.images?.[0]?.url ? (
+          <Image
+            source={{ uri: item.images[0].url }}
+            style={styles.cardImage}
+          />
+        ) : (
+          <LinearGradient
+            colors={[Colors.gradient1, Colors.gradient2]}
+            style={[styles.cardImage, { justifyContent: "center", alignItems: "center" }]}
+          >
+            <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
+          </LinearGradient>
+        )}
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.35)"]}
           style={styles.cardImageOverlay}
@@ -159,32 +168,31 @@ export default function ExploreScreen() {
           keyExtractor={(item) => item}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryList}
-          renderItem={({ item }) => (
-            <Pressable
-              style={[
-                styles.categoryChip,
-                item === activeCategory && styles.categoryChipActive,
-              ]}
-              onPress={() => handleCategoryChange(item)}
-            >
-              {item === activeCategory ? (
-                <LinearGradient
-                  colors={[Colors.gradient1, Colors.gradient2]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.categoryChipGradient}
-                >
-                  <Text style={styles.categoryChipTextActive}>
-                    {item === "all" ? "All Packages" : item}
-                  </Text>
-                </LinearGradient>
-              ) : (
-                <Text style={styles.categoryChipText}>
-                  {item === "all" ? "All Packages" : item}
-                </Text>
-              )}
-            </Pressable>
-          )}
+          renderItem={({ item }) => {
+            const isActive = item === activeCategory;
+            const label = item === "all" ? "All Packages" : item;
+            return (
+              <Pressable
+                style={styles.categoryChipOuter}
+                onPress={() => handleCategoryChange(item)}
+              >
+                {isActive ? (
+                  <LinearGradient
+                    colors={[Colors.gradient1, Colors.gradient2]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.categoryChipInner}
+                  >
+                    <Text style={styles.categoryChipTextActive}>{label}</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.categoryChipInactive}>
+                    <Text style={styles.categoryChipText}>{label}</Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          }}
         />
       )}
 
@@ -262,29 +270,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
     marginBottom: Spacing.md,
+    height: 40,
   },
-  categoryChip: {
+  categoryChipOuter: {
+    height: 36,
+  },
+  categoryChipInner: {
+    height: 36,
+    paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.full,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  categoryChipInactive: {
+    height: 36,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.border,
-    overflow: "hidden",
-  },
-  categoryChipActive: {
-    borderColor: "transparent",
-    borderWidth: 0,
-  },
-  categoryChipGradient: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 1,
-    borderRadius: BorderRadius.full,
   },
   categoryChipText: {
     fontSize: FontSize.sm,
     fontWeight: "500",
     color: Colors.textSecondary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
   },
   categoryChipTextActive: {
     color: "#fff",

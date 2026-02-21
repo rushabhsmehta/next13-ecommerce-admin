@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "react-hot-toast";
@@ -159,6 +159,9 @@ export const SaleItemsForm: React.FC<SaleItemsFormProps> = ({
     control: form.control,
     name: "items",
   });
+
+  // useWatch replaces form.watch() in JSX to avoid infinite re-render loops
+  const watchedItems = useWatch({ control: form.control, name: "items" });
   // Recalculate line item values when inputs change
   const recalculateLineItem = useCallback((index: number) => {
     const items = form.getValues("items");
@@ -215,31 +218,18 @@ export const SaleItemsForm: React.FC<SaleItemsFormProps> = ({
       return () => subscription.unsubscribe();
   }, [form, recalculateLineItem]);
 
-  // Calculate the form totals
-  const calculateTotals = () => {
-    const items = form.getValues("items");
-    
-    const subTotal = items.reduce((sum, item) => 
-      sum + ((item.quantity || 0) * (item.pricePerUnit || 0)), 0);
-    
-    const totalDiscount = items.reduce((sum, item) => 
-      sum + (item.discountAmount || 0), 0);
-    
-    const totalTax = items.reduce((sum, item) => 
-      sum + (item.taxAmount || 0), 0);
-    
-    const grandTotal = items.reduce((sum, item) => 
-      sum + (item.totalAmount || 0), 0);
-    
-    return {
-      subTotal,
-      totalDiscount,
-      totalTax,
-      grandTotal
-    };
-  };
+  // Calculate the form totals reactively from watchedItems
+  const subTotal = watchedItems.reduce((sum, item) =>
+    sum + ((item?.quantity || 0) * (item?.pricePerUnit || 0)), 0);
 
-  const { subTotal, totalDiscount, totalTax, grandTotal } = calculateTotals();
+  const totalDiscount = watchedItems.reduce((sum, item) =>
+    sum + (item?.discountAmount || 0), 0);
+
+  const totalTax = watchedItems.reduce((sum, item) =>
+    sum + (item?.taxAmount || 0), 0);
+
+  const grandTotal = watchedItems.reduce((sum, item) =>
+    sum + (item?.totalAmount || 0), 0);
 
   const onSubmit = async (data: SaleItemFormValues) => {
     try {
@@ -552,9 +542,9 @@ export const SaleItemsForm: React.FC<SaleItemsFormProps> = ({
                                   {...field}
                                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                 />
-                                {form.watch(`items.${index}.unitOfMeasureId`) && (
+                                {watchedItems[index]?.unitOfMeasureId && (
                                   <span className="ml-2 text-sm text-muted-foreground">
-                                    {getUnitAbbreviation(form.watch(`items.${index}.unitOfMeasureId`))}
+                                    {getUnitAbbreviation(watchedItems[index]?.unitOfMeasureId)}
                                   </span>
                                 )}
                               </div>
@@ -590,8 +580,8 @@ export const SaleItemsForm: React.FC<SaleItemsFormProps> = ({
                       <div className="space-y-2">
                         <div className="font-medium text-sm">Subtotal</div>
                         <div className="h-10 px-3 py-2 rounded-md border border-input bg-background flex items-center">
-                          {formatPrice((form.watch(`items.${index}.quantity`) || 0) * 
-                                       (form.watch(`items.${index}.pricePerUnit`) || 0))}
+                          {formatPrice((watchedItems[index]?.quantity || 0) *
+                                       (watchedItems[index]?.pricePerUnit || 0))}
                         </div>
                       </div>
                     </div>
@@ -679,7 +669,7 @@ export const SaleItemsForm: React.FC<SaleItemsFormProps> = ({
                       <div className="space-y-2">
                         <div className="font-medium text-sm">Tax Amount</div>
                         <div className="h-10 px-3 py-2 rounded-md border border-input bg-background flex items-center">
-                          {formatPrice(form.watch(`items.${index}.taxAmount`) || 0)}
+                          {formatPrice(watchedItems[index]?.taxAmount || 0)}
                         </div>
                       </div>
                       
@@ -687,7 +677,7 @@ export const SaleItemsForm: React.FC<SaleItemsFormProps> = ({
                       <div className="space-y-2 md:col-span-2">
                         <div className="font-medium text-sm">Line Total</div>
                         <div className="h-10 px-3 py-2 rounded-md border border-input bg-background flex items-center font-medium">
-                          {formatPrice(form.watch(`items.${index}.totalAmount`) || 0)}
+                          {formatPrice(watchedItems[index]?.totalAmount || 0)}
                         </div>
                       </div>
                     </div>

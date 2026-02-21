@@ -158,6 +158,11 @@ const formSchema = z.object({
   tourPackageQueryTemplate: z.string().optional(),  // Add fields to store the selected template ID and type
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
+  selectedVariantIds: z.array(z.string()).optional().default([]),
+  selectedTourPackageVariantId: z.string().optional().default(''),
+  selectedTourPackageVariantName: z.string().optional().default(''),
+  numberOfRooms: z.number().optional().default(0),
+  selectedMealPlanId: z.string().optional().default(''),
   tourPackageTemplateName: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
@@ -1034,7 +1039,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
             </TabsList>
             <TabsContent value="basic" className="space-y-4 mt-4">
               <BasicInfoTab // Updated component name
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
                 associatePartners={associatePartners}
                 tourPackages={tourPackages}
@@ -1051,13 +1056,13 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
             </TabsContent>
             <TabsContent value="guests" className="space-y-4 mt-4">
               <GuestsTab // Updated component name
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
               />
             </TabsContent>
             <TabsContent value="location" className="space-y-4 mt-4">
               <LocationTab
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
                 locations={locations}
                 form={form}
@@ -1066,14 +1071,14 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
             </TabsContent>
             <TabsContent value="dates" className="space-y-4 mt-4">
               <DatesTab
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
                 form={form}
               />
             </TabsContent>
             <TabsContent value="itinerary" className="space-y-4 mt-4">
               <ItineraryTab
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
                 hotels={hotels}
                 activitiesMaster={activitiesMaster}
@@ -1088,13 +1093,13 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
             </TabsContent>
             <TabsContent value="flights" className="space-y-4 mt-4">
               <FlightsTab
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
                 form={form}
               />
             </TabsContent>            <TabsContent value="pricing" className="space-y-4 mt-4">
               <PricingTab
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
                 form={form}
                 hotels={hotels}
@@ -1109,7 +1114,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">
               <PoliciesTab
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
                 form={form}
                 useLocationDefaults={useLocationDefaults}

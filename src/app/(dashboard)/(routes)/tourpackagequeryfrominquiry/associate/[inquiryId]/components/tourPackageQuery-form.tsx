@@ -148,7 +148,11 @@ const formSchema = z.object({
   tourPackageQueryTemplate: z.string().optional(),  // Add fields to store the selected template ID and type
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
+  selectedVariantIds: z.array(z.string()).optional().default([]),
+  selectedTourPackageVariantId: z.string().optional().default(''),
+  selectedTourPackageVariantName: z.string().optional().default(''),
   tourPackageTemplateName: z.string().optional(),
+  numberOfRooms: z.number().optional().default(0),
   // Add fields for pricing calculations
   selectedMealPlanId: z.string().optional(),
   occupancySelections: z.array(z.object({
@@ -1029,7 +1033,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             {/* Use PricingTab from shared components */}
             <TabsContent value="pricing" className="space-y-4 mt-4 px-1 md:px-0">
               <PricingTab
-                control={form.control}
+                control={form.control as any}
                 loading={loading}
                 form={form}
                 hotels={hotels} // Correctly typed

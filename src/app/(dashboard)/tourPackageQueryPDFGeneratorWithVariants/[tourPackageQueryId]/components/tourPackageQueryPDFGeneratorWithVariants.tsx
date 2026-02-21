@@ -610,16 +610,24 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
   const buildPriceComparisonSection = useCallback((): string => {
     const variants = initialData?.queryVariantSnapshots;
     if (!variants || variants.length < 2) return "";
-    // Show section whenever we have variant data; show '—' if pricing not configured
-    const hasPricing = variants.some(v => v.pricingSnapshots.length > 0);
+    const variantPricingData = (initialData as any)?.variantPricingData as Record<string, any> | null | undefined;
 
-    const allComponents = Array.from(new Set(
-      variants.flatMap(v =>
+    // Helper: get variantPricingData entry for a snapshot (keyed by sourceVariantId)
+    const getVpd = (v: typeof variants[0]) =>
+      variantPricingData?.[v.sourceVariantId] as { components?: { name: string; price: string; description?: string }[]; totalCost?: number; remarks?: string } | undefined;
+
+    // Show section whenever we have variant data; show '—' if pricing not configured
+    const hasPricing = variants.some(v => v.pricingSnapshots.length > 0 || !!getVpd(v)?.totalCost);
+
+    // Collect component names from both pricingSnapshots AND variantPricingData
+    const allComponents = Array.from(new Set([
+      ...variants.flatMap(v =>
         v.pricingSnapshots.flatMap(p =>
           p.pricingComponentSnapshots.map(c => c.attributeName)
         )
-      )
-    ));
+      ),
+      ...variants.flatMap(v => (getVpd(v)?.components || []).map((c: any) => c.name as string).filter(Boolean)),
+    ]));
 
     const variantCount = variants.length;
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1.6)));
@@ -643,38 +651,56 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </th>
     `).join('');
 
-    // Safely parse Decimal total price
-    const safeTotal = (ps: typeof variants[0]['pricingSnapshots'][0] | undefined): string => {
-      if (!ps) return '—';
-      try {
-        const val = ps.totalPrice?.toString();
-        if (!val) return '—';
-        const n = parseFloat(val);
-        return isNaN(n) || n === 0 ? '—' : `₹ ${formatINR(val)}`;
-      } catch { return '—'; }
+    // Safely parse total price — prefers pricingSnapshot, falls back to variantPricingData
+    const safeTotal = (v: typeof variants[0]): string => {
+      const ps = v.pricingSnapshots[0];
+      if (ps) {
+        try {
+          const val = ps.totalPrice?.toString();
+          if (val) {
+            const n = parseFloat(val);
+            if (!isNaN(n) && n > 0) return `₹ ${formatINR(val)}`;
+          }
+        } catch { /* fall through */ }
+      }
+      const vpd = getVpd(v);
+      if (vpd?.totalCost) {
+        const n = parseFloat(String(vpd.totalCost));
+        if (!isNaN(n) && n > 0) return `₹ ${formatINR(n.toString())}`;
+      }
+      return '—';
     };
 
     // Identify cheapest variant for "Best Value" badge
     const variantTotals = variants.map(v => {
       try {
         const ps = v.pricingSnapshots[0];
-        if (!ps?.totalPrice) return Infinity;
-        const n = parseFloat(ps.totalPrice.toString());
-        return isNaN(n) || n === 0 ? Infinity : n;
-      } catch { return Infinity; }
+        if (ps?.totalPrice) {
+          const n = parseFloat(ps.totalPrice.toString());
+          if (!isNaN(n) && n > 0) return n;
+        }
+      } catch { /* fall through */ }
+      const vpd = getVpd(v);
+      if (vpd?.totalCost) {
+        const n = parseFloat(String(vpd.totalCost));
+        if (!isNaN(n) && n > 0) return n;
+      }
+      return Infinity;
     });
     const minPrice = Math.min(...variantTotals.filter(t => t !== Infinity));
 
     const metaRows = [
       {
         label: 'Meal Plan',
-        fn: (v: typeof variants[0]) => v.pricingSnapshots[0]?.mealPlanName || '—',
+        fn: (v: typeof variants[0]) => v.pricingSnapshots[0]?.mealPlanName || (getVpd(v) ? 'See breakdown' : '—'),
       },
       {
         label: 'Rooms & Vehicle',
         fn: (v: typeof variants[0]) => {
           const ps = v.pricingSnapshots[0];
-          return ps ? `${ps.numberOfRooms} Room(s)${ps.vehicleTypeName ? ` · ${ps.vehicleTypeName}` : ''}` : '—';
+          if (ps) return `${ps.numberOfRooms} Room(s)${ps.vehicleTypeName ? ` · ${ps.vehicleTypeName}` : ''}`;
+          const vpd = getVpd(v);
+          return vpd ? 'See breakdown' : '—';
         },
       },
     ].map(({ label, fn }, i) => {
@@ -689,17 +715,27 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         const ps = v.pricingSnapshots[0];
         const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
         const bg = (i + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel;
-        return `<td style="${tdBase} background: ${bg}; text-align: center;">
-          ${comp ? `<span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(comp.price.toString())}</span>` : `<span style="color: #D1D5DB;">—</span>`}
-        </td>`;
+        if (comp) {
+          return `<td style="${tdBase} background: ${bg}; text-align: center;">
+            <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(comp.price.toString())}</span>
+          </td>`;
+        }
+        // Fallback: look in variantPricingData components
+        const vpd = getVpd(v);
+        const vpdComp = (vpd?.components || []).find((c: any) => c.name === compName);
+        if (vpdComp) {
+          return `<td style="${tdBase} background: ${bg}; text-align: center;">
+            <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(String(vpdComp.price || 0))}</span>
+          </td>`;
+        }
+        return `<td style="${tdBase} background: ${bg}; text-align: center;"><span style="color: #D1D5DB;">—</span></td>`;
       }).join('');
       return `<tr style="page-break-inside: avoid; break-inside: avoid;"><td style="${tdLabel}">${compName}</td>${cells}</tr>`;
     }).join('');
 
     const totalRow = (() => {
       const cells = variants.map((v, idx) => {
-        const ps = v.pricingSnapshots[0];
-        const totalStr = safeTotal(ps);
+        const totalStr = safeTotal(v);
         const isBest = variantTotals[idx] === minPrice && minPrice !== Infinity;
         return `<td style="${tdBase} background: ${brandColors.lightOrange}; text-align: center; padding: 16px 12px; border-top: 2px solid ${brandColors.primary};">
           <div style="font-size: 18px; font-weight: 800; color: ${brandColors.primary}; line-height: 1.2; margin-bottom: 4px;">${totalStr}</div>
@@ -714,7 +750,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
     const noPricingNote = !hasPricing ? `
       <div style="margin-top: 12px; background: #FEF9C3; border-left: 4px solid #CA8A04; border-radius: 0 4px 4px 0; padding: 8px 12px;">
-        <span style="font-size: 11px; color: #713F12; font-style: italic;">⚠ Pricing snapshots have not been configured for these variants. Please recreate snapshots with pricing data.</span>
+        <span style="font-size: 11px; color: #713F12; font-style: italic;">⚠ No pricing data found for these variants. Please enter pricing in the Variants Pricing Tab and save.</span>
       </div>
     ` : `
       <div style="margin-top: 12px; background: ${brandColors.lightOrange}; border-left: 4px solid ${brandColors.accent}; border-radius: 0 4px 4px 0; padding: 8px 12px;">
@@ -857,58 +893,86 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   </div>
                 `}
 
-                ${variant.pricingSnapshots && variant.pricingSnapshots.length > 0 ? `
-                  <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-top: none; padding: 20px; margin-top: -1px;">
-                    <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                      <span style="color: ${brandColors.secondary};">💰</span>
-                      Variant Pricing
-                    </div>
-
-                    ${variant.pricingSnapshots.map((pricing, idx) => `
-                        <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-radius: 6px; padding: 16px; margin-bottom: ${idx < variant.pricingSnapshots.length - 1 ? '12px' : '0'};">
-                          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div>
-                              ${pricing.mealPlanName ? `
-                                <div style="font-size: 13px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 4px;">
-                                  🍽️ ${pricing.mealPlanName}
-                                </div>
-                              ` : ''}
-                              <div style="font-size: 11px; color: ${brandColors.muted};">
-                                ${pricing.numberOfRooms} Room(s) ${pricing.vehicleTypeName ? `• 🚗 ${pricing.vehicleTypeName}` : ''}
-                              </div>
-                            </div>
-                            <div style="text-align: right;">
-                              <div style="font-size: 18px; font-weight: 700; color: ${brandColors.primary};">
-                                ₹ ${formatINR(pricing.totalPrice.toString())}
-                              </div>
-                            </div>
-                          </div>
-
-                          ${pricing.pricingComponentSnapshots.length > 0 ? `
-                            <div style="border-top: 1px solid ${brandColors.border}; padding-top: 12px; margin-top: 8px;">
-                              <div style="font-size: 11px; font-weight: 600; color: ${brandColors.muted}; margin-bottom: 8px; text-transform: uppercase;">
-                                Price Breakdown
-                              </div>
-                              ${pricing.pricingComponentSnapshots.map(comp => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px;">
-                                  <span style="color: ${brandColors.text};">${comp.attributeName}</span>
-                                  <span style="color: ${brandColors.muted}; font-weight: 500;">₹ ${formatINR(comp.price.toString())}</span>
-                                </div>
-                              `).join('')}
-                            </div>
-                          ` : ''}
-
-                          ${pricing.description ? `
-                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid ${brandColors.border};">
-                              <div style="font-size: 11px; color: ${brandColors.muted}; line-height: 1.4;">
-                                ${pricing.description}
-                              </div>
-                            </div>
-                          ` : ''}
+${(() => {
+                  // Prefer pricingSnapshots (snapshot system); fall back to variantPricingData (Pricing Tab)
+                  if (variant.pricingSnapshots && variant.pricingSnapshots.length > 0) {
+                    return `
+                      <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-top: none; padding: 20px; margin-top: -1px;">
+                        <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                          <span style="color: ${brandColors.secondary};">💰</span>
+                          Variant Pricing
                         </div>
-                    `).join('')}
-                  </div>
-                ` : ''}
+                        ${variant.pricingSnapshots.map((pricing, idx) => `
+                          <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-radius: 6px; padding: 16px; margin-bottom: ${idx < variant.pricingSnapshots.length - 1 ? '12px' : '0'};">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                              <div>
+                                ${pricing.mealPlanName ? `
+                                  <div style="font-size: 13px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 4px;">🍽️ ${pricing.mealPlanName}</div>
+                                ` : ''}
+                                <div style="font-size: 11px; color: ${brandColors.muted};">${pricing.numberOfRooms} Room(s) ${pricing.vehicleTypeName ? `• 🚗 ${pricing.vehicleTypeName}` : ''}</div>
+                              </div>
+                              <div style="text-align: right;">
+                                <div style="font-size: 18px; font-weight: 700; color: ${brandColors.primary};">₹ ${formatINR(pricing.totalPrice.toString())}</div>
+                              </div>
+                            </div>
+                            ${pricing.pricingComponentSnapshots.length > 0 ? `
+                              <div style="border-top: 1px solid ${brandColors.border}; padding-top: 12px; margin-top: 8px;">
+                                <div style="font-size: 11px; font-weight: 600; color: ${brandColors.muted}; margin-bottom: 8px; text-transform: uppercase;">Price Breakdown</div>
+                                ${pricing.pricingComponentSnapshots.map(comp => `
+                                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px;">
+                                    <span style="color: ${brandColors.text};">${comp.attributeName}</span>
+                                    <span style="color: ${brandColors.muted}; font-weight: 500;">₹ ${formatINR(comp.price.toString())}</span>
+                                  </div>
+                                `).join('')}
+                              </div>
+                            ` : ''}
+                            ${pricing.description ? `
+                              <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid ${brandColors.border};">
+                                <div style="font-size: 11px; color: ${brandColors.muted}; line-height: 1.4;">${pricing.description}</div>
+                              </div>
+                            ` : ''}
+                          </div>
+                        `).join('')}
+                      </div>
+                    `;
+                  }
+                  // Fallback: read from variantPricingData (Pricing Tab)
+                  const vpd = ((initialData as any)?.variantPricingData as Record<string, any> | null | undefined)?.[variant.sourceVariantId];
+                  if (!vpd || (!vpd.totalCost && !(vpd.components?.length))) return '';
+                  const vpdComponents: { name: string; price: string; description?: string }[] = vpd.components || [];
+                  const vpdTotal = vpd.totalCost || 0;
+                  const vpdRemarks = vpd.remarks || '';
+                  return `
+                    <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-top: none; padding: 20px; margin-top: -1px;">
+                      <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: ${brandColors.secondary};">💰</span>
+                        Variant Pricing
+                      </div>
+                      <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-radius: 6px; padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${vpdComponents.length > 0 ? '12px' : '0'};">
+                          <div style="font-size: 12px; color: ${brandColors.muted};">Package Price</div>
+                          <div style="font-size: 18px; font-weight: 700; color: ${brandColors.primary};">₹ ${formatINR(String(vpdTotal))}</div>
+                        </div>
+                        ${vpdComponents.length > 0 ? `
+                          <div style="border-top: 1px solid ${brandColors.border}; padding-top: 12px; margin-top: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: ${brandColors.muted}; margin-bottom: 8px; text-transform: uppercase;">Price Breakdown</div>
+                            ${vpdComponents.map(comp => `
+                              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px;">
+                                <span style="color: ${brandColors.text};">${comp.name}</span>
+                                <span style="color: ${brandColors.muted}; font-weight: 500;">₹ ${formatINR(String(comp.price || 0))}</span>
+                              </div>
+                            `).join('')}
+                          </div>
+                        ` : ''}
+                        ${vpdRemarks ? `
+                          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid ${brandColors.border};">
+                            <div style="font-size: 11px; color: ${brandColors.muted}; line-height: 1.4;">${vpdRemarks}</div>
+                          </div>
+                        ` : ''}
+                      </div>
+                    </div>
+                  `;
+                })()}
               </div>
             `;
     }).join('')}

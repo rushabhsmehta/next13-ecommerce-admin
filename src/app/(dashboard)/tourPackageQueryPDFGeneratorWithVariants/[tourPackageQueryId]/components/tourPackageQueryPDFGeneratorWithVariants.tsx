@@ -491,6 +491,271 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     `;
   }, [initialData, brandColors, brandGradients, cardStyle, contentStyle, formatINR]);
 
+  // Build Hotel Comparison Section — beautiful standalone section (Section 1)
+  const buildHotelComparisonSection = useCallback((): string => {
+    const variants = initialData?.queryVariantSnapshots;
+    if (!variants || variants.length < 2) return "";
+
+    const allDays = Array.from(new Set(
+      variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
+    )).sort((a, b) => a - b);
+
+    if (allDays.length === 0) return "";
+
+    const variantCount = variants.length;
+    const labelColPct = Math.max(13, Math.round(100 / (variantCount + 1.6)));
+    const dataColPct = Math.round((100 - labelColPct) / variantCount);
+
+    const thBase = `padding: 13px 16px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; border: 1px solid rgba(255,255,255,0.15);`;
+    const tdBase = `padding: 12px 10px; border: 1px solid ${brandColors.border}; vertical-align: top;`;
+    const tdLabel = `${tdBase} background: #F1F5F9; font-weight: 700; text-align: center; border-right: 2px solid #CBD5E1; white-space: nowrap;`;
+
+    const variantGradients = [
+      'linear-gradient(135deg, #DC2626 0%, #EA580C 100%)',
+      'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
+      'linear-gradient(135deg, #0369A1 0%, #0284C7 100%)',
+      'linear-gradient(135deg, #059669 0%, #047857 100%)',
+    ];
+    const variantAccents = ['#DC2626', '#7C3AED', '#0369A1', '#059669'];
+
+    const variantHeaders = variants.map((v, idx) => `
+      <th style="${thBase} background: ${variantGradients[idx % variantGradients.length]}; width: ${dataColPct}%;">
+        <div style="font-size: 13px; font-weight: 800; color: white; margin-bottom: 4px;">${v.name}</div>
+        ${v.isDefault ? `<span style="background: rgba(255,255,255,0.25); color: white; font-size: 9px; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: 0.5px; display: inline-block;">★ DEFAULT</span>` : ''}
+        ${v.priceModifier && v.priceModifier !== 0 ? `
+          <span style="background: rgba(0,0,0,0.18); color: rgba(255,255,255,0.92); font-size: 9px; padding: 2px 8px; border-radius: 999px; font-weight: 600; display: inline-block; margin-top: 3px;">
+            ${v.priceModifier > 0 ? '+' : ''}${v.priceModifier}%
+          </span>
+        ` : ''}
+      </th>
+    `).join('');
+
+    const hotelRows = allDays.map((day, i) => {
+      const isEven = i % 2 === 0;
+      const cells = variants.map((v, vidx) => {
+        const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
+        const accent = variantAccents[vidx % variantAccents.length];
+        return `<td style="${tdBase} background: ${isEven ? '#FFFFFF' : '#FAFBFC'}; padding: 10px 8px;">
+          ${h ? `
+            <div style="border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+              ${h.imageUrl ? `
+                <div style="height: 76px; overflow: hidden; background: #F3F4F6;">
+                  <img src="${h.imageUrl}" alt="${h.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                </div>
+              ` : `
+                <div style="height: 56px; background: linear-gradient(135deg, #F3F4F6 0%, #E9ECEF 100%); display: flex; align-items: center; justify-content: center;">
+                  <span style="font-size: 26px;">🏨</span>
+                </div>
+              `}
+              <div style="padding: 8px 10px; border-top: 2.5px solid ${accent};">
+                <div style="font-size: 11px; font-weight: 700; color: ${brandColors.text}; line-height: 1.3; margin-bottom: 3px;">${h.hotelName}</div>
+                <div style="font-size: 9px; color: ${brandColors.muted}; display: flex; align-items: center; gap: 2px; margin-bottom: 3px;">📍 ${h.locationLabel}</div>
+                ${h.roomCategory ? `
+                  <span style="font-size: 9px; color: white; background: ${accent}; padding: 1px 6px; border-radius: 999px; font-weight: 600; display: inline-block;">${h.roomCategory}</span>
+                ` : ''}
+              </div>
+            </div>
+          ` : `
+            <div style="height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1.5px dashed #D1D5DB; border-radius: 8px; background: #F9FAFB;">
+              <span style="font-size: 16px; margin-bottom: 3px; opacity: 0.5;">🏷️</span>
+              <span style="color: #9CA3AF; font-size: 9px; font-style: italic;">Not specified</span>
+            </div>
+          `}
+        </td>`;
+      }).join('');
+      return `<tr>
+        <td style="${tdLabel} background: ${isEven ? '#F1F5F9' : '#E8EEF4'}; padding: 10px 8px;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 34px; height: 34px; background: linear-gradient(135deg, #1E40AF 0%, #2563EB 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; box-shadow: 0 2px 4px rgba(30,64,175,0.3);">${day}</div>
+            <div style="font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748B; font-weight: 700; margin-top: 2px;">NIGHT</div>
+          </div>
+        </td>
+        ${cells}
+      </tr>`;
+    }).join('');
+
+    return `
+      <div style="${cardStyle} margin-bottom: 28px; page-break-inside: avoid; break-inside: avoid-page;">
+        <div style="background: linear-gradient(135deg, #1E3A5F 0%, #1D4ED8 50%, #2563EB 100%); padding: 22px 26px;">
+          <div style="display: flex; align-items: center; gap: 18px;">
+            <div style="width: 54px; height: 54px; background: rgba(255,255,255,0.14); border: 2px solid rgba(255,255,255,0.28); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">🏨</div>
+            <div>
+              <div style="font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 5px;">SECTION 1 OF 3</div>
+              <h3 style="color: white; font-size: 22px; font-weight: 900; margin: 0; letter-spacing: 0.2px; text-shadow: 0 1px 3px rgba(0,0,0,0.15);">Hotel Comparison</h3>
+              <p style="color: rgba(255,255,255,0.78); font-size: 12px; margin: 5px 0 0 0; font-weight: 400;">
+                Accommodations across all ${variants.length} variants — day by day
+              </p>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 20px 20px 16px;">
+          <div style="border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #E2E8F0;">
+            <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+              <thead>
+                <tr>
+                  <th style="padding: 13px 14px; background: #1E3A5F; color: white; width: ${labelColPct}%; text-align: center; border: none; font-size: 10px; text-transform: uppercase; letter-spacing: 0.9px; font-weight: 700;">
+                    📅 DAY
+                  </th>
+                  ${variantHeaders}
+                </tr>
+              </thead>
+              <tbody>${hotelRows}</tbody>
+            </table>
+          </div>
+          <div style="margin-top: 14px; background: #EFF6FF; border-left: 4px solid #3B82F6; border-radius: 0 6px 6px 0; padding: 9px 14px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 13px;">💡</span>
+            <span style="font-size: 11px; color: #1E40AF; font-weight: 500; font-style: italic;">Hotel availability may vary. Final accommodation is confirmed at the time of booking based on availability.</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }, [initialData, brandColors, cardStyle]);
+
+  // Build Price Comparison Section — beautiful standalone section (Section 2)
+  const buildPriceComparisonSection = useCallback((): string => {
+    const variants = initialData?.queryVariantSnapshots;
+    if (!variants || variants.length < 2) return "";
+    if (!variants.some(v => v.pricingSnapshots.length > 0)) return "";
+
+    const allComponents = Array.from(new Set(
+      variants.flatMap(v =>
+        v.pricingSnapshots.flatMap(p =>
+          p.pricingComponentSnapshots.map(c => c.attributeName)
+        )
+      )
+    ));
+
+    const variantCount = variants.length;
+    const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1.6)));
+    const dataColPct = Math.round((100 - labelColPct) / variantCount);
+
+    const thBase = `padding: 13px 16px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; border: 1px solid rgba(255,255,255,0.15);`;
+    const tdBase = `padding: 11px 14px; border: 1px solid ${brandColors.border}; vertical-align: middle;`;
+    const tdLabel = `${tdBase} background: #F1F5F9; font-weight: 600; color: ${brandColors.slateText}; font-size: 12px; border-right: 2px solid #CBD5E1;`;
+
+    const variantGradients = [
+      'linear-gradient(135deg, #059669 0%, #047857 100%)',
+      'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
+      'linear-gradient(135deg, #DC2626 0%, #EA580C 100%)',
+      'linear-gradient(135deg, #0369A1 0%, #0284C7 100%)',
+    ];
+
+    const variantHeaders = variants.map((v, idx) => `
+      <th style="${thBase} background: ${variantGradients[idx % variantGradients.length]}; width: ${dataColPct}%;">
+        <div style="font-size: 13px; font-weight: 800; color: white; margin-bottom: 4px;">${v.name}</div>
+        ${v.isDefault ? `<span style="background: rgba(255,255,255,0.25); color: white; font-size: 9px; padding: 2px 8px; border-radius: 999px; font-weight: 700; display: inline-block;">★ DEFAULT</span>` : ''}
+        ${v.priceModifier && v.priceModifier !== 0 ? `
+          <span style="background: rgba(0,0,0,0.18); color: rgba(255,255,255,0.92); font-size: 9px; padding: 2px 8px; border-radius: 999px; font-weight: 600; display: inline-block; margin-top: 3px;">
+            ${v.priceModifier > 0 ? '+' : ''}${v.priceModifier}%
+          </span>
+        ` : ''}
+      </th>
+    `).join('');
+
+    // Identify the cheapest variant for "Best Value" badge
+    const variantTotals = variants.map(v => {
+      const ps = v.pricingSnapshots[0];
+      return ps ? parseFloat(ps.totalPrice.toString()) : Infinity;
+    });
+    const minPrice = Math.min(...variantTotals.filter(t => t !== Infinity));
+
+    const metaRows = [
+      {
+        label: '🍽️ Meal Plan',
+        fn: (v: typeof variants[0]) => v.pricingSnapshots[0]?.mealPlanName || '—',
+      },
+      {
+        label: '🛏️ Rooms & Vehicle',
+        fn: (v: typeof variants[0]) => {
+          const ps = v.pricingSnapshots[0];
+          return ps ? `${ps.numberOfRooms} Room(s)${ps.vehicleTypeName ? ` · ${ps.vehicleTypeName}` : ''}` : '—';
+        },
+      },
+    ].map(({ label, fn }, i) => {
+      const cells = variants.map(v =>
+        `<td style="${tdBase} background: ${i % 2 === 0 ? '#FFFFFF' : '#FAFBFC'}; text-align: center; font-weight: 500; color: ${brandColors.text};">${fn(v)}</td>`
+      ).join('');
+      return `<tr><td style="${tdLabel}">${label}</td>${cells}</tr>`;
+    }).join('');
+
+    const compRows = allComponents.map((compName, i) => {
+      const cells = variants.map(v => {
+        const ps = v.pricingSnapshots[0];
+        const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
+        const bg = (i + 2) % 2 === 0 ? '#FFFFFF' : '#FAFBFC';
+        return `<td style="${tdBase} background: ${bg}; text-align: center;">
+          ${comp
+            ? `<span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(comp.price.toString())}</span>`
+            : `<span style="color: #D1D5DB; font-size: 14px;">—</span>`
+          }
+        </td>`;
+      }).join('');
+      return `<tr><td style="${tdLabel}">${compName}</td>${cells}</tr>`;
+    }).join('');
+
+    const totalRow = (() => {
+      const cells = variants.map((v, idx) => {
+        const ps = v.pricingSnapshots[0];
+        const isBest = variantTotals[idx] === minPrice && minPrice !== Infinity;
+        return `<td style="${tdBase} background: linear-gradient(135deg, #FEF2F2 0%, #FFF7ED 100%); text-align: center; padding: 18px 14px; border-top: 2.5px solid ${brandColors.primary};">
+          <div style="font-size: 20px; font-weight: 900; color: ${brandColors.primary}; line-height: 1.2; margin-bottom: 6px; letter-spacing: -0.3px;">
+            ${ps ? `₹ ${formatINR(ps.totalPrice.toString())}` : '—'}
+          </div>
+          ${isBest
+            ? `<div style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; font-size: 9px; padding: 3px 10px; border-radius: 999px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 2px 6px rgba(5,150,105,0.35);">🏆 BEST VALUE</div>`
+            : `<div style="height: 20px;"></div>`
+          }
+        </td>`;
+      }).join('');
+      return `<tr>
+        <td style="${tdLabel} background: linear-gradient(135deg, #FEF2F2 0%, #FFF7ED 100%); color: ${brandColors.primary}; font-weight: 800; font-size: 13px; border-top: 2.5px solid ${brandColors.primary};">
+          💰 Total Price
+        </td>
+        ${cells}
+      </tr>`;
+    })();
+
+    return `
+      <div style="${cardStyle} margin-bottom: 28px; page-break-inside: avoid; break-inside: avoid-page;">
+        <div style="background: linear-gradient(135deg, #064E3B 0%, #065F46 45%, #047857 100%); padding: 22px 26px;">
+          <div style="display: flex; align-items: center; gap: 18px;">
+            <div style="width: 54px; height: 54px; background: rgba(255,255,255,0.14); border: 2px solid rgba(255,255,255,0.28); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">💰</div>
+            <div>
+              <div style="font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 5px;">SECTION 2 OF 3</div>
+              <h3 style="color: white; font-size: 22px; font-weight: 900; margin: 0; letter-spacing: 0.2px; text-shadow: 0 1px 3px rgba(0,0,0,0.15);">Price Comparison</h3>
+              <p style="color: rgba(255,255,255,0.78); font-size: 12px; margin: 5px 0 0 0; font-weight: 400;">
+                Full pricing breakdown across all ${variants.length} package variants
+              </p>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 20px 20px 16px;">
+          <div style="border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #E2E8F0;">
+            <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+              <thead>
+                <tr>
+                  <th style="padding: 13px 14px; background: #064E3B; color: white; width: ${labelColPct}%; text-align: left; border: none; font-size: 10px; text-transform: uppercase; letter-spacing: 0.9px; font-weight: 700;">
+                    📋 COMPONENT
+                  </th>
+                  ${variantHeaders}
+                </tr>
+              </thead>
+              <tbody>
+                ${metaRows}
+                ${compRows}
+                ${totalRow}
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top: 14px; background: #F0FDF4; border-left: 4px solid #059669; border-radius: 0 6px 6px 0; padding: 9px 14px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 13px;">ℹ️</span>
+            <span style="font-size: 11px; color: #065F46; font-weight: 500; font-style: italic;">All prices include GST. Rates are subject to availability and may change at time of booking.</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }, [initialData, brandColors, cardStyle, formatINR]);
+
   // Build Package Variants Section (individual variant cards)
   const buildVariantsSection = useCallback((): string => {
     if (!initialData?.queryVariantSnapshots || initialData.queryVariantSnapshots.length === 0) {
@@ -874,26 +1139,33 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     if (initialData.itineraries && initialData.itineraries.length > 0) {
       itinerariesSection += `
         <div style="${cardStyle}; ${pageBreakBefore}">
-          <div style="${headerStyleAlt}; text-align: center;">
-            <h2 style="${sectionTitleStyle}">Travel Itinerary</h2>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: ${brandColors.muted};">Your day-by-day adventure guide</p>
+          <div style="background: linear-gradient(135deg, #4C1D95 0%, #6D28D9 45%, #7C3AED 100%); padding: 22px 26px;">
+            <div style="display: flex; align-items: center; gap: 18px;">
+              <div style="width: 54px; height: 54px; background: rgba(255,255,255,0.14); border: 2px solid rgba(255,255,255,0.28); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">🗺️</div>
+              <div>
+                <div style="font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 5px;">SECTION 3 OF 3</div>
+                <h2 style="color: white; font-size: 22px; font-weight: 900; margin: 0; letter-spacing: 0.2px; text-shadow: 0 1px 3px rgba(0,0,0,0.15);">Day-by-Day Itinerary</h2>
+                <p style="color: rgba(255,255,255,0.78); font-size: 12px; margin: 5px 0 0 0; font-weight: 400;">Your complete travel journey — activities, experiences &amp; discoveries</p>
+              </div>
+            </div>
           </div>
         </div>
       `;
 
       itinerariesSection += initialData.itineraries.map((itinerary, dayIndex) => `
         <div style="${cardStyle}; margin-bottom: 24px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
-          <div style="display: flex; align-items: center; background: #f9fafb; padding: 16px; border-bottom: 1px solid ${brandColors.border};">
-            <div style="background: ${brandColors.primary}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
-              <span style="font-size: 10px; font-weight: 500;">DAY</span>
-              <span style="font-size: 16px; font-weight: 700;">${itinerary.dayNumber}</span>
+          <div style="display: flex; align-items: center; background: linear-gradient(135deg, #FAF5FF 0%, #F5F3FF 100%); padding: 16px 20px; border-bottom: 2px solid #7C3AED; position: relative; overflow: hidden;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: linear-gradient(180deg, #7C3AED 0%, #6D28D9 100%);"></div>
+            <div style="background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%); color: white; width: 44px; height: 44px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 3px 8px rgba(124,58,237,0.35); flex-shrink: 0; margin-left: 8px;">
+              <span style="font-size: 8px; font-weight: 700; letter-spacing: 0.5px; opacity: 0.85; text-transform: uppercase;">DAY</span>
+              <span style="font-size: 17px; font-weight: 800; line-height: 1.1;">${itinerary.dayNumber}</span>
             </div>
-            <div style="margin-left: 16px;">
-              <h3 style="font-size: 20px; font-weight: 800; margin: 0; line-height: 1.05; background: ${brandGradients.primary}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.3px;">
+            <div style="margin-left: 16px; flex: 1;">
+              <h3 style="font-size: 19px; font-weight: 800; margin: 0; line-height: 1.1; color: #4C1D95; letter-spacing: 0.2px;">
               ${(itinerary.days && itinerary.days !== 'null' && itinerary.days !== 'undefined') ? itinerary.days : 'Tour Day'}
               </h3>
-              <div style="height: 6px; width: 96px; max-width: 96px; display: inline-block; background: ${brandGradients.secondary}; border-radius: 4px; margin-top: 8px;"></div>
-              <p style="font-size: 14px; margin: 8px 0 0 0; color: ${brandColors.muted};">
+              <div style="height: 3px; width: 80px; display: inline-block; background: linear-gradient(90deg, #7C3AED 0%, #A78BFA 100%); border-radius: 999px; margin-top: 6px; display: block;"></div>
+              <p style="font-size: 13px; margin: 6px 0 0 0; color: #6B7280; font-weight: 500;">
                 ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "") || `Day ${itinerary.dayNumber} Activities`}
               </p>
             </div>
@@ -1033,11 +1305,12 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </div>
     ` : "";
 
-    // Build Variants Section
-    const variantComparisonTable = buildVariantComparisonTable();
+    // Build Variant Sections (new separated, ordered: hotel → price → itinerary)
+    const hotelComparisonSection = buildHotelComparisonSection();
+    const priceComparisonSection = buildPriceComparisonSection();
     const variantsSection = buildVariantsSection();
 
-    // Assemble Full HTML
+    // Assemble Full HTML — Order: header → tour info → hotel comparison → price comparison → itinerary → pricing → total → variants detail → policies
     const fullHtml = `
       <html>
         <head>
@@ -1047,11 +1320,12 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
           <div style="${containerStyle}">
             ${headerSection}
             ${tourInfoSection}
+            ${hotelComparisonSection}
+            ${priceComparisonSection}
+            ${itinerariesSection}
             ${dynamicPricingSection}
             ${totalPriceSection}
             ${remarksSection}
-            ${itinerariesSection}
-            ${variantComparisonTable}
             ${variantsSection}
             ${policiesAndTermsSection}
           </div>
@@ -1059,7 +1333,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, buildVariantComparisonTable, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection, renderBulletList]);
+  }, [initialData, currentCompany, locations, buildHotelComparisonSection, buildPriceComparisonSection, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection, renderBulletList]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

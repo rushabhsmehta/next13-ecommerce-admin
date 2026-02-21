@@ -36,6 +36,7 @@ interface TourPackageQueryPDFGeneratorWithVariantsProps {
     associatePartner: AssociatePartner | null;
     queryVariantSnapshots?: {
       id: string;
+      sourceVariantId: string;
       name: string;
       description: string | null;
       priceModifier: number | null;
@@ -335,17 +336,22 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const variants = initialData?.queryVariantSnapshots;
     if (!variants || variants.length < 2) return "";
 
+    const variantPricingData = (initialData as any)?.variantPricingData as Record<string, any> | null | undefined;
+    const getVpd = (v: typeof variants[0]) =>
+      variantPricingData?.[v.sourceVariantId] as { components?: { name: string; price: string; description?: string }[]; totalCost?: number; remarks?: string } | undefined;
+
     const allDays = Array.from(new Set(
       variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
     )).sort((a, b) => a - b);
 
-    const allComponents = Array.from(new Set(
-      variants.flatMap(v =>
+    const allComponents = Array.from(new Set([
+      ...variants.flatMap(v =>
         v.pricingSnapshots.flatMap(p =>
           p.pricingComponentSnapshots.map(c => c.attributeName)
         )
-      )
-    ));
+      ),
+      ...variants.flatMap(v => (getVpd(v)?.components || []).map((c: any) => c.name as string).filter(Boolean)),
+    ]));
 
     const variantCount = variants.length;
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1)));
@@ -387,13 +393,15 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const metaRows = [
       {
         label: '🍽️ Meal Plan',
-        fn: (v: typeof variants[0]) => v.pricingSnapshots[0]?.mealPlanName || '—',
+        fn: (v: typeof variants[0]) => v.pricingSnapshots[0]?.mealPlanName || (getVpd(v) ? 'See breakdown' : '—'),
       },
       {
         label: '🛏️ Rooms',
         fn: (v: typeof variants[0]) => {
           const ps = v.pricingSnapshots[0];
-          return ps ? `${ps.numberOfRooms} Room(s)${ps.vehicleTypeName ? ` · ${ps.vehicleTypeName}` : ''}` : '—';
+          if (ps) return `${ps.numberOfRooms} Room(s)${ps.vehicleTypeName ? ` · ${ps.vehicleTypeName}` : ''}`;
+          const vpd = getVpd(v);
+          return vpd ? 'See breakdown' : '—';
         },
       },
     ].map(({ label, fn }, i) => {
@@ -403,20 +411,43 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
     const compRows = allComponents.map((compName, i) => {
       const cells = variants.map(v => {
+        const bg = (i + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel;
+        const vpd = getVpd(v);
+        const vpdComp = (vpd?.components || []).find((c: any) => c.name === compName);
+        if (vpdComp) {
+          return `<td style="${tdBase} background: ${bg};">₹ ${formatINR(String(vpdComp.price || 0))}</td>`;
+        }
         const ps = v.pricingSnapshots[0];
         const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
-        return `<td style="${tdBase} background: ${(i + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
-          ${comp ? `₹ ${formatINR(comp.price.toString())}` : '—'}
-        </td>`;
+        if (comp) {
+          return `<td style="${tdBase} background: ${bg};">₹ ${formatINR(comp.price.toString())}</td>`;
+        }
+        return `<td style="${tdBase} background: ${bg};">—</td>`;
       }).join('');
       return `<tr><td style="${tdLabel}">${compName}</td>${cells}</tr>`;
     }).join('');
 
     const totalRow = (() => {
       const cells = variants.map(v => {
-        const ps = v.pricingSnapshots[0];
+        let totalStr = '—';
+        const vpd = getVpd(v);
+        if (vpd?.totalCost) {
+          const n = parseFloat(String(vpd.totalCost));
+          if (!isNaN(n) && n > 0) totalStr = `₹ ${formatINR(n.toString())}`;
+        } else {
+          const ps = v.pricingSnapshots[0];
+          if (ps) {
+            try {
+              const val = ps.totalPrice?.toString();
+              if (val) {
+                const n = parseFloat(val);
+                if (!isNaN(n) && n > 0) totalStr = `₹ ${formatINR(val)}`;
+              }
+            } catch { /* fall through */ }
+          }
+        }
         return `<td style="${tdBase} background: ${brandColors.light}; font-weight: 700; font-size: 15px; color: ${brandColors.primary};">
-          ${ps ? `₹ ${formatINR(ps.totalPrice.toString())}` : '—'}
+          ${totalStr}
         </td>`;
       }).join('');
       return `<tr><td style="${tdLabel} background: ${brandColors.light}; color: ${brandColors.primary}; font-size: 13px;">💰 Total Price</td>${cells}</tr>`;
@@ -507,8 +538,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const dataColPct = Math.round((100 - labelColPct) / variantCount);
 
     // Subtle brand-tint variant column colors — light backgrounds with brand-colored text
-    const variantBgs   = ['#FEF2F2', '#FFF7ED', '#FEFCE8', '#FDF4FF'];
-    const variantFgs   = [brandColors.primary, brandColors.secondary, '#B45309', '#7C2D12'];
+    const variantBgs = ['#FEF2F2', '#FFF7ED', '#FEFCE8', '#FDF4FF'];
+    const variantFgs = [brandColors.primary, brandColors.secondary, '#B45309', '#7C2D12'];
     const variantBorders = [brandColors.primary, brandColors.secondary, '#D97706', '#92400E'];
     const variantAccents = [brandColors.primary, brandColors.secondary, '#D97706', '#92400E'];
 
@@ -634,8 +665,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const dataColPct = Math.round((100 - labelColPct) / variantCount);
 
     // Same subtle tint palette as hotel comparison
-    const variantBgs     = ['#FEF2F2', '#FFF7ED', '#FEFCE8', '#FDF4FF'];
-    const variantFgs     = [brandColors.primary, brandColors.secondary, '#B45309', '#7C2D12'];
+    const variantBgs = ['#FEF2F2', '#FFF7ED', '#FEFCE8', '#FDF4FF'];
+    const variantFgs = [brandColors.primary, brandColors.secondary, '#B45309', '#7C2D12'];
     const variantBorders = [brandColors.primary, brandColors.secondary, '#D97706', '#92400E'];
 
     const thBase = `padding: 11px 10px; text-align: center; font-size: 12px; font-weight: 700; border: 1px solid ${brandColors.border};`;
@@ -651,8 +682,13 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </th>
     `).join('');
 
-    // Safely parse total price — prefers pricingSnapshot, falls back to variantPricingData
+    // Safely parse total price — prefers variantPricingData, falls back to pricingSnapshot
     const safeTotal = (v: typeof variants[0]): string => {
+      const vpd = getVpd(v);
+      if (vpd?.totalCost) {
+        const n = parseFloat(String(vpd.totalCost));
+        if (!isNaN(n) && n > 0) return `₹ ${formatINR(n.toString())}`;
+      }
       const ps = v.pricingSnapshots[0];
       if (ps) {
         try {
@@ -663,16 +699,16 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
           }
         } catch { /* fall through */ }
       }
-      const vpd = getVpd(v);
-      if (vpd?.totalCost) {
-        const n = parseFloat(String(vpd.totalCost));
-        if (!isNaN(n) && n > 0) return `₹ ${formatINR(n.toString())}`;
-      }
       return '—';
     };
 
     // Identify cheapest variant for "Best Value" badge
     const variantTotals = variants.map(v => {
+      const vpd = getVpd(v);
+      if (vpd?.totalCost) {
+        const n = parseFloat(String(vpd.totalCost));
+        if (!isNaN(n) && n > 0) return n;
+      }
       try {
         const ps = v.pricingSnapshots[0];
         if (ps?.totalPrice) {
@@ -680,11 +716,6 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
           if (!isNaN(n) && n > 0) return n;
         }
       } catch { /* fall through */ }
-      const vpd = getVpd(v);
-      if (vpd?.totalCost) {
-        const n = parseFloat(String(vpd.totalCost));
-        if (!isNaN(n) && n > 0) return n;
-      }
       return Infinity;
     });
     const minPrice = Math.min(...variantTotals.filter(t => t !== Infinity));
@@ -712,15 +743,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
     const compRows = allComponents.map((compName, i) => {
       const cells = variants.map(v => {
-        const ps = v.pricingSnapshots[0];
-        const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
         const bg = (i + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel;
-        if (comp) {
-          return `<td style="${tdBase} background: ${bg}; text-align: center;">
-            <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(comp.price.toString())}</span>
-          </td>`;
-        }
-        // Fallback: look in variantPricingData components
+
+        // Prefer variantPricingData components
         const vpd = getVpd(v);
         const vpdComp = (vpd?.components || []).find((c: any) => c.name === compName);
         if (vpdComp) {
@@ -728,6 +753,16 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
             <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(String(vpdComp.price || 0))}</span>
           </td>`;
         }
+
+        // Fallback to pricingSnapshots
+        const ps = v.pricingSnapshots[0];
+        const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
+        if (comp) {
+          return `<td style="${tdBase} background: ${bg}; text-align: center;">
+            <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(comp.price.toString())}</span>
+          </td>`;
+        }
+
         return `<td style="${tdBase} background: ${bg}; text-align: center;"><span style="color: #D1D5DB;">—</span></td>`;
       }).join('');
       return `<tr style="page-break-inside: avoid; break-inside: avoid;"><td style="${tdLabel}">${compName}</td>${cells}</tr>`;
@@ -894,9 +929,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 `}
 
 ${(() => {
-                  // Prefer pricingSnapshots (snapshot system); fall back to variantPricingData (Pricing Tab)
-                  if (variant.pricingSnapshots && variant.pricingSnapshots.length > 0) {
-                    return `
+          // Prefer pricingSnapshots (snapshot system); fall back to variantPricingData (Pricing Tab)
+          if (variant.pricingSnapshots && variant.pricingSnapshots.length > 0) {
+            return `
                       <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-top: none; padding: 20px; margin-top: -1px;">
                         <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                           <span style="color: ${brandColors.secondary};">💰</span>
@@ -935,14 +970,14 @@ ${(() => {
                         `).join('')}
                       </div>
                     `;
-                  }
-                  // Fallback: read from variantPricingData (Pricing Tab)
-                  const vpd = ((initialData as any)?.variantPricingData as Record<string, any> | null | undefined)?.[variant.sourceVariantId];
-                  if (!vpd || (!vpd.totalCost && !(vpd.components?.length))) return '';
-                  const vpdComponents: { name: string; price: string; description?: string }[] = vpd.components || [];
-                  const vpdTotal = vpd.totalCost || 0;
-                  const vpdRemarks = vpd.remarks || '';
-                  return `
+          }
+          // Fallback: read from variantPricingData (Pricing Tab)
+          const vpd = ((initialData as any)?.variantPricingData as Record<string, any> | null | undefined)?.[variant.sourceVariantId];
+          if (!vpd || (!vpd.totalCost && !(vpd.components?.length))) return '';
+          const vpdComponents: { name: string; price: string; description?: string }[] = vpd.components || [];
+          const vpdTotal = vpd.totalCost || 0;
+          const vpdRemarks = vpd.remarks || '';
+          return `
                     <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-top: none; padding: 20px; margin-top: -1px;">
                       <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                         <span style="color: ${brandColors.secondary};">💰</span>
@@ -972,7 +1007,7 @@ ${(() => {
                       </div>
                     </div>
                   `;
-                })()}
+        })()}
               </div>
             `;
     }).join('')}

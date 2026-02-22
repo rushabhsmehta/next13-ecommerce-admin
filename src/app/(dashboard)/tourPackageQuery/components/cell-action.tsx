@@ -72,6 +72,11 @@ export const CellAction: React.FC<CellActionProps> = ({
     window.open(`/tourPackageQueryPDFGeneratorWithVariants/${data.id}?search=AH`, "_blank");
   };
 
+  const openPdfWithVariantsOption = (selectedOption: string) => {
+    setMenuOpen(false);
+    window.open(`/tourPackageQueryPDFGeneratorWithVariants/${data.id}?search=${selectedOption}`, "_blank");
+  };
+
 
   const openVoucher = () => {
     setMenuOpen(false);
@@ -131,14 +136,61 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem onSelect={openPdfWithVariants}>
-            <FileText className="mr-2 h-4 w-4" /> Download PDF with Variants
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Layers className="mr-2 h-4 w-4" /> View Variant Display
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('Empty')}>
+                  Empty
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('AH')}>
+                  AH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('KH')}>
+                  KH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('MT')}>
+                  MT
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('SupplierA')}>
+                  Supplier - Title only
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('SupplierB')}>
+                  Supplier - with Details
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
 
-          <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('AH')}>
-            <Layers className="mr-2 h-4 w-4" /> View Variant Display
-          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <FileText className="mr-2 h-4 w-4" /> Download PDF with Variants
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('Empty')}>
+                  Empty
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('AH')}>
+                  AH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('KH')}>
+                  KH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('MT')}>
+                  MT
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('SupplierA')}>
+                  Supplier - Title only
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('SupplierB')}>
+                  Supplier - with Details
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
           <DropdownMenuSeparator />
 
           <DropdownMenuItem onSelect={openDisplay}>

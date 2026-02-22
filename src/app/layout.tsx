@@ -1,4 +1,5 @@
 import { ClerkProvider } from '@clerk/nextjs'
+import { Inter } from 'next/font/google'
 
 import { ModalProvider } from '@/providers/modal-provider'
 import { ToastProvider } from '@/providers/toast-provider'
@@ -9,6 +10,10 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
 import { DebugLogPanel } from '@/components/DebugLogPanel'
 
+const inter = Inter({ subsets: ['latin'] })
+
+// Required because AppSidebar reads auth state via Clerk's async APIs (headers/cookies)
+// at the root layout level, which prevents static rendering for the entire tree.
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
@@ -24,7 +29,7 @@ export default async function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body>
+        <body className={inter.className}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

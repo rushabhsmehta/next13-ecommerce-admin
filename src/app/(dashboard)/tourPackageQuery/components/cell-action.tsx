@@ -136,33 +136,9 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Layers className="mr-2 h-4 w-4" /> Variant Display
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className="w-56">
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('Empty')}>
-                  Empty
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('AH')}>
-                  AH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('KH')}>
-                  KH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('MT')}>
-                  MT
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('SupplierA')}>
-                  Supplier - Title only
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('SupplierB')}>
-                  Supplier - with Details
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
+          <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('AH')}>
+            <Layers className="mr-2 h-4 w-4" /> View Variant Display
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
 
           <DropdownMenuItem onSelect={openDisplay}>

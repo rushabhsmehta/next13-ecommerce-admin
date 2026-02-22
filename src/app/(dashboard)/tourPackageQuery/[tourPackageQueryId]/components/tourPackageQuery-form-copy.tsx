@@ -22,7 +22,6 @@ import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, Lis
 import { Activity, AssociatePartner, Images, ItineraryMaster, RoomAllocation, TransportDetail } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Add prisma types
 import { toast } from "react-hot-toast"
-import { DevTool } from "@hookform/devtools"
 
 import {
   Command,
@@ -1039,7 +1038,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         </form >
       </Form >
 
-      {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
+      
 
     </>
   )

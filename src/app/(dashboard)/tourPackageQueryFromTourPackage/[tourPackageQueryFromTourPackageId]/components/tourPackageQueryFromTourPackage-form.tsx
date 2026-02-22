@@ -44,7 +44,6 @@ import { Switch } from "@/components/ui/switch"
 import { CaretSortIcon } from "@radix-ui/react-icons"
 import { PolicyField } from "./policy-fields"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DevTool } from "@hookform/devtools"
 import HotelsTab from "@/components/tour-package-query/HotelsTab"
 
 const editorConfig = {
@@ -2389,7 +2388,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
         </form>
       </Form>
 
-      {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
+      
 
     </>
   )

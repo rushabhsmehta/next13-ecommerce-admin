@@ -63,6 +63,8 @@ interface ItineraryData {
 interface VariantComparisonSectionProps {
   variants: VariantSnapshot[];
   variantPricingData?: Record<string, VariantPricingEntry> | null;
+  variantRoomAllocations?: any;
+  variantTransportDetails?: any;
   itineraries?: ItineraryData[];
 }
 
@@ -84,7 +86,13 @@ const getName = (field: any): string => {
   return field?.name || '';
 };
 
-export function VariantComparisonSection({ variants, variantPricingData, itineraries }: VariantComparisonSectionProps) {
+export function VariantComparisonSection({
+  variants,
+  variantPricingData,
+  variantRoomAllocations,
+  variantTransportDetails,
+  itineraries
+}: VariantComparisonSectionProps) {
   if (!variants || variants.length === 0) {
     return null;
   }
@@ -95,9 +103,11 @@ export function VariantComparisonSection({ variants, variantPricingData, itinera
   // Build itinerary lookup by day number
   const itineraryByDay: Record<number, ItineraryData> = {};
   if (itineraries) {
+    console.log("VariantComparisonSection - Total itineraries passed:", itineraries.length);
     for (const it of itineraries) {
       if (it.dayNumber != null) {
         itineraryByDay[it.dayNumber] = it;
+        console.log(`Day ${it.dayNumber} - RoomAllocations:`, it.roomAllocations);
       }
     }
   }
@@ -145,10 +155,7 @@ export function VariantComparisonSection({ variants, variantPricingData, itinera
     <div className="space-y-8">
       {/* Overview Info */}
       <div className="flex items-center gap-2 mb-4">
-        <Info className="h-5 w-5 text-orange-600" />
-        <p className="text-sm text-muted-foreground">
-          Compare different package options with varying hotel and pricing selections side-by-side.
-        </p>
+
       </div>
 
       {/* Hotel Comparison Section */}

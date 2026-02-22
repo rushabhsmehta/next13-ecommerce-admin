@@ -58,7 +58,6 @@ import { convertJourneyDateToTourStart, createDatePickerValue, normalizeApiDate 
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DevTool } from "@hookform/devtools"
 import { Textarea } from "@/components/ui/textarea";
 // Update imports for shared tab components
 import BasicInfoTab from "./BasicInfoTab"
@@ -1186,7 +1185,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         </form>
       </Form>
 
-      {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
+      
 
     </>
   )

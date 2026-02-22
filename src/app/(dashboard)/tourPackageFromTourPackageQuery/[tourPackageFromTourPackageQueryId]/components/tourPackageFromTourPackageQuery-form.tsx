@@ -42,7 +42,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CaretSortIcon } from "@radix-ui/react-icons"
 import { Switch } from "@/components/ui/switch"
 import { PolicyField } from "./policy-fields";
-import { DevTool } from "@hookform/devtools"
 
 
 const editorConfig = {
@@ -1836,7 +1835,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
         </form>
       </Form>
 
-      {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
+      
 
     </>
   )

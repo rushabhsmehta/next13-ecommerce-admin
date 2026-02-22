@@ -54,7 +54,6 @@ import { Heading } from "@/components/ui/heading"
 import { cn } from "@/lib/utils"
 import { convertJourneyDateToTourStart, normalizeApiDate } from "@/lib/timezone-utils"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { DevTool } from "@hookform/devtools"
 import BasicInfoTab from '@/components/tour-package-query/BasicInfoTab';
 import DatesTab from '@/components/tour-package-query/DatesTab';
 import FlightsTab from '@/components/tour-package-query/FlightsTab';
@@ -1429,7 +1428,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
         </form>
       </Form>
 
-      {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
+      
 
     </>
   )

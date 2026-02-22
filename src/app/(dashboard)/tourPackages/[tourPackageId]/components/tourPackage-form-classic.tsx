@@ -60,7 +60,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CaretSortIcon } from "@radix-ui/react-icons"
 import { Switch } from "@/components/ui/switch"
 import { PolicyField } from "./policy-fields";
-import { DevTool } from "@hookform/devtools"
 import HotelsTab from "@/components/tour-package-query/HotelsTab"
 import PackageVariantsTab from "@/components/tour-package-query/PackageVariantsTab"
 import { Calendar } from "@/components/ui/calendar"
@@ -2481,7 +2480,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
         </form >
       </Form >
 
-      {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
+      
 
     </>
   )

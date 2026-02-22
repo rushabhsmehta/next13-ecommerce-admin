@@ -507,7 +507,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     if (loading) return;
 
     // Get the current form ID (either tourPackageQueryId or 'new')
-    const formId = params.tourPackageQueryId || 'new';
+    const formId = params?.tourPackageQueryId || 'new';
     const autoSaveKey = `tourPackageQuery_autosave_${formId}`;
 
     // Set up auto-save interval
@@ -558,7 +558,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     return () => {
       clearInterval(saveInterval);
     };
-  }, [params.tourPackageQueryId, form, initialData, loading]);
+  }, [params?.tourPackageQueryId, form, initialData, loading]);
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {      // Add this line to update the tourPackageTemplate field
@@ -615,7 +615,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         flightDuration: flight.flightDuration || undefined
       })));
       form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
-      
+
       // Check if there's a default variant and select it
       const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
       if (defaultVariant?.id) {
@@ -630,7 +630,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       selectedVariantIds,
       count: selectedVariantIds.length
     });
-    
+
     const selectedTourPackage = tourPackages?.find(tp => tp.id === tourPackageId);
     if (!selectedTourPackage) {
       console.error('❌ [CreateCopy Form] Tour package not found:', tourPackageId);
@@ -673,7 +673,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     form.setValue('selectedTemplateId', tourPackageId);
     form.setValue('selectedTemplateType', 'TourPackageVariant');
     form.setValue('tourPackageTemplate', tourPackageId);
-    
+
     const combinedTemplateName = [selectedTourPackage.tourPackageName, variantNames].filter(Boolean).join(' - ');
     if (combinedTemplateName) {
       form.setValue('tourPackageTemplateName', combinedTemplateName);
@@ -700,7 +700,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       toast.success(`${selectedVariantIds.length} variants selected successfully.`);
     }
   };
-  
+
   const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
     // Find the selected tour package query template
     const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);

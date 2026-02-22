@@ -10,7 +10,7 @@ const DestinationsPage = async ({
 }: {
   searchParams: { locationId?: string };
 }) => {
-  const whereClause = searchParams.locationId 
+  const whereClause = searchParams?.locationId
     ? { locationId: searchParams.locationId }
     : {};
 
@@ -24,10 +24,10 @@ const DestinationsPage = async ({
     },
   });
 
-  const selectedLocation = searchParams.locationId
+  const selectedLocation = searchParams?.locationId
     ? await prismadb.location.findUnique({
-        where: { id: searchParams.locationId },
-      })
+      where: { id: searchParams.locationId },
+    })
     : null;
 
   const formattedDestinations: DestinationColumn[] = destinations.map((item) => ({
@@ -43,8 +43,8 @@ const DestinationsPage = async ({
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <DestinationsClient 
-          data={formattedDestinations} 
+        <DestinationsClient
+          data={formattedDestinations}
           selectedLocation={selectedLocation}
         />
       </div>

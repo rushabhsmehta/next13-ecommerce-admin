@@ -4,10 +4,10 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import axios from "axios"
 import { toast } from "react-hot-toast"
-import { 
-  Plus, 
-  Edit, 
-  Trash, 
+import {
+  Plus,
+  Edit,
+  Trash,
   Calendar,
   CheckCircle,
   AlertTriangle,
@@ -56,9 +56,9 @@ import { Badge } from "@/components/ui/badge"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { 
-  SEASONAL_TEMPLATES, 
-  getSeasonColor, 
+import {
+  SEASONAL_TEMPLATES,
+  getSeasonColor,
   formatSeasonalPeriod,
   validateSeasonalPeriod,
   checkYearCoverage,
@@ -92,8 +92,8 @@ type SeasonalPeriodFormValues = z.infer<typeof seasonalPeriodSchema>
 export default function LocationSeasonalPeriodsPage() {
   const params = useParams()
   const router = useRouter()
-  const locationId = params.locationId as string
-  
+  const locationId = params?.locationId as string
+
   const [location, setLocation] = useState<any>(null)
   const [seasonalPeriods, setSeasonalPeriods] = useState<SeasonalPeriod[]>([])
   const [loading, setLoading] = useState(true)
@@ -118,11 +118,11 @@ export default function LocationSeasonalPeriodsPage() {
   const fetchLocationAndPeriods = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch location details
       const locationResponse = await axios.get(`/api/locations/${locationId}`)
       setLocation(locationResponse.data)
-      
+
       // Fetch seasonal periods
       const periodsResponse = await axios.get(`/api/locations/${locationId}/seasonal-periods`)
       setSeasonalPeriods(periodsResponse.data)
@@ -142,7 +142,7 @@ export default function LocationSeasonalPeriodsPage() {
   const onSubmit = async (data: SeasonalPeriodFormValues) => {
     try {
       setLoading(true)
-      
+
       if (isEditMode && editId) {
         await axios.patch(`/api/locations/${locationId}/seasonal-periods/${editId}`, data)
         toast.success("Seasonal period updated successfully")
@@ -150,12 +150,12 @@ export default function LocationSeasonalPeriodsPage() {
         await axios.post(`/api/locations/${locationId}/seasonal-periods`, data)
         toast.success("Seasonal period created successfully")
       }
-      
+
       setShowDialog(false)
       setIsEditMode(false)
       setEditId(null)
       form.reset()
-      
+
       // Refresh data
       await fetchLocationAndPeriods()
     } catch (error: any) {
@@ -205,7 +205,7 @@ export default function LocationSeasonalPeriodsPage() {
     try {
       setLoading(true)
       const template = SEASONAL_TEMPLATES[templateKey as keyof typeof SEASONAL_TEMPLATES]
-      
+
       // Create all periods from template
       for (const period of template) {
         await axios.post(`/api/locations/${locationId}/seasonal-periods`, {
@@ -218,7 +218,7 @@ export default function LocationSeasonalPeriodsPage() {
           description: period.description,
         })
       }
-      
+
       toast.success(`Applied ${templateKey.replace('_', ' ')} template successfully`)
       setShowTemplateDialog(false)
       await fetchLocationAndPeriods()
@@ -271,7 +271,7 @@ export default function LocationSeasonalPeriodsPage() {
             description="Manage seasonal pricing periods for this location"
           />
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
@@ -286,7 +286,7 @@ export default function LocationSeasonalPeriodsPage() {
           </Button>
         </div>
       </div>
-      
+
       <Separator className="my-4" />
 
       {/* Year Coverage Status */}
@@ -349,22 +349,22 @@ export default function LocationSeasonalPeriodsPage() {
                         </Badge>
                         <h3 className="text-lg font-semibold">{period.name}</h3>
                       </div>
-                      
+
                       <div className="text-sm text-muted-foreground mb-2">
                         <span className="font-medium">Period:</span> {formatSeasonalPeriod(period)}
                       </div>
-                      
+
                       <div className="text-sm text-muted-foreground mb-2">
                         <span className="font-medium">Dates:</span> {monthNames[period.startMonth - 1]} {period.startDay} - {monthNames[period.endMonth - 1]} {period.endDay}
                       </div>
-                      
+
                       {period.description && (
                         <p className="text-sm text-muted-foreground mt-2">
                           {period.description}
                         </p>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
@@ -400,7 +400,7 @@ export default function LocationSeasonalPeriodsPage() {
               Define a seasonal pricing period for this location.
             </DialogDescription>
           </DialogHeader>
-          
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -409,8 +409,8 @@ export default function LocationSeasonalPeriodsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Season Type</FormLabel>
-                    <Select 
-                      onValueChange={(value) => field.onChange(value as "PEAK_SEASON" | "SHOULDER_SEASON" | "OFF_SEASON")} 
+                    <Select
+                      onValueChange={(value) => field.onChange(value as "PEAK_SEASON" | "SHOULDER_SEASON" | "OFF_SEASON")}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -581,7 +581,7 @@ export default function LocationSeasonalPeriodsPage() {
               Choose a template that matches your location type. This will create predefined seasonal periods.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4">
             {Object.entries(SEASONAL_TEMPLATES).map(([key, template]) => (
               <Card key={key} className="cursor-pointer hover:shadow-md transition-shadow">
@@ -589,7 +589,7 @@ export default function LocationSeasonalPeriodsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="font-semibold mb-2">
-                        {key.replace('_', ' ').replace(/\w\S*/g, (txt) => 
+                        {key.replace('_', ' ').replace(/\w\S*/g, (txt) =>
                           txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
                         )}
                       </h3>

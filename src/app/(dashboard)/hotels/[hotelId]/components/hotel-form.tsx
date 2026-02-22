@@ -93,7 +93,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
       setDestinations([]);
       return;
     }
-    
+
     try {
       setLoadingDestinations(true);
       const response = await axios.get(`/api/destinations?locationId=${locationId}`);
@@ -129,7 +129,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/hotels/${params.hotelId}`, data);
+        await axios.patch(`/api/hotels/${params?.hotelId}`, data);
       } else {
         await axios.post(`/api/hotels`, data);
       }
@@ -146,7 +146,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/hotels/${params.hotelId}`);
+      await axios.delete(`/api/hotels/${params?.hotelId}`);
       router.refresh();
       router.push(`/hotels`);
       toast.success('Hotel deleted.');
@@ -291,10 +291,10 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                           {field.value
                             ? destinations.find((destination) => destination.id === field.value)?.name
                             : loadingDestinations
-                            ? "Loading destinations..."
-                            : !watchedLocationId
-                            ? "Select location first..."
-                            : "Select a destination..."}
+                              ? "Loading destinations..."
+                              : !watchedLocationId
+                                ? "Select location first..."
+                                : "Select a destination..."}
                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>

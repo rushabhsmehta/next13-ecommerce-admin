@@ -27,7 +27,7 @@ export const PaginationControls = ({
 
     // Helper to construct URL with updated params
     const createUrl = (newPage: number, newPageSize: number) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams(searchParams?.toString() ?? "");
         params.set('page', newPage.toString());
         params.set('pageSize', newPageSize.toString());
 

@@ -615,22 +615,22 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     }
 
     const firstActivity = activities[0];
-    
+
     // Check if activities are in AI-generated format (object with activityDescription)
     if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
       // Escape HTML first to prevent XSS, then convert newlines to <br>
       const description = firstActivity.activityDescription;
       const escapedDescription = typeof description === 'string' ? escapeHtml(description) : '';
       const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
-      
+
       return [{
         activityTitle: firstActivity.activityTitle || '',
         activityDescription: descriptionWithLineBreaks,
         activityImages: [],
         locationId: firstActivity.locationId || '',
       }];
-    } 
-    
+    }
+
     // Legacy format: array of strings
     if (typeof firstActivity === 'string') {
       return activities.map((act: string) => ({
@@ -640,7 +640,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
         locationId: '',
       }));
     }
-    
+
     // Unknown format: align with tourPackageQuery-form by returning an empty array
     return [];
   };
@@ -812,10 +812,10 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
       // Build the text to copy
       const dayTitle = stripHtml(itinerary.itineraryTitle || '');
       const dayDescription = stripHtml(itinerary.itineraryDescription || '');
-      
+
       let textToCopy = `Day Title: ${dayTitle}\n\n`;
       textToCopy += `Day Description: ${dayDescription}\n\n`;
-      
+
       // Add activities
       if (itinerary.activities && itinerary.activities.length > 0) {
         textToCopy += 'Activities:\n';
@@ -903,12 +903,12 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
           )
         })
 
-        await axios.patch(`/api/tourPackages/${params.tourPackageId}`, formattedData);
+        await axios.patch(`/api/tourPackages/${params?.tourPackageId}`, formattedData);
       } else {
         await axios.post(`/api/tourPackages`, formattedData);
       }
       console.log('✅ [TOUR PACKAGE FORM] Tour package saved successfully', {
-        tourPackageId: params.tourPackageId,
+        tourPackageId: params?.tourPackageId,
         isUpdate: Boolean(initialData),
       });
       router.refresh();
@@ -929,7 +929,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/tourPackages/${params.tourPackageId}`);
+      await axios.delete(`/api/tourPackages/${params?.tourPackageId}`);
       router.refresh();
       router.push(`/tourPackages`);
       toast.success('Tour Package  deleted.');

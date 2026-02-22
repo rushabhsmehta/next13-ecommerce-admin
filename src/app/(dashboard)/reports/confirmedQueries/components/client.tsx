@@ -11,10 +11,10 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { ApiList } from "@/components/ui/api-list";
 import { Calendar } from "@/components/ui/calendar";
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -40,27 +40,27 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   const [startDateValue, setStartDateValue] = useState<Date | undefined>(
     startDate ? new Date(startDate) : startOfYear(new Date())
   );
-  
+
   const [endDateValue, setEndDateValue] = useState<Date | undefined>(
     endDate ? new Date(endDate) : endOfYear(new Date())
   );
 
   // Apply filter with current values
   const applyDateFilter = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    
+    const params = new URLSearchParams(searchParams?.toString() || "");
+
     if (startDateValue) {
       params.set('startDate', startDateValue.toISOString().split('T')[0]);
     } else {
       params.delete('startDate');
     }
-    
+
     if (endDateValue) {
       params.set('endDate', endDateValue.toISOString().split('T')[0]);
     } else {
       params.delete('endDate');
     }
-    
+
     router.push(`?${params.toString()}`);
   };
 
@@ -69,11 +69,11 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
     const currentYear = new Date().getFullYear();
     const yearStart = startOfYear(new Date(currentYear, 0, 1));
     const yearEnd = endOfYear(new Date(currentYear, 0, 1));
-    
+
     setStartDateValue(yearStart);
     setEndDateValue(yearEnd);
-    
-    const params = new URLSearchParams(searchParams.toString());
+
+    const params = new URLSearchParams(searchParams?.toString() || "");
     params.set('startDate', yearStart.toISOString().split('T')[0]);
     params.set('endDate', yearEnd.toISOString().split('T')[0]);
     router.push(`?${params.toString()}`);
@@ -81,28 +81,28 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   useEffect(() => {
     // Only apply the filter when neither parameter exists
     // This prevents unnecessary navigation loops
-    if (!searchParams.has('startDate') && !searchParams.has('endDate')) {
+    if (!searchParams?.has('startDate') && !searchParams?.has('endDate')) {
       // Create a local version of applyDateFilter to avoid dependency issues
       const initializeFilter = () => {
-        const params = new URLSearchParams(searchParams.toString());
-        
+        const params = new URLSearchParams(searchParams?.toString() || "");
+
         if (startDateValue) {
           params.set('startDate', startDateValue.toISOString().split('T')[0]);
         }
-        
+
         if (endDateValue) {
           params.set('endDate', endDateValue.toISOString().split('T')[0]);
         }
-        
+
         router.push(`?${params.toString()}`);
       };
-      
+
       initializeFilter();
     }
   }, [searchParams, startDateValue, endDateValue, router]);
 
   return (
-    <> 
+    <>
       <div className="flex items-center justify-between">
         <Heading title={`Confirmed Tour Package Quaries (${data.length})`} description="To filter the queries by assignment, use Search" />
         <div className="flex items-center gap-2">
@@ -128,7 +128,7 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
                 />
               </PopoverContent>
             </Popover>
-            
+
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -150,11 +150,11 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
                 />
               </PopoverContent>
             </Popover>
-            
+
             <Button onClick={applyDateFilter}>Apply Filter</Button>
             <Button variant="outline" onClick={clearDateFilter}>Reset to Current Year</Button>
           </div>
-          
+
           <Button onClick={() => router.push(`/tourPackageQuery/new`)}>
             <Plus className="mr-2 h-4 w-4" /> Add New
           </Button>

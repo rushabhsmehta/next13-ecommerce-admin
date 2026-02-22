@@ -76,11 +76,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
 
   // Initialize state from searchParams on client side
   useEffect(() => {
-    setLocalAssociateId(searchParams.get('associateId') || '');
-    setLocalAssignedStaffId(searchParams.get('assignedStaffId') || '');
-    setLocalStatus(searchParams.get('status') || '');
-    setLocalPeriod(searchParams.get('period') || '');
-    setSearchQuery(searchParams.get('q') || '');
+    setLocalAssociateId(searchParams?.get('associateId') || '');
+    setLocalAssignedStaffId(searchParams?.get('assignedStaffId') || '');
+    setLocalStatus(searchParams?.get('status') || '');
+    setLocalPeriod(searchParams?.get('period') || '');
+    setSearchQuery(searchParams?.get('q') || '');
   }, [searchParams]);
 
   // Listen for updates from row-level components
@@ -98,32 +98,30 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   useEffect(() => {
     setRows(data);
   }, [data]);
-  
+
   // Use both the hook and a direct check for extra reliability
   useEffect(() => {
     const checkMobile = () => {
       const isMobileDevice = window.innerWidth < 768;
       setIsMobile(isMobileDevice);
     };
-    
+
     // Check immediately
     checkMobile();
-    
+
     // Add event listener for resize
     window.addEventListener('resize', checkMobile);
-    
+
     // Cleanup
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
-  // Combine results from hook and direct check for more reliability
-  const isMobileView = isMobile || isMobileHook;
 
+  // Combine results from hook and direct check for more reliability
   const onAssociateChange = (associateId: string) => {
     // update local state immediately to prevent flicker
     setLocalAssociateId(associateId || '');
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() || '');
       if (associateId) params.set('associateId', associateId); else params.delete('associateId');
       params.set('page', '1'); // Reset to first page
       router.replace(`/inquiries?${params.toString()}`);
@@ -136,9 +134,9 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   };
 
   // Follow-ups only toggle
-  const followUpsOnly = searchParams.get('followUpsOnly') === '1';
+  const followUpsOnly = searchParams?.get('followUpsOnly') === '1';
   const onToggleFollowUpsOnly = (checked: boolean) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     if (checked) {
       params.set('followUpsOnly', '1');
     } else {
@@ -151,9 +149,9 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   };
 
   // No Tour Package Query toggle
-  const noTourPackageQuery = searchParams.get('noTourPackageQuery') === '1';
+  const noTourPackageQuery = searchParams?.get('noTourPackageQuery') === '1';
   const onToggleNoTPQ = (checked: boolean) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     if (checked) {
       params.set('noTourPackageQuery', '1');
     } else {
@@ -168,7 +166,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   const onAssignedStaffChange = (staffId: string) => {
     setLocalAssignedStaffId(staffId || '');
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() || '');
       if (staffId) params.set('assignedStaffId', staffId); else params.delete('assignedStaffId');
       params.set('page', '1'); // Reset to first page
       router.replace(`/inquiries?${params.toString()}`);
@@ -178,7 +176,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   const onStatusChangeLocal = (status: string) => {
     setLocalStatus(status || '');
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() || '');
       if (status && status !== 'ALL') params.set('status', status); else params.delete('status');
       params.set('page', '1'); // Reset to first page
       router.replace(`/inquiries?${params.toString()}`);
@@ -188,7 +186,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   const onPeriodChangeLocal = (period: string) => {
     setLocalPeriod(period || '');
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() || '');
       if (period && period !== 'ALL') {
         params.set('period', period);
       } else {
@@ -204,7 +202,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   const onSearchChange = (query: string) => {
     setSearchQuery(query);
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() || '');
       if (query) {
         params.set('q', query);
       } else {
@@ -280,16 +278,16 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
         </Select>
       )}
       <div className="flex items-center space-x-2">
-  <Checkbox id="followups-only" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
+        <Checkbox id="followups-only" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
         <label htmlFor="followups-only" className="text-sm">Follow-ups only</label>
-  {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
+        {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox id="no-tpq" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
         <label htmlFor="no-tpq" className="text-sm">No Tour Package Query</label>
         {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
       </div>
-      
+
       {!isAssociateUser && (
         <Select
           value={localAssociateId}
@@ -401,13 +399,13 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
                   Apply filters to narrow down your results
                 </SheetDescription>
               </SheetHeader>
-                <FiltersContent />
-                <div className="flex justify-end items-center space-x-2 mt-4">
-                  <Button variant="ghost" onClick={clearAllFilters}>Clear</Button>
-                </div>
+              <FiltersContent />
+              <div className="flex justify-end items-center space-x-2 mt-4">
+                <Button variant="ghost" onClick={clearAllFilters}>Clear</Button>
+              </div>
             </SheetContent>
           </Sheet>
-          
+
           <div className="flex items-center ml-2">
             <Checkbox id="followups-only-mobile" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
             <label htmlFor="followups-only-mobile" className="text-sm ml-2">Follow-ups only</label>
@@ -422,8 +420,8 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             <Button onClick={handleAddNewClick} size="sm" className="flex-1">
               <Plus className="mr-2 h-4 w-4" /> New
             </Button>
-            
-            <Button 
+
+            <Button
               variant="outline"
               onClick={handleExcelDownload}
               size="sm"
@@ -431,8 +429,8 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             >
               <FileSpreadsheet className="h-4 w-4" />
             </Button>
-            
-            <Button 
+
+            <Button
               variant="outline"
               onClick={handlePdfDownload}
               size="sm"
@@ -444,7 +442,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
         </div>
       </div>
       <Separator />
-      
+
       {/* Access Error Alert */}
       {accessError && (
         <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4 rounded">
@@ -462,7 +460,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Mobile Search Input - now using CSS for responsive visibility */}
       {!accessError && (
         <>
@@ -474,7 +472,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
               className="w-full"
             />
           </div>
-          
+
           {/* For content display, still use JS-based detection as a fallback */}
           <div className="block md:hidden">
             <MobileInquiryCard data={displayData} isAssociateUser={isAssociateUser} />
@@ -485,7 +483,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
               data={displayData}
             />
           </div>
-          
+
           {/* Pagination Controls */}
           {pagination && pagination.totalCount > 0 && (
             <div className="mt-4">
@@ -494,7 +492,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           )}
         </>
       )}
-      
+
       {/* Show no data message when there's an access error */}
       {accessError && (
         <div className="text-center py-10">

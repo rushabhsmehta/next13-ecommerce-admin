@@ -36,7 +36,7 @@ interface CampaignStats {
 export default function CampaignStatsPage() {
   const router = useRouter();
   const params = useParams();
-  const campaignId = params.id as string;
+  const campaignId = params?.id as string;
 
   const [stats, setStats] = useState<CampaignStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function CampaignStatsPage() {
   const fetchStats = useCallback(async () => {
     try {
       const response = await fetch(`/api/whatsapp/campaigns/${campaignId}/stats`);
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           router.push('/sign-in');
@@ -52,7 +52,7 @@ export default function CampaignStatsPage() {
         }
         throw new Error('Failed to fetch stats');
       }
-      
+
       const data = await response.json();
       setStats(data.stats || data.campaign);
     } catch (error) {
@@ -64,9 +64,9 @@ export default function CampaignStatsPage() {
   }, [campaignId, router]);
 
   useEffect(() => {
-  fetchStats();
-  // Poll every 30 seconds to balance real-time updates with server load
-  const interval = setInterval(fetchStats, 30000);
+    fetchStats();
+    // Poll every 30 seconds to balance real-time updates with server load
+    const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, [fetchStats]);
 
@@ -113,8 +113,8 @@ export default function CampaignStatsPage() {
         <div className="relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => router.push(`/whatsapp/campaigns/${campaignId}`)}
                 className="text-white hover:bg-white/20"
               >

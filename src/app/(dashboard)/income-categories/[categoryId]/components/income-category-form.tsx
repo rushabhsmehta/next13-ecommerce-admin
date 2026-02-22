@@ -73,7 +73,7 @@ export const IncomeCategoryForm: React.FC<IncomeCategoryFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/income-categories/${params.categoryId}`, data);
+        await axios.patch(`/api/income-categories/${params?.categoryId}`, data);
       } else {
         const response = await axios.post(`/api/income-categories`, data);
         // Make sure we have the response data before continuing
@@ -98,7 +98,7 @@ export const IncomeCategoryForm: React.FC<IncomeCategoryFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/income-categories/${params.categoryId}`);
+      await axios.delete(`/api/income-categories/${params?.categoryId}`);
       router.refresh();
       router.push(`/income-categories`);
       toast.success('Income category deleted.');
@@ -112,8 +112,8 @@ export const IncomeCategoryForm: React.FC<IncomeCategoryFormProps> = ({
 
   return (
     <>
-      <AlertModal 
-        isOpen={open} 
+      <AlertModal
+        isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={onDelete}
         loading={loading}
@@ -155,10 +155,10 @@ export const IncomeCategoryForm: React.FC<IncomeCategoryFormProps> = ({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      disabled={loading} 
-                      placeholder="Category description" 
-                      {...field} 
+                    <Textarea
+                      disabled={loading}
+                      placeholder="Category description"
+                      {...field}
                       value={field.value || ''}
                     />
                   </FormControl>

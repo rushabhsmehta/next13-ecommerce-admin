@@ -73,7 +73,7 @@ export const ExpenseCategoryForm: React.FC<ExpenseCategoryFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/expense-categories/${params.categoryId}`, data);
+        await axios.patch(`/api/expense-categories/${params?.categoryId}`, data);
       } else {
         const response = await axios.post(`/api/expense-categories`, data);
         // Make sure we have the response data before continuing
@@ -98,7 +98,7 @@ export const ExpenseCategoryForm: React.FC<ExpenseCategoryFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/expense-categories/${params.categoryId}`);
+      await axios.delete(`/api/expense-categories/${params?.categoryId}`);
       router.refresh();
       router.push(`/expense-categories`);
       toast.success('Expense category deleted.');
@@ -112,8 +112,8 @@ export const ExpenseCategoryForm: React.FC<ExpenseCategoryFormProps> = ({
 
   return (
     <>
-      <AlertModal 
-        isOpen={open} 
+      <AlertModal
+        isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={onDelete}
         loading={loading}
@@ -155,10 +155,10 @@ export const ExpenseCategoryForm: React.FC<ExpenseCategoryFormProps> = ({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      disabled={loading} 
-                      placeholder="Category description" 
-                      {...field} 
+                    <Textarea
+                      disabled={loading}
+                      placeholder="Category description"
+                      {...field}
                       value={field.value || ''}
                     />
                   </FormControl>

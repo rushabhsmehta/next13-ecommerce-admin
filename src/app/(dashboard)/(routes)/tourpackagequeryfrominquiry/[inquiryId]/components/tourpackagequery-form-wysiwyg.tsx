@@ -87,11 +87,11 @@ const brandColors = {
 const PDFLikeSection = ({ title, children, className, icon: Icon, action }: { title: string, children: React.ReactNode, className?: string, icon?: any, action?: React.ReactNode }) => (
   <div className={cn("mb-8 overflow-hidden rounded-lg border shadow-sm", className)} style={{ borderColor: brandColors.border, backgroundColor: brandColors.white }}>
     <div className="flex items-center justify-between px-4 py-3 border-b" style={{ background: brandColors.tableHeaderBg, borderColor: brandColors.border }}>
-       <div className="flex items-center gap-2">
-         {Icon && <Icon className="h-5 w-5" style={{ color: brandColors.secondary }} />}
-         <h3 className="text-lg font-bold" style={{ color: brandColors.text }}>{title}</h3>
-       </div>
-       {action && <div>{action}</div>}
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className="h-5 w-5" style={{ color: brandColors.secondary }} />}
+        <h3 className="text-lg font-bold" style={{ color: brandColors.text }}>{title}</h3>
+      </div>
+      {action && <div>{action}</div>}
     </div>
     <div className="p-6">
       {children}
@@ -113,9 +113,9 @@ const DataDisplayRow = ({ label, value, className }: { label: string, value?: st
 const InfoCard = ({ label, value }: { label: string, value?: string | number }) => {
   if (!value) return null;
   return (
-    <div className="p-3 rounded-md border-l-4" style={{ 
-      background: brandColors.panelBg, 
-      borderColor: brandColors.primary 
+    <div className="p-3 rounded-md border-l-4" style={{
+      background: brandColors.panelBg,
+      borderColor: brandColors.primary
     }}>
       <div className="text-xs font-semibold mb-1" style={{ color: brandColors.muted }}>{label}</div>
       <div className="text-sm font-semibold" style={{ color: brandColors.text }}>{value}</div>
@@ -322,10 +322,10 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
   const [openTemplate, setOpenTemplate] = useState(false);
   const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const editor = useRef(null);
-  
+
   // Track which sections are being edited
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  
+
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
     exclusions: false,
@@ -337,7 +337,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
     termsconditions: false,
     kitchenGroupPolicy: false,
   });
-  
+
   const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const [lookupLoading, setLookupLoading] = useState(true);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -347,7 +347,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
 
   const title = "Create Tour Package Query from Inquiry";
   const description = "Convert this inquiry into a detailed tour package";
-  
+
   const defaultValues = {
     tourPackageTemplate: '',
     tourPackageQueryTemplate: '',
@@ -705,7 +705,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     const formattedData = {
       ...data,
-      inquiryId: params.inquiryId,
+      inquiryId: params?.inquiryId,
       transport: data.transport || '',
       pickup_location: data.pickup_location || '',
       drop_location: data.drop_location || '',
@@ -793,13 +793,13 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
           )}
 
           <div className="mx-auto max-w-[850px] space-y-8 pb-20">
-            
+
             {/* Basic Info Section */}
-            <PDFLikeSection 
-              title="Basic Information" 
+            <PDFLikeSection
+              title="Basic Information"
               icon={FileText}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -820,9 +820,9 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                   <DataDisplayRow label="Customer Name" value={form.watch('customerName')} />
                   <DataDisplayRow label="Customer Number" value={form.watch('customerNumber')} />
                   {form.watch('associatePartnerId') && (
-                    <DataDisplayRow 
-                      label="Associate Partner" 
-                      value={associatePartners.find(p => p.id === form.watch('associatePartnerId'))?.name || 'Not specified'} 
+                    <DataDisplayRow
+                      label="Associate Partner"
+                      value={associatePartners.find(p => p.id === form.watch('associatePartnerId'))?.name || 'Not specified'}
                     />
                   )}
                   {form.watch('tourPackageTemplateName') && (
@@ -850,11 +850,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
             </PDFLikeSection>
 
             {/* Guests Section */}
-            <PDFLikeSection 
-              title="Guest Information" 
+            <PDFLikeSection
+              title="Guest Information"
               icon={Users}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -901,11 +901,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
             </PDFLikeSection>
 
             {/* Location Section */}
-            <PDFLikeSection 
-              title="Tour Information" 
+            <PDFLikeSection
+              title="Tour Information"
               icon={MapPin}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -921,19 +921,19 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                 // Display View
                 <div className="space-y-4">
                   <InfoCardGrid>
-                    <InfoCard 
-                      label="DESTINATION" 
-                      value={locations.find(l => l.id === form.watch('locationId'))?.label || 'Not specified'} 
+                    <InfoCard
+                      label="DESTINATION"
+                      value={locations.find(l => l.id === form.watch('locationId'))?.label || 'Not specified'}
                     />
                     {form.watch('numDaysNight') && (
                       <InfoCard label="DURATION" value={form.watch('numDaysNight')} />
                     )}
                   </InfoCardGrid>
-                  
+
                   {form.watch('transport') && (
                     <InfoCard label="TRANSPORT" value={form.watch('transport')} />
                   )}
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     {form.watch('pickup_location') && (
                       <InfoCard label="PICKUP" value={form.watch('pickup_location')} />
@@ -956,11 +956,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
             </PDFLikeSection>
 
             {/* Dates Section */}
-            <PDFLikeSection 
-              title="Dates & Duration" 
+            <PDFLikeSection
+              title="Dates & Duration"
               icon={CalendarIcon}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -976,9 +976,9 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                 // Display View
                 <div>
                   {(form.watch('tourStartsFrom') || form.watch('tourEndsOn')) && (
-                    <div className="p-3 rounded-md border-l-4" style={{ 
-                      background: brandColors.panelBg, 
-                      borderColor: brandColors.primary 
+                    <div className="p-3 rounded-md border-l-4" style={{
+                      background: brandColors.panelBg,
+                      borderColor: brandColors.primary
                     }}>
                       <div className="text-xs font-semibold mb-2" style={{ color: brandColors.muted }}>TRAVEL DATES</div>
                       <div className="flex gap-6 items-center">
@@ -1016,11 +1016,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
             </PDFLikeSection>
 
             {/* Itinerary Section */}
-            <PDFLikeSection 
-              title="Itinerary Details" 
+            <PDFLikeSection
+              title="Itinerary Details"
               icon={ListPlus}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -1039,9 +1039,9 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                     form.watch('itineraries').map((itinerary: any, index: number) => {
                       const hotel = hotels.find(h => h.id === itinerary.hotelId);
                       return (
-                        <div key={index} className="p-4 rounded-lg border-l-4" style={{ 
-                          background: brandColors.subtlePanel, 
-                          borderColor: brandColors.primary 
+                        <div key={index} className="p-4 rounded-lg border-l-4" style={{
+                          background: brandColors.subtlePanel,
+                          borderColor: brandColors.primary
                         }}>
                           <div className="flex items-center gap-3 mb-2">
                             <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" style={{
@@ -1094,11 +1094,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
             </PDFLikeSection>
 
             {/* Hotels Section */}
-            <PDFLikeSection 
-              title="Hotel Details" 
+            <PDFLikeSection
+              title="Hotel Details"
               icon={BuildingIcon}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -1117,11 +1117,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                     form.watch('itineraries').map((itinerary: any, index: number) => {
                       const hotel = hotels.find(h => h.id === itinerary.hotelId);
                       if (!hotel) return null;
-                      
+
                       return (
-                        <div key={index} className="p-3 rounded-lg border" style={{ 
-                          background: brandColors.white, 
-                          borderColor: brandColors.border 
+                        <div key={index} className="p-3 rounded-lg border" style={{
+                          background: brandColors.white,
+                          borderColor: brandColors.border
                         }}>
                           <div className="flex gap-3">
                             <div className="flex-shrink-0 w-20 h-16 rounded overflow-hidden" style={{ background: '#f3f4f6' }}>
@@ -1168,11 +1168,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
             </PDFLikeSection>
 
             {/* Flights Section */}
-            <PDFLikeSection 
-              title="Flight Details" 
+            <PDFLikeSection
+              title="Flight Details"
               icon={Plane}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -1234,11 +1234,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
             </PDFLikeSection>
 
             {/* Pricing Section */}
-            <PDFLikeSection 
-              title="Pricing Details" 
+            <PDFLikeSection
+              title="Pricing Details"
               icon={Tag}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -1255,17 +1255,17 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                 <div className="space-y-3">
                   {form.watch('pricingSection') && form.watch('pricingSection').length > 0 ? (
                     form.watch('pricingSection').map((item: any, index: number) => (
-                      <div key={index} className="p-4 rounded-lg border-l-4" style={{ 
-                        background: brandColors.subtlePanel, 
-                        borderColor: brandColors.success 
+                      <div key={index} className="p-4 rounded-lg border-l-4" style={{
+                        background: brandColors.subtlePanel,
+                        borderColor: brandColors.success
                       }}>
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-bold text-sm" style={{ color: brandColors.text }}>
                             {item.name || 'Pricing Component'}
                           </h4>
-                          <span className="px-3 py-1 rounded-full text-sm font-bold" style={{ 
-                            background: brandColors.success, 
-                            color: brandColors.white 
+                          <span className="px-3 py-1 rounded-full text-sm font-bold" style={{
+                            background: brandColors.success,
+                            color: brandColors.white
                           }}>
                             ₹{item.price || '0'}
                           </span>
@@ -1310,11 +1310,11 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
             </PDFLikeSection>
 
             {/* Policies Section */}
-            <PDFLikeSection 
-              title="Policies & Terms" 
+            <PDFLikeSection
+              title="Policies & Terms"
               icon={FileCheck}
               action={
-                <Button 
+                <Button
                   type="button"
                   size="sm"
                   variant="outline"
@@ -1344,7 +1344,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                       </ul>
                     </div>
                   )}
-                  
+
                   {form.watch('exclusions') && form.watch('exclusions').length > 0 && (
                     <div>
                       <h4 className="font-bold text-sm mb-2" style={{ color: brandColors.text }}>✗ Exclusions</h4>
@@ -1360,7 +1360,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                       </ul>
                     </div>
                   )}
-                  
+
                   {form.watch('importantNotes') && form.watch('importantNotes').length > 0 && (
                     <div>
                       <h4 className="font-bold text-sm mb-2" style={{ color: brandColors.text }}>📌 Important Notes</h4>
@@ -1376,7 +1376,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                       </ul>
                     </div>
                   )}
-                  
+
                   {form.watch('cancellationPolicy') && form.watch('cancellationPolicy').length > 0 && (
                     <div>
                       <h4 className="font-bold text-sm mb-2" style={{ color: brandColors.text }}>🔄 Cancellation Policy</h4>
@@ -1392,7 +1392,7 @@ export const TourPackageQueryFormWYSIWYG: React.FC<TourPackageQueryFormProps> = 
                       </ul>
                     </div>
                   )}
-                  
+
                   <p className="text-xs italic mt-4" style={{ color: brandColors.muted }}>
                     Click Edit to view all policies and terms
                   </p>

@@ -175,7 +175,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 }) => {
 
   const searchParams = useSearchParams();
-  const selectedOption = searchParams.get('search') || 'Empty'; // 'option' is the name of your query parameter
+  const selectedOption = searchParams?.get('search') || 'Empty'; // 'option' is the name of your query parameter
 
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
@@ -397,9 +397,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
  */}      {/* Add this before the Tour Highlights section */}
       {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
         <div className="mt-6 border border-orange-200 rounded-lg overflow-hidden shadow-lg">          <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-4 border-b border-orange-200">
-            <h3 className="text-2xl font-bold text-white">💰 Pricing Options</h3>
-            <p className="text-base text-orange-100 mt-1">Detailed breakdown of tour package pricing</p>
-          </div>
+          <h3 className="text-2xl font-bold text-white">💰 Pricing Options</h3>
+          <p className="text-base text-orange-100 mt-1">Detailed breakdown of tour package pricing</p>
+        </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 bg-white">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
@@ -519,7 +519,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <CardTitle className="text-xl font-bold">Flight Details</CardTitle>
           </CardHeader>
-          
+
           {/* Debug Information */}
           {process.env.NODE_ENV === 'development' && (
             <CardContent className="p-4 bg-yellow-50 border border-yellow-200">
@@ -530,7 +530,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               </div>
             </CardContent>
           )}
-          
+
           {/* Show if flight details exist */}
           {initialData.flightDetails && initialData.flightDetails.length > 0 ? (
             initialData.flightDetails.map((flight, index) => (
@@ -574,14 +574,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     )}
                   </div>
                 </div>
-                
+
                 {/* Debug info for images */}
                 {process.env.NODE_ENV === 'development' && (
                   <div className="text-xs text-red-600 mb-2">
                     <strong>Debug - Images:</strong> {JSON.stringify(flight.images, null, 2)}
                   </div>
                 )}
-                
+
                 {/* Flight Images Section */}
                 {flight.images && flight.images.length > 0 ? (
                   <div className="border-t pt-3 mt-3">

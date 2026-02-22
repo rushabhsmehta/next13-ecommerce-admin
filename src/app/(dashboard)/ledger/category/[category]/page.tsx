@@ -12,8 +12,8 @@ const CategoryLedgerPage = async ({
   params: { category: string };
   searchParams: { type?: 'income' | 'expense' | 'all' };
 }) => {
-  const categoryName = decodeURIComponent(params.category);
-  const transactionType = searchParams.type || 'all';
+  const categoryName = decodeURIComponent(params?.category || '');
+  const transactionType = searchParams?.type || 'all';
 
   let expenses: any[] = [];
   let incomes: any[] = [];
@@ -120,13 +120,13 @@ const CategoryLedgerPage = async ({
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <Heading 
+        <Heading
           title={`${categoryName} - Category Ledger`}
           description={`All transactions for category: ${categoryName}`}
         />
         <Separator />
-        
-        <CategoryLedgerClient 
+
+        <CategoryLedgerClient
           transactions={allTransactions}
           expenses={formattedExpenses}
           incomes={formattedIncomes}

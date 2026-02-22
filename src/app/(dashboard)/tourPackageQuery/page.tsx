@@ -12,8 +12,8 @@ const tourPackageQueryPage = async ({
   searchParams: { page?: string, pageSize?: string }
 }) => {
   // Parse pagination params
-  const page = parseInt(searchParams.page || '1');
-  const pageSize = parseInt(searchParams.pageSize || '25');
+  const page = parseInt(searchParams?.page || '1');
+  const pageSize = parseInt(searchParams?.pageSize || '25');
   const skip = (page - 1) * pageSize;
 
   // Fetch total count for pagination

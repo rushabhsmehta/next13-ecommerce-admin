@@ -15,14 +15,14 @@ export default async function SaleReturnCreatePage({
   const taxSlabs = await getTaxSlabs();
   const units = await getUnitsOfMeasure();
   const customers = await getCustomers();
-  
+
   // If saleId is provided in search params, pre-select that sale
-  const saleId = searchParams.saleId as string | undefined;
-  
+  const saleId = searchParams?.saleId as string | undefined;
+
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <SaleReturnForm 
+        <SaleReturnForm
           sales={sales}
           taxSlabs={taxSlabs}
           units={units}

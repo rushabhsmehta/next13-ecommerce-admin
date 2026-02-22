@@ -70,19 +70,19 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
 
   const defaultValues = initialData
     ? {
-        name: initialData.name,
-        description: initialData.description || "",
-        imageUrl: initialData.imageUrl || "",
-        locationId: initialData.locationId,
-        isActive: initialData.isActive,
-      }
+      name: initialData.name,
+      description: initialData.description || "",
+      imageUrl: initialData.imageUrl || "",
+      locationId: initialData.locationId,
+      isActive: initialData.isActive,
+    }
     : {
-        name: "",
-        description: "",
-        imageUrl: "",
-        locationId: defaultLocationId || "",
-        isActive: true,
-      };
+      name: "",
+      description: "",
+      imageUrl: "",
+      locationId: defaultLocationId || "",
+      isActive: true,
+    };
 
   const form = useForm<DestinationFormValues>({
     resolver: zodResolver(formSchema),
@@ -93,18 +93,18 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/destinations/${params.destinationId}`, data);
+        await axios.patch(`/api/destinations/${params?.destinationId}`, data);
       } else {
         await axios.post(`/api/destinations`, data);
       }
       router.refresh();
-      
+
       // Navigate back to the appropriate destinations page
-      const backUrl = defaultLocationId 
+      const backUrl = defaultLocationId
         ? `/destinations?locationId=${defaultLocationId}`
         : `/destinations`;
       router.push(backUrl);
-      
+
       toast.success(toastMessage);
     } catch (error: any) {
       toast.error("Something went wrong.");
@@ -116,15 +116,15 @@ export const DestinationForm: React.FC<DestinationFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/destinations/${params.destinationId}`);
+      await axios.delete(`/api/destinations/${params?.destinationId}`);
       router.refresh();
-      
+
       // Navigate back to the appropriate destinations page
-      const backUrl = defaultLocationId 
+      const backUrl = defaultLocationId
         ? `/destinations?locationId=${defaultLocationId}`
         : `/destinations`;
       router.push(backUrl);
-      
+
       toast.success("Destination deleted.");
     } catch (error: any) {
       toast.error("Something went wrong.");

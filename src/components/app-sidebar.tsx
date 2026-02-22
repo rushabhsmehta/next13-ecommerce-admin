@@ -175,17 +175,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { associatePartner } = useAssociatePartner();
   const isMobile = useIsMobile();
   const previousDomainRef = React.useRef<boolean | null>(null);
-  
+
   // Check if the domain is associate domain
   useEffect(() => {
     const hostname = window.location.hostname;
     const isAssociate = hostname.includes('associate.aagamholidays.com');
-    
+
     // Clear cache when domain changes (not on initial mount)
     if (previousDomainRef.current !== null && previousDomainRef.current !== isAssociate) {
       clearAssociatePartnerCache();
     }
-    
+
     previousDomainRef.current = isAssociate;
     setIsAssociateDomain(isAssociate);
 
@@ -200,7 +200,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Check if a section should be expanded
   const isSectionActive = (section: { title: string; items: { url: string }[] }) =>
     section.items.some(
-      (item) => pathname === item.url || pathname.startsWith(item.url + "/")
+      (item) => pathname === item.url || pathname?.startsWith(item.url + "/")
     );
 
   const handleSignOut = async () => {
@@ -286,7 +286,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                               asChild
                               isActive={
                                 pathname === item.url ||
-                                pathname.startsWith(item.url + "/")
+                                pathname?.startsWith(item.url + "/")
                               }
                             >
                               <Link href={item.url}>{item.title}</Link>

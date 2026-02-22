@@ -65,17 +65,17 @@ const CashBookPage = () => {
   useEffect(() => {
     const fetchCashAccount = async () => {
       try {
-        const response = await axios.get(`/api/cash-accounts/${params.cashAccountId}`);
+        const response = await axios.get(`/api/cash-accounts/${params?.cashAccountId}`);
         setCashAccount(response.data);
       } catch (error) {
         console.error("Failed to fetch cash account:", error);
       }
     };
 
-    if (params.cashAccountId) {
+    if (params?.cashAccountId) {
       fetchCashAccount();
     }
-  }, [params.cashAccountId]);
+  }, [params?.cashAccountId]);
 
   // Fetch transactions when date range changes
   useEffect(() => {
@@ -86,7 +86,7 @@ const CashBookPage = () => {
         const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
 
         const response = await axios.get(
-          `/api/cash-accounts/${params.cashAccountId}/transactions?startDate=${startDate}&endDate=${endDate}`
+          `/api/cash-accounts/${params?.cashAccountId}/transactions?startDate=${startDate}&endDate=${endDate}`
         );
 
         setTransactions(response.data.transactions);
@@ -98,10 +98,10 @@ const CashBookPage = () => {
       }
     };
 
-    if (params.cashAccountId && dateRange.from && dateRange.to) {
+    if (params?.cashAccountId && dateRange.from && dateRange.to) {
       fetchTransactions();
     }
-  }, [params.cashAccountId, dateRange]);
+  }, [params?.cashAccountId, dateRange]);
 
   const handleFromDateChange = (date: Date | undefined) => {
     if (date) {
@@ -161,7 +161,7 @@ const CashBookPage = () => {
   // Function to generate and download PDF
   const generatePDF = () => {
     if (!cashAccount) return;
-    
+
     const doc = new jsPDF();
 
     // Create a custom formatter for PDF that won't cause formatting issues
@@ -176,12 +176,12 @@ const CashBookPage = () => {
     // Add account information
     doc.setFontSize(12);
     doc.text(`Account: ${cashAccount.accountName}`, 14, 32);
-    
+
     // Add date range
     const fromDate = dateRange.from ? format(dateRange.from, 'MMMM d, yyyy') : 'N/A';
     const toDate = dateRange.to ? format(dateRange.to, 'MMMM d, yyyy') : 'N/A';
     doc.text(`Period: ${fromDate} to ${toDate}`, 14, 40);
-    
+
     // Add generation date
     doc.setFontSize(10);
     doc.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy h:mm a')}`, 14, 48);
@@ -190,12 +190,12 @@ const CashBookPage = () => {
     doc.setFontSize(12);
     // Use the safe formatter for PDF
     doc.text(`Opening Balance: ${formatCurrency(openingBalance)}`, 14, 56);
-    
+
     // Calculate totals
     const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
     const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
     const closingBalance = openingBalance + totalInflow - totalOutflow;
-    
+
     doc.text(`Total Inflow: ${formatCurrency(totalInflow)}`, 14, 64);
     doc.text(`Total Outflow: ${formatCurrency(totalOutflow)}`, 14, 72);
     doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 14, 80);
@@ -209,7 +209,7 @@ const CashBookPage = () => {
       transaction.isInflow ? formatCurrency(transaction.amount) : '-',
       !transaction.isInflow ? formatCurrency(transaction.amount) : '-',
     ]);
-    
+
     // Add totals row to table data
     tableData.push(
       ['', '', '', 'TOTALS', formatCurrency(totalInflow), formatCurrency(totalOutflow)]
@@ -233,7 +233,7 @@ const CashBookPage = () => {
     // Add closing balance summary after table
     const lastPage = doc.getNumberOfPages();
     doc.setPage(lastPage);
-    
+
     const finalY = (doc as any).lastAutoTable.finalY + 10 || 150;
     doc.setFontSize(12);
     doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 14, finalY);
@@ -258,7 +258,7 @@ const CashBookPage = () => {
   // Function to generate and download Excel
   const generateExcel = () => {
     if (!cashAccount) return;
-    
+
     // Create empty worksheet
     const worksheet = XLSX.utils.aoa_to_sheet([]);
 
@@ -304,11 +304,11 @@ const CashBookPage = () => {
       !transaction.isInflow ? transaction.amount : null,
       transaction.note || ''
     ]);
-    
+
     // Add totals row
     dataRows.push([
-      "", "", "", "TOTALS", 
-      totalInflow, 
+      "", "", "", "TOTALS",
+      totalInflow,
       totalOutflow,
       ""
     ]);
@@ -320,8 +320,8 @@ const CashBookPage = () => {
     // Format numbers as currency and apply styles to totals row
     const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:G1000');
     for (let R = 13; R <= range.e.r; ++R) {
-      const inflowCell = XLSX.utils.encode_cell({r: R, c: 4}); // Column E (Inflow)
-      const outflowCell = XLSX.utils.encode_cell({r: R, c: 5}); // Column F (Outflow)
+      const inflowCell = XLSX.utils.encode_cell({ r: R, c: 4 }); // Column E (Inflow)
+      const outflowCell = XLSX.utils.encode_cell({ r: R, c: 5 }); // Column F (Outflow)
 
       if (worksheet[inflowCell] && worksheet[inflowCell].v) {
         worksheet[inflowCell].z = '"₹ "#,##0.00';
@@ -329,12 +329,12 @@ const CashBookPage = () => {
       if (worksheet[outflowCell] && worksheet[outflowCell].v) {
         worksheet[outflowCell].z = '"₹ "#,##0.00';
       }
-      
+
       // Apply bold formatting to the totals row
       if (R === 14 + dataRows.length - 1) {
         // Make cells in the totals row bold
         for (let C = 0; C <= 6; C++) {
-          const cell = XLSX.utils.encode_cell({r: R, c: C});
+          const cell = XLSX.utils.encode_cell({ r: R, c: C });
           if (!worksheet[cell]) worksheet[cell] = { t: 's', v: '' };
           if (!worksheet[cell].s) worksheet[cell].s = {};
           worksheet[cell].s.font = { bold: true };
@@ -502,7 +502,7 @@ const CashBookPage = () => {
           openingBalance={openingBalance}
         />
       )}
-    </div>    
+    </div>
   );
 };
 

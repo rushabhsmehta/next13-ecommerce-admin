@@ -70,7 +70,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedParam = searchParams.get("search");
+  const selectedParam = searchParams?.get("search");
   const selectedOption = useMemo(() => {
     if (!selectedParam) return "AH";
     if (selectedParam === "Empty") return "Empty";

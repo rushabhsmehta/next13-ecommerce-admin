@@ -92,7 +92,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/activities/${params.activityId}`, data);
+        await axios.patch(`/api/activities/${params?.activityId}`, data);
       } else {
         await axios.post(`/api/activities`, data);
       }
@@ -109,7 +109,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/activities/${params.activityId}`);
+      await axios.delete(`/api/activities/${params?.activityId}`);
       router.refresh();
       router.push(`/activities`);
       toast.success('Activity deleted.');

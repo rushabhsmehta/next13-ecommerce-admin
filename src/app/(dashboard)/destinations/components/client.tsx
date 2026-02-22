@@ -22,9 +22,9 @@ export const DestinationsClient: React.FC<DestinationsClientProps> = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const locationId = searchParams.get("locationId");
+  const locationId = searchParams?.get("locationId");
 
-  const title = selectedLocation 
+  const title = selectedLocation
     ? `Destinations for ${selectedLocation.label} (${data.length})`
     : `Destinations (${data.length})`;
 
@@ -33,7 +33,7 @@ export const DestinationsClient: React.FC<DestinationsClientProps> = ({
     : "Manage destinations for your locations";
 
   const handleAddNew = () => {
-    const newUrl = locationId 
+    const newUrl = locationId
       ? `/destinations/new?locationId=${locationId}`
       : `/destinations/new`;
     router.push(newUrl);

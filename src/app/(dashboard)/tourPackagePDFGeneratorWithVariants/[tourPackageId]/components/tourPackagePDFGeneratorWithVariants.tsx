@@ -84,7 +84,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedOption = searchParams.get("search") || "Empty";
+  const selectedOption = searchParams?.get("search") || "Empty";
   const [loading, setLoading] = useState(false);
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];

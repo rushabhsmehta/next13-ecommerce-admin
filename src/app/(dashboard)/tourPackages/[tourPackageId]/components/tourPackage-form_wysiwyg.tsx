@@ -92,11 +92,11 @@ const brandColors = {
 const PDFLikeSection = ({ title, children, className, icon: Icon, action }: { title: string, children: React.ReactNode, className?: string, icon?: any, action?: React.ReactNode }) => (
   <div className={cn("mb-8 overflow-hidden rounded-lg border shadow-sm", className)} style={{ borderColor: brandColors.border, backgroundColor: brandColors.white }}>
     <div className="flex items-center justify-between px-4 py-3 border-b" style={{ background: brandColors.tableHeaderBg, borderColor: brandColors.border }}>
-       <div className="flex items-center gap-2">
-         {Icon && <Icon className="h-5 w-5" style={{ color: brandColors.secondary }} />}
-         <h3 className="text-lg font-bold" style={{ color: brandColors.text }}>{title}</h3>
-       </div>
-       {action && <div>{action}</div>}
+      <div className="flex items-center gap-2">
+        {Icon && <Icon className="h-5 w-5" style={{ color: brandColors.secondary }} />}
+        <h3 className="text-lg font-bold" style={{ color: brandColors.text }}>{title}</h3>
+      </div>
+      {action && <div>{action}</div>}
     </div>
     <div className="p-6">
       {children}
@@ -108,9 +108,9 @@ const PDFLikeSection = ({ title, children, className, icon: Icon, action }: { ti
 const InfoCard = ({ label, value }: { label: string, value?: string | number }) => {
   if (!value) return null;
   return (
-    <div className="p-3 rounded-md border-l-4" style={{ 
-      background: brandColors.panelBg, 
-      borderColor: brandColors.primary 
+    <div className="p-3 rounded-md border-l-4" style={{
+      background: brandColors.panelBg,
+      borderColor: brandColors.primary
     }}>
       <div className="text-xs font-semibold mb-1" style={{ color: brandColors.muted }}>{label}</div>
       <div className="text-sm font-semibold" style={{ color: brandColors.text }}>{value}</div>
@@ -331,7 +331,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
   });
 
   const [useDefaultPricing, setUseDefaultPricing] = useState(false);
-  
+
   // Track which sections are being edited
   const [editingSection, setEditingSection] = useState<string | null>(null);
 
@@ -671,21 +671,21 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
     }
 
     const firstActivity = activities[0];
-    
+
     // Check if activities are in AI-generated format (object with activityDescription)
     if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
       // Escape HTML first to prevent XSS, then convert newlines to <br>
       const escapedDescription = escapeHtml(firstActivity.activityDescription);
       const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
-      
+
       return [{
         activityTitle: firstActivity.activityTitle || '',
         activityDescription: descriptionWithLineBreaks,
         activityImages: [],
         locationId: firstActivity.locationId || '',
       }];
-    } 
-    
+    }
+
     // Legacy format: array of strings
     if (typeof firstActivity === 'string') {
       return activities.map((act: string) => ({
@@ -695,7 +695,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
         locationId: '',
       }));
     }
-    
+
     // Already in correct format (has activityImages property)
     return activities;
   };
@@ -817,10 +817,10 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
       // Build the text to copy
       const dayTitle = stripHtml(itinerary.itineraryTitle || '');
       const dayDescription = stripHtml(itinerary.itineraryDescription || '');
-      
+
       let textToCopy = `Day Title: ${dayTitle}\n\n`;
       textToCopy += `Day Description: ${dayDescription}\n\n`;
-      
+
       // Add activities
       if (itinerary.activities && itinerary.activities.length > 0) {
         textToCopy += 'Activities:\n';
@@ -908,12 +908,12 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
           )
         })
 
-        await axios.patch(`/api/tourPackages/${params.tourPackageId}`, formattedData);
+        await axios.patch(`/api/tourPackages/${params?.tourPackageId}`, formattedData);
       } else {
         await axios.post(`/api/tourPackages`, formattedData);
       }
       console.log('✅ [TOUR PACKAGE FORM] Tour package saved successfully', {
-        tourPackageId: params.tourPackageId,
+        tourPackageId: params?.tourPackageId,
         isUpdate: Boolean(initialData),
       });
       router.refresh();
@@ -934,7 +934,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/tourPackages/${params.tourPackageId}`);
+      await axios.delete(`/api/tourPackages/${params?.tourPackageId}`);
       router.refresh();
       router.push(`/tourPackages`);
       toast.success('Tour Package  deleted.');
@@ -1075,12 +1075,12 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
           <div className="mx-auto max-w-[850px] space-y-8 pb-20">
 
 
-            <PDFLikeSection 
-              title="Tour Information" 
+            <PDFLikeSection
+              title="Tour Information"
               icon={FileText}
               action={
                 !readOnly && (
-                  <Button 
+                  <Button
                     type="button"
                     size="sm"
                     variant="outline"
@@ -1100,7 +1100,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                     <InfoCard label="TOUR NAME" value={form.watch('tourPackageName') || 'Not specified'} />
                     <InfoCard label="DURATION" value={form.watch('numDaysNight') || 'Not specified'} />
                   </InfoCardGrid>
-                  
+
                   {form.watch('images') && form.watch('images').length > 0 && (
                     <div>
                       <div className="text-xs font-semibold mb-2" style={{ color: brandColors.muted }}>TOUR IMAGES</div>
@@ -1113,7 +1113,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       </div>
                     </div>
                   )}
-                  
+
                   <InfoCardGrid>
                     {form.watch('tourPackageType') && (
                       <InfoCard label="TYPE" value={form.watch('tourPackageType')} />
@@ -1122,11 +1122,11 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       <InfoCard label="CATEGORY" value={form.watch('tourCategory')} />
                     )}
                   </InfoCardGrid>
-                  
+
                   {form.watch('isFeatured') && (
-                    <div className="p-3 rounded-md border-l-4" style={{ 
-                      background: brandColors.panelBg, 
-                      borderColor: brandColors.success 
+                    <div className="p-3 rounded-md border-l-4" style={{
+                      background: brandColors.panelBg,
+                      borderColor: brandColors.success
                     }}>
                       <div className="text-xs font-semibold" style={{ color: brandColors.success }}>✓ Available on Website</div>
                     </div>
@@ -1137,45 +1137,45 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '4px', borderLeft: `4px solid ${brandColors.primary}` }}>
-                       <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>TOUR NAME</div>
-                       <FormField
-                         control={form.control}
-                         name="tourPackageName"
-                         render={({ field }) => (
-                           <FormItem className="m-0">
-                             <FormControl>
-                               <Input
-                                 disabled={loading || readOnly}
-                                 placeholder="Enter Tour Name"
-                                 className="border-0 bg-transparent p-0 text-sm font-bold text-gray-900 focus-visible:ring-0 h-auto"
-                                 {...field}
-                               />
-                             </FormControl>
-                             <FormMessage />
-                           </FormItem>
-                         )}
-                       />
+                      <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>TOUR NAME</div>
+                      <FormField
+                        control={form.control}
+                        name="tourPackageName"
+                        render={({ field }) => (
+                          <FormItem className="m-0">
+                            <FormControl>
+                              <Input
+                                disabled={loading || readOnly}
+                                placeholder="Enter Tour Name"
+                                className="border-0 bg-transparent p-0 text-sm font-bold text-gray-900 focus-visible:ring-0 h-auto"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '4px', borderLeft: `4px solid ${brandColors.primary}` }}>
-                       <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>DURATION</div>
-                       <FormField
-                         control={form.control}
-                         name="numDaysNight"
-                         render={({ field }) => (
-                           <FormItem className="m-0">
-                             <FormControl>
-                               <Input
-                                 disabled={loading || readOnly}
-                                 placeholder="e.g. 5 Days / 4 Nights"
-                                 className="border-0 bg-transparent p-0 text-sm font-bold text-gray-900 focus-visible:ring-0 h-auto"
-                                 {...field}
-                               />
-                             </FormControl>
-                             <FormMessage />
-                           </FormItem>
-                         )}
-                       />
+                      <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>DURATION</div>
+                      <FormField
+                        control={form.control}
+                        name="numDaysNight"
+                        render={({ field }) => (
+                          <FormItem className="m-0">
+                            <FormControl>
+                              <Input
+                                disabled={loading || readOnly}
+                                placeholder="e.g. 5 Days / 4 Nights"
+                                className="border-0 bg-transparent p-0 text-sm font-bold text-gray-900 focus-visible:ring-0 h-auto"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
 
@@ -1198,7 +1198,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -1229,7 +1229,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       )}
                     />
 
-                     <FormField
+                    <FormField
                       control={form.control}
                       name="tourCategory"
                       render={({ field }) => (
@@ -1258,38 +1258,38 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       )}
                     />
                   </div>
-                  
+
                   <FormField
-                      control={form.control}
-                      name="isFeatured"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 bg-slate-50">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              disabled={readOnly}
-                              // @ts-ignore
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1">
-                            <FormLabel>
-                              Available on Website
-                            </FormLabel>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+                    control={form.control}
+                    name="isFeatured"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 bg-slate-50">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            disabled={readOnly}
+                            // @ts-ignore
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1">
+                          <FormLabel>
+                            Available on Website
+                          </FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
                 </div>
               )}
             </PDFLikeSection>
 
-            <PDFLikeSection 
-              title="Hotel Allocations" 
+            <PDFLikeSection
+              title="Hotel Allocations"
               icon={Building2}
               action={
                 !readOnly && (
-                  <Button 
+                  <Button
                     type="button"
                     size="sm"
                     variant="outline"
@@ -1309,11 +1309,11 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                     form.watch('itineraries').map((itinerary: any, index: number) => {
                       const hotel = hotels.find(h => h.id === itinerary.hotelId);
                       if (!hotel) return null;
-                      
+
                       return (
-                        <div key={index} className="p-3 rounded-lg border" style={{ 
-                          background: brandColors.white, 
-                          borderColor: brandColors.border 
+                        <div key={index} className="p-3 rounded-lg border" style={{
+                          background: brandColors.white,
+                          borderColor: brandColors.border
                         }}>
                           <div className="flex gap-3">
                             <div className="flex-shrink-0 w-20 h-16 rounded overflow-hidden" style={{ background: '#f3f4f6' }}>
@@ -1353,12 +1353,12 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
               )}
             </PDFLikeSection>
 
-            <PDFLikeSection 
-              title="Destination" 
+            <PDFLikeSection
+              title="Destination"
               icon={MapPin}
               action={
                 !readOnly && (
-                  <Button 
+                  <Button
                     type="button"
                     size="sm"
                     variant="outline"
@@ -1374,9 +1374,9 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
               {editingSection !== 'destination' ? (
                 // Display View
                 <div>
-                  <InfoCard 
-                    label="DESTINATION" 
-                    value={locations.find(l => l.id === form.watch('locationId'))?.label || 'Not specified'} 
+                  <InfoCard
+                    label="DESTINATION"
+                    value={locations.find(l => l.id === form.watch('locationId'))?.label || 'Not specified'}
                   />
                 </div>
               ) : (
@@ -1485,37 +1485,37 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
               )}
             </PDFLikeSection>
 
-            <PDFLikeSection 
-                title="Itinerary Details" 
-                icon={ListPlus}
-                action={
-                  !readOnly && (
-                    <div className="flex items-center gap-2">
-                      <Button 
+            <PDFLikeSection
+              title="Itinerary Details"
+              icon={ListPlus}
+              action={
+                !readOnly && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingSection(editingSection === 'itinerary' ? null : 'itinerary')}
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      {editingSection === 'itinerary' ? 'Close' : 'Edit'}
+                    </Button>
+                    {editingSection === 'itinerary' && (
+                      <Button
                         type="button"
                         size="sm"
-                        variant="outline"
-                        onClick={() => setEditingSection(editingSection === 'itinerary' ? null : 'itinerary')}
-                        className="flex items-center gap-2"
+                        onClick={handleAddNewDay}
+                        disabled={loading}
+                        className="shadow-sm"
                       >
-                        <Edit className="h-4 w-4" />
-                        {editingSection === 'itinerary' ? 'Close' : 'Edit'}
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Day
                       </Button>
-                      {editingSection === 'itinerary' && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleAddNewDay}
-                          disabled={loading}
-                          className="shadow-sm"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Day
-                        </Button>
-                      )}
-                    </div>
-                  )
-                }
+                    )}
+                  </div>
+                )
+              }
             >
               {editingSection !== 'itinerary' ? (
                 // Display View - Summary
@@ -1525,9 +1525,9 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       const hotel = hotels.find(h => h.id === itinerary.hotelId);
                       const location = locations.find(l => l.id === itinerary.locationId);
                       return (
-                        <div key={index} className="p-4 rounded-lg border-l-4" style={{ 
-                          background: brandColors.subtlePanel, 
-                          borderColor: brandColors.primary 
+                        <div key={index} className="p-4 rounded-lg border-l-4" style={{
+                          background: brandColors.subtlePanel,
+                          borderColor: brandColors.primary
                         }}>
                           <div className="flex items-center gap-3 mb-2">
                             <div className="flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm" style={{
@@ -1641,15 +1641,15 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                                                   >
                                                     <GripVertical className="h-5 w-5" />
                                                   </button>
-                                                  
+
                                                   <div className="flex flex-col items-center justify-center h-12 w-12 rounded-full text-white shrink-0" style={{ backgroundColor: brandColors.primary }}>
-                                                      <span className="text-[10px] font-medium leading-none">DAY</span>
-                                                      <span className="text-lg font-bold leading-none">{index + 1}</span>
+                                                    <span className="text-[10px] font-medium leading-none">DAY</span>
+                                                    <span className="text-lg font-bold leading-none">{index + 1}</span>
                                                   </div>
 
                                                   <div className="flex flex-col items-start gap-1">
-                                                     <div className="h-1.5 w-16 rounded-full" style={{ background: `linear-gradient(135deg, ${brandColors.secondary} 0%, ${brandColors.accent} 100%)` }}></div>
-                                                     <div className="font-bold text-lg leading-tight text-gray-900 text-left" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1} Planning` }} />
+                                                    <div className="h-1.5 w-16 rounded-full" style={{ background: `linear-gradient(135deg, ${brandColors.secondary} 0%, ${brandColors.accent} 100%)` }}></div>
+                                                    <div className="font-bold text-lg leading-tight text-gray-900 text-left" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1} Planning` }} />
                                                   </div>
                                                 </div>
                                                 <button
@@ -2129,12 +2129,12 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
 
             {/* Hotels tab content removed */}
 
-            <PDFLikeSection 
-              title="Flight Details" 
+            <PDFLikeSection
+              title="Flight Details"
               icon={Plane}
               action={
                 !readOnly && (
-                  <Button 
+                  <Button
                     type="button"
                     size="sm"
                     variant="outline"
@@ -2152,9 +2152,9 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                 <div className="space-y-3">
                   {form.watch('flightDetails') && form.watch('flightDetails').length > 0 ? (
                     form.watch('flightDetails').map((flight: any, index: number) => (
-                      <div key={index} className="p-3 rounded-lg border" style={{ 
-                        background: brandColors.white, 
-                        borderColor: brandColors.border 
+                      <div key={index} className="p-3 rounded-lg border" style={{
+                        background: brandColors.white,
+                        borderColor: brandColors.border
                       }}>
                         <div className="flex justify-between items-start mb-2">
                           <div>
@@ -2168,9 +2168,9 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                             )}
                           </div>
                           {flight.flightDuration && (
-                            <span className="text-xs font-semibold px-2 py-1 rounded" style={{ 
+                            <span className="text-xs font-semibold px-2 py-1 rounded" style={{
                               background: brandColors.light,
-                              color: brandColors.primary 
+                              color: brandColors.primary
                             }}>
                               {flight.flightDuration}
                             </span>
@@ -2204,178 +2204,178 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       <FormItem>
                         <FormLabel className="sr-only">Create Flight Plan</FormLabel>
                         <div className="space-y-4">
-                        {
-                          value.map((flight, index) => (
+                          {
+                            value.map((flight, index) => (
 
-                            <div 
-                              key={index} 
-                              className="relative p-4 border rounded-md bg-white hover:shadow-sm transition-shadow"
-                              style={{ 
-                                borderLeft: `4px solid ${brandColors.primary}`,
-                                backgroundColor: index % 2 === 0 ? '#f9fafb' : 'white'
-                              }}
-                            >
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <FormItem>
-                                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Date</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Date"
-                                      disabled={loading}
-                                      value={flight.date}
-                                      className="bg-white"
-                                      onChange={(e) => {
-                                        const newFlightDetails = [...value];
-                                        newFlightDetails[index] = { ...flight, date: e.target.value };
-                                        onChange(newFlightDetails);
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
+                              <div
+                                key={index}
+                                className="relative p-4 border rounded-md bg-white hover:shadow-sm transition-shadow"
+                                style={{
+                                  borderLeft: `4px solid ${brandColors.primary}`,
+                                  backgroundColor: index % 2 === 0 ? '#f9fafb' : 'white'
+                                }}
+                              >
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                  <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Date</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Date"
+                                        disabled={loading}
+                                        value={flight.date}
+                                        className="bg-white"
+                                        onChange={(e) => {
+                                          const newFlightDetails = [...value];
+                                          newFlightDetails[index] = { ...flight, date: e.target.value };
+                                          onChange(newFlightDetails);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
 
-                                <FormItem>
-                                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Flight Name</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="e.g. Indigo"
-                                      disabled={loading}
-                                      value={flight.flightName}
-                                      className="bg-white"
-                                      onChange={(e) => {
-                                        const newFlightDetails = [...value];
-                                        newFlightDetails[index] = { ...flight, flightName: e.target.value };
-                                        onChange(newFlightDetails);
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
+                                  <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Flight Name</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="e.g. Indigo"
+                                        disabled={loading}
+                                        value={flight.flightName}
+                                        className="bg-white"
+                                        onChange={(e) => {
+                                          const newFlightDetails = [...value];
+                                          newFlightDetails[index] = { ...flight, flightName: e.target.value };
+                                          onChange(newFlightDetails);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
 
-                                <FormItem>
-                                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Flight Number</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="e.g. 6E-123"
-                                      disabled={loading}
-                                      value={flight.flightNumber}
-                                      className="bg-white"
-                                      onChange={(e) => {
-                                        const newFlightDetails = [...value];
-                                        newFlightDetails[index] = { ...flight, flightNumber: e.target.value };
-                                        onChange(newFlightDetails);
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
+                                  <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Flight Number</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="e.g. 6E-123"
+                                        disabled={loading}
+                                        value={flight.flightNumber}
+                                        className="bg-white"
+                                        onChange={(e) => {
+                                          const newFlightDetails = [...value];
+                                          newFlightDetails[index] = { ...flight, flightNumber: e.target.value };
+                                          onChange(newFlightDetails);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
 
-                                <FormItem>
-                                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Duration</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="e.g. 2h 30m"
-                                      disabled={loading}
-                                      value={flight.flightDuration}
-                                      className="bg-white"
-                                      onChange={(e) => {
-                                        const newFlightDetails = [...value];
-                                        newFlightDetails[index] = { ...flight, flightDuration: e.target.value };
-                                        onChange(newFlightDetails);
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
+                                  <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Duration</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="e.g. 2h 30m"
+                                        disabled={loading}
+                                        value={flight.flightDuration}
+                                        className="bg-white"
+                                        onChange={(e) => {
+                                          const newFlightDetails = [...value];
+                                          newFlightDetails[index] = { ...flight, flightDuration: e.target.value };
+                                          onChange(newFlightDetails);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
 
-                                <FormItem>
-                                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase">From</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Origin"
-                                      disabled={loading}
-                                      value={flight.from}
-                                      className="bg-white"
-                                      onChange={(e) => {
-                                        const newFlightDetails = [...value];
-                                        newFlightDetails[index] = { ...flight, from: e.target.value };
-                                        onChange(newFlightDetails);
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                                
-                                <FormItem>
-                                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase">To</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Destination"
-                                      disabled={loading}
-                                      value={flight.to}
-                                      className="bg-white"
-                                      onChange={(e) => {
-                                        const newFlightDetails = [...value];
-                                        newFlightDetails[index] = { ...flight, to: e.target.value };
-                                        onChange(newFlightDetails);
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
+                                  <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase">From</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Origin"
+                                        disabled={loading}
+                                        value={flight.from}
+                                        className="bg-white"
+                                        onChange={(e) => {
+                                          const newFlightDetails = [...value];
+                                          newFlightDetails[index] = { ...flight, from: e.target.value };
+                                          onChange(newFlightDetails);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
 
-                                <FormItem>
-                                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Departure</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="HH:MM"
-                                      disabled={loading}
-                                      value={flight.departureTime}
-                                      className="bg-white"
-                                      onChange={(e) => {
-                                        const newFlightDetails = [...value]; // Ensure this is your state array
-                                        newFlightDetails[index] = { ...flight, departureTime: e.target.value };
-                                        onChange(newFlightDetails);
-                                      }}
+                                  <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase">To</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Destination"
+                                        disabled={loading}
+                                        value={flight.to}
+                                        className="bg-white"
+                                        onChange={(e) => {
+                                          const newFlightDetails = [...value];
+                                          newFlightDetails[index] = { ...flight, to: e.target.value };
+                                          onChange(newFlightDetails);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
 
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                                
-                                <FormItem>
-                                  <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Arrival</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="HH:MM"
-                                      disabled={loading}
-                                      value={flight.arrivalTime}
-                                      className="bg-white"
-                                      onChange={(e) => {
-                                        const newFlightDetails = [...value];
-                                        newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
-                                        onChange(newFlightDetails);
-                                      }}
-                                    />
-                                  </FormControl>
-                                </FormItem>
+                                  <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Departure</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="HH:MM"
+                                        disabled={loading}
+                                        value={flight.departureTime}
+                                        className="bg-white"
+                                        onChange={(e) => {
+                                          const newFlightDetails = [...value]; // Ensure this is your state array
+                                          newFlightDetails[index] = { ...flight, departureTime: e.target.value };
+                                          onChange(newFlightDetails);
+                                        }}
+
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+
+                                  <FormItem>
+                                    <FormLabel className="text-xs font-semibold text-gray-500 uppercase">Arrival</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="HH:MM"
+                                        disabled={loading}
+                                        value={flight.arrivalTime}
+                                        className="bg-white"
+                                        onChange={(e) => {
+                                          const newFlightDetails = [...value];
+                                          newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
+                                          onChange(newFlightDetails);
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                </div>
+
+
+                                <div className="absolute right-2 top-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-red-500 hover:bg-red-50 hover:text-red-700"
+                                    disabled={loading}
+                                    title="Remove Flight"
+                                    onClick={() => {
+                                      const newFlightDetails = value.filter((_, i: number) => i != index);
+                                      onChange(newFlightDetails);
+                                    }}>
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
-
-
-                              <div className="absolute right-2 top-2">
-                                <Button
-                                  type="button"
-                                  variant="ghost" 
-                                  size="icon"
-                                  className="h-6 w-6 text-red-500 hover:bg-red-50 hover:text-red-700"
-                                  disabled={loading}
-                                  title="Remove Flight"
-                                  onClick={() => {
-                                    const newFlightDetails = value.filter((_, i: number) => i != index);
-                                    onChange(newFlightDetails);
-                                  }}>
-                                  <Trash className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                          </div>
+                            ))}
+                        </div>
                         <FormControl>
-                          <Button 
-                            type="button" 
+                          <Button
+                            type="button"
                             variant="outline"
                             className="mt-2 text-blue-600 border-blue-200 hover:bg-blue-50"
                             disabled={loading}
@@ -2391,12 +2391,12 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
               )}
             </PDFLikeSection>
 
-            <PDFLikeSection 
-              title="Pricing" 
+            <PDFLikeSection
+              title="Pricing"
               icon={Tag}
               action={
                 !readOnly && (
-                  <Button 
+                  <Button
                     type="button"
                     size="sm"
                     variant="outline"
@@ -2414,9 +2414,9 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                 <div className="space-y-3">
                   {form.watch('pricingSection') && form.watch('pricingSection').length > 0 ? (
                     form.watch('pricingSection').map((item: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-3 rounded-lg border" style={{ 
-                        background: brandColors.white, 
-                        borderColor: brandColors.border 
+                      <div key={index} className="flex justify-between items-center p-3 rounded-lg border" style={{
+                        background: brandColors.white,
+                        borderColor: brandColors.border
                       }}>
                         <div>
                           <h4 className="font-semibold text-sm" style={{ color: brandColors.text }}>{item.name}</h4>
@@ -2437,7 +2437,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                 </div>
               ) : (
                 // Edit View
-              <div className="space-y-4">
+                <div className="space-y-4">
                   {/* Add switch for default pricing options at the top */}
                   <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md mb-4">
                     <Switch
@@ -2465,14 +2465,14 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <div className="space-y-4">
                             {/* Use pricingFields from useFieldArray instead of field.value */}
                             {pricingFields.map((field, index) => (
-                              <div 
-                                key={field.id} 
+                              <div
+                                key={field.id}
                                 className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 relative"
                                 style={{
-                                    background: index % 2 === 0 ? '#f9fafb' : 'white',
-                                    borderRadius: '4px',
-                                    border: '1px solid #e5e7eb',
-                                    borderLeft: `4px solid ${brandColors.primary}`
+                                  background: index % 2 === 0 ? '#f9fafb' : 'white',
+                                  borderRadius: '4px',
+                                  border: '1px solid #e5e7eb',
+                                  borderLeft: `4px solid ${brandColors.primary}`
                                 }}
                               >
                                 <FormField
@@ -2523,28 +2523,28 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                                     </FormItem>
                                   )}
                                 />
-                                
+
                                 <div className="absolute right-2 top-2 flex space-x-1">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleAddPricingItem(index)}
-                                      className="h-6 w-6 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                      title="Insert row after this"
-                                    >
-                                      <Plus className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleRemovePricingItem(index)}
-                                      className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                      title="Remove this row"
-                                    >
-                                      <Trash className="h-4 w-4" />
-                                    </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleAddPricingItem(index)}
+                                    className="h-6 w-6 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                    title="Insert row after this"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleRemovePricingItem(index)}
+                                    className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    title="Remove this row"
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </div>
                             ))}
@@ -2568,12 +2568,12 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
               )}
             </PDFLikeSection>
 
-            <PDFLikeSection 
-              title="Policies & Terms" 
+            <PDFLikeSection
+              title="Policies & Terms"
               icon={FileCheck}
               action={
                 !readOnly && (
-                  <Button 
+                  <Button
                     type="button"
                     size="sm"
                     variant="outline"
@@ -2597,7 +2597,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       <InfoCard label="EXCLUSIONS" value={`${form.watch('exclusions').length} items`} />
                     )}
                   </InfoCardGrid>
-                  
+
                   <InfoCardGrid>
                     {form.watch('paymentPolicy') && form.watch('paymentPolicy').length > 0 && (
                       <InfoCard label="PAYMENT TERMS" value={`${form.watch('paymentPolicy').length} terms`} />
@@ -2606,13 +2606,13 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                       <InfoCard label="CANCELLATION POLICY" value={`${form.watch('cancellationPolicy').length} terms`} />
                     )}
                   </InfoCardGrid>
-                  
+
                   {((form.watch('importantNotes')?.length ?? 0) > 0) ||
-                   ((form.watch('usefulTip')?.length ?? 0) > 0) ||
-                   ((form.watch('termsconditions')?.length ?? 0) > 0) ? (
-                    <div className="p-3 rounded-md border-l-4" style={{ 
-                      background: brandColors.panelBg, 
-                      borderColor: brandColors.primary 
+                    ((form.watch('usefulTip')?.length ?? 0) > 0) ||
+                    ((form.watch('termsconditions')?.length ?? 0) > 0) ? (
+                    <div className="p-3 rounded-md border-l-4" style={{
+                      background: brandColors.panelBg,
+                      borderColor: brandColors.primary
                     }}>
                       <div className="text-xs font-semibold mb-1" style={{ color: brandColors.muted }}>ADDITIONAL POLICIES</div>
                       <div className="text-sm" style={{ color: brandColors.text }}>
@@ -2629,139 +2629,139 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                 // Edit View
                 <div>
                   <div className="space-y-8 p-1">
-                    
+
                     {/* Inclusions & Exclusions */}
                     <div className="space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase border-b pb-2">
-                        <ListChecks className="h-4 w-4 text-emerald-600" /> 
+                      <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase border-b pb-2">
+                        <ListChecks className="h-4 w-4 text-emerald-600" />
                         Inclusions & Exclusions
-                        </h4>
-                        <div className="grid gap-6 pl-2">
-                            <PolicyField
-                            control={form.control}
-                            name="inclusions"
-                            label="Inclusions"
-                            loading={loading}
-                            checked={useLocationDefaults.inclusions}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)}
-                            switchDescription="Use Switch to Copy Inclusions from the Selected Location"
-                            placeholder="Add inclusion item..."
-                            />
+                      </h4>
+                      <div className="grid gap-6 pl-2">
+                        <PolicyField
+                          control={form.control}
+                          name="inclusions"
+                          label="Inclusions"
+                          loading={loading}
+                          checked={useLocationDefaults.inclusions}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)}
+                          switchDescription="Use Switch to Copy Inclusions from the Selected Location"
+                          placeholder="Add inclusion item..."
+                        />
 
-                            <PolicyField
-                            control={form.control}
-                            name="exclusions"
-                            label="Exclusions"
-                            loading={loading}
-                            checked={useLocationDefaults.exclusions}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)}
-                            switchDescription="Use Switch to Copy Exclusions from the Selected Location"
-                            placeholder="Add exclusion item..."
-                            />
-                        </div>
+                        <PolicyField
+                          control={form.control}
+                          name="exclusions"
+                          label="Exclusions"
+                          loading={loading}
+                          checked={useLocationDefaults.exclusions}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)}
+                          switchDescription="Use Switch to Copy Exclusions from the Selected Location"
+                          placeholder="Add exclusion item..."
+                        />
+                      </div>
                     </div>
 
                     {/* Notes & Tips */}
                     <div className="space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase border-b pb-2">
-                        <FileText className="h-4 w-4 text-blue-600" /> 
+                      <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase border-b pb-2">
+                        <FileText className="h-4 w-4 text-blue-600" />
                         Notes & Tips
-                        </h4>
-                        <div className="grid gap-6 pl-2">
-                            <PolicyField
-                            control={form.control}
-                            name="importantNotes"
-                            label="Important Notes"
-                            loading={loading}
-                            checked={useLocationDefaults.importantNotes}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)}
-                            switchDescription="Use Switch to Copy Important Notes from the Selected Location"
-                            placeholder="Add important note..."
-                            />
+                      </h4>
+                      <div className="grid gap-6 pl-2">
+                        <PolicyField
+                          control={form.control}
+                          name="importantNotes"
+                          label="Important Notes"
+                          loading={loading}
+                          checked={useLocationDefaults.importantNotes}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)}
+                          switchDescription="Use Switch to Copy Important Notes from the Selected Location"
+                          placeholder="Add important note..."
+                        />
 
-                            <PolicyField
-                            control={form.control}
-                            name="usefulTip"
-                            label="Useful Tips"
-                            loading={loading}
-                            checked={useLocationDefaults.usefulTip}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)}
-                            switchDescription="Use Switch to Copy Useful Tips from the Selected Location"
-                            placeholder="Add useful tip..."
-                            />
-                        </div>
+                        <PolicyField
+                          control={form.control}
+                          name="usefulTip"
+                          label="Useful Tips"
+                          loading={loading}
+                          checked={useLocationDefaults.usefulTip}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)}
+                          switchDescription="Use Switch to Copy Useful Tips from the Selected Location"
+                          placeholder="Add useful tip..."
+                        />
+                      </div>
                     </div>
 
                     {/* Cancellation */}
                     <div className="space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase border-b pb-2">
-                        <AlertCircle className="h-4 w-4 text-red-600" /> 
+                      <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase border-b pb-2">
+                        <AlertCircle className="h-4 w-4 text-red-600" />
                         Cancellation Policies
-                        </h4>
-                        <div className="grid gap-6 pl-2">
-                            <PolicyField
-                            control={form.control}
-                            name="cancellationPolicy"
-                            label="General Cancellation Policy"
-                            loading={loading}
-                            checked={useLocationDefaults.cancellationPolicy}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
-                            switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
-                            placeholder="Add cancellation policy item..."
-                            />                        
-                            <PolicyField
-                            control={form.control}
-                            name="airlineCancellationPolicy"
-                            label="Airline Cancellation Policy"
-                            loading={loading}
-                            checked={useLocationDefaults.airlineCancellationPolicy}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
-                            switchDescription="Use Switch to Copy Airline Cancellation Policy from the Selected Location"
-                            placeholder="Add airline cancellation policy item..."
-                            />
+                      </h4>
+                      <div className="grid gap-6 pl-2">
+                        <PolicyField
+                          control={form.control}
+                          name="cancellationPolicy"
+                          label="General Cancellation Policy"
+                          loading={loading}
+                          checked={useLocationDefaults.cancellationPolicy}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
+                          switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
+                          placeholder="Add cancellation policy item..."
+                        />
+                        <PolicyField
+                          control={form.control}
+                          name="airlineCancellationPolicy"
+                          label="Airline Cancellation Policy"
+                          loading={loading}
+                          checked={useLocationDefaults.airlineCancellationPolicy}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
+                          switchDescription="Use Switch to Copy Airline Cancellation Policy from the Selected Location"
+                          placeholder="Add airline cancellation policy item..."
+                        />
 
-                            <PolicyField
-                            control={form.control}
-                            name="kitchenGroupPolicy"
-                            label="Kitchen Group Policy"
-                            loading={loading}
-                            checked={useLocationDefaults.kitchenGroupPolicy}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('kitchenGroupPolicy', checked)}
-                            switchDescription="Use Switch to Copy Kitchen Group Policy from the Selected Location"
-                            placeholder="Add kitchen group policy item..."
-                            />
-                        </div>
+                        <PolicyField
+                          control={form.control}
+                          name="kitchenGroupPolicy"
+                          label="Kitchen Group Policy"
+                          loading={loading}
+                          checked={useLocationDefaults.kitchenGroupPolicy}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('kitchenGroupPolicy', checked)}
+                          switchDescription="Use Switch to Copy Kitchen Group Policy from the Selected Location"
+                          placeholder="Add kitchen group policy item..."
+                        />
+                      </div>
                     </div>
 
                     {/* Terms */}
                     <div className="space-y-4">
-                        <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase border-b pb-2">
-                        <ScrollText className="h-4 w-4 text-orange-600" /> 
+                      <h4 className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase border-b pb-2">
+                        <ScrollText className="h-4 w-4 text-orange-600" />
                         Terms
-                        </h4>
-                        <div className="grid gap-6 pl-2">
-                            <PolicyField
-                            control={form.control}
-                            name="paymentPolicy"
-                            label="Payment Policy"
-                            loading={loading}
-                            checked={useLocationDefaults.paymentPolicy}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)}
-                            switchDescription="Use Switch to Copy Payment Policy from the Selected Location"
-                            placeholder="Add payment policy item..."
-                            />
+                      </h4>
+                      <div className="grid gap-6 pl-2">
+                        <PolicyField
+                          control={form.control}
+                          name="paymentPolicy"
+                          label="Payment Policy"
+                          loading={loading}
+                          checked={useLocationDefaults.paymentPolicy}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)}
+                          switchDescription="Use Switch to Copy Payment Policy from the Selected Location"
+                          placeholder="Add payment policy item..."
+                        />
 
-                            <PolicyField
-                            control={form.control}
-                            name="termsconditions"
-                            label="Terms and Conditions"
-                            loading={loading}
-                            checked={useLocationDefaults.termsconditions}
-                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)}
-                            switchDescription="Use Switch to Copy Terms and Conditions from the Selected Location"
-                            placeholder="Add terms and conditions item..."
-                            />
-                        </div>
+                        <PolicyField
+                          control={form.control}
+                          name="termsconditions"
+                          label="Terms and Conditions"
+                          loading={loading}
+                          checked={useLocationDefaults.termsconditions}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)}
+                          switchDescription="Use Switch to Copy Terms and Conditions from the Selected Location"
+                          placeholder="Add terms and conditions item..."
+                        />
+                      </div>
                     </div>
 
                   </div>
@@ -2769,12 +2769,12 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
               )}
             </PDFLikeSection>
 
-            <PDFLikeSection 
-              title="Package Variants" 
+            <PDFLikeSection
+              title="Package Variants"
               icon={Sparkles}
               action={
                 !readOnly && (
-                  <Button 
+                  <Button
                     type="button"
                     size="sm"
                     variant="outline"

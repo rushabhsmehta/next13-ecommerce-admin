@@ -21,10 +21,10 @@ const statusOptions = [
 export const StatusFilter = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentStatus = searchParams.get('status') || 'ALL';
+  const currentStatus = searchParams?.get('status') || 'ALL';
 
   const onStatusChange = (status: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
 
     if (status === 'ALL') {
       params.delete('status');

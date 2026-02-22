@@ -18,14 +18,14 @@ const confirmedTourPackageQueryPage = async ({
 }: UpcomingTripsPageProps) => {
   // Get current date to filter out trips that have already ended
   const currentDate = new Date();
-  
+
   // Parse and validate date filters
-  const startDate = searchParams.startDate ? new Date(searchParams.startDate) : startOfMonth(new Date());
-  const endDate = searchParams.endDate ? new Date(searchParams.endDate) : null;
-  
+  const startDate = searchParams?.startDate ? new Date(searchParams.startDate) : startOfMonth(new Date());
+  const endDate = searchParams?.endDate ? new Date(searchParams.endDate) : null;
+
   // Use validated dates for filtering
   const validStartDate = isValid(startDate) ? startDate : startOfMonth(new Date());
-  
+
   // Create where condition based on dates, filtering on tourEndsOn to include ongoing trips
   const whereCondition: any = {
     isFeatured: true,
@@ -38,7 +38,7 @@ const confirmedTourPackageQueryPage = async ({
       gte: validStartDate,
     },
   };
-  
+
   // Add end date to filter if provided
   if (endDate && isValid(endDate)) {
     whereCondition.tourStartsFrom.lte = endDate;
@@ -88,10 +88,10 @@ const confirmedTourPackageQueryPage = async ({
     <>
       <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackageQueryClient 
+          <TourPackageQueryClient
             data={formattedtourPackageQuery}
-            startDate={searchParams.startDate}
-            endDate={searchParams.endDate} 
+            startDate={searchParams?.startDate}
+            endDate={searchParams?.endDate}
           />
         </div>
       </div>

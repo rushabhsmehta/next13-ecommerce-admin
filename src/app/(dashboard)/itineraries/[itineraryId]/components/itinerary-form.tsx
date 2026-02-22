@@ -148,7 +148,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/itineraries/${params.itineraryId}`, submitData);
+        await axios.patch(`/api/itineraries/${params?.itineraryId}`, submitData);
       } else {
         await axios.post(`/api/itineraries`, submitData);
       }
@@ -165,7 +165,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/itineraries/${params.itineraryId}`);
+      await axios.delete(`/api/itineraries/${params?.itineraryId}`);
       router.refresh();
       router.push(`/itineraries`);
       toast.success('Itinerary deleted.');

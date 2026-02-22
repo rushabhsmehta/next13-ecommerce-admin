@@ -185,7 +185,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/itinerariesMaster/${params.itineraryMasterId}`, submitData);
+        await axios.patch(`/api/itinerariesMaster/${params?.itineraryMasterId}`, submitData);
       } else {
         await axios.post(`/api/itinerariesMaster`, submitData);
       }
@@ -202,7 +202,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/itinerariesMaster/${params.itineraryMasterId}`);
+      await axios.delete(`/api/itinerariesMaster/${params?.itineraryMasterId}`);
       router.refresh();
       router.push(`/itinerariesMaster`);
       toast.success('Itinerary deleted.');
@@ -496,11 +496,11 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                           <CommandEmpty>No activity found.</CommandEmpty>
                           <CommandGroup>
                             {activitiesMaster?.map((activityMaster) => (
-                              <CommandItem 
-                              value={activityMaster.activityMasterTitle ?? ''}
-                              key={activityMaster.id}
+                              <CommandItem
+                                value={activityMaster.activityMasterTitle ?? ''}
+                                key={activityMaster.id}
                                 onSelect={() => {
-                                    
+
                                   const updatedActivities = [...value]
                                   updatedActivities[index].activityTitle = activityMaster.activityMasterTitle ?? ''
                                   updatedActivities[index].activityDescription = activityMaster.activityMasterDescription ?? ''
@@ -508,7 +508,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                                   onChange(updatedActivities)
                                 }
                                 }
-                                >
+                              >
                                 {activityMaster.activityMasterTitle}
                                 <CheckIcon
                                   className={cn(

@@ -28,7 +28,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   data,
 }) => {
   const router = useRouter();
-  const params = useParams();
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [creatingQuery, setCreatingQuery] = useState(false);
@@ -48,14 +48,14 @@ export const CellAction: React.FC<CellActionProps> = ({
     } finally {
       setLoading(false);
       setOpen(false);
-  setMenuOpen(false);
+      setMenuOpen(false);
     }
   };
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     toast.success('Inquiry ID copied to clipboard.');
-  setMenuOpen(false);
+    setMenuOpen(false);
   }
 
   const onCreateQuery = async () => {
@@ -63,11 +63,11 @@ export const CellAction: React.FC<CellActionProps> = ({
       setMenuOpen(false);
       setCreatingQuery(true);
       toast.loading("Loading create query page...", { id: "create-query-loading" });
-      
-      const queryRoute = isAssociatePartner 
+
+      const queryRoute = isAssociatePartner
         ? `/tourpackagequeryfrominquiry/associate/${data.id}`
         : `/tourpackagequeryfrominquiry/${data.id}`;
-      
+
       await router.push(queryRoute);
     } catch (error) {
       toast.error("Failed to navigate to create query page");
@@ -101,7 +101,7 @@ export const CellAction: React.FC<CellActionProps> = ({
         onConfirm={onConfirm}
         loading={loading}
       />
-      
+
       {/* WhatsApp Supplier Component */}
       <WhatsAppSupplierButton
         inquiryData={{
@@ -120,7 +120,7 @@ export const CellAction: React.FC<CellActionProps> = ({
         onOpenChange={setWhatsappOpen}
         hideButton={true}
       />
-      
+
       {/* Automated Query Creation Dialog */}
       <AutomatedQueryCreationDialog
         isOpen={automatedDialogOpen}
@@ -128,7 +128,7 @@ export const CellAction: React.FC<CellActionProps> = ({
         inquiryId={data.id}
         onSuccess={handleAutomatedQuerySuccess}
       />
-      
+
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -164,13 +164,13 @@ export const CellAction: React.FC<CellActionProps> = ({
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
-          
+
           <DropdownMenuItem
             onClick={onAutomatedQuery}
           >
             <Zap className="mr-2 h-4 w-4" /> Auto Create Query
           </DropdownMenuItem>
-          
+
           <DropdownMenuItem
             onClick={onCreateQuery}
             disabled={creatingQuery}

@@ -519,7 +519,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}/accounting`, processedData);
+        await axios.patch(`/api/tourPackageQuery/${params?.tourPackageQueryId}/accounting`, processedData);
       } else {
         await axios.post(`/api/tourPackageQuery`, processedData);
       }

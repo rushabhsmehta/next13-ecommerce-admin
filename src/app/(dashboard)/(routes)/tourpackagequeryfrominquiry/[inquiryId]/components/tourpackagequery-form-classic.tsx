@@ -717,7 +717,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     // --- ADJUST onSubmit TO MATCH SCHEMA ---
     const formattedData = {
       ...data, // selectedTemplateId and selectedTemplateType are included here
-      inquiryId: params.inquiryId,
+      inquiryId: params?.inquiryId,
       transport: data.transport || '',
       pickup_location: data.pickup_location || '',
       drop_location: data.drop_location || '',

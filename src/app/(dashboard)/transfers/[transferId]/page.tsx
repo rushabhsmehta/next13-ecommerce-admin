@@ -20,7 +20,7 @@ const TransferEditPage = () => {
     const fetchTransferDetails = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/transfers/${params.transferId}`);
+        const response = await axios.get(`/api/transfers/${params?.transferId}`);
         setTransferData(response.data);
       } catch (error) {
         toast.error("Failed to load transfer details");
@@ -30,10 +30,10 @@ const TransferEditPage = () => {
       }
     };
 
-    if (params.transferId) {
+    if (params?.transferId) {
       fetchTransferDetails();
     }
-  }, [params.transferId, router]);
+  }, [params?.transferId, router]);
 
   if (loading) {
     return (

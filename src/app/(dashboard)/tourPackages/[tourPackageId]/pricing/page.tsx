@@ -6,12 +6,12 @@ import axios from "axios"
 import { format } from "date-fns"
 import { formatLocalDate, createDatePickerValue, normalizeApiDate, utcToLocal } from "@/lib/timezone-utils"
 import { toast } from "react-hot-toast"
-import { 
-  CalendarIcon, 
-  Check, 
-  ChevronsUpDown, 
-  Edit, 
-  Plus, 
+import {
+  CalendarIcon,
+  Check,
+  ChevronsUpDown,
+  Edit,
+  Plus,
   Trash,
   X,
   MapPin,
@@ -20,11 +20,11 @@ import {
   Copy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { 
-  getSeasonColor, 
-  formatSeasonalPeriod, 
+import {
+  getSeasonColor,
+  formatSeasonalPeriod,
   generateDateRangesForYear,
-  type SeasonalPeriod 
+  type SeasonalPeriod
 } from "@/lib/seasonal-periods"
 
 import { Heading } from "@/components/ui/heading"
@@ -143,8 +143,8 @@ type PricingFormValues = z.infer<typeof pricingFormSchema>
 export default function TourPackagePricingPage() {
   const params = useParams()
   const router = useRouter()
-  const tourPackageId = params.tourPackageId as string
-  
+  const tourPackageId = params?.tourPackageId as string;
+
   const [tourPackage, setTourPackage] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [pricingPeriods, setPricingPeriods] = useState<any[]>([])
@@ -152,14 +152,14 @@ export default function TourPackagePricingPage() {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [showCopyDialog, setShowCopyDialog] = useState(false)
-    // Configuration items
+  // Configuration items
   const [mealPlans, setMealPlans] = useState<any[]>([])
   const [pricingAttributes, setPricingAttributes] = useState<any[]>([])
   const [vehicleTypes, setVehicleTypes] = useState<any[]>([])
   const [seasonalPeriods, setSeasonalPeriods] = useState<SeasonalPeriod[]>([])
   const [selectedSeasonalPeriods, setSelectedSeasonalPeriods] = useState<SeasonalPeriod[]>([])
   const [selectedSeasonType, setSelectedSeasonType] = useState<string | null>(null)
-    const form = useForm<PricingFormValues>({
+  const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
     defaultValues: {
       startDate: new Date(),
@@ -173,7 +173,7 @@ export default function TourPackagePricingPage() {
       isGroupPricing: false,
     }
   })
-  
+
   // Setup field array for pricing components
   const { fields, append, remove } = useFieldArray({
     name: "pricingComponents",
@@ -185,7 +185,7 @@ export default function TourPackagePricingPage() {
       try {
         const response = await axios.get(`/api/tourPackages/${tourPackageId}`)
         setTourPackage(response.data)
-        
+
         // Fetch seasonal periods for this tour package's location
         if (response.data.locationId) {
           await fetchSeasonalPeriods(response.data.locationId)
@@ -195,7 +195,7 @@ export default function TourPackagePricingPage() {
         console.error(error)
       }
     }
-    
+
     const fetchSeasonalPeriods = async (locationId: string) => {
       try {
         const response = await axios.get(`/api/locations/${locationId}/seasonal-periods`)
@@ -205,12 +205,12 @@ export default function TourPackagePricingPage() {
         // Not a critical error, just log it
       }
     }
-    
+
     const fetchPricingPeriods = async () => {
       try {
         const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing`)
         console.log('Fetched pricing periods from API:', response.data);
-        
+
         // Debug individual periods
         response.data.forEach((period: any, index: number) => {
           console.log(`Period ${index}:`, {
@@ -221,13 +221,14 @@ export default function TourPackagePricingPage() {
             endDateConverted: utcToLocal(period.endDate)
           });
         });
-        
+
         setPricingPeriods(response.data)
       } catch (error) {
         toast.error("Failed to fetch pricing periods")
-        console.error(error)      }
+        console.error(error)
+      }
     }
-    
+
     const fetchMealPlans = async () => {
       try {
         const response = await axios.get('/api/meal-plans')
@@ -259,7 +260,7 @@ export default function TourPackagePricingPage() {
         setLoading(false)
       }
     }
-      fetchTourPackage()
+    fetchTourPackage()
     fetchPricingPeriods()
     fetchMealPlans()
     fetchPricingAttributes()
@@ -269,11 +270,11 @@ export default function TourPackagePricingPage() {
   const onSubmit = async (data: PricingFormValues) => {
     try {
       setLoading(true)
-      
+
       // Debug logging
       console.log('Original form data:', data);
       console.log('Selected seasonal periods:', selectedSeasonalPeriods);
-      
+
       if (isEditMode && editId) {
         // For edit mode, handle single period update
         const normalizedData = {
@@ -281,8 +282,8 @@ export default function TourPackagePricingPage() {
           startDate: normalizeApiDate(data.startDate),
           endDate: normalizeApiDate(data.endDate)
         };
-        
-        await axios.patch(`/api/tourPackages/${tourPackageId}/pricing/${editId}`, normalizedData)
+
+        await axios.patch(`/api/tourPackages/${tourPackageId}/pricing/${editId}`, normalizedData);
         toast.success("Pricing period updated successfully")
       } else {
         // For create mode, check if bulk period creation is needed
@@ -290,10 +291,10 @@ export default function TourPackagePricingPage() {
           // Bulk creation for multiple seasonal periods
           const currentYear = new Date().getFullYear()
           let createdCount = 0
-          
+
           for (const period of selectedSeasonalPeriods) {
             const dateRanges = generateDateRangesForYear(period, currentYear)
-            
+
             for (const dateRange of dateRanges) {
               const periodData = {
                 ...data,
@@ -302,19 +303,19 @@ export default function TourPackagePricingPage() {
                 locationSeasonalPeriodId: period.id,
                 description: data.description || `${period.name} pricing`
               };
-              
+
               await axios.post(`/api/tourPackages/${tourPackageId}/pricing`, periodData)
               createdCount++
             }
           }
-          
+
           toast.success(`Created ${createdCount} pricing periods for ${selectedSeasonType?.replace('_', ' ').toLowerCase()} periods`)
         } else if (selectedSeasonalPeriods.length === 1) {
           // Single period creation
           const period = selectedSeasonalPeriods[0]
           const currentYear = new Date().getFullYear()
           const dateRanges = generateDateRangesForYear(period, currentYear)
-          
+
           if (dateRanges.length > 0) {
             const dateRange = dateRanges[0]
             const normalizedData = {
@@ -323,7 +324,7 @@ export default function TourPackagePricingPage() {
               endDate: normalizeApiDate(dateRange.end),
               locationSeasonalPeriodId: period.id
             };
-            
+
             await axios.post(`/api/tourPackages/${tourPackageId}/pricing`, normalizedData)
             toast.success("Pricing period created successfully")
           }
@@ -334,12 +335,12 @@ export default function TourPackagePricingPage() {
             startDate: normalizeApiDate(data.startDate),
             endDate: normalizeApiDate(data.endDate)
           };
-          
+
           await axios.post(`/api/tourPackages/${tourPackageId}/pricing`, normalizedData)
           toast.success("Pricing period created successfully")
         }
       }
-      
+
       // Reset form state
       setShowForm(false)
       setIsEditMode(false)
@@ -347,7 +348,7 @@ export default function TourPackagePricingPage() {
       setSelectedSeasonalPeriods([])
       setSelectedSeasonType(null)
       form.reset()
-      
+
       // Refresh pricing periods
       const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing`)
       setPricingPeriods(response.data)
@@ -363,27 +364,27 @@ export default function TourPackagePricingPage() {
     const periodsOfType = seasonalPeriods.filter(p => p.seasonType === seasonType)
     setSelectedSeasonalPeriods(periodsOfType)
     setSelectedSeasonType(seasonType)
-    
+
     // Clear individual period selection in form for bulk operation
     form.setValue('locationSeasonalPeriodId', '')
-    
+
     toast.success(`Selected all ${seasonType.replace('_', ' ').toLowerCase()} periods (${periodsOfType.length} periods)`)
   }
 
   const handleIndividualPeriodSelect = (period: SeasonalPeriod) => {
     setSelectedSeasonalPeriods([period])
     setSelectedSeasonType(null)
-    
+
     // Generate date ranges for current year
     const currentYear = new Date().getFullYear()
     const dateRanges = generateDateRangesForYear(period, currentYear)
-    
+
     if (dateRanges.length > 0) {
       const firstRange = dateRanges[0]
       form.setValue('startDate', firstRange.start)
       form.setValue('endDate', firstRange.end)
       form.setValue('locationSeasonalPeriodId', period.id)
-      
+
       toast.success(`Applied ${period.name} dates`)
     }
   }
@@ -395,10 +396,11 @@ export default function TourPackagePricingPage() {
     toast.success("Cleared seasonal period selection")
   }
 
-  const handleEdit = async (pricingPeriod: any) => {    setIsEditMode(true)
+  const handleEdit = async (pricingPeriod: any) => {
+    setIsEditMode(true)
     setEditId(pricingPeriod.id)
     setShowForm(true)
-    
+
     // Map pricing components to the form schema structure
     const formattedPricingComponents = pricingPeriod.pricingComponents.map((comp: any) => ({
       pricingAttributeId: comp.pricingAttributeId,
@@ -438,7 +440,7 @@ export default function TourPackagePricingPage() {
       setLoading(true)
       await axios.delete(`/api/tourPackages/${tourPackageId}/pricing/${id}`)
       toast.success("Pricing period deleted successfully")
-      
+
       // Refresh pricing periods
       const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing`)
       setPricingPeriods(response.data)
@@ -486,7 +488,7 @@ export default function TourPackagePricingPage() {
   const handleCopyFromPeriod = (sourcePeriod: any) => {
     // Extract and copy the pricing components
     const componentsToAdd = sourcePeriod.pricingComponents || []
-    
+
     if (componentsToAdd.length === 0) {
       toast.error("Selected period has no pricing components to copy")
       return
@@ -529,7 +531,7 @@ export default function TourPackagePricingPage() {
           title="Seasonal Pricing"
           description={`Manage pricing for ${tourPackage?.tourPackageName || 'this tour package'}`}
         />
-        
+
         {!showForm && (
           <Button onClick={() => {
             setIsEditMode(false)
@@ -554,9 +556,9 @@ export default function TourPackagePricingPage() {
           </Button>
         )}
       </div>
-      
+
       <Separator className="my-4" />
-      
+
       {/* Form for adding/editing pricing periods */}
       {showForm && (
         <Card className="mb-6">
@@ -566,7 +568,7 @@ export default function TourPackagePricingPage() {
               Define pricing for a specific date range based on number of rooms and meal plan
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -591,7 +593,7 @@ export default function TourPackagePricingPage() {
                           </Button>
                         )}
                       </div>
-                      
+
                       {seasonalPeriods.length > 0 ? (
                         <div className="space-y-4">
                           {/* Season Type Bulk Selection */}
@@ -602,15 +604,15 @@ export default function TourPackagePricingPage() {
                                 Bulk Selection by Season Type:
                               </span>
                             </div>
-                            
+
                             <div className="flex flex-wrap gap-2">
                               {['PEAK_SEASON', 'OFF_SEASON', 'SHOULDER_SEASON'].map((seasonType) => {
                                 const periodsOfType = seasonalPeriods.filter(p => p.seasonType === seasonType)
                                 if (periodsOfType.length === 0) return null
-                                
+
                                 const colors = getSeasonColor(seasonType as any)
                                 const isSelected = selectedSeasonType === seasonType
-                                
+
                                 return (
                                   <Button
                                     key={seasonType}
@@ -638,12 +640,12 @@ export default function TourPackagePricingPage() {
                                 Individual Period Selection:
                               </span>
                             </div>
-                            
+
                             <div className="flex flex-wrap gap-2">
                               {seasonalPeriods.map((period) => {
                                 const colors = getSeasonColor(period.seasonType)
                                 const isSelected = selectedSeasonalPeriods.length === 1 && selectedSeasonalPeriods[0]?.id === period.id
-                                
+
                                 return (
                                   <Button
                                     key={period.id}
@@ -660,7 +662,7 @@ export default function TourPackagePricingPage() {
                                   </Button>
                                 )
                               })}
-                              
+
                               {selectedSeasonalPeriods.length > 0 && (
                                 <Button
                                   type="button"
@@ -674,7 +676,7 @@ export default function TourPackagePricingPage() {
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Selection Summary */}
                           {selectedSeasonalPeriods.length > 0 && (
                             <div className="text-xs bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-3 rounded-lg">
@@ -696,7 +698,7 @@ export default function TourPackagePricingPage() {
                                   )}
                                 </div>
                               )}
-                              
+
                               {/* Period Date Details */}
                               <div className="mt-3 border-t border-gray-200 pt-2">
                                 <div className="font-medium text-gray-700 mb-2">
@@ -707,7 +709,7 @@ export default function TourPackagePricingPage() {
                                     const currentYear = new Date().getFullYear()
                                     const startDate = new Date(currentYear, period.startMonth - 1, period.startDay)
                                     const endDate = new Date(currentYear, period.endMonth - 1, period.endDay)
-                                    
+
                                     return (
                                       <div key={period.id} className="flex items-center justify-between text-xs bg-white/70 rounded px-2 py-1">
                                         <div className="flex items-center space-x-2">
@@ -809,7 +811,7 @@ export default function TourPackagePricingPage() {
                       )
                     }}
                   />
-                    {/* End Date */}
+                  {/* End Date */}
                   <FormField
                     control={form.control}
                     name="endDate"
@@ -865,7 +867,7 @@ export default function TourPackagePricingPage() {
                       )
                     }}
                   />
-                    {/* Number of Rooms */}
+                  {/* Number of Rooms */}
                   <FormField
                     control={form.control}
                     name="numberOfRooms"
@@ -883,7 +885,7 @@ export default function TourPackagePricingPage() {
                     )}
                   />
                 </div>
-                  <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {/* Meal Plan */}
                   <FormField
                     control={form.control}
@@ -944,7 +946,7 @@ export default function TourPackagePricingPage() {
                     )}
                   />
                 </div>
-                
+
                 {/* isGroupPricing Checkbox */}
                 <FormField
                   control={form.control}
@@ -975,8 +977,8 @@ export default function TourPackagePricingPage() {
                     <h3 className="text-lg font-medium">Pricing Components</h3>
                     <div className="flex gap-2">
                       {pricingPeriods.length > 0 && (
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           onClick={() => setShowCopyDialog(true)}
                           size="sm"
                           variant="secondary"
@@ -985,8 +987,8 @@ export default function TourPackagePricingPage() {
                           Copy from Period
                         </Button>
                       )}
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         onClick={handleAddComponent}
                         size="sm"
                         variant="outline"
@@ -996,7 +998,7 @@ export default function TourPackagePricingPage() {
                       </Button>
                     </div>
                   </div>
-                    {fields.length === 0 ? (
+                  {fields.length === 0 ? (
                     <p className="text-sm text-muted-foreground p-4 border rounded">
                       No pricing components added. Click &quot;Add Component&quot; to add pricing components.
                     </p>
@@ -1152,14 +1154,14 @@ export default function TourPackagePricingPage() {
               Select a pricing period to copy its pricing components, meal plan, transportation, and room configuration.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="max-h-[400px] overflow-y-auto space-y-2">
             {pricingPeriods.map((period) => {
               const componentCount = period.pricingComponents?.length || 0
-              
+
               return (
-                <Card 
-                  key={period.id} 
+                <Card
+                  key={period.id}
                   className="cursor-pointer hover:border-primary transition-colors"
                   onClick={() => handleCopyFromPeriod(period)}
                 >
@@ -1181,7 +1183,7 @@ export default function TourPackagePricingPage() {
                             <Badge variant="outline">Group Pricing</Badge>
                           )}
                           {period.locationSeasonalPeriod && (
-                            <Badge 
+                            <Badge
                               variant="outline"
                               className={cn(
                                 "text-xs",
@@ -1231,7 +1233,7 @@ export default function TourPackagePricingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* List of existing pricing periods (table layout) */}
       <div>
         <h2 className="text-xl font-bold mb-4">Pricing Periods</h2>
@@ -1283,7 +1285,7 @@ export default function TourPackagePricingPage() {
                             <div className="text-sm text-blue-700">{period.vehicleType.name}</div>
                           </div>
                         )}
-                        
+
                         {/* Pricing Components */}
                         <Table>
                           <TableHeader>
@@ -1346,7 +1348,7 @@ export default function TourPackagePricingPage() {
           </div>
         )}
       </div>
-      
+
       {/* Back to Tour Package Button */}
       <div className="mt-6">
         <Button

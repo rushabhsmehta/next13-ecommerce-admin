@@ -58,7 +58,7 @@ export const CashAccountForm: React.FC<CashAccountFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/cash-accounts/${params.cashAccountId}`, data);
+        await axios.patch(`/api/cash-accounts/${params?.cashAccountId}`, data);
       } else {
         await axios.post(`/api/cash-accounts`, data);
       }
@@ -75,7 +75,7 @@ export const CashAccountForm: React.FC<CashAccountFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/cash-accounts/${params.cashAccountId}`);
+      await axios.delete(`/api/cash-accounts/${params?.cashAccountId}`);
       router.refresh();
       router.push(`/cashaccounts`);
       toast.success('Cash account deleted.');
@@ -89,8 +89,8 @@ export const CashAccountForm: React.FC<CashAccountFormProps> = ({
 
   return (
     <>
-      <AlertModal 
-        isOpen={open} 
+      <AlertModal
+        isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={onDelete}
         loading={loading}
@@ -145,10 +145,10 @@ export const CashAccountForm: React.FC<CashAccountFormProps> = ({
                 <FormItem>
                   <FormLabel>Is Active</FormLabel>
                   <FormControl>
-                    <Checkbox 
-                     checked={field.value}
-                     onCheckedChange={(checked) => field.onChange(!!checked)}
-                     />
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(!!checked)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

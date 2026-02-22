@@ -207,7 +207,7 @@ export const HotelDetailsUpdateForm: React.FC<HotelDetailsUpdateFormProps> = ({
         })),
       };
 
-      await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}/hotel-details`, payload);
+      await axios.patch(`/api/tourPackageQuery/${params?.tourPackageQueryId}/hotel-details`, payload);
       router.refresh();
       router.push(`/tourPackageQuery`);
       toast.success("Hotel details updated successfully.");
@@ -358,8 +358,8 @@ export const HotelDetailsUpdateForm: React.FC<HotelDetailsUpdateFormProps> = ({
                         .join(' • ');
 
                       return (
-                        <AccordionItem 
-                          key={itinerary.id} 
+                        <AccordionItem
+                          key={itinerary.id}
                           value={`day-${itineraryIndex}`}
                           className="border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-gray-300 transition-all data-[state=open]:ring-1 data-[state=open]:ring-indigo-200"
                         >
@@ -424,23 +424,23 @@ export const HotelDetailsUpdateForm: React.FC<HotelDetailsUpdateFormProps> = ({
                               <div className="hidden md:flex items-center gap-2" />
                             </div>
                           </AccordionTrigger>
-                          
+
                           <AccordionContent className="px-6 py-6 bg-white rounded-b-lg">
                             <div className="space-y-6">
                               {/* Hotel Details Section */}
                               <div className="border border-blue-200 rounded-lg p-4 bg-blue-50 shadow-sm">
-                                 <div className="flex items-center justify-between mb-3">
-                                   <h4 className="font-semibold text-blue-900 flex items-center">
-                                     <Hotel className="mr-2 h-5 w-5" />
-                                     Hotel Details
-                                   </h4>
-                                 </div>
-                                 <div className="text-sm text-blue-800 flex items-center gap-3">
-                                   {selectedHotelObj?.images?.[0]?.url && (
-                                     <Image src={selectedHotelObj.images[0].url} alt={hotelName} width={56} height={40} className="rounded object-cover ring-1 ring-blue-200" />
-                                   )}
-                                   <p><strong>Selected Hotel:</strong> {hotelName}</p>
-                                 </div>
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-semibold text-blue-900 flex items-center">
+                                    <Hotel className="mr-2 h-5 w-5" />
+                                    Hotel Details
+                                  </h4>
+                                </div>
+                                <div className="text-sm text-blue-800 flex items-center gap-3">
+                                  {selectedHotelObj?.images?.[0]?.url && (
+                                    <Image src={selectedHotelObj.images[0].url} alt={hotelName} width={56} height={40} className="rounded object-cover ring-1 ring-blue-200" />
+                                  )}
+                                  <p><strong>Selected Hotel:</strong> {hotelName}</p>
+                                </div>
                                 <div className="mt-3">
                                   <FormField
                                     control={form.control}
@@ -512,33 +512,33 @@ export const HotelDetailsUpdateForm: React.FC<HotelDetailsUpdateFormProps> = ({
                                     }}
                                   />
                                 </div>
-                               </div>
+                              </div>
 
-                               {/* Room Allocation Section */}
-                               <div className="border border-green-200 rounded-lg p-4 bg-green-50 shadow-sm">
-                                 <div className="flex items-center justify-between mb-3">
-                                   <h4 className="font-semibold text-green-900 flex items-center">
-                                     <Users className="mr-2 h-5 w-5" />
-                                     Room Allocation
-                                   </h4>
-                                 </div>
-                                 <div className="space-y-2 text-sm text-green-800">
-                                   {rooms.length > 0 ? (
-                                     rooms.map((room: any, roomIndex: number) => (
-                                       <div key={roomIndex} className="flex items-center space-x-2">
-                                         <Badge variant="outline" className="bg-white">{roomIndex + 1}</Badge>
-                                         <span>
-                                           {getRoomTypeName(form.watch(`itinerary.${itineraryIndex}.roomAllocations.${roomIndex}.roomTypeId`))} - 
-                                           {getOccupancyTypeName(form.watch(`itinerary.${itineraryIndex}.roomAllocations.${roomIndex}.occupancyTypeId`))} - 
-                                           {getMealPlanName(form.watch(`itinerary.${itineraryIndex}.roomAllocations.${roomIndex}.mealPlanId`))} 
-                                           ({form.watch(`itinerary.${itineraryIndex}.roomAllocations.${roomIndex}.numberOfRooms`)} rooms)
-                                         </span>
-                                       </div>
-                                     ))
-                                   ) : (
-                                     <p className="text-gray-600 italic">No room allocations configured</p>
-                                   )}
-                                 </div>
+                              {/* Room Allocation Section */}
+                              <div className="border border-green-200 rounded-lg p-4 bg-green-50 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-semibold text-green-900 flex items-center">
+                                    <Users className="mr-2 h-5 w-5" />
+                                    Room Allocation
+                                  </h4>
+                                </div>
+                                <div className="space-y-2 text-sm text-green-800">
+                                  {rooms.length > 0 ? (
+                                    rooms.map((room: any, roomIndex: number) => (
+                                      <div key={roomIndex} className="flex items-center space-x-2">
+                                        <Badge variant="outline" className="bg-white">{roomIndex + 1}</Badge>
+                                        <span>
+                                          {getRoomTypeName(form.watch(`itinerary.${itineraryIndex}.roomAllocations.${roomIndex}.roomTypeId`))} -
+                                          {getOccupancyTypeName(form.watch(`itinerary.${itineraryIndex}.roomAllocations.${roomIndex}.occupancyTypeId`))} -
+                                          {getMealPlanName(form.watch(`itinerary.${itineraryIndex}.roomAllocations.${roomIndex}.mealPlanId`))}
+                                          ({form.watch(`itinerary.${itineraryIndex}.roomAllocations.${roomIndex}.numberOfRooms`)} rooms)
+                                        </span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p className="text-gray-600 italic">No room allocations configured</p>
+                                  )}
+                                </div>
                                 <div className="mt-4 space-y-4">
                                   {rooms.map((room: RoomAllocation, roomIndex: number) => (
                                     <Card key={roomIndex} className="border-green-200">
@@ -669,31 +669,31 @@ export const HotelDetailsUpdateForm: React.FC<HotelDetailsUpdateFormProps> = ({
                                     Add Room Allocation
                                   </Button>
                                 </div>
-                               </div>
+                              </div>
 
-                               {/* Transport Details Section */}
-                               <div className="border border-purple-200 rounded-lg p-4 bg-purple-50 shadow-sm">
-                                 <div className="flex items-center justify-between mb-3">
-                                   <h4 className="font-semibold text-purple-900 flex items-center">
-                                     <Car className="mr-2 h-5 w-5" />
-                                     Transport Details
-                                   </h4>
-                                 </div>
-                                 <div className="space-y-2 text-sm text-purple-800">
-                                   {transports.length > 0 ? (
-                                     transports.map((transport: any, transportIndex: number) => (
-                                       <div key={transportIndex} className="flex items-center space-x-2">
-                                         <Badge variant="outline" className="bg-white">{transportIndex + 1}</Badge>
-                                         <span>
-                                           {getVehicleTypeName(form.watch(`itinerary.${itineraryIndex}.transportDetails.${transportIndex}.vehicleTypeId`))} 
-                                           ({form.watch(`itinerary.${itineraryIndex}.transportDetails.${transportIndex}.numberOfVehicles`)} vehicles)
-                                         </span>
-                                       </div>
-                                     ))
-                                   ) : (
-                                     <p className="text-gray-600 italic">No transport details configured</p>
-                                   )}
-                                 </div>
+                              {/* Transport Details Section */}
+                              <div className="border border-purple-200 rounded-lg p-4 bg-purple-50 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-semibold text-purple-900 flex items-center">
+                                    <Car className="mr-2 h-5 w-5" />
+                                    Transport Details
+                                  </h4>
+                                </div>
+                                <div className="space-y-2 text-sm text-purple-800">
+                                  {transports.length > 0 ? (
+                                    transports.map((transport: any, transportIndex: number) => (
+                                      <div key={transportIndex} className="flex items-center space-x-2">
+                                        <Badge variant="outline" className="bg-white">{transportIndex + 1}</Badge>
+                                        <span>
+                                          {getVehicleTypeName(form.watch(`itinerary.${itineraryIndex}.transportDetails.${transportIndex}.vehicleTypeId`))}
+                                          ({form.watch(`itinerary.${itineraryIndex}.transportDetails.${transportIndex}.numberOfVehicles`)} vehicles)
+                                        </span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p className="text-gray-600 italic">No transport details configured</p>
+                                  )}
+                                </div>
                                 <div className="mt-4 space-y-4">
                                   {transports.map((transport: TransportDetail, transportIndex: number) => (
                                     <Card key={transportIndex} className="border-purple-200">
@@ -774,7 +774,7 @@ export const HotelDetailsUpdateForm: React.FC<HotelDetailsUpdateFormProps> = ({
                                     Add Transport Detail
                                   </Button>
                                 </div>
-                               </div>
+                              </div>
                             </div>
                           </AccordionContent>
                         </AccordionItem>
@@ -786,15 +786,15 @@ export const HotelDetailsUpdateForm: React.FC<HotelDetailsUpdateFormProps> = ({
                 <Separator className="my-8" />
 
                 <div className="flex items-center space-x-4">
-                  <Button 
-                    disabled={loading} 
+                  <Button
+                    disabled={loading}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-2"
                     type="submit"
                   >
                     <Save className="mr-2 h-4 w-4" />
                     {action}
                   </Button>
-                  <Button 
+                  <Button
                     type="button"
                     variant="outline"
                     onClick={() => router.push('/tourPackageQuery')}

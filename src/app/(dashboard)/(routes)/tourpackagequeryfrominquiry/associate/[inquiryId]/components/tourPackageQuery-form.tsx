@@ -663,7 +663,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION); // Ensure pricing section is handled
       form.setValue('pricingTier', (selectedTourPackage as any).pricingTier || 'standard'); // Handle pricing tier
       form.setValue('customMarkup', (selectedTourPackage as any).customMarkup || ''); // Handle custom markup
-      
+
       // Check if there's a default variant and select it
       const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
       if (defaultVariant?.id) {
@@ -678,7 +678,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedVariantIds,
       count: selectedVariantIds.length
     });
-    
+
     const selectedTourPackage = tourPackages?.find(tp => tp.id === tourPackageId);
     if (!selectedTourPackage) {
       console.error('❌ [Associate Form] Tour package not found:', tourPackageId);
@@ -721,7 +721,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     form.setValue('selectedTemplateId', tourPackageId);
     form.setValue('selectedTemplateType', 'TourPackageVariant');
     form.setValue('tourPackageTemplate', tourPackageId);
-    
+
     const combinedTemplateName = [selectedTourPackage.tourPackageName, variantNames].filter(Boolean).join(' - ');
     if (combinedTemplateName) {
       form.setValue('tourPackageTemplateName', combinedTemplateName);
@@ -792,7 +792,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     // --- ADJUST onSubmit TO MATCH SCHEMA ---
     const formattedData = {
       ...data, // selectedTemplateId and selectedTemplateType are included here
-      inquiryId: params.inquiryId,
+      inquiryId: params?.inquiryId,
       transport: data.transport || '',
       pickup_location: data.pickup_location || '',
       drop_location: data.drop_location || '',

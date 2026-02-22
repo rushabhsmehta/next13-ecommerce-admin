@@ -2,12 +2,12 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -32,25 +32,25 @@ const periodOptions = [
 export const PeriodFilter = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentPeriod = searchParams.get('period') || 'ALL';
-  
+  const currentPeriod = searchParams?.get('period') || 'ALL';
+
   const [fromDate, setFromDate] = useState<Date | undefined>(
-    searchParams.get('startDate') ? new Date(searchParams.get('startDate') as string) : undefined
+    searchParams?.get('startDate') ? new Date(searchParams?.get('startDate') as string) : undefined
   );
   const [toDate, setToDate] = useState<Date | undefined>(
-    searchParams.get('endDate') ? new Date(searchParams.get('endDate') as string) : undefined
+    searchParams?.get('endDate') ? new Date(searchParams?.get('endDate') as string) : undefined
   );
 
   const onPeriodChange = (period: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    
+    const params = new URLSearchParams(searchParams?.toString() || '');
+
     if (period === 'ALL') {
       params.delete('period');
       params.delete('startDate');
       params.delete('endDate');
     } else {
       params.set('period', period);
-      
+
       if (period !== 'CUSTOM') {
         params.delete('startDate');
         params.delete('endDate');
@@ -65,12 +65,12 @@ export const PeriodFilter = () => {
 
   const applyDateRange = () => {
     if (!fromDate || !toDate) return;
-    
-    const params = new URLSearchParams(searchParams.toString());
+
+    const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('period', 'CUSTOM');
     params.set('startDate', fromDate.toISOString());
     params.set('endDate', toDate.toISOString());
-    
+
     router.push(`/inquiries?${params.toString()}`);
   };
 
@@ -85,8 +85,8 @@ export const PeriodFilter = () => {
         </SelectTrigger>
         <SelectContent>
           {periodOptions.map((period) => (
-            <SelectItem 
-              key={period.value} 
+            <SelectItem
+              key={period.value}
               value={period.value}
             >
               {period.label}
@@ -143,9 +143,9 @@ export const PeriodFilter = () => {
             </PopoverContent>
           </Popover>
 
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={applyDateRange}
             disabled={!fromDate || !toDate}
           >

@@ -48,15 +48,15 @@ interface Location {
 }
 
 interface SupplierFormProps {
-  initialData: { 
-    id: string; 
-    name: string; 
+  initialData: {
+    id: string;
+    name: string;
     contact?: string | null;
     gstNumber?: string | null;
     address?: string | null;
-    contacts?: Array<{id: string; number: string}>;
+    contacts?: Array<{ id: string; number: string }>;
     email?: string | null;
-    locations?: Array<{location: Location}>;
+    locations?: Array<{ location: Location }>;
   } | null;
 }
 
@@ -73,7 +73,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
         const response = await axios.get('/api/locations');
         console.log("Fetched locations:", response.data);
         setLocations(response.data);
-        
+
         // Debug info for selected locations
         if (initialData?.locations) {
           console.log("Initial locations:", initialData.locations);
@@ -83,7 +83,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
         console.error(error);
       }
     };
-    
+
     fetchLocations();
   }, [initialData]);
 
@@ -94,14 +94,14 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
 
   const defaultValues = initialData
     ? {
-        name: initialData.name,
-        contact: initialData.contact || "",
-        gstNumber: initialData.gstNumber || "",
-        address: initialData.address || "",
-        contacts: initialData.contacts?.map(c => c.number) || [],
-        email: initialData.email || "",
-        locationIds: initialData.locations?.map(l => l.location.id) || [],
-      }
+      name: initialData.name,
+      contact: initialData.contact || "",
+      gstNumber: initialData.gstNumber || "",
+      address: initialData.address || "",
+      contacts: initialData.contacts?.map(c => c.number) || [],
+      email: initialData.email || "",
+      locationIds: initialData.locations?.map(l => l.location.id) || [],
+    }
     : { name: "", contact: "", gstNumber: "", address: "", contacts: [], email: "", locationIds: [] };
 
   const form = useForm<SupplierFormValues>({
@@ -113,11 +113,11 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/suppliers/${params.supplierId}`, data);
+        await axios.patch(`/api/suppliers/${params?.supplierId}`, data);
       } else {
         await axios.post(`/api/suppliers`, data);
       }
-      
+
       // Force router refresh before navigating
       router.refresh();
       router.push(`/suppliers`);
@@ -136,7 +136,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
         onClose={() => setOpen(false)}
         onConfirm={async () => {
           setLoading(true);
-          await axios.delete(`/api/suppliers/${params.supplierId}`);
+          await axios.delete(`/api/suppliers/${params?.supplierId}`);
           router.refresh();
           router.push(`/suppliers`);
           toast.success("Supplier deleted.");

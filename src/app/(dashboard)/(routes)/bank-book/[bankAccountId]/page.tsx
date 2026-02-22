@@ -62,8 +62,8 @@ const BankBookPage = () => {
 
   // Date range for filtering, initialized from URL params or default to last 30 days
   const [dateRange, setDateRange] = useState<DateRange>(() => {
-    const from = searchParams.get('from');
-    const to = searchParams.get('to');
+    const from = searchParams?.get('from');
+    const to = searchParams?.get('to');
     if (from && to) {
       return { from: new Date(from), to: new Date(to) };
     }
@@ -77,23 +77,23 @@ const BankBookPage = () => {
   useEffect(() => {
     const fetchBankAccount = async () => {
       try {
-        const response = await axios.get(`/api/bank-accounts/${params.bankAccountId}`);
+        const response = await axios.get(`/api/bank-accounts/${params?.bankAccountId}`);
         setBankAccount(response.data);
       } catch (error) {
         console.error("Failed to fetch bank account:", error);
       }
     };
 
-    if (params.bankAccountId) {
+    if (params?.bankAccountId) {
       fetchBankAccount();
     }
-  }, [params.bankAccountId]);
+  }, [params?.bankAccountId]);
 
   // Update URL when date range changes
   useEffect(() => {
     if (dateRange.from && dateRange.to) {
-      const from = searchParams.get('from');
-      const to = searchParams.get('to');
+      const from = searchParams?.get('from');
+      const to = searchParams?.get('to');
       const formattedFrom = format(dateRange.from, 'yyyy-MM-dd');
       const formattedTo = format(dateRange.to, 'yyyy-MM-dd');
 
@@ -115,7 +115,7 @@ const BankBookPage = () => {
         const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
 
         const response = await axios.get(
-          `/api/bank-accounts/${params.bankAccountId}/transactions?startDate=${startDate}&endDate=${endDate}`
+          `/api/bank-accounts/${params?.bankAccountId}/transactions?startDate=${startDate}&endDate=${endDate}`
         );
 
         setTransactions(response.data.transactions);
@@ -127,10 +127,10 @@ const BankBookPage = () => {
       }
     };
 
-    if (params.bankAccountId && dateRange.from && dateRange.to) {
+    if (params?.bankAccountId && dateRange.from && dateRange.to) {
       fetchTransactions();
     }
-  }, [params.bankAccountId, dateRange]);
+  }, [params?.bankAccountId, dateRange]);
 
   // Replace handleDateRangeChange with separate handlers for from and to dates
   const handleFromDateChange = (date: Date | undefined) => {
@@ -191,7 +191,7 @@ const BankBookPage = () => {
   // Function to generate and download PDF
   const generatePDF = () => {
     if (!bankAccount) return;
-    
+
     const doc = new jsPDF();
 
     // Create a custom formatter for PDF that won't cause formatting issues
@@ -208,12 +208,12 @@ const BankBookPage = () => {
     doc.text(`Account: ${bankAccount.accountName}`, 14, 32);
     doc.text(`Bank: ${bankAccount.bankName}`, 14, 38);
     doc.text(`Account Number: ${bankAccount.accountNumber}`, 14, 44);
-    
+
     // Add date range
     const fromDate = dateRange.from ? format(dateRange.from, 'MMMM d, yyyy') : 'N/A';
     const toDate = dateRange.to ? format(dateRange.to, 'MMMM d, yyyy') : 'N/A';
     doc.text(`Period: ${fromDate} to ${toDate}`, 14, 50);
-    
+
     // Add generation date
     doc.setFontSize(10);
     doc.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy h:mm a')}`, 14, 58);
@@ -222,12 +222,12 @@ const BankBookPage = () => {
     doc.setFontSize(12);
     // Use the safe formatter for PDF
     doc.text(`Opening Balance: ${formatCurrency(openingBalance)}`, 14, 66);
-    
+
     // Calculate totals
     const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
     const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
     const closingBalance = openingBalance + totalInflow - totalOutflow;
-    
+
     doc.text(`Total Inflow: ${formatCurrency(totalInflow)}`, 14, 74);
     doc.text(`Total Outflow: ${formatCurrency(totalOutflow)}`, 14, 82);
     doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 14, 90);
@@ -241,7 +241,7 @@ const BankBookPage = () => {
       transaction.isInflow ? formatCurrency(transaction.amount) : '-',
       !transaction.isInflow ? formatCurrency(transaction.amount) : '-',
     ]);
-    
+
     // Add totals row to table data
     tableData.push(
       ['', '', '', 'TOTALS', formatCurrency(totalInflow), formatCurrency(totalOutflow)]
@@ -265,7 +265,7 @@ const BankBookPage = () => {
     // Add closing balance summary after table
     const lastPage = doc.getNumberOfPages();
     doc.setPage(lastPage);
-    
+
     const finalY = (doc as any).lastAutoTable.finalY + 10 || 150;
     doc.setFontSize(12);
     doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 14, finalY);
@@ -290,7 +290,7 @@ const BankBookPage = () => {
   // Function to generate and download Excel
   const generateExcel = () => {
     if (!bankAccount) return;
-    
+
     // Create empty worksheet
     const worksheet = XLSX.utils.aoa_to_sheet([]);
 
@@ -338,11 +338,11 @@ const BankBookPage = () => {
       !transaction.isInflow ? transaction.amount : null,
       transaction.note || ''
     ]);
-    
+
     // Add totals row
     dataRows.push([
-      "", "", "", "TOTALS", 
-      totalInflow, 
+      "", "", "", "TOTALS",
+      totalInflow,
       totalOutflow,
       ""
     ]);
@@ -354,8 +354,8 @@ const BankBookPage = () => {
     // Format numbers as currency and apply styles to totals row
     const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:G1000');
     for (let R = 15; R <= range.e.r; ++R) {
-      const inflowCell = XLSX.utils.encode_cell({r: R, c: 4}); // Column E (Inflow)
-      const outflowCell = XLSX.utils.encode_cell({r: R, c: 5}); // Column F (Outflow)
+      const inflowCell = XLSX.utils.encode_cell({ r: R, c: 4 }); // Column E (Inflow)
+      const outflowCell = XLSX.utils.encode_cell({ r: R, c: 5 }); // Column F (Outflow)
 
       if (worksheet[inflowCell] && worksheet[inflowCell].v) {
         worksheet[inflowCell].z = '"₹ "#,##0.00';
@@ -363,12 +363,12 @@ const BankBookPage = () => {
       if (worksheet[outflowCell] && worksheet[outflowCell].v) {
         worksheet[outflowCell].z = '"₹ "#,##0.00';
       }
-      
+
       // Apply bold formatting to the totals row
       if (R === 16 + dataRows.length - 1) {
         // Make cells in the totals row bold
         for (let C = 0; C <= 6; C++) {
-          const cell = XLSX.utils.encode_cell({r: R, c: C});
+          const cell = XLSX.utils.encode_cell({ r: R, c: C });
           if (!worksheet[cell]) worksheet[cell] = { t: 's', v: '' };
           if (!worksheet[cell].s) worksheet[cell].s = {};
           worksheet[cell].s.font = { bold: true };

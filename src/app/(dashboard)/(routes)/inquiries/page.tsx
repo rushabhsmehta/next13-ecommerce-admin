@@ -28,17 +28,17 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   const headersList = headers();
   const hostname = headersList.get('host') || '';
   const isAssociateDomain = hostname.includes('associate.aagamholidays.com');
-  
+
   // Get the current user from Clerk
   const { userId } = auth();
-  
+
   if (!userId) {
     redirect("/sign-in");
   }
-  
+
   const user = await currentUser();
   const userEmail = user?.emailAddresses[0]?.emailAddress || '';
-  
+
   // Fetch organization data
   const organization = await prismadb.organization.findFirst({
     orderBy: {
@@ -60,9 +60,9 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   });
 
   // If user is on associate domain, find their associate ID
-  let associateId = searchParams.associateId;
+  let associateId = searchParams?.associateId;
   let isAssociateUser = false;
-  
+
   if (isAssociateDomain && userEmail) {
     // Try to find the associate by gmail (primary) or email (fallback) field
     const associatePartner = await prismadb.associatePartner.findFirst({
@@ -73,7 +73,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
         ]
       }
     });
-    
+
     if (associatePartner) {
       associateId = associatePartner.id;
       isAssociateUser = true;
@@ -107,9 +107,9 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   // Build date range filters based on period
   let dateFilter = {};
   const now = new Date();
-  
-  if (searchParams.period) {
-    switch (searchParams.period) {
+
+  if (searchParams?.period) {
+    switch (searchParams?.period) {
       case 'TODAY':
         dateFilter = {
           createdAt: {
@@ -144,15 +144,15 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
         };
         break;
       case 'CUSTOM':
-        if (searchParams.startDate && searchParams.endDate) {
+        if (searchParams?.startDate && searchParams?.endDate) {
           try {
-            const parsedStartDate = parseISO(searchParams.startDate);
-            const parsedEndDate = parseISO(searchParams.endDate);
-            
+            const parsedStartDate = parseISO(searchParams.startDate as string);
+            const parsedEndDate = parseISO(searchParams.endDate as string);
+
             // Set end date to end of day to include the entire day
             const endDateWithTime = new Date(parsedEndDate);
             endDateWithTime.setHours(23, 59, 59, 999);
-            
+
             dateFilter = {
               createdAt: {
                 gte: parsedStartDate,
@@ -172,14 +172,14 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     ...(associateId && {
       associatePartnerId: associateId
     }),
-    ...(searchParams.assignedStaffId && {
+    ...(searchParams?.assignedStaffId && {
       assignedToStaffId: searchParams.assignedStaffId
     }),
-    ...(searchParams.status && searchParams.status !== 'ALL' && {
+    ...(searchParams?.status && searchParams.status !== 'ALL' && {
       status: searchParams.status
     }),
     ...dateFilter,  // Add the date filter to the where clause
-    ...(searchParams.q && {
+    ...(searchParams?.q && {
       OR: [
         { customerName: { contains: searchParams.q } },
         { customerMobileNumber: { contains: searchParams.q } },
@@ -188,7 +188,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     })
   };
   // Apply follow-ups-only filter: include records with a nextFollowUpDate set and exclude CANCELLED/CONFIRMED
-  const followUpsOnly = searchParams.followUpsOnly === '1';
+  const followUpsOnly = searchParams?.followUpsOnly === '1';
   if (followUpsOnly) {
     where.nextFollowUpDate = {
       not: null
@@ -198,15 +198,15 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     };
   }
   // Apply "no tour package query" filter: only inquiries with zero associated tourPackageQueries
-  const noTourPackageQuery = searchParams.noTourPackageQuery === '1';
+  const noTourPackageQuery = searchParams?.noTourPackageQuery === '1';
   if (noTourPackageQuery) {
     where.tourPackageQueries = { none: {} };
     where.status = { notIn: ['CANCELLED'] };
   }
 
   // Pagination parameters
-  const page = parseInt(searchParams.page || '1');
-  const pageSize = parseInt(searchParams.pageSize || '25');
+  const page = parseInt(searchParams?.page || '1');
+  const pageSize = parseInt(searchParams?.pageSize || '25');
   const skip = (page - 1) * pageSize;
 
   // Get total count for pagination
@@ -237,11 +237,11 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       console.log(`  - getDate():`, item.journeyDate.getDate());
       console.log(`  - getMonth():`, item.journeyDate.getMonth());
       console.log(`  - getFullYear():`, item.journeyDate.getFullYear());
-      
+
       const formattedDate = formatLocalDate(item.journeyDate, 'dd MMM yyyy');
       console.log(`  - Formatted date:`, formattedDate);
     }
-    
+
     return {
       id: item.id,
       customerName: item.customerName,
@@ -254,13 +254,13 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       assignedToStaffId: item.assignedToStaffId || null,
       assignedStaffName: item.assignedStaff?.name || null,
       assignedStaffAt: item.assignedStaffAt ? formatLocalDate(item.assignedStaffAt, 'dd MMM yyyy HH:mm') : null,
-  tourPackageQueries: item.tourPackageQueries || 'Not specified',
-  // @ts-ignore
-  nextFollowUpDate: item.nextFollowUpDate ? formatLocalDate(item.nextFollowUpDate, 'dd MMM yyyy') : null,
-  // Also keep raw ISO for client-side updates
-  // @ts-ignore
-  nextFollowUpDateIso: item.nextFollowUpDate ? new Date(item.nextFollowUpDate).toISOString() : null,
-  // actionHistory removed from table view
+      tourPackageQueries: item.tourPackageQueries || 'Not specified',
+      // @ts-ignore
+      nextFollowUpDate: item.nextFollowUpDate ? formatLocalDate(item.nextFollowUpDate, 'dd MMM yyyy') : null,
+      // Also keep raw ISO for client-side updates
+      // @ts-ignore
+      nextFollowUpDateIso: item.nextFollowUpDate ? new Date(item.nextFollowUpDate).toISOString() : null,
+      // actionHistory removed from table view
       actionHistory: item.actions?.map(action => ({
         type: action.actionType,
         remarks: action.remarks,

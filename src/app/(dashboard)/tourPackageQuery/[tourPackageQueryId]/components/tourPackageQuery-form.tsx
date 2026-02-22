@@ -429,14 +429,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!form) return;
-    
+
     const subscription = form.watch((value, { name }) => {
       if (name === 'locationId' && value.locationId) {
         fetchTourPackagesByLocation(value.locationId);
       }
     });
     return () => subscription.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - watch is set up once, form not available yet
 
   const fetchTourPackagesByLocation = async (locationId: string) => {
@@ -593,21 +593,21 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
 
     const firstActivity = activities[0];
-    
+
     // Check if activities are in AI-generated format (object with activityDescription)
     if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
       // Escape HTML first to prevent XSS, then convert newlines to <br>
       const description = firstActivity.activityDescription;
       const escapedDescription = typeof description === 'string' ? escapeHtml(description) : '';
       const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
-      
+
       return [{
         activityTitle: firstActivity.activityTitle || '',
         activityDescription: descriptionWithLineBreaks,
         activityImages: []
       }];
-    } 
-    
+    }
+
     // Legacy format: array of strings
     if (typeof firstActivity === 'string') {
       return activities.map((act: string) => ({
@@ -616,7 +616,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         activityImages: []
       }));
     }
-    
+
     // Unknown format
     return [];
   };
@@ -774,7 +774,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     if (loading) return;
 
     // Get the current form ID (either tourPackageQueryId or 'new')
-    const formId = params.tourPackageQueryId || 'new';
+    const formId = params?.tourPackageQueryId || 'new';
     const autoSaveKey = `tourPackageQuery_autosave_${formId}`;
 
     // Set up auto-save interval
@@ -825,7 +825,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     return () => {
       clearInterval(saveInterval);
     };
-  }, [params.tourPackageQueryId, form, initialData, loading]);
+  }, [params?.tourPackageQueryId, form, initialData, loading]);
 
   // Auto-calculate Number of Days/Night based on itinerary length
   const watchedItineraries = form.watch('itineraries');
@@ -848,12 +848,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     // Use dynamicTourPackages instead of tourPackages
     const selectedTourPackage = dynamicTourPackages?.find(tp => tp.id === selectedTourPackageId);
-    console.log('🔍 handleTourPackageSelection:', { 
-      selectedTourPackageId, 
+    console.log('🔍 handleTourPackageSelection:', {
+      selectedTourPackageId,
       found: !!selectedTourPackage,
-      availablePackages: dynamicTourPackages?.length 
+      availablePackages: dynamicTourPackages?.length
     });
-    
+
     if (selectedTourPackage) {
       // Add this line to update the tourPackageTemplate field 
       form.setValue('tourPackageTemplate', selectedTourPackageId);
@@ -927,7 +927,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedVariantIds,
       count: selectedVariantIds.length
     });
-    
+
     // Use dynamicTourPackages (which includes dynamically loaded packages) with fallback to tourPackages
     const selectedTourPackage = dynamicTourPackages?.find(tp => tp.id === tourPackageId) || tourPackages?.find(tp => tp.id === tourPackageId);
     if (!selectedTourPackage) {
@@ -971,7 +971,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     form.setValue('selectedTemplateId', tourPackageId); // Keep package ID as template
     form.setValue('selectedTemplateType', 'TourPackageVariant');
     form.setValue('tourPackageTemplate', tourPackageId);
-    
+
     const combinedTemplateName = [selectedTourPackage.tourPackageName, variantNames].filter(Boolean).join(' - ');
     if (combinedTemplateName) {
       form.setValue('tourPackageTemplateName', combinedTemplateName);
@@ -1001,7 +1001,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     } else if (selectedVariantIds.length > 1) {
       toast.success(`${selectedVariantIds.length} variants selected successfully.`);
     }
-    
+
     console.log('✅ [Form] Variant selection complete. Current form state:', {
       selectedVariantIds: form.getValues('selectedVariantIds'),
       selectedTemplateType: form.getValues('selectedTemplateType'),
@@ -1230,7 +1230,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       if (initialData) {
         console.log("Updating existing query...");
-        await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
+        await axios.patch(`/api/tourPackageQuery/${params?.tourPackageQueryId}`, formattedData);
         console.log("Update successful");
       } else {
         console.log("Creating new query...");
@@ -1252,7 +1252,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/tourPackageQuery/${params.tourPackageQueryId}`);
+      await axios.delete(`/api/tourPackageQuery/${params?.tourPackageQueryId}`);
       router.refresh();
       router.push(`/tourPackageQuery`);
       toast.success('Tour Package Query deleted.');

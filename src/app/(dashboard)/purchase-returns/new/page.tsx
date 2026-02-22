@@ -15,14 +15,14 @@ export default async function PurchaseReturnCreatePage({
   const taxSlabs = await getTaxSlabs();
   const units = await getUnitsOfMeasure();
   const suppliers = await getSuppliers();
-  
+
   // If purchaseId is provided in search params, pre-select that purchase
-  const purchaseId = searchParams.purchaseId as string | undefined;
-  
+  const purchaseId = searchParams?.purchaseId as string | undefined;
+
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <PurchaseReturnForm 
+        <PurchaseReturnForm
           purchases={purchases}
           taxSlabs={taxSlabs}
           units={units}

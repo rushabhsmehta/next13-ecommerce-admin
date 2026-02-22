@@ -134,7 +134,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedOptionParam = searchParams.get("search");
+  const selectedOptionParam = searchParams?.get("search");
   const selectedOption = selectedOptionParam && selectedOptionParam.length ? selectedOptionParam : "AH";
   const [loading, setLoading] = useState(false);
   const [preparedBy, setPreparedBy] = useState<{ name: string; email: string } | null>(null);

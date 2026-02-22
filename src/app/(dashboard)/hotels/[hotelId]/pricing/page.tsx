@@ -6,13 +6,13 @@ import axios from "axios"
 import { format } from "date-fns"
 import { formatLocalDate } from "@/lib/timezone-utils"
 import { toast } from "react-hot-toast"
-import { 
-  CalendarIcon, 
-  Check, 
-  ChevronsUpDown, 
-  Edit, 
-  Plus, 
-  Trash 
+import {
+  CalendarIcon,
+  Check,
+  ChevronsUpDown,
+  Edit,
+  Plus,
+  Trash
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { utcToLocal } from "@/lib/timezone-utils"
@@ -95,7 +95,7 @@ const pricingFormSchema = z.object({
   }),
   occupancyTypeId: z.string({
     required_error: "Occupancy type is required",
-  }),  price: z.coerce.number({
+  }), price: z.coerce.number({
     required_error: "Price is required",
     invalid_type_error: "Price must be a number",
   }).min(0, {
@@ -118,8 +118,8 @@ type PricingFormValues = z.infer<typeof pricingFormSchema>
 export default function HotelPricingPage() {
   const params = useParams()
   const router = useRouter()
-  const hotelId = params.hotelId as string
-  
+  const hotelId = params?.hotelId as string
+
   const [hotel, setHotel] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [pricingPeriods, setPricingPeriods] = useState<any[]>([])
@@ -130,7 +130,7 @@ export default function HotelPricingPage() {
   const [roomTypes, setRoomTypes] = useState<any[]>([])
   const [occupancyTypes, setOccupancyTypes] = useState<any[]>([])
   const [mealPlans, setMealPlans] = useState<any[]>([])
-  
+
   const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
     defaultValues: {
@@ -142,7 +142,7 @@ export default function HotelPricingPage() {
       mealPlanId: "", // Changed from mealPlan to mealPlanId
     }
   })
-    useEffect(() => {
+  useEffect(() => {
     const fetchHotel = async () => {
       try {
         const response = await axios.get(`/api/hotels/${hotelId}`)
@@ -152,7 +152,7 @@ export default function HotelPricingPage() {
         console.error(error)
       }
     }
-    
+
     const fetchPricingPeriods = async () => {
       try {
         const response = await axios.get(`/api/hotels/${hotelId}/pricing`)
@@ -162,17 +162,17 @@ export default function HotelPricingPage() {
         console.error(error)
       }
     }
-    
+
     const fetchConfigurationData = async () => {
       try {
         // Fetch room types
         const roomTypesResponse = await axios.get('/api/room-types')
         setRoomTypes(roomTypesResponse.data.filter((rt: any) => rt.isActive))
-        
+
         // Fetch occupancy types
         const occupancyTypesResponse = await axios.get('/api/occupancy-types')
         setOccupancyTypes(occupancyTypesResponse.data.filter((ot: any) => ot.isActive))
-        
+
         // Fetch meal plans
         const mealPlansResponse = await axios.get('/api/meal-plans')
         setMealPlans(mealPlansResponse.data.filter((mp: any) => mp.isActive))
@@ -183,16 +183,16 @@ export default function HotelPricingPage() {
         setLoading(false)
       }
     }
-    
+
     fetchHotel()
     fetchPricingPeriods()
     fetchConfigurationData()
   }, [hotelId])
-  
+
   const onSubmit = async (data: PricingFormValues) => {
     try {
       setLoading(true)
-      
+
       if (isEditMode && editId) {
         // Update existing pricing period
         await axios.patch(`/api/hotels/${hotelId}/pricing/${editId}`, data)
@@ -202,11 +202,11 @@ export default function HotelPricingPage() {
         await axios.post(`/api/hotels/${hotelId}/pricing`, data)
         toast.success("Pricing period created")
       }
-      
+
       // Refresh pricing periods
       const response = await axios.get(`/api/hotels/${hotelId}/pricing`)
       setPricingPeriods(response.data)
-      
+
       // Reset form and close dialog
       setIsDialogOpen(false)
       setIsEditMode(false)
@@ -218,7 +218,8 @@ export default function HotelPricingPage() {
       setLoading(false)
     }
   }
-    const handleEdit = (pricing: any) => {    setIsEditMode(true)
+  const handleEdit = (pricing: any) => {
+    setIsEditMode(true)
     setEditId(pricing.id)
     form.setValue("startDate", utcToLocal(pricing.startDate) || new Date())
     form.setValue("endDate", utcToLocal(pricing.endDate) || new Date())
@@ -231,13 +232,13 @@ export default function HotelPricingPage() {
     form.setValue("mealPlanId", pricing.mealPlanId || "")
     setIsDialogOpen(true)
   }
-  
+
   const handleDelete = async (id: string) => {
     try {
       setLoading(true)
       await axios.delete(`/api/hotels/${hotelId}/pricing/${id}`)
       toast.success("Pricing period deleted")
-      
+
       // Refresh pricing periods
       const response = await axios.get(`/api/hotels/${hotelId}/pricing`)
       setPricingPeriods(response.data)
@@ -247,7 +248,7 @@ export default function HotelPricingPage() {
       setLoading(false)
     }
   }
-  
+
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
@@ -267,7 +268,7 @@ export default function HotelPricingPage() {
           </Button>
         </div>
         <Separator />
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Pricing Periods</CardTitle>
@@ -298,44 +299,44 @@ export default function HotelPricingPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>                  {pricingPeriods.map((pricing) => (
-                    <TableRow key={pricing.id}>
-                      <TableCell>
-                        {formatLocalDate(utcToLocal(pricing.startDate) || new Date(), "PPP")} to {formatLocalDate(utcToLocal(pricing.endDate) || new Date(), "PPP")}
-                      </TableCell>
-                      <TableCell>
-                        {pricing.roomType?.name || 
-                         (roomTypes.find(rt => rt.id === pricing.roomTypeId)?.name) ||
-                         pricing.roomTypeId}
-                      </TableCell>
-                      <TableCell>
-                        {pricing.occupancyType?.name || 
-                         (occupancyTypes.find(ot => ot.id === pricing.occupancyTypeId)?.name) ||
-                         pricing.occupancyTypeId}
-                      </TableCell>
-                      <TableCell>
-                        {pricing.mealPlan?.code 
-                          ? `${pricing.mealPlan.code} - ${pricing.mealPlan.name}`
-                          : pricing.mealPlanId 
-                            ? (mealPlans.find(mp => mp.id === pricing.mealPlanId)?.code || pricing.mealPlanId)
-                            : "-"}
-                      </TableCell>
-                      <TableCell>₹{pricing.price.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(pricing)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(pricing.id)}>
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  <TableRow key={pricing.id}>
+                    <TableCell>
+                      {formatLocalDate(utcToLocal(pricing.startDate) || new Date(), "PPP")} to {formatLocalDate(utcToLocal(pricing.endDate) || new Date(), "PPP")}
+                    </TableCell>
+                    <TableCell>
+                      {pricing.roomType?.name ||
+                        (roomTypes.find(rt => rt.id === pricing.roomTypeId)?.name) ||
+                        pricing.roomTypeId}
+                    </TableCell>
+                    <TableCell>
+                      {pricing.occupancyType?.name ||
+                        (occupancyTypes.find(ot => ot.id === pricing.occupancyTypeId)?.name) ||
+                        pricing.occupancyTypeId}
+                    </TableCell>
+                    <TableCell>
+                      {pricing.mealPlan?.code
+                        ? `${pricing.mealPlan.code} - ${pricing.mealPlan.name}`
+                        : pricing.mealPlanId
+                          ? (mealPlans.find(mp => mp.id === pricing.mealPlanId)?.code || pricing.mealPlanId)
+                          : "-"}
+                    </TableCell>
+                    <TableCell>₹{pricing.price.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(pricing)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(pricing.id)}>
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
                 </TableBody>
               </Table>
             )}
           </CardContent>
         </Card>
-        
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -344,7 +345,7 @@ export default function HotelPricingPage() {
                 Define pricing for a specific period, room type, and occupancy type
               </DialogDescription>
             </DialogHeader>
-            
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -386,7 +387,7 @@ export default function HotelPricingPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="endDate"
@@ -426,35 +427,35 @@ export default function HotelPricingPage() {
                     )}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">                  <FormField
-                    control={form.control}
-                    name="roomTypeId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Room Type</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select room type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {roomTypes.map((roomType) => (
-                              <SelectItem key={roomType.id} value={roomType.id}>
-                                {roomType.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                    <FormField
+                  control={form.control}
+                  name="roomTypeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Room Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select room type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {roomTypes.map((roomType) => (
+                            <SelectItem key={roomType.id} value={roomType.id}>
+                              {roomType.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                  <FormField
                     control={form.control}
                     name="occupancyTypeId"
                     render={({ field }) => (
@@ -482,7 +483,7 @@ export default function HotelPricingPage() {
                     )}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -505,7 +506,7 @@ export default function HotelPricingPage() {
                       </FormItem>
                     )}
                   />
-                    <FormField
+                  <FormField
                     control={form.control}
                     name="mealPlanId"
                     render={({ field }) => (
@@ -534,10 +535,10 @@ export default function HotelPricingPage() {
                     )}
                   />
                 </div>
-                
+
                 <DialogFooter>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setIsDialogOpen(false)}
                     type="button"
                   >

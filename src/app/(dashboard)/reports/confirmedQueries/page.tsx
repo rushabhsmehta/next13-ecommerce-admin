@@ -19,11 +19,11 @@ const confirmedTourPackageQueryPage = async ({
   const currentYear = new Date().getFullYear();
   const defaultStartDate = startOfYear(new Date(currentYear, 0, 1));
   const defaultEndDate = endOfYear(new Date(currentYear, 0, 1));
-  
+
   // Parse dates from search params or use defaults
-  const startDate = searchParams.startDate ? new Date(searchParams.startDate) : defaultStartDate;
-  const endDate = searchParams.endDate ? new Date(searchParams.endDate) : defaultEndDate;
-  
+  const startDate = searchParams?.startDate ? new Date(searchParams.startDate) : defaultStartDate;
+  const endDate = searchParams?.endDate ? new Date(searchParams.endDate) : defaultEndDate;
+
   // Validate dates
   const validStartDate = startDate && isValid(startDate) ? startDate : defaultStartDate;
   const validEndDate = endDate && isValid(endDate) ? endDate : defaultEndDate;
@@ -63,8 +63,8 @@ const confirmedTourPackageQueryPage = async ({
       tourStartsFrom: 'asc'
     }
   });
- 
-    const formattedtourPackageQuery: TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
+
+  const formattedtourPackageQuery: TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
     id: item.id,
     tourPackageQueryNumber: item.tourPackageQueryNumber ?? '',
     tourPackageQueryName: item.tourPackageQueryName ?? '',
@@ -85,10 +85,10 @@ const confirmedTourPackageQueryPage = async ({
     <>
       <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackageQueryClient 
-            data={formattedtourPackageQuery} 
-            startDate={searchParams.startDate || formattedStartDate}
-            endDate={searchParams.endDate || formattedEndDate}
+          <TourPackageQueryClient
+            data={formattedtourPackageQuery}
+            startDate={searchParams?.startDate || formattedStartDate}
+            endDate={searchParams?.endDate || formattedEndDate}
           />
         </div>
       </div>

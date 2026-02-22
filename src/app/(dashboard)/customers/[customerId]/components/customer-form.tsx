@@ -61,21 +61,21 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
     resolver: zodResolver(formSchema),
     defaultValues: initialData
       ? {
-          name: initialData.name ?? '',
-          email: initialData.email ?? '',
-          contact: initialData.contact ?? '',
-          associatePartnerId: initialData.associatePartnerId ?? '',
-          birthdate: createDatePickerValue(initialData.birthdate),
-          marriageAnniversary: createDatePickerValue(initialData.marriageAnniversary),
-        }
+        name: initialData.name ?? '',
+        email: initialData.email ?? '',
+        contact: initialData.contact ?? '',
+        associatePartnerId: initialData.associatePartnerId ?? '',
+        birthdate: createDatePickerValue(initialData.birthdate),
+        marriageAnniversary: createDatePickerValue(initialData.marriageAnniversary),
+      }
       : {
-          name: '',
-          email: '',
-          contact: '',
-          associatePartnerId: '',
-          birthdate: undefined,
-          marriageAnniversary: undefined,
-        },
+        name: '',
+        email: '',
+        contact: '',
+        associatePartnerId: '',
+        birthdate: undefined,
+        marriageAnniversary: undefined,
+      },
   });
 
   const onSubmit = async (data: CustomerFormValues) => {
@@ -94,7 +94,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
       if (normalizedContact) {
         form.setValue("contact", normalizedContact.e164);
       }
-      
+
       // Normalize dates to prevent timezone shifting
       const submitData = {
         ...data,
@@ -104,9 +104,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
         birthdate: normalizeApiDate(data.birthdate),
         marriageAnniversary: normalizeApiDate(data.marriageAnniversary),
       };
-      
+
       if (initialData) {
-        await axios.patch(`/api/customers/${params.customerId}`, submitData);
+        await axios.patch(`/api/customers/${params?.customerId}`, submitData);
       } else {
         await axios.post(`/api/customers`, submitData);
       }
@@ -127,7 +127,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
         onClose={() => setOpen(false)}
         onConfirm={async () => {
           setLoading(true);
-          await axios.delete(`/api/customers/${params.customerId}`);
+          await axios.delete(`/api/customers/${params?.customerId}`);
           router.refresh();
           router.push(`/customers`);
           toast.success("Customer deleted.");
@@ -141,10 +141,10 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
           <Heading title={title} description={description} />
         </div>
         {initialData && (
-          <Button 
-            disabled={loading} 
-            variant="destructive" 
-            size="sm" 
+          <Button
+            disabled={loading}
+            variant="destructive"
+            size="sm"
             onClick={() => setOpen(true)}
             className="mt-4 md:mt-0"
           >
@@ -154,7 +154,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
         )}
       </div>
       <Separator className="mb-8" />
-      
+
       <div className="max-w-4xl mx-auto">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -180,9 +180,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                           Name <span className="text-red-500">*</span>
                         </FormLabel>
                         <FormControl>
-                          <Input 
-                            disabled={loading} 
-                            placeholder="Enter customer name" 
+                          <Input
+                            disabled={loading}
+                            placeholder="Enter customer name"
                             {...field}
                             className="transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                           />
@@ -198,9 +198,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                       <FormItem>
                         <FormLabel className="text-sm font-medium text-gray-700">Contact Number</FormLabel>
                         <FormControl>
-                          <Input 
-                            disabled={loading} 
-                            placeholder="Enter phone number" 
+                          <Input
+                            disabled={loading}
+                            placeholder="Enter phone number"
                             {...field}
                             onChange={(event) => {
                               const sanitized = event.target.value.replace(/\s+/g, "");
@@ -220,9 +220,9 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                       <FormItem>
                         <FormLabel className="text-sm font-medium text-gray-700">Email Address</FormLabel>
                         <FormControl>
-                          <Input 
-                            disabled={loading} 
-                            placeholder="Enter email address" 
+                          <Input
+                            disabled={loading}
+                            placeholder="Enter email address"
                             type="email"
                             {...field}
                             className="transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -439,8 +439,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                         </FormControl>
                         <SelectContent className="bg-white shadow-lg border-0">
                           {associatePartners.map((partner) => (
-                            <SelectItem 
-                              key={partner.id} 
+                            <SelectItem
+                              key={partner.id}
                               value={partner.id}
                               className="hover:bg-green-50 focus:bg-green-50"
                             >
@@ -458,8 +458,8 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
 
             {/* Action Buttons */}
             <div className="flex justify-end pt-6">
-              <Button 
-                disabled={loading} 
+              <Button
+                disabled={loading}
                 type="submit"
                 className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105"
               >

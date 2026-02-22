@@ -20,9 +20,9 @@ export const Pagination = ({ page, pageSize, totalCount, totalPages }: Paginatio
 
   const updatePage = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
-    
+
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() || '');
       params.set('page', newPage.toString());
       router.replace(`/inquiries?${params.toString()}`);
     });
@@ -30,7 +30,7 @@ export const Pagination = ({ page, pageSize, totalCount, totalPages }: Paginatio
 
   const updatePageSize = (newPageSize: string) => {
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() || '');
       params.set('pageSize', newPageSize);
       params.set('page', '1'); // Reset to first page when changing page size
       router.replace(`/inquiries?${params.toString()}`);

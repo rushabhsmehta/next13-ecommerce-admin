@@ -238,7 +238,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 }) => {
 
   const searchParams = useSearchParams();
-  const selectedOption = searchParams.get('search') || 'AH';
+  const selectedOption = searchParams?.get('search') || 'AH';
 
   const fallbackCompany = companyInfo.AH;
   const selectedCompany = companyInfo[selectedOption] ?? companyInfo.Empty;

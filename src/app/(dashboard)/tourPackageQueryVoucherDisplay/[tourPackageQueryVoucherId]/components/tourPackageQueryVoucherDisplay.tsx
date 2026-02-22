@@ -130,7 +130,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 }) => {
 
   const searchParams = useSearchParams();
-  const selectedOption = searchParams.get('search') || 'Empty'; // 'option' is the name of your query parameter
+  const selectedOption = searchParams?.get('search') || 'Empty'; // 'option' is the name of your query parameter
 
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];

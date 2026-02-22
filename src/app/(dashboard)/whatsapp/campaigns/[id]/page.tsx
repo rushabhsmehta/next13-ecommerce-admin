@@ -94,7 +94,7 @@ const blankStatusSummary: StatusSummaryResponse = {
 export default function CampaignDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const campaignId = params.id as string;
+  const campaignId = params?.id as string;
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,7 +172,7 @@ export default function CampaignDetailsPage() {
     try {
       const response = await fetch(`/api/whatsapp/campaigns/${campaignId}`);
       if (!response.ok) throw new Error('Failed to fetch campaign');
-      
+
       const data = await response.json();
       setCampaign(data.campaign);
       setStatusSummary(data.statusSummary ?? null);
@@ -348,8 +348,8 @@ export default function CampaignDetailsPage() {
         <div className="relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => router.back()}
                 className="text-white hover:bg-white/20"
               >
@@ -358,7 +358,7 @@ export default function CampaignDetailsPage() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-3xl font-bold tracking-tight">{campaign.name}</h1>
-                  <Badge 
+                  <Badge
                     variant="secondary"
                     className={cn(
                       "text-sm px-3 py-1",
@@ -389,8 +389,8 @@ export default function CampaignDetailsPage() {
               </Button>
 
               {canSend && (
-                <Button 
-                  onClick={sendCampaign} 
+                <Button
+                  onClick={sendCampaign}
                   disabled={sending}
                   className={cn(
                     'bg-white text-green-600 hover:bg-green-50',
@@ -437,8 +437,8 @@ export default function CampaignDetailsPage() {
               {canDelete && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="destructive" 
+                    <Button
+                      variant="destructive"
                       disabled={deleting}
                       className="bg-red-500 hover:bg-red-600"
                     >
@@ -722,7 +722,7 @@ export default function CampaignDetailsPage() {
                   )}
                 </div>
                 <div className="text-right ml-4">
-                  <Badge 
+                  <Badge
                     variant="secondary"
                     className={cn(
                       "mb-1",

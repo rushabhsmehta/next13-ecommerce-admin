@@ -25,29 +25,29 @@ import { Heading } from "@/components/ui/heading";
 import { AlertModal } from "@/components/modals/alert-modal";
 import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  LabelField, 
-  TagsField, 
-  SlugField, 
-  InclusionsField, 
-  ExclusionsField, 
-  ImportantNotesField, 
-  PaymentPolicyField, 
-  UsefulTipField, 
-  CancellationPolicyField, 
-  AirlineCancellationPolicyField, 
-  TermsConditionsField 
+import {
+  LabelField,
+  TagsField,
+  SlugField,
+  InclusionsField,
+  ExclusionsField,
+  ImportantNotesField,
+  PaymentPolicyField,
+  UsefulTipField,
+  CancellationPolicyField,
+  AirlineCancellationPolicyField,
+  TermsConditionsField
 } from "./form-fields";
-import { 
-  INCLUSIONS_DEFAULT, 
-  EXCLUSIONS_DEFAULT, 
-  IMPORTANT_NOTES_DEFAULT, 
+import {
+  INCLUSIONS_DEFAULT,
+  EXCLUSIONS_DEFAULT,
+  IMPORTANT_NOTES_DEFAULT,
   KITCHEN_GROUP_POLICY_DEFAULT,
-  CANCELLATION_POLICY_DEFAULT, 
-  AIRLINE_CANCELLATION_POLICY_DEFAULT, 
-  PAYMENT_TERMS_DEFAULT, 
-  TERMS_AND_CONDITIONS_DEFAULT, 
-  USEFUL_TIPS_DEFAULT 
+  CANCELLATION_POLICY_DEFAULT,
+  AIRLINE_CANCELLATION_POLICY_DEFAULT,
+  PAYMENT_TERMS_DEFAULT,
+  TERMS_AND_CONDITIONS_DEFAULT,
+  USEFUL_TIPS_DEFAULT
 } from "./defaultValues";
 
 // Add imports for tabs
@@ -103,36 +103,36 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
   };
 
   const defaultValues = initialData
-    ?      {
-        label: initialData.label,
-        imageUrl: initialData.imageUrl,
-        tags: initialData.tags ?? '',
-        slug: initialData.slug ?? '',
-        inclusions: parseJsonField(initialData.inclusions) || INCLUSIONS_DEFAULT,
-        exclusions: parseJsonField(initialData.exclusions) || EXCLUSIONS_DEFAULT,
-        importantNotes: parseJsonField(initialData.importantNotes) || IMPORTANT_NOTES_DEFAULT,
-        paymentPolicy: parseJsonField(initialData.paymentPolicy) || PAYMENT_TERMS_DEFAULT,
-        usefulTip: parseJsonField(initialData.usefulTip) || USEFUL_TIPS_DEFAULT,
-        cancellationPolicy: parseJsonField(initialData.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
-        airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
-        kitchenGroupPolicy: parseJsonField((initialData as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
-        termsconditions: parseJsonField(initialData.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
-      }
+    ? {
+      label: initialData.label,
+      imageUrl: initialData.imageUrl,
+      tags: initialData.tags ?? '',
+      slug: initialData.slug ?? '',
+      inclusions: parseJsonField(initialData.inclusions) || INCLUSIONS_DEFAULT,
+      exclusions: parseJsonField(initialData.exclusions) || EXCLUSIONS_DEFAULT,
+      importantNotes: parseJsonField(initialData.importantNotes) || IMPORTANT_NOTES_DEFAULT,
+      paymentPolicy: parseJsonField(initialData.paymentPolicy) || PAYMENT_TERMS_DEFAULT,
+      usefulTip: parseJsonField(initialData.usefulTip) || USEFUL_TIPS_DEFAULT,
+      cancellationPolicy: parseJsonField(initialData.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
+      airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
+      kitchenGroupPolicy: parseJsonField((initialData as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
+      termsconditions: parseJsonField(initialData.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
+    }
     : {
-        label: "",
-        imageUrl: "",
-        tags: "",
-        slug: "",
-        inclusions: INCLUSIONS_DEFAULT,
-        exclusions: EXCLUSIONS_DEFAULT,
-        importantNotes: IMPORTANT_NOTES_DEFAULT,
-        paymentPolicy: PAYMENT_TERMS_DEFAULT,
-        usefulTip: USEFUL_TIPS_DEFAULT,
-        cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
-        airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
-        kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
-        termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
-      };
+      label: "",
+      imageUrl: "",
+      tags: "",
+      slug: "",
+      inclusions: INCLUSIONS_DEFAULT,
+      exclusions: EXCLUSIONS_DEFAULT,
+      importantNotes: IMPORTANT_NOTES_DEFAULT,
+      paymentPolicy: PAYMENT_TERMS_DEFAULT,
+      usefulTip: USEFUL_TIPS_DEFAULT,
+      cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+      airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
+      kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
+      termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
+    };
 
 
   const form = useForm<LocationFormValues>({
@@ -144,7 +144,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/locations/${params.locationId}`, data);
+        await axios.patch(`/api/locations/${params?.locationId}`, data);
       } else {
         await axios.post(`/api/locations`, data);
       }
@@ -165,7 +165,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
         onClose={() => setOpen(false)}
         onConfirm={async () => {
           setLoading(true);
-          await axios.delete(`/api/locations/${params.locationId}`);
+          await axios.delete(`/api/locations/${params?.locationId}`);
           router.refresh();
           router.push(`/locations`);
           toast.success("Location deleted.");
@@ -208,7 +208,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
 
           <Separator />
           <Heading title="Policies and Information" description="Manage lists of information for this location" />
-          
+
           <Card className="w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -236,7 +236,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                     Terms
                   </TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="inclusions" className="space-y-4 mt-4">
                   <div className="grid gap-4">
                     <FormField control={form.control} name="inclusions" render={({ field }) => (
@@ -248,7 +248,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         placeholder="Add inclusion item..."
                       />
                     )} />
-            
+
                     <FormField control={form.control} name="exclusions" render={({ field }) => (
                       <PolicyListField
                         label="Exclusions"
@@ -260,7 +260,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                     )} />
                   </div>
                 </TabsContent>
-            
+
                 <TabsContent value="notes" className="space-y-4 mt-4">
                   <div className="grid gap-4">
                     <FormField control={form.control} name="importantNotes" render={({ field }) => (
@@ -272,7 +272,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         placeholder="Add important note..."
                       />
                     )} />
-            
+
                     <FormField control={form.control} name="usefulTip" render={({ field }) => (
                       <PolicyListField
                         label="Useful Tips"
@@ -294,7 +294,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         placeholder="Add cancellation policy item..."
                       />
                     )} />
-            
+
                     <FormField control={form.control} name="airlineCancellationPolicy" render={({ field }) => (
                       <PolicyListField
                         label="Airline Cancellation Policy"
@@ -316,7 +316,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                     )} />
                   </div>
                 </TabsContent>
-            
+
                 <TabsContent value="terms" className="space-y-4 mt-4">
                   <div className="grid gap-4">
                     <FormField control={form.control} name="paymentPolicy" render={({ field }) => (
@@ -328,7 +328,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         placeholder="Add payment policy item..."
                       />
                     )} />
-            
+
                     <FormField control={form.control} name="termsconditions" render={({ field }) => (
                       <PolicyListField
                         label="Terms and Conditions"

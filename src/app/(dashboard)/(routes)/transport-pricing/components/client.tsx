@@ -27,18 +27,18 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const locationParam = searchParams.get('locationId');
+  const locationParam = searchParams?.get('locationId');
 
   // Find the location name from the locationId, if provided in URL
   const findLocationNameById = (locationId: string | null) => {
     if (!locationId) return null;
-    
+
     const matchingItem = data.find(item => item.locationId === locationId);
     return matchingItem ? matchingItem.location : null;
   };
 
-  const initialLocationName = findLocationNameById(locationParam);
-  
+  const initialLocationName = findLocationNameById(locationParam || null);
+
   const [filteredData, setFilteredData] = useState(data);
   const [locationFilter, setLocationFilter] = useState<string | null>(initialLocationName);
   const [transportTypeFilter, setTransportTypeFilter] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
   // Extract unique locations and vehicle types, and sort alphabetically
   const locations = Array.from(new Set(data.map(item => item.location)))
     .sort((a, b) => a.localeCompare(b));
-  
+
   const vehicleTypes = Array.from(new Set(data.map(item => item.vehicleType)))
     .sort((a, b) => a.localeCompare(b));
 
@@ -83,7 +83,7 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
   return (
     <>
       <div className="flex items-center justify-between">
-        <Heading 
+        <Heading
           title={`Transport Pricing (${filteredData.length})`}
           description="Manage vehicle transport pricing for different locations"
         />
@@ -93,7 +93,7 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
         </Button>
       </div>
       <Separator />
-      
+
       {/* Filter section */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 py-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-1">
@@ -117,7 +117,7 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Select
               value={vehicleTypeFilter || ""}
@@ -138,7 +138,7 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Select
               value={transportTypeFilter || ""}
@@ -156,7 +156,7 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Select
               value={activeFilter || ""}
@@ -174,19 +174,19 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
               </SelectContent>
             </Select>
           </div>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             onClick={resetFilters}
           >
             Reset Filters
           </Button>
         </div>
       </div>
-      
-      <DataTable 
-        columns={columns} 
-        data={filteredData} 
+
+      <DataTable
+        columns={columns}
+        data={filteredData}
         searchKey="vehicleType"
         searchPlaceholder="Search vehicle types..."
       />

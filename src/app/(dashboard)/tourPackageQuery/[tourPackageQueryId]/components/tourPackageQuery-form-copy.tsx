@@ -472,7 +472,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     if (loading) return;
 
     // Get the current form ID (either tourPackageQueryId or 'new')
-    const formId = params.tourPackageQueryId || 'new';
+    const formId = params?.tourPackageQueryId || 'new';
     const autoSaveKey = `tourPackageQuery_autosave_${formId}`;
 
     // Set up auto-save interval
@@ -523,7 +523,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     return () => {
       clearInterval(saveInterval);
     };
-  }, [params.tourPackageQueryId, form, initialData, loading]);
+  }, [params?.tourPackageQueryId, form, initialData, loading]);
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {
@@ -781,7 +781,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       if (initialData) {
         console.log("Updating existing query...");
-        const response = await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
+        const response = await axios.patch(`/api/tourPackageQuery/${params?.tourPackageQueryId}`, formattedData);
         console.log("Update response:", response.data);
       } else {
         console.log("Creating new query...");
@@ -803,7 +803,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/tourPackageQuery/${params.tourPackageQueryId}`);
+      await axios.delete(`/api/tourPackageQuery/${params?.tourPackageQueryId}`);
       router.refresh();
       router.push(`/tourPackageQuery`);
       toast.success('Tour Package Query deleted.');

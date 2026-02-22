@@ -72,7 +72,7 @@ export const AssociatePartnerForm: React.FC<AssociatePartnerFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/associate-partners/${params.associatePartnerId}`, data);
+        await axios.patch(`/api/associate-partners/${params?.associatePartnerId}`, data);
       } else {
         await axios.post(`/api/associate-partners`, data);
       }
@@ -89,7 +89,7 @@ export const AssociatePartnerForm: React.FC<AssociatePartnerFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/associate-partners/${params.associatePartnerId}`);
+      await axios.delete(`/api/associate-partners/${params?.associatePartnerId}`);
       router.refresh();
       router.push(`/associate-partners`);
       toast.success('Associate partner deleted.');
@@ -103,8 +103,8 @@ export const AssociatePartnerForm: React.FC<AssociatePartnerFormProps> = ({
 
   return (
     <>
-      <AlertModal 
-        isOpen={open} 
+      <AlertModal
+        isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={onDelete}
         loading={loading}

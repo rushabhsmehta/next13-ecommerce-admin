@@ -44,11 +44,11 @@ type ActivityMasterFormValues = z.infer<typeof formSchema>
 
 interface ActivityMasterFormProps {
   initialData: ActivityMaster & {
-    activityMasterImages : Images[]
+    activityMasterImages: Images[]
   } | null;
   // images: Images[];
   locations: Location[];
-  itineraries : Itinerary[];
+  itineraries: Itinerary[];
 };
 
 
@@ -68,21 +68,21 @@ export const ActivityMasterForm: React.FC<ActivityMasterFormProps> = ({
   const toastMessage = initialData ? 'Activity updated.' : 'Activity created.';
   const action = initialData ? 'Save changes' : 'Create';
 
-  const transformInitialData = (data:any) => {
+  const transformInitialData = (data: any) => {
     return {
       ...data,
       itineraryId: data.itineraryId || '', // Convert null to undefined
     };
-  }; 
-  
+  };
+
   const defaultValues = initialData ? transformInitialData(initialData) : {
     activityMasterTitle: '',
     activityMasterDescription: '',
     activityMasterImages: [],
     locationId: '',
-    itineraryId: '',  
+    itineraryId: '',
   }
-  
+
   const form = useForm<ActivityMasterFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -92,7 +92,7 @@ export const ActivityMasterForm: React.FC<ActivityMasterFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/activitiesMaster/${params.activityMasterId}`, data);
+        await axios.patch(`/api/activitiesMaster/${params?.activityMasterId}`, data);
       } else {
         await axios.post(`/api/activitiesMaster`, data);
       }
@@ -109,7 +109,7 @@ export const ActivityMasterForm: React.FC<ActivityMasterFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/activitiesMaster/${params.activityMasterId}`);
+      await axios.delete(`/api/activitiesMaster/${params?.activityMasterId}`);
       router.refresh();
       router.push(`/activitiesMaster`);
       toast.success('Activity deleted.');
@@ -166,8 +166,8 @@ export const ActivityMasterForm: React.FC<ActivityMasterFormProps> = ({
 
           <div className="md:grid md:grid-cols-3 gap-8">
 
-     
-          <FormField
+
+            <FormField
               control={form.control}
               name="locationId"
               render={({ field }) => (
@@ -249,7 +249,7 @@ export const ActivityMasterForm: React.FC<ActivityMasterFormProps> = ({
               )}
             />
 
-            
+
           </div>
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}

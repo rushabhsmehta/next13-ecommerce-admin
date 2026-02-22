@@ -39,7 +39,7 @@ const ViewMyPDF: React.FC<ViewMyPDFProps> = ({
   hotels,
 }) => {
   const searchParams = useSearchParams();
-  const selectedOption = searchParams.get('search') || 'Empty'; // 'search' is the name of your query parameter
+  const selectedOption = searchParams?.get('search') || 'Empty'; // 'search' is the name of your query parameter
 
   return (
     <PDFViewer style={{ width: "100%", height: "100vh" }}>

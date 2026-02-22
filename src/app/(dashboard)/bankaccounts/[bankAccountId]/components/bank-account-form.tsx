@@ -62,7 +62,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/bank-accounts/${params.bankAccountId}`, data);
+        await axios.patch(`/api/bank-accounts/${params?.bankAccountId}`, data);
       } else {
         await axios.post(`/api/bank-accounts`, data);
       }
@@ -79,7 +79,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/bank-accounts/${params.bankAccountId}`);
+      await axios.delete(`/api/bank-accounts/${params?.bankAccountId}`);
       router.refresh();
       router.push(`/bankaccounts`);
       toast.success('Bank account deleted.');

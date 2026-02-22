@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { Prisma } from "@prisma/client";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
@@ -47,12 +47,10 @@ async function syncWhatsAppCustomer(params: {
   }
 }
 
-export async function GET(
-  req: Request,
-  { params }: { params: { customerId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ customerId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
 
     if (!params.customerId) {
@@ -73,12 +71,10 @@ export async function GET(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { customerId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ customerId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
     if (!params.customerId) return new NextResponse("Customer ID is required", { status: 400 });
 
@@ -93,12 +89,10 @@ export async function DELETE(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { customerId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ customerId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
     if (!params.customerId) return new NextResponse("Customer ID is required", { status: 400 });
 

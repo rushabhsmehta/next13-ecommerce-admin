@@ -6,11 +6,12 @@ import { PackageCard } from "../../components/package-card";
 
 export const dynamic = "force-dynamic";
 
-export default async function DestinationDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function DestinationDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const location = await prismadb.location.findUnique({
     where: { id: params.id },
     include: {

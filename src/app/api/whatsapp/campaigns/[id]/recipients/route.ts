@@ -3,13 +3,14 @@ import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { auth } from '@clerk/nextjs/server';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET /api/whatsapp/campaigns/[id]/recipients - List campaign recipients
-export async function GET(req: NextRequest, { params }: RouteParams) {
+export async function GET(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -60,7 +61,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 }
 
 // POST /api/whatsapp/campaigns/[id]/recipients - Add recipients to campaign
-export async function POST(req: NextRequest, { params }: RouteParams) {
+export async function POST(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -143,7 +145,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/whatsapp/campaigns/[id]/recipients - Remove recipients from campaign
-export async function DELETE(req: NextRequest, { params }: RouteParams) {
+export async function DELETE(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const { userId } = await auth();
     if (!userId) {

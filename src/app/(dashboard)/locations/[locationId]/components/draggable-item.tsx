@@ -117,7 +117,7 @@ export const DraggableItem: React.FC<DraggableItemProps> = ({
 
   return (
     <div 
-      ref={preview} 
+      ref={(node) => { preview(node); }} 
       className={`flex items-center gap-2 p-2 border rounded-md ${isDragging ? 'bg-gray-200' : 'bg-gray-50'}`}
       style={{ opacity }}
       data-handler-id={handlerId}

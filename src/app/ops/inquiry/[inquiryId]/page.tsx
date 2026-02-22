@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,15 +12,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
-export default function InquiryDetail({
-  params
-}: {
-  params: { inquiryId: string }
-}) {
+export default function InquiryDetail(
+  props: {
+    params: Promise<{ inquiryId: string }>
+  }
+) {
+  const params = use(props.params);
   const [inquiry, setInquiry] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  
+
   useEffect(() => {
     async function fetchInquiry() {
       try {
@@ -47,7 +48,7 @@ export default function InquiryDetail({
     
     fetchInquiry();
   }, [params.inquiryId, router]);
-  
+
   function getStatusBadgeColor(status: string) {
     switch (status?.toLowerCase()) {
       case "pending":
@@ -62,7 +63,7 @@ export default function InquiryDetail({
         return "bg-gray-500";
     }
   }
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -70,7 +71,7 @@ export default function InquiryDetail({
       </div>
     );
   }
-  
+
   if (!inquiry) {
     return (
       <div className="p-6 max-w-4xl mx-auto">

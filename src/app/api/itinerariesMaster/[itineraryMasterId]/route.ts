@@ -1,11 +1,12 @@
 
 
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 
 // GET method to retrieve a specific itinerary master
-export async function GET(req: Request, { params }: { params: { itineraryMasterId: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ itineraryMasterId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.itineraryMasterId) {
       return new NextResponse("Itinerary id is required", { status: 400 });
@@ -37,9 +38,10 @@ export async function GET(req: Request, { params }: { params: { itineraryMasterI
 };
 
 // DELETE method to delete a specific itinerary master
-export async function DELETE(req: Request, { params }: { params: { itineraryMasterId: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ itineraryMasterId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -67,9 +69,10 @@ export async function DELETE(req: Request, { params }: { params: { itineraryMast
 };
 
 // PATCH method to update a specific itinerary master
-export async function PATCH(req: Request, { params }: { params: { itineraryMasterId: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ itineraryMasterId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const body = await req.json();
     const {
       itineraryMasterTitle,

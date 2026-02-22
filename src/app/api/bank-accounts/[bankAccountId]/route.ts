@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { recalculateBankBalance } from "@/lib/bank-balance";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { bankAccountId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ bankAccountId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.bankAccountId) {
       return new NextResponse("Bank Account ID is required", { status: 400 });
@@ -25,12 +23,10 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { bankAccountId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ bankAccountId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const body = await req.json();
 
     const { accountName, bankName, accountNumber, ifscCode, branch, openingBalance, isActive } = body;
@@ -97,12 +93,10 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { bankAccountId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ bankAccountId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });

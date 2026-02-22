@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc, getUserTimezone, formatLocalDate } from "@/lib/timezone-utils";
@@ -58,7 +58,7 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const user = await currentUser();
     const body = await req.json();
     const {
@@ -182,7 +182,7 @@ export async function POST(req: Request) {
 
     // Send "Lead" event to Meta CAPI
     try {
-      const headersList = headers();
+      const headersList = await headers();
       const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
       const userAgent = headersList.get("user-agent") || "";
       const requestUrl = req.url;
@@ -252,7 +252,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const url = new URL(req.url);
 
     // Extract query parameters
@@ -383,7 +383,7 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }

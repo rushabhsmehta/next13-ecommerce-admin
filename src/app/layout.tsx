@@ -12,6 +12,10 @@ import { DebugLogPanel } from '@/components/DebugLogPanel'
 
 const inter = Inter({ subsets: ['latin'] })
 
+// Required because AppSidebar reads auth state via Clerk's async APIs (headers/cookies)
+// at the root layout level, which prevents static rendering for the entire tree.
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Aagam Travel CRM',
   description: 'Welcome Aboard',

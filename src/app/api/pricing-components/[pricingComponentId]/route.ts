@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { pricingComponentId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ pricingComponentId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.pricingComponentId) {
       return new NextResponse("Pricing component ID is required", { status: 400 });
@@ -27,12 +25,10 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { pricingComponentId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ pricingComponentId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const body = await req.json();
 
     const { pricingAttributeId, price, purchasePrice, description } = body;
@@ -80,12 +76,10 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { pricingComponentId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ pricingComponentId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });

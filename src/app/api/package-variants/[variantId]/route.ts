@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 
 // GET a specific variant
-export async function GET(
-  req: Request,
-  { params }: { params: { variantId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ variantId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.variantId) {
       return new NextResponse("Variant ID is required", { status: 400 });
@@ -46,10 +44,8 @@ export async function GET(
 }
 
 // PATCH - Update a variant
-export async function PATCH(
-  req: Request,
-  { params }: { params: { variantId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ variantId: string }> }) {
+  const params = await props.params;
   try {
     const body = await req.json();
     const { name, description, isDefault, sortOrder, priceModifier } = body;
@@ -79,10 +75,8 @@ export async function PATCH(
 }
 
 // DELETE a variant
-export async function DELETE(
-  req: Request,
-  { params }: { params: { variantId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ variantId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.variantId) {
       return new NextResponse("Variant ID is required", { status: 400 });

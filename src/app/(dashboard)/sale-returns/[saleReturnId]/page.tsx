@@ -4,11 +4,12 @@ import { getUnitsOfMeasure } from "@/actions/get-units";
 import { getCustomers } from "@/actions/get-customers";
 import { SaleReturnForm } from "@/components/forms/sale-return-form";
 
-export default async function SaleReturnPage({
-  params,
-}: {
-  params: { saleReturnId: string };
-}) {
+export default async function SaleReturnPage(
+  props: {
+    params: Promise<{ saleReturnId: string }>;
+  }
+) {
+  const params = await props.params;
   // Fetch sale return by id
   const saleReturn = await prismadb.saleReturn.findUnique({
     where: {

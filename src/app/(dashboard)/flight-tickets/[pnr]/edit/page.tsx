@@ -1,16 +1,17 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { FlightTicketForm } from "../../components/flight-ticket-form";
 
 interface EditFlightTicketPageProps {
-  params: {
+  params: Promise<{
     pnr: string;
-  };
+  }>;
 }
 
-export default async function EditFlightTicketPage({ params }: EditFlightTicketPageProps) {
-  const { userId } = auth();
+export default async function EditFlightTicketPage(props: EditFlightTicketPageProps) {
+  const params = await props.params;
+  const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");
@@ -36,7 +37,7 @@ export default async function EditFlightTicketPage({ params }: EditFlightTicketP
     departureTime: flightTicket.departureTime,
     arrivalTime: flightTicket.arrivalTime,
   };
-  
+
   // Fetch tour package queries for the dropdown
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
     where: {
@@ -51,7 +52,7 @@ export default async function EditFlightTicketPage({ params }: EditFlightTicketP
       createdAt: 'desc'
     }
   });
-  
+
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">

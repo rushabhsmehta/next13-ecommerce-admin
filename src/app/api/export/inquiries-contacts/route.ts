@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from '@/lib/prismadb';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     const limited = limiter.check(req);
     if (limited) return limited;
 
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
 
     console.log('[INQUIRIES_EXPORT] Starting export...');

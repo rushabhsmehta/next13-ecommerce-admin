@@ -1,7 +1,8 @@
 import prismadb from "@/lib/prismadb";
 import { SupplierForm } from "./components/supplier-form";
 
-const SupplierPage = async ({ params }: { params: { supplierId: string } }) => {
+const SupplierPage = async (props: { params: Promise<{ supplierId: string }> }) => {
+  const params = await props.params;
   // Update the query to include the supplier's locations
   const supplier = await prismadb.supplier.findUnique({
     where: { id: params.supplierId },

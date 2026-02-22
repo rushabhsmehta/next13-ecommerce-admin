@@ -8,12 +8,13 @@ import { VoucherActions } from "@/components/voucher-actions";
 import { VoucherLayout } from "@/components/voucher-layout";
 
 interface ReceiptVoucherPageProps {
-  params: {
+  params: Promise<{
     receiptId: string;
-  };
+  }>;
 }
 
-const ReceiptVoucherPage = async ({ params }: ReceiptVoucherPageProps) => {
+const ReceiptVoucherPage = async (props: ReceiptVoucherPageProps) => {
+  const params = await props.params;
   // Get receipt details with related data
   const receipt = await prismadb.receiptDetail.findUnique({
     where: { id: params.receiptId },
@@ -38,7 +39,7 @@ const ReceiptVoucherPage = async ({ params }: ReceiptVoucherPageProps) => {
 
   // Format the receipt date
   const formattedDate = format(receipt.receiptDate, "MMMM d, yyyy");
-  
+
   // Determine payment method and account details
   const paymentMethod = receipt.bankAccount 
     ? `Bank - ${receipt.bankAccount.accountName}`

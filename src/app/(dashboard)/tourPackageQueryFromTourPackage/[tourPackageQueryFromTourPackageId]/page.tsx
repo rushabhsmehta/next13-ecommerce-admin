@@ -2,11 +2,12 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryFromTourPackageForm } from "./components/tourPackageQueryFromTourPackage-form";
 import Navbar from "@/components/navbar";
 
-const tourPackageQueryFromTourPackagePage = async ({
-  params
-}: {
-  params: { tourPackageQueryFromTourPackageId: string }
-}) => {
+const tourPackageQueryFromTourPackagePage = async (
+  props: {
+    params: Promise<{ tourPackageQueryFromTourPackageId: string }>
+  }
+) => {
+  const params = await props.params;
   const tourPackage = await prismadb.tourPackage.findUnique({
     where: {
       id: params.tourPackageQueryFromTourPackageId,
@@ -31,7 +32,7 @@ const tourPackageQueryFromTourPackagePage = async ({
       }
     }
   });
-  
+
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({

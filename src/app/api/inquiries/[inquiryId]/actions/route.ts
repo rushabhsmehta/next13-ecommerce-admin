@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from '@/lib/timezone-utils';
 
-export async function POST(
-  req: Request,
-  { params }: { params: { inquiryId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const body = await req.json();
 
     const { actionType, remarks, actionDate } = body;

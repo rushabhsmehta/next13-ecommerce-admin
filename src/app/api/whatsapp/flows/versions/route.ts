@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 
 import {
   saveFlowVersion,
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { userId } = auth();
+    const { userId } = await auth();
 
     const version = await saveFlowVersion({
       flowId,

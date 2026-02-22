@@ -5,11 +5,12 @@ import prismadb from "@/lib/prismadb";
 import { DestinationColumn } from "./components/columns";
 import { DestinationsClient } from "./components/client";
 
-const DestinationsPage = async ({
-  searchParams,
-}: {
-  searchParams: { locationId?: string };
-}) => {
+const DestinationsPage = async (
+  props: {
+    searchParams: Promise<{ locationId?: string }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const whereClause = searchParams?.locationId
     ? { locationId: searchParams.locationId }
     : {};

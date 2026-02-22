@@ -23,11 +23,12 @@ const IMAGE_SELECT = {
   flightDetailsId: true,
 } as const;
 
-const tourPackageQueryPage = async ({
-  params
-}: {
-  params: { tourPackageQueryId: string }
-}) => {
+const tourPackageQueryPage = async (
+  props: {
+    params: Promise<{ tourPackageQueryId: string }>
+  }
+) => {
+  const params = await props.params;
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryId,

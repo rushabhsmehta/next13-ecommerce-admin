@@ -4,11 +4,12 @@ import prismadb from "@/lib/prismadb";
 import Navbar from "@/components/navbar";
 import TourPackagePDFGenerator from "./components/tourPackagePDFGenerator";
 
-const tourPackagePage = async ({
-  params
-}: {
-  params: { tourPackageId: string }
-}) => {
+const tourPackagePage = async (
+  props: {
+    params: Promise<{ tourPackageId: string }>
+  }
+) => {
+  const params = await props.params;
   const tourPackage = await prismadb.tourPackage.findUnique({
     where: {
       id: params.tourPackageId,

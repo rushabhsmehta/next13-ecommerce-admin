@@ -1,18 +1,19 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import PurchaseForm from "../components/purchase-form";
 
 interface PurchasePageProps {
-  params: { purchaseId: string };
+  params: Promise<{ purchaseId: string }>;
 }
 
-export default async function PurchasePage({ params }: PurchasePageProps) {
- /*  const { userId } = auth();
+export default async function PurchasePage(props: PurchasePageProps) {
+  const params = await props.params;
+  /*  const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/sign-in");
-  } */
+   if (!userId) {
+     redirect("/sign-in");
+   } */
 
   // Check if this is an "edit" or "new" page
   const isEdit = params.purchaseId !== "new";

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { requireFinanceOrAdmin } from "@/lib/authz";
@@ -267,7 +267,7 @@ function mapRowsToPrepared(
 
 export async function POST(req: Request) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return jsonError("Unauthorized", 401, "UNAUTHORIZED");
     }

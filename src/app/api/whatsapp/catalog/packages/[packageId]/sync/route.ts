@@ -7,9 +7,9 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     packageId: string;
-  };
+  }>;
 };
 
 export async function POST(_request: NextRequest, context: RouteContext) {
@@ -19,7 +19,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { packageId } = context.params;
+    const { packageId } = (await context.params);
     if (!packageId) {
       return NextResponse.json({ error: 'Package id is required' }, { status: 400 });
     }

@@ -4,13 +4,14 @@ import { TourPackageQueryDisplay } from "./components/tourPackageQueryDisplay";
 import Navbar from "@/components/navbar";
 import Link from "next/link";
 
-const tourPackageQueryPage = async ({
-  params,
-  searchParams,
-}: {
-  params: { tourPackageQueryId: string };
-  searchParams?: Record<string, string | string[] | undefined>;
-}) => {
+const tourPackageQueryPage = async (
+  props: {
+    params: Promise<{ tourPackageQueryId: string }>;
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  }
+) => {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const selectedOptionParam = searchParams?.search;
   const selectedOption = Array.isArray(selectedOptionParam)
     ? selectedOptionParam[0]

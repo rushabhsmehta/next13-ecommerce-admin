@@ -1,18 +1,19 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import ReceiptForm from "../components/receipt-form";
 
 interface ReceiptPageProps {
-  params: { receiptId: string };
+  params: Promise<{ receiptId: string }>;
 }
 
-export default async function ReceiptPage({ params }: ReceiptPageProps) {
-/*   const { userId } = auth();
+export default async function ReceiptPage(props: ReceiptPageProps) {
+  const params = await props.params;
+  /*   const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/sign-in");
-  } */
+    if (!userId) {
+      redirect("/sign-in");
+    } */
 
   // Check if this is an "edit" or "new" page
   const isEdit = params.receiptId !== "new";

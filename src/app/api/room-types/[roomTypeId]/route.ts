@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { roomTypeId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ roomTypeId: string }> }) {
+  const params = await props.params;
   try {
     const roomType = await prismadb.roomType.findUnique({
       where: {
@@ -19,10 +17,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { roomTypeId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ roomTypeId: string }> }) {
+  const params = await props.params;
   try {
     const body = await req.json();
     const { name, description, isActive } = body;
@@ -50,10 +46,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { roomTypeId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ roomTypeId: string }> }) {
+  const params = await props.params;
   try {
     // Check if room type is being used in any room allocations
     const roomAllocationsCount = await prismadb.roomAllocation.count({

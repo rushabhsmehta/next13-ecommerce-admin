@@ -6,11 +6,12 @@ import { TourPackageQueryColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
 
 
-const tourPackageQueryPage = async ({
-  searchParams
-}: {
-  searchParams: { page?: string, pageSize?: string }
-}) => {
+const tourPackageQueryPage = async (
+  props: {
+    searchParams: Promise<{ page?: string, pageSize?: string }>
+  }
+) => {
+  const searchParams = await props.searchParams;
   // Parse pagination params
   const page = parseInt(searchParams?.page || '1');
   const pageSize = parseInt(searchParams?.pageSize || '25');

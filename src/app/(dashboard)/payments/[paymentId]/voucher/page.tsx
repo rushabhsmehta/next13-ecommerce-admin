@@ -8,12 +8,13 @@ import { VoucherActions } from "@/components/voucher-actions";
 import { VoucherLayout } from "@/components/voucher-layout";
 
 interface PaymentVoucherPageProps {
-  params: {
+  params: Promise<{
     paymentId: string;
-  };
+  }>;
 }
 
-const PaymentVoucherPage = async ({ params }: PaymentVoucherPageProps) => {
+const PaymentVoucherPage = async (props: PaymentVoucherPageProps) => {
+  const params = await props.params;
   // Get payment details with related data
   const payment = await prismadb.paymentDetail.findUnique({
     where: { id: params.paymentId },
@@ -38,7 +39,7 @@ const PaymentVoucherPage = async ({ params }: PaymentVoucherPageProps) => {
 
   // Format the payment date
   const formattedDate = format(payment.paymentDate, "MMMM d, yyyy");
-  
+
   // Determine payment method and account details
   const paymentMethod = payment.method || (payment.bankAccount 
     ? `Bank - ${payment.bankAccount.accountName}`

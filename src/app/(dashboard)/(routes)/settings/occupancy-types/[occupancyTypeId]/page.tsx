@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { OccupancyTypeForm } from "../components/occupancy-type-form";
 
-const OccupancyTypePage = async ({
-  params
-}: {
-  params: { occupancyTypeId: string }
-}) => {
+const OccupancyTypePage = async (
+  props: {
+    params: Promise<{ occupancyTypeId: string }>
+  }
+) => {
+  const params = await props.params;
   const occupancyType = await prismadb.occupancyType.findUnique({
     where: {
       id: params.occupancyTypeId

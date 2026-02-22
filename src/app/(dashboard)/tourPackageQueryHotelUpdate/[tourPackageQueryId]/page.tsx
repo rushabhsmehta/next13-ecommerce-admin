@@ -1,15 +1,16 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import prismadb from "@/lib/prismadb";
 import HotelDetailsUpdateForm from "./components/hotel-details-update-form-clean";
 
-const HotelDetailsUpdatePage = async ({
-  params
-}: {
-  params: { tourPackageQueryId: string }
-}) => {
-  const { userId } = auth();
-  
+const HotelDetailsUpdatePage = async (
+  props: {
+    params: Promise<{ tourPackageQueryId: string }>
+  }
+) => {
+  const params = await props.params;
+  const { userId } = await auth();
+
   if (!userId) {
     redirect('/sign-in');
   }

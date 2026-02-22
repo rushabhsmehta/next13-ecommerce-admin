@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs"
+import { auth } from "@clerk/nextjs/server"
 import prismadb from "@/lib/prismadb"
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { locationId: string } }
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ locationId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 })
@@ -46,12 +44,10 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { locationId: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ locationId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 })

@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 
 // POST - Bulk update hotel mappings for a variant
-export async function POST(
-  req: Request,
-  { params }: { params: { variantId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ variantId: string }> }) {
+  const params = await props.params;
   try {
     const body = await req.json();
     const { mappings } = body;
@@ -66,10 +64,8 @@ export async function POST(
 }
 
 // GET - Get hotel mappings for a variant
-export async function GET(
-  req: Request,
-  { params }: { params: { variantId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ variantId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.variantId) {
       return new NextResponse("Variant ID is required", { status: 400 });

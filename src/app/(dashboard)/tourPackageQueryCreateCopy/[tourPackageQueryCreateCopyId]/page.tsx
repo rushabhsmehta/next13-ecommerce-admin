@@ -1,13 +1,13 @@
 import prismadb from "@/lib/prismadb";
-import { Turret_Road } from "next/font/google";
 import Navbar from "@/components/navbar";
 import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCreateCopy-form";
 
-const tourPackageQueryPage = async ({
-  params
-}: {
-  params: { tourPackageQueryCreateCopyId: string }
-}) => {
+const tourPackageQueryPage = async (
+  props: {
+    params: Promise<{ tourPackageQueryCreateCopyId: string }>
+  }
+) => {
+  const params = await props.params;
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryCreateCopyId,
@@ -129,7 +129,7 @@ const tourPackageQueryPage = async ({
       },
     }
   });
-  
+
   // Fetch tour package queries for templates
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
     where: {

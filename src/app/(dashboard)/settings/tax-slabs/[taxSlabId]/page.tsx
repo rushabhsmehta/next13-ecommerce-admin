@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { TaxSlabForm } from "../components/tax-slab-form";
 
-const TaxSlabPage = async ({
-  params
-}: {
-  params: { taxSlabId: string }
-}) => {
+const TaxSlabPage = async (
+  props: {
+    params: Promise<{ taxSlabId: string }>
+  }
+) => {
+  const params = await props.params;
   const taxSlab = await prismadb.taxSlab.findUnique({
     where: {
       id: params.taxSlabId

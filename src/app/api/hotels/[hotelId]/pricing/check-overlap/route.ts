@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc, MILLISECONDS_PER_DAY } from '@/lib/timezone-utils';
 
 // Check for overlapping pricing periods and return split preview
-export async function POST(
-  req: Request,
-  { params }: { params: { hotelId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ hotelId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

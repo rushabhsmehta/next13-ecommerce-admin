@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // POST /api/push/subscribe - Subscribe to push notifications
 export async function POST(req: Request) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 // DELETE /api/push/subscribe - Unsubscribe from push notifications
 export async function DELETE(req: Request) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({

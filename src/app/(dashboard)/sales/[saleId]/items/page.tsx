@@ -4,11 +4,12 @@ import { Separator } from "@/components/ui/separator";
 import { SaleItemsForm } from "../../components/sale-items-form";
 import { notFound } from "next/navigation";
 
-const SaleItemsPage = async ({
-  params
-}: {
-  params: { saleId: string }
-}) => {
+const SaleItemsPage = async (
+  props: {
+    params: Promise<{ saleId: string }>
+  }
+) => {
+  const params = await props.params;
   // Get sale with related details including items
   const sale = await prismadb.saleDetail.findUnique({
     where: {

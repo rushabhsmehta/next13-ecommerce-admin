@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import ProfitReport from "./components/profit-report";
 
 export default async function ProfitReportPage() {
-/*   const { userId } = auth();
+/*   const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");

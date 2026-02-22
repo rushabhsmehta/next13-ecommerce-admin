@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
 
-export async function PATCH(_req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new NextResponse('Unauthenticated', { status: 403 });
     const body = await _req.json();
     const { id } = params;
@@ -17,9 +18,10 @@ export async function PATCH(_req: Request, { params }: { params: { id: string } 
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new NextResponse('Unauthenticated', { status: 403 });
     const { id } = params;
     await (prismadb as any).tDSMaster.delete({ where: { id } });

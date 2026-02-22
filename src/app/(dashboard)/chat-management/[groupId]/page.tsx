@@ -4,11 +4,12 @@ import { ChatGroupDetailClient } from "./components/chat-group-detail-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChatGroupDetailPage({
-  params,
-}: {
-  params: { groupId: string };
-}) {
+export default async function ChatGroupDetailPage(
+  props: {
+    params: Promise<{ groupId: string }>;
+  }
+) {
+  const params = await props.params;
   if (params.groupId === "new") {
     // Render new group form
     const travelUsers = await prismadb.travelAppUser.findMany({

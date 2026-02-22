@@ -1,17 +1,17 @@
 import { headers } from "next/headers";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 
 /**
  * Check if current request is from an associate domain
  */
-export function isAssociateDomain(): boolean {
+export async function isAssociateDomain(): Promise<boolean> {
   if (typeof window !== 'undefined') {
     // Client-side
     return window.location.hostname.includes('associate.aagamholidays.com');
   } else {
     // Server-side
-    const headersList = headers();
+    const headersList = await headers();
     const hostname = headersList.get('host') || '';
     return hostname.includes('associate.aagamholidays.com');
   }
@@ -21,9 +21,9 @@ export function isAssociateDomain(): boolean {
  * Get current associate partner information if user is accessing from associate domain
  */
 export async function getCurrentAssociatePartner() {
-  const { userId } = auth();
+  const { userId } = await auth();
   
-  if (!userId || !isAssociateDomain()) {
+  if (!userId || !(await isAssociateDomain())) {
     return null;
   }
 

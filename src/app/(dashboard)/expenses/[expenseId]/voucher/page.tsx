@@ -8,12 +8,13 @@ import { VoucherActions } from "@/components/voucher-actions";
 import { VoucherLayout } from "@/components/voucher-layout";
 
 interface ExpenseVoucherPageProps {
-  params: {
+  params: Promise<{
     expenseId: string;
-  };
+  }>;
 }
 
-const ExpenseVoucherPage = async ({ params }: ExpenseVoucherPageProps) => {
+const ExpenseVoucherPage = async (props: ExpenseVoucherPageProps) => {
+  const params = await props.params;
   // Get expense details with related data
   const expense = await prismadb.expenseDetail.findUnique({
     where: { id: params.expenseId },
@@ -31,7 +32,7 @@ const ExpenseVoucherPage = async ({ params }: ExpenseVoucherPageProps) => {
 
   // Format the expense date
   const formattedDate = format(expense.expenseDate, "MMMM d, yyyy");
-  
+
   // Determine payment method and account details
   const paymentMethod = expense.bankAccount 
     ? `Bank - ${expense.bankAccount.accountName}`

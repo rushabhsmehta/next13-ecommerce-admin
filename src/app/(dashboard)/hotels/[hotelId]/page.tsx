@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { CalendarRange, CreditCard } from "lucide-react";
 import Link from "next/link";
 
-const HotelPage = async ({
-  params
-}: {
-  params: { hotelId: string }
-}) => {
+const HotelPage = async (
+  props: {
+    params: Promise<{ hotelId: string }>
+  }
+) => {
+  const params = await props.params;
   const hotel = await prismadb.hotel.findUnique({
     where: {
       id: params.hotelId

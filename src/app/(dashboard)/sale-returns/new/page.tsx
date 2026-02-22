@@ -4,13 +4,13 @@ import { getUnitsOfMeasure } from "@/actions/get-units";
 import { getCustomers } from "@/actions/get-customers";
 import { SaleReturnForm } from "@/components/forms/sale-return-form";
 
-export default async function SaleReturnCreatePage({
-  params,
-  searchParams,
-}: {
-  params: { saleReturnId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export default async function SaleReturnCreatePage(
+  props: {
+    params: Promise<{ saleReturnId: string }>;
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const sales = await getSales();
   const taxSlabs = await getTaxSlabs();
   const units = await getUnitsOfMeasure();

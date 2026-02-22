@@ -282,7 +282,7 @@ export async function uploadTemplateMediaHandle(params: {
       Authorization: `Bearer ${META_WHATSAPP_ACCESS_TOKEN}`,
       file_offset: '0',
     },
-    body: params.buffer,
+    body: params.buffer as BodyInit,
   });
 
   let uploadPayload: any = null;

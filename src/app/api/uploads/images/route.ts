@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { handleApi, jsonError } from '@/lib/api-response';
 import { isCurrentUserAssociate } from '@/lib/associate-utils';
 import whatsappPrisma from '@/lib/whatsapp-prismadb';
@@ -279,7 +279,7 @@ function validateUploadFile(file: File): { ok: true; data: PreparedUpload } | { 
 
 export async function POST(request: NextRequest) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return jsonError('Unauthorized', 401, 'UNAUTHORIZED');
     }
@@ -376,7 +376,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return jsonError('Unauthorized', 401, 'UNAUTHORIZED');
     }
@@ -403,7 +403,7 @@ export async function GET() {
 
 export async function DELETE(request: NextRequest) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return jsonError('Unauthorized', 401, 'UNAUTHORIZED');
     }

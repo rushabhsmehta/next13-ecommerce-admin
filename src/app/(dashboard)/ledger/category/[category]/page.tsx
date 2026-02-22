@@ -5,13 +5,14 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { CategoryLedgerClient } from "./components/client";
 
-const CategoryLedgerPage = async ({
-  params,
-  searchParams,
-}: {
-  params: { category: string };
-  searchParams: { type?: 'income' | 'expense' | 'all' };
-}) => {
+const CategoryLedgerPage = async (
+  props: {
+    params: Promise<{ category: string }>;
+    searchParams: Promise<{ type?: 'income' | 'expense' | 'all' }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const categoryName = decodeURIComponent(params?.category || '');
   const transactionType = searchParams?.type || 'all';
 

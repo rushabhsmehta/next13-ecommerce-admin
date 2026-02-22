@@ -1,4 +1,5 @@
-import { UserButton, auth, SignOutButton, currentUser } from "@clerk/nextjs";
+import { UserButton, SignOutButton } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 
@@ -10,7 +11,7 @@ import prismadb from "@/lib/prismadb";
 import { headers } from "next/headers";
 
 const Navbar = async () => {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     redirect('/sign-in');
@@ -23,7 +24,7 @@ const Navbar = async () => {
     : user?.firstName || "User";
 
   // Check if we're on the associate domain
-  const headersList = headers();
+  const headersList = await headers();
   const hostname = headersList.get('host') || '';
   const isAssociateDomain = hostname.includes('associate.aagamholidays.com');
   

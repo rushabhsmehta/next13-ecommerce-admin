@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { getUserOrgRole, roleAtLeast } from "@/lib/authz";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // GET /api/travel-users - List all travel app users (admin only)
 export async function GET() {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const role = await getUserOrgRole(userId);
@@ -36,7 +36,7 @@ export async function GET() {
 // POST /api/travel-users - Create a new travel app user (admin only)
 export async function POST(req: Request) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const role = await getUserOrgRole(userId);

@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import * as bcrypt from 'bcryptjs';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { staffId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ staffId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.staffId) {
       return new NextResponse("Staff ID is required", { status: 400 });
@@ -25,12 +23,10 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { staffId: string } }
-) {
+export async function PUT(req: Request, props: { params: Promise<{ staffId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -107,12 +103,10 @@ export async function PUT(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { staffId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ staffId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -158,12 +152,10 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { staffId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ staffId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });

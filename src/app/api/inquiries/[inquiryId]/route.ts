@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
@@ -47,10 +47,8 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
   }
 }
 
-export async function GET(
-  req: Request,
-  { params }: { params: { inquiryId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.inquiryId) {
       return new NextResponse("Inquiry ID is required", { status: 400 });
@@ -100,12 +98,10 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { inquiryId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const user = await currentUser();
     const body = await req.json();
 
@@ -416,7 +412,7 @@ export async function PATCH(
         });
 
         if (fullInquiry) {
-          const headersList = headers();
+          const headersList = await headers();
           const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
           const userAgent = headersList.get("user-agent") || "";
 
@@ -477,12 +473,10 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { inquiryId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const user = await currentUser();
 
     if (!userId) {

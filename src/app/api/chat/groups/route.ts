@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { getUserOrgRole, roleAtLeast } from "@/lib/authz";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // GET /api/chat/groups - List chat groups for authenticated user
 export async function GET(req: Request) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     // Find the travel app user by clerk ID
@@ -68,7 +68,7 @@ export async function GET(req: Request) {
 // POST /api/chat/groups - Create a new chat group (admin/ops only)
 export async function POST(req: Request) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     // Only ADMIN or OWNER can create chat groups

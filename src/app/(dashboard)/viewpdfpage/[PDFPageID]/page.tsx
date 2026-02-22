@@ -2,11 +2,12 @@ import ViewMyPDF from "@/components/ViewMyPDF";
 import prismadb from "@/lib/prismadb";
 
 
-const ViewPDFPage = async ({
-  params
-}: {
-  params: { PDFPageID: string }
-}) => {
+const ViewPDFPage = async (
+  props: {
+    params: Promise<{ PDFPageID: string }>
+  }
+) => {
+  const params = await props.params;
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.PDFPageID,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 import prismadb from "@/lib/prismadb";
 
@@ -23,7 +23,7 @@ async function createActivities(activity: { activityTitle: any; activityDescript
 // POST function to create itinerary and activities
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const body = await req.json();    const {
       itineraryMasterTitle,
       itineraryMasterDescription,

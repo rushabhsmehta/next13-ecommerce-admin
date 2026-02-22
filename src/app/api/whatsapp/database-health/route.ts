@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 /**
  * 📊 Database Health Check API
@@ -13,7 +13,7 @@ import { auth } from "@clerk/nextjs";
 
 export async function GET() {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });

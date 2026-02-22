@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET tour package pricing for a specific tourPackageId
-export async function GET(
-  req: Request,
-  { params }: { params: { tourPackageId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ tourPackageId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -87,12 +85,10 @@ export async function GET(
 }
 
 // POST to create new tour package pricing
-export async function POST(
-  req: Request,
-  { params }: { params: { tourPackageId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ tourPackageId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

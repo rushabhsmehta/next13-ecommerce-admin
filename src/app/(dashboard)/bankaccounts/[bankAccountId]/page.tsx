@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { BankAccountForm } from "./components/bank-account-form";
 
-const BankAccountPage = async ({ 
-  params 
-}: { 
-  params: { bankAccountId: string } 
-}) => {
+const BankAccountPage = async (
+  props: { 
+    params: Promise<{ bankAccountId: string }> 
+  }
+) => {
+  const params = await props.params;
   const bankAccount = await prismadb.bankAccount.findUnique({
     where: {
       id: params.bankAccountId

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
 import { dateToUtc } from '@/lib/timezone-utils';
 import { computeBaseAmount, pickApplicableRate, calcTdsAmount, getFinancialYear, getQuarter } from '@/lib/tds';
@@ -41,7 +41,7 @@ const receiptCreateSchema = z.object({
 
 export async function POST(req: Request) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
     await requireFinanceOrAdmin(userId);
     
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
     await requireFinanceOrAdmin(userId);
     const { searchParams } = new URL(req.url);

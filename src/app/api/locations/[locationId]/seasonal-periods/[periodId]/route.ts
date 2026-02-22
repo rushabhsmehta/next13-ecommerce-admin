@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs"
+import { auth } from "@clerk/nextjs/server"
 import prismadb from "@/lib/prismadb"
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { locationId: string; periodId: string } }
+  props: { params: Promise<{ locationId: string; periodId: string }> }
 ) {
+  const params = await props.params;
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 })
@@ -60,10 +61,11 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { locationId: string; periodId: string } }
+  props: { params: Promise<{ locationId: string; periodId: string }> }
 ) {
+  const params = await props.params;
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 })
@@ -185,10 +187,11 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { locationId: string; periodId: string } }
+  props: { params: Promise<{ locationId: string; periodId: string }> }
 ) {
+  const params = await props.params;
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 })

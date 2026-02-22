@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
 
 const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"];
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { inquiryId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const body = await req.json();
 
     if (!userId) {
@@ -49,7 +47,7 @@ export async function PATCH(
         });
 
         if (fullInquiry) {
-          const headersList = headers();
+          const headersList = await headers();
           const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
           const userAgent = headersList.get("user-agent") || "";
 

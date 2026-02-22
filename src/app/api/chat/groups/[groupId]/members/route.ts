@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/chat/groups/[groupId]/members - List group members
-export async function GET(
-  _req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function GET(_req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({
@@ -59,12 +57,10 @@ export async function GET(
 }
 
 // POST /api/chat/groups/[groupId]/members - Add a member (admin/ops only)
-export async function POST(
-  req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({
@@ -127,12 +123,10 @@ export async function POST(
 }
 
 // DELETE /api/chat/groups/[groupId]/members - Remove a member (admin/ops only)
-export async function DELETE(
-  req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({

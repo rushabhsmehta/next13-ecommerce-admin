@@ -3,12 +3,12 @@ import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 import { InquiriesClient } from "./components/client";
 import { InquiryColumn } from "./components/columns";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 interface InquiriesPageProps {
-  searchParams: {
+  searchParams: Promise<{
     associateId?: string;
     status?: string;
     assignedStaffId?: string;
@@ -20,17 +20,18 @@ interface InquiriesPageProps {
     page?: string;
     pageSize?: string;
     q?: string;
-  }
+  }>
 }
 
-const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
+const InquiriesPage = async (props: InquiriesPageProps) => {
+  const searchParams = await props.searchParams;
   // Check if user is accessing from associate domain
-  const headersList = headers();
+  const headersList = await headers();
   const hostname = headersList.get('host') || '';
   const isAssociateDomain = hostname.includes('associate.aagamholidays.com');
 
   // Get the current user from Clerk
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");

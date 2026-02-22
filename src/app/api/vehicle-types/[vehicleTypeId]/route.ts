@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { vehicleTypeId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ vehicleTypeId: string }> }) {
+  const params = await props.params;
   try {
     const vehicleType = await prismadb.vehicleType.findUnique({
       where: {
@@ -19,10 +17,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { vehicleTypeId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ vehicleTypeId: string }> }) {
+  const params = await props.params;
   try {
     const body = await req.json();
     const { name, description, isActive } = body;
@@ -50,10 +46,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { vehicleTypeId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ vehicleTypeId: string }> }) {
+  const params = await props.params;
   try {
     // Check if vehicle type is being used
     const transportDetailsCount = await prismadb.transportDetail.count({

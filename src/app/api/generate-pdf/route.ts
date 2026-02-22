@@ -1,6 +1,6 @@
 import { generatePDF } from "@/utils/generatepdf";
 import { pdfCache } from "@/lib/pdf-cache";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,7 @@ export async function POST(req: Request): Promise<Response> {
     const limited = limiter.check(req);
     if (limited) return limited;
 
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new Response(
         JSON.stringify({ error: "Unauthenticated" }),

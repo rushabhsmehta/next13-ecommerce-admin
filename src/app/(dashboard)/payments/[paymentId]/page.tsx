@@ -1,28 +1,19 @@
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import axios from "axios";
-import { toast } from "react-hot-toast";
-import { ArrowLeft, FileText, Pencil } from "lucide-react";
-
-import { Button } from "@/components/ui/button"; // Added missing import
-import { Heading } from "@/components/ui/heading";
-import { Separator } from "@/components/ui/separator";
+import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
+import prismadb from "@/lib/prismadb";
 import { PaymentForm } from "../components/payment-form";
 
-import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
-import prismadb from "@/lib/prismadb";
-
 interface PaymentPageProps {
-  params: { paymentId: string };
+  params: Promise<{ paymentId: string }>;
 }
 
-export default async function PaymentPage({ params }: PaymentPageProps) {
-/*   const { userId } = auth();
+export default async function PaymentPage(props: PaymentPageProps) {
+  const params = await props.params;
+  /*   const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/sign-in");
-  } */
+    if (!userId) {
+      redirect("/sign-in");
+    } */
 
   // Check if this is an "edit" or "new" page
   const isEdit = params.paymentId !== "new";

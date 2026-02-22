@@ -2,11 +2,12 @@ import React from "react";
 import prismadb from "@/lib/prismadb";
 import { TourPackageQueryAccountingForm } from "./components/accounts-form";
 
-const tourPackageQueryPage = async ({
-  params
-}: {
-  params: { tourPackageQueryId: string }
-}) => {
+const tourPackageQueryPage = async (
+  props: {
+    params: Promise<{ tourPackageQueryId: string }>
+  }
+) => {
+  const params = await props.params;
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryId,

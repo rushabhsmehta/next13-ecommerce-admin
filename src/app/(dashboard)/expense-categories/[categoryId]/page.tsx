@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { ExpenseCategoryForm } from "./components/expense-category-form";
 
-const ExpenseCategoryPage = async ({
-  params
-}: {
-  params: { categoryId: string }
-}) => {
+const ExpenseCategoryPage = async (
+  props: {
+    params: Promise<{ categoryId: string }>
+  }
+) => {
+  const params = await props.params;
   const expenseCategory = await prismadb.expenseCategory.findUnique({
     where: {
       id: params.categoryId

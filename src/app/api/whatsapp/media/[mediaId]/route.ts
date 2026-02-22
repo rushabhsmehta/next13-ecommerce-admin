@@ -30,7 +30,8 @@ const fetchMediaUrl = async (mediaId: string) => {
   return { url: json.url as string, mimeType: json.mime_type as string | undefined };
 };
 
-export async function GET(_request: NextRequest, { params }: { params: { mediaId: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ mediaId: string }> }) {
+  const params = await props.params;
   try {
     const mediaId = params.mediaId;
     if (!mediaId) {

@@ -2,11 +2,12 @@ import prismadb from "@/lib/prismadb";
 
 import { CustomerForm } from "./components/customer-form";
 
-const CustomerPage = async ({
-  params
-}: {
-  params: { customerId: string }
-}) => {
+const CustomerPage = async (
+  props: {
+    params: Promise<{ customerId: string }>
+  }
+) => {
+  const params = await props.params;
   const customer = await prismadb.customer.findUnique({
     where: {
       id: params.customerId

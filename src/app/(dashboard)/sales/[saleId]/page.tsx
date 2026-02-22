@@ -1,19 +1,20 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import SaleForm from "../components/sale-form";
 
 interface SalePageProps {
-  params: { saleId: string };
+  params: Promise<{ saleId: string }>;
 }
 
-export default async function SalePage({ params }: SalePageProps) {
-/*   const { userId } = auth();
+export default async function SalePage(props: SalePageProps) {
+  const params = await props.params;
+  /*   const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/sign-in");
-  }
- */
+    if (!userId) {
+      redirect("/sign-in");
+    }
+   */
   // Check if this is an "edit" or "new" page
   const isEdit = params.saleId !== "new";
 

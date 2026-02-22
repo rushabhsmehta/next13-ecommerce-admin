@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { Copy, Edit, MoreHorizontal, Trash, Eye } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash, Eye, Layers } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -71,6 +71,10 @@ export const CellAction: React.FC<CellActionProps> = ({
     window.open(`/tourPackageQueryVoucherDisplay/${data.id}?search=${selectedOption}`, "_blank");
   }
 
+  const handleOptionConfirmVariantDisplay = (selectedOption: string) => {
+    window.open(`/tourPackageQueryVariantDisplay/${data.id}?search=${selectedOption}`, "_blank");
+  }
+
   return (
     <>
       {!readOnly && (
@@ -94,7 +98,7 @@ export const CellAction: React.FC<CellActionProps> = ({
           <DropdownMenuItem onClick={() => onCopy(data.id)}>
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
-          
+
           {!readOnly && (
             <>
               <DropdownMenuItem
@@ -204,7 +208,37 @@ export const CellAction: React.FC<CellActionProps> = ({
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
-          
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Layers className="mr-2 h-4 w-4" /> Variant Display
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('Empty')}>
+                  Empty
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('AH')}>
+                  AH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('KH')}>
+                  KH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('MT')}>
+                  MT
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('SupplierA')}>
+                  Supplier - Title only
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('SupplierB')}>
+                  Supplier - with Details
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+
           {!readOnly && (
             <>
               <DropdownMenuSeparator />

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 export default authMiddleware({
   publicRoutes: [
     "/tourPackageQueryDisplay/:path*",
+    "/tourPackageQueryVariantDisplay/:path*",
     "/tourPackageQueryPDFGenerator/:path*",
     "/sign-in",
     "/sign-up",
@@ -18,22 +19,22 @@ export default authMiddleware({
     "/api/travel/destinations",
     "/api/travel/search",
   ],
-  
+
   // Use ignoredRoutes for webhook endpoints to completely bypass authentication
   ignoredRoutes: [
     // Webhook needs to completely bypass middleware for Meta to access it
     "/api/whatsapp/webhook",
   ],
-  
+
   async afterAuth(auth, req) {
     // Check if the request is from an associate domain
     const hostname = req.headers.get('host') || '';
     const isAssociateDomain = hostname.includes('associate.aagamholidays.com');
     const isOpsDomain = hostname.includes('ops.aagamholidays.com');
-    
+
     // Get current path
     const path = req.nextUrl.pathname;
-    
+
     // Handle ops domain restrictions
     if (isOpsDomain) {
       // If user is not authenticated and not on sign-in page, redirect to sign-in
@@ -41,7 +42,7 @@ export default authMiddleware({
         const url = new URL('/sign-in', req.url);
         return NextResponse.redirect(url);
       }
-      
+
       // Check if user is operational staff (you might want to add a custom metadata check here)
       if (auth.userId && !path.startsWith('/sign-in')) {
         // For now, allow access to all ops routes for authenticated users
@@ -49,16 +50,16 @@ export default authMiddleware({
         return NextResponse.next();
       }
     }
-    
+
     // Only apply restrictions for associate domains
     if (isAssociateDomain) {      // Associates are only allowed to access the inquiries page, tour package query from inquiry (associate), tour package display, tour packages (view-only), sign-in, sign-up and API routes
-      const isAllowedPath = 
-        path.startsWith('/inquiries') || 
-        path.startsWith('/tourpackagequery') || 
+      const isAllowedPath =
+        path.startsWith('/inquiries') ||
+        path.startsWith('/tourpackagequery') ||
         path.startsWith('/tourpackagequeryfrominquiry') ||
         path.startsWith('/tourPackageQueryDisplay') ||
         path.startsWith('/tourPackages') ||
-        path.startsWith('/api/inquiries') || 
+        path.startsWith('/api/inquiries') ||
         path.startsWith('/tourpackagequeryfrominquiry/associate') ||
         path.startsWith('/api/tourPackages') ||
         path.startsWith('/api/locations') ||
@@ -71,19 +72,19 @@ export default authMiddleware({
         path.startsWith('/api/activitiesMaster') ||
         path.startsWith('/api/itinerariesMaster') ||
         path.startsWith('/api/pricing') ||
-        path === '/' || 
-        path.startsWith('/sign-in') || 
-        path.startsWith('/sign-up') || 
+        path === '/' ||
+        path.startsWith('/sign-in') ||
+        path.startsWith('/sign-up') ||
         path.startsWith('/api/auth') ||
         path === '/api/associate-partners/me';
-      
+
       if (!isAllowedPath) {
         // Redirect associates to the inquiries page when they try to access other routes
         const url = new URL('/inquiries', req.url);
         return NextResponse.redirect(url);
       }
-    } 
-    
+    }
+
     return NextResponse.next();
   }
 });

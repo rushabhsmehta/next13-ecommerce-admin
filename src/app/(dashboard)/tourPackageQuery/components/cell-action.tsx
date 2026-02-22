@@ -15,10 +15,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
-  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 
 import { TourPackageQueryColumn } from "./columns";
@@ -136,61 +132,14 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Layers className="mr-2 h-4 w-4" /> View Variant Display
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className="w-56">
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('Empty')}>
-                  Empty
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('AH')}>
-                  AH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('KH')}>
-                  KH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('MT')}>
-                  MT
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('SupplierA')}>
-                  Supplier - Title only
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('SupplierB')}>
-                  Supplier - with Details
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
+          <DropdownMenuItem onSelect={() => handleOptionConfirmVariantDisplay('AH')}>
+            <Layers className="mr-2 h-4 w-4" /> Variant Display
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <FileText className="mr-2 h-4 w-4" /> Download PDF with Variants
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className="w-56">
-                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('Empty')}>
-                  Empty
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('AH')}>
-                  AH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('KH')}>
-                  KH
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('MT')}>
-                  MT
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('SupplierA')}>
-                  Supplier - Title only
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openPdfWithVariantsOption('SupplierB')}>
-                  Supplier - with Details
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
+          <DropdownMenuItem onSelect={openPdfWithVariants}>
+            <FileText className="mr-2 h-4 w-4" /> Variant PDF
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
 
           <DropdownMenuItem onSelect={openDisplay}>

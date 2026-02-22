@@ -37,6 +37,15 @@ export const DebugLogPanel = () => {
     };
 
     console.error = (...args: any[]) => {
+      // Suppress known React 19 internal warnings from older libraries
+      const msg = typeof args[0] === 'string' ? args[0] : '';
+      if (
+        msg.includes('Cannot update a component') ||
+        msg.includes('element.ref') ||
+        msg.includes('forwardRef render functions')
+      ) {
+        return; // Silently ignore these known harmless warnings
+      }
       originalError(...args);
       captureLog('error', args);
     };
@@ -61,13 +70,13 @@ export const DebugLogPanel = () => {
 
   const captureLog = (level: 'info' | 'warning' | 'error', args: any[]) => {
     const firstArg = args[0];
-    
+
     // Only capture our emoji-prefixed logs
     if (typeof firstArg === 'string' && /[🎬🏨🔄📦📥🎨✨✅⚠️❌🔍📋🆕]/.test(firstArg)) {
       const category = firstArg.match(/\[(.*?)\]/)?.[1] || 'GENERAL';
       const message = firstArg;
       const data = args.length > 1 ? args.slice(1) : undefined;
-      
+
       setLogs(prev => [...prev, {
         timestamp: new Date().toISOString(),
         level: level === 'error' ? 'error' : level === 'warning' ? 'warning' : 'info',
@@ -109,7 +118,7 @@ export const DebugLogPanel = () => {
   }
 
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         bottom: '20px',

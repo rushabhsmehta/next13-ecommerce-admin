@@ -1,16 +1,17 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { FlightTicketPrint } from "../../components/flight-ticket-print";
 
 interface PrintFlightTicketPageProps {
-  params: {
+  params: Promise<{
     pnr: string;
-  };
+  }>;
 }
 
-export default async function PrintFlightTicketPage({ params }: PrintFlightTicketPageProps) {
-  const { userId } = auth();
+export default async function PrintFlightTicketPage(props: PrintFlightTicketPageProps) {
+  const params = await props.params;
+  const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");
@@ -35,10 +36,10 @@ export default async function PrintFlightTicketPage({ params }: PrintFlightTicke
   if (!flightTicket) {
     redirect("/flight-tickets");
   }
-  
+
   // Fetch organization details for the ticket
   const organization = await prismadb.organization.findFirst();
-  
+
   return (
     <div className="print:p-0 p-4">
       <FlightTicketPrint flightTicket={flightTicket} organization={organization} />

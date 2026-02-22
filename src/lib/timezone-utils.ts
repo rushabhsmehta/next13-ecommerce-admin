@@ -4,7 +4,7 @@
  */
 
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { formatInTimeZone, zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 
 // Default timezone - can be configured or detected from user's browser
 const DEFAULT_TIMEZONE = 'Asia/Kolkata'; // IST timezone for India

@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { AssociatePartnerForm } from "./components/associate-partner-form";
 
-const AssociatePartnerPage = async ({
-  params
-}: {
-  params: { associatePartnerId: string }
-}) => {
+const AssociatePartnerPage = async (
+  props: {
+    params: Promise<{ associatePartnerId: string }>
+  }
+) => {
+  const params = await props.params;
   let associatePartner = null;
 
   if (params.associatePartnerId !== "new") {
@@ -15,7 +16,7 @@ const AssociatePartnerPage = async ({
       }
     });
   }
-  
+
   return ( 
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">

@@ -4,7 +4,8 @@ import { ActivityForm } from "./components/activity-form";
 
 
 
-const ActivityPage = async ({ params }: { params: { activityId: string } }) => {
+const ActivityPage = async (props: { params: Promise<{ activityId: string }> }) => {
+  const params = await props.params;
   const activity = await prismadb.activity.findUnique({
     where: {
       id: params.activityId

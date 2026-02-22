@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 
 // Request deduplication cache - stores in-flight requests by cache key
@@ -13,7 +13,7 @@ interface NotificationsResponse {
 // GET - Fetch all notifications
 export async function GET(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -88,7 +88,7 @@ export async function GET(req: Request) {
 // POST - Create a new notification
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const body = await req.json();
     
     const { type, title, message, data } = body;

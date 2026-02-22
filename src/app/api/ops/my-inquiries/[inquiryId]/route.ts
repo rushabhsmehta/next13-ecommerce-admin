@@ -4,21 +4,19 @@ import prismadb from "@/lib/prismadb";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { inquiryId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
+  const params = await props.params;
   try {
     // Get the authenticated user from Clerk
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     // Get the user's email from Clerk
-    const { clerkClient } = await import('@clerk/nextjs/server');
-    const user = await clerkClient.users.getUser(userId);
+    const clerk = await (await import('@clerk/nextjs/server')).clerkClient();
+    const user = await clerk.users.getUser(userId);
     const userEmail = user.emailAddresses[0]?.emailAddress;
 
     if (!userEmail) {
@@ -75,21 +73,19 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { inquiryId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
+  const params = await props.params;
   try {
     // Get the authenticated user from Clerk
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     // Get the user's email from Clerk
-    const { clerkClient } = await import('@clerk/nextjs/server');
-    const user = await clerkClient.users.getUser(userId);
+    const clerk = await (await import('@clerk/nextjs/server')).clerkClient();
+    const user = await clerk.users.getUser(userId);
     const userEmail = user.emailAddresses[0]?.emailAddress;
 
     if (!userEmail) {

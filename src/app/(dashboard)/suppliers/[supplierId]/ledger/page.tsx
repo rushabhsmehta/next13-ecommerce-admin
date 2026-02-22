@@ -7,12 +7,13 @@ import { notFound } from "next/navigation";
 import { PurchaseDetail, PaymentDetail, PurchaseItem, TourPackageQuery, PurchaseReturn, PurchaseReturnItem } from "@prisma/client";
 
 interface SupplierLedgerPageProps {
-  params: {
+  params: Promise<{
     supplierId: string;
-  };
+  }>;
 }
 
-const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
+const SupplierLedgerPage = async (props: SupplierLedgerPageProps) => {
+  const params = await props.params;
   // Get supplier details
   const supplier = await prismadb.supplier.findUnique({
     where: {
@@ -55,8 +56,8 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     orderBy: {
       paymentDate: 'asc',
     },
-  });    
-  
+  });
+
   // Format transactions for display
   const formattedPurchases = purchases.map((purchase) => {
     // Calculate total including GST for each purchase
@@ -105,7 +106,7 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
       itemsSummary: itemsSummary
     };
   });
-  
+
   // Format purchase returns as transactions
   const formattedPurchaseReturns = purchases.flatMap((purchase) => {
     if (!purchase.purchaseReturns || purchase.purchaseReturns.length === 0) return [];

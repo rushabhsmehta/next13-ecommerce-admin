@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 
 // GET a specific notification
-export async function GET(
-  req: Request,
-  { params }: { params: { notificationId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ notificationId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -32,12 +30,10 @@ export async function GET(
 }
 
 // PATCH - Update a notification (mark as read)
-export async function PATCH(
-  req: Request,
-  { params }: { params: { notificationId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ notificationId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const body = await req.json();
     
     const { read } = body;
@@ -68,12 +64,10 @@ export async function PATCH(
 }
 
 // DELETE - Delete a notification
-export async function DELETE(
-  req: Request,
-  { params }: { params: { notificationId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ notificationId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });

@@ -9,11 +9,12 @@ import { isCurrentUserAssociate } from "@/lib/associate-utils";
 
 
 
-const tourPackagePage = async ({
-  params
-}: {
-  params: { tourPackageId: string }
-}) => {
+const tourPackagePage = async (
+  props: {
+    params: Promise<{ tourPackageId: string }>
+  }
+) => {
+  const params = await props.params;
   // Clean up any orphaned variantHotelMappings before fetching
   // This prevents Prisma errors when fetching with includes
   try {

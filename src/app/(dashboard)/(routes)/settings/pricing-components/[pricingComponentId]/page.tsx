@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { PricingComponentForm } from "./components/pricing-component-form";
 
-const PricingComponentPage = async ({
-  params
-}: {
-  params: { pricingComponentId: string }
-}) => {
+const PricingComponentPage = async (
+  props: {
+    params: Promise<{ pricingComponentId: string }>
+  }
+) => {
+  const params = await props.params;
   const pricingComponent = await prismadb.pricingComponent.findUnique({
     where: {
       id: params.pricingComponentId

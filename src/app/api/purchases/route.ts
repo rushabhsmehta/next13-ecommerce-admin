@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
 import { dateToUtc } from '@/lib/timezone-utils';
 import { computeBaseAmount, getFinancialYear, getQuarter, pickApplicableRate, calcTdsAmount } from '@/lib/tds';
@@ -7,7 +7,7 @@ import { requireFinanceOrAdmin } from '@/lib/authz';
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -185,7 +185,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

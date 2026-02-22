@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import * as bcrypt from 'bcryptjs';
 
@@ -9,7 +9,7 @@ export async function GET(
   req: Request
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const { searchParams } = new URL(req.url);
     const activeOnly = searchParams.get('active');
 
@@ -37,7 +37,7 @@ export async function POST(
   req: Request
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });

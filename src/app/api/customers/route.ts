@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { normalizePhoneNumber } from "@/lib/phone-utils";
@@ -48,7 +48,7 @@ async function syncWhatsAppCustomer(params: {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
 
     const body = await req.json();
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
 
     // Get search params for filtering

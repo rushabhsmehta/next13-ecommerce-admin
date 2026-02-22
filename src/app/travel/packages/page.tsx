@@ -3,11 +3,12 @@ import { PackagesListClient } from "./components/packages-list-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function PackagesPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export default async function PackagesPage(
+  props: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const category =
     typeof searchParams.category === "string"
       ? searchParams.category

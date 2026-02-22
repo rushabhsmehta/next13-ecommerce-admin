@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET a specific pricing period
 export async function GET(
   req: Request,
-  { params }: { params: { hotelId: string; pricingId: string } }
+  props: { params: Promise<{ hotelId: string; pricingId: string }> }
 ) {
+  const params = await props.params;
   try {
     if (!params.hotelId) {
       return new NextResponse("Hotel ID is required", { status: 400 });
@@ -43,10 +44,11 @@ export async function GET(
 // UPDATE a pricing period
 export async function PATCH(
   req: Request,
-  { params }: { params: { hotelId: string; pricingId: string } }
+  props: { params: Promise<{ hotelId: string; pricingId: string }> }
 ) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -114,10 +116,11 @@ export async function PATCH(
 // DELETE a pricing period
 export async function DELETE(
   req: Request,
-  { params }: { params: { hotelId: string; pricingId: string } }
+  props: { params: Promise<{ hotelId: string; pricingId: string }> }
 ) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

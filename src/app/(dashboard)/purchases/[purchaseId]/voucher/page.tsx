@@ -10,12 +10,13 @@ import { ItemTransactionTable } from "@/components/item-transaction-table";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface PurchaseVoucherPageProps {
-  params: {
+  params: Promise<{
     purchaseId: string;
-  };
+  }>;
 }
 
-const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
+const PurchaseVoucherPage = async (props: PurchaseVoucherPageProps) => {
+  const params = await props.params;
   // Get purchase details with related data including items
   const purchase = await prismadb.purchaseDetail.findUnique({
     where: { id: params.purchaseId },

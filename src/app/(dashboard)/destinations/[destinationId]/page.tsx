@@ -2,13 +2,14 @@ import prismadb from "@/lib/prismadb";
 
 import { DestinationForm } from "./components/destination-form";
 
-const DestinationPage = async ({
-  params,
-  searchParams,
-}: {
-  params: { destinationId: string };
-  searchParams: { locationId?: string };
-}) => {
+const DestinationPage = async (
+  props: {
+    params: Promise<{ destinationId: string }>;
+    searchParams: Promise<{ locationId?: string }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const destination = await prismadb.tourDestination.findUnique({
     where: {
       id: params.destinationId,

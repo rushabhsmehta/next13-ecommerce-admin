@@ -1,16 +1,17 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { IncomeForm } from "../../components/income-form";
 
 interface EditIncomePageProps {
-  params: {
+  params: Promise<{
     incomeId: string;
-  };
+  }>;
 }
 
-export default async function EditIncomePage({ params }: EditIncomePageProps) {
-  const { userId } = auth();
+export default async function EditIncomePage(props: EditIncomePageProps) {
+  const params = await props.params;
+  const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");

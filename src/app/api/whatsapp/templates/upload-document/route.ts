@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { handleApi, jsonError } from '@/lib/api-response';
 import { isCurrentUserAssociate } from '@/lib/associate-utils';
 import { uploadTemplatePdf } from '@/lib/r2-client';
@@ -24,7 +24,7 @@ function isPdfFile(file: File): boolean {
 
 export async function POST(request: NextRequest) {
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return jsonError('Unauthorized', 401, 'UNAUTHORIZED');

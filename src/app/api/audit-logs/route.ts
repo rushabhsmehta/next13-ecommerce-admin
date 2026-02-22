@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 
 // GET - Fetch audit logs
 export async function GET(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     const { searchParams } = new URL(req.url);
     
     if (!userId) {
@@ -59,7 +59,7 @@ export async function GET(req: Request) {
 // POST - Create a new audit log entry
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });

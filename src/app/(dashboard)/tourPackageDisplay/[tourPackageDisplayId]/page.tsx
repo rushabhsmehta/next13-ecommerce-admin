@@ -3,11 +3,12 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageDisplay } from "./components/tourPackageDisplay";
 import Navbar from "@/components/navbar";
 
-const tourPackageDisplayPage = async ({
-  params
-}: {
-  params: { tourPackageDisplayId: string }
-}) => {
+const tourPackageDisplayPage = async (
+  props: {
+    params: Promise<{ tourPackageDisplayId: string }>
+  }
+) => {
+  const params = await props.params;
   const tourPackage = await prismadb.tourPackage.findUnique({
     where: {
       id: params.tourPackageDisplayId,

@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     });
 
     const csvBody = ['\ufeff' + headers.join(','), ...rows].join('\r\n');
-    const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
+    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 12);
     const filename = `whatsapp-customers-${timestamp}.csv`;
 
     return new Response(csvBody, {

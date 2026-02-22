@@ -1,5 +1,5 @@
 // Audit logger utility to consistently log changes to various entities
-import { currentUser } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 
 type AuditAction = "CREATE" | "UPDATE" | "DELETE";
 type UserRole = "ADMIN" | "ASSOCIATE";

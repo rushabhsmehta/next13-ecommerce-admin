@@ -5,11 +5,12 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { ExpenseDetailView } from "@/components/ui/expense-detail-view";
 
-const ExpenseViewPage = async ({
-  params
-}: {
-  params: { expenseId: string }
-}) => {
+const ExpenseViewPage = async (
+  props: {
+    params: Promise<{ expenseId: string }>
+  }
+) => {
+  const params = await props.params;
   // Get the specific expense with all related data
   const expense = await prismadb.expenseDetail.findUnique({
     where: {

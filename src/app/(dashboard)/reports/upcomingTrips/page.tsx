@@ -6,16 +6,15 @@ import { TourPackageQueryColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
 
 interface UpcomingTripsPageProps {
-  searchParams: {
+  searchParams: Promise<{
     startDate?: string;
     endDate?: string;
-  }
+  }>
 }
 
 
-const confirmedTourPackageQueryPage = async ({
-  searchParams
-}: UpcomingTripsPageProps) => {
+const confirmedTourPackageQueryPage = async (props: UpcomingTripsPageProps) => {
+  const searchParams = await props.searchParams;
   // Get current date to filter out trips that have already ended
   const currentDate = new Date();
 

@@ -1,13 +1,13 @@
 
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import ExpenseForm from "../components/expense-form";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 
 export default async function NewExpensePage() {
-  /* const { userId } = auth();
+  /* const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");

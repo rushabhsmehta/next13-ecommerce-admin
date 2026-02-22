@@ -6,13 +6,14 @@ import { CustomerIndividualLedgerClient } from "./components/client";
 import { notFound } from "next/navigation";
 
 interface CustomerLedgerPageProps {
-  params: {
+  params: Promise<{
     customerId: string;
-  };
+  }>;
 }
 
 
-const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
+const CustomerLedgerPage = async (props: CustomerLedgerPageProps) => {
+  const params = await props.params;
   // Get customer details
   const customer = await prismadb.customer.findUnique({
     where: {

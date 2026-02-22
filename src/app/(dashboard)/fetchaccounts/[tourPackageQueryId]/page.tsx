@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import TourPackageQueryDisplay from "./components/fetchaccounts";
 
@@ -9,14 +9,13 @@ interface TourPackageQueryPageProps {
   };
 }
 
-const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
-  params,
-}) => {
- /*  const { userId } = auth();
+const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async props => {
+  const params = await props.params;
+  /*  const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/sign-in");
-  } */
+   if (!userId) {
+     redirect("/sign-in");
+   } */
   // Fetch the tour package query with all related data
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {

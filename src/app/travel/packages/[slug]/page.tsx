@@ -4,11 +4,12 @@ import { PackageDetailClient } from "./components/package-detail-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function PackageDetailPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function PackageDetailPage(
+  props: {
+    params: Promise<{ slug: string }>;
+  }
+) {
+  const params = await props.params;
   // Try finding by slug first, then by ID
   let tourPackage = await prismadb.tourPackage.findFirst({
     where: { slug: params.slug, isArchived: false },

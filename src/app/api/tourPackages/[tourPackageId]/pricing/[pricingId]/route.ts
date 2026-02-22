@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET a specific pricing record
 export async function GET(
   req: Request,
-  { params }: { params: { tourPackageId: string; pricingId: string } }
+  props: { params: Promise<{ tourPackageId: string; pricingId: string }> }
 ) {
+  const params = await props.params;
   try {
     if (!params.tourPackageId) {
       return new NextResponse("Tour Package ID is required", { status: 400 });
@@ -51,10 +52,11 @@ export async function GET(
 // PATCH to update a specific pricing record
 export async function PATCH(
   req: Request,
-  { params }: { params: { tourPackageId: string; pricingId:string } }
+  props: { params: Promise<{ tourPackageId: string; pricingId:string }> }
 ) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -179,10 +181,11 @@ export async function PATCH(
 // DELETE a specific pricing record
 export async function DELETE(
   req: Request,
-  { params }: { params: { tourPackageId: string; pricingId: string } }
+  props: { params: Promise<{ tourPackageId: string; pricingId: string }> }
 ) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

@@ -2,11 +2,12 @@ import prismadb from "@/lib/prismadb";
 import { InquiryForm } from "./components/inquiry-form";
 import { InquiryStaffAssignmentWrapper } from "@/components/InquiryStaffAssignmentWrapper";
 
-const InquiryPage = async ({
-  params
-}: {
-  params: { inquiryId: string }
-}) => {
+const InquiryPage = async (
+  props: {
+    params: Promise<{ inquiryId: string }>
+  }
+) => {
+  const params = await props.params;
   const inquiry = await prismadb.inquiry.findUnique({
     where: {
       id: params.inquiryId

@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { RoomTypeForm } from "../components/room-type-form";
 
-const RoomTypePage = async ({
-  params
-}: {
-  params: { roomTypeId: string }
-}) => {
+const RoomTypePage = async (
+  props: {
+    params: Promise<{ roomTypeId: string }>
+  }
+) => {
+  const params = await props.params;
   const roomType = await prismadb.roomType.findUnique({
     where: {
       id: params.roomTypeId

@@ -4,11 +4,12 @@ import { Separator } from "@/components/ui/separator";
 import { notFound } from "next/navigation";
 import { PurchaseItemsForm } from "../../components/purchase-item-form";
 
-const PurchaseItemsPage = async ({
-  params
-}: {
-  params: { purchaseId: string }
-}) => {
+const PurchaseItemsPage = async (
+  props: {
+    params: Promise<{ purchaseId: string }>
+  }
+) => {
+  const params = await props.params;
   // Get purchase with related details including items
   const purchase = await prismadb.purchaseDetail.findUnique({
     where: {

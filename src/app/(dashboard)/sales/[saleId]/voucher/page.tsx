@@ -11,12 +11,13 @@ import { ItemTransactionTable } from "@/components/item-transaction-table";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface SaleVoucherPageProps {
-  params: {
+  params: Promise<{
     saleId: string;
-  };
+  }>;
 }
 
-const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
+const SaleVoucherPage = async (props: SaleVoucherPageProps) => {
+  const params = await props.params;
   // Get sale details with related data including items
   const sale = await prismadb.saleDetail.findUnique({
     where: { id: params.saleId },
@@ -57,15 +58,15 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
 
   // Calculate tax details with better handling for inclusive/exclusive scenarios
   const hasGst = !!sale.gstAmount && sale.gstAmount > 0;
-  
+
   // Define GST type (inclusive or exclusive)
   const isGstInclusive = false; // You may want to store this in your database
-  
+
   // Calculate base and total amounts based on GST type
   let baseAmount = sale.salePrice;
   let totalAmount = sale.salePrice;
   let gstDisplayText = "";
-  
+
   if (hasGst) {
     if (isGstInclusive) {
       // If GST is inclusive, the base amount is the sale price minus GST

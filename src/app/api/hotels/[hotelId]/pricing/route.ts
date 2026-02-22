@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { ROOM_TYPES, OCCUPANCY_TYPES, MEAL_PLANS } from "@/lib/constants";
 import { dateToUtc, MILLISECONDS_PER_DAY } from '@/lib/timezone-utils';
 
 // GET hotel pricing for a specific hotelId
-export async function GET(
-  req: Request,
-  { params }: { params: { hotelId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ hotelId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.hotelId) {
       return new NextResponse("Hotel ID is required", { status: 400 });    }
@@ -53,12 +51,10 @@ export async function GET(
 }
 
 // POST to create new hotel pricing
-export async function POST(
-  req: Request,
-  { params }: { params: { hotelId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ hotelId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

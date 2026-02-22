@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -7,7 +7,7 @@ import Link from "next/link";
 import { ReceiptsListTable } from "./components/receipts-list-table";
 
 export default async function ReceiptsPage() {
- /*  const { userId } = auth();
+ /*  const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");

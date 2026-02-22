@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { destinationId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ destinationId: string }> }) {
+  const params = await props.params;
   try {
     if (!params.destinationId) {
       return new NextResponse("Destination ID is required", { status: 400 });
@@ -27,12 +25,10 @@ export async function GET(
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { destinationId: string } }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ destinationId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
@@ -54,12 +50,10 @@ export async function DELETE(
   }
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { destinationId: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ destinationId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }

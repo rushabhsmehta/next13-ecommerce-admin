@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 import prismadb from "@/lib/prismadb";
 import { isCurrentUserAssociate } from "@/lib/associate-utils";
 
 const DEFAULT_RELATION_TYPE = "related";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { tourPackageId: string } }
-) {
+export async function GET(_req: Request, props: { params: Promise<{ tourPackageId: string }> }) {
+  const params = await props.params;
   try {
     const { tourPackageId } = params;
 
@@ -45,12 +43,10 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { tourPackageId: string } }
-) {
+export async function PUT(req: Request, props: { params: Promise<{ tourPackageId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });

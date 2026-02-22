@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
 import { requireFinanceOrAdmin } from '@/lib/authz';
 
@@ -9,7 +9,7 @@ export const revalidate = 0;
 
 export async function GET(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 403 });
   try { await requireFinanceOrAdmin(userId); } catch { return NextResponse.json({ error: 'Forbidden' }, { status: 403 }); }
     const { searchParams } = new URL(req.url);

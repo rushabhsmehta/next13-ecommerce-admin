@@ -3,13 +3,14 @@ import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { auth } from '@clerk/nextjs/server';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET /api/whatsapp/campaigns/[id] - Get campaign details
-export async function GET(req: NextRequest, { params }: RouteParams) {
+export async function GET(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -134,7 +135,8 @@ async function buildRetrySchedule(campaignId: string) {
 }
 
 // PUT /api/whatsapp/campaigns/[id] - Update campaign
-export async function PUT(req: NextRequest, { params }: RouteParams) {
+export async function PUT(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -243,7 +245,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 }
 
 // DELETE /api/whatsapp/campaigns/[id] - Delete/Cancel campaign
-export async function DELETE(req: NextRequest, { params }: RouteParams) {
+export async function DELETE(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const { userId } = await auth();
     if (!userId) {

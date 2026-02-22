@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 import prismadb from "@/lib/prismadb";
 
 export const dynamic = 'force-dynamic';
 
 
-export async function GET(
-  req: Request,
-  { params }: { params: { searchTerm : string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ searchTerm : string }> }) {
+  const params = await props.params;
   try {
     if (!params.searchTerm) {
       return new NextResponse("Search Term is required", { status: 400 });

@@ -526,7 +526,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                     </FormLabel>
                                     <FormControl>
                                       <JoditEditor
-                                        ref={(node) => editorsRef.current[`title-${index}`] = node}
+                                        ref={(node) => { editorsRef.current[`title-${index}`] = node; }}
                                         value={itinerary.itineraryTitle || ''}
                                         config={{
                                           readonly: loading,
@@ -548,7 +548,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                     </FormLabel>
                                     <FormControl>
                                       <JoditEditor
-                                        ref={(node) => editorsRef.current[`description-${index}`] = node}
+                                        ref={(node) => { editorsRef.current[`description-${index}`] = node; }}
                                         value={itinerary.itineraryDescription || ''}
                                         config={{
                                           readonly: loading,

@@ -10,11 +10,12 @@ type SearchParams = {
   endDate?: string;
 }
 
-const confirmedTourPackageQueryPage = async ({
-  searchParams
-}: {
-  searchParams: SearchParams
-}) => {
+const confirmedTourPackageQueryPage = async (
+  props: {
+    searchParams: Promise<SearchParams>
+  }
+) => {
+  const searchParams = await props.searchParams;
   // Get current year dates if no dates are provided
   const currentYear = new Date().getFullYear();
   const defaultStartDate = startOfYear(new Date(currentYear, 0, 1));

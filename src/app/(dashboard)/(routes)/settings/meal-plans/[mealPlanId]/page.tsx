@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { MealPlanForm } from "../components/meal-plan-form";
 
-const MealPlanPage = async ({
-  params
-}: {
-  params: { mealPlanId: string }
-}) => {
+const MealPlanPage = async (
+  props: {
+    params: Promise<{ mealPlanId: string }>
+  }
+) => {
+  const params = await props.params;
   const mealPlan = await prismadb.mealPlan.findUnique({
     where: {
       id: params.mealPlanId

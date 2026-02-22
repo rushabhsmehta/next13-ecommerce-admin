@@ -5,11 +5,12 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { IncomeDetailView } from "@/components/ui/income-detail-view";
 
-const IncomeViewPage = async ({
-  params
-}: {
-  params: { incomeId: string }
-}) => {
+const IncomeViewPage = async (
+  props: {
+    params: Promise<{ incomeId: string }>
+  }
+) => {
+  const params = await props.params;
   // Get the specific income with all related data
   const income = await prismadb.incomeDetail.findUnique({
     where: {

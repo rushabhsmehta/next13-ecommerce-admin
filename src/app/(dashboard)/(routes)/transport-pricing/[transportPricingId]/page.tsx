@@ -9,9 +9,8 @@ interface TransportPricingPageProps {
   };
 }
 
-const TransportPricingPage: React.FC<TransportPricingPageProps> = async ({
-  params
-}) => {
+const TransportPricingPage: React.FC<TransportPricingPageProps> = async props => {
+  const params = await props.params;
   // Fetch the transport pricing entry by ID  
   const transportPricing = await prismadb.transportPricing.findUnique({
     where: {
@@ -29,7 +28,7 @@ const TransportPricingPage: React.FC<TransportPricingPageProps> = async ({
       label: 'asc'
     }
   });
-  
+
   // Fetch all vehicle types for the vehicle type dropdown
   const vehicleTypes = await prismadb.vehicleType.findMany({
     where: {

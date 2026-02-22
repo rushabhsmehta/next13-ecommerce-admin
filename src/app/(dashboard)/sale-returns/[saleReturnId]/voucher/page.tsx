@@ -12,12 +12,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { calculateSalePaymentStatus } from "@/lib/payment-utils";
 
 interface CreditNoteVoucherPageProps {
-    params: {
+    params: Promise<{
         saleReturnId: string;
-    };
+    }>;
 }
 
-const CreditNoteVoucherPage = async ({ params }: CreditNoteVoucherPageProps) => {
+const CreditNoteVoucherPage = async (props: CreditNoteVoucherPageProps) => {
+    const params = await props.params;
     // Get sale return details with related data including items
     const saleReturn = await prismadb.saleReturn.findUnique({
         where: { id: params.saleReturnId },
@@ -59,14 +60,14 @@ const CreditNoteVoucherPage = async ({ params }: CreditNoteVoucherPageProps) => 
 
     // Get payment status to determine how much of the return should be credited
     const paymentStatus = await calculateSalePaymentStatus(saleReturn.saleDetail.id);
-    
+
     // Calculate the proportion of the return amount that should be credited based on payment status
     const creditablePercentage = paymentStatus.paymentPercentage;
-    
+
     // Convert the original amounts to creditable amounts based on payment percentage
     const originalBaseAmount = saleReturn.amount;
     const originalGstAmount = saleReturn.gstAmount || 0;
-    
+
     // Apply payment percentage to get the actual amount to be credited
     const creditableBaseAmount = parseFloat((originalBaseAmount * creditablePercentage).toFixed(2));
     const creditableGstAmount = parseFloat((originalGstAmount * creditablePercentage).toFixed(2));
@@ -80,19 +81,19 @@ const CreditNoteVoucherPage = async ({ params }: CreditNoteVoucherPageProps) => 
     // Calculate base and total amounts based on GST type
     let baseAmount = creditableBaseAmount;
     let totalAmount = creditableBaseAmount;
-    let gstDisplayText = "";    if (hasGst) {
-        if (isGstInclusive) {
-            // If GST is inclusive, the base amount is the price minus GST
-            baseAmount = creditableBaseAmount - creditableGstAmount;
-            totalAmount = creditableBaseAmount;
-            gstDisplayText = "(Inclusive)";
-        } else {
-            // If GST is exclusive, the base amount is the price and total includes GST
-            baseAmount = creditableBaseAmount;
-            totalAmount = creditableBaseAmount + creditableGstAmount;
-            gstDisplayText = "(Exclusive)";
-        }
-    }    // Prepare data for voucher layout with GST info
+    let gstDisplayText = "";if (hasGst) {
+            if (isGstInclusive) {
+                // If GST is inclusive, the base amount is the price minus GST
+                baseAmount = creditableBaseAmount - creditableGstAmount;
+                totalAmount = creditableBaseAmount;
+                gstDisplayText = "(Inclusive)";
+            } else {
+                // If GST is exclusive, the base amount is the price and total includes GST
+                baseAmount = creditableBaseAmount;
+                totalAmount = creditableBaseAmount + creditableGstAmount;
+                gstDisplayText = "(Exclusive)";
+            }
+        }    // Prepare data for voucher layout with GST info
     const voucherData = {
         title: "CREDIT NOTE",
         subtitle: isMultiItem ? "Credit Note for Returned Items" : "Credit Note for Returned Product",

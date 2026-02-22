@@ -9,12 +9,13 @@ import { VoucherActions } from "@/components/voucher-actions";
 import { VoucherLayout } from "@/components/voucher-layout";
 
 interface IncomeVoucherPageProps {
-  params: {
+  params: Promise<{
     incomeId: string;
-  };
+  }>;
 }
 
-const IncomeVoucherPage = async ({ params }: IncomeVoucherPageProps) => {
+const IncomeVoucherPage = async (props: IncomeVoucherPageProps) => {
+  const params = await props.params;
   // Get income details with related data
   const income = await prismadb.incomeDetail.findUnique({
     where: { id: params.incomeId },
@@ -31,7 +32,7 @@ const IncomeVoucherPage = async ({ params }: IncomeVoucherPageProps) => {
   }
   // Format the income date
   const formattedDate = formatLocalDate(income.incomeDate, "MMMM d, yyyy");
-  
+
   // Determine payment method and account details
   const paymentMethod = income.bankAccount 
     ? `Bank - ${income.bankAccount.accountName}`

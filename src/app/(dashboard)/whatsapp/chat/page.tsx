@@ -939,7 +939,7 @@ export default function WhatsAppSettingsPage() {
 
   const renderMessageContent = (msg: ChatMsg) => {
     const metadata = msg.metadata || {};
-    const segments: JSX.Element[] = [];
+    const segments: React.JSX.Element[] = [];
     const flowDetails = extractFlowSubmissionDetails(metadata);
 
     const whatsappType = metadata.whatsappType;
@@ -999,7 +999,7 @@ export default function WhatsAppSettingsPage() {
           </div>
         );
       })
-      .filter((element): element is JSX.Element => element !== null);
+      .filter((element): element is React.JSX.Element => element !== null);
 
     if (whatsappType && whatsappType !== 'text') {
       if (whatsappType === 'image' && (media?.id || media?.localUrl)) {

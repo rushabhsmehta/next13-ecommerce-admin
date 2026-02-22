@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import GstReport from "./components/gst-report";
 import Link from "next/link";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon } from "lucide-react";
 
 export default async function GstReportPage() {
- /*  const { userId } = auth();
+ /*  const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");

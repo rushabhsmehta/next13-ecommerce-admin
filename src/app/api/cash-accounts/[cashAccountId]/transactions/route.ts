@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { dateToUtc } from "@/lib/timezone-utils";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { cashAccountId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ cashAccountId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

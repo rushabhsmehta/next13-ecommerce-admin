@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import ExpenseForm from "../components/expense-form";
 
 interface ExpensePageProps {
-  params: { expenseId: string };
+  params: Promise<{ expenseId: string }>;
 }
 
-export default async function ExpensePage({ params }: ExpensePageProps) {
-  /* const { userId } = auth();
+export default async function ExpensePage(props: ExpensePageProps) {
+  const params = await props.params;
+  /* const { userId } = await auth();
 
   if (!userId) {
     redirect("/sign-in");

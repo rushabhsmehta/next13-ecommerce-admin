@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { VehicleTypeForm } from "../components/vehicle-type-form";
 
-const VehicleTypePage = async ({
-  params
-}: {
-  params: { vehicleTypeId: string }
-}) => {
+const VehicleTypePage = async (
+  props: {
+    params: Promise<{ vehicleTypeId: string }>
+  }
+) => {
+  const params = await props.params;
   const vehicleType = await prismadb.vehicleType.findUnique({
     where: {
       id: params.vehicleTypeId

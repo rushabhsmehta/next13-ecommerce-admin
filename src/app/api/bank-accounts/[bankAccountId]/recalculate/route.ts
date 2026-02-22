@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { recalculateBankBalance } from "@/lib/bank-balance";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { bankAccountId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ bankAccountId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });

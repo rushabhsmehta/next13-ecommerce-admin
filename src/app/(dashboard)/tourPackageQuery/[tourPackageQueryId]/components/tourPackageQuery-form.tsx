@@ -484,7 +484,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const getCurrentDateTimeString = () => {
     const now = new Date();
-    return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
+    return now.toISOString().replace(/[^0-9]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
   };
   const defaultValues = initialData
     ? {

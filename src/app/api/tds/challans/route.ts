@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
 import { z } from 'zod';
 import { requireFinanceOrAdmin } from '@/lib/authz';
@@ -37,7 +37,7 @@ async function assertRole(userId: string) { await requireFinanceOrAdmin(userId);
 // Create challan and attach transactions
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
     await assertRole(userId);
     let parsed;
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 // List challans with aggregated amount & transaction count
 export async function GET() {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
     await assertRole(userId); // read restricted for now
     const challans = await (prismadb as any).tDSChallan.findMany({
@@ -95,7 +95,7 @@ export async function GET() {
 // Patch: attach transactions to challan or mark deposited
 export async function PATCH(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
     await assertRole(userId);
     let parsed;
@@ -135,7 +135,7 @@ export async function PATCH(req: Request) {
 // Soft delete challan if no deposited transactions else prevent
 export async function DELETE(req: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
     await assertRole(userId);
     const { searchParams } = new URL(req.url);

@@ -3,13 +3,14 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryVariantDisplay } from "./components/tourPackageQueryVariantDisplay";
 import Link from "next/link";
 
-const tourPackageQueryVariantPage = async ({
-    params,
-    searchParams,
-}: {
-    params: { tourPackageQueryId: string };
-    searchParams?: Record<string, string | string[] | undefined>;
-}) => {
+const tourPackageQueryVariantPage = async (
+    props: {
+        params: Promise<{ tourPackageQueryId: string }>;
+        searchParams?: Promise<Record<string, string | string[] | undefined>>;
+    }
+) => {
+    const searchParams = await props.searchParams;
+    const params = await props.params;
     const selectedOptionParam = searchParams?.search;
     const selectedOption = Array.isArray(selectedOptionParam)
         ? selectedOptionParam[0]

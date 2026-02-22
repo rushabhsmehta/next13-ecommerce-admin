@@ -5,13 +5,14 @@ import { sendWhatsAppTemplate } from '@/lib/whatsapp';
 import type { WhatsAppCampaign, WhatsAppCampaignRecipient } from '@prisma/whatsapp-client';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // POST /api/whatsapp/campaigns/[id]/send - Start sending campaign
-export async function POST(req: NextRequest, { params }: RouteParams) {
+export async function POST(req: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const { userId } = await auth();
     if (!userId) {

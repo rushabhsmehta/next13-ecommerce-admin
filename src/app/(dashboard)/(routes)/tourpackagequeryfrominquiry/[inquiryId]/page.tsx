@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { TourPackageQueryForm } from "./components/tourpackagequery-form";
 
-const TourPackageQueryPage = async ({
-  params
-}: {
-  params: { inquiryId: string }
-}) => {
+const TourPackageQueryPage = async (
+  props: {
+    params: Promise<{ inquiryId: string }>
+  }
+) => {
+  const params = await props.params;
   const inquiry = await prismadb.inquiry.findUnique({
     where: {
       id: params.inquiryId

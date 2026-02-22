@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import TourPackageQueryPDFGeneratorWithVariants from "./components/tourPackageQueryPDFGeneratorWithVariants";
 
-const TourPackageQueryPDFWithVariantsPage = async ({
-  params
-}: {
-  params: { tourPackageQueryId: string }
-}) => {
+const TourPackageQueryPDFWithVariantsPage = async (
+  props: {
+    params: Promise<{ tourPackageQueryId: string }>
+  }
+) => {
+  const params = await props.params;
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryId,

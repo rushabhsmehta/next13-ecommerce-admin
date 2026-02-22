@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/chat/groups/[groupId]/messages - Get messages for a chat group
-export async function GET(
-  req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({
@@ -65,12 +63,10 @@ export async function GET(
 }
 
 // POST /api/chat/groups/[groupId]/messages - Send a message
-export async function POST(
-  req: Request,
-  { params }: { params: { groupId: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ groupId: string }> }) {
+  const params = await props.params;
   return handleApi(async () => {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({

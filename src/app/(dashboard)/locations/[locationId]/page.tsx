@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Car } from "lucide-react";
 import Link from "next/link";
 
-const LocationPage = async ({
-  params
-}: {
-  params: { locationId: string }
-}) => {
+const LocationPage = async (
+  props: {
+    params: Promise<{ locationId: string }>
+  }
+) => {
+  const params = await props.params;
   const location = await prismadb.location.findUnique({
     where: {
       id: params.locationId

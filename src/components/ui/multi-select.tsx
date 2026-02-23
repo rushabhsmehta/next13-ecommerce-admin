@@ -8,7 +8,8 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem
+  CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
@@ -142,6 +143,7 @@ export function MultiSelect({
               className="h-9"
               onMouseDown={(e) => e.stopPropagation()}
             />
+            <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup className="max-h-60 overflow-y-auto">
               {options.map((option) => {
@@ -191,6 +193,7 @@ export function MultiSelect({
                 );
               })}
             </CommandGroup>
+            </CommandList>
           </Command>
         </div>
       )}

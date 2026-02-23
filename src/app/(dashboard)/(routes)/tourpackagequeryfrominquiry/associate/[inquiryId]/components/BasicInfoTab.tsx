@@ -13,6 +13,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 
 import {
@@ -169,29 +170,31 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <PopoverContent className="w-[calc(100vw-2rem)] md:w-[400px] p-0">
                   <Command>
                     <CommandInput placeholder="Search tour package..." />
-                    <CommandEmpty>No tour package found.</CommandEmpty>
-                    <CommandGroup>
-                      {tourPackages
-                        ?.filter(tp => tp.locationId === form.getValues('locationId'))
-                        .map((tourPackage) => (
-                          <CommandItem
-                            value={tourPackage.tourPackageName ?? ''}
-                            key={tourPackage.id}
-                            onSelect={() => {
-                              handleTourPackageSelection(tourPackage.id);
-                              setOpenTemplate(false); // Close the popover after selection
-                            }}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                tourPackage.id === field.value ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <span className="truncate">{tourPackage.tourPackageName}</span>
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
+                    <CommandList>
+                      <CommandEmpty>No tour package found.</CommandEmpty>
+                      <CommandGroup>
+                        {tourPackages
+                          ?.filter(tp => tp.locationId === form.getValues('locationId'))
+                          .map((tourPackage) => (
+                            <CommandItem
+                              value={tourPackage.tourPackageName ?? ''}
+                              key={tourPackage.id}
+                              onSelect={() => {
+                                handleTourPackageSelection(tourPackage.id);
+                                setOpenTemplate(false); // Close the popover after selection
+                              }}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  tourPackage.id === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="truncate">{tourPackage.tourPackageName}</span>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
                   </Command>
                 </PopoverContent>
               </Popover>              <FormDescription className="text-xs md:text-sm">
@@ -254,70 +257,72 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   <PopoverContent className="w-[450px] p-0">
                     <Command>
                       <CommandInput placeholder="Search variants..." />
-                      <CommandEmpty>No variant found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          onSelect={() => {
-                            if (handleTourPackageVariantSelection && selectedTourPackageId) {
-                              handleTourPackageVariantSelection(selectedTourPackageId, []);
-                            }
-                            form.setValue('selectedVariantIds', []);
-                          }}
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          Clear All Selections
-                        </CommandItem>
-                        {availableVariants.map((variant) => {
-                          const isSelected = selectedVariantIds.includes(variant.id);
-                          return (
-                            <CommandItem
-                              value={variant.name ?? ''}
-                              key={variant.id}
-                              onSelect={() => {
-                                const newSelection = isSelected
-                                  ? selectedVariantIds.filter((id: string) => id !== variant.id)
-                                  : [...selectedVariantIds, variant.id];
-                                
-                                console.log('🎯 [Associate BasicInfoTab] Variant selection changed:', {
-                                  variantId: variant.id,
-                                  variantName: variant.name,
-                                  action: isSelected ? 'removed' : 'added',
-                                  newSelection,
-                                  previousSelection: selectedVariantIds
-                                });
-                                
-                                form.setValue('selectedVariantIds', newSelection);
-                                
-                                if (handleTourPackageVariantSelection && selectedTourPackageId) {
-                                  handleTourPackageVariantSelection(selectedTourPackageId, newSelection);
-                                }
-                              }}
-                            >
-                              <div className={cn(
-                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                isSelected
-                                  ? "bg-primary text-primary-foreground"
-                                  : "opacity-50 [&_svg]:invisible"
-                              )}>
-                                <CheckIcon className={cn("h-4 w-4")} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="font-medium">{variant.name}</div>
-                                {variant.description && (
-                                  <div className="text-xs text-muted-foreground line-clamp-1">
-                                    {variant.description}
-                                  </div>
-                                )}
-                                {variant.priceModifier && (
-                                  <div className="text-xs text-blue-600">
-                                    {variant.priceModifier > 0 ? '+' : ''}{variant.priceModifier}%
-                                  </div>
-                                )}
-                              </div>
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
+                      <CommandList>
+                        <CommandEmpty>No variant found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            onSelect={() => {
+                              if (handleTourPackageVariantSelection && selectedTourPackageId) {
+                                handleTourPackageVariantSelection(selectedTourPackageId, []);
+                              }
+                              form.setValue('selectedVariantIds', []);
+                            }}
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Clear All Selections
+                          </CommandItem>
+                          {availableVariants.map((variant) => {
+                            const isSelected = selectedVariantIds.includes(variant.id);
+                            return (
+                              <CommandItem
+                                value={variant.name ?? ''}
+                                key={variant.id}
+                                onSelect={() => {
+                                  const newSelection = isSelected
+                                    ? selectedVariantIds.filter((id: string) => id !== variant.id)
+                                    : [...selectedVariantIds, variant.id];
+                                  
+                                  console.log('🎯 [Associate BasicInfoTab] Variant selection changed:', {
+                                    variantId: variant.id,
+                                    variantName: variant.name,
+                                    action: isSelected ? 'removed' : 'added',
+                                    newSelection,
+                                    previousSelection: selectedVariantIds
+                                  });
+                                  
+                                  form.setValue('selectedVariantIds', newSelection);
+                                  
+                                  if (handleTourPackageVariantSelection && selectedTourPackageId) {
+                                    handleTourPackageVariantSelection(selectedTourPackageId, newSelection);
+                                  }
+                                }}
+                              >
+                                <div className={cn(
+                                  "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                  isSelected
+                                    ? "bg-primary text-primary-foreground"
+                                    : "opacity-50 [&_svg]:invisible"
+                                )}>
+                                  <CheckIcon className={cn("h-4 w-4")} />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="font-medium">{variant.name}</div>
+                                  {variant.description && (
+                                    <div className="text-xs text-muted-foreground line-clamp-1">
+                                      {variant.description}
+                                    </div>
+                                  )}
+                                  {variant.priceModifier && (
+                                    <div className="text-xs text-blue-600">
+                                      {variant.priceModifier > 0 ? '+' : ''}{variant.priceModifier}%
+                                    </div>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
@@ -414,26 +419,28 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   <PopoverContent className="w-[calc(100vw-2rem)] md:w-[400px] p-0">
                     <Command>
                       <CommandInput placeholder="Search associate partner..." />
-                      <CommandEmpty>No associate partner found.</CommandEmpty>
-                      <CommandGroup>
-                        {associatePartners.map((partner) => (
-                          <CommandItem
-                            value={partner.name}
-                            key={partner.id}
-                            onSelect={() => {
-                              form.setValue("associatePartnerId", partner.id);
-                            }}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                partner.id === field.value ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <span className="truncate">{partner.name}</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
+                      <CommandList>
+                        <CommandEmpty>No associate partner found.</CommandEmpty>
+                        <CommandGroup>
+                          {associatePartners.map((partner) => (
+                            <CommandItem
+                              value={partner.name}
+                              key={partner.id}
+                              onSelect={() => {
+                                form.setValue("associatePartnerId", partner.id);
+                              }}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  partner.id === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="truncate">{partner.name}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>

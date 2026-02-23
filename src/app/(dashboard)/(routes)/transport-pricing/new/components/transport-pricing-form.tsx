@@ -45,6 +45,7 @@ import {
     CommandGroup,
     CommandInput,
     CommandItem,
+    CommandList,
 } from "@/components/ui/command";
 
 const formSchema = z.object({
@@ -148,28 +149,30 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                                         <PopoverContent className="w-[300px] p-0">
                                             <Command>
                                                 <CommandInput placeholder="Search location..." />
-                                                <CommandEmpty>No location found.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {locations.map((location) => (
-                                                        <CommandItem
-                                                            key={location.id}
-                                                            value={location.label}
-                                                            onSelect={() => {
-                                                                form.setValue("locationId", location.id);
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    location.id === field.value
-                                                                        ? "opacity-100"
-                                                                        : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {location.label}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
+                                                <CommandList>
+                                                  <CommandEmpty>No location found.</CommandEmpty>
+                                                  <CommandGroup>
+                                                      {locations.map((location) => (
+                                                          <CommandItem
+                                                              key={location.id}
+                                                              value={location.label}
+                                                              onSelect={() => {
+                                                                  form.setValue("locationId", location.id);
+                                                              }}
+                                                          >
+                                                              <Check
+                                                                  className={cn(
+                                                                      "mr-2 h-4 w-4",
+                                                                      location.id === field.value
+                                                                          ? "opacity-100"
+                                                                          : "opacity-0"
+                                                                  )}
+                                                              />
+                                                              {location.label}
+                                                          </CommandItem>
+                                                      ))}
+                                                  </CommandGroup>
+                                                </CommandList>
                                             </Command>
                                         </PopoverContent>
                                     </Popover>

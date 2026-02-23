@@ -199,6 +199,8 @@ function ItineraryTab({
   const editor = useRef(null);
   // Track open state for each itinerary accordion to avoid it collapsing on re-render
   const [openMap, setOpenMap] = useState<Record<number, boolean>>({ 0: true });
+  // Track open state for each itinerary template popover
+  const [openTemplateMap, setOpenTemplateMap] = useState<Record<number, boolean>>({});
   // Handle saving to master itinerary
   const handleSaveToMasterItinerary = async (itinerary: any) => {
     try {
@@ -481,7 +483,7 @@ function ItineraryTab({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6" />
                                 <div className="flex flex-col gap-4 p-2 bg-slate-50 rounded-lg border border-slate-100">
                                   <h3 className="font-medium text-sm text-slate-500">Itinerary Template</h3>
-                                  <Popover>
+                                  <Popover open={!!openTemplateMap[index]} onOpenChange={(o) => setOpenTemplateMap(prev => ({ ...prev, [index]: o }))}>
                                     <PopoverTrigger asChild>
                                       <FormControl>
                                         <Button
@@ -530,6 +532,7 @@ function ItineraryTab({
                                                   days: itinerary.days || '',
                                                 }, index);
                                                 onChange(updatedItineraries); // Update the state with the new itineraries
+                                                setOpenTemplateMap(prev => ({ ...prev, [index]: false }));
                                               }}
                                             >
                                               {itineraryMaster.itineraryMasterTitle}

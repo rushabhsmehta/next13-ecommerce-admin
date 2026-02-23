@@ -126,17 +126,20 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
   occupancyTypes,
   mealPlans,
   vehicleTypes
-}) => {  const router = useRouter();
+}) => {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [openAssociate, setOpenAssociate] = useState(false);
+  const [openLocation, setOpenLocation] = useState(false);
   const [isAssociateDomain, setIsAssociateDomain] = useState(false);
   // Get associate partner data at the component level
   const { associatePartner } = useAssociatePartner();
-    // States for managing room allocations and transport details
+  // States for managing room allocations and transport details
   const [showAddRoomAllocation, setShowAddRoomAllocation] = useState(false);
   const [editingRoomAllocationIndex, setEditingRoomAllocationIndex] = useState<number | null>(null);
   const [showAddTransportDetail, setShowAddTransportDetail] = useState(false);
   const [editingTransportDetailIndex, setEditingTransportDetailIndex] = useState<number | null>(null);
-    // State to track the current room allocation and transport detail being added
+  // State to track the current room allocation and transport detail being added
   // Use proper TypeScript interfaces instead of schema types
   const [newRoomAllocation, setNewRoomAllocation] = useState<Partial<{
     roomTypeId: string;
@@ -160,7 +163,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
   const title = initialData ? "Edit inquiry" : "Create inquiry";
   const description = initialData ? "Edit an inquiry" : "Add a new inquiry";
   const toastMessage = initialData ? "Inquiry updated." : "Inquiry created.";
-  const action = initialData ? "Save changes" : "Create";  const form = useForm<InquiryFormValues>({
+  const action = initialData ? "Save changes" : "Create"; const form = useForm<InquiryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
       status: initialData.status as "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT",
@@ -175,8 +178,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildren5to11: initialData.numChildren5to11,
       numChildrenBelow5: initialData.numChildrenBelow5,
       remarks: initialData.remarks,
-  // @ts-ignore - field added recently
-  nextFollowUpDate: initialData?.nextFollowUpDate ? new Date(initialData.nextFollowUpDate as any) : null,
+      // @ts-ignore - field added recently
+      nextFollowUpDate: initialData?.nextFollowUpDate ? new Date(initialData.nextFollowUpDate as any) : null,
       actions: actions.map(action => ({
         actionType: action.actionType,
         remarks: action.remarks,
@@ -193,14 +196,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildren5to11: 0,
       numChildrenBelow5: 0,
       remarks: '',
-  nextFollowUpDate: null,
+      nextFollowUpDate: null,
       actions: [],
       journeyDate: null,
     }
   });
 
   // Check if we're on the associate domain and auto-select associate partner  // Check if we're on the associate domain and auto-select associate partner
-  
+
   // Handle adding a new room allocation
   const handleAddRoomAllocation = () => {
     // Only add if we have the required fields
@@ -208,18 +211,18 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       toast.error("Room type and occupancy type are required");
       return;
     }
-    
+
     // Ensure quantity is set and is a number
     const completeAllocation = {
       ...newRoomAllocation,
       quantity: typeof newRoomAllocation.quantity === 'number' ? newRoomAllocation.quantity : 1
     };
-      // Add to form
+    // Add to form
     const currentAllocations = form.getValues("roomAllocations") || [];
     // Cast the completeAllocation to the expected type to satisfy TypeScript
     const typedAllocation = completeAllocation as typeof roomAllocationSchema._type;
     form.setValue("roomAllocations", [...currentAllocations, typedAllocation]);
-    
+
     // Reset state
     setShowAddRoomAllocation(false);
     setNewRoomAllocation({});
@@ -233,7 +236,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       quantity: allocation.quantity || 1
     };
     form.setValue("roomAllocations", updatedAllocations);
-    
+
     // Only close the dialog if explicitly requested (via the Save button)
     if (closeDialog) {
       setEditingRoomAllocationIndex(null);
@@ -245,7 +248,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
     const updatedAllocations = currentAllocations.filter((_, i) => i !== index);
     form.setValue("roomAllocations", updatedAllocations);
   };
-  
+
   // Handle adding a new transport detail
   const handleAddTransportDetail = () => {
     // Only add if we have the required fields
@@ -253,7 +256,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       toast.error("Vehicle type is required");
       return;
     }
-    
+
     // Ensure quantity and boolean fields are set with proper types
     const completeDetail = {
       ...newTransportDetail,
@@ -261,12 +264,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       isAirportPickupRequired: Boolean(newTransportDetail.isAirportPickupRequired),
       isAirportDropRequired: Boolean(newTransportDetail.isAirportDropRequired)
     };
-      // Add to form
+    // Add to form
     const currentDetails = form.getValues("transportDetails") || [];
     // Cast the completeDetail to the expected type to satisfy TypeScript
     const typedDetail = completeDetail as typeof transportDetailSchema._type;
     form.setValue("transportDetails", [...currentDetails, typedDetail]);
-    
+
     // Reset state
     setShowAddTransportDetail(false);
     setNewTransportDetail({});
@@ -278,11 +281,11 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
     updatedDetails[index] = {
       ...detail,
       quantity: detail.quantity || 1,
-      isAirportPickupRequired: detail.isAirportPickupRequired || false, 
+      isAirportPickupRequired: detail.isAirportPickupRequired || false,
       isAirportDropRequired: detail.isAirportDropRequired || false
     };
     form.setValue("transportDetails", updatedDetails);
-    
+
     // Only close the dialog if explicitly requested (via the Save button)
     if (closeDialog) {
       setEditingTransportDetailIndex(null);
@@ -298,7 +301,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
   useEffect(() => {
     if (!initialData) { // Only do this for new inquiries, not when editing
       const hostname = window.location.hostname;
-      const isAssociateHostname = hostname === 'associate.aagamholidays.com';      
+      const isAssociateHostname = hostname === 'associate.aagamholidays.com';
       setIsAssociateDomain(isAssociateHostname);
 
       if (isAssociateHostname && associatePartner?.id) {
@@ -306,17 +309,17 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         form.setValue('associatePartnerId', associatePartner.id);
       }
     }
-  }, [form, initialData, associatePartner]);  const onSubmit = async (data: InquiryFormValues) => {
+  }, [form, initialData, associatePartner]); const onSubmit = async (data: InquiryFormValues) => {
     try {
       setLoading(true);
-      
+
       console.log("🚀 COMPREHENSIVE FORM SUBMISSION LOGS:");
       console.log("===============================================");
       console.log("1. Raw form data received in onSubmit:");
       console.log("   - Full data object:", data);
       console.log("   - Raw journeyDate:", data.journeyDate);
       console.log("   - journeyDate type:", typeof data.journeyDate);
-      
+
       if (data.journeyDate) {
         console.log("2. Original journeyDate detailed analysis:");
         console.log("   - toString():", data.journeyDate.toString());
@@ -329,22 +332,22 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         console.log("   - getMinutes():", data.journeyDate.getMinutes());
         console.log("   - getTimezoneOffset():", data.journeyDate.getTimezoneOffset(), "minutes");
         console.log("   - User timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
-        
-        console.log("3. Expected display date: " + 
+
+        console.log("3. Expected display date: " +
           `${data.journeyDate.getDate()}/${data.journeyDate.getMonth() + 1}/${data.journeyDate.getFullYear()}`);
       } else {
         console.log("2. journeyDate is null/undefined");
       }
-      
+
       // Apply timezone normalization to journey date
       const normalizedJourneyDate = normalizeApiDate(data.journeyDate);
       console.log("4. After normalizeApiDate function:");
       console.log("   - normalizedJourneyDate:", normalizedJourneyDate);
-      
+
       if (normalizedJourneyDate) {
         console.log("5. Normalized journeyDate detailed analysis:");
         console.log("   - ISO string result:", normalizedJourneyDate);
-        
+
         // Parse the ISO string to a Date object for analysis
         const normalizedDateObj = new Date(normalizedJourneyDate);
         console.log("   - Parsed Date object:", normalizedDateObj);
@@ -357,18 +360,18 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         console.log("   - getHours():", normalizedDateObj.getHours());
         console.log("   - getMinutes():", normalizedDateObj.getMinutes());
         console.log("   - getTimezoneOffset():", normalizedDateObj.getTimezoneOffset(), "minutes");
-        
-        console.log("6. Expected display date after normalization: " + 
+
+        console.log("6. Expected display date after normalization: " +
           `${normalizedDateObj.getDate()}/${normalizedDateObj.getMonth() + 1}/${normalizedDateObj.getFullYear()}`);
       } else {
         console.log("5. normalizedJourneyDate is null/undefined");
       }
-      
+
       // Prepare the data - ensure all required fields are properly formatted
       const formattedData = {
         ...data,
-  journeyDate: normalizedJourneyDate,
-  nextFollowUpDate: data.nextFollowUpDate ? normalizeApiDate(data.nextFollowUpDate) : null,
+        journeyDate: normalizedJourneyDate,
+        nextFollowUpDate: data.nextFollowUpDate ? normalizeApiDate(data.nextFollowUpDate) : null,
         roomAllocations: data.roomAllocations?.map(allocation => ({
           ...allocation,
           quantity: Number(allocation.quantity),
@@ -382,14 +385,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
           requirementDate: detail.requirementDate ? detail.requirementDate : null
         }))
       };
-      
+
       console.log("7. Final formattedData being sent to API:");
       console.log("   - formattedData.journeyDate:", formattedData.journeyDate);
       console.log("   - journeyDate ISO string:", formattedData.journeyDate);
       console.log("   - Full JSON payload preview:", JSON.stringify({
         journeyDate: formattedData.journeyDate
       }, null, 2));
-      
+
       if (initialData) {
         console.log("8. Sending PATCH request to:", `/api/inquiries/${initialData.id}`);
         const response = await fetch(`/api/inquiries/${initialData.id}`, {
@@ -400,7 +403,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
           body: JSON.stringify(formattedData),
         });
         console.log("9. PATCH Response status:", response.status);
-        
+
         if (response.ok) {
           const responseData = await response.json();
           console.log("10. PATCH Response data:", responseData);
@@ -421,7 +424,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
           body: JSON.stringify(formattedData),
         });
         console.log("9. POST Response status:", response.status);
-        
+
         if (response.ok) {
           const responseData = await response.json();
           console.log("10. POST Response data:", responseData);
@@ -434,7 +437,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         }
       }
       console.log("===============================================");
-      
+
       router.refresh();
       router.push(`/inquiries`);
       toast.success(toastMessage);
@@ -480,7 +483,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Associate Partner</FormLabel>
-                  <Popover>
+                  <Popover open={openAssociate} onOpenChange={setOpenAssociate}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -494,8 +497,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                         >
                           {field.value
                             ? associates.find(
-                                (associate) => associate.id === field.value
-                              )?.name
+                              (associate) => associate.id === field.value
+                            )?.name
                             : "Search associate..."}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -513,6 +516,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                                 value={associate.name}
                                 onSelect={() => {
                                   field.onChange(associate.id);
+                                  setOpenAssociate(false);
                                 }}
                               >
                                 <Check
@@ -561,10 +565,10 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 <FormItem>
                   <FormLabel>Mobile Number</FormLabel>
                   <FormControl>
-                    <Input 
-                      disabled={loading} 
-                      placeholder="+91xxxxxxxxxx (12 digits with country code)" 
-                      {...field} 
+                    <Input
+                      disabled={loading}
+                      placeholder="+91xxxxxxxxxx (12 digits with country code)"
+                      {...field}
                     />
                   </FormControl>
                   <p className="text-xs text-muted-foreground">Enter 12 digits including country code</p>
@@ -578,7 +582,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Location</FormLabel>
-                  <Popover>
+                  <Popover open={openLocation} onOpenChange={setOpenLocation}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -609,7 +613,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                                 value={location.label}
                                 key={location.id}
                                 onSelect={() => {
-                                  form.setValue("locationId", location.id);
+                                  form.setValue("locationId", location.id, { shouldValidate: true, shouldDirty: true });
+                                  setOpenLocation(false);
                                 }}
                               >
                                 <Check
@@ -659,7 +664,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                           console.log("🗓️ COMPREHENSIVE JOURNEY DATE SELECTION LOGS:");
                           console.log("=================================================");
                           console.log("1. Raw date from calendar component:", date);
-                          
+
                           if (date) {
                             console.log("2. Original date details:");
                             console.log("   - toString():", date.toString());
@@ -674,12 +679,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                             console.log("   - getSeconds():", date.getSeconds());
                             console.log("   - getTimezoneOffset():", date.getTimezoneOffset(), "minutes");
                             console.log("   - User timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
-                            
+
                             console.log("3. Current field value before change:");
                             console.log("   - field.value:", field.value);
                             console.log("   - field.value type:", typeof field.value);
                             console.log("   - field.value toString():", field.value?.toString());
-                            
+
                             // Normalize the date to prevent timezone shifts
                             const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                             console.log("4. After normalization (new Date(year, month, day)):");
@@ -692,7 +697,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                             console.log("   - getDate():", normalizedDate.getDate());
                             console.log("   - getHours():", normalizedDate.getHours());
                             console.log("   - getTimezoneOffset():", normalizedDate.getTimezoneOffset(), "minutes");
-                            
+
                             // Try alternative normalization approach
                             const alternativeDate = new Date(date.toDateString());
                             console.log("5. Alternative normalization (new Date(dateString)):");
@@ -700,10 +705,10 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                             console.log("   - toString():", alternativeDate.toString());
                             console.log("   - toISOString():", alternativeDate.toISOString());
                             console.log("   - getDate():", alternativeDate.getDate());
-                            
+
                             field.onChange(normalizedDate);
                             console.log("6. Date set in form field with field.onChange()");
-                            
+
                             // Check field value immediately after setting
                             setTimeout(() => {
                               const fieldValueAfter = form.getValues("journeyDate");
@@ -876,8 +881,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       </div>
                       <div className="flex gap-2 mt-2 md:mt-7 flex-wrap">
                         <Button type="button" variant="secondary" size="sm" onClick={() => field.onChange(new Date())}>Today</Button>
-                        <Button type="button" variant="secondary" size="sm" onClick={() => { const d=new Date(); d.setDate(d.getDate()+2); field.onChange(d); }}>+2d</Button>
-                        <Button type="button" variant="secondary" size="sm" onClick={() => { const d=new Date(); d.setDate(d.getDate()+7); field.onChange(d); }}>+1w</Button>
+                        <Button type="button" variant="secondary" size="sm" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 2); field.onChange(d); }}>+2d</Button>
+                        <Button type="button" variant="secondary" size="sm" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 7); field.onChange(d); }}>+1w</Button>
                         {field.value && (
                           <Button type="button" variant="ghost" size="sm" onClick={() => field.onChange(null)}>Clear</Button>
                         )}
@@ -969,14 +974,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <label className="text-sm font-medium">Room Type</label>                    <Select
                       onValueChange={(value) => {
                         if (editingRoomAllocationIndex !== null) {
-                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], roomTypeId: value};
+                          const allocation = { ...form.getValues("roomAllocations")[editingRoomAllocationIndex], roomTypeId: value };
                           handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
                         } else {
-                          setNewRoomAllocation({...newRoomAllocation, roomTypeId: value});
+                          setNewRoomAllocation({ ...newRoomAllocation, roomTypeId: value });
                         }
                       }}
-                      defaultValue={editingRoomAllocationIndex !== null 
-                        ? form.getValues("roomAllocations")[editingRoomAllocationIndex].roomTypeId 
+                      defaultValue={editingRoomAllocationIndex !== null
+                        ? form.getValues("roomAllocations")[editingRoomAllocationIndex].roomTypeId
                         : undefined}
                     >
                       <SelectTrigger>
@@ -995,14 +1000,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <label className="text-sm font-medium">Occupancy Type</label>                    <Select
                       onValueChange={(value) => {
                         if (editingRoomAllocationIndex !== null) {
-                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], occupancyTypeId: value};
+                          const allocation = { ...form.getValues("roomAllocations")[editingRoomAllocationIndex], occupancyTypeId: value };
                           handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
                         } else {
-                          setNewRoomAllocation({...newRoomAllocation, occupancyTypeId: value});
+                          setNewRoomAllocation({ ...newRoomAllocation, occupancyTypeId: value });
                         }
                       }}
-                      defaultValue={editingRoomAllocationIndex !== null 
-                        ? form.getValues("roomAllocations")[editingRoomAllocationIndex].occupancyTypeId 
+                      defaultValue={editingRoomAllocationIndex !== null
+                        ? form.getValues("roomAllocations")[editingRoomAllocationIndex].occupancyTypeId
                         : undefined}
                     >
                       <SelectTrigger>
@@ -1021,13 +1026,13 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <label className="text-sm font-medium">Meal Plan (Optional)</label>                    <Select
                       onValueChange={(value) => {
                         if (editingRoomAllocationIndex !== null) {
-                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], mealPlanId: value};
+                          const allocation = { ...form.getValues("roomAllocations")[editingRoomAllocationIndex], mealPlanId: value };
                           handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
                         } else {
-                          setNewRoomAllocation({...newRoomAllocation, mealPlanId: value});
+                          setNewRoomAllocation({ ...newRoomAllocation, mealPlanId: value });
                         }
-                      }}defaultValue={editingRoomAllocationIndex !== null 
-                        ? form.getValues("roomAllocations")[editingRoomAllocationIndex].mealPlanId || undefined 
+                      }} defaultValue={editingRoomAllocationIndex !== null
+                        ? form.getValues("roomAllocations")[editingRoomAllocationIndex].mealPlanId || undefined
                         : undefined}
                     >
                       <SelectTrigger>
@@ -1047,57 +1052,57 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <Input
                       type="number"
                       min="1"
-                      defaultValue={editingRoomAllocationIndex !== null 
-                        ? form.getValues("roomAllocations")[editingRoomAllocationIndex].quantity 
-                        : "1"}                      onChange={(e) => {
-                        if (editingRoomAllocationIndex !== null) {
-                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], quantity: parseInt(e.target.value)};
-                          handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
-                        } else {
-                          setNewRoomAllocation({...newRoomAllocation, quantity: parseInt(e.target.value)});
-                        }
-                      }}
+                      defaultValue={editingRoomAllocationIndex !== null
+                        ? form.getValues("roomAllocations")[editingRoomAllocationIndex].quantity
+                        : "1"} onChange={(e) => {
+                          if (editingRoomAllocationIndex !== null) {
+                            const allocation = { ...form.getValues("roomAllocations")[editingRoomAllocationIndex], quantity: parseInt(e.target.value) };
+                            handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
+                          } else {
+                            setNewRoomAllocation({ ...newRoomAllocation, quantity: parseInt(e.target.value) });
+                          }
+                        }}
                     />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-sm font-medium">Notes (Optional)</label>                    <Textarea
                       placeholder="Enter any special requirements or notes"
-                      defaultValue={editingRoomAllocationIndex !== null 
+                      defaultValue={editingRoomAllocationIndex !== null
                         ? form.getValues("roomAllocations")[editingRoomAllocationIndex].notes || ""
-                        : ""}                      onChange={(e) => {
-                        if (editingRoomAllocationIndex !== null) {
-                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], notes: e.target.value};
-                          handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
-                        } else {
-                          setNewRoomAllocation({...newRoomAllocation, notes: e.target.value});
-                        }
-                      }}
+                        : ""} onChange={(e) => {
+                          if (editingRoomAllocationIndex !== null) {
+                            const allocation = { ...form.getValues("roomAllocations")[editingRoomAllocationIndex], notes: e.target.value };
+                            handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
+                          } else {
+                            setNewRoomAllocation({ ...newRoomAllocation, notes: e.target.value });
+                          }
+                        }}
                     />
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2 mt-4">                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddRoomAllocation(false);
-                      setEditingRoomAllocationIndex(null);
-                      setNewRoomAllocation({}); // Reset state to prevent stale data
-                    }}
-                  >
-                    Cancel
-                  </Button>                  <Button
-                    type="button"
-                    onClick={() => {
-                      if (editingRoomAllocationIndex !== null) {
-                        // Get the current allocation and explicitly call update with closeDialog=true
-                        const currentAllocation = form.getValues("roomAllocations")[editingRoomAllocationIndex];
-                        handleUpdateRoomAllocation(currentAllocation, editingRoomAllocationIndex, true);
-                      } else {
-                        // Call the handler that validates and adds the room allocation
-                        handleAddRoomAllocation();
-                      }
-                    }}
-                  >
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddRoomAllocation(false);
+                    setEditingRoomAllocationIndex(null);
+                    setNewRoomAllocation({}); // Reset state to prevent stale data
+                  }}
+                >
+                  Cancel
+                </Button>                  <Button
+                  type="button"
+                  onClick={() => {
+                    if (editingRoomAllocationIndex !== null) {
+                      // Get the current allocation and explicitly call update with closeDialog=true
+                      const currentAllocation = form.getValues("roomAllocations")[editingRoomAllocationIndex];
+                      handleUpdateRoomAllocation(currentAllocation, editingRoomAllocationIndex, true);
+                    } else {
+                      // Call the handler that validates and adds the room allocation
+                      handleAddRoomAllocation();
+                    }
+                  }}
+                >
                     {editingRoomAllocationIndex !== null ? "Save Changes" : "Add"}
                   </Button>
                 </div>
@@ -1208,14 +1213,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <label className="text-sm font-medium">Vehicle Type</label>                    <Select
                       onValueChange={(value) => {
                         if (editingTransportDetailIndex !== null) {
-                          const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], vehicleTypeId: value};
+                          const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], vehicleTypeId: value };
                           handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                         } else {
-                          setNewTransportDetail({...newTransportDetail, vehicleTypeId: value});
+                          setNewTransportDetail({ ...newTransportDetail, vehicleTypeId: value });
                         }
                       }}
-                      defaultValue={editingTransportDetailIndex !== null 
-                        ? form.getValues("transportDetails")[editingTransportDetailIndex].vehicleTypeId 
+                      defaultValue={editingTransportDetailIndex !== null
+                        ? form.getValues("transportDetails")[editingTransportDetailIndex].vehicleTypeId
                         : undefined}
                     >
                       <SelectTrigger>
@@ -1235,47 +1240,47 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <Input
                       type="number"
                       min="1"
-                      defaultValue={editingTransportDetailIndex !== null 
-                        ? form.getValues("transportDetails")[editingTransportDetailIndex].quantity 
-                        : "1"}                      onChange={(e) => {
-                        if (editingTransportDetailIndex !== null) {
-                          const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], quantity: parseInt(e.target.value)};
-                          handleUpdateTransportDetail(detail, editingTransportDetailIndex);
-                        } else {
-                          setNewTransportDetail({...newTransportDetail, quantity: parseInt(e.target.value)});
-                        }
-                      }}
+                      defaultValue={editingTransportDetailIndex !== null
+                        ? form.getValues("transportDetails")[editingTransportDetailIndex].quantity
+                        : "1"} onChange={(e) => {
+                          if (editingTransportDetailIndex !== null) {
+                            const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], quantity: parseInt(e.target.value) };
+                            handleUpdateTransportDetail(detail, editingTransportDetailIndex);
+                          } else {
+                            setNewTransportDetail({ ...newTransportDetail, quantity: parseInt(e.target.value) });
+                          }
+                        }}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Pickup Location (Optional)</label>                    <Input
                       placeholder="Enter pickup location"
-                      defaultValue={editingTransportDetailIndex !== null 
+                      defaultValue={editingTransportDetailIndex !== null
                         ? form.getValues("transportDetails")[editingTransportDetailIndex].pickupLocation ?? ""
-                        : ""}                      onChange={(e) => {
-                        if (editingTransportDetailIndex !== null) {
-                          const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], pickupLocation: e.target.value};
-                          handleUpdateTransportDetail(detail, editingTransportDetailIndex);
-                        } else {
-                          setNewTransportDetail({...newTransportDetail, pickupLocation: e.target.value});
-                        }
-                      }}
+                        : ""} onChange={(e) => {
+                          if (editingTransportDetailIndex !== null) {
+                            const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], pickupLocation: e.target.value };
+                            handleUpdateTransportDetail(detail, editingTransportDetailIndex);
+                          } else {
+                            setNewTransportDetail({ ...newTransportDetail, pickupLocation: e.target.value });
+                          }
+                        }}
                     />
                   </div>
                   <div className="space-y-2">
-                  <label className="text-sm font-medium">Drop Location (Optional)</label>
+                    <label className="text-sm font-medium">Drop Location (Optional)</label>
                     <Input
                       placeholder="Enter drop location"
                       defaultValue={
                         editingTransportDetailIndex !== null
                           ? form.getValues("transportDetails")[editingTransportDetailIndex].dropLocation ?? ""
                           : ""
-                      }                      onChange={(e) => {
+                      } onChange={(e) => {
                         if (editingTransportDetailIndex !== null) {
                           const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], dropLocation: e.target.value };
                           handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                         } else {
-                          setNewTransportDetail({...newTransportDetail, dropLocation: e.target.value});
+                          setNewTransportDetail({ ...newTransportDetail, dropLocation: e.target.value });
                         }
                       }}
                     />
@@ -1294,14 +1299,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                           mode="single"
                           selected={editingTransportDetailIndex !== null && form.getValues("transportDetails")[editingTransportDetailIndex]?.requirementDate
                             ? new Date(form.getValues("transportDetails")[editingTransportDetailIndex].requirementDate as Date)
-                            : undefined}                          onSelect={(date) => {
-                            if (editingTransportDetailIndex !== null) {
-                              const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], requirementDate: date};
-                              handleUpdateTransportDetail(detail, editingTransportDetailIndex);
-                            } else {
-                              setNewTransportDetail({...newTransportDetail, requirementDate: date});
-                            }
-                          }}
+                            : undefined} onSelect={(date) => {
+                              if (editingTransportDetailIndex !== null) {
+                                const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], requirementDate: date };
+                                handleUpdateTransportDetail(detail, editingTransportDetailIndex);
+                              } else {
+                                setNewTransportDetail({ ...newTransportDetail, requirementDate: date });
+                              }
+                            }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -1314,14 +1319,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                         id="airportPickup"
                         defaultChecked={editingTransportDetailIndex !== null
                           ? form.getValues("transportDetails")[editingTransportDetailIndex].isAirportPickupRequired
-                          : false}                        onChange={(e) => {
-                          if (editingTransportDetailIndex !== null) {
-                            const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], isAirportPickupRequired: e.target.checked};
-                            handleUpdateTransportDetail(detail, editingTransportDetailIndex);
-                          } else {
-                            setNewTransportDetail({...newTransportDetail, isAirportPickupRequired: e.target.checked});
-                          }
-                        }}
+                          : false} onChange={(e) => {
+                            if (editingTransportDetailIndex !== null) {
+                              const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], isAirportPickupRequired: e.target.checked };
+                              handleUpdateTransportDetail(detail, editingTransportDetailIndex);
+                            } else {
+                              setNewTransportDetail({ ...newTransportDetail, isAirportPickupRequired: e.target.checked });
+                            }
+                          }}
                       />
                       <label htmlFor="airportPickup" className="text-sm font-medium">Airport Pickup</label>
                     </div>
@@ -1331,14 +1336,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                         id="airportDrop"
                         defaultChecked={editingTransportDetailIndex !== null
                           ? form.getValues("transportDetails")[editingTransportDetailIndex].isAirportDropRequired
-                          : false}                        onChange={(e) => {
-                          if (editingTransportDetailIndex !== null) {
-                            const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], isAirportDropRequired: e.target.checked};
-                            handleUpdateTransportDetail(detail, editingTransportDetailIndex);
-                          } else {
-                            setNewTransportDetail({...newTransportDetail, isAirportDropRequired: e.target.checked});
-                          }
-                        }}
+                          : false} onChange={(e) => {
+                            if (editingTransportDetailIndex !== null) {
+                              const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], isAirportDropRequired: e.target.checked };
+                              handleUpdateTransportDetail(detail, editingTransportDetailIndex);
+                            } else {
+                              setNewTransportDetail({ ...newTransportDetail, isAirportDropRequired: e.target.checked });
+                            }
+                          }}
                       />
                       <label htmlFor="airportDrop" className="text-sm font-medium">Airport Drop</label>
                     </div>
@@ -1346,42 +1351,42 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-sm font-medium">Notes (Optional)</label>                    <Textarea
                       placeholder="Enter any special requirements or notes"
-                      defaultValue={editingTransportDetailIndex !== null 
-                        ? form.getValues("transportDetails")[editingTransportDetailIndex].notes ?? "" 
-                        : ""}                      onChange={(e) => {
-                        if (editingTransportDetailIndex !== null) {
-                          const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], notes: e.target.value};
-                          handleUpdateTransportDetail(detail, editingTransportDetailIndex);
-                        } else {
-                          setNewTransportDetail({...newTransportDetail, notes: e.target.value});
-                        }
-                      }}
+                      defaultValue={editingTransportDetailIndex !== null
+                        ? form.getValues("transportDetails")[editingTransportDetailIndex].notes ?? ""
+                        : ""} onChange={(e) => {
+                          if (editingTransportDetailIndex !== null) {
+                            const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], notes: e.target.value };
+                            handleUpdateTransportDetail(detail, editingTransportDetailIndex);
+                          } else {
+                            setNewTransportDetail({ ...newTransportDetail, notes: e.target.value });
+                          }
+                        }}
                     />
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2 mt-4">                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddTransportDetail(false);
-                      setEditingTransportDetailIndex(null);
-                      setNewTransportDetail({}); // Reset state to prevent stale data
-                    }}
-                  >
-                    Cancel
-                  </Button>                  <Button
-                    type="button"
-                    onClick={() => {
-                      if (editingTransportDetailIndex !== null) {
-                        // Get the current detail and explicitly call update with closeDialog=true
-                        const currentDetail = form.getValues("transportDetails")[editingTransportDetailIndex];
-                        handleUpdateTransportDetail(currentDetail, editingTransportDetailIndex, true);
-                      } else {
-                        // Call the handler that validates and adds the transport detail
-                        handleAddTransportDetail();
-                      }
-                    }}
-                  >
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddTransportDetail(false);
+                    setEditingTransportDetailIndex(null);
+                    setNewTransportDetail({}); // Reset state to prevent stale data
+                  }}
+                >
+                  Cancel
+                </Button>                  <Button
+                  type="button"
+                  onClick={() => {
+                    if (editingTransportDetailIndex !== null) {
+                      // Get the current detail and explicitly call update with closeDialog=true
+                      const currentDetail = form.getValues("transportDetails")[editingTransportDetailIndex];
+                      handleUpdateTransportDetail(currentDetail, editingTransportDetailIndex, true);
+                    } else {
+                      // Call the handler that validates and adds the transport detail
+                      handleAddTransportDetail();
+                    }
+                  }}
+                >
                     {editingTransportDetailIndex !== null ? "Save Changes" : "Add"}
                   </Button>
                 </div>
@@ -1417,7 +1422,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 size="default"
               />
             )}
-            
+
             {/* Cancel button - more prominent on mobile */}
             <Button
               type="button"

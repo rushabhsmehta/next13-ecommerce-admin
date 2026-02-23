@@ -266,7 +266,6 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                           ))}
                         </CommandGroup>
                         </CommandList>
-                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -327,6 +326,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                             </CommandItem>
                           ))}
                         </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>

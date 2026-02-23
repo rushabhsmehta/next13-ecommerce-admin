@@ -270,7 +270,6 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                           ))}
                         </CommandGroup>
                         </CommandList>
-                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -354,6 +353,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                             </CommandItem>
                           ))}
                         </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>

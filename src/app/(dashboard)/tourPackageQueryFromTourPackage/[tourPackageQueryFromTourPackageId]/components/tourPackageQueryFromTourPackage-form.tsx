@@ -678,7 +678,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                   ))}
                                 </CommandGroup>
                               </CommandList>
-                                </CommandList>
                               </Command>
                             </PopoverContent>
                           </Popover>
@@ -1165,6 +1164,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
+                              </CommandList>
                             </Command>
                           </PopoverContent>
                         </Popover>

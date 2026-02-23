@@ -84,6 +84,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
 }) => {
   const editor = useRef(null);
   const [openVariantPopover, setOpenVariantPopover] = useState(false);
+  const [openPartner, setOpenPartner] = useState(false);
   const selectedTourPackageId = form.watch('tourPackageTemplate');
   const watchedVariantIds = form.watch('selectedVariantIds');
   const selectedVariantIds = useMemo(() => watchedVariantIds || [], [watchedVariantIds]);
@@ -393,7 +394,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Associate Partner</FormLabel>
-                <Popover>
+                <Popover open={openPartner} onOpenChange={setOpenPartner}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
@@ -423,6 +424,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                               key={partner.id}
                               onSelect={() => {
                                 form.setValue("associatePartnerId", partner.id);
+                                setOpenPartner(false);
                               }}
                             >
                               <CheckIcon

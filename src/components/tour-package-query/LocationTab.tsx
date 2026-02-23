@@ -1,4 +1,5 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\LocationTab.tsx
+import { useState } from "react";
 import { Control } from "react-hook-form";
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
@@ -47,6 +48,8 @@ const LocationTab: React.FC<LocationTabProps> = ({
   form,
   updateLocationDefaults
 }) => {
+  const [openLocation, setOpenLocation] = useState(false);
+
   // Function to handle location selection
   const handleLocationSelection = (locationId: string) => {
     form.setValue("locationId", locationId);
@@ -128,7 +131,7 @@ const LocationTab: React.FC<LocationTabProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Location<span className="text-red-500">*</span></FormLabel>
-              <Popover>
+              <Popover open={openLocation} onOpenChange={setOpenLocation}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -158,7 +161,10 @@ const LocationTab: React.FC<LocationTabProps> = ({
                           <CommandItem
                             value={location.label}
                             key={location.id}
-                            onSelect={() => handleLocationSelection(location.id)}
+                            onSelect={() => {
+                              handleLocationSelection(location.id);
+                              setOpenLocation(false);
+                            }}
                           >
                             <CheckIcon
                               className={cn(

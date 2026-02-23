@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Edit, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -52,7 +52,6 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [currentImages, setCurrentImages] = useState<string[]>([]);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
-  const uploadedImagesRef = useRef<{ [id: string]: string[] }>({});
 
   // Update local state when the prop changes
   useEffect(() => {
@@ -220,22 +219,16 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                     ) : null}
                     <CldUploadWidget
                       uploadPreset="ckwg6oej"
-                      onSuccess={(result: any) => {
-                        if (result.info && result.info.secure_url) {
-                          const url = result.info.secure_url;
-                          if (!uploadedImagesRef.current[expense.id]) {
-                            uploadedImagesRef.current[expense.id] = [];
-                          }
-                          uploadedImagesRef.current[expense.id].push(url);
-                        }
-                      }}
-                      onClose={() => {
-                        const newUrls = uploadedImagesRef.current[expense.id];
-                        if (newUrls && newUrls.length > 0) {
-                          // Set this expense as currently uploading
+                      onQueuesEnd={(result: any) => {
+                        const files = result?.info?.files || [];
+                        const newUrls = files
+                          .filter((f: any) => f.status === 'success')
+                          .map((f: any) => f.uploadInfo?.secure_url)
+                          .filter(Boolean);
+
+                        if (newUrls.length > 0) {
                           setUploadingImageId(expense.id);
 
-                          // Prepare data for upload
                           const expenseData = {
                             expenseDate: expense.expenseDate,
                             amount: expense.amount,
@@ -247,25 +240,18 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                             images: [...(expense.images?.map(img => img.url) || []), ...newUrls]
                           };
 
-                          // Update directly
                           fetch(`/api/expenses/${expense.id}`, {
                             method: 'PATCH',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(expenseData),
                           })
                             .then(response => {
-                              if (!response.ok) {
-                                throw new Error('Failed to upload image');
-                              }
+                              if (!response.ok) throw new Error('Failed to upload image');
                               toast.success('Image uploaded successfully');
-
-                              // Update local state immediately to show the view button
                               setLocalExpensesData(prevExpenses =>
                                 prevExpenses.map(exp =>
                                   exp.id === expense.id
-                                    ? { ...exp, images: [...(exp.images || []), ...newUrls.map(url => ({ url }))] }
+                                    ? { ...exp, images: [...(exp.images || []), ...newUrls.map((url: string) => ({ url }))] }
                                     : exp
                                 )
                               );
@@ -274,10 +260,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                               console.error('Error uploading image:', error);
                               toast.error('Failed to upload image');
                             })
-                            .finally(() => {
-                              uploadedImagesRef.current[expense.id] = [];
-                              setUploadingImageId(null);
-                            });
+                            .finally(() => setUploadingImageId(null));
                         }
                       }}
                     >

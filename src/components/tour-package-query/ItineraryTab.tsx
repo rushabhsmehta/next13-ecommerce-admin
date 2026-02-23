@@ -18,6 +18,7 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
+  CommandList,
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
@@ -508,6 +509,7 @@ function ItineraryTab({
                                           placeholder="Search itinerary master..."
                                           className="h-9"
                                         />
+                                        <CommandList>
                                         <CommandEmpty>No itinerary master found.</CommandEmpty>
                                         <CommandGroup>
                                           {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
@@ -542,6 +544,7 @@ function ItineraryTab({
                                             </CommandItem>
                                           ))}
                                         </CommandGroup>
+                                        </CommandList>
                                       </Command>
                                     </PopoverContent>
                                   </Popover>

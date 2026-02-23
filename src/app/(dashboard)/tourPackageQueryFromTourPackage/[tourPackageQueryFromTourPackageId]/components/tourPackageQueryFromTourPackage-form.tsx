@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { CaretSortIcon } from "@radix-ui/react-icons"
@@ -656,6 +656,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                             <PopoverContent className="w-[400px] p-0">
                               <Command>
                                 <CommandInput placeholder="Search associate partner..." />
+                                <CommandList>
                                 <CommandEmpty>No associate partner found.</CommandEmpty>
                                 <CommandGroup>
                                   {associatePartners.map((partner) => (
@@ -676,6 +677,8 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                     </CommandItem>
                                   ))}
                                 </CommandGroup>
+                              </CommandList>
+                                </CommandList>
                               </Command>
                             </PopoverContent>
                           </Popover>
@@ -1098,6 +1101,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                           <PopoverContent className="w-[400px] p-0">
                             <Command>
                               <CommandInput placeholder="Search location..." />
+                              <CommandList>
                               <CommandEmpty>No location found.</CommandEmpty>
                               <CommandGroup>
                                 {locations.map((location) => (
@@ -1319,6 +1323,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                             placeholder="Search itinerary master..."
                                             className="h-9"
                                           />
+                                          <CommandList>
                                           <CommandEmpty>No itinerary master found.</CommandEmpty>
                                           <CommandGroup>
                                             {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
@@ -1353,6 +1358,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                               </CommandItem>
                                             ))}
                                           </CommandGroup>
+                                          </CommandList>
                                         </Command>
                                       </PopoverContent>
                                     </Popover>
@@ -1474,6 +1480,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                               placeholder="Search hotel..."
                                               className="h-9"
                                             />
+                                            <CommandList>
                                             <CommandEmpty>No hotel found.</CommandEmpty>
                                             <CommandGroup>
                                               {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.id === 'cdd32e64-4fc4-4784-9f46-507611eb0168')
@@ -1502,6 +1509,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                                 </CommandItem>
                                               ))}
                                             </CommandGroup>
+                                            </CommandList>
                                           </Command>
                                         </PopoverContent>
                                       </Popover>

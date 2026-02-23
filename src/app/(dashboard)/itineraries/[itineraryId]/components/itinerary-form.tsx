@@ -39,6 +39,7 @@ import {
 import {
   CommandEmpty,
   CommandGroup,
+  CommandList,
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
 
@@ -246,6 +247,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
                         <CommandInput placeholder="Search location..." />
+                        <CommandList>
                         <CommandEmpty>No location found.</CommandEmpty>
                         <CommandGroup>
                           {locations.map((location) => (
@@ -267,6 +269,8 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                             </CommandItem>
                           ))}
                         </CommandGroup>
+                        </CommandList>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -328,6 +332,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
                         <CommandInput placeholder="Search hotel..." />
+                        <CommandList>
                         <CommandEmpty>No hotel found.</CommandEmpty>
                         <CommandGroup>
                           {hotels.map((hotel) => (

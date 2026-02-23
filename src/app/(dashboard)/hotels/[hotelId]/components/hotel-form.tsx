@@ -29,6 +29,7 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
+  CommandList,
   CommandInput,
   CommandItem,
 } from "@/components/ui/command"
@@ -242,6 +243,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                     <PopoverContent className="w-[400px] p-0">
                       <Command>
                         <CommandInput placeholder="Search location..." />
+                        <CommandList>
                         <CommandEmpty>No location found.</CommandEmpty>
                         <CommandGroup>
                           {locations.map((location) => (
@@ -263,6 +265,8 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                             </CommandItem>
                           ))}
                         </CommandGroup>
+                        </CommandList>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -302,6 +306,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                     <PopoverContent className="w-[400px] p-0">
                       <Command>
                         <CommandInput placeholder="Search destination..." />
+                        <CommandList>
                         <CommandEmpty>No destination found.</CommandEmpty>
                         <CommandGroup>
                           {destinations.map((destination) => (

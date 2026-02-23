@@ -28,7 +28,7 @@ import { AlertModal } from "@/components/modals/alert-modal"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
@@ -194,6 +194,7 @@ export const ActivityMasterForm: React.FC<ActivityMasterFormProps> = ({
                     <PopoverContent className="w-[400px] p-0">
                       <Command>
                         <CommandInput placeholder="Search location..." />
+                        <CommandList>
                         <CommandEmpty>No location found.</CommandEmpty>
                         <CommandGroup>
                           {locations.map((location) => (
@@ -214,6 +215,7 @@ export const ActivityMasterForm: React.FC<ActivityMasterFormProps> = ({
                             </CommandItem>
                           ))}
                         </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>

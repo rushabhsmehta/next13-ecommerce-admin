@@ -12,6 +12,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 
 import {
@@ -150,24 +151,26 @@ const LocationTab: React.FC<LocationTabProps> = ({
                 <PopoverContent className="w-[400px] p-0">
                   <Command>
                     <CommandInput placeholder="Search location..." />
-                    <CommandEmpty>No location found.</CommandEmpty>
-                    <CommandGroup>
-                      {locations.map((location) => (
-                        <CommandItem
-                          value={location.label}
-                          key={location.id}
-                          onSelect={() => handleLocationSelection(location.id)}
-                        >
-                          <CheckIcon
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              location.id === field.value ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {location.label}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                    <CommandList>
+                      <CommandEmpty>No location found.</CommandEmpty>
+                      <CommandGroup>
+                        {locations.map((location) => (
+                          <CommandItem
+                            value={location.label}
+                            key={location.id}
+                            onSelect={() => handleLocationSelection(location.id)}
+                          >
+                            <CheckIcon
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                location.id === field.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {location.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
                   </Command>
                 </PopoverContent>
               </Popover>

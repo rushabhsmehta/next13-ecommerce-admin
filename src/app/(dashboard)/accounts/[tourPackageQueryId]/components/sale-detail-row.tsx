@@ -5,7 +5,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { CheckIcon, ChevronDown, Trash, Plus, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -284,6 +284,7 @@ export const SaleDetailRow = ({
                                 <PopoverContent className="w-[300px] p-0">
                                     <Command>
                                         <CommandInput placeholder="Search customer..." />
+                                        <CommandList>
                                         <CommandEmpty>No customer found.</CommandEmpty>
                                         <CommandGroup>
                                             {customers.map((customer: any) => (
@@ -306,6 +307,7 @@ export const SaleDetailRow = ({
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>
+                                        </CommandList>
                                     </Command>
                                 </PopoverContent>
                             </Popover>

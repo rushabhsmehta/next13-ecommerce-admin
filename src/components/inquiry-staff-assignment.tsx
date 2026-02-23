@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown, Loader2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
@@ -193,6 +193,7 @@ export function InquiryStaffAssignment({
           <PopoverContent className="p-0 w-[300px]">
             <Command>
               <CommandInput placeholder="Search staff..." />
+              <CommandList>
               <CommandEmpty>
                 {staffLoading ? "Loading..." : "No staff found"}
               </CommandEmpty>
@@ -227,6 +228,7 @@ export function InquiryStaffAssignment({
                   ))
                 )}
               </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

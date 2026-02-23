@@ -13,6 +13,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 
 import {
@@ -151,8 +152,9 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <PopoverContent className="w-[400px] p-0">
                   <Command>
                     <CommandInput placeholder="Search tour package..." />
-                    <CommandEmpty>No tour package found.</CommandEmpty>
-                    <CommandGroup>
+                    <CommandList>
+                      <CommandEmpty>No tour package found.</CommandEmpty>
+                      <CommandGroup>
                       {tourPackages
                         ?.filter(tp => tp.locationId === form.getValues('locationId'))
                         .map((tourPackage) => {
@@ -183,6 +185,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                           );
                         })}
                     </CommandGroup>
+                    </CommandList>
                   </Command>
                 </PopoverContent>
               </Popover>              <FormDescription>
@@ -239,8 +242,9 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   <PopoverContent className="w-[450px] p-0">
                     <Command>
                       <CommandInput placeholder="Search variants..." />
-                      <CommandEmpty>No variant found.</CommandEmpty>
-                      <CommandGroup>
+                      <CommandList>
+                        <CommandEmpty>No variant found.</CommandEmpty>
+                        <CommandGroup>
                         <CommandItem
                           onSelect={() => {
                             if (handleTourPackageVariantSelection && selectedTourPackageId) {
@@ -303,6 +307,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                           );
                         })}
                       </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
@@ -344,30 +349,32 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <PopoverContent className="w-[400px] p-0">
                   <Command>
                     <CommandInput placeholder="Search tour package query..." />
-                    <CommandEmpty>No tour package query found.</CommandEmpty>
-                    <CommandGroup>
-                      {tourPackageQueries
-                        ?.filter(tpq => tpq.id !== form.getValues('id')) // Filter out the current query to avoid self-reference
-                        ?.filter(tpq => !form.getValues('locationId') || tpq.locationId === form.getValues('locationId')) // Filter by selected locationId
-                        .map((query) => (
-                          <CommandItem
-                            key={query.id}
-                            value={query.tourPackageQueryName ?? ''}
-                            onSelect={() => {
-                              handleTourPackageQuerySelection(query.id);
-                              setOpenQueryTemplate(false);
-                            }}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                query.id === field.value ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {query.tourPackageQueryName}
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
+                    <CommandList>
+                      <CommandEmpty>No tour package query found.</CommandEmpty>
+                      <CommandGroup>
+                        {tourPackageQueries
+                          ?.filter(tpq => tpq.id !== form.getValues('id')) // Filter out the current query to avoid self-reference
+                          ?.filter(tpq => !form.getValues('locationId') || tpq.locationId === form.getValues('locationId')) // Filter by selected locationId
+                          .map((query) => (
+                            <CommandItem
+                              key={query.id}
+                              value={query.tourPackageQueryName ?? ''}
+                              onSelect={() => {
+                                handleTourPackageQuerySelection(query.id);
+                                setOpenQueryTemplate(false);
+                              }}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  query.id === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {query.tourPackageQueryName}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
                   </Command>
                 </PopoverContent>
               </Popover>
@@ -407,26 +414,28 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   <PopoverContent className="w-[400px] p-0">
                     <Command>
                       <CommandInput placeholder="Search associate partner..." />
-                      <CommandEmpty>No associate partner found.</CommandEmpty>
-                      <CommandGroup>
-                        {associatePartners.map((partner) => (
-                          <CommandItem
-                            value={partner.name}
-                            key={partner.id}
-                            onSelect={() => {
-                              form.setValue("associatePartnerId", partner.id);
-                            }}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                partner.id === field.value ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {partner.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
+                      <CommandList>
+                        <CommandEmpty>No associate partner found.</CommandEmpty>
+                        <CommandGroup>
+                          {associatePartners.map((partner) => (
+                            <CommandItem
+                              value={partner.name}
+                              key={partner.id}
+                              onSelect={() => {
+                                form.setValue("associatePartnerId", partner.id);
+                              }}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  partner.id === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {partner.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>

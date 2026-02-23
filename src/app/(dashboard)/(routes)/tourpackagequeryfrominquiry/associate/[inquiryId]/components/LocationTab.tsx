@@ -11,6 +11,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 
 import {
@@ -153,25 +154,27 @@ const LocationTab: React.FC<LocationTabProps> = ({
                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                   <Command>
                     <CommandInput placeholder="Search location..." className="h-9" />
-                    <CommandEmpty>No location found.</CommandEmpty>
-                    <CommandGroup className="max-h-[200px] overflow-y-auto">
-                      {locations.map((location) => (
-                        <CommandItem
-                          value={location.label}
-                          key={location.id}
-                          onSelect={() => handleLocationSelection(location.id)}
-                          className="px-3 py-2"
-                        >
-                          <CheckIcon
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              location.id === field.value ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <span className="truncate">{location.label}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                    <CommandList>
+                      <CommandEmpty>No location found.</CommandEmpty>
+                      <CommandGroup className="max-h-[200px] overflow-y-auto">
+                        {locations.map((location) => (
+                          <CommandItem
+                            value={location.label}
+                            key={location.id}
+                            onSelect={() => handleLocationSelection(location.id)}
+                            className="px-3 py-2"
+                          >
+                            <CheckIcon
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                location.id === field.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="truncate">{location.label}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
                   </Command>
                 </PopoverContent>
               </Popover>

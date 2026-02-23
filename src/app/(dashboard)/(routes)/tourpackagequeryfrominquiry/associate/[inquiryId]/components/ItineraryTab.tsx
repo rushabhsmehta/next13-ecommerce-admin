@@ -16,6 +16,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 
 import {
@@ -448,8 +449,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                           placeholder="Search itinerary master..."
                                           className="h-9"
                                         />
-                                        <CommandEmpty>No itinerary master found.</CommandEmpty>
-                                        <CommandGroup>
+                                        <CommandList>
+                                          <CommandEmpty>No itinerary master found.</CommandEmpty>
+                                          <CommandGroup>
                                           {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
                                             <CommandItem
                                               value={itineraryMaster.itineraryMasterTitle ?? ''}
@@ -514,6 +516,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                             </CommandItem>
                                           ))}
                                         </CommandGroup>
+                                        </CommandList>
                                       </Command>
                                     </PopoverContent>
                                   </Popover>
@@ -722,35 +725,37 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                             placeholder="Search hotel..."
                                             className="h-9"
                                           />
-                                          <CommandEmpty>No hotel found.</CommandEmpty>
-                                          <CommandGroup>
-                                            {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.id === 'cdd32e64-4fc4-4784-9f46-507611eb0168')
-                                            ].map((hotel) => (
-                                              <CommandItem
-                                                value={hotel.name}
-                                                key={hotel.id}
-                                                onSelect={() => {
-                                                  const newItineraries = [...value];
-                                                  newItineraries[index] = {
-                                                    ...itinerary,
-                                                    hotelId: hotel.id
-                                                  };
-                                                  onChange(newItineraries); // Update the state with the new itineraries
-                                                }}
-                                                className="px-3 py-2"
-                                              >
-                                                <span className="truncate">{hotel.name}</span>
-                                                <CheckIcon
-                                                  className={cn(
-                                                    "ml-auto h-4 w-4",
-                                                    hotel.id === itinerary.hotelId
-                                                      ? "opacity-100"
-                                                      : "opacity-0"
-                                                  )}
-                                                />
-                                              </CommandItem>
-                                            ))}
-                                          </CommandGroup>
+                                          <CommandList>
+                                            <CommandEmpty>No hotel found.</CommandEmpty>
+                                            <CommandGroup>
+                                              {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.id === 'cdd32e64-4fc4-4784-9f46-507611eb0168')
+                                              ].map((hotel) => (
+                                                <CommandItem
+                                                  value={hotel.name}
+                                                  key={hotel.id}
+                                                  onSelect={() => {
+                                                    const newItineraries = [...value];
+                                                    newItineraries[index] = {
+                                                      ...itinerary,
+                                                      hotelId: hotel.id
+                                                    };
+                                                    onChange(newItineraries); // Update the state with the new itineraries
+                                                  }}
+                                                  className="px-3 py-2"
+                                                >
+                                                  <span className="truncate">{hotel.name}</span>
+                                                  <CheckIcon
+                                                    className={cn(
+                                                      "ml-auto h-4 w-4",
+                                                      hotel.id === itinerary.hotelId
+                                                        ? "opacity-100"
+                                                        : "opacity-0"
+                                                    )}
+                                                  />
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </CommandList>
                                         </Command>
                                       </PopoverContent>
                                     </Popover>

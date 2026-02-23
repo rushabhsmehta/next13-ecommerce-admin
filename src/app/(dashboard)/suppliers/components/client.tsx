@@ -15,6 +15,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -92,42 +93,44 @@ export const SupplierClient: React.FC<SupplierClientProps> = ({ data, locations 
           <PopoverContent className="w-[250px] p-0">
             <Command>
               <CommandInput placeholder="Search locations..." />
-              <CommandEmpty>No location found.</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  value="all-locations"
-                  onSelect={() => {
-                    setLocationFilter("");
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      locationFilter === "" ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  All locations
-                </CommandItem>
-                {locations.map((location) => (
+              <CommandList>
+                <CommandEmpty>No location found.</CommandEmpty>
+                <CommandGroup>
                   <CommandItem
-                    key={location.id}
-                    value={location.label}
+                    value="all-locations"
                     onSelect={() => {
-                      setLocationFilter(location.id);
+                      setLocationFilter("");
                       setOpen(false);
                     }}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        locationFilter === location.id ? "opacity-100" : "opacity-0"
+                        locationFilter === "" ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {location.label}
+                    All locations
                   </CommandItem>
-                ))}
-              </CommandGroup>
+                  {locations.map((location) => (
+                    <CommandItem
+                      key={location.id}
+                      value={location.label}
+                      onSelect={() => {
+                        setLocationFilter(location.id);
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          locationFilter === location.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {location.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

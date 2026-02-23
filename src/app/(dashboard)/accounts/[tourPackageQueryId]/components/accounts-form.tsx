@@ -15,6 +15,7 @@ import {
   CommandDialog,
   CommandEmpty,
   CommandGroup,
+  CommandList,
   CommandInput,
   CommandItem,
 } from "@/components/ui/command"
@@ -609,6 +610,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                           <PopoverContent className="w-[400px] p-0">
                             <Command>
                               <CommandInput placeholder="Search supplier..." />
+                              <CommandList>
                               <CommandEmpty>No supplier found.</CommandEmpty>
                               <CommandGroup>
                                 {suppliers.map((supplier) => (
@@ -629,6 +631,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
+                              </CommandList>
                             </Command>
                           </PopoverContent>
                         </Popover>
@@ -838,6 +841,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                           <PopoverContent className="w-[400px] p-0">
                             <Command>
                               <CommandInput placeholder="Search customer..." />
+                              <CommandList>
                               <CommandEmpty>No customer found.</CommandEmpty>
                               <CommandGroup>
                                 {customers.map((customer) => (
@@ -863,6 +867,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
+                              </CommandList>
                             </Command>
                           </PopoverContent>
                         </Popover>
@@ -1065,6 +1070,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                           <PopoverContent className="w-[400px] p-0">
                             <Command>
                               <CommandInput placeholder="Search supplier..." />
+                              <CommandList>
                               <CommandEmpty>No supplier found.</CommandEmpty>
                               <CommandGroup>
                                 {suppliers.map((supplier) => (
@@ -1085,6 +1091,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
+                              </CommandList>
                             </Command>
                           </PopoverContent>
                         </Popover>
@@ -1275,6 +1282,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                           <PopoverContent className="w-[400px] p-0">
                             <Command>
                               <CommandInput placeholder="Search customer..." />
+                              <CommandList>
                               <CommandEmpty>No customer found.</CommandEmpty>
                               <CommandGroup>
                                 {customers.map((customer) => (
@@ -1300,6 +1308,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
+                              </CommandList>
                             </Command>
                           </PopoverContent>
                         </Popover>

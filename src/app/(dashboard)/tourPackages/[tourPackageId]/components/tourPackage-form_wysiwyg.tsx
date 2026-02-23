@@ -54,7 +54,7 @@ import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, TOUR_CATEGORY_DEFAULT, PRICE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -1409,6 +1409,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                           <PopoverContent className="w-[400px] p-0">
                             <Command>
                               <CommandInput placeholder="Search location..." />
+                              <CommandList>
                               <CommandEmpty>No location found.</CommandEmpty>
                               <CommandGroup>
                                 {locations.map((location) => (
@@ -1471,6 +1472,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
+                              </CommandList>
                             </Command>
                           </PopoverContent>
                         </Popover>
@@ -1719,6 +1721,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                                                   <PopoverContent className="w-[240px] p-0 max-h-[240px] overflow-auto">
                                                     <Command>
                                                       <CommandInput placeholder="Search itinerary master..." className="h-9" />
+                                                      <CommandList>
                                                       <CommandEmpty>No itinerary master found.</CommandEmpty>
                                                       <CommandGroup>
                                                         {itinerariesMaster?.map((itineraryMaster) => (
@@ -1751,6 +1754,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                                                           </CommandItem>
                                                         ))}
                                                       </CommandGroup>
+                                                      </CommandList>
                                                     </Command>
                                                   </PopoverContent>
                                                 </Popover>
@@ -1913,6 +1917,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                                                     <PopoverContent className="w-[240px] p-0 max-h-[240px] overflow-auto">
                                                       <Command>
                                                         <CommandInput placeholder="Search hotel..." className="h-9" />
+                                                        <CommandList>
                                                         <CommandEmpty>No hotel found.</CommandEmpty>
                                                         <CommandGroup>
                                                           {hotels
@@ -1935,6 +1940,7 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                                                               </CommandItem>
                                                             ))}
                                                         </CommandGroup>
+                                                        </CommandList>
                                                       </Command>
                                                     </PopoverContent>
                                                   </Popover>

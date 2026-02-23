@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown, Loader2, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
@@ -162,6 +162,7 @@ export function CompactStaffAssignment({
         <PopoverContent className="p-0 w-[250px]">
           <Command>
             <CommandInput placeholder="Search staff..." />
+            <CommandList>
             <CommandEmpty>
               {staffLoading ? "Loading..." : "No staff found"}
             </CommandEmpty>
@@ -202,6 +203,7 @@ export function CompactStaffAssignment({
                 </>
               )}
             </CommandGroup>
+            </CommandList>
           </Command>
         </PopoverContent>
       </Popover>

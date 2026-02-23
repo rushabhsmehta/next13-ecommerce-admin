@@ -58,6 +58,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -875,42 +876,44 @@ export default function WhatsAppCustomersPage() {
                       <PopoverContent className="w-full p-0">
                         <Command>
                           <CommandInput placeholder="Search partners..." />
-                          <CommandEmpty>No partner found.</CommandEmpty>
-                          <CommandGroup>
-                            <CommandItem
-                              value=""
-                              onSelect={() => {
-                                setFormValues((prev) => ({ ...prev, associatePartnerId: '' }));
-                                setPartnerPopoverOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={clsx(
-                                  'mr-2 h-4 w-4',
-                                  formValues.associatePartnerId === '' ? 'opacity-100' : 'opacity-0'
-                                )}
-                              />
-                              None
-                            </CommandItem>
-                            {associatePartners.map((partner) => (
+                          <CommandList>
+                            <CommandEmpty>No partner found.</CommandEmpty>
+                            <CommandGroup>
                               <CommandItem
-                                key={partner.id}
-                                value={partner.name}
+                                value=""
                                 onSelect={() => {
-                                  setFormValues((prev) => ({ ...prev, associatePartnerId: partner.id }));
+                                  setFormValues((prev) => ({ ...prev, associatePartnerId: '' }));
                                   setPartnerPopoverOpen(false);
                                 }}
                               >
                                 <Check
                                   className={clsx(
                                     'mr-2 h-4 w-4',
-                                    formValues.associatePartnerId === partner.id ? 'opacity-100' : 'opacity-0'
+                                    formValues.associatePartnerId === '' ? 'opacity-100' : 'opacity-0'
                                   )}
                                 />
-                                {partner.name}
+                                None
                               </CommandItem>
-                            ))}
-                          </CommandGroup>
+                              {associatePartners.map((partner) => (
+                                <CommandItem
+                                  key={partner.id}
+                                  value={partner.name}
+                                  onSelect={() => {
+                                    setFormValues((prev) => ({ ...prev, associatePartnerId: partner.id }));
+                                    setPartnerPopoverOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={clsx(
+                                      'mr-2 h-4 w-4',
+                                      formValues.associatePartnerId === partner.id ? 'opacity-100' : 'opacity-0'
+                                    )}
+                                  />
+                                  {partner.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
@@ -1148,42 +1151,44 @@ export default function WhatsAppCustomersPage() {
                   <PopoverContent className="w-full p-0">
                     <Command>
                       <CommandInput placeholder="Search partners..." />
-                      <CommandEmpty>No partner found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem
-                          value=""
-                          onSelect={() => {
-                            setEditingCustomer({ ...editingCustomer, associatePartnerId: null });
-                            setEditPartnerPopoverOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={clsx(
-                              'mr-2 h-4 w-4',
-                              !editingCustomer.associatePartnerId ? 'opacity-100' : 'opacity-0'
-                            )}
-                          />
-                          None
-                        </CommandItem>
-                        {associatePartners.map((partner) => (
+                      <CommandList>
+                        <CommandEmpty>No partner found.</CommandEmpty>
+                        <CommandGroup>
                           <CommandItem
-                            key={partner.id}
-                            value={partner.name}
+                            value=""
                             onSelect={() => {
-                              setEditingCustomer({ ...editingCustomer, associatePartnerId: partner.id });
+                              setEditingCustomer({ ...editingCustomer, associatePartnerId: null });
                               setEditPartnerPopoverOpen(false);
                             }}
                           >
                             <Check
                               className={clsx(
                                 'mr-2 h-4 w-4',
-                                editingCustomer.associatePartnerId === partner.id ? 'opacity-100' : 'opacity-0'
+                                !editingCustomer.associatePartnerId ? 'opacity-100' : 'opacity-0'
                               )}
                             />
-                            {partner.name}
+                            None
                           </CommandItem>
-                        ))}
-                      </CommandGroup>
+                          {associatePartners.map((partner) => (
+                            <CommandItem
+                              key={partner.id}
+                              value={partner.name}
+                              onSelect={() => {
+                                setEditingCustomer({ ...editingCustomer, associatePartnerId: partner.id });
+                                setEditPartnerPopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={clsx(
+                                  'mr-2 h-4 w-4',
+                                  editingCustomer.associatePartnerId === partner.id ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              {partner.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>

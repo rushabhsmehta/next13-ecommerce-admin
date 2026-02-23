@@ -37,6 +37,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -503,28 +504,30 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <PopoverContent className="w-full p-0">
                       <Command>
                         <CommandInput placeholder="Search associate..." />
-                        <CommandEmpty>No associate found.</CommandEmpty>
-                        <CommandGroup>
-                          {associates.map((associate) => (
-                            <CommandItem
-                              key={associate.id}
-                              value={associate.name}
-                              onSelect={() => {
-                                field.onChange(associate.id);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  associate.id === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {associate.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
+                        <CommandList>
+                          <CommandEmpty>No associate found.</CommandEmpty>
+                          <CommandGroup>
+                            {associates.map((associate) => (
+                              <CommandItem
+                                key={associate.id}
+                                value={associate.name}
+                                onSelect={() => {
+                                  field.onChange(associate.id);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    associate.id === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {associate.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -596,29 +599,31 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <PopoverContent className="w-[280px] md:w-[350px] p-0">
                       <Command>
                         <CommandInput placeholder="Search location..." />
-                        <CommandEmpty>
-                          No location found.
-                        </CommandEmpty>
-                        <CommandGroup className="max-h-[200px] overflow-auto">
-                          {locations.map((location) => (
-                            <CommandItem
-                              value={location.label}
-                              key={location.id}
-                              onSelect={() => {
-                                form.setValue("locationId", location.id);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  location.id === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )} />
-                              {location.label}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
+                        <CommandList>
+                          <CommandEmpty>
+                            No location found.
+                          </CommandEmpty>
+                          <CommandGroup className="max-h-[200px] overflow-auto">
+                            {locations.map((location) => (
+                              <CommandItem
+                                value={location.label}
+                                key={location.id}
+                                onSelect={() => {
+                                  form.setValue("locationId", location.id);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    location.id === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )} />
+                                {location.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>

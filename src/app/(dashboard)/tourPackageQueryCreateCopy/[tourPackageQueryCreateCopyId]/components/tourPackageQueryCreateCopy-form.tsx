@@ -124,6 +124,7 @@ const transportDetailsSchema = z.object({
 });
 
 const itinerarySchema = z.object({
+  id: z.string().optional(),
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
   itineraryDescription: z.string().nullable().optional(),
@@ -586,6 +587,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       form.setValue('termsconditions', parseJsonField(selectedTourPackage.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
       form.setValue('images', selectedTourPackage.images || []);
       const transformedItineraries = selectedTourPackage.itineraries?.map(itinerary => ({
+        id: itinerary.id || crypto.randomUUID(),
         locationId: itinerary.locationId,
         itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
         itineraryTitle: itinerary.itineraryTitle || '',
@@ -733,6 +735,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
       // Convert and set itineraries
       const transformedItineraries = selectedTourPackageQuery.itineraries?.map(itinerary => ({
+        id: itinerary.id || crypto.randomUUID(),
         locationId: itinerary.locationId,
         itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
         itineraryTitle: itinerary.itineraryTitle || '',
@@ -1142,7 +1145,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         </form >
       </Form >
 
-      
+
 
     </>
   )

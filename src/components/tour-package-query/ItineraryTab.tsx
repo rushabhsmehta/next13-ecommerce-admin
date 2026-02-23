@@ -80,55 +80,55 @@ interface ItineraryData {
 const generateItineraryImagePrompt = (itinerary: ItineraryData): string => {
   const dayTitle = stripHtml(itinerary.itineraryTitle || '');
   const dayDescription = stripHtml(itinerary.itineraryDescription || '');
-  
+
   let prompt = '';
-  
+
   // Add day title if available
   if (dayTitle) {
     prompt += `${dayTitle}. `;
   }
-  
+
   // Add day description (truncate if too long)
   if (dayDescription) {
-    const truncatedDescription = dayDescription.length > 200 
-      ? dayDescription.substring(0, 200) + '...' 
+    const truncatedDescription = dayDescription.length > 200
+      ? dayDescription.substring(0, 200) + '...'
       : dayDescription;
     prompt += `${truncatedDescription} `;
   }
-  
+
   // Add activities
   if (itinerary.activities && itinerary.activities.length > 0) {
     const activityDescriptions = itinerary.activities
       .map((activity: ActivityData) => {
         const activityTitle = stripHtml(activity.activityTitle || '');
         const activityDesc = stripHtml(activity.activityDescription || '');
-        
+
         if (activityTitle && activityDesc) {
           return `${activityTitle}: ${activityDesc}`;
         }
-        
+
         if (activityTitle) {
           return activityTitle;
         }
-        
+
         if (activityDesc) {
           return activityDesc;
         }
-        
+
         return '';
       })
       .filter(Boolean)
       .slice(0, 3) // Take only first 3 activities to avoid overly long prompts
       .join('. ');
-    
+
     if (activityDescriptions) {
       prompt += `Activities include: ${activityDescriptions}. `;
     }
   }
-  
+
   // Add context for image generation
   prompt += 'Create a beautiful, scenic travel destination image that captures the essence of this day\'s activities in 4:3 aspect ratio, suitable for a travel itinerary.';
-  
+
   return prompt.trim();
 };
 
@@ -136,25 +136,25 @@ const generateItineraryImagePrompt = (itinerary: ItineraryData): string => {
 const generateActivityImagePrompt = (activity: ActivityData): string => {
   const activityTitle = stripHtml(activity.activityTitle || '');
   const activityDescription = stripHtml(activity.activityDescription || '');
-  
+
   let prompt = '';
-  
+
   // Add activity title if available
   if (activityTitle) {
     prompt += `${activityTitle}. `;
   }
-  
+
   // Add activity description (truncate if too long)
   if (activityDescription) {
-    const truncatedDescription = activityDescription.length > 200 
-      ? activityDescription.substring(0, 200) + '...' 
+    const truncatedDescription = activityDescription.length > 200
+      ? activityDescription.substring(0, 200) + '...'
       : activityDescription;
     prompt += `${truncatedDescription} `;
   }
-  
+
   // Add context for image generation
   prompt += 'Create a beautiful, scenic image that captures the essence of this activity in 4:3 aspect ratio, suitable for a travel itinerary.';
-  
+
   return prompt.trim();
 };
 
@@ -264,10 +264,10 @@ function ItineraryTab({
       // Build the text to copy
       const dayTitle = stripHtml(itinerary.itineraryTitle || '');
       const dayDescription = stripHtml(itinerary.itineraryDescription || '');
-      
+
       let textToCopy = `Day Title: ${dayTitle}\n\n`;
       textToCopy += `Day Description: ${dayDescription}\n\n`;
-      
+
       // Add activities
       if (itinerary.activities && itinerary.activities.length > 0) {
         textToCopy += 'Activities:\n';
@@ -315,6 +315,7 @@ function ItineraryTab({
 
   const normalizeItinerary = (it: any, index?: number) => ({
     ...it,
+    id: it?.id || crypto.randomUUID(),
     itineraryTitle: typeof it?.itineraryTitle === 'string' ? it.itineraryTitle : '',
     itineraryDescription: typeof it?.itineraryDescription === 'string' ? it.itineraryDescription : '',
     days: typeof it?.days === 'string' ? it.days : '',
@@ -512,41 +513,41 @@ function ItineraryTab({
                                           className="h-9"
                                         />
                                         <CommandList>
-                                        <CommandEmpty>No itinerary master found.</CommandEmpty>
-                                        <CommandGroup>
-                                          {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
-                                            <CommandItem
-                                              value={itineraryMaster.itineraryMasterTitle ?? ''}
-                                              key={itineraryMaster.id} onSelect={() => {
-                                                const updatedItineraries = [...value];
-                                                updatedItineraries[index] = normalizeItinerary({
-                                                  ...itinerary,
-                                                  itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
-                                                  itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
-                                                  itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
-                                                  activities: itineraryMaster.activities?.map(activity => ({
-                                                    activityTitle: activity.activityTitle || '',
-                                                    activityDescription: activity.activityDescription || '',
-                                                    activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
-                                                  })) || [],
-                                                  days: itinerary.days || '',
-                                                }, index);
-                                                onChange(updatedItineraries); // Update the state with the new itineraries
-                                                setOpenTemplateMap(prev => ({ ...prev, [index]: false }));
-                                              }}
-                                            >
-                                              {itineraryMaster.itineraryMasterTitle}
-                                              <CheckIcon
-                                                className={cn(
-                                                  "ml-auto h-4 w-4",
-                                                  itineraryMaster.locationId === itinerary.locationId
-                                                    ? "opacity-100"
-                                                    : "opacity-0"
-                                                )}
-                                              />
-                                            </CommandItem>
-                                          ))}
-                                        </CommandGroup>
+                                          <CommandEmpty>No itinerary master found.</CommandEmpty>
+                                          <CommandGroup>
+                                            {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
+                                              <CommandItem
+                                                value={itineraryMaster.itineraryMasterTitle ?? ''}
+                                                key={itineraryMaster.id} onSelect={() => {
+                                                  const updatedItineraries = [...value];
+                                                  updatedItineraries[index] = normalizeItinerary({
+                                                    ...itinerary,
+                                                    itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
+                                                    itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
+                                                    itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
+                                                    activities: itineraryMaster.activities?.map(activity => ({
+                                                      activityTitle: activity.activityTitle || '',
+                                                      activityDescription: activity.activityDescription || '',
+                                                      activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
+                                                    })) || [],
+                                                    days: itinerary.days || '',
+                                                  }, index);
+                                                  onChange(updatedItineraries); // Update the state with the new itineraries
+                                                  setOpenTemplateMap(prev => ({ ...prev, [index]: false }));
+                                                }}
+                                              >
+                                                {itineraryMaster.itineraryMasterTitle}
+                                                <CheckIcon
+                                                  className={cn(
+                                                    "ml-auto h-4 w-4",
+                                                    itineraryMaster.locationId === itinerary.locationId
+                                                      ? "opacity-100"
+                                                      : "opacity-0"
+                                                  )}
+                                                />
+                                              </CommandItem>
+                                            ))}
+                                          </CommandGroup>
                                         </CommandList>
                                       </Command>
                                     </PopoverContent>

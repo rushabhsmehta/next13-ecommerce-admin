@@ -538,6 +538,19 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       itineraries,
     } = body;
 
+    console.log("===== INCOMING PATCH REQUEST ITINERARIES =====");
+    if (itineraries) {
+      try {
+        const fs = require('fs');
+        fs.writeFileSync('debug-itineraries.json', JSON.stringify(itineraries.map((it: any) => ({
+          id: it.id,
+          dayNumber: it.dayNumber,
+          title: it.itineraryTitle
+        })), null, 2));
+      } catch (e) { }
+    }
+    console.log("==============================================");
+
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
     }
@@ -743,12 +756,21 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
 
           // Second update to replace variant JSON mappings with actual Database UUIDs
           if (Object.keys(itineraryIdMap).length > 0) {
+            console.log("🛠️🛠️🛠️ REMAPPING DEBUG: itineraryIdMap is", itineraryIdMap);
+            console.log("🛠️🛠️🛠️ BEFORE variantRoomAllocations:", JSON.stringify(variantRoomAllocations, null, 2));
+
+            const remappedOverrides = variantHotelOverrides ? remapVariantDataKeys(variantHotelOverrides, itineraryIdMap) : undefined;
+            const remappedRooms = variantRoomAllocations ? remapVariantDataKeys(variantRoomAllocations, itineraryIdMap) : undefined;
+            const remappedTransport = variantTransportDetails ? remapVariantDataKeys(variantTransportDetails, itineraryIdMap) : undefined;
+
+            console.log("🛠️🛠️🛠️ AFTER variantRoomAllocations:", JSON.stringify(remappedRooms, null, 2));
+
             await tx.tourPackageQuery.update({
               where: { id: params.tourPackageQueryId },
               data: {
-                variantHotelOverrides: variantHotelOverrides ? remapVariantDataKeys(variantHotelOverrides, itineraryIdMap) : undefined,
-                variantRoomAllocations: variantRoomAllocations ? remapVariantDataKeys(variantRoomAllocations, itineraryIdMap) : undefined,
-                variantTransportDetails: variantTransportDetails ? remapVariantDataKeys(variantTransportDetails, itineraryIdMap) : undefined,
+                variantHotelOverrides: remappedOverrides,
+                variantRoomAllocations: remappedRooms,
+                variantTransportDetails: remappedTransport,
               }
             });
             console.log(`[TRANSACTION] Successfully remapped variant JSON keys for ${Object.keys(itineraryIdMap).length} itineraries`);

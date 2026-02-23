@@ -775,68 +775,89 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     }
   };
 
-  // Copy first day's room allocations to all days for a variant
+  // Copy first day's room allocations and transport details to all days for a variant
   const copyFirstDayToAllDays = (variantId: string) => {
     try {
-      const current = variantRoomAllocations || {};
-      const variantData = current[variantId] || {};
+      const currentRooms = variantRoomAllocations || {};
+      const roomVariantData = currentRooms[variantId] || {};
+
+      const currentTransport = variantTransportDetails || {};
+      const transportVariantData = currentTransport[variantId] || {};
 
       if (!itineraries || itineraries.length === 0) {
         toast.error('No itineraries available');
         return;
       }
 
-      // Get first day's room allocations
+      // Get first day's data
       const firstItinerary = itineraries[0];
-      const firstDayAllocations = variantData[firstItinerary.id] || [];
+      const firstDayRooms = roomVariantData[firstItinerary.id] || [];
+      const firstDayTransports = transportVariantData[firstItinerary.id] || [];
 
-      if (firstDayAllocations.length === 0) {
-        toast.error('No room allocations on first day to copy');
+      if (firstDayRooms.length === 0 && firstDayTransports.length === 0) {
+        toast.error('No room allocations or transport details on first day to copy');
         return;
       }
 
       // Copy to all other days
-      const newVariantData = { ...variantData };
+      const newRoomVariantData = { ...roomVariantData };
+      const newTransportVariantData = { ...transportVariantData };
+
       itineraries.forEach((itinerary) => {
         // Deep copy the allocations to avoid reference issues
-        newVariantData[itinerary.id] = JSON.parse(JSON.stringify(firstDayAllocations));
+        newRoomVariantData[itinerary.id] = JSON.parse(JSON.stringify(firstDayRooms));
+        newTransportVariantData[itinerary.id] = JSON.parse(JSON.stringify(firstDayTransports));
       });
 
       form.setValue('variantRoomAllocations', {
-        ...current,
-        [variantId]: newVariantData
+        ...currentRooms,
+        [variantId]: newRoomVariantData
       }, { shouldValidate: false, shouldDirty: true });
 
-      toast.success(`Copied room allocations to all ${itineraries.length} days`);
+      form.setValue('variantTransportDetails', {
+        ...currentTransport,
+        [variantId]: newTransportVariantData
+      }, { shouldValidate: false, shouldDirty: true });
+
+      toast.success(`Copied room & transport to all ${itineraries.length} days`);
     } catch (error) {
-      console.error('Error copying room allocations to all days:', error);
-      toast.error('Failed to copy room allocations. Please try again.');
+      console.error('Error copying details to all days:', error);
+      toast.error('Failed to copy. Please try again.');
     }
   };
 
-  // Copy room allocations from one variant to another
+  // Copy room allocations and transport details from one variant to another
   const copyRoomAllocationsFromVariant = (fromVariantId: string, toVariantId: string) => {
     try {
-      const current = variantRoomAllocations || {};
-      const fromVariantData = current[fromVariantId] || {};
+      const currentRooms = variantRoomAllocations || {};
+      const fromRoomData = currentRooms[fromVariantId] || {};
 
-      if (Object.keys(fromVariantData).length === 0) {
-        toast.error('No room allocations to copy from selected variant');
+      const currentTransport = variantTransportDetails || {};
+      const fromTransportData = currentTransport[fromVariantId] || {};
+
+      if (Object.keys(fromRoomData).length === 0 && Object.keys(fromTransportData).length === 0) {
+        toast.error('No room or transport data to copy from selected variant');
         return;
       }
 
       // Deep copy the allocations to avoid reference issues
-      const copiedData = JSON.parse(JSON.stringify(fromVariantData));
+      const copiedRoomData = JSON.parse(JSON.stringify(fromRoomData));
+      const copiedTransportData = JSON.parse(JSON.stringify(fromTransportData));
 
       form.setValue('variantRoomAllocations', {
-        ...current,
-        [toVariantId]: copiedData
+        ...currentRooms,
+        [toVariantId]: copiedRoomData
       }, { shouldValidate: false, shouldDirty: true });
 
-      toast.success('Room allocations copied successfully');
+      form.setValue('variantTransportDetails', {
+        ...currentTransport,
+        [toVariantId]: copiedTransportData
+      }, { shouldValidate: false, shouldDirty: true });
+
+      toast.success('Room and transport details copied successfully');
     } catch (error) {
-      console.error('Error copying room allocations from variant:', error);
-      toast.error('Failed to copy room allocations. Please try again.');
+      console.error('Error copying details from variant:', error);
+      toast.error('Failed to copy data. Please try again.');
     }
   };
 
@@ -1311,7 +1332,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             disabled={itineraries.length === 0}
                           >
                             <Copy className="h-3.5 w-3.5 mr-1.5" />
-                            Copy Day 1 to All Days
+                            Copy Day 1 (All)
                           </Button>
 
                           <div className="flex gap-2 flex-1">
@@ -1348,7 +1369,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               disabled={!copyFromVariantId[variant.id]}
                             >
                               <Copy className="h-3.5 w-3.5 mr-1.5" />
-                              Copy Rooms
+                              Copy Details
                             </Button>
                           </div>
                         </div>

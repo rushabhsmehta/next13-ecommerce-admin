@@ -304,16 +304,16 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                         </div>
 
                         {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
-                            <CardDescription className="text-lg">
+                            <div className="text-sm text-muted-foreground text-lg">
                                 <div className="mb-3">
                                     <span className="font-bold">Customer:</span> {initialData.customerName} | {initialData.customerNumber}
                                 </div>
                                 <div>
                                     <span className="font-bold">Associate Partner :</span> {initialData.associatePartner?.name} | {initialData.associatePartner?.mobileNumber} | {initialData.associatePartner?.email}
                                 </div>
-                            </CardDescription>
+                            </div>
                         )}
-                        <CardDescription className="text-lg">
+                        <div className="text-sm text-muted-foreground text-lg">
                             {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
                                 <div className="mb-3">
                                     <div className="font-bold">
@@ -327,7 +327,7 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                                     )}
                                 </div>
                             )}
-                        </CardDescription>
+                        </div>
                     </div>
                 </CardHeader>
             </Card>
@@ -747,7 +747,7 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
             {
                 selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
                     <Card className="mt-8 border border-orange-200 break-inside-avoid shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
-                        <CardDescription className="flex flex-col md:flex-row justify-between items-center px-6 py-6 gap-6 bg-gray-50">
+                        <div className="text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center px-6 py-6 gap-6 bg-gray-50">
                             <div className="inline-block relative w-40 h-40 md:w-48 md:h-48">
                                 <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
                             </div>
@@ -758,7 +758,7 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                                 <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
                                 <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
                             </ul>
-                        </CardDescription>
+                        </div>
                     </Card>
                 )
             }
@@ -766,7 +766,7 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
             {
                 (selectedOption === 'SupplierA' || selectedOption === 'SupplierB') && (
                     <Card className="mt-8 border border-orange-200 break-inside-avoid shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
-                        <CardDescription className="flex flex-col md:flex-row justify-between items-center px-6 py-6 gap-6 bg-gray-50">
+                        <div className="text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center px-6 py-6 gap-6 bg-gray-50">
                             <div className="inline-block relative w-40 h-40 md:w-48 md:h-48">
                                 <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
                             </div>
@@ -777,7 +777,7 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                                 <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>
                                 <li>Website: <Link href={companyInfo.AH.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{companyInfo.AH.website}</Link></li>
                             </ul>
-                        </CardDescription>
+                        </div>
                     </Card>
                 )
             }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Edit, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -50,6 +50,7 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
     const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
     const [currentImages, setCurrentImages] = useState<string[]>([]);
     const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
+    const uploadedImagesRef = useRef<{ [id: string]: string[] }>({});
 
     // Update local state when the prop changes
     useEffect(() => {
@@ -216,7 +217,15 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
                                             onSuccess={(result: any) => {
                                                 if (result.info && result.info.secure_url) {
                                                     const url = result.info.secure_url;
-
+                                                    if (!uploadedImagesRef.current[income.id]) {
+                                                        uploadedImagesRef.current[income.id] = [];
+                                                    }
+                                                    uploadedImagesRef.current[income.id].push(url);
+                                                }
+                                            }}
+                                            onClose={() => {
+                                                const newUrls = uploadedImagesRef.current[income.id];
+                                                if (newUrls && newUrls.length > 0) {
                                                     // Set this income as currently uploading
                                                     setUploadingImageId(income.id);
 
@@ -229,7 +238,7 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
                                                         tourPackageQueryId: income.tourPackageQueryId,
                                                         bankAccountId: income.bankAccountId,
                                                         cashAccountId: income.cashAccountId,
-                                                        images: [...(income.images?.map(img => img.url) || []), url]
+                                                        images: [...(income.images?.map(img => img.url) || []), ...newUrls]
                                                     };
 
                                                     // Update directly
@@ -250,7 +259,7 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
                                                             setLocalIncomesData(prevIncomes =>
                                                                 prevIncomes.map(inc =>
                                                                     inc.id === income.id
-                                                                        ? { ...inc, images: [...(inc.images || []), { url }] }
+                                                                        ? { ...inc, images: [...(inc.images || []), ...newUrls.map(url => ({ url }))] }
                                                                         : inc
                                                                 )
                                                             );
@@ -260,6 +269,7 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
                                                             toast.error('Failed to upload image');
                                                         })
                                                         .finally(() => {
+                                                            uploadedImagesRef.current[income.id] = [];
                                                             setUploadingImageId(null);
                                                         });
                                                 }

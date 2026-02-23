@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { CldUploadWidget } from 'next-cloudinary';
 import { jsPDF } from 'jspdf';
@@ -59,6 +59,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [currentReceiptId, setCurrentReceiptId] = useState<string | null>(null);  // Track the current receipt ID for image operations
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null); // Track which receipt is currently uploading an image
+  const uploadedImagesRef = useRef<{ [id: string]: string[] }>({});
   // Update local state when props change
   useEffect(() => {
     setReceiptsData(initialReceiptsData);
@@ -365,7 +366,15 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                       onSuccess={(result: any) => {
                         if (result.info && result.info.secure_url) {
                           const url = result.info.secure_url;
-
+                          if (!uploadedImagesRef.current[receipt.id]) {
+                            uploadedImagesRef.current[receipt.id] = [];
+                          }
+                          uploadedImagesRef.current[receipt.id].push(url);
+                        }
+                      }}
+                      onClose={() => {
+                        const newUrls = uploadedImagesRef.current[receipt.id];
+                        if (newUrls && newUrls.length > 0) {
                           // Set this receipt as currently uploading
                           setUploadingImageId(receipt.id);
 
@@ -377,7 +386,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                             bankAccountId: receipt.bankAccountId,
                             cashAccountId: receipt.cashAccountId,
                             tourPackageQueryId: receipt.tourPackageQueryId,
-                            images: [...(receipt.images?.map(img => img.url) || []), url]
+                            images: [...(receipt.images?.map(img => img.url) || []), ...newUrls]
                           };
 
                           // Update directly
@@ -398,7 +407,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                                 if (r.id === receipt.id) {
                                   return {
                                     ...r,
-                                    images: [...(r.images || []), { url }]
+                                    images: [...(r.images || []), ...newUrls.map(url => ({ url }))]
                                   };
                                 }
                                 return r;
@@ -412,6 +421,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                               toast.error('Failed to upload image');
                             })
                             .finally(() => {
+                              uploadedImagesRef.current[receipt.id] = [];
                               // Clear the uploading state
                               setUploadingImageId(null);
                             });

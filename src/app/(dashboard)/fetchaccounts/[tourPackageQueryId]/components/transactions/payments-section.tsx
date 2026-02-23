@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -59,6 +59,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);  // Track the current payment ID for image operations
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null); // Track which payment is currently uploading an image
+  const uploadedImagesRef = useRef<{ [id: string]: string[] }>({});
   // Update local state when props change
   useEffect(() => {
     setPaymentsData(initialPaymentsData);
@@ -360,7 +361,15 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                       onSuccess={(result: any) => {
                         if (result.info && result.info.secure_url) {
                           const url = result.info.secure_url;
-
+                          if (!uploadedImagesRef.current[payment.id]) {
+                            uploadedImagesRef.current[payment.id] = [];
+                          }
+                          uploadedImagesRef.current[payment.id].push(url);
+                        }
+                      }}
+                      onClose={() => {
+                        const newUrls = uploadedImagesRef.current[payment.id];
+                        if (newUrls && newUrls.length > 0) {
                           // Set this payment as currently uploading
                           setUploadingImageId(payment.id);
 
@@ -371,7 +380,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                             amount: payment.amount,
                             bankAccountId: payment.bankAccountId,
                             cashAccountId: payment.cashAccountId,
-                            images: [...(payment.images?.map(img => img.url) || []), url]
+                            images: [...(payment.images?.map(img => img.url) || []), ...newUrls]
                           };
                           // Update directly
                           fetch(`/api/payments/${payment.id}`, {
@@ -391,7 +400,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                                 if (p.id === payment.id) {
                                   return {
                                     ...p,
-                                    images: [...(p.images || []), { url }]
+                                    images: [...(p.images || []), ...newUrls.map(url => ({ url }))]
                                   };
                                 }
                                 return p;
@@ -405,6 +414,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                               toast.error('Failed to upload image');
                             })
                             .finally(() => {
+                              uploadedImagesRef.current[payment.id] = [];
                               // Clear the uploading state
                               setUploadingImageId(null);
                             });

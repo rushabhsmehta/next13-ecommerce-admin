@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Edit, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -52,6 +52,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [currentImages, setCurrentImages] = useState<string[]>([]);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
+  const uploadedImagesRef = useRef<{ [id: string]: string[] }>({});
 
   // Update local state when the prop changes
   useEffect(() => {
@@ -222,7 +223,15 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                       onSuccess={(result: any) => {
                         if (result.info && result.info.secure_url) {
                           const url = result.info.secure_url;
-
+                          if (!uploadedImagesRef.current[expense.id]) {
+                            uploadedImagesRef.current[expense.id] = [];
+                          }
+                          uploadedImagesRef.current[expense.id].push(url);
+                        }
+                      }}
+                      onClose={() => {
+                        const newUrls = uploadedImagesRef.current[expense.id];
+                        if (newUrls && newUrls.length > 0) {
                           // Set this expense as currently uploading
                           setUploadingImageId(expense.id);
 
@@ -235,7 +244,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                             tourPackageQueryId: expense.tourPackageQueryId,
                             bankAccountId: expense.bankAccountId,
                             cashAccountId: expense.cashAccountId,
-                            images: [...(expense.images?.map(img => img.url) || []), url]
+                            images: [...(expense.images?.map(img => img.url) || []), ...newUrls]
                           };
 
                           // Update directly
@@ -256,7 +265,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                               setLocalExpensesData(prevExpenses =>
                                 prevExpenses.map(exp =>
                                   exp.id === expense.id
-                                    ? { ...exp, images: [...(exp.images || []), { url }] }
+                                    ? { ...exp, images: [...(exp.images || []), ...newUrls.map(url => ({ url }))] }
                                     : exp
                                 )
                               );
@@ -266,6 +275,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                               toast.error('Failed to upload image');
                             })
                             .finally(() => {
+                              uploadedImagesRef.current[expense.id] = [];
                               setUploadingImageId(null);
                             });
                         }

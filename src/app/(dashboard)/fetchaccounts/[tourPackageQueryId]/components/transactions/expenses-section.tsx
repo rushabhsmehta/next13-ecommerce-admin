@@ -46,7 +46,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   const [localExpensesData, setLocalExpensesData] = useState<ExpenseWithImages[]>(initialExpensesData);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
-  const [itemToDelete, setItemToDelete] = useState<{id: string, type: string} | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, type: string } | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   // States for image viewer and uploader
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
@@ -68,17 +68,17 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   const handleDeleteImage = async (imageUrl: string): Promise<void> => {
     try {
       // Find the expense that contains this image
-      const expense = localExpensesData.find(exp => 
+      const expense = localExpensesData.find(exp =>
         exp.images?.some(img => img.url === imageUrl)
       );
-      
+
       if (!expense) {
         throw new Error('Expense not found for this image');
       }
 
       // Remove the image URL from the current expense's images
       const updatedImages = expense.images?.filter(img => img.url !== imageUrl).map(img => img.url) || [];
-      
+
       // Prepare the updated data
       const expenseData = {
         expenseDate: expense.expenseDate,
@@ -107,9 +107,9 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
       toast.success('Image deleted successfully');
 
       // Update local state
-      setLocalExpensesData(prevExpenses => 
-        prevExpenses.map(exp => 
-          exp.id === expense.id 
+      setLocalExpensesData(prevExpenses =>
+        prevExpenses.map(exp =>
+          exp.id === expense.id
             ? { ...exp, images: updatedImages.map(url => ({ url })) }
             : exp
         )
@@ -129,30 +129,30 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
       throw error; // Rethrow to indicate failure to the ImageViewer component
     }
   };
-  
+
   // Calculate totals
   const totalExpenses = localExpensesData.reduce((sum, expense) => sum + expense.amount, 0);
-  
+
   // Function to handle edit
   const handleEdit = (expense: any) => {
     setEditItem(expense);
     setIsExpenseModalOpen(true);
   };
-  
+
   // Function to handle delete
   const handleDelete = (id: string) => {
     setItemToDelete({ id, type: 'expense' });
     setIsDeleteDialogOpen(true);
   };
-  
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-red-800">Expense Records</h3>
         <div className="flex items-center space-x-2">          <Badge variant="outline" className="text-red-800 border-red-800">
-            {localExpensesData.length} records
-          </Badge>
-          <Button 
+          {localExpensesData.length} records
+        </Badge>
+          <Button
             onClick={() => {
               setEditItem(null);
               setIsExpenseModalOpen(true);
@@ -166,7 +166,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           </Button>
         </div>
       </div>
-        {localExpensesData.length > 0 ? (
+      {localExpensesData.length > 0 ? (
         <Card className="shadow-lg rounded-lg border-l-4 border-red-500">
           <CardHeader className="py-3 bg-gray-50">
             <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr_120px] gap-4">
@@ -188,74 +188,74 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                 : expense.cashAccountId
                   ? cashAccounts.find(c => c.id === expense.cashAccountId)?.accountName || "-"
                   : "-";
-              return (                <div key={expense.id}
-                  className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr_120px] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
-                  <div className="font-medium flex items-center">
-                    <UserIcon className="h-4 w-4 mr-1 text-gray-500" />
-                    {expenseCategories.find(cat => cat.id === expense.expenseCategoryId)?.name || 'N/A'}
-                  </div>
-                  <div className="flex items-center">
-                    <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
-                    {format(new Date(expense.expenseDate), "dd MMM yyyy")}
-                  </div>
-                  <div>{accountType}</div>
-                  <div>{accountName}</div>
-                  <div className="font-bold text-red-700">
-                    <div>{formatPrice(expense.amount)}</div>
-                  </div>
-                  <div className="truncate text-gray-600">{expense.description || 'No description'}</div>
-                  <div className="flex justify-center">
-                    <div className="flex space-x-1">
-                      {expense.images && expense.images.length > 0 ? (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleViewImages(expense)}
-                          className="h-7 w-7 p-0"
-                          title="View Images"
-                        >
-                          <ImageIcon className="h-3.5 w-3.5 text-green-600" />
-                        </Button>
-                      ) : null}
-                      <CldUploadWidget 
-                        uploadPreset="ckwg6oej"
-                        onUpload={(result: any) => {
-                          if (result.info && result.info.secure_url) {
-                            const url = result.info.secure_url;
-                            
-                            // Set this expense as currently uploading
-                            setUploadingImageId(expense.id);
-                            
-                            // Prepare data for upload
-                            const expenseData = {
-                              expenseDate: expense.expenseDate,
-                              amount: expense.amount,
-                              expenseCategoryId: expense.expenseCategoryId,
-                              description: expense.description,
-                              tourPackageQueryId: expense.tourPackageQueryId,
-                              bankAccountId: expense.bankAccountId,
-                              cashAccountId: expense.cashAccountId,
-                              images: [...(expense.images?.map(img => img.url) || []), url]
-                            };
-                            
-                            // Update directly
-                            fetch(`/api/expenses/${expense.id}`, {
-                              method: 'PATCH',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify(expenseData),
-                            })
+              return (<div key={expense.id}
+                className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr_120px] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
+                <div className="font-medium flex items-center">
+                  <UserIcon className="h-4 w-4 mr-1 text-gray-500" />
+                  {expenseCategories.find(cat => cat.id === expense.expenseCategoryId)?.name || 'N/A'}
+                </div>
+                <div className="flex items-center">
+                  <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
+                  {format(new Date(expense.expenseDate), "dd MMM yyyy")}
+                </div>
+                <div>{accountType}</div>
+                <div>{accountName}</div>
+                <div className="font-bold text-red-700">
+                  <div>{formatPrice(expense.amount)}</div>
+                </div>
+                <div className="truncate text-gray-600">{expense.description || 'No description'}</div>
+                <div className="flex justify-center">
+                  <div className="flex space-x-1">
+                    {expense.images && expense.images.length > 0 ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewImages(expense)}
+                        className="h-7 w-7 p-0"
+                        title="View Images"
+                      >
+                        <ImageIcon className="h-3.5 w-3.5 text-green-600" />
+                      </Button>
+                    ) : null}
+                    <CldUploadWidget
+                      uploadPreset="ckwg6oej"
+                      onSuccess={(result: any) => {
+                        if (result.info && result.info.secure_url) {
+                          const url = result.info.secure_url;
+
+                          // Set this expense as currently uploading
+                          setUploadingImageId(expense.id);
+
+                          // Prepare data for upload
+                          const expenseData = {
+                            expenseDate: expense.expenseDate,
+                            amount: expense.amount,
+                            expenseCategoryId: expense.expenseCategoryId,
+                            description: expense.description,
+                            tourPackageQueryId: expense.tourPackageQueryId,
+                            bankAccountId: expense.bankAccountId,
+                            cashAccountId: expense.cashAccountId,
+                            images: [...(expense.images?.map(img => img.url) || []), url]
+                          };
+
+                          // Update directly
+                          fetch(`/api/expenses/${expense.id}`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(expenseData),
+                          })
                             .then(response => {
                               if (!response.ok) {
                                 throw new Error('Failed to upload image');
                               }
                               toast.success('Image uploaded successfully');
-                              
+
                               // Update local state immediately to show the view button
-                              setLocalExpensesData(prevExpenses => 
-                                prevExpenses.map(exp => 
-                                  exp.id === expense.id 
+                              setLocalExpensesData(prevExpenses =>
+                                prevExpenses.map(exp =>
+                                  exp.id === expense.id
                                     ? { ...exp, images: [...(exp.images || []), { url }] }
                                     : exp
                                 )
@@ -268,43 +268,43 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                             .finally(() => {
                               setUploadingImageId(null);
                             });
-                          }
-                        }}
-                      >
-                        {({ open }) => {
-                          return (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => open?.()}
-                              className="h-7 w-7 p-0"
-                              title="Upload Image"
-                              disabled={uploadingImageId === expense.id}
-                            >
-                              <Upload className={`h-3.5 w-3.5 text-blue-600 ${uploadingImageId === expense.id ? 'animate-spin' : ''}`} />
-                            </Button>
-                          );
-                        }}
-                      </CldUploadWidget>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleEdit(expense)}
-                        className="h-7 w-7 p-0"
-                      >
-                        <Edit className="h-3.5 w-3.5 text-blue-600" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleDelete(expense.id)}
-                        className="h-7 w-7 p-0"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                      </Button>
-                    </div>
+                        }
+                      }}
+                    >
+                      {({ open }) => {
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => open?.()}
+                            className="h-7 w-7 p-0"
+                            title="Upload Image"
+                            disabled={uploadingImageId === expense.id}
+                          >
+                            <Upload className={`h-3.5 w-3.5 text-blue-600 ${uploadingImageId === expense.id ? 'animate-spin' : ''}`} />
+                          </Button>
+                        );
+                      }}
+                    </CldUploadWidget>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(expense)}
+                      className="h-7 w-7 p-0"
+                    >
+                      <Edit className="h-3.5 w-3.5 text-blue-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(expense.id)}
+                      className="h-7 w-7 p-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                    </Button>
                   </div>
                 </div>
+              </div>
               );
             })}
           </CardContent>
@@ -320,7 +320,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
       ) : (
         <p className="text-gray-500 italic">No expense records available</p>
       )}
-      
+
       {/* Expense Entry/Edit Dialog */}
       <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -332,7 +332,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
               {editItem ? "Edit expense details" : "Create a new expense for this tour package."}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="mt-4">
             <ExpenseFormWrapper
               initialData={editItem || {
@@ -354,14 +354,14 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-        {/* Delete Confirmation Dialog */}
-      <DeleteConfirmation 
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmation
         isOpen={isDeleteDialogOpen}
         setIsOpen={setIsDeleteDialogOpen}
         itemToDelete={itemToDelete}
         onConfirmDelete={onRefresh}
       />
-        {/* Image Viewer for expenses */}
+      {/* Image Viewer for expenses */}
       {isImageViewerOpen && (
         <ImageViewer
           images={currentImages}

@@ -89,6 +89,11 @@ const TourPackageQueryPDFWithVariantsPage = async (
 
   const associatePartners = await prismadb.associatePartner.findMany();
 
+  const roomTypes = await prismadb.roomType.findMany();
+  const occupancyTypes = await prismadb.occupancyType.findMany();
+  const mealPlans = await prismadb.mealPlan.findMany();
+  const vehicleTypes = await prismadb.vehicleType.findMany();
+
   // Prepared by (latest CREATE audit log)
   const preparedByLog = await prismadb.auditLog.findFirst({
     where: {
@@ -104,7 +109,7 @@ const TourPackageQueryPDFWithVariantsPage = async (
       <div className="flex-1 space-y-4 p-8 pt-6">
         {preparedByLog && (
           <div className="text-sm text-gray-600">
-            Prepared by: <span className="font-semibold">{preparedByLog.userName}</span> 
+            Prepared by: <span className="font-semibold">{preparedByLog.userName}</span>
             <span className="ml-2">({preparedByLog.userEmail})</span>
           </div>
         )}
@@ -113,6 +118,10 @@ const TourPackageQueryPDFWithVariantsPage = async (
           locations={locations}
           hotels={hotels}
           associatePartners={associatePartners}
+          roomTypes={roomTypes}
+          occupancyTypes={occupancyTypes}
+          mealPlans={mealPlans}
+          vehicleTypes={vehicleTypes}
         />
       </div>
     </div>

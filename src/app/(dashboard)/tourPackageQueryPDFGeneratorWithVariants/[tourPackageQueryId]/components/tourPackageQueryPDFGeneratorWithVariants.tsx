@@ -17,6 +17,10 @@ import {
   AssociatePartner,
   RoomAllocation,
   TransportDetail,
+  RoomType,
+  OccupancyType,
+  MealPlan,
+  VehicleType,
 } from "@prisma/client";
 
 interface TourPackageQueryPDFGeneratorWithVariantsProps {
@@ -76,6 +80,10 @@ interface TourPackageQueryPDFGeneratorWithVariantsProps {
     location: Location;
   })[];
   associatePartners: AssociatePartner[];
+  roomTypes: RoomType[];
+  occupancyTypes: OccupancyType[];
+  mealPlans: MealPlan[];
+  vehicleTypes: VehicleType[];
 }
 
 type CompanyInfo = {
@@ -121,6 +129,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
   locations,
   hotels,
   associatePartners,
+  roomTypes,
+  occupancyTypes,
+  mealPlans,
+  vehicleTypes,
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -563,23 +575,78 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       const cells = variants.map((v, vidx) => {
         const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
         const accent = variantAccents[vidx % variantAccents.length];
+        const itinerary = initialData?.itineraries?.find(it => it.dayNumber === day);
+
+        const variantRoomAllocations = (initialData as any)?.variantRoomAllocations as Record<string, Record<string, any[]>> | undefined;
+        const variantTransportDetails = (initialData as any)?.variantTransportDetails as Record<string, Record<string, any[]>> | undefined;
+
+        const roomAllocations = variantRoomAllocations?.[v.sourceVariantId]?.[itinerary?.id || ''] ||
+          variantRoomAllocations?.[v.id]?.[itinerary?.id || ''] ||
+          itinerary?.roomAllocations || [];
+
+        const transportDetails = variantTransportDetails?.[v.sourceVariantId]?.[itinerary?.id || ''] ||
+          variantTransportDetails?.[v.id]?.[itinerary?.id || ''] ||
+          itinerary?.transportDetails || [];
+
+        const getName = (obj: any) => obj?.name || '';
+
         return `<td style="${tdBase} background: ${isEven ? brandColors.white : brandColors.subtlePanel}; padding: 8px 6px;">
           ${h ? `
-            <div style="border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden;">
+            <div style="border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; background: white;">
               ${h.imageUrl ? `
-                <div style="height: 130px; overflow: hidden; background: #F3F4F6;">
+                <div style="height: 120px; overflow: hidden; background: #F3F4F6;">
                   <img src="${h.imageUrl}" alt="${h.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               ` : `
-                <div style="height: 100px; background: linear-gradient(135deg, ${brandColors.light} 0%, ${brandColors.lightOrange} 100%); display: flex; align-items: center; justify-content: center;">
-                  <span style="font-size: 36px;">🏨</span>
+                <div style="height: 90px; background: linear-gradient(135deg, ${brandColors.light} 0%, ${brandColors.lightOrange} 100%); display: flex; align-items: center; justify-content: center;">
+                  <span style="font-size: 30px;">🏨</span>
                 </div>
               `}
               <div style="padding: 9px 10px; border-top: 2.5px solid ${accent};">
                 <div style="font-size: 12px; font-weight: 700; color: ${brandColors.text}; line-height: 1.35; margin-bottom: 4px;">${h.hotelName}</div>
                 <div style="font-size: 10px; color: ${brandColors.muted}; margin-bottom: 4px;">📍 ${h.locationLabel}</div>
                 ${h.roomCategory ? `
-                  <span style="font-size: 9px; color: white; background: ${accent}; padding: 2px 7px; border-radius: 999px; font-weight: 600; display: inline-block;">${h.roomCategory}</span>
+                  <span style="font-size: 9px; color: white; background: ${accent}; padding: 2px 7px; border-radius: 999px; font-weight: 600; display: inline-block; margin-bottom: 6px;">${h.roomCategory}</span>
+                ` : ''}
+
+                ${roomAllocations.length > 0 ? `
+                  <div style="border-top: 1px solid ${brandColors.border}; padding-top: 6px; margin-top: 2px;">
+                    <div style="font-size: 9px; font-weight: 800; color: ${brandColors.primary}; margin-bottom: 4px; text-transform: uppercase;">🛏️ Rooms</div>
+                    ${roomAllocations.map((room: any) => {
+          const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+          const roomTypeObj = room?.roomType || roomTypes.find(rt => rt.id === room?.roomTypeId);
+          const occupancyObj = room?.occupancyType || occupancyTypes.find(ot => ot.id === room?.occupancyTypeId);
+          const mealPlanObj = room?.mealPlan || mealPlans.find(mp => mp.id === room?.mealPlanId);
+
+          const roomTypeName = customText || getName(roomTypeObj) || 'Standard';
+          const occupancy = getName(occupancyObj);
+          const mealPlanName = getName(mealPlanObj);
+
+          return `
+                        <div style="font-size: 9px; color: ${brandColors.text}; line-height: 1.3; margin-bottom: 3px;">
+                          <div style="font-weight: 600;">${roomTypeName}${occupancy ? ` · ${occupancy}` : ''}</div>
+                          <div style="color: ${brandColors.muted};">${room.quantity || 1} Room${(room.quantity || 1) > 1 ? 's' : ''}${mealPlanName ? ` · 🍽️ ${mealPlanName}` : ''}</div>
+                        </div>
+                      `;
+        }).join('')}
+                  </div>
+                ` : ''}
+                
+                ${transportDetails.length > 0 ? `
+                  <div style="border-top: 1px solid ${brandColors.border}; padding-top: 6px; margin-top: 4px;">
+                    <div style="font-size: 9px; font-weight: 800; color: ${brandColors.primary}; margin-bottom: 4px; text-transform: uppercase;">🚗 Transport</div>
+                    ${transportDetails.map((t: any) => {
+          const vehicleObj = t?.vehicleType || vehicleTypes.find(vt => vt.id === t?.vehicleTypeId);
+          const vehicleName = getName(vehicleObj) || 'Vehicle';
+          return `
+                        <div style="font-size: 9px; color: ${brandColors.text}; line-height: 1.3;">
+                          <span style="font-weight: 600;">${vehicleName}</span>
+                          ${(t.quantity || 1) > 1 ? `<span> ×${t.quantity}</span>` : ''}
+                          ${t.capacity ? `<span style="color: ${brandColors.muted};"> (${t.capacity})</span>` : ''}
+                        </div>
+                      `;
+        }).join('')}
+                  </div>
                 ` : ''}
               </div>
             </div>

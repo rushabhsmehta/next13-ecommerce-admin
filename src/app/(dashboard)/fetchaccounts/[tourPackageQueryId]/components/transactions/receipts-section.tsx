@@ -362,7 +362,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                       </Button>
                     ) : null}                      <CldUploadWidget
                       uploadPreset="ckwg6oej"
-                      onUpload={(result: any) => {
+                      onSuccess={(result: any) => {
                         if (result.info && result.info.secure_url) {
                           const url = result.info.secure_url;
 

@@ -70,7 +70,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         ))}
       </div>
       <CldUploadWidget
-        onUpload={onUpload}
+        onSuccess={onUpload}
         uploadPreset="ckwg6oej"
         options={{
           multiple: false,
@@ -98,23 +98,23 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 Upload an Image
               </Button>
               {enableAI && (
-                 <AIImageGeneratorModal 
-                   onImageGenerated={(url) => onChange(url)}
-                   autoPrompt={autoPrompt}
-                   aspectRatio={aspectRatio}
-                   trigger={
-                     <Button type="button" disabled={disabled} variant="outline" className="border-indigo-200 hover:bg-indigo-50 text-indigo-700">
-                       <Sparkles className="h-4 w-4 mr-2" />
-                       Generate with AI
-                     </Button>
-                   }
-                 />
+                <AIImageGeneratorModal
+                  onImageGenerated={(url) => onChange(url)}
+                  autoPrompt={autoPrompt}
+                  aspectRatio={aspectRatio}
+                  trigger={
+                    <Button type="button" disabled={disabled} variant="outline" className="border-indigo-200 hover:bg-indigo-50 text-indigo-700">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate with AI
+                    </Button>
+                  }
+                />
               )}
             </div>
           );
         }}
       </CldUploadWidget>
-    </div>
+    </div >
   );
 }
 

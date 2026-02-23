@@ -66,6 +66,10 @@ interface VariantComparisonSectionProps {
   variantRoomAllocations?: any;
   variantTransportDetails?: any;
   itineraries?: ItineraryData[];
+  roomTypes?: any[];
+  occupancyTypes?: any[];
+  mealPlans?: any[];
+  vehicleTypes?: any[];
 }
 
 const formatINR = (val: string | number): string => {
@@ -91,7 +95,11 @@ export function VariantComparisonSection({
   variantPricingData,
   variantRoomAllocations,
   variantTransportDetails,
-  itineraries
+  itineraries,
+  roomTypes = [],
+  occupancyTypes = [],
+  mealPlans = [],
+  vehicleTypes = []
 }: VariantComparisonSectionProps) {
   if (!variants || variants.length === 0) {
     return null;
@@ -190,9 +198,6 @@ export function VariantComparisonSection({
               <tbody className="divide-y divide-gray-100">
                 {allDayNumbers.map((day, idx) => {
                   const itinerary = itineraryByDay[day];
-                  const roomAllocations = itinerary?.roomAllocations || [];
-                  const transportDetails = itinerary?.transportDetails || [];
-                  const hasDetails = roomAllocations.length > 0 || transportDetails.length > 0;
 
                   return (
                     <tr key={day} className={idx % 2 === 0 ? 'bg-white' : 'bg-orange-50/30'}>
@@ -201,9 +206,19 @@ export function VariantComparisonSection({
                           {day}
                         </div>
                       </td>
-                      {variants.map((variant, vidx) => {
-                        const hotelInfo = variant.hotelSnapshots.find(h => h.dayNumber === day);
+                      {variants.map((variant: any, vidx) => {
+                        const hotelInfo = variant.hotelSnapshots.find((h: any) => h.dayNumber === day);
                         const accent = variantAccentColors[vidx % variantAccentColors.length];
+
+                        // Use variant-specific room allocations, fallback to default itinerary allocations
+                        const roomAllocations = variantRoomAllocations?.[variant.sourceVariantId]?.[(itinerary as any)?.id] ||
+                          variantRoomAllocations?.[variant.id]?.[(itinerary as any)?.id] ||
+                          itinerary?.roomAllocations || [];
+
+                        const transportDetails = variantTransportDetails?.[variant.sourceVariantId]?.[(itinerary as any)?.id] ||
+                          variantTransportDetails?.[variant.id]?.[(itinerary as any)?.id] ||
+                          itinerary?.transportDetails || [];
+
                         return (
                           <td key={variant.id} className="px-3 py-3 align-top border-l border-gray-100">
                             {hotelInfo ? (
@@ -243,15 +258,23 @@ export function VariantComparisonSection({
                                       <div className="text-[10px] font-bold text-orange-700 mb-1">🛏️ Room Allocation</div>
                                       {roomAllocations.map((room: any, ri: number) => {
                                         const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
-                                        const roomTypeName = customText || getName(room?.roomType) || 'Standard';
-                                        const occupancy = getName(room?.occupancyType) || '';
-                                        const mealPlan = getName(room?.mealPlan) || '';
+
+                                        // If room has actual nested objects (from default itineraries), use them.
+                                        // Otherwise (from variant records), map from the ID using the passed prop arrays.
+                                        const roomTypeObj = room?.roomType || roomTypes.find(rt => rt.id === room?.roomTypeId);
+                                        const occupancyObj = room?.occupancyType || occupancyTypes.find(ot => ot.id === room?.occupancyTypeId);
+                                        const mealPlanObj = room?.mealPlan || mealPlans.find(mp => mp.id === room?.mealPlanId);
+
+                                        const roomTypeName = customText || getName(roomTypeObj) || 'Standard';
+                                        const occupancy = getName(occupancyObj) || '';
+                                        const mealPlanName = getName(mealPlanObj) || '';
+
                                         return (
                                           <div key={ri} className="text-[10px] text-gray-700 leading-snug mb-1 last:mb-0">
                                             <div className="font-semibold text-gray-800">{roomTypeName}{occupancy ? ` · ${occupancy}` : ''}</div>
                                             <div className="text-gray-500">
                                               {room.quantity || 1} Room{(room.quantity || 1) > 1 ? 's' : ''}
-                                              {mealPlan ? ` · 🍽️ ${mealPlan}` : ''}
+                                              {mealPlanName ? ` · 🍽️ ${mealPlanName}` : ''}
                                             </div>
                                           </div>
                                         );
@@ -264,7 +287,8 @@ export function VariantComparisonSection({
                                     <div className="mt-2 pt-2 border-t border-gray-100">
                                       <div className="text-[10px] font-bold text-orange-700 mb-1">🚗 Transport</div>
                                       {transportDetails.map((t: any, ti: number) => {
-                                        const vehicleName = getName(t?.vehicleType) || 'Vehicle';
+                                        const vehicleObj = t?.vehicleType || vehicleTypes.find(vt => vt.id === t?.vehicleTypeId);
+                                        const vehicleName = getName(vehicleObj) || 'Vehicle';
                                         return (
                                           <div key={ti} className="text-[10px] text-gray-700 leading-snug">
                                             <span className="font-semibold">{vehicleName}</span>

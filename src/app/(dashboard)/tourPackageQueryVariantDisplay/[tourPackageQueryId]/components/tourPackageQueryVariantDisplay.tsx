@@ -66,6 +66,10 @@ interface TourPackageQueryVariantDisplayProps {
     })[];
     selectedOption?: string;
     associatePartners: AssociatePartner[];
+    roomTypes?: any[];
+    occupancyTypes?: any[];
+    mealPlans?: any[];
+    vehicleTypes?: any[];
 };
 
 // Define a type for the company information
@@ -226,6 +230,10 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
     locations,
     hotels,
     associatePartners,
+    roomTypes = [],
+    occupancyTypes = [],
+    mealPlans = [],
+    vehicleTypes = []
 }) => {
 
     const searchParams = useSearchParams();
@@ -469,7 +477,13 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                         <VariantComparisonSection
                             variants={initialData.queryVariantSnapshots}
                             variantPricingData={(initialData as any)?.variantPricingData}
+                            variantRoomAllocations={(initialData as any)?.variantRoomAllocations}
+                            variantTransportDetails={(initialData as any)?.variantTransportDetails}
                             itineraries={initialData.itineraries}
+                            roomTypes={roomTypes}
+                            occupancyTypes={occupancyTypes}
+                            mealPlans={mealPlans}
+                            vehicleTypes={vehicleTypes}
                         />
                     </CardContent>
                 </Card>

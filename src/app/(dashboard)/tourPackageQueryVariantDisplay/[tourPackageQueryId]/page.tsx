@@ -101,6 +101,11 @@ const tourPackageQueryVariantPage = async (
 
     const associatePartners = await prismadb.associatePartner.findMany();
 
+    const roomTypes = await prismadb.roomType.findMany({});
+    const occupancyTypes = await prismadb.occupancyType.findMany({});
+    const mealPlans = await prismadb.mealPlan.findMany({});
+    const vehicleTypes = await prismadb.vehicleType.findMany({});
+
     // Find latest CREATE audit log entry for this entity (prepared by)
     const preparedByLog = await prismadb.auditLog.findFirst({
         where: {
@@ -133,6 +138,10 @@ const tourPackageQueryVariantPage = async (
                         locations={locations}
                         hotels={hotels}
                         associatePartners={associatePartners}
+                        roomTypes={roomTypes}
+                        occupancyTypes={occupancyTypes}
+                        mealPlans={mealPlans}
+                        vehicleTypes={vehicleTypes}
                     />
                 </div>
             </div>

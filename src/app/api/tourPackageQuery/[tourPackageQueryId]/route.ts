@@ -455,10 +455,25 @@ async function createFlightDetailWithImagesFallback(flightDetail: {
 
     return createdFlightDetail;
   } catch (error) {
-    console.error("FALLBACK: Failed to create flight detail with images:", error);
+    console.error("Failed to create flight detail with images (fallback):", error);
     throw error;
   }
 }
+
+// Helper to remap JSON keys from old frontend itinerary IDs to newly inserted DB itinerary IDs
+const remapVariantDataKeys = (variantData: any, idMap: Record<string, string>) => {
+  if (!variantData || typeof variantData !== 'object') return variantData;
+  const remapped: any = {};
+  for (const variantId in variantData) {
+    if (typeof variantData[variantId] !== 'object') continue;
+    remapped[variantId] = {};
+    for (const oldItin in variantData[variantId]) {
+      const newItin = idMap[oldItin] || oldItin;
+      remapped[variantId][newItin] = variantData[variantId][oldItin];
+    }
+  }
+  return remapped;
+};
 
 export async function PATCH(req: Request, props: { params: Promise<{ tourPackageQueryId: string }> }) {
   const params = await props.params;
@@ -701,11 +716,15 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
           });
           console.log(`[TRANSACTION] Deleted existing itineraries`);
 
+          // Track ID mapping for variant features
+          const itineraryIdMap: Record<string, string> = {};
+
           // Create new itineraries in parallel for better performance
-          await Promise.all(itineraries.map(async (itinerary, i) => {
+          const createdItins = await Promise.all(itineraries.map(async (itinerary, i) => {
             try {
               console.log(`[TRANSACTION] Creating itinerary ${i + 1}/${itineraries.length}: ${itinerary.itineraryTitle?.substring(0, 50)}...`);
-              await createItineraryAndActivitiesInTransaction(itinerary, params.tourPackageQueryId, tx);
+              const created = await createItineraryAndActivitiesInTransaction(itinerary, params.tourPackageQueryId, tx);
+              return { oldId: itinerary.id, newId: created.id };
             } catch (itineraryError: any) {
               console.error('[ITINERARY_CREATION_ERROR_IN_TRANSACTION]', {
                 itineraryIndex: i,
@@ -715,6 +734,26 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
               throw new Error(`Failed to create itinerary ${i + 1} "${itinerary.itineraryTitle}": ${itineraryError?.message || 'Unknown error'}`);
             }
           }));
+
+          createdItins.forEach(item => {
+            if (item && item.oldId && item.newId) {
+              itineraryIdMap[item.oldId] = item.newId;
+            }
+          });
+
+          // Second update to replace variant JSON mappings with actual Database UUIDs
+          if (Object.keys(itineraryIdMap).length > 0) {
+            await tx.tourPackageQuery.update({
+              where: { id: params.tourPackageQueryId },
+              data: {
+                variantHotelOverrides: variantHotelOverrides ? remapVariantDataKeys(variantHotelOverrides, itineraryIdMap) : undefined,
+                variantRoomAllocations: variantRoomAllocations ? remapVariantDataKeys(variantRoomAllocations, itineraryIdMap) : undefined,
+                variantTransportDetails: variantTransportDetails ? remapVariantDataKeys(variantTransportDetails, itineraryIdMap) : undefined,
+              }
+            });
+            console.log(`[TRANSACTION] Successfully remapped variant JSON keys for ${Object.keys(itineraryIdMap).length} itineraries`);
+          }
+
           console.log(`[TRANSACTION] Successfully created all ${itineraries.length} itineraries`);
         } else if (itineraries && Array.isArray(itineraries) && itineraries.length === 0) {
           // If itineraries array is explicitly empty, delete all existing itineraries
@@ -777,12 +816,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
           });
           console.log(`[FALLBACK] Deleted existing itineraries`);
 
+          const fallbackItineraryIdMap: Record<string, string> = {};
+
           // Create new itineraries one by one with individual error handling
           for (let i = 0; i < itineraries.length; i++) {
             const itinerary = itineraries[i];
             try {
               console.log(`[FALLBACK] Creating itinerary ${i + 1}/${itineraries.length}: ${itinerary.itineraryTitle?.substring(0, 50)}...`);
-              await createItineraryAndActivities(itinerary, params.tourPackageQueryId);
+              const created = await createItineraryAndActivities(itinerary, params.tourPackageQueryId);
+              if (itinerary.id && created.id) {
+                fallbackItineraryIdMap[itinerary.id] = created.id;
+              }
             } catch (itineraryError: any) {
               console.error('[FALLBACK_ITINERARY_ERROR]', {
                 itineraryIndex: i,
@@ -793,6 +837,19 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
               // Don't throw to prevent losing all progress
             }
           }
+
+          if (Object.keys(fallbackItineraryIdMap).length > 0) {
+            await prismadb.tourPackageQuery.update({
+              where: { id: params.tourPackageQueryId },
+              data: {
+                variantHotelOverrides: variantHotelOverrides ? remapVariantDataKeys(variantHotelOverrides, fallbackItineraryIdMap) : undefined,
+                variantRoomAllocations: variantRoomAllocations ? remapVariantDataKeys(variantRoomAllocations, fallbackItineraryIdMap) : undefined,
+                variantTransportDetails: variantTransportDetails ? remapVariantDataKeys(variantTransportDetails, fallbackItineraryIdMap) : undefined,
+              }
+            });
+            console.log(`[FALLBACK] Successfully remapped variant JSON keys for ${Object.keys(fallbackItineraryIdMap).length} itineraries`);
+          }
+
           console.log(`[FALLBACK] Completed processing itineraries with fallback strategy`);
         }
 

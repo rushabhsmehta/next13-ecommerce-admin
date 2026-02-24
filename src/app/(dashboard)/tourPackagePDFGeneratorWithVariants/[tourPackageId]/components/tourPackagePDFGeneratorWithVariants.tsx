@@ -382,7 +382,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                         <span style="font-size: 13px; font-weight: 800;">${dayNum}</span>
                       </div>
                     </td>
-                    ${initialData.packageVariants.map((variant, vi) => {
+                    ${(initialData.packageVariants ?? []).map((variant, vi) => {
                       const hotelId = variantMappings[vi][dayNum];
                       const hotel = hotelId ? hotels.find(h => h.id === hotelId) : null;
                       return `

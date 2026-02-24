@@ -193,7 +193,7 @@ export default function WhatsAppCustomersPage() {
         const response = await fetch('/api/associate-partners');
         if (response.ok) {
           const data = await response.json();
-          const activePartners = (data.partners || []).filter((p: AssociatePartner) => p.isActive);
+          const activePartners = (Array.isArray(data) ? data : []).filter((p: AssociatePartner) => p.isActive);
           setAssociatePartners(activePartners);
           const nameMap = new Map<string, string>();
           activePartners.forEach((p: AssociatePartner) => {

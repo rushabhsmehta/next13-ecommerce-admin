@@ -39,6 +39,11 @@ interface TourPackagePDFGeneratorWithVariantsProps {
   })[];
 }
 
+/** Escape special characters for safe use inside HTML attribute values. */
+function escapeAttr(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 type CompanyInfo = {
   [key: string]: {
     logo: string;
@@ -582,7 +587,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
             <div style="display: grid; grid-template-columns: repeat(${Math.min(itinerary.itineraryImages.length, 3)}, 1fr); gap: 0; max-height: 200px; overflow: hidden;">
               ${itinerary.itineraryImages.slice(0, 3).map((img, imgIdx) => `
                 <div style="height: 200px; overflow: hidden; background: #f3f4f6; ${imgIdx > 0 ? 'border-left: 2px solid white;' : ''}">
-                  <img src="${img.url}" alt="Day ${itinerary.dayNumber} Image ${imgIdx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img src="${escapeAttr(img.url)}" alt="Day ${itinerary.dayNumber} Image ${imgIdx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               `).join('')}
             </div>
@@ -627,7 +632,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                             <div style="display: grid; grid-template-columns: repeat(${Math.min(activity.activityImages.length, 3)}, 1fr); gap: 6px; margin: 8px 0; max-height: 120px; overflow: hidden;">
                               ${activity.activityImages.slice(0, 3).map((img, imgIdx) => `
                                 <div style="height: 120px; overflow: hidden; border-radius: 4px; background: #f3f4f6;">
-                                  <img src="${img.url}" alt="${activity.activityTitle || 'Activity'}" style="width: 100%; height: 100%; object-fit: cover;" />
+                                  <img src="${escapeAttr(img.url)}" alt="${escapeAttr(activity.activityTitle || 'Activity')}" style="width: 100%; height: 100%; object-fit: cover;" />
                                 </div>
                               `).join('')}
                             </div>
@@ -736,7 +741,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     // Build Variants Section
     const variantsSection = buildVariantsSection();
 
-    // Assemble Full HTML — order: header → tour info → pricing → hotel comparison (variants) → itinerary → policies
+    // Assemble Full HTML — order: header → tour info → total price → hotel comparison (variants) → itinerary → policies
     const fullHtml = `
       <html>
         <head>

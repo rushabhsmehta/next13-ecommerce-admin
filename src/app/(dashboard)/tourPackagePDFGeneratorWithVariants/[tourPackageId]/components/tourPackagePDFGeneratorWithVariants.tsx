@@ -313,19 +313,8 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       return modifier > 0 ? brandColors.secondary : brandColors.success;
     };
 
-    return `
-      <div style="${cardStyle}; ${pageBreakBefore}">
-        <div style="background: ${brandGradients.primary}; padding: 20px; text-align: center;">
-          <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: 0.5px;">
-            ✨ Package Variants & Hotel Options
-          </h2>
-          <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 6px 0 0 0;">
-            Choose your preferred accommodation option
-          </p>
-        </div>
-        
-        <div style="${contentStyle}">
-          ${initialData.packageVariants.map((variant, variantIndex) => {
+    // Build a mapping of variantIndex -> { dayNum -> hotelId }
+    const variantMappings = initialData.packageVariants.map((variant) => {
       const hotelMappings: Record<string, string> = {};
       if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
         variant.variantHotelMappings.forEach((mapping: any) => {
@@ -335,99 +324,105 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
           }
         });
       }
+      return hotelMappings;
+    });
 
-      const mappingEntries = Object.entries(hotelMappings).sort(([a], [b]) => Number(a) - Number(b));
+    // Collect all unique days across all variants, sorted
+    const allDays = Array.from(
+      new Set(variantMappings.flatMap(m => Object.keys(m)))
+    ).sort((a, b) => Number(a) - Number(b));
 
-      return `
-              <div style="margin-bottom: ${variantIndex < initialData.packageVariants!.length - 1 ? '32px' : '0'}; page-break-inside: avoid; break-inside: avoid-page;">
-                <div style="background: ${brandGradients.secondary}; padding: 16px 20px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
-                  <div style="flex: 1;">
-                    <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: ${brandColors.white}; display: flex; align-items: center; gap: 8px;">
-                      <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                        Variant ${variantIndex + 1}
-                      </span>
-                      ${variant.name}
-                    </h3>
-                    ${variant.description ? `
-                      <p style="margin: 8px 0 0 0; font-size: 13px; color: rgba(255,255,255,0.9); line-height: 1.4;">
-                        ${variant.description}
-                      </p>
-                    ` : ''}
-                  </div>
-                  <div style="text-align: right; margin-left: 16px;">
-                    <div style="background: ${brandColors.white}; padding: 8px 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                      <div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">
-                        Price Adjustment
-                      </div>
-                      <div style="font-size: 16px; font-weight: 700; color: ${getPriceModifierColor(variant.priceModifier)};">
+    const hasAnyMappings = allDays.length > 0;
+
+    // Column width per variant (equal split across variants)
+    const variantCount = initialData.packageVariants.length;
+    const colWidth = Math.floor(100 / (variantCount + 1)); // +1 for Day column
+
+    return `
+      <div style="${cardStyle}; ${pageBreakBefore}">
+        <div style="background: ${brandGradients.primary}; padding: 20px; text-align: center;">
+          <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: 0.5px;">
+            ✨ Package Variants & Hotel Options
+          </h2>
+          <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 6px 0 0 0;">
+            Side-by-side hotel comparison across all variants
+          </p>
+        </div>
+
+        <div style="${contentStyle}">
+
+          ${hasAnyMappings ? `
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid ${brandColors.border}; border-radius: 8px; overflow: hidden;">
+              <!-- Header row: Day label + one column per variant -->
+              <thead>
+                <tr>
+                  <th style="background: ${brandColors.tableHeaderBg}; padding: 12px 10px; text-align: center; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.5px; width: ${colWidth}%; border-right: 1px solid ${brandColors.border}; border-bottom: 2px solid ${brandColors.primary};">
+                    Day
+                  </th>
+                  ${initialData.packageVariants.map((variant, vi) => `
+                    <th style="background: ${brandColors.tableHeaderBg}; padding: 12px 10px; text-align: center; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.5px; width: ${colWidth}%; ${vi < variantCount - 1 ? `border-right: 1px solid ${brandColors.border};` : ''} border-bottom: 2px solid ${brandColors.primary};">
+                      <div style="font-size: 13px; font-weight: 700; color: ${brandColors.primary};">${variant.name}</div>
+                      <div style="font-size: 11px; font-weight: 600; color: ${getPriceModifierColor(variant.priceModifier)}; margin-top: 2px;">
                         ${formatPriceModifier(variant.priceModifier)}
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                ${mappingEntries.length > 0 ? `
-                  <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-top: none; border-radius: 0 0 8px 8px; padding: 20px;">
-                    <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                      <span style="color: ${brandColors.secondary};">🏨</span>
-                      Hotel Accommodations
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                      ${mappingEntries.map(([dayNum, hotelId]) => {
-        const hotel = hotels.find(h => h.id === hotelId);
-        if (!hotel) return '';
-
-        return `
-                          <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); page-break-inside: avoid; break-inside: avoid-page;">
-                            <div style="background: ${brandGradients.primary}; padding: 8px 12px;">
-                              <div style="font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.5px;">
-                                Day ${dayNum}
+                      ${variant.description ? `
+                        <div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 400; margin-top: 3px; font-style: italic; line-height: 1.3;">${variant.description}</div>
+                      ` : ''}
+                    </th>
+                  `).join('')}
+                </tr>
+              </thead>
+              <!-- One row per day -->
+              <tbody>
+                ${allDays.map((dayNum, rowIdx) => `
+                  <tr style="background: ${rowIdx % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
+                    <td style="padding: 10px; text-align: center; border-right: 1px solid ${brandColors.border}; border-bottom: 1px solid ${brandColors.border}; vertical-align: middle;">
+                      <div style="background: ${brandColors.primary}; color: white; width: 36px; height: 36px; border-radius: 50%; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
+                        <span style="font-size: 7px; font-weight: 700; text-transform: uppercase;">DAY</span>
+                        <span style="font-size: 13px; font-weight: 800;">${dayNum}</span>
+                      </div>
+                    </td>
+                    ${initialData.packageVariants.map((variant, vi) => {
+                      const hotelId = variantMappings[vi][dayNum];
+                      const hotel = hotelId ? hotels.find(h => h.id === hotelId) : null;
+                      return `
+                        <td style="padding: 8px; text-align: center; ${vi < variantCount - 1 ? `border-right: 1px solid ${brandColors.border};` : ''} border-bottom: 1px solid ${brandColors.border}; vertical-align: top;">
+                          ${hotel ? `
+                            <div style="border-radius: 6px; overflow: hidden; border: 1px solid ${brandColors.border}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                              ${hotel.images && hotel.images.length > 0 ? `
+                                <div style="width: 100%; padding-bottom: 100%; position: relative; overflow: hidden; background: #f3f4f6;">
+                                  <img src="${hotel.images[0].url}" alt="${escapeAttr(hotel.name)}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
+                                </div>
+                              ` : `
+                                <div style="width: 100%; padding-bottom: 100%; position: relative; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);">
+                                  <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af; font-size: 20px;">🏨</span>
+                                </div>
+                              `}
+                              <div style="padding: 6px 8px; text-align: left;">
+                                <div style="font-size: 11px; font-weight: 600; color: ${brandColors.text}; line-height: 1.3; margin-bottom: 2px;">${escapeAttr(hotel.name)}</div>
+                                ${hotel.destination ? `
+                                  <div style="font-size: 10px; color: ${brandColors.muted};">📍 ${escapeAttr(hotel.destination.name)}</div>
+                                ` : hotel.location ? `
+                                  <div style="font-size: 10px; color: ${brandColors.muted};">📍 ${escapeAttr(hotel.location.label)}</div>
+                                ` : ''}
                               </div>
                             </div>
-                            
-                            ${hotel.images && hotel.images.length > 0 ? `
-                              <div style="width: 100%; height: 140px; overflow: hidden; background: #f3f4f6;">
-                                <img src="${hotel.images[0].url}" alt="${hotel.name}" style="width: 100%; height: 100%; object-fit: cover;" />
-                              </div>
-                            ` : `
-                              <div style="width: 100%; height: 140px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
-                                <span style="color: #9ca3af; font-size: 14px;">🏨</span>
-                              </div>
-                            `}
-                            
-                            <div style="padding: 12px;">
-                              <h4 style="margin: 0 0 6px 0; font-size: 14px; font-weight: 600; color: ${brandColors.text}; line-height: 1.3;">
-                                ${hotel.name}
-                              </h4>
-                              ${hotel.destination ? `
-                                <div style="font-size: 12px; color: ${brandColors.muted}; display: flex; align-items: center; gap: 4px;">
-                                  <span>📍</span>
-                                  ${hotel.destination.name}
-                                </div>
-                              ` : hotel.location ? `
-                                <div style="font-size: 12px; color: ${brandColors.muted}; display: flex; align-items: center; gap: 4px;">
-                                  <span>📍</span>
-                                  ${hotel.location.label}
-                                </div>
-                              ` : ''}
-                            </div>
-                          </div>
-                        `;
-      }).join('')}
-                    </div>
-                  </div>
-                ` : `
-                  <div style="background: ${brandColors.light}; border: 1px solid ${brandColors.border}; border-top: none; border-radius: 0 0 8px 8px; padding: 16px; text-align: center;">
-                    <p style="margin: 0; font-size: 13px; color: ${brandColors.muted};">
-                      No specific hotel mappings for this variant
-                    </p>
-                  </div>
-                `}
-              </div>
-            `;
-    }).join('')}
-          
+                          ` : `
+                            <div style="padding: 12px; color: ${brandColors.muted}; font-size: 11px; font-style: italic;">—</div>
+                          `}
+                        </td>
+                      `;
+                    }).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `
+            <div style="background: ${brandColors.light}; border: 1px solid ${brandColors.border}; border-radius: 8px; padding: 20px; text-align: center;">
+              <p style="margin: 0; font-size: 13px; color: ${brandColors.muted};">No hotel mappings configured for any variant.</p>
+            </div>
+          `}
+
           <div style="background: ${brandColors.lightOrange}; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px; margin-top: 20px; text-align: center;">
             <p style="margin: 0; font-size: 12px; color: ${brandColors.secondary}; font-weight: 500; font-style: italic;">
               💡 Select your preferred variant when booking. Prices and hotels may vary based on availability.
@@ -584,10 +579,10 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
           </div>
 
           ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
-            <div style="display: grid; grid-template-columns: repeat(${Math.min(itinerary.itineraryImages.length, 3)}, 1fr); gap: 0; max-height: 200px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: repeat(${Math.min(itinerary.itineraryImages.length, 3)}, 1fr); gap: 0;">
               ${itinerary.itineraryImages.slice(0, 3).map((img, imgIdx) => `
-                <div style="height: 200px; overflow: hidden; background: #f3f4f6; ${imgIdx > 0 ? 'border-left: 2px solid white;' : ''}">
-                  <img src="${escapeAttr(img.url)}" alt="Day ${itinerary.dayNumber} Image ${imgIdx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+                <div style="position: relative; width: 100%; padding-bottom: 100%; overflow: hidden; background: #f3f4f6; ${imgIdx > 0 ? 'border-left: 2px solid white;' : ''}">
+                  <img src="${escapeAttr(img.url)}" alt="Day ${itinerary.dayNumber} Image ${imgIdx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               `).join('')}
             </div>

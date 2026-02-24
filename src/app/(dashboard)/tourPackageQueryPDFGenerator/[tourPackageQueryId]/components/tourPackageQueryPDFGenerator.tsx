@@ -1154,7 +1154,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
                 ${itinerary.itineraryImages.slice(0, 3).map((img, idx) => `
                   <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <div style="width: 100%; padding-bottom: 75%; /* 4:3 aspect ratio */ height: 0; position: relative;">
+                    <div style="width: 100%; padding-bottom: 100%; /* 1:1 aspect ratio */ height: 0; position: relative;">
                       <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
                     </div>                  
                   </div>

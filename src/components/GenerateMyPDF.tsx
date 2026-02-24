@@ -121,8 +121,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   itineraryImage: {
-    width: '80%',
-    height: 250,
+    width: 200,
+    height: 200,
     resizeMode: 'cover',
     marginBottom: 10,
     borderRadius: 10, // Use borderRadius for rounded corners

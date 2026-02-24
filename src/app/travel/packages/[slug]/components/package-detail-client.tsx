@@ -302,7 +302,7 @@ export function PackageDetailClient({
                             {day.itineraryImages?.length > 0 && (
                               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                                 {day.itineraryImages.map((img: any) => (
-                                  <div key={img.id} className="relative w-28 h-20 sm:w-32 sm:h-24 rounded-lg overflow-hidden flex-shrink-0">
+                                  <div key={img.id} className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-lg overflow-hidden flex-shrink-0">
                                     <Image src={img.url} alt="" fill className="object-cover" />
                                   </div>
                                 ))}

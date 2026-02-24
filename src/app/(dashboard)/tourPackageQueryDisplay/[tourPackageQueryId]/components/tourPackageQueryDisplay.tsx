@@ -852,15 +852,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               </div>
             </div>
             {/* Fixed Size Image Section */}
-            <div className="flex justify-center items-center break-inside-avoid">
+            <div className="grid break-inside-avoid" style={{ gridTemplateColumns: `repeat(${Math.min(itinerary.itineraryImages?.length || 1, 3)}, 1fr)` }}>
               {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
-                <div key={imageIndex} className="w-full h-[500px]">
+                <div key={imageIndex} className="relative w-full" style={{ paddingBottom: '100%' }}>
                   <Image
                     src={image.url}
                     alt={`Itinerary Image ${imageIndex + 1}`}
-                    width={1200}
-                    height={500}
-                    className="object-cover w-full h-full"
+                    fill
+                    className="object-cover absolute inset-0"
                   />
                 </div>
               ))}

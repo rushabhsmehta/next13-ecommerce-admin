@@ -39,6 +39,11 @@ interface TourPackagePDFGeneratorWithVariantsProps {
   })[];
 }
 
+/** Escape special characters for safe use inside HTML attribute values. */
+function escapeAttr(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 type CompanyInfo = {
   [key: string]: {
     logo: string;
@@ -552,30 +557,41 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     if (initialData.itineraries && initialData.itineraries.length > 0) {
       itinerariesSection += `
         <div style="${cardStyle}; ${pageBreakBefore}">
-          <div style="${headerStyleAlt}; text-align: center;">
-            <h2 style="${sectionTitleStyle}">Travel Itinerary</h2>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: ${brandColors.muted};">Your day-by-day adventure guide</p>
+          <div style="border-bottom: 2px solid ${brandColors.primary}; padding: 14px 18px; page-break-inside: avoid; break-inside: avoid;">
+            <h2 style="color: ${brandColors.primary}; font-size: 17px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+              🗺️ Day-by-Day Itinerary
+            </h2>
+            <p style="color: ${brandColors.muted}; font-size: 11px; margin: 3px 0 0 0;">Your complete travel journey</p>
           </div>
         </div>
       `;
 
       itinerariesSection += initialData.itineraries.map((itinerary, dayIndex) => `
-        <div style="${cardStyle}; margin-bottom: 24px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
-          <div style="display: flex; align-items: center; background: #f9fafb; padding: 16px; border-bottom: 1px solid ${brandColors.border};">
-            <div style="background: ${brandColors.primary}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
-              <span style="font-size: 10px; font-weight: 500;">DAY</span>
-              <span style="font-size: 16px; font-weight: 700;">${itinerary.dayNumber}</span>
+        <div style="${cardStyle}; margin-bottom: 20px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
+          <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid ${brandColors.border};">
+            <div style="background: ${brandColors.primary}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;">
+              <span style="font-size: 7px; font-weight: 700; text-transform: uppercase;">DAY</span>
+              <span style="font-size: 14px; font-weight: 800; line-height: 1.1;">${itinerary.dayNumber}</span>
             </div>
-            <div style="margin-left: 16px;">
-              <h3 style="font-size: 20px; font-weight: 800; margin: 0; line-height: 1.05; background: ${brandGradients.primary}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.3px;">
-              ${(itinerary.days && itinerary.days !== 'null' && itinerary.days !== 'undefined') ? itinerary.days : 'Tour Day'}
+            <div style="margin-left: 12px;">
+              <h3 style="font-size: 18px; font-weight: 800; margin: 0; line-height: 1.25; color: ${brandColors.primary};">
+                ${(itinerary.days && itinerary.days !== 'null' && itinerary.days !== 'undefined') ? itinerary.days : 'Tour Day'}
               </h3>
-              <div style="height: 6px; width: 96px; max-width: 96px; display: inline-block; background: ${brandGradients.secondary}; border-radius: 4px; margin-top: 8px;"></div>
-              <p style="font-size: 14px; margin: 8px 0 0 0; color: ${brandColors.muted};">
+              <p style="font-size: 12px; margin: 4px 0 0 0; color: ${brandColors.muted}; font-weight: 400; line-height: 1.4;">
                 ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "") || `Day ${itinerary.dayNumber} Activities`}
               </p>
             </div>
           </div>
+
+          ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
+            <div style="display: grid; grid-template-columns: repeat(${Math.min(itinerary.itineraryImages.length, 3)}, 1fr); gap: 0; max-height: 200px; overflow: hidden;">
+              ${itinerary.itineraryImages.slice(0, 3).map((img, imgIdx) => `
+                <div style="height: 200px; overflow: hidden; background: #f3f4f6; ${imgIdx > 0 ? 'border-left: 2px solid white;' : ''}">
+                  <img src="${escapeAttr(img.url)}" alt="Day ${itinerary.dayNumber} Image ${imgIdx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
 
           <div style="padding: 16px;">
             ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `
@@ -603,19 +619,30 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                 </h4>
                 <div style="display: grid; gap: 12px;">
                   ${itinerary.activities.map((activity, actIdx) => `
-                    <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; display: flex; align-items: flex-start;">
-                      <div style="background: ${brandColors.secondary}; color: ${brandColors.white}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px; flex-shrink: 0;">
-                        ${actIdx + 1}
-                      </div>
-                      <div>
-                        <h5 style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin: 0;">
-                          ${activity.activityTitle || `Activity ${actIdx + 1}`}
-                        </h5>
-                        ${activity.activityDescription ? `
-                          <p style="font-size: 13px; color: ${brandColors.muted}; margin: 4px 0 0 0; line-height: 1.5;">
-                            ${activity.activityDescription}
-                          </p>
-                        ` : ''}
+                    <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; page-break-inside: avoid; break-inside: avoid;">
+                      <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <div style="background: ${brandColors.secondary}; color: ${brandColors.white}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px;">
+                          ${actIdx + 1}
+                        </div>
+                        <div style="flex: 1;">
+                          <h5 style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 4px 0;">
+                            ${activity.activityTitle || `Activity ${actIdx + 1}`}
+                          </h5>
+                          ${activity.activityImages && activity.activityImages.length > 0 ? `
+                            <div style="display: grid; grid-template-columns: repeat(${Math.min(activity.activityImages.length, 3)}, 1fr); gap: 6px; margin: 8px 0; max-height: 120px; overflow: hidden;">
+                              ${activity.activityImages.slice(0, 3).map((img, imgIdx) => `
+                                <div style="height: 120px; overflow: hidden; border-radius: 4px; background: #f3f4f6;">
+                                  <img src="${escapeAttr(img.url)}" alt="${escapeAttr(activity.activityTitle || 'Activity')}" style="width: 100%; height: 100%; object-fit: cover;" />
+                                </div>
+                              `).join('')}
+                            </div>
+                          ` : ''}
+                          ${activity.activityDescription ? `
+                            <p style="font-size: 13px; color: ${brandColors.muted}; margin: 4px 0 0 0; line-height: 1.5;">
+                              ${activity.activityDescription}
+                            </p>
+                          ` : ''}
+                        </div>
                       </div>
                     </div>
                   `).join("")}
@@ -714,7 +741,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     // Build Variants Section
     const variantsSection = buildVariantsSection();
 
-    // Assemble Full HTML
+    // Assemble Full HTML — order: header → tour info → total price → hotel comparison (variants) → itinerary → policies
     const fullHtml = `
       <html>
         <head>
@@ -725,8 +752,8 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
             ${headerSection}
             ${tourInfoSection}
             ${totalPriceSection}
-            ${itinerariesSection}
             ${variantsSection}
+            ${itinerariesSection}
             ${policiesAndTermsSection}
           </div>
         </body>

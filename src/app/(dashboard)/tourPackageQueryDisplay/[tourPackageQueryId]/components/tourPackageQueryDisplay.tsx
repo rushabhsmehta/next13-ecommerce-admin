@@ -802,6 +802,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                         <div>
                                           <div className="font-semibold text-orange-800">{t.vehicleType?.name || 'Vehicle'}</div>
                                           {t.capacity && <div className="text-xs text-gray-600">Capacity: {t.capacity}</div>}
+                                          {t.description && <div className="text-xs text-gray-500 mt-0.5">{t.description}</div>}
                                         </div>
                                       </div>
                                       <div className="text-sm font-medium text-orange-800">Qty: {t.quantity || 1}</div>

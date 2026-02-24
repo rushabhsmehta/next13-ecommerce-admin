@@ -294,6 +294,7 @@ export function VariantComparisonSection({
                                             <span className="font-semibold">{vehicleName}</span>
                                             {(t.quantity || 1) > 1 && <span> ×{t.quantity}</span>}
                                             {t.capacity && <span className="text-gray-400"> ({t.capacity})</span>}
+                                            {t.description && <div className="text-[10px] text-gray-500 mt-0.5">{t.description}</div>}
                                           </div>
                                         );
                                       })}

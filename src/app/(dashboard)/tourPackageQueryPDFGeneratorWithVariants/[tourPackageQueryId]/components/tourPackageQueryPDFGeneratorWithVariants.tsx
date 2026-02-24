@@ -643,6 +643,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                           <span style="font-weight: 600;">${vehicleName}</span>
                           ${(t.quantity || 1) > 1 ? `<span> ×${t.quantity}</span>` : ''}
                           ${t.capacity ? `<span style="color: ${brandColors.muted};"> (${t.capacity})</span>` : ''}
+                          ${t.description ? `<div style="font-size: 9px; color: ${brandColors.muted}; margin-top: 2px;">${t.description}</div>` : ''}
                         </div>
                       `;
         }).join('')}

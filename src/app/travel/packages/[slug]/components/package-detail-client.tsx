@@ -1,5 +1,6 @@
 "use client";
 
+import DOMPurify from "isomorphic-dompurify";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -264,7 +265,7 @@ export function PackageDetailClient({
                                 style={{ gridTemplateColumns: `repeat(${Math.min(day.itineraryImages.length, 3)}, 1fr)` }}
                               >
                                 {day.itineraryImages.map((img: any) => (
-                                  <div key={img.id} className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: '66%' }}>
+                                  <div key={img.id} className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: '100%' }}>
                                     <Image src={img.url} alt={`Day ${day.dayNumber || index + 1} itinerary image`} fill className="object-cover absolute inset-0" />
                                   </div>
                                 ))}
@@ -274,7 +275,7 @@ export function PackageDetailClient({
                             {day.itineraryDescription && (
                               <div
                                 className="text-gray-600 text-sm leading-relaxed mb-4 prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{ __html: day.itineraryDescription }}
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(day.itineraryDescription) }}
                               />
                             )}
 

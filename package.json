@@ -77,6 +77,7 @@
         "eslint-config-next": "16.1.6",
         "facebook-node-sdk": "^0.2.0",
         "html-react-parser": "^5.2.17",
+        "isomorphic-dompurify": "^3.0.0",
         "jodit-react": "^4.1.2",
         "jose": "^6.0.10",
         "jspdf": "^3.0.1",

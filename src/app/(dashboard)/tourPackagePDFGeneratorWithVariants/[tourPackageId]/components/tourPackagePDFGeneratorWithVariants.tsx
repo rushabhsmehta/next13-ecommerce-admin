@@ -361,12 +361,12 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                   </th>
                   ${initialData.packageVariants.map((variant, vi) => `
                     <th style="background: ${brandColors.tableHeaderBg}; padding: 12px 10px; text-align: center; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.5px; width: ${colWidth}%; ${vi < variantCount - 1 ? `border-right: 1px solid ${brandColors.border};` : ''} border-bottom: 2px solid ${brandColors.primary};">
-                      <div style="font-size: 13px; font-weight: 700; color: ${brandColors.primary};">${variant.name}</div>
+                      <div style="font-size: 13px; font-weight: 700; color: ${brandColors.primary};">${escapeAttr(variant.name ?? '')}</div>
                       <div style="font-size: 11px; font-weight: 600; color: ${getPriceModifierColor(variant.priceModifier)}; margin-top: 2px;">
                         ${formatPriceModifier(variant.priceModifier)}
                       </div>
                       ${variant.description ? `
-                        <div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 400; margin-top: 3px; font-style: italic; line-height: 1.3;">${variant.description}</div>
+                        <div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 400; margin-top: 3px; font-style: italic; line-height: 1.3;">${escapeAttr(variant.description)}</div>
                       ` : ''}
                     </th>
                   `).join('')}
@@ -391,7 +391,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                             <div style="border-radius: 6px; overflow: hidden; border: 1px solid ${brandColors.border}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                               ${hotel.images && hotel.images.length > 0 ? `
                                 <div style="width: 100%; padding-bottom: 100%; position: relative; overflow: hidden; background: #f3f4f6;">
-                                  <img src="${hotel.images[0].url}" alt="${escapeAttr(hotel.name)}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
+                                  <img src="${escapeAttr(hotel.images[0].url)}" alt="${escapeAttr(hotel.name)}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
                                 </div>
                               ` : `
                                 <div style="width: 100%; padding-bottom: 100%; position: relative; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);">

@@ -147,8 +147,11 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
 
     const page = await browser.newPage();
 
+    // Inline remote images in the body HTML as data URIs to prevent networkidle0 delays/timeouts
+    const inlinedHtmlContent = await inlineImagesInHtml(htmlContent);
+
     // Set the HTML content for the page
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+    await page.setContent(inlinedHtmlContent, { waitUntil: "networkidle0" });
   
     await page.evaluateHandle('document.fonts.ready');
 

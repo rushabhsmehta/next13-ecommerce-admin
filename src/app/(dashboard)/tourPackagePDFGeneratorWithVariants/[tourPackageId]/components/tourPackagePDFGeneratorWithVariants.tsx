@@ -337,7 +337,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     // Column width per variant (Day column is fixed narrow; variants split the rest)
     const variantCount = initialData.packageVariants.length;
     const dayColWidth = 8; // Day column only needs a small circle badge
-    const colWidth = Math.floor((100 - dayColWidth) / variantCount);
+    const colWidth = (100 - dayColWidth) / variantCount;
 
     return `
       <div style="${cardStyle}; ${pageBreakBefore}">

@@ -334,9 +334,10 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
 
     const hasAnyMappings = allDays.length > 0;
 
-    // Column width per variant (equal split across variants)
+    // Column width per variant (Day column is fixed narrow; variants split the rest)
     const variantCount = initialData.packageVariants.length;
-    const colWidth = Math.floor(100 / (variantCount + 1)); // +1 for Day column
+    const dayColWidth = 8; // Day column only needs a small circle badge
+    const colWidth = (100 - dayColWidth) / variantCount;
 
     return `
       <div style="${cardStyle}; ${pageBreakBefore}">
@@ -356,7 +357,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
               <!-- Header row: Day label + one column per variant -->
               <thead>
                 <tr>
-                  <th style="background: ${brandColors.tableHeaderBg}; padding: 12px 10px; text-align: center; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.5px; width: ${colWidth}%; border-right: 1px solid ${brandColors.border}; border-bottom: 2px solid ${brandColors.primary};">
+                  <th style="background: ${brandColors.tableHeaderBg}; padding: 12px 10px; text-align: center; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.5px; width: ${dayColWidth}%; border-right: 1px solid ${brandColors.border}; border-bottom: 2px solid ${brandColors.primary};">
                     Day
                   </th>
                   ${initialData.packageVariants.map((variant, vi) => `
@@ -581,7 +582,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
           ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
             <div style="display: grid; grid-template-columns: repeat(${Math.min(itinerary.itineraryImages.length, 3)}, 1fr); gap: 0;">
               ${itinerary.itineraryImages.slice(0, 3).map((img, imgIdx) => `
-                <div style="position: relative; width: 100%; padding-bottom: 100%; overflow: hidden; background: #f3f4f6; ${imgIdx > 0 ? 'border-left: 2px solid white;' : ''}">
+                <div style="position: relative; width: 100%; padding-bottom: 50%; overflow: hidden; background: #f3f4f6; ${imgIdx > 0 ? 'border-left: 2px solid white;' : ''}">
                   <img src="${escapeAttr(img.url)}" alt="Day ${itinerary.dayNumber} Image ${imgIdx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               `).join('')}

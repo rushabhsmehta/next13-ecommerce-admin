@@ -1,5 +1,6 @@
 "use client";
 
+import DOMPurify from "isomorphic-dompurify";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -257,10 +258,25 @@ export function PackageDetailClient({
 
                         {isExpanded && (
                           <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-gray-100 pt-4">
+                            {/* Itinerary Images - shown prominently at top */}
+                            {day.itineraryImages?.length > 0 && (
+                              <div
+                                className="grid gap-2 mb-4"
+                                style={{ gridTemplateColumns: `repeat(${Math.min(day.itineraryImages.length, 3)}, 1fr)` }}
+                              >
+                                {day.itineraryImages.map((img: any) => (
+                                  <div key={img.id} className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: '100%' }}>
+                                    <Image src={img.url} alt={`Day ${day.dayNumber || index + 1} itinerary image`} fill className="object-cover absolute inset-0" />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
                             {day.itineraryDescription && (
-                              <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                                {day.itineraryDescription}
-                              </p>
+                              <div
+                                className="text-gray-600 text-sm leading-relaxed mb-4 prose prose-sm max-w-none"
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(day.itineraryDescription) }}
+                              />
                             )}
 
                             {/* Activities */}
@@ -293,17 +309,6 @@ export function PackageDetailClient({
                                         ))}
                                       </div>
                                     )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Itinerary Images */}
-                            {day.itineraryImages?.length > 0 && (
-                              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                                {day.itineraryImages.map((img: any) => (
-                                  <div key={img.id} className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-lg overflow-hidden flex-shrink-0">
-                                    <Image src={img.url} alt="" fill className="object-cover" />
                                   </div>
                                 ))}
                               </div>

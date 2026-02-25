@@ -6,13 +6,14 @@ import React, { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { Trash } from "lucide-react"
+import { Trash, PlusCircle } from "lucide-react"
 import { Location, Hotel, TourDestination } from "@prisma/client"
 import { Images } from "@prisma/client"
 
 import { useParams, useRouter } from "next/navigation"
 
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -38,6 +39,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { CheckIcon, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -71,6 +79,10 @@ export const HotelForm: React.FC<HotelFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [destinations, setDestinations] = useState<TourDestination[]>([]);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
+  const [addDestinationOpen, setAddDestinationOpen] = useState(false);
+  const [newDestinationName, setNewDestinationName] = useState("");
+  const [savingDestination, setSavingDestination] = useState(false);
+  const [destinationPopoverOpen, setDestinationPopoverOpen] = useState(false);
 
   const title = initialData ? 'Edit hotel' : 'Create hotel';
   const description = initialData ? 'Edit a hotel.' : 'Add a new hotel';
@@ -109,6 +121,28 @@ export const HotelForm: React.FC<HotelFormProps> = ({
 
   // Watch for location changes
   const watchedLocationId = form.watch('locationId');
+
+  const handleAddDestination = async () => {
+    if (!newDestinationName.trim() || !watchedLocationId) return;
+    try {
+      setSavingDestination(true);
+      const response = await axios.post('/api/destinations', {
+        name: newDestinationName.trim(),
+        locationId: watchedLocationId,
+      });
+      const created: TourDestination = response.data;
+      setDestinations((prev) => [...prev, created]);
+      form.setValue("destinationId", created.id);
+      setDestinationPopoverOpen(false);
+      setNewDestinationName("");
+      setAddDestinationOpen(false);
+      toast.success("Destination added.");
+    } catch {
+      toast.error("Failed to add destination.");
+    } finally {
+      setSavingDestination(false);
+    }
+  };
 
   React.useEffect(() => {
     if (watchedLocationId) {
@@ -167,6 +201,33 @@ export const HotelForm: React.FC<HotelFormProps> = ({
         onConfirm={onDelete}
         loading={loading}
       />
+      <Dialog open={addDestinationOpen} onOpenChange={setAddDestinationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Destination</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Label htmlFor="destination-name">Destination name</Label>
+            <Input
+              id="destination-name"
+              placeholder="Destination name"
+              value={newDestinationName}
+              onChange={(e) => setNewDestinationName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddDestination(); } }}
+              disabled={savingDestination}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDestinationOpen(false)} disabled={savingDestination}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddDestination} disabled={savingDestination || !newDestinationName.trim()}>
+              {savingDestination ? "Adding..." : "Add Destination"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex items-center justify-between">
         <Heading title={title} description={description} />
         {initialData && (
@@ -279,7 +340,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Destination</FormLabel>
-                  <Popover>
+                  <Popover open={destinationPopoverOpen} onOpenChange={setDestinationPopoverOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -314,6 +375,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                               key={destination.id}
                               onSelect={() => {
                                 form.setValue("destinationId", destination.id);
+                                setDestinationPopoverOpen(false);
                               }}
                             >
                               <CheckIcon
@@ -327,6 +389,20 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                           ))}
                         </CommandGroup>
                         </CommandList>
+                        <div className="border-t p-1">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-sm"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setNewDestinationName("");
+                              setAddDestinationOpen(true);
+                            }}
+                          >
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add New Destination
+                          </Button>
+                        </div>
                       </Command>
                     </PopoverContent>
                   </Popover>

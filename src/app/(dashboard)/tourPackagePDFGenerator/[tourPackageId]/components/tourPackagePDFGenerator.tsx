@@ -405,7 +405,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     const headerSection = `
       <div style="${cardStyle}">
         ${heroImage ? `
-          <div style="height: 240px; overflow: hidden; position: relative;">
+          <div style="aspect-ratio: 1/1; overflow: hidden; position: relative;">
             <img src="${heroImage}" alt="Tour hero" style="width: 100%; height: 100%; object-fit: cover;" />
             ${companyProfile.logo ? `<div style="position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.92); border-radius: 8px; padding: 8px 12px; box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);">
               <img src="${companyProfile.logo}" alt="${safe(companyProfile.name)} Logo" style="height: 40px; object-fit: contain;" />

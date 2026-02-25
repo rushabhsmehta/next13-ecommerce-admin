@@ -384,9 +384,9 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                       </div>
                     </td>
                     ${(initialData.packageVariants ?? []).map((variant, vi) => {
-                      const hotelId = variantMappings[vi][dayNum];
-                      const hotel = hotelId ? hotels.find(h => h.id === hotelId) : null;
-                      return `
+      const hotelId = variantMappings[vi][dayNum];
+      const hotel = hotelId ? hotels.find(h => h.id === hotelId) : null;
+      return `
                         <td style="padding: 8px; text-align: center; ${vi < variantCount - 1 ? `border-right: 1px solid ${brandColors.border};` : ''} border-bottom: 1px solid ${brandColors.border}; vertical-align: top;">
                           ${hotel ? `
                             <div style="border-radius: 6px; overflow: hidden; border: 1px solid ${brandColors.border}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
@@ -413,7 +413,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                           `}
                         </td>
                       `;
-                    }).join('')}
+    }).join('')}
                   </tr>
                 `).join('')}
               </tbody>
@@ -442,7 +442,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     const headerSection = `
       <div style="${cardStyle}; text-align: center; position: relative;">
         ${initialData.images && initialData.images.length > 0 ? `
-          <div style="width: 100%; height: 240px; overflow: hidden; border-top-left-radius: 6px; border-top-right-radius: 6px; position: relative;">
+          <div style="width: 100%; aspect-ratio: 1/1; overflow: hidden; border-top-left-radius: 6px; border-top-right-radius: 6px; position: relative;">
             <img src="${initialData.images[0].url}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.9);" />
             ${currentCompany.logo ? `
               <div style="position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">

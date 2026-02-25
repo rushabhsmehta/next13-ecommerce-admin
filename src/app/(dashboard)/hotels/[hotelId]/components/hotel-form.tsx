@@ -13,6 +13,7 @@ import { Images } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -81,6 +82,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
   const [addDestinationOpen, setAddDestinationOpen] = useState(false);
   const [newDestinationName, setNewDestinationName] = useState("");
   const [savingDestination, setSavingDestination] = useState(false);
+  const [destinationPopoverOpen, setDestinationPopoverOpen] = useState(false);
 
   const title = initialData ? 'Edit hotel' : 'Create hotel';
   const description = initialData ? 'Edit a hotel.' : 'Add a new hotel';
@@ -131,6 +133,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
       const created: TourDestination = response.data;
       setDestinations((prev) => [...prev, created]);
       form.setValue("destinationId", created.id);
+      setDestinationPopoverOpen(false);
       setNewDestinationName("");
       setAddDestinationOpen(false);
       toast.success("Destination added.");
@@ -204,12 +207,15 @@ export const HotelForm: React.FC<HotelFormProps> = ({
             <DialogTitle>Add New Destination</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <Label htmlFor="destination-name">Destination name</Label>
             <Input
+              id="destination-name"
               placeholder="Destination name"
               value={newDestinationName}
               onChange={(e) => setNewDestinationName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddDestination(); } }}
               disabled={savingDestination}
+              autoFocus
             />
           </div>
           <DialogFooter>
@@ -334,7 +340,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Destination</FormLabel>
-                  <Popover>
+                  <Popover open={destinationPopoverOpen} onOpenChange={setDestinationPopoverOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -369,6 +375,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                               key={destination.id}
                               onSelect={() => {
                                 form.setValue("destinationId", destination.id);
+                                setDestinationPopoverOpen(false);
                               }}
                             >
                               <CheckIcon

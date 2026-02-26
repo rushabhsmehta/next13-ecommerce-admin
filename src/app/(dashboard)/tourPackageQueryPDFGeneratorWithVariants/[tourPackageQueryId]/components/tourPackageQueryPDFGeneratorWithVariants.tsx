@@ -105,6 +105,23 @@ type CompanyInfo = {
   };
 };
 
+/** Escape special characters for safe use inside HTML attribute values. */
+function escapeAttr(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** Return the URL only if it uses an http or https scheme; otherwise return empty string. */
+function safeUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    return url;
+  } catch {
+    return "";
+  }
+}
+
 const companyInfo: CompanyInfo = {
   Empty: { logo: "", name: "", address: "", phone: "", email: "", website: "" },
   AH: {
@@ -384,7 +401,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
             <div style="display: flex; align-items: center; gap: 10px;">
               ${h.imageUrl ? `
                 <div style="flex-shrink: 0; width: 60px; height: 44px; border-radius: 4px; overflow: hidden; background: #f3f4f6;">
-                  <img src="${h.imageUrl}" alt="${h.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img src="${escapeAttr(safeUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               ` : `
                 <div style="flex-shrink: 0; width: 60px; height: 44px; border-radius: 4px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
@@ -595,7 +612,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
             <div style="border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; background: white;">
               ${h.imageUrl ? `
                 <div style="height: 120px; overflow: hidden; background: #F3F4F6;">
-                  <img src="${h.imageUrl}" alt="${h.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img src="${escapeAttr(safeUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               ` : `
                 <div style="height: 90px; background: linear-gradient(135deg, ${brandColors.light} 0%, ${brandColors.lightOrange} 100%); display: flex; align-items: center; justify-content: center;">
@@ -960,7 +977,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                           </div>
                           ${hotelSnapshot.imageUrl ? `
                             <div style="flex-shrink: 0; width: 80px; height: 60px; overflow: hidden; background: #f3f4f6;">
-                              <img src="${hotelSnapshot.imageUrl}" alt="${hotelSnapshot.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                              <img src="${escapeAttr(safeUrl(hotelSnapshot.imageUrl))}" alt="${escapeAttr(hotelSnapshot.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
                             </div>
                           ` : `
                             <div style="flex-shrink: 0; width: 80px; height: 60px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
@@ -1087,16 +1104,16 @@ ${(() => {
       <div style="${cardStyle}; text-align: center; position: relative;">
         ${initialData.images && initialData.images.length > 0 ? `
           <div style="width: 100%; aspect-ratio: 1/1; overflow: hidden; border-top-left-radius: 6px; border-top-right-radius: 6px; position: relative;">
-            <img src="${initialData.images[0].url}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.9);" />
+            <img src="${escapeAttr(safeUrl(initialData.images[0].url))}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.9);" />
             ${currentCompany.logo ? `
               <div style="position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
-                <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="height: 34px; width: auto; object-fit: contain;" />
+                <img src="${escapeAttr(safeUrl(currentCompany.logo))}" alt="${escapeAttr(currentCompany.name || '')} Logo" style="height: 34px; width: auto; object-fit: contain;" />
               </div>
             ` : ''}
           </div>
         ` : currentCompany.logo ? `
           <div style="padding-top: 24px; display: flex; justify-content: center;">
-            <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="height: 56px; width: auto; object-fit: contain;" />
+            <img src="${escapeAttr(safeUrl(currentCompany.logo))}" alt="${escapeAttr(currentCompany.name || '')} Logo" style="height: 56px; width: auto; object-fit: contain;" />
           </div>
         ` : ''}
         <div style="padding: 24px 24px 28px;">
@@ -1345,7 +1362,7 @@ ${(() => {
                   ${itinerary.itineraryImages.slice(0, 3).map((img: { url: string }, idx: number) => `
                     <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                       <div style="width: 100%; padding-bottom: 100%; height: 0; position: relative;">
-                        <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
+                        <img src="${escapeAttr(safeUrl(img.url))}" alt="Itinerary Image ${idx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
                       </div>
                     </div>
                   `).join("")}
@@ -1532,7 +1549,7 @@ ${(() => {
           <div style="padding: 12px 20px; box-sizing: border-box; background: linear-gradient(135deg, #fefaf6 0%, #fff5eb 100%); border-top: 2px solid #ea580c;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                ${c.logo ? `<img src="${c.logo}" style="height: 22px; width: auto; object-fit: contain;"/>` : ''}
+                ${c.logo ? `<img src="${escapeAttr(safeUrl(c.logo))}" style="height: 22px; width: auto; object-fit: contain;"/>` : ''}
                 <div>
                   <div style="font-size: 14px; font-weight: 700; color: #dc2626; line-height: 1.1;">${c.name || 'Aagam Holidays'}</div>
                   <div style="font-size: 8px; color: #7c2d12; font-weight: 500; margin-top: 2px;">Your Trusted Travel Partner</div>

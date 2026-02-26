@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { escapeAttr } from "@/lib/html-escape";
 import {
   Activity,
   FlightDetails,
@@ -39,10 +40,6 @@ interface TourPackagePDFGeneratorWithVariantsProps {
   })[];
 }
 
-/** Escape special characters for safe use inside HTML attribute values. */
-function escapeAttr(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
 
 type CompanyInfo = {
   [key: string]: {

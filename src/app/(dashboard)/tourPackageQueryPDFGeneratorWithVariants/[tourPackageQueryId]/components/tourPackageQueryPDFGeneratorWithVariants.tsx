@@ -1339,6 +1339,20 @@ ${(() => {
               </div>
             ` : ''}
 
+            ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
+              <div style="margin-bottom: 24px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                  ${itinerary.itineraryImages.slice(0, 3).map((img: { url: string }, idx: number) => `
+                    <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                      <div style="width: 100%; padding-bottom: 100%; height: 0; position: relative;">
+                        <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
+                      </div>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            ` : ''}
+
             ${itinerary.activities && itinerary.activities.length > 0 ? `
               <div>
                 <h4 style="font-size: 15px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 12px 0; display: flex; align-items: center; border-bottom: 2px solid ${brandColors.light}; padding-bottom: 8px;">

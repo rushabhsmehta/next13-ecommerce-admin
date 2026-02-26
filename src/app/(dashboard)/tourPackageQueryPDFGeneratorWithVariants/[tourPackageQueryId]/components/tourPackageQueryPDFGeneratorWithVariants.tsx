@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { escapeAttr, safeUrl } from "@/lib/html-escape";
 import {
   Activity,
   FlightDetails,
@@ -382,9 +383,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
           ${h ? `
             <div style="display: flex; align-items: center; gap: 10px;">
-              ${h.imageUrl ? `
+              ${safeUrl(h.imageUrl) ? `
                 <div style="flex-shrink: 0; width: 60px; height: 44px; border-radius: 4px; overflow: hidden; background: #f3f4f6;">
-                  <img src="${h.imageUrl}" alt="${h.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img src="${escapeAttr(safeUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               ` : `
                 <div style="flex-shrink: 0; width: 60px; height: 44px; border-radius: 4px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
@@ -593,9 +594,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         return `<td style="${tdBase} background: ${isEven ? brandColors.white : brandColors.subtlePanel}; padding: 8px 6px;">
           ${h ? `
             <div style="border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; background: white;">
-              ${h.imageUrl ? `
+              ${safeUrl(h.imageUrl) ? `
                 <div style="height: 120px; overflow: hidden; background: #F3F4F6;">
-                  <img src="${h.imageUrl}" alt="${h.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img src="${escapeAttr(safeUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               ` : `
                 <div style="height: 90px; background: linear-gradient(135deg, ${brandColors.light} 0%, ${brandColors.lightOrange} 100%); display: flex; align-items: center; justify-content: center;">
@@ -958,9 +959,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                             <div style="font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.5px;">DAY</div>
                             <div style="font-size: 18px; font-weight: 800; color: white; line-height: 1;">${hotelSnapshot.dayNumber}</div>
                           </div>
-                          ${hotelSnapshot.imageUrl ? `
+                          ${safeUrl(hotelSnapshot.imageUrl) ? `
                             <div style="flex-shrink: 0; width: 80px; height: 60px; overflow: hidden; background: #f3f4f6;">
-                              <img src="${hotelSnapshot.imageUrl}" alt="${hotelSnapshot.hotelName}" style="width: 100%; height: 100%; object-fit: cover;" />
+                              <img src="${escapeAttr(safeUrl(hotelSnapshot.imageUrl))}" alt="${escapeAttr(hotelSnapshot.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
                             </div>
                           ` : `
                             <div style="flex-shrink: 0; width: 80px; height: 60px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
@@ -1083,20 +1084,22 @@ ${(() => {
     if (!initialData) return "";
 
     // 1. Header Section
+    const firstValidImageUrl = initialData.images?.reduce<string>((found, img) => found || safeUrl(img.url), "");
+    const headerLogoUrl = safeUrl(currentCompany.logo);
     const headerSection = `
       <div style="${cardStyle}; text-align: center; position: relative;">
-        ${initialData.images && initialData.images.length > 0 ? `
+        ${firstValidImageUrl ? `
           <div style="width: 100%; aspect-ratio: 1/1; overflow: hidden; border-top-left-radius: 6px; border-top-right-radius: 6px; position: relative;">
-            <img src="${initialData.images[0].url}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.9);" />
-            ${currentCompany.logo ? `
+            <img src="${escapeAttr(firstValidImageUrl)}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.9);" />
+            ${headerLogoUrl ? `
               <div style="position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
-                <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="height: 34px; width: auto; object-fit: contain;" />
+                <img src="${escapeAttr(headerLogoUrl)}" alt="${escapeAttr(currentCompany.name || '')} Logo" style="height: 34px; width: auto; object-fit: contain;" />
               </div>
             ` : ''}
           </div>
-        ` : currentCompany.logo ? `
+        ` : headerLogoUrl ? `
           <div style="padding-top: 24px; display: flex; justify-content: center;">
-            <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="height: 56px; width: auto; object-fit: contain;" />
+            <img src="${escapeAttr(headerLogoUrl)}" alt="${escapeAttr(currentCompany.name || '')} Logo" style="height: 56px; width: auto; object-fit: contain;" />
           </div>
         ` : ''}
         <div style="padding: 24px 24px 28px;">
@@ -1304,7 +1307,22 @@ ${(() => {
         </div>
       `;
 
-      itinerariesSection += initialData.itineraries.map((itinerary, dayIndex) => `
+      itinerariesSection += initialData.itineraries.map((itinerary, dayIndex) => {
+        const validItineraryImages = itinerary.itineraryImages?.filter((img: { url: string }) => safeUrl(img.url)).slice(0, 3) || [];
+        const itineraryImagesHtml = validItineraryImages.length > 0 ? `
+              <div style="margin-bottom: 24px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                  ${validItineraryImages.map((img: { url: string }, idx: number) => `
+                    <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                      <div style="width: 100%; padding-bottom: 100%; height: 0; position: relative;">
+                        <img src="${escapeAttr(safeUrl(img.url))}" alt="Itinerary Image ${idx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
+                      </div>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            ` : '';
+        return `
         <div style="${cardStyle}; margin-bottom: 20px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
           <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid ${brandColors.border};">
             <div style="background: ${brandColors.primary}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;">
@@ -1339,19 +1357,7 @@ ${(() => {
               </div>
             ` : ''}
 
-            ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
-              <div style="margin-bottom: 24px;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
-                  ${itinerary.itineraryImages.slice(0, 3).map((img: { url: string }, idx: number) => `
-                    <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                      <div style="width: 100%; padding-bottom: 100%; height: 0; position: relative;">
-                        <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
-                      </div>
-                    </div>
-                  `).join("")}
-                </div>
-              </div>
-            ` : ''}
+            ${itineraryImagesHtml}
 
             ${itinerary.activities && itinerary.activities.length > 0 ? `
               <div>
@@ -1382,7 +1388,7 @@ ${(() => {
             ` : ''}
           </div>
         </div>
-      `).join("");
+      `; }).join("");
     }
 
     // 6. Policies Section
@@ -1532,7 +1538,7 @@ ${(() => {
           <div style="padding: 12px 20px; box-sizing: border-box; background: linear-gradient(135deg, #fefaf6 0%, #fff5eb 100%); border-top: 2px solid #ea580c;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                ${c.logo ? `<img src="${c.logo}" style="height: 22px; width: auto; object-fit: contain;"/>` : ''}
+                ${safeUrl(c.logo) ? `<img src="${escapeAttr(safeUrl(c.logo))}" style="height: 22px; width: auto; object-fit: contain;"/>` : ''}
                 <div>
                   <div style="font-size: 14px; font-weight: 700; color: #dc2626; line-height: 1.1;">${c.name || 'Aagam Holidays'}</div>
                   <div style="font-size: 8px; color: #7c2d12; font-weight: 500; margin-top: 2px;">Your Trusted Travel Partner</div>

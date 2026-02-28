@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
@@ -54,6 +55,8 @@ export function SearchableFormSelect<T extends FieldValues, TItem>({
 }: SearchableFormSelectProps<T, TItem>) {
   const [search, setSearch] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const colorMap: Record<string, string> = {
     blue: "hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200",
@@ -63,21 +66,43 @@ export function SearchableFormSelect<T extends FieldValues, TItem>({
   };
   const colorClasses = colorMap[colorClass] || colorMap.blue;
 
-  const defaultFilter = (item: TItem, q: string): boolean => {
-    const lower = q.toLowerCase();
-    if (labelKey(item).toLowerCase().includes(lower)) return true;
-    if (secondaryKey) {
-      const sec = secondaryKey(item);
-      if (sec && sec.toLowerCase().includes(lower)) return true;
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownOpen]);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (dropdownOpen) {
+      setTimeout(() => searchInputRef.current?.focus(), 0);
     }
-    return false;
-  };
+  }, [dropdownOpen]);
+
+  const defaultFilter = useCallback(
+    (item: TItem, q: string): boolean => {
+      const lower = q.toLowerCase();
+      if (labelKey(item).toLowerCase().includes(lower)) return true;
+      if (secondaryKey) {
+        const sec = secondaryKey(item);
+        if (sec && sec.toLowerCase().includes(lower)) return true;
+      }
+      return false;
+    },
+    [labelKey, secondaryKey]
+  );
 
   const filteredItems = useMemo(() => {
     if (!search) return items;
     const fn = filterFn || defaultFilter;
     return items.filter((item) => fn(item, search));
-  }, [items, search, filterFn]);
+  }, [items, search, filterFn, defaultFilter]);
 
   return (
     <FormField
@@ -92,40 +117,112 @@ export function SearchableFormSelect<T extends FieldValues, TItem>({
             : labelKey(selectedItem)
           : placeholder;
 
+        const moveSelection = (direction: "up" | "down") => {
+          if (!filteredItems.length) return;
+          const currentIndex = filteredItems.findIndex(
+            (item) => valueKey(item) === field.value
+          );
+          let nextIndex = 0;
+          if (currentIndex === -1) {
+            nextIndex = direction === "down" ? 0 : filteredItems.length - 1;
+          } else if (direction === "down") {
+            nextIndex = (currentIndex + 1) % filteredItems.length;
+          } else {
+            nextIndex = (currentIndex - 1 + filteredItems.length) % filteredItems.length;
+          }
+          field.onChange(valueKey(filteredItems[nextIndex]));
+        };
+
+        const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+          if (disabled) return;
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            if (!dropdownOpen) {
+              setDropdownOpen(true);
+            } else {
+              moveSelection("down");
+            }
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            if (dropdownOpen) moveSelection("up");
+          } else if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setDropdownOpen((prev) => !prev);
+          } else if (event.key === "Escape" && dropdownOpen) {
+            event.preventDefault();
+            setDropdownOpen(false);
+          }
+        };
+
+        const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setDropdownOpen(false);
+          } else if (event.key === "ArrowDown") {
+            event.preventDefault();
+            moveSelection("down");
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            moveSelection("up");
+          } else if (event.key === "Enter" && filteredItems.length > 0) {
+            event.preventDefault();
+            const currentIndex = filteredItems.findIndex(
+              (item) => valueKey(item) === field.value
+            );
+            const target = currentIndex >= 0 ? filteredItems[currentIndex] : filteredItems[0];
+            field.onChange(valueKey(target));
+            setSearch("");
+            setDropdownOpen(false);
+          }
+        };
+
         return (
           <FormItem>
             <FormLabel className="text-sm font-medium text-gray-700">
               {label}
               {required && <span className="text-red-500"> *</span>}
             </FormLabel>
-            <div className="relative">
-              <Button
-                type="button"
-                variant="outline"
-                role="combobox"
-                className={cn(
-                  "w-full h-11 justify-between border-gray-300",
-                  colorClasses,
-                  !field.value && "text-muted-foreground"
-                )}
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                disabled={disabled}
-              >
-                <span className="truncate">{displayLabel}</span>
-                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-              </Button>
+            <div className="relative" ref={containerRef}>
+              <FormControl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded={dropdownOpen}
+                  aria-controls={dropdownOpen ? `${name}-listbox` : undefined}
+                  className={cn(
+                    "w-full h-11 justify-between border-gray-300",
+                    colorClasses,
+                    !field.value && "text-muted-foreground"
+                  )}
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                  onKeyDown={handleTriggerKeyDown}
+                  disabled={disabled}
+                >
+                  <span className="truncate">{displayLabel}</span>
+                  <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </FormControl>
 
               {dropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
                   <div className="p-2">
                     <Input
+                      ref={searchInputRef}
                       placeholder={searchPlaceholder}
                       className="mb-2 h-10 border-gray-300"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      autoFocus
+                      onKeyDown={handleSearchKeyDown}
+                      aria-label={`Search ${label}`}
                     />
-                    <div className="max-h-[200px] overflow-y-auto">
+                    <div
+                      id={`${name}-listbox`}
+                      role="listbox"
+                      aria-label={label}
+                      className="max-h-[200px] overflow-y-auto"
+                    >
                       {filteredItems.length === 0 ? (
                         <div className="text-center py-2 text-sm text-gray-500">
                           {emptyMessage}
@@ -137,6 +234,10 @@ export function SearchableFormSelect<T extends FieldValues, TItem>({
                           return (
                             <div
                               key={itemValue}
+                              id={`${name}-option-${itemValue}`}
+                              role="option"
+                              aria-selected={isSelected}
+                              tabIndex={-1}
                               className={cn(
                                 "flex items-center justify-between px-2 py-1.5 cursor-pointer rounded hover:bg-gray-100",
                                 isSelected && "bg-gray-100"

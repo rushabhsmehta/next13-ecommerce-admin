@@ -109,7 +109,7 @@ export function renderBulletList(
     .map(
       (item) => `
       <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-        <span style="color: ${bulletColor}; font-size: 14px; line-height: 1;">&#8226;</span>
+        <span style="color: ${bulletColor}; font-size: 14px; line-height: 1; flex-shrink: 0;">&#8226;</span>
         <span style="color: ${textColor}; font-size: 13px; line-height: 1.5;">${item}</span>
       </div>
     `

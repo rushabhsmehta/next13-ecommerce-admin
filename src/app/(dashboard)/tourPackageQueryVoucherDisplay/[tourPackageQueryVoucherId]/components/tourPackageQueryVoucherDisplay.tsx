@@ -31,6 +31,9 @@ interface TourPackageQueryVoucherDisplayProps {
   hotels: (Hotel & {
     images: Images[];
   })[];
+  roomTypes?: { id: string; name: string }[];
+  occupancyTypes?: { id: string; name: string }[];
+  mealPlans?: { id: string; name: string }[];
   selectedOption?: string;
 };
 
@@ -127,6 +130,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   initialData,
   locations,
   hotels,
+  roomTypes = [],
+  occupancyTypes = [],
+  mealPlans = [],
 }) => {
 
   const searchParams = useSearchParams();
@@ -134,6 +140,20 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
+
+  // Confirmed variant room allocations (Issue 6)
+  const confirmedVariantId = (initialData as any)?.confirmedVariantId as string | null | undefined;
+  const variantRoomAllocationsRaw = (initialData as any)?.variantRoomAllocations;
+  const variantRoomAllocations: Record<string, Record<string, any[]>> = (() => {
+    if (!variantRoomAllocationsRaw) return {};
+    try {
+      return typeof variantRoomAllocationsRaw === 'string'
+        ? JSON.parse(variantRoomAllocationsRaw)
+        : variantRoomAllocationsRaw;
+    } catch { return {}; }
+  })();
+  // When a variant is confirmed, use its room allocations for the voucher
+  const confirmedAllocations = confirmedVariantId ? variantRoomAllocations[confirmedVariantId] : null;
 
   const supplierView = selectedOption === 'SupplierA' || selectedOption === 'SupplierB';
   const customerSummary = [initialData?.customerName, initialData?.customerNumber].filter(Boolean).join(' | ') || 'Details unavailable';
@@ -479,13 +499,18 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               {initialData.itineraries.map((itinerary: Itinerary & { roomAllocations: (RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; })[] }, itineraryIdx: number) => {
                 const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
 
+                // Use confirmed variant room allocations if available, otherwise fall back to standard allocations
+                const effectiveRoomAllocations: any[] = confirmedAllocations
+                  ? (confirmedAllocations[itinerary.id] || [])
+                  : itinerary.roomAllocations;
+
                 return (
                   <div key={itineraryIdx} data-pdf-section="true" className="space-y-3">
                     <h3 className="text-lg font-semibold text-gray-900">
                       Day {itinerary.dayNumber}: {itinerary.days} - {hotelDetails?.name || 'Hotel'}
                     </h3>
 
-                    {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 ? (
+                    {effectiveRoomAllocations.length > 0 ? (
                       <>
                         <div className="hidden overflow-x-auto md:block">
                           <table className="min-w-full divide-y divide-orange-100 overflow-hidden rounded-lg border border-orange-100">
@@ -495,20 +520,25 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                                 <th scope="col" className="px-3 py-2 text-left font-semibold">Occupancy</th>
                                 <th scope="col" className="px-3 py-2 text-left font-semibold">Meal Plan</th>
                                 <th scope="col" className="px-3 py-2 text-left font-semibold">Quantity</th>
+                                <th scope="col" className="px-3 py-2 text-left font-semibold">Guests</th>
                                 <th scope="col" className="px-3 py-2 text-left font-semibold">Voucher No.</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-orange-100 text-sm text-gray-700">
-                              {itinerary.roomAllocations.map((room: RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; }, roomIdx: number) => {
-                                const customText = typeof (room as any)?.customRoomType === 'string' ? ((room as any).customRoomType as string).trim() : '';
-                                const label = customText.length > 0 ? customText : (room.roomType?.name || '-');
+                              {effectiveRoomAllocations.map((room: any, roomIdx: number) => {
+                                const customText = typeof room?.customRoomType === 'string' ? (room.customRoomType as string).trim() : '';
+                                const useCustom = room?.useCustomRoomType || customText.length > 0;
+                                const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '-');
+                                const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '-';
+                                const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '-';
                                 return (
                                   <tr key={roomIdx} className="bg-white transition-colors hover:bg-orange-50/60">
-                                    <td className="px-3 py-2 font-medium text-gray-900">{label}</td>
-                                    <td className="px-3 py-2">{room.occupancyType?.name || '-'}</td>
-                                    <td className="px-3 py-2">{room.mealPlan?.name || '-'}</td>
-                                    <td className="px-3 py-2">{(room as any).quantity || '-'}</td>
-                                    <td className="px-3 py-2 text-gray-600">{(room as any).voucherNumber || '-'}</td>
+                                    <td className="px-3 py-2 font-medium text-gray-900">{roomTypeName}</td>
+                                    <td className="px-3 py-2">{occupancyName}</td>
+                                    <td className="px-3 py-2">{mealPlanName}</td>
+                                    <td className="px-3 py-2">{room.quantity || '-'}</td>
+                                    <td className="px-3 py-2 text-gray-600">{room.guestNames || '-'}</td>
+                                    <td className="px-3 py-2 text-gray-600">{room.voucherNumber || '-'}</td>
                                   </tr>
                                 );
                               })}
@@ -516,28 +546,35 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                           </table>
                         </div>
                         <div className="flex flex-col gap-3 md:hidden">
-                          {itinerary.roomAllocations.map((room: RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; }, roomIdx: number) => {
-                            const customText = typeof (room as any)?.customRoomType === 'string' ? ((room as any).customRoomType as string).trim() : '';
-                            const label = customText.length > 0 ? customText : (room.roomType?.name || '-');
+                          {effectiveRoomAllocations.map((room: any, roomIdx: number) => {
+                            const customText = typeof room?.customRoomType === 'string' ? (room.customRoomType as string).trim() : '';
+                            const useCustom = room?.useCustomRoomType || customText.length > 0;
+                            const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '-');
+                            const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '-';
+                            const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '-';
                             return (
                               <div key={roomIdx} className="rounded-lg border border-orange-100 bg-white/90 p-4 shadow-sm">
-                                <div className="text-base font-semibold text-gray-900">{label}</div>
+                                <div className="text-base font-semibold text-gray-900">{roomTypeName}</div>
                                 <dl className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-600">
                                   <div>
                                     <dt className="font-medium text-gray-700">Occupancy</dt>
-                                    <dd>{room.occupancyType?.name || '-'}</dd>
+                                    <dd>{occupancyName}</dd>
                                   </div>
                                   <div>
                                     <dt className="font-medium text-gray-700">Meal Plan</dt>
-                                    <dd>{room.mealPlan?.name || '-'}</dd>
+                                    <dd>{mealPlanName}</dd>
                                   </div>
                                   <div>
                                     <dt className="font-medium text-gray-700">Quantity</dt>
-                                    <dd>{(room as any).quantity || '-'}</dd>
+                                    <dd>{room.quantity || '-'}</dd>
+                                  </div>
+                                  <div>
+                                    <dt className="font-medium text-gray-700">Guests</dt>
+                                    <dd>{room.guestNames || '-'}</dd>
                                   </div>
                                   <div>
                                     <dt className="font-medium text-gray-700">Voucher No.</dt>
-                                    <dd>{(room as any).voucherNumber || '-'}</dd>
+                                    <dd>{room.voucherNumber || '-'}</dd>
                                   </div>
                                 </dl>
                               </div>

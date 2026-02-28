@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { escapeAttr } from "@/lib/html-escape";
+import { renderItineraryImages } from "@/lib/itinerary-image-html";
 import {
   Activity,
   FlightDetails,
@@ -503,15 +504,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
             </div>
           </div>
 
-          ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
-            <div style="display: grid; grid-template-columns: repeat(${Math.min(itinerary.itineraryImages.length, 3)}, 1fr); gap: 0;">
-              ${itinerary.itineraryImages.slice(0, 3).map((img, imgIdx) => `
-                <div style="position: relative; width: 100%; padding-bottom: 50%; overflow: hidden; background: #f3f4f6; ${imgIdx > 0 ? 'border-left: 2px solid white;' : ''}">
-                  <img src="${escapeAttr(img.url)}" alt="Day ${itinerary.dayNumber} Image ${imgIdx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
+          ${renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber)}
 
           <div style="padding: 16px;">
             ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `

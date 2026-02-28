@@ -276,6 +276,12 @@ export function VariantComparisonSection({
                                               {room.quantity || 1} Room{(room.quantity || 1) > 1 ? 's' : ''}
                                               {mealPlanName ? ` · 🍽️ ${mealPlanName}` : ''}
                                             </div>
+                                            {room.voucherNumber && (
+                                              <div className="text-gray-400">🎫 Voucher: {room.voucherNumber}</div>
+                                            )}
+                                            {room.guestNames && (
+                                              <div className="text-gray-400 truncate">👤 {room.guestNames}</div>
+                                            )}
                                           </div>
                                         );
                                       })}

@@ -535,6 +535,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       variantRoomAllocations, // Room allocations per variant
       variantTransportDetails, // Transport details per variant
       variantPricingData, // Pricing data per variant
+      confirmedVariantId, // ID of the confirmed/booked variant for voucher generation
+      customQueryVariants, // Standalone variants created directly on this query
       itineraries,
     } = body;
 
@@ -679,6 +681,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       variantRoomAllocations: variantRoomAllocations || undefined, // Store room allocations per variant
       variantTransportDetails: variantTransportDetails || undefined, // Store transport details per variant
       variantPricingData: variantPricingData || undefined, // Store pricing data per variant
+      confirmedVariantId: confirmedVariantId !== undefined ? (confirmedVariantId || null) : undefined, // Store confirmed variant ID
+      customQueryVariants: customQueryVariants || undefined, // Store custom query variants
 
       images: images && images.length > 0 ? {
         deleteMany: {},

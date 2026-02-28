@@ -78,6 +78,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const queryStartDate = useWatch({ control, name: "tourStartsFrom" });
   const queryEndDate = useWatch({ control, name: "tourEndsOn" });
   const savedVariantPricingData = useWatch({ control, name: "variantPricingData" }) as Record<string, any> | undefined;
+  const confirmedVariantId = useWatch({ control, name: "confirmedVariantId" }) as string | null | undefined;
+  const customQueryVariants = useWatch({ control, name: "customQueryVariants" }) as any[] | undefined;
 
   const [editingMapping, setEditingMapping] = useState<string | null>(null);
   const [tempHotelId, setTempHotelId] = useState<string>("");
@@ -668,16 +670,102 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
   if (!selectedTourPackageId) {
     return (
-      <Card>
-        <CardContent className="py-8">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Please select a tour package from the <strong>Basic Info</strong> tab first to view variants.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <div className="space-y-5">
+        <Card>
+          <CardContent className="py-8">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Please select a tour package from the <strong>Basic Info</strong> tab first to view package variants.
+                You can still add custom variants below.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
+        {/* Custom variants section even without a tour package */}
+        <Card className="shadow-sm border border-violet-200/70 bg-gradient-to-r from-white to-violet-50/30">
+          <CardHeader className="pb-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Package className="h-5 w-5 text-violet-500" /> Custom Query Variants
+              </CardTitle>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Info className="h-3.5 w-3.5 text-violet-500" />
+                Standalone variants created directly on this query
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={loading}
+              onClick={() => {
+                const newVariant = { id: crypto.randomUUID(), name: 'New Custom Variant', description: '' };
+                const current = (customQueryVariants || []) as any[];
+                form.setValue('customQueryVariants', [...current, newVariant], { shouldDirty: true });
+              }}
+              className="border-violet-300 text-violet-700 hover:bg-violet-50 h-8 text-xs"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Add Custom Variant
+            </Button>
+          </CardHeader>
+        </Card>
+
+        {(customQueryVariants || []).length === 0 && (
+          <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground border border-dashed border-violet-200 rounded-lg bg-violet-50/20">
+            <Package className="h-8 w-8 mb-2 text-violet-300" />
+            <p className="text-sm">No custom variants yet.</p>
+            <p className="text-xs mt-1">Click &quot;Add Custom Variant&quot; to create one.</p>
+          </div>
+        )}
+
+        {(customQueryVariants as any[] || []).map((cVariant: any) => {
+          const isConfirmed = confirmedVariantId === cVariant.id;
+          const pricingItems = variantPricingItems[cVariant.id] || [];
+          const totalPrice = variantTotalPrices[cVariant.id] || '';
+          const remarks = variantRemarks[cVariant.id] || '';
+          return (
+            <Card key={cVariant.id} className={`shadow-sm border bg-gradient-to-br from-white to-violet-50/30 ${isConfirmed ? 'border-green-500 ring-1 ring-green-400' : 'border-violet-200/60'}`}>
+              <CardHeader className="pb-3 border-b bg-gradient-to-r from-violet-50 via-violet-25 to-transparent">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Package className="h-4 w-4 text-violet-500 flex-shrink-0" />
+                    <Input value={cVariant.name} disabled={loading} placeholder="Variant name..." className="h-8 text-sm font-semibold border-violet-200 bg-white max-w-xs" onChange={(e) => { const updated = (customQueryVariants as any[]).map((v: any) => v.id === cVariant.id ? { ...v, name: e.target.value } : v); form.setValue('customQueryVariants', updated, { shouldDirty: true }); }} />
+                    {isConfirmed && <Badge className="text-xs bg-green-600 text-white">✓ Confirmed for Voucher</Badge>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="button" size="sm" variant={isConfirmed ? 'default' : 'outline'} disabled={loading} onClick={() => form.setValue('confirmedVariantId', isConfirmed ? null : cVariant.id, { shouldDirty: true })} className={isConfirmed ? 'bg-green-600 hover:bg-green-700 text-white h-8 text-xs' : 'border-green-500 text-green-700 hover:bg-green-50 h-8 text-xs'}>
+                      {isConfirmed ? <><Check className="h-3 w-3 mr-1" /> Confirmed</> : <><Trophy className="h-3 w-3 mr-1" /> Confirm for Voucher</>}
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" disabled={loading} onClick={() => { const updated = (customQueryVariants as any[]).filter((v: any) => v.id !== cVariant.id); form.setValue('customQueryVariants', updated, { shouldDirty: true }); if (isConfirmed) form.setValue('confirmedVariantId', null, { shouldDirty: true }); }} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"><Trash className="h-3.5 w-3.5" /></Button>
+                  </div>
+                </div>
+                <Input value={cVariant.description || ''} disabled={loading} placeholder="Description (optional)..." className="h-7 text-xs border-violet-100 bg-white/60 mt-2" onChange={(e) => { const updated = (customQueryVariants as any[]).map((v: any) => v.id === cVariant.id ? { ...v, description: e.target.value } : v); form.setValue('customQueryVariants', updated, { shouldDirty: true }); }} />
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {/* Simplified pricing only when no itineraries available */}
+                <Card className="shadow-sm border-2 border-orange-200/60 bg-gradient-to-r from-orange-50 to-red-50">
+                  <CardContent className="pt-4 pb-4">
+                    <label className="text-sm font-semibold text-orange-700 flex items-center mb-2"><Trophy className="mr-2 h-4 w-4" /> Final Amount</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
+                      <Input value={totalPrice} disabled={loading} placeholder="Total price" type="number" className="text-xl font-bold pl-8 bg-white border-orange-300 h-12" onChange={(e) => setVariantTotalPrices(prev => ({ ...prev, [cVariant.id]: e.target.value }))} onBlur={() => syncVariantPricingToForm(cVariant.id)} />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-sm border border-slate-200/70">
+                  <CardContent className="pt-4 pb-4 space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2 mb-2"><Receipt className="h-4 w-4 text-violet-600" /> Remarks</label>
+                    <Input disabled={loading} placeholder="Additional remarks..." value={remarks} onChange={(e) => setVariantRemarks(prev => ({ ...prev, [cVariant.id]: e.target.value }))} onBlur={() => syncVariantPricingToForm(cVariant.id)} />
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     );
   }
 
@@ -994,12 +1082,31 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         {selectedVariants.map((variant) => (
           <TabsContent key={variant.id} value={variant.id} className="space-y-6">
             {/* Variant Info */}
-            <Card className="shadow-sm border border-primary/20 bg-gradient-to-br from-white to-primary/5">
+            <Card className={`shadow-sm border bg-gradient-to-br from-white to-primary/5 ${confirmedVariantId === variant.id ? 'border-green-500 ring-1 ring-green-400' : 'border-primary/20'}`}>
               <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
-                <CardTitle className="text-sm flex items-center gap-2 font-semibold">
-                  <Sparkles className="h-4 w-4 text-amber-500" />
-                  Variant Details
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    Variant Details
+                    {confirmedVariantId === variant.id && (
+                      <Badge className="text-xs bg-green-600 text-white ml-2">✓ Confirmed for Voucher</Badge>
+                    )}
+                  </CardTitle>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={confirmedVariantId === variant.id ? "default" : "outline"}
+                    disabled={loading}
+                    onClick={() => form.setValue('confirmedVariantId', confirmedVariantId === variant.id ? null : variant.id, { shouldDirty: true })}
+                    className={confirmedVariantId === variant.id ? "bg-green-600 hover:bg-green-700 text-white h-8 text-xs" : "border-green-500 text-green-700 hover:bg-green-50 h-8 text-xs"}
+                  >
+                    {confirmedVariantId === variant.id ? (
+                      <><Check className="h-3 w-3 mr-1" /> Confirmed</>
+                    ) : (
+                      <><Trophy className="h-3 w-3 mr-1" /> Confirm for Voucher</>
+                    )}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="pt-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1442,22 +1549,44 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                           <div className="space-y-1">
-                                            <label className="text-[10px] font-medium text-slate-600">Room Type</label>
-                                            <Select
-                                              value={room.roomTypeId}
-                                              onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'roomTypeId', value)}
-                                            >
-                                              <SelectTrigger className="h-8 text-xs">
-                                                <SelectValue placeholder="Select room type" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {roomTypes.map((rt: any) => (
-                                                  <SelectItem key={rt.id} value={rt.id} className="text-xs">
-                                                    {rt.name}
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
+                                            <div className="flex items-center justify-between">
+                                              <label className="text-[10px] font-medium text-slate-600">Room Type</label>
+                                              <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer select-none">
+                                                <Checkbox
+                                                  checked={!!room.useCustomRoomType}
+                                                  onCheckedChange={(checked) => {
+                                                    updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'useCustomRoomType', !!checked);
+                                                    if (!checked) updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'customRoomType', '');
+                                                  }}
+                                                  className="h-3 w-3"
+                                                />
+                                                Custom
+                                              </label>
+                                            </div>
+                                            {room.useCustomRoomType ? (
+                                              <Input
+                                                value={room.customRoomType || ''}
+                                                onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'customRoomType', e.target.value)}
+                                                placeholder="Enter custom room type..."
+                                                className="h-8 text-xs"
+                                              />
+                                            ) : (
+                                              <Select
+                                                value={room.roomTypeId}
+                                                onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'roomTypeId', value)}
+                                              >
+                                                <SelectTrigger className="h-8 text-xs">
+                                                  <SelectValue placeholder="Select room type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {roomTypes.map((rt: any) => (
+                                                    <SelectItem key={rt.id} value={rt.id} className="text-xs">
+                                                      {rt.name}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                            )}
                                           </div>
                                           <div className="space-y-1">
                                             <label className="text-[10px] font-medium text-slate-600">Occupancy</label>
@@ -2488,6 +2617,309 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* ─── Custom Query Variants (Issue 2) ─────────────────────────────── */}
+      <Card className="shadow-sm border border-violet-200/70 bg-gradient-to-r from-white to-violet-50/30">
+        <CardHeader className="pb-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Package className="h-5 w-5 text-violet-500" /> Custom Query Variants
+            </CardTitle>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Info className="h-3.5 w-3.5 text-violet-500" />
+              Standalone variants created directly on this query (not from a tour package)
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={loading}
+            onClick={() => {
+              const newVariant = { id: crypto.randomUUID(), name: 'New Custom Variant', description: '' };
+              const current = (customQueryVariants || []) as any[];
+              form.setValue('customQueryVariants', [...current, newVariant], { shouldDirty: true });
+            }}
+            className="border-violet-300 text-violet-700 hover:bg-violet-50 h-8 text-xs"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Add Custom Variant
+          </Button>
+        </CardHeader>
+      </Card>
+
+      {(customQueryVariants || []).length === 0 && (
+        <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground border border-dashed border-violet-200 rounded-lg bg-violet-50/20">
+          <Package className="h-8 w-8 mb-2 text-violet-300" />
+          <p className="text-sm">No custom variants yet.</p>
+          <p className="text-xs mt-1">Click &quot;Add Custom Variant&quot; to create one.</p>
+        </div>
+      )}
+
+      {(customQueryVariants as any[] || []).map((cVariant: any) => {
+        const isConfirmed = confirmedVariantId === cVariant.id;
+        const pricingItems = variantPricingItems[cVariant.id] || [];
+        const totalPrice = variantTotalPrices[cVariant.id] || '';
+        const remarks = variantRemarks[cVariant.id] || '';
+
+        return (
+          <Card key={cVariant.id} className={`shadow-sm border bg-gradient-to-br from-white to-violet-50/30 ${isConfirmed ? 'border-green-500 ring-1 ring-green-400' : 'border-violet-200/60'}`}>
+            {/* Header */}
+            <CardHeader className="pb-3 border-b bg-gradient-to-r from-violet-50 via-violet-25 to-transparent">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Package className="h-4 w-4 text-violet-500 flex-shrink-0" />
+                  <Input
+                    value={cVariant.name}
+                    disabled={loading}
+                    placeholder="Variant name..."
+                    className="h-8 text-sm font-semibold border-violet-200 bg-white max-w-xs"
+                    onChange={(e) => {
+                      const updated = (customQueryVariants as any[]).map((v: any) =>
+                        v.id === cVariant.id ? { ...v, name: e.target.value } : v
+                      );
+                      form.setValue('customQueryVariants', updated, { shouldDirty: true });
+                    }}
+                  />
+                  {isConfirmed && (
+                    <Badge className="text-xs bg-green-600 text-white">✓ Confirmed for Voucher</Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={isConfirmed ? 'default' : 'outline'}
+                    disabled={loading}
+                    onClick={() => form.setValue('confirmedVariantId', isConfirmed ? null : cVariant.id, { shouldDirty: true })}
+                    className={isConfirmed ? 'bg-green-600 hover:bg-green-700 text-white h-8 text-xs' : 'border-green-500 text-green-700 hover:bg-green-50 h-8 text-xs'}
+                  >
+                    {isConfirmed ? <><Check className="h-3 w-3 mr-1" /> Confirmed</> : <><Trophy className="h-3 w-3 mr-1" /> Confirm for Voucher</>}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={loading}
+                    onClick={() => {
+                      const updated = (customQueryVariants as any[]).filter((v: any) => v.id !== cVariant.id);
+                      form.setValue('customQueryVariants', updated, { shouldDirty: true });
+                      // Also clear confirmed if this was the confirmed variant
+                      if (isConfirmed) form.setValue('confirmedVariantId', null, { shouldDirty: true });
+                    }}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                  >
+                    <Trash className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              {/* Optional description */}
+              <Input
+                value={cVariant.description || ''}
+                disabled={loading}
+                placeholder="Description (optional)..."
+                className="h-7 text-xs border-violet-100 bg-white/60 mt-2"
+                onChange={(e) => {
+                  const updated = (customQueryVariants as any[]).map((v: any) =>
+                    v.id === cVariant.id ? { ...v, description: e.target.value } : v
+                  );
+                  form.setValue('customQueryVariants', updated, { shouldDirty: true });
+                }}
+              />
+            </CardHeader>
+
+            <CardContent className="pt-4">
+              <Tabs defaultValue="rooms" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-slate-50 to-slate-100 p-1">
+                  <TabsTrigger value="rooms" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs">
+                    <BedDouble className="h-3.5 w-3.5 mr-2" />
+                    Room Allocation
+                  </TabsTrigger>
+                  <TabsTrigger value="pricing" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs">
+                    <Calculator className="h-3.5 w-3.5 mr-2" />
+                    Pricing
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Room Allocation Tab */}
+                <TabsContent value="rooms" className="mt-4">
+                  {!queryItineraries || queryItineraries.length === 0 ? (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>No itineraries found. Add itineraries to the query first.</AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Accordion type="multiple" className="space-y-3">
+                      {queryItineraries.map((itinerary: any, idx: number) => {
+                        const variantRooms = variantRoomAllocations?.[cVariant.id]?.[itinerary.id] || [];
+
+                        return (
+                          <AccordionItem
+                            key={itinerary.id}
+                            value={itinerary.id}
+                            className="border rounded-md shadow-sm bg-white"
+                          >
+                            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold bg-gradient-to-br from-violet-500 to-violet-600 text-white">
+                                  {itinerary.dayNumber || idx + 1}
+                                </div>
+                                <div className="text-left">
+                                  <div className="font-medium text-sm" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${itinerary.dayNumber || idx + 1}` }} />
+                                  <div className="text-xs text-muted-foreground">{variantRooms.length} room(s)</div>
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 pb-4 space-y-3">
+                              <div className="space-y-2">
+                                {variantRooms.map((room: any, roomIdx: number) => (
+                                  <Card key={roomIdx} className="border-violet-200/60 bg-violet-50/20">
+                                    <CardContent className="pt-3 pb-3">
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                                        {/* Room Type */}
+                                        <div className="space-y-1">
+                                          <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-medium text-slate-600">Room Type</label>
+                                            <label className="flex items-center gap-1 text-[10px] text-slate-500 cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={!!room.useCustomRoomType}
+                                                onChange={(e) => {
+                                                  updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'useCustomRoomType', e.target.checked);
+                                                  if (!e.target.checked) updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'customRoomType', '');
+                                                }}
+                                                className="h-3 w-3"
+                                              />
+                                              Custom
+                                            </label>
+                                          </div>
+                                          {room.useCustomRoomType ? (
+                                            <Input value={room.customRoomType || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'customRoomType', e.target.value)} placeholder="Custom room type..." className="h-8 text-xs" />
+                                          ) : (
+                                            <Select value={room.roomTypeId} onValueChange={(v) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'roomTypeId', v)}>
+                                              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room type" /></SelectTrigger>
+                                              <SelectContent>{roomTypes.map((rt: any) => <SelectItem key={rt.id} value={rt.id} className="text-xs">{rt.name}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                          )}
+                                        </div>
+                                        {/* Occupancy */}
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Occupancy</label>
+                                          <Select value={room.occupancyTypeId} onValueChange={(v) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'occupancyTypeId', v)}>
+                                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Occupancy" /></SelectTrigger>
+                                            <SelectContent>{occupancyTypes.map((ot: any) => <SelectItem key={ot.id} value={ot.id} className="text-xs">{ot.name}</SelectItem>)}</SelectContent>
+                                          </Select>
+                                        </div>
+                                        {/* Meal Plan */}
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Meal Plan</label>
+                                          <Select value={room.mealPlanId} onValueChange={(v) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'mealPlanId', v)}>
+                                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal plan" /></SelectTrigger>
+                                            <SelectContent>{mealPlans.map((mp: any) => <SelectItem key={mp.id} value={mp.id} className="text-xs">{mp.name}</SelectItem>)}</SelectContent>
+                                          </Select>
+                                        </div>
+                                        {/* Quantity */}
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Qty</label>
+                                          <Input type="number" min={1} value={room.quantity || 1} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-xs" />
+                                        </div>
+                                        {/* Guest Names */}
+                                        <div className="space-y-1 sm:col-span-2">
+                                          <label className="text-[10px] font-medium text-slate-600">Guest Names</label>
+                                          <Input value={room.guestNames || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'guestNames', e.target.value)} placeholder="Guest names..." className="h-8 text-xs" />
+                                        </div>
+                                        {/* Voucher Number */}
+                                        <div className="space-y-1 sm:col-span-2">
+                                          <label className="text-[10px] font-medium text-slate-600">Voucher Number</label>
+                                          <Input value={room.voucherNumber || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'voucherNumber', e.target.value)} placeholder="Voucher number..." className="h-8 text-xs" />
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-end">
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => {
+                                          const current = variantRoomAllocations?.[cVariant.id]?.[itinerary.id] || [];
+                                          const updated = current.filter((_: any, i: number) => i !== roomIdx);
+                                          const alloc = { ...(variantRoomAllocations || {}) };
+                                          alloc[cVariant.id] = { ...(alloc[cVariant.id] || {}), [itinerary.id]: updated };
+                                          form.setValue('variantRoomAllocations', alloc, { shouldDirty: true });
+                                        }} className="text-red-500 hover:text-red-700 h-7 w-7">
+                                          <Trash className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                                <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => {
+                                  const newRoom = { roomTypeId: '', occupancyTypeId: '', mealPlanId: '', quantity: 1, guestNames: '', voucherNumber: '', useCustomRoomType: false, customRoomType: '' };
+                                  const current = variantRoomAllocations?.[cVariant.id]?.[itinerary.id] || [];
+                                  const alloc = { ...(variantRoomAllocations || {}) };
+                                  alloc[cVariant.id] = { ...(alloc[cVariant.id] || {}), [itinerary.id]: [...current, newRoom] };
+                                  form.setValue('variantRoomAllocations', alloc, { shouldDirty: true });
+                                }} className="h-8 text-xs border-violet-300 hover:bg-violet-50 text-violet-700">
+                                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Room
+                                </Button>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  )}
+                </TabsContent>
+
+                {/* Pricing Tab (simplified) */}
+                <TabsContent value="pricing" className="mt-4 space-y-4">
+                  <Card className="shadow-sm border border-slate-200/70">
+                    <CardHeader className="pb-3 border-b bg-gradient-to-r from-violet-50 to-transparent">
+                      <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                        <IndianRupee className="h-4 w-4 text-violet-600" />
+                        Pricing Breakdown
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4 space-y-3">
+                      {pricingItems.map((item: any, idx: number) => (
+                        <div key={idx} className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2 border border-slate-200 rounded-md bg-slate-50/60">
+                          <Input value={item.name} disabled={loading} placeholder="Item name" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'name', e.target.value)} onBlur={() => syncVariantPricingToForm(cVariant.id)} className="h-8 text-xs" />
+                          <Input value={item.price} disabled={loading} placeholder="Price" type="number" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'price', e.target.value)} onBlur={() => syncVariantPricingToForm(cVariant.id)} className="h-8 text-xs" />
+                          <div className="flex gap-1">
+                            <Input value={item.description} disabled={loading} placeholder="Notes" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'description', e.target.value)} onBlur={() => syncVariantPricingToForm(cVariant.id)} className="h-8 text-xs flex-1" />
+                            <Button type="button" variant="ghost" size="icon" disabled={loading} onClick={() => { handleRemoveVariantPricingItem(cVariant.id, idx); setTimeout(() => syncVariantPricingToForm(cVariant.id), 0); }} className="text-red-500 hover:text-red-700 h-8 w-8 flex-shrink-0"><Trash className="h-3.5 w-3.5" /></Button>
+                          </div>
+                        </div>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => handleAddVariantPricingItem(cVariant.id)} className="h-8 text-xs border-violet-300 hover:bg-violet-50 text-violet-700">
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Item
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Total Price */}
+                  <Card className="shadow-sm border-2 border-orange-200/60 bg-gradient-to-r from-orange-50 to-red-50">
+                    <CardContent className="pt-5 pb-5">
+                      <label className="text-sm font-semibold text-orange-700 flex items-center mb-2">
+                        <Trophy className="mr-2 h-4 w-4" /> Final Amount
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
+                        <Input value={totalPrice} disabled={loading} placeholder="Total price" type="number" className="text-xl font-bold pl-8 bg-white border-orange-300 h-12" onChange={(e) => setVariantTotalPrices(prev => ({ ...prev, [cVariant.id]: e.target.value }))} onBlur={() => syncVariantPricingToForm(cVariant.id)} />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Remarks */}
+                  <Card className="shadow-sm border border-slate-200/70">
+                    <CardContent className="pt-4 pb-4">
+                      <label className="text-sm font-medium flex items-center gap-2 mb-2">
+                        <Receipt className="h-4 w-4 text-violet-600" /> Remarks
+                      </label>
+                      <Input disabled={loading} placeholder="Additional remarks..." value={remarks} onChange={(e) => setVariantRemarks(prev => ({ ...prev, [cVariant.id]: e.target.value }))} onBlur={() => syncVariantPricingToForm(cVariant.id)} />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

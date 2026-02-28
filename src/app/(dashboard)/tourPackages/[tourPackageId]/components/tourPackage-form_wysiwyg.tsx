@@ -1587,7 +1587,8 @@ export const TourPackageFormWYSIWYG: React.FC<TourPackageFormProps> = ({
                         const normalized = itineraries.map((item, idx) => ensureItinerary(item, idx));
                         const next = [...normalized];
                         next[index] = updater(normalized[index]);
-                        onChange(reindexItineraries(next));
+                        // Use form.setValue with shouldValidate:false to prevent scroll-to-error
+                        form.setValue('itineraries', reindexItineraries(next), { shouldValidate: false, shouldDirty: true });
                       };
 
                       const removeItinerary = (index: number) => {

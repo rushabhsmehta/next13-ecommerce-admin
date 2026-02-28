@@ -222,6 +222,8 @@ const formSchema = z.object({
   variantRoomAllocations: z.record(z.record(z.array(z.any()))).optional(), // Room allocations per variant: { variantId: { itineraryId: [allocations] } }
   variantTransportDetails: z.record(z.record(z.array(z.any()))).optional(), // Transport details per variant: { variantId: { itineraryId: [transports] } }
   variantPricingData: z.record(z.any()).optional(), // Pricing data per variant: { variantId: { components, totals } }
+  confirmedVariantId: z.string().optional().nullable(), // ID of the variant confirmed/booked by the customer
+  customQueryVariants: z.array(z.any()).optional(), // Standalone variants created directly on this query
 });
 
 export type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -501,6 +503,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       variantRoomAllocations: (initialData as any).variantRoomAllocations || {}, // Initialize room allocations from saved data
       variantTransportDetails: (initialData as any).variantTransportDetails || {}, // Initialize transport details from saved data
       variantPricingData: (initialData as any).variantPricingData || {}, // Initialize pricing data from saved data
+      confirmedVariantId: (initialData as any).confirmedVariantId || null, // Initialize confirmed variant ID
+      customQueryVariants: (initialData as any).customQueryVariants || [], // Initialize custom query variants
       selectedTourPackageVariantId: (initialData as any).selectedTourPackageVariantId || '',
       selectedTourPackageVariantName: (initialData as any).selectedTourPackageVariantName || '',
       numberOfRooms: (initialData as any).numberOfRooms ?? 1,
@@ -563,6 +567,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       variantRoomAllocations: {}, // Empty object for new queries
       variantTransportDetails: {}, // Empty object for new queries
       variantPricingData: {}, // Empty object for new queries
+      confirmedVariantId: null, // No confirmed variant for new queries
+      customQueryVariants: [], // Empty array for new queries
       selectedTourPackageVariantId: '',
       selectedTourPackageVariantName: '',
       numberOfRooms: 1,

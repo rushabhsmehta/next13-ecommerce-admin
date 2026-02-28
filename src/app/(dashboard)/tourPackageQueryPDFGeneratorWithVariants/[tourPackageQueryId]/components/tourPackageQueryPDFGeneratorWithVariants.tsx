@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { escapeAttr, safeUrl } from "@/lib/html-escape";
+import { renderItineraryImages } from "@/lib/itinerary-image-html";
 import {
   Activity,
   FlightDetails,
@@ -555,6 +556,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                         <div style="font-size: 9px; color: ${brandColors.text}; line-height: 1.3; margin-bottom: 3px;">
                           <div style="font-weight: 600;">${roomTypeName}${occupancy ? ` · ${occupancy}` : ''}</div>
                           <div style="color: ${brandColors.muted};">${room.quantity || 1} Room${(room.quantity || 1) > 1 ? 's' : ''}${mealPlanName ? ` · 🍽️ ${mealPlanName}` : ''}</div>
+                          ${room.voucherNumber ? `<div style="color: ${brandColors.muted};">🎫 ${room.voucherNumber}</div>` : ''}
+                          ${room.guestNames ? `<div style="color: ${brandColors.muted}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">👤 ${room.guestNames}</div>` : ''}
                         </div>
                       `;
         }).join('')}
@@ -1236,20 +1239,6 @@ ${(() => {
       `;
 
       itinerariesSection += initialData.itineraries.map((itinerary, dayIndex) => {
-        const validItineraryImages = itinerary.itineraryImages?.filter((img: { url: string }) => safeUrl(img.url)).slice(0, 3) || [];
-        const itineraryImagesHtml = validItineraryImages.length > 0 ? `
-              <div style="margin-bottom: 24px;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
-                  ${validItineraryImages.map((img: { url: string }, idx: number) => `
-                    <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                      <div style="width: 100%; padding-bottom: 100%; height: 0; position: relative;">
-                        <img src="${escapeAttr(safeUrl(img.url))}" alt="Itinerary Image ${idx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
-                      </div>
-                    </div>
-                  `).join("")}
-                </div>
-              </div>
-            ` : '';
         return `
         <div style="${cardStyle}; margin-bottom: 20px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
           <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid ${brandColors.border};">
@@ -1266,7 +1255,7 @@ ${(() => {
               </p>
             </div>
           </div>
-
+          ${renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber)}
           <div style="padding: 16px;">
             ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `
               <div style="margin-bottom: 20px;">
@@ -1284,8 +1273,6 @@ ${(() => {
                 </div>
               </div>
             ` : ''}
-
-            ${itineraryImagesHtml}
 
             ${itinerary.activities && itinerary.activities.length > 0 ? `
               <div>

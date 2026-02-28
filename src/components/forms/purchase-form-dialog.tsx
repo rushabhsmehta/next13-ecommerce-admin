@@ -1,7 +1,7 @@
 "use client";
 
 import * as z from "zod";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
@@ -62,7 +62,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
   submitButtonText = "Create"
 }) => {
   const [loading, setLoading] = useState(false);
-  const [isCalculating, setIsCalculating] = useState(false);
+  const isCalculatingRef = useRef(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const defaultItems = initialData?.items?.length > 0
@@ -125,9 +125,9 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     name: "items"
   });
   const recalculateTotals = useCallback((changedField?: string) => {
-    if (isCalculating) return;
+    if (isCalculatingRef.current) return;
 
-    setIsCalculating(true);
+    isCalculatingRef.current = true;
     try {
       const items = form.getValues("items");
       const { updates, subtotal, totalTax, grandTotal } = recalculateLineItems(items, taxSlabs, changedField);
@@ -144,9 +144,9 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
         });
       });
     } finally {
-      setIsCalculating(false);
+      isCalculatingRef.current = false;
     }
-  }, [isCalculating, form, taxSlabs]);
+  }, [form, taxSlabs]);
 
   // Delay calculation until field loses focus instead of on every keystroke
   useEffect(() => {
@@ -156,14 +156,14 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
 
     // Still watch for tax slab and quantity changes which should recalculate immediately
     const subscription = form.watch((value, { name, type }) => {
-      if (isCalculating || !name) return;
+      if (isCalculatingRef.current || !name) return;
 
       // Only recalculate immediately for these specific changes
       if (name.includes('taxSlabId') || name.includes('quantity')) {
         setTimeout(() => recalculateTotals(name), 10);
       }
     }); return () => subscription.unsubscribe();
-  }, [form, isCalculating, fields.length, recalculateTotals]);  // For item length changes
+  }, [form, fields.length, recalculateTotals]);  // For item length changes
   useEffect(() => {
     if (fields.length > 0) {
       recalculateTotals();

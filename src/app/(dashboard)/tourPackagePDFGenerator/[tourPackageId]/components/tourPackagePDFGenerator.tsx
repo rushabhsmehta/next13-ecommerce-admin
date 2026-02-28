@@ -17,6 +17,7 @@ import {
   parsePolicyField,
   renderBulletList,
 } from "@/lib/pdf";
+import { renderItineraryImages } from "@/lib/itinerary-image-html";
 
 interface TourPackagePDFGeneratorProps {
   initialData: (TourPackage & {
@@ -595,6 +596,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                         </div>
                         ${mealPlanLabel ? `<div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: ${brandColors.secondary};">${mealPlanLabel}</div>` : ""}
                       </div>
+                      ${renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber || index + 1)}
                       <div style="padding: 18px;">
                         ${itinerary.itineraryDescription ? `<div style="font-size: 13px; color: ${brandColors.text}; line-height: 1.7;">${safe(itinerary.itineraryDescription)}</div>` : ""}
                         ${linkedHotelName ? `<div style="margin-top: 12px; font-size: 13px; color: ${brandColors.text};"><strong>Suggested Hotel:</strong> ${linkedHotelName}</div>` : ""}

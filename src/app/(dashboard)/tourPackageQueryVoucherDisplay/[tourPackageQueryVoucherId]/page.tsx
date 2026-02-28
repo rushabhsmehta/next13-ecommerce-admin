@@ -55,16 +55,15 @@ const tourPackageQueryVoucherPage = async (
   });
   console.log("Fetched tourPackage Query Voucher:", tourPackageQueryVoucher);
 
-  const locations = await prismadb.location.findMany({
-    
-  });
+  const locations = await prismadb.location.findMany({});
 
   const hotels = await prismadb.hotel.findMany({
-    
-    include: {
-      images: true,
-    }
+    include: { images: true }
   });
+
+  const roomTypes = await prismadb.roomType.findMany({});
+  const occupancyTypes = await prismadb.occupancyType.findMany({});
+  const mealPlans = await prismadb.mealPlan.findMany({});
 
 
 
@@ -86,7 +85,9 @@ const tourPackageQueryVoucherPage = async (
           initialData={tourPackageQueryVoucher}
           locations={locations}
           hotels={hotels}
-        //    itineraries={[]}
+          roomTypes={roomTypes}
+          occupancyTypes={occupancyTypes}
+          mealPlans={mealPlans}
         />
       </div>
     </div>

@@ -251,6 +251,8 @@ model TourPackageQuery {
   variantRoomAllocations           Json? // Room allocations per variant: { variantId: { itineraryId: [allocations] } }
   variantTransportDetails          Json? // Transport details per variant: { variantId: { itineraryId: [transports] } }
   variantPricingData               Json? // Pricing data per variant: { variantId: { components, totals } }
+  confirmedVariantId               String? // ID of the variant confirmed/booked by the customer (used for voucher generation)
+  customQueryVariants              Json? // Standalone variants created directly on this query (not inherited from TourPackage)
   airlineCancellationPolicy        Json?
   cancellationPolicy               Json?
   exclusions                       Json?

@@ -15,6 +15,12 @@ import {
   PackageVariant,
   TourDestination,
 } from "@prisma/client";
+import {
+  companyInfo as sharedCompanyInfo,
+  sanitizeText,
+  parsePolicyField,
+  renderBulletList,
+} from "@/lib/pdf";
 
 interface TourPackagePDFGeneratorWithVariantsProps {
   initialData: TourPackage & {
@@ -41,43 +47,8 @@ interface TourPackagePDFGeneratorWithVariantsProps {
 }
 
 
-type CompanyInfo = {
-  [key: string]: {
-    logo: string;
-    name?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-    website?: string;
-    social?: {
-      facebook?: string;
-      instagram?: string;
-      twitter?: string;
-      linkedin?: string;
-      youtube?: string;
-      whatsapp?: string;
-    };
-  };
-};
-
-const companyInfo: CompanyInfo = {
-  Empty: { logo: "", name: "", address: "", phone: "", email: "", website: "" },
-  AH: {
-    logo: "https://admin.aagamholidays.com/aagamholidays.png",
-    name: "Aagam Holidays",
-    address: "B - 1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India",
-    phone: "+91-97244 44701",
-    email: "info@aagamholidays.com",
-    website: "https://aagamholidays.com",
-    social: {
-      facebook: "https://www.facebook.com/aagamholidays2021",
-      instagram: "https://www.instagram.com/aagamholidays/",
-      twitter: "https://twitter.com/aagamholidays",
-      linkedin: "https://www.linkedin.com/in/deep-doshi-1265802b9",
-      whatsapp: "https://wa.me/919724444701",
-    },
-  },
-};
+// Company info imported from @/lib/pdf
+const companyInfo = sharedCompanyInfo;
 
 const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithVariantsProps> = ({
   initialData,
@@ -215,44 +186,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     break-before: page;
   `;
 
-  // Policy parsing helpers
-  const extractText = useCallback((obj: any): string => {
-    if (!obj) return '';
-    for (const k of ['text', 'value', 'description', 'label', 'name']) {
-      if (obj[k]) return String(obj[k]);
-    }
-    return String(obj);
-  }, []);
-
-  const parsePolicyField = useCallback((field: any): string[] => {
-    if (!field) return [];
-    try {
-      if (typeof field === 'string') {
-        try {
-          const parsed = JSON.parse(field);
-          if (Array.isArray(parsed)) return parsed.map(i => typeof i === 'string' ? i : extractText(i));
-        } catch {
-          return field.split(/\n|•|-|\u2022/).map(s => s.trim()).filter(Boolean);
-        }
-        return [field];
-      }
-      if (Array.isArray(field)) {
-        return field.flatMap(item => {
-          if (item == null) return [];
-          if (typeof item === 'string') return [item];
-          if (typeof item === 'object') return [extractText(item)];
-          return [String(item)];
-        }).filter(Boolean);
-      }
-      if (typeof field === 'object') {
-        const vals = Object.values(field);
-        return vals.flatMap(v => parsePolicyField(v));
-      }
-      return [String(field)];
-    } catch {
-      return [];
-    }
-  }, [extractText]);
+  // sanitizeText, parsePolicyField, renderBulletList are imported from @/lib/pdf
 
   const formatINR = useCallback((val: string | number): string => {
     try {
@@ -283,13 +217,6 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     }
     return [];
   }, []);
-
-  const renderBulletList = useCallback((items: string[]) => items.map(i => `
-    <div style="display: flex; align-items: flex-start; margin-bottom: 8px; line-height: 1.5;">
-      <span style="color: #ea580c; margin-right: 8px; font-weight: bold; flex-shrink: 0;">•</span>
-      <span style="color: #374151; font-size: 13px;">${i}</span>
-    </div>
-  `).join(''), []);
 
   // BUILD SECTIONS
 
@@ -753,7 +680,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, sectionTitleStyle, parsePricingSection, renderBulletList]);
+  }, [initialData, currentCompany, locations, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, sectionTitleStyle, parsePricingSection]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

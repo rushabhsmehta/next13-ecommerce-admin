@@ -6,24 +6,21 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { CalendarIcon, Check, Command, Plus, Trash } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PurchaseFormProps } from "@/types";
-import { CommandEmpty, CommandGroup, CommandItem } from "../ui/command";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
+import { DatePickerField } from "@/components/forms/shared/DatePickerField";
+import { SearchableFormSelect } from "@/components/forms/shared/SearchableFormSelect";
+import { recalculateLineItems, extractFormErrors } from "@/lib/transaction-schemas";
 
 const purchaseItemSchema = z.object({
   id: z.string().optional(),
@@ -68,15 +65,6 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
   const [isCalculating, setIsCalculating] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
-  const [supplierSearch, setSupplierSearch] = useState("");
-  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
-  const [lastUpdatedField, setLastUpdatedField] = useState<string | null>(null);
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-
-  // Add this computed value
-  const filteredSuppliers = suppliers.filter(supplier =>
-    supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
-  );
   const defaultItems = initialData?.items?.length > 0
     ? initialData.items
     : initialData?.id && initialData?.price > 0
@@ -136,95 +124,18 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     control: form.control,
     name: "items"
   });
-  // Enhanced recalculate totals function
   const recalculateTotals = useCallback((changedField?: string) => {
     if (isCalculating) return;
 
     setIsCalculating(true);
     try {
       const items = form.getValues("items");
-      let totalPriceExclTax = 0;
-      let totalTax = 0;
+      const { updates, subtotal, totalTax, grandTotal } = recalculateLineItems(items, taxSlabs, changedField);
 
-      // Prepare batch of updates
-      const updates: Record<string, any> = {};
-
-      items.forEach((item, index) => {
-        // Check which field was changed to determine calculation direction
-        if (changedField?.includes(`items.${index}.totalAmount`)) {
-          // Direction: Total → Price per unit
-          const totalAmount = Number(parseFloat(item.totalAmount?.toString() || "0").toFixed(2));
-
-          // Preserve the exact total amount the user entered
-          updates[`items.${index}.totalAmount`] = totalAmount;
-
-          const qty = Number(parseFloat(item.quantity?.toString() || "1").toFixed(2));
-          const taxSlab = item.taxSlabId ? taxSlabs.find(tax => tax.id === item.taxSlabId) : null;
-          const taxRate = taxSlab ? taxSlab.percentage / 100 : 0;
-
-          // Calculate price per unit backwards from total with precise rounding
-          let pricePerUnit: number;
-          let taxAmount: number;
-
-          if (taxRate > 0) {
-            // Calculate price before tax: price = total / (1 + taxRate)
-            const priceBeforeTax = totalAmount / (1 + taxRate);
-            pricePerUnit = Number((priceBeforeTax / qty).toFixed(4));
-
-            // Calculate subtotal precisely
-            const itemSubtotal = Number((pricePerUnit * qty).toFixed(2));
-
-            // Calculate tax amount precisely
-            taxAmount = Number((totalAmount - itemSubtotal).toFixed(2));
-          } else {
-            pricePerUnit = Number((totalAmount / qty).toFixed(4));
-            taxAmount = 0;
-          }
-
-          updates[`items.${index}.pricePerUnit`] = pricePerUnit;
-          updates[`items.${index}.taxAmount`] = taxAmount;
-
-          const itemSubtotal = Number((pricePerUnit * qty).toFixed(2));
-          totalPriceExclTax += itemSubtotal;
-          totalTax += taxAmount;
-        }
-        else {
-          // Direction: Price per unit → Total (default calculation)
-          const price = Number(parseFloat(item.pricePerUnit?.toString() || "0").toFixed(4));
-          const qty = Number(parseFloat(item.quantity?.toString() || "0").toFixed(2));
-
-          // Calculate item subtotal with precise rounding
-          const itemSubtotal = Number((price * qty).toFixed(2));
-          totalPriceExclTax += itemSubtotal;
-
-          // Update tax amount based on tax slab with precise rounding
-          let taxAmount = 0;
-          if (item.taxSlabId && price > 0 && qty > 0) {
-            const taxSlab = taxSlabs.find(tax => tax.id === item.taxSlabId);
-            if (taxSlab) {
-              taxAmount = Number(((itemSubtotal * taxSlab.percentage) / 100).toFixed(2));
-              updates[`items.${index}.taxAmount`] = taxAmount;
-              totalTax += taxAmount;
-            }
-          } else {
-            updates[`items.${index}.taxAmount`] = 0;
-          }
-
-          // Calculate total amount for this item with precise rounding
-          const total = Number((itemSubtotal + taxAmount).toFixed(2));
-          updates[`items.${index}.totalAmount`] = total;
-        }
-      });
-
-      // Update global totals with precise rounding
-      updates["price"] = Number(totalPriceExclTax.toFixed(2));
-      updates["gstAmount"] = Number(totalTax.toFixed(2));
-
-      // Calculate grand total with precise rounding
-      const grandTotal = Number((totalPriceExclTax + totalTax).toFixed(2));
+      updates["price"] = subtotal;
+      updates["gstAmount"] = totalTax;
       form.setValue("totalWithTax", grandTotal, { shouldValidate: false });
 
-      // Apply all updates at once
       Object.entries(updates).forEach(([field, value]) => {
         form.setValue(field as any, value, {
           shouldValidate: false,
@@ -337,27 +248,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
 
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
-
-    const errorMessages: string[] = [];
-
-    // Handle field-specific errors
-    Object.entries(errors).forEach(([key, value]: [string, any]) => {
-      if (key === 'items') {
-        value.forEach((itemError: any, index: number) => {
-          if (itemError) {
-            Object.values(itemError).forEach((error: any) => {
-              if (error?.message) {
-                errorMessages.push(`Item ${index + 1}: ${error.message}`);
-              }
-            });
-          }
-        });
-      } else if (value?.message) {
-        errorMessages.push(`${key}: ${value.message}`);
-      }
-    });
-
-    setFormErrors(errorMessages);
+    setFormErrors(extractFormErrors(errors));
     toast.error("Please check the form for errors");
   };
   const handleAddItem = () => {
@@ -420,112 +311,28 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
               </CardHeader>
               <CardContent className="px-6 pt-6">
                 <div className="space-y-6">
-                  {/* Supplier Select - Improved implementation */}
-                  <FormField
+                  {/* Supplier Select */}
+                  <SearchableFormSelect
                     control={form.control}
                     name="supplierId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Supplier <span className="text-red-500">*</span></FormLabel>
-                        <div className="relative">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full h-11 justify-between border-gray-300 hover:border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
-                          >
-                            {field.value
-                              ? suppliers.find((supplier) => supplier.id === field.value)?.name || "Select supplier"
-                              : "Select supplier"}
-                            <Check className="ml-auto h-4 w-4" />
-                          </Button>
-
-                          {supplierDropdownOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
-                              <div className="p-2">
-                                <Input
-                                  placeholder="Search suppliers..."
-                                  className="mb-2 h-10 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                                  value={supplierSearch}
-                                  onChange={(e) => setSupplierSearch(e.target.value)}
-                                  autoFocus
-                                />
-
-                                <div className="max-h-[200px] overflow-y-auto">
-                                  {filteredSuppliers.length === 0 ? (
-                                    <div className="text-center py-2 text-sm text-gray-500">
-                                      No suppliers found
-                                    </div>
-                                  ) : (
-                                    filteredSuppliers.map((supplier) => (
-                                      <div
-                                        key={supplier.id}
-                                        className={cn(
-                                          "flex items-center justify-between px-2 py-1.5 cursor-pointer rounded hover:bg-gray-100",
-                                          supplier.id === field.value && "bg-gray-100"
-                                        )}
-                                        onClick={() => {
-                                          field.onChange(supplier.id);
-                                          setSupplierSearch("");
-                                          setSupplierDropdownOpen(false);
-                                        }}
-                                      >
-                                        <span>{supplier.name}</span>
-                                        {supplier.id === field.value && (
-                                          <Check className="h-4 w-4 text-primary" />
-                                        )}
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    label="Supplier"
+                    required
+                    items={suppliers}
+                    valueKey={(s) => s.id}
+                    labelKey={(s) => s.name}
+                    placeholder="Select supplier"
+                    searchPlaceholder="Search suppliers..."
+                    emptyMessage="No suppliers found"
+                    colorClass="emerald"
                   />
 
                   {/* Purchase Date */}
-                  <FormField
+                  <DatePickerField
                     control={form.control}
                     name="purchaseDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-sm font-medium text-gray-700">Purchase Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full h-11 justify-start text-left border-gray-300 hover:border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200",
-                                !field.value && "text-muted-foreground"
-                              )}
-                              disabled={loading}
-                            >                              {field.value
-                              ? formatLocalDate(field.value, "dd/MM/yyyy")
-                              : "Select date"}
-                              <CalendarIcon className="ml-auto h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={createDatePickerValue(field.value)}
-                              onSelect={(date) => date && field.onChange(date)}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    label="Purchase Date"
+                    disabled={loading}
+                    colorClass="emerald"
                   />                  {/* Description */}
                   <FormField
                     control={form.control}

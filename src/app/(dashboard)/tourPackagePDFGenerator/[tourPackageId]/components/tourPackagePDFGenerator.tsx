@@ -11,6 +11,12 @@ import {
   Itinerary,
   TourPackage,
 } from "@prisma/client";
+import {
+  companyInfo as COMPANY_PROFILES,
+  sanitizeText,
+  parsePolicyField,
+  renderBulletList,
+} from "@/lib/pdf";
 
 interface TourPackagePDFGeneratorProps {
   initialData: (TourPackage & {
@@ -26,43 +32,6 @@ interface TourPackagePDFGeneratorProps {
   locations: Location[];
   hotels: (Hotel & { images: Images[] })[];
 }
-
-type CompanyProfile = {
-  logo?: string;
-  name?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  website?: string;
-  social?: {
-    facebook?: string;
-    instagram?: string;
-    twitter?: string;
-    linkedin?: string;
-    youtube?: string;
-    whatsapp?: string;
-  };
-};
-
-const COMPANY_PROFILES: Record<string, CompanyProfile> = {
-  Empty: {},
-  AH: {
-    logo: "https://admin.aagamholidays.com/aagamholidays.png",
-    name: "Aagam Holidays",
-    address:
-      "B - 1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India",
-    phone: "+91-97244 44701",
-    email: "info@aagamholidays.com",
-    website: "https://aagamholidays.com",
-    social: {
-      facebook: "https://www.facebook.com/aagamholidays2021",
-      instagram: "https://www.instagram.com/aagamholidays/",
-      twitter: "https://twitter.com/aagamholidays",
-      linkedin: "https://www.linkedin.com/in/deep-doshi-1265802b9",
-      whatsapp: "https://wa.me/919724444701",
-    },
-  },
-};
 const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
   initialData,
   locations,
@@ -220,81 +189,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     }
   `;
 
-  const sanitizeText = useCallback((value: any, fallback = "") => {
-    if (value === null || value === undefined) return fallback;
-    const text = String(value).trim();
-    if (!text || text.toLowerCase() === "null" || text.toLowerCase() === "undefined" || text === "NaN") {
-      return fallback;
-    }
-    return text;
-  }, []);
-
-  const parsePolicyField = useCallback(
-    (field: any): string[] => {
-      const items: string[] = [];
-      const pushValue = (val: any) => {
-        const text = sanitizeText(val);
-        if (text) {
-          items.push(text);
-        }
-      };
-      const walk = (input: any) => {
-        if (Array.isArray(input)) {
-          input.forEach(walk);
-          return;
-        }
-        if (input && typeof input === "object") {
-          Object.values(input).forEach(walk);
-          return;
-        }
-        if (typeof input === "string") {
-          input
-            .split(/\n|•|-|\u2022/)
-            .map((piece) => piece.trim())
-            .filter(Boolean)
-            .forEach(pushValue);
-          return;
-        }
-        if (input !== null && input !== undefined) {
-          pushValue(input);
-        }
-      };
-      if (!field) {
-        return items;
-      }
-      try {
-        if (typeof field === "string") {
-          try {
-            const parsed = JSON.parse(field);
-            walk(parsed);
-          } catch {
-            walk(field);
-          }
-        } else {
-          walk(field);
-        }
-      } catch (error) {
-        console.error("Failed to parse policy field", error);
-      }
-      return items;
-    },
-    [sanitizeText]
-  );
-
-  const renderBulletList = useCallback(
-    (items: string[]) =>
-      items
-        .map(
-          (item) => `
-        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-          <span style="color: ${brandColors.secondary}; font-size: 14px; line-height: 1;">•</span>
-          <span style="color: ${brandColors.text}; font-size: 13px; line-height: 1.5;">${item}</span>
-        </div>
-      `
-        )
-        .join(""),
-    [brandColors.secondary, brandColors.text]
-  );
+  // sanitizeText, parsePolicyField, renderBulletList are imported from @/lib/pdf
 
   const buildFooterHtml = useCallback((): string => {
     const safeValue = (value: any, fallback = "") => sanitizeText(value, fallback);
@@ -383,7 +278,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
           </div>
         </div>
       </div>`;
-  }, [companyProfile, sanitizeText, selectedOption]);
+  }, [companyProfile, selectedOption]);
 
   const buildHtmlContent = useCallback((): string => {
     if (!initialData) return "";
@@ -865,9 +760,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     hotels,
     initialData,
     locations,
-    parsePolicyField,
-    renderBulletList,
-    sanitizeText,
     sectionBodyStyle,
     sectionHeaderStyle,
     tableCellStyle,
@@ -927,7 +819,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [buildFooterHtml, buildHtmlContent, initialData, router, sanitizeText]);
+  }, [buildFooterHtml, buildHtmlContent, initialData, router]);
 
   useEffect(() => {
     if (initialData) {

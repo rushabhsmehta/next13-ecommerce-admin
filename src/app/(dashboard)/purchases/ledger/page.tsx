@@ -69,7 +69,7 @@ const PurchasesPage = async () => {
 
     return (
       <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
           <PurchaseLedgerClient 
             purchases={formattedPurchases}
             suppliers={formattedSuppliers}
@@ -83,7 +83,7 @@ const PurchasesPage = async () => {
     console.error("Error in PurchasesPage:", error);
     return (
       <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
           <div className="bg-red-50 p-4 rounded-md border border-red-200">
             <h2 className="text-red-700 text-lg font-medium">Error loading purchase data</h2>
             <p className="text-red-600">Please check the server logs for more information.</p>

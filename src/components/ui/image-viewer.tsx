@@ -56,9 +56,10 @@ const ImageViewer = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl p-0 overflow-hidden bg-black/95 border-0">
         <div className="relative w-full h-[80vh] flex items-center justify-center">
-          <Button 
-            variant="ghost" 
-            className="absolute left-4 z-10 rounded-full bg-black/50 p-2 hover:bg-black/70" 
+          <Button
+            variant="ghost"
+            aria-label="Previous image"
+            className="absolute left-4 z-10 rounded-full bg-black/50 p-2 hover:bg-black/70"
             onClick={handlePrevious}
             disabled={images.length <= 1}
           >
@@ -76,9 +77,10 @@ const ImageViewer = ({
             />
           </div>
           
-          <Button 
-            variant="ghost" 
-            className="absolute right-4 z-10 rounded-full bg-black/50 p-2 hover:bg-black/70" 
+          <Button
+            variant="ghost"
+            aria-label="Next image"
+            className="absolute right-4 z-10 rounded-full bg-black/50 p-2 hover:bg-black/70"
             onClick={handleNext}
             disabled={images.length <= 1}
           >
@@ -89,7 +91,7 @@ const ImageViewer = ({
                 className="rounded-full bg-red-500/70 p-2 hover:bg-red-600/70" 
                 onClick={handleDelete}
                 disabled={isDeleting}
-                title="Delete image"
+                aria-label="Delete image"
               >
                 {isDeleting ? (
                   <div className="h-4 w-4 flex items-center justify-center">
@@ -107,7 +109,7 @@ const ImageViewer = ({
               variant="ghost" 
               className="rounded-full bg-black/50 p-2 hover:bg-black/70" 
               onClick={() => onOpenChange(false)}
-              title="Close"
+              aria-label="Close"
             >
               <X className="h-4 w-4 text-white" />
             </Button>
@@ -119,6 +121,7 @@ const ImageViewer = ({
                 <Button
                   key={idx}
                   variant="ghost"
+                  aria-label={`Go to image ${idx + 1}`}
                   className={`h-2 w-2 rounded-full p-0 ${
                     idx === currentIndex ? 'bg-white' : 'bg-white/50'
                   }`}

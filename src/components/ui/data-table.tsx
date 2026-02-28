@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 
 interface DataTableProps<TData, TValue> {
@@ -55,21 +56,17 @@ export function DataTable<TData, TValue>({
     const selectCol: ColumnDef<TData, any> = {
       id: '__select__',
       header: ({ table }) => (
-        <input
-          type="checkbox"
-          className="h-4 w-4"
+        <Checkbox
           checked={table.getIsAllPageRowsSelected()}
-          onChange={e => table.toggleAllPageRowsSelected(e.target.checked)}
+          onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
         />
       ),
       cell: ({ row }) => (
-        <input
-          type="checkbox"
-          className="h-4 w-4"
+        <Checkbox
           checked={row.getIsSelected()}
           disabled={!row.getCanSelect()}
-          onChange={e => row.toggleSelected(e.target.checked)}
+          onCheckedChange={value => row.toggleSelected(!!value)}
           aria-label="Select row"
         />
       ),
@@ -100,7 +97,7 @@ export function DataTable<TData, TValue>({
   useEffect(() => { if (onRowSelectionChange) onRowSelectionChange(rowSelection); }, [rowSelection, onRowSelectionChange]);
 
   return (
-    <div>
+    <div className="overflow-x-auto">
       <div className="flex items-center justify-between py-4 gap-4 flex-wrap">
         {searchKey && (
           <Input
@@ -138,7 +135,9 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">No results.</TableCell>
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                No results found.
+              </TableCell>
               </TableRow>
             )}
           </TableBody>

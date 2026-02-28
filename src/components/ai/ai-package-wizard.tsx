@@ -114,10 +114,10 @@ const GROUP_TYPES = [
 ];
 
 const BUDGET_CATEGORIES = [
-    { value: "budget", label: "Budget", description: "3-star hotels, shared transfers", color: "bg-green-100 text-green-800" },
-    { value: "mid-range", label: "Mid-Range", description: "4-star hotels, private transfers", color: "bg-blue-100 text-blue-800" },
-    { value: "premium", label: "Premium", description: "4-5 star hotels, premium services", color: "bg-purple-100 text-purple-800" },
-    { value: "luxury", label: "Luxury", description: "5-star hotels, exclusive experiences", color: "bg-amber-100 text-amber-800" },
+    { value: "budget", label: "Budget", description: "3-star hotels, shared transfers", color: "bg-success/15 text-success" },
+    { value: "mid-range", label: "Mid-Range", description: "4-star hotels, private transfers", color: "bg-info/15 text-info" },
+    { value: "premium", label: "Premium", description: "4-5 star hotels, premium services", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+    { value: "luxury", label: "Luxury", description: "5-star hotels, exclusive experiences", color: "bg-warning/15 text-warning" },
 ];
 
 export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWizardProps) {
@@ -520,16 +520,16 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
 
                         {/* Selected Package Info */}
                         {selectedPackage && (
-                            <Card className="bg-blue-50 border-blue-200">
+                            <Card className="bg-info/10 border-info/30">
                                 <CardContent className="p-4">
-                                    <div className="flex items-center gap-2 text-blue-800">
+                                    <div className="flex items-center gap-2 text-info">
                                         <Package className="h-4 w-4" />
                                         <span className="text-sm font-medium">
                                             AI itinerary will be applied to: <strong>{selectedPackage.tourPackageName}</strong>
                                         </span>
                                     </div>
                                     {selectedPackage.numDaysNight && (
-                                        <p className="text-xs text-blue-600 mt-1 ml-6">
+                                        <p className="text-xs text-info mt-1 ml-6">
                                             {selectedPackage.numDaysNight} | {selectedPackage.tourPackageType}
                                         </p>
                                     )}

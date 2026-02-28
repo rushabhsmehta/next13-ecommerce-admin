@@ -84,7 +84,7 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
       if (isAssociateDomain) {
         return (
           <div className="flex-col">
-            <div className="flex-1 space-y-4 p-8 pt-6">
+            <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
               <InquiriesClient
                 data={[]}
                 associates={associates}
@@ -272,7 +272,7 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
 
   return (
     <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
         <InquiriesClient
           data={formattedInquiries}
           associates={associates}

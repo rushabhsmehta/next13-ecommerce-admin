@@ -1159,7 +1159,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-orange-600" />
+            <Package className="h-5 w-5 text-warning" />
             <span className="tracking-tight">Automated Tour Package Query</span>
           </DialogTitle>
           <DialogDescription className="sr-only">Create a tour package query from inquiry</DialogDescription>
@@ -1167,34 +1167,34 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
         {/* Inquiry summary banner */}
         {inquiry && (
-          <div className="mb-2 rounded-lg border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-3">
+          <div className="mb-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <div className="flex items-center gap-2 text-slate-800">
-                <User className="h-4 w-4 text-orange-600" />
+              <div className="flex items-center gap-2 text-foreground">
+                <User className="h-4 w-4 text-warning" />
                 <span className="font-medium">{inquiry.customerName}</span>
                 {inquiry.customerMobileNumber ? (
-                  <span className="inline-flex items-center gap-1 text-slate-500">
+                  <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <Phone className="h-3.5 w-3.5" />{inquiry.customerMobileNumber}
                   </span>
                 ) : null}
               </div>
-              <span className="hidden sm:block h-4 w-px bg-orange-200" />
-              <div className="flex items-center gap-2 text-slate-700">
-                <CalendarDays className="h-4 w-4 text-orange-600" />
+              <span className="hidden sm:block h-4 w-px bg-border" />
+              <div className="flex items-center gap-2 text-foreground">
+                <CalendarDays className="h-4 w-4 text-warning" />
                 <span>{inquiry.journeyDate ? new Date(inquiry.journeyDate).toLocaleDateString() : 'Journey date: N/A'}</span>
               </div>
-              <span className="hidden sm:block h-4 w-px bg-orange-200" />
-              <div className="flex items-center gap-2 text-slate-700">
-                <BedDouble className="h-4 w-4 text-orange-600" />
+              <span className="hidden sm:block h-4 w-px bg-border" />
+              <div className="flex items-center gap-2 text-foreground">
+                <BedDouble className="h-4 w-4 text-warning" />
                 <span>{inquiry.numAdults} adult{Number(inquiry.numAdults) > 1 ? 's' : ''}</span>
-                <span className="text-slate-500">• {inquiry.numChildren5to11 || 0} child (5–11)</span>
-                <span className="text-slate-500">• {inquiry.numChildrenBelow5 || 0} child (0–5)</span>
+                <span className="text-muted-foreground">• {inquiry.numChildren5to11 || 0} child (5–11)</span>
+                <span className="text-muted-foreground">• {inquiry.numChildrenBelow5 || 0} child (0–5)</span>
               </div>
               {inquiry.pickupLocation || inquiry.dropLocation ? (
                 <>
-                  <span className="hidden sm:block h-4 w-px bg-orange-200" />
-                  <div className="flex items-center gap-2 text-slate-700">
-                    <Car className="h-4 w-4 text-orange-600" />
+                  <span className="hidden sm:block h-4 w-px bg-border" />
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Car className="h-4 w-4 text-warning" />
                     <span className="truncate max-w-[14rem]">{inquiry.pickupLocation || 'Pickup N/A'} → {inquiry.dropLocation || 'Drop N/A'}</span>
                   </div>
                 </>
@@ -1205,15 +1205,15 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
         {/* Server Error Banner */}
         {serverError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm text-red-800">{serverError}</p>
+                <p className="text-sm text-destructive">{serverError}</p>
               </div>
               <button
                 type="button"
-                className="text-red-600 text-sm underline"
+                className="text-destructive text-sm underline"
                 onClick={() => setServerError(null)}
               >
                 Dismiss
@@ -1224,25 +1224,25 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
         {/* Template Validation Errors (from template checks) */}
         {validationErrors.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-5 w-5 text-destructive" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-sm font-medium text-destructive">
                   Template Validation Issues ({validationErrors.length})
                 </h3>
-                <div className="mt-2 text-sm text-red-700">
+                <div className="mt-2 text-sm text-destructive">
                   <ul className="list-disc pl-5 space-y-1">
                     {validationErrors.map((error, index) => (
                       <li key={index}>{error}</li>
                     ))}
                   </ul>
                 </div>
-                <div className="mt-3 text-xs text-red-600">
+                <div className="mt-3 text-xs text-destructive">
                   Please fix these issues in the tour package template before proceeding, or contact an administrator.
                 </div>
               </div>
@@ -1252,12 +1252,12 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
         {/* Zod/Form Validation Errors (from resolver) */}
         {form.formState.isSubmitted && zodErrorList.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mb-4">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-warning mt-0.5" />
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-amber-800">Please fix the following issues</h3>
-                <ul className="mt-2 text-sm text-amber-700 list-disc pl-5 space-y-1">
+                <h3 className="text-sm font-medium text-warning">Please fix the following issues</h3>
+                <ul className="mt-2 text-sm text-warning list-disc pl-5 space-y-1">
                   {zodErrorList.map((msg, i) => (
                     <li key={i}>{msg}</li>
                   ))}
@@ -1269,10 +1269,10 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
         {/* Loading Validation State */}
         {isValidating && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="bg-info/10 border border-info/30 rounded-lg p-3 mb-4">
             <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-              <span className="text-sm text-blue-700">Validating tour package template...</span>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-info"></div>
+              <span className="text-sm text-info">Validating tour package template...</span>
             </div>
           </div>
         )}
@@ -1304,22 +1304,22 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                       className="flex flex-col items-center focus:outline-none px-1"
                     >
                       <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-sm transition-colors ${
-                        isCompleted ? 'bg-green-500 border-green-500 text-white' :
-                        isActive ? 'border-orange-500 text-orange-600 bg-white' : 'border-gray-200 text-gray-300 bg-white'
+                        isCompleted ? 'bg-success border-success text-success-foreground' :
+                        isActive ? 'border-warning text-warning bg-background' : 'border-border text-muted-foreground bg-background'
                       }`}>
                         {isCompleted ? <Check className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
                       </div>
 
                       {/* labels on md+ to save space; numbers on xs */}
-                      <span className={`hidden md:block text-[11px] leading-tight mt-1 text-center truncate ${isActive ? 'text-orange-700 font-medium' : 'text-gray-500'}`} style={{maxWidth: 110}}>
+                      <span className={`hidden md:block text-[11px] leading-tight mt-1 text-center truncate ${isActive ? 'text-warning font-medium' : 'text-muted-foreground'}`} style={{maxWidth: 110}}>
                         {title}
                       </span>
-                      <span className={`sm:hidden text-[10px] mt-1 ${isActive ? 'text-orange-700' : 'text-gray-400'}`}>{stepNumber}</span>
+                      <span className={`sm:hidden text-[10px] mt-1 ${isActive ? 'text-warning' : 'text-muted-foreground'}`}>{stepNumber}</span>
                     </button>
 
                     {/* flexible connector fills remaining space */}
                     {index < stepTitles.length - 1 && (
-                      <div className={`hidden sm:flex flex-1 mx-1 h-0.5 rounded ${currentStep > stepNumber ? 'bg-green-400' : 'bg-gray-200'}`} />
+                      <div className={`hidden sm:flex flex-1 mx-1 h-0.5 rounded ${currentStep > stepNumber ? 'bg-success' : 'bg-border'}`} />
                     )}
                   </div>
                 );
@@ -1333,10 +1333,10 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             {currentStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Step 1: Select Tour Package Template</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Choose a tour package template that matches the inquiry requirements.
                   {tourPackages.length > 0 && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                    <span className="ml-2 inline-flex items-center rounded-full bg-info/15 px-2.5 py-0.5 text-xs font-medium text-info">
                       {tourPackages.length} package{tourPackages.length !== 1 ? 's' : ''} available
                     </span>
                   )}
@@ -1385,7 +1385,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                         {/* Custom dropdown panel with absolute positioning */}
                         {tourPackageComboboxOpen && (
                           <div 
-                            className="absolute z-[10000] w-full mt-1 bg-white border-2 border-orange-500 rounded-md shadow-lg p-2"
+                            className="absolute z-[10000] w-full mt-1 bg-background border-2 border-warning rounded-md shadow-lg p-2"
                             style={{ maxWidth: '500px' }}
                             onClick={(e) => {
                               // Prevent clicks inside from bubbling
@@ -1491,7 +1491,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                           />
                                           <div className="flex flex-col">
                                             <span className="font-medium">{pkg.tourPackageName}</span>
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-xs text-muted-foreground">
                                               {pkg.tourPackageType} • ₹{pkg.price}
                                             </span>
                                           </div>
@@ -1554,7 +1554,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             {currentStep === 2 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Step 2: Choose Meal Plan</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Select the meal plan that will be applied to all room allocations.
                 </p>
                 
@@ -1576,7 +1576,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                               <div className="flex flex-col">
                                 <span className="font-medium">{plan.name}</span>
                                 {plan.description && (
-                                  <span className="text-xs text-gray-500">{plan.description}</span>
+                                  <span className="text-xs text-muted-foreground">{plan.description}</span>
                                 )}
                               </div>
                             </SelectItem>
@@ -1596,15 +1596,15 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">Step 3: Configure Room Allocations</h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Set up room allocations based on the number of guests.
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <Badge variant="secondary" className="text-[11px]">Total Rooms: {form.getValues('roomAllocations').reduce((s, a) => s + (a.quantity || 1), 0)}</Badge>
-                      <span className="hidden md:inline text-[11px] text-gray-500">Guests: {inquiry.numAdults}A • {(inquiry.numChildren5to11||0)}C(5–11) • {(inquiry.numChildrenBelow5||0)}C(0–5)</span>
+                      <span className="hidden md:inline text-[11px] text-muted-foreground">Guests: {inquiry.numAdults}A • {(inquiry.numChildren5to11||0)}C(5–11) • {(inquiry.numChildrenBelow5||0)}C(0–5)</span>
                     </div>
                   </div>
-                  <Button type="button" onClick={addRoomAllocation} size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
+                  <Button type="button" onClick={addRoomAllocation} size="sm" className="bg-warning hover:bg-warning/90 text-warning-foreground">
                     <Plus className="h-4 w-4 mr-1" />
                     Add Room
                   </Button>
@@ -1774,9 +1774,9 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                       <p className="text-sm text-muted-foreground">No transport added. Use &quot;Add Transport&quot; to include vehicle requirements.</p>
                     )}
                     {(form.watch('transportDetails') || []).map((_, index) => (
-                      <div key={index} className="border rounded-md p-3 space-y-3 bg-orange-50/30">
+                      <div key={index} className="border rounded-md p-3 space-y-3 bg-warning/5">
                         <div className="flex items-center justify-between">
-                          <div className="text-sm font-medium flex items-center gap-2"><Car className="h-4 w-4 text-orange-600"/>Transport {index + 1}</div>
+                          <div className="text-sm font-medium flex items-center gap-2"><Car className="h-4 w-4 text-warning"/>Transport {index + 1}</div>
                           <Button type="button" variant="outline" size="sm" onClick={() => removeTransportDetail(index)}>
                             <Minus className="h-4 w-4" />
                           </Button>
@@ -1940,7 +1940,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             {currentStep === 4 && (
               <div className="space-y-4 px-3 sm:px-0">
                 <h3 className="text-lg font-semibold">Step 4: Fetch Available Pricing Components</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Fetch and select pricing components from tour package pricing configuration.
                 </p>
 
@@ -1973,7 +1973,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                         
                         {/* Meal Plan for Pricing */}
                         <div>
-                          <label className="text-xs font-medium text-gray-700 block mb-1">Meal Plan for Pricing:</label>
+                          <label className="text-xs font-medium text-foreground block mb-1">Meal Plan for Pricing:</label>
                           <Select value={pricingMealPlanId} onValueChange={setPricingMealPlanId}>
                             <SelectTrigger className="w-full h-8 text-sm">
                               <SelectValue placeholder="Select meal plan" />
@@ -1990,7 +1990,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                         
                         {/* Number of Rooms for Pricing */}
                         <div>
-                          <label className="text-xs font-medium text-gray-700 block mb-1">Rooms for Pricing:</label>
+                          <label className="text-xs font-medium text-foreground block mb-1">Rooms for Pricing:</label>
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
@@ -2014,7 +2014,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                             >
                               +
                             </button>
-                            <span className="text-xs text-gray-600">🏨 {pricingNumberOfRooms} room{pricingNumberOfRooms > 1 ? 's' : ''}</span>
+                            <span className="text-xs text-muted-foreground">🏨 {pricingNumberOfRooms} room{pricingNumberOfRooms > 1 ? 's' : ''}</span>
                           </div>
                         </div>
                       </div>
@@ -2025,7 +2025,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                           type="button" 
                           onClick={fetchAvailablePricingComponents} 
                           disabled={isCalculatingPrice || loading || !pricingMealPlanId || pricingNumberOfRooms <= 0} 
-                          className="w-full mb-3 bg-orange-600 text-white hover:bg-orange-700"
+                          className="w-full mb-3 bg-warning text-warning-foreground hover:bg-warning/90"
                           variant="outline"
                         >
                           <Package className="mr-2 h-4 w-4" />
@@ -2033,10 +2033,10 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                         </Button>
                         
                         {availablePricingComponents.length > 0 && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="bg-info/10 border border-info/30 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <p className="font-medium text-blue-800">Select Pricing Components:</p>
-                              <div className="text-xs text-blue-600">
+                              <p className="font-medium text-info">Select Pricing Components:</p>
+                              <div className="text-xs text-info">
                                 Choose which pricing components to include in your tour package pricing breakdown:
                               </div>
                             </div>
@@ -2084,7 +2084,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                   const totalComponentPrice = calculateComponentTotalPrice(component, componentRoomQty);
                                   
                                   return (
-                                    <div key={component.id} className="border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                                    <div key={component.id} className="border border-border rounded-lg hover:border-info/50 transition-colors">
                                       <label className="flex items-start gap-3 p-3 cursor-pointer">
                                         <input
                                           type="checkbox"
@@ -2096,23 +2096,23 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                               setSelectedPricingComponentIds(prev => prev.filter(id => id !== component.id));
                                             }
                                           }}
-                                          className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                          className="mt-1 h-4 w-4 accent-info focus:ring-info border-input rounded"
                                         />
                                         <div className="flex-1">
                                           <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-medium text-gray-900">
+                                            <h4 className="text-sm font-medium text-foreground">
                                               {component.pricingAttribute?.name || 'Pricing Component'}
                                             </h4>
                                             <div className="text-right">
-                                              <span className="text-lg font-bold text-blue-700">
+                                              <span className="text-lg font-bold text-info">
                                                 ₹{totalComponentPrice.toFixed(2)}
                                               </span>
                                             </div>
                                           </div>
                                           {component.description && (
-                                            <p className="text-sm text-gray-600">{component.description}</p>
+                                            <p className="text-sm text-muted-foreground">{component.description}</p>
                                           )}
-                                          <p className="text-xs text-gray-500 mt-1">
+                                          <p className="text-xs text-muted-foreground mt-1">
                                             <span className="font-medium">Sales Price:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
                                             {occupancyMultiplier > 1 && (
                                               <span className="text-blue-600 ml-1 block">
@@ -2122,7 +2122,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                           </p>
                                           <div className="flex items-center gap-4 mt-2">
                                             <div className="flex items-center gap-2">
-                                              <span className="text-xs text-gray-500">Rooms:</span>
+                                              <span className="text-xs text-muted-foreground">Rooms:</span>
                                               <button
                                                 type="button"
                                                 onClick={() => handleComponentRoomQuantityChange(
@@ -2156,7 +2156,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                               </button>
                                             </div>
                                             {(componentRoomQty > 1 || occupancyMultiplier > 1) && (
-                                              <p className="text-xs text-gray-500">
+                                              <p className="text-xs text-muted-foreground">
                                                 {componentRoomQty} rooms × ₹{parseFloat(component.price || '0').toFixed(2)} × {occupancyMultiplier} occupancy
                                               </p>
                                             )}
@@ -2221,7 +2221,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                               <p className="font-medium text-gray-800 mb-2">Price Breakdown:</p>
                               <div className="space-y-1">
                                 {priceCalculationDetails.map((detail, index) => (
-                                  <div key={index} className="text-xs text-gray-600">
+                                  <div key={index} className="text-xs text-muted-foreground">
                                     <div className="font-medium">{detail.name}</div>
                                     <div>{detail.description}</div>
                                   </div>
@@ -2272,7 +2272,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             {currentStep === 5 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Step 5: Review & Create</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Review all selections and create the tour package query.
                 </p>
 
@@ -2285,7 +2285,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                       <div>
                         <h4 className="font-medium mb-2">Tour Package</h4>
                         <p>{selectedTourPackage?.tourPackageName}</p>
-                        <p className="text-gray-600">{selectedTourPackage?.tourPackageType}</p>
+                        <p className="text-muted-foreground">{selectedTourPackage?.tourPackageType}</p>
                       </div>
                       <div>
                         <h4 className="font-medium mb-2">Meal Plan</h4>
@@ -2350,7 +2350,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     type="button"
                     onClick={nextStep}
                     disabled={!canProceedToNextStep() || loading}
-                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+                    className="flex items-center gap-2 bg-warning hover:bg-warning/90 text-warning-foreground"
                   >
                     Next
                     <ArrowRight className="h-4 w-4" />
@@ -2359,7 +2359,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                    <Button
                      type="submit"
                      disabled={loading || !canProceedToNextStep()}
-                     className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white"
+                     className="flex items-center gap-2 px-3 py-2 bg-warning hover:bg-warning/90 text-warning-foreground"
                    >
                      {loading ? 'Creating...' : (
                        <>

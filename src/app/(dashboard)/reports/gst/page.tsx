@@ -54,9 +54,9 @@ export default async function GstReportPage() {
 
   return (
     <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">GST Report</h2>
+          <h1 className="text-3xl font-bold tracking-tight">GST Report</h1>
           <Link href="/reports/profit">
             <Button variant="outline" size="sm">
               <ArrowLeftIcon className="mr-2 h-4 w-4" />

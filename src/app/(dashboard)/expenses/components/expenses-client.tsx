@@ -346,7 +346,7 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
   return (
     <div className="flex-col space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Expenses</h2>
+        <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
         <Link href="/expenses/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" /> Add New

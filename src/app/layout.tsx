@@ -6,7 +6,7 @@ import { ToastProvider } from '@/providers/toast-provider'
 import { ThemeProvider } from '@/providers/theme-provider'
 
 import './globals.css'
-import { SidebarProvider } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
 import { DebugLogPanel } from '@/components/DebugLogPanel'
 
@@ -39,10 +39,14 @@ export default async function RootLayout({
             <ModalProvider />
             <DebugLogPanel />
             <SidebarProvider>
-              {/* Render the sidebar */}
               <AppSidebar />
-              {/* Render the main content */}
-              {children}
+              <SidebarInset className="overflow-auto">
+                {/* Sticky top bar — shows sidebar trigger on all sizes */}
+                <div className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 backdrop-blur px-4 md:px-6">
+                  <SidebarTrigger className="-ml-1" />
+                </div>
+                {children}
+              </SidebarInset>
             </SidebarProvider>
           </ThemeProvider>
         </body>

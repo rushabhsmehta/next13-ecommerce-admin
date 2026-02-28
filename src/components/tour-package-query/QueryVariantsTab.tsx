@@ -1137,7 +1137,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
             {/* Sub-tabs for Hotels, Room Allocation, and Pricing */}
             <Tabs defaultValue="hotels" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-50 to-slate-100 p-1">
+              <TabsList className="grid w-full grid-cols-3 bg-muted p-1">
                 <TabsTrigger value="hotels" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
                   <HotelIcon className="h-3.5 w-3.5 mr-2" />
                   Hotels
@@ -2730,7 +2730,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
             <CardContent className="pt-4">
               <Tabs defaultValue="rooms" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-slate-50 to-slate-100 p-1">
+                <TabsList className="grid w-full grid-cols-2 bg-muted p-1">
                   <TabsTrigger value="rooms" className="data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs">
                     <BedDouble className="h-3.5 w-3.5 mr-2" />
                     Room Allocation

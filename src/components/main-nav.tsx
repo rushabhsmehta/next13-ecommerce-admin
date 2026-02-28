@@ -112,6 +112,7 @@ export function MainNav({
 
   return (
     <nav
+      aria-label="Main navigation"
       className={cn("flex items-center space-x-4 lg:space-x-6 overflow-auto", className)}
       {...props}
     >

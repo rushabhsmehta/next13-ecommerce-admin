@@ -19,7 +19,11 @@
       "Bash(cmd /c \"taskkill /F /IM node.exe\")",
       "Bash(cmd /c \"taskkill /F /IM node.exe 2>&1\")",
       "Bash(powershell -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force; Write-Host ''Done''\")",
-      "mcp__Desktop_Commander__list_directory"
+      "mcp__Desktop_Commander__list_directory",
+      "Bash(npm run lint 2>&1 | tail -20)",
+      "Bash(find \"/mnt/d/github/next13-ecommerce-admin/src/app/\\(dashboard\\)\" -name \"layout.tsx\" 2>/dev/null; find \"/mnt/d/github/next13-ecommerce-admin/src/app/\\(dashboard\\)/\\(routes\\)\" -name \"layout.tsx\" 2>/dev/null)",
+      "Bash(find \"/mnt/d/github/next13-ecommerce-admin/src/app/\\(dashboard\\)\" -name \"*.tsx\" -exec sed -i 's/space-y-4 p-8 pt-6/space-y-4 p-4 pt-4 md:p-8 md:pt-6/g' {} +\necho \"Done. Verifying sample:\"\ngrep -l \"p-4 pt-4 md:p-8\" \"/mnt/d/github/next13-ecommerce-admin/src/app/\\(dashboard\\)/customers/page.tsx\" && echo \"customers/page.tsx ✓\")",
+      "Bash(find /mnt/d/github/next13-ecommerce-admin/src/app/\\\\\\(dashboard\\\\\\) \\\\\\( \\\\\n  -path \"*/chat-management/page.tsx\" \\\\\n  -o -path \"*/chat-management/*/chat-group-detail-client.tsx\" \\\\\n  -o -path \"*/expenses/accrued/components/accrued-expenses-client.tsx\" \\\\\n  -o -path \"*/expenses/components/expenses-client.tsx\" \\\\\n  -o -path \"*/expenses/*/page.tsx\" \\\\\n  -o -path \"*/flight-tickets/page.tsx\" \\\\\n  -o -path \"*/incomes/components/incomes-client.tsx\" \\\\\n  -o -path \"*/payments/page.tsx\" \\\\\n  -o -path \"*/payments/*/page.tsx\" \\\\\n  -o -path \"*/purchases/page.tsx\" \\\\\n  -o -path \"*/purchases/*/page.tsx\" \\\\\n  -o -path \"*/receipts/page.tsx\" \\\\\n  -o -path \"*/receipts/*/page.tsx\" \\\\\n  -o -path \"*/reports/gst/page.tsx\" \\\\\n  -o -path \"*/reports/profit/page.tsx\" \\\\\n  -o -path \"*/sales/page.tsx\" \\\\\n  -o -path \"*/sales/*/page.tsx\" \\\\\n  -o -path \"*/travel-users/components/travel-users-client.tsx\" \\\\\n\\\\\\) -exec sed -i \\\\\n  -e 's/<h2 className=\"text-3xl font-bold tracking-tight\"/<h1 className=\"text-3xl font-bold tracking-tight\"/g' \\\\\n  -e 's/<\\\\/h2>/<\\\\/h1>/g' \\\\\n  {} +\necho \"Done: $?\")"
     ]
   }
 }

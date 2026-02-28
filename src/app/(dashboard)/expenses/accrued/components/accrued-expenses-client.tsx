@@ -277,7 +277,7 @@ export const AccruedExpensesClient: React.FC<AccruedExpensesClientProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Accrued Expenses</h2>
+            <h1 className="text-3xl font-bold tracking-tight">Accrued Expenses</h1>
             <p className="text-muted-foreground">
               Manage expenses that are incurred but not yet paid
             </p>

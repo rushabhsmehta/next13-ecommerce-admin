@@ -271,7 +271,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton>
-                        <span className="font-semibold text-gray-700">
+                        <span className="font-semibold text-foreground">
                           {section.title}
                         </span>
                         <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

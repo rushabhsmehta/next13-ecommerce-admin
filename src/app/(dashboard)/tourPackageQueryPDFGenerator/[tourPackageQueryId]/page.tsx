@@ -106,7 +106,7 @@ const tourPackageQueryPage = async (
     <>
     
       <div className="flex-col">
-      {/*  <div className="flex-1 space-y-4 p-8 pt-6">
+      {/*  <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
         <TourPackageQueryForm
           initialData={tourPackageQuery}
           locations={locations}
@@ -115,7 +115,7 @@ const tourPackageQueryPage = async (
         />
       </div>
  */}
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
         {preparedByLog && (
           <div className="text-sm text-gray-600">Prepared by: <span className="font-semibold">{preparedByLog.userName}</span> <span className="ml-2">({preparedByLog.userEmail})</span></div>
         )}

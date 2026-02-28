@@ -311,7 +311,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                       const imgs = selected.images?.slice(0, 4) || [];
                       if (!imgs.length) return null;
                       return (
-                        <div className="grid grid-cols-4 gap-2 mt-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                           {imgs.map((img, idx) => (
                             <div key={idx} className="relative h-16 w-full rounded-md overflow-hidden border bg-slate-100">
                               <Image src={img.url} alt={selected.name} fill className="object-cover" />

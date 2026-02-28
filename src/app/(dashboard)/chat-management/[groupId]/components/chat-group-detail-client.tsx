@@ -169,9 +169,9 @@ export function ChatGroupDetailClient({
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight">
               {isNew ? "Create Chat Group" : group.name}
-            </h2>
+            </h1>
             <p className="text-sm text-muted-foreground">
               {isNew
                 ? "Set up a new tour group chat"

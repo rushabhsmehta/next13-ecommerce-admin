@@ -99,13 +99,13 @@ export function TravelUsersClient({ users }: { users: TravelUser[] }) {
 
   return (
     <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight">
               Travel App Users
-            </h2>
+            </h1>
             <p className="text-sm text-muted-foreground">
               Manage user access to the travel app and chat
             </p>

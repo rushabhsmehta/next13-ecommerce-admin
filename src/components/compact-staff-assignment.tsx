@@ -177,7 +177,7 @@ export function CompactStaffAssignment({
                     <CommandItem
                       key="unassign"
                       onSelect={handleUnassign}
-                      className="text-red-500 hover:bg-red-50"
+                      className="text-destructive hover:bg-destructive/10"
                     >
                       Unassign current staff
                     </CommandItem>

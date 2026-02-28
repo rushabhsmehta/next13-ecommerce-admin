@@ -198,7 +198,7 @@ export const IncomesClient: React.FC<IncomesClientProps> = ({
   return (
     <div className="flex-col space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Incomes</h2>
+        <h1 className="text-3xl font-bold tracking-tight">Incomes</h1>
         <Link href="/incomes/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" /> Add New

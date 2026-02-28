@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
@@ -182,25 +183,27 @@ export function SearchableFormSelect<T extends FieldValues, TItem>({
               {required && <span className="text-red-500"> *</span>}
             </FormLabel>
             <div className="relative" ref={containerRef}>
-              <Button
-                type="button"
-                variant="outline"
-                role="combobox"
-                aria-haspopup="listbox"
-                aria-expanded={dropdownOpen}
-                aria-controls={dropdownOpen ? `${name}-listbox` : undefined}
-                className={cn(
-                  "w-full h-11 justify-between border-gray-300",
-                  colorClasses,
-                  !field.value && "text-muted-foreground"
-                )}
-                onClick={() => setDropdownOpen((prev) => !prev)}
-                onKeyDown={handleTriggerKeyDown}
-                disabled={disabled}
-              >
-                <span className="truncate">{displayLabel}</span>
-                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-              </Button>
+              <FormControl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded={dropdownOpen}
+                  aria-controls={dropdownOpen ? `${name}-listbox` : undefined}
+                  className={cn(
+                    "w-full h-11 justify-between border-gray-300",
+                    colorClasses,
+                    !field.value && "text-muted-foreground"
+                  )}
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                  onKeyDown={handleTriggerKeyDown}
+                  disabled={disabled}
+                >
+                  <span className="truncate">{displayLabel}</span>
+                  <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </FormControl>
 
               {dropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">

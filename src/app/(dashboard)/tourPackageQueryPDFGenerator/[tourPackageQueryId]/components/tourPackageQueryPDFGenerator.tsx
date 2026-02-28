@@ -16,6 +16,12 @@ import {
   TourDestination,
 } from "@prisma/client";
 import { format } from "date-fns";
+import {
+  companyInfo as sharedCompanyInfo,
+  sanitizeText,
+  parsePolicyField,
+  renderBulletList,
+} from "@/lib/pdf";
 
 // Variant snapshot types for standard PDF generator
 interface QueryVariantHotelSnapshotForPDF {
@@ -86,46 +92,8 @@ interface TourPackageQueryPDFGeneratorProps {
   associatePartners: AssociatePartner[];
 };
 
-// Define a type for company information.
-type CompanyInfo = {
-  [key: string]: {
-    logo: string;
-    name?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-    website?: string;
-    social?: {
-      facebook?: string;
-      instagram?: string;
-      twitter?: string;
-      linkedin?: string;
-      youtube?: string;
-      whatsapp?: string;
-    }
-  };
-};
-
-// Company info object.
-const companyInfo: CompanyInfo = {
-  Empty: { logo: "", name: "", address: "", phone: "", email: "", website: "" },
-  AH: {
-    logo: "https://admin.aagamholidays.com/aagamholidays.png",
-    name: "Aagam Holidays",
-    address:
-      "B - 1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India",
-    phone: "+91-97244 44701",
-    email: "info@aagamholidays.com",
-    website: "https://aagamholidays.com",
-    social: {
-      facebook: "https://www.facebook.com/aagamholidays2021",
-      instagram: "https://www.instagram.com/aagamholidays/",
-      twitter: "https://twitter.com/aagamholidays",
-      linkedin: "https://www.linkedin.com/in/deep-doshi-1265802b9",
-      whatsapp: "https://wa.me/919724444701"
-    }
-  },
-};
+// Company info imported from @/lib/pdf
+const companyInfo = sharedCompanyInfo;
 
 const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> = ({
   initialData,
@@ -296,44 +264,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     break-before: page;
   `;
 
-  // Policy parsing helpers aligned with display component
-  const extractText = useCallback((obj: any): string => {
-    if (!obj) return '';
-    for (const k of ['text', 'value', 'description', 'label', 'name']) {
-      if (obj[k]) return String(obj[k]);
-    }
-    return String(obj);
-  }, []);
-
-  const parsePolicyField = useCallback((field: any): string[] => {
-    if (!field) return [];
-    try {
-      if (typeof field === 'string') {
-        try {
-          const parsed = JSON.parse(field);
-          if (Array.isArray(parsed)) return parsed.map(i => typeof i === 'string' ? i : extractText(i));
-        } catch {
-          return field.split(/\n|•|-|\u2022/).map(s => s.trim()).filter(Boolean);
-        }
-        return [field];
-      }
-      if (Array.isArray(field)) {
-        return field.flatMap(item => {
-          if (item == null) return [];
-          if (typeof item === 'string') return [item];
-          if (typeof item === 'object') return [extractText(item)];
-          return [String(item)];
-        }).filter(Boolean);
-      }
-      if (typeof field === 'object') {
-        const vals = Object.values(field);
-        return vals.flatMap(v => parsePolicyField(v));
-      }
-      return [String(field)];
-    } catch {
-      return [];
-    }
-  }, [extractText]);
+  // sanitizeText, parsePolicyField, renderBulletList are imported from @/lib/pdf
 
   // --- Build Variant Comparison Table ---
   const buildVariantComparisonTable = useCallback((): string => {
@@ -1297,12 +1228,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const cancelArr = withFallback(initialData.cancellationPolicy, loc?.cancellationPolicy);
     const airlineCancelArr = withFallback(initialData.airlineCancellationPolicy, loc?.airlineCancellationPolicy);
 
-    const renderBulletList = (items: string[]) => items.map(i => `
-      <div style="display: flex; align-items: flex-start; margin-bottom: 8px; line-height: 1.5;">
-        <span style="color: #ea580c; margin-right: 8px; font-weight: bold; flex-shrink: 0;">•</span>
-        <span style="color: #374151; font-size: 13px;">${i}</span>
-      </div>
-    `).join('');
+    // renderBulletList is imported from @/lib/pdf
 
     // Create a comprehensive policies section
     const policiesAndTermsSection = (inclusionsArr.length || exclusionsArr.length || importantArr.length || paymentArr.length || kitchenArr.length || termsArr.length || cancelArr.length || airlineCancelArr.length || usefulTipsArr.length) ? `
@@ -1500,7 +1426,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, hotels, selectedOption, preparedBy, buildVariantComparisonTable, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, tableCellStyle, tableHeaderStyle, tableStyle]);
+  }, [initialData, currentCompany, locations, hotels, selectedOption, preparedBy, buildVariantComparisonTable, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, priceCardStyle, sectionTitleStyle, tableCellStyle, tableHeaderStyle, tableStyle]);
   // --- Function to generate the PDF via the API ---
   const generatePDF = useCallback(async () => {
     setLoading(true);

@@ -6,8 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate, utcToLocal, dateToUtc } from "@/lib/timezone-utils";
+import { utcToLocal, dateToUtc } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -28,26 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
 import ImageUpload from "@/components/ui/image-upload";
+import { DatePickerField } from "@/components/forms/shared/DatePickerField";
+import { SearchableFormSelect } from "@/components/forms/shared/SearchableFormSelect";
+import { extractFormErrors } from "@/lib/transaction-schemas";
 
 const formSchema = z.object({
   paymentDate: z.date({
@@ -109,19 +94,9 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
-  const [supplierSearch, setSupplierSearch] = useState("");
-  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
-  const [tourPackageQueryDropdownOpen, setTourPackageQueryDropdownOpen] = useState(false);
-  const [tourPackageQuerySearch, setTourPackageQuerySearch] = useState("");
   const [tdsSections, setTdsSections] = useState<any[]>([]);
   const [tdsEnabled, setTdsEnabled] = useState(false);
   const [linkableTds, setLinkableTds] = useState<any[]>([]);
-
-  // Derived filtered lists (case-insensitive search)
-  const filteredSuppliers = suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
-  const filteredCustomers = customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || (c as any).contact?.toLowerCase().includes(customerSearch.toLowerCase() || ''));
 
   // Establish form BEFORE any effects that reference it
   let defaultValues: Partial<PaymentFormValues> = {
@@ -241,15 +216,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
-
-    const errorMessages: string[] = [];
-    Object.entries(errors).forEach(([key, value]: [string, any]) => {
-      if (value?.message) {
-        errorMessages.push(`${key}: ${value.message}`);
-      }
-    });
-
-    setFormErrors(errorMessages);
+    setFormErrors(extractFormErrors(errors));
     toast.error("Please check the form for errors");
   };
   return (
@@ -299,78 +266,17 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
             <CardContent className="px-8 py-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">                {/* Tour Package Query Select */}
                 <div className="lg:col-span-2">
-                  <FormField
+                  <SearchableFormSelect
                     control={form.control}
                     name="tourPackageQueryId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Tour Package Query</FormLabel>
-                        <div className="relative">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            onClick={() => setTourPackageQueryDropdownOpen(!tourPackageQueryDropdownOpen)}
-                          >
-                            {field.value
-                              ? safeConfirmedTourPackageQueries.find((query) => query.id === field.value)?.tourPackageQueryName || "Select tour package query"
-                              : "Select tour package query"}
-                            <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-
-                          {tourPackageQueryDropdownOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
-                              <div className="p-3">
-                                <Input
-                                  placeholder="Search tour package queries..."
-                                  className="mb-3 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                                  value={tourPackageQuerySearch}
-                                  onChange={(e) => setTourPackageQuerySearch(e.target.value)}
-                                />
-                                <div className="max-h-[200px] overflow-y-auto">
-                                  {safeConfirmedTourPackageQueries.length === 0 ? (
-                                    <div className="p-3 text-center text-sm text-muted-foreground">
-                                      No confirmed tour package queries found
-                                    </div>
-                                  ) : (
-                                    safeConfirmedTourPackageQueries
-                                      .filter(query =>
-                                        query.tourPackageQueryName.toLowerCase().includes(tourPackageQuerySearch.toLowerCase())
-                                      )
-                                      .map((query) => (
-                                        <div
-                                          key={query.id}
-                                          className={cn(
-                                            "flex items-center px-3 py-2 cursor-pointer rounded-md hover:bg-blue-50 transition-colors",
-                                            query.id === field.value && "bg-blue-50 text-blue-700"
-                                          )}
-                                          onClick={() => {
-                                            field.onChange(query.id);
-                                            setTourPackageQueryDropdownOpen(false);
-                                          }}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              query.id === field.value ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                          <span className="text-sm">{query.tourPackageQueryName}</span>
-                                        </div>
-                                      ))
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    label="Tour Package Query"
+                    items={safeConfirmedTourPackageQueries}
+                    valueKey={(q) => q.id}
+                    labelKey={(q) => q.tourPackageQueryName}
+                    placeholder="Select tour package query"
+                    searchPlaceholder="Search tour package queries..."
+                    emptyMessage="No confirmed tour package queries found"
+                    colorClass="blue"
                   />
                 </div>
 
@@ -400,44 +306,13 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                 />
 
                 {/* Payment Date */}
-                <FormField
+                <DatePickerField
                   control={form.control}
                   name="paymentDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-sm font-medium text-gray-700">Payment Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal h-11 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >                              {field.value ? (
-                              formatLocalDate(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={createDatePickerValue(field.value)}
-                            onSelect={(date) => date && field.onChange(date)}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Payment Date"
+                  dateFormat="PPP"
+                  disabledDates={(date) => date > new Date() || date < new Date("1900-01-01")}
+                  colorClass="blue"
                 />
 
                 {/* Payment Type Selection */}
@@ -474,156 +349,34 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 
                 {/* Supplier Selection - Only for supplier payments */}
                 {paymentType === "supplier_payment" && (
-                  <FormField
+                  <SearchableFormSelect
                     control={form.control}
                     name="supplierId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Supplier</FormLabel>
-                        <div className="relative">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
-                          >
-                            {field.value
-                              ? suppliers.find((supplier) => supplier.id === field.value)?.name || "Select supplier"
-                              : "Select supplier"}
-                            <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-
-                          {supplierDropdownOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
-                              <div className="p-3">
-                                <Input
-                                  placeholder="Search suppliers..."
-                                  className="mb-3 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                                  value={supplierSearch}
-                                  onChange={(e) => setSupplierSearch(e.target.value)}
-                                  autoFocus
-                                />
-                                <div className="max-h-[200px] overflow-y-auto">
-                                  {filteredSuppliers.length === 0 ? (
-                                    <div className="text-center py-3 text-sm text-gray-500">
-                                      No suppliers found
-                                    </div>
-                                  ) : (
-                                    filteredSuppliers.map((supplier) => (
-                                      <div
-                                        key={supplier.id}
-                                        className={cn(
-                                          "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-blue-50 transition-colors",
-                                          supplier.id === field.value && "bg-blue-50 text-blue-700"
-                                        )}
-                                        onClick={() => {
-                                          field.onChange(supplier.id);
-                                          setSupplierSearch("");
-                                          setSupplierDropdownOpen(false);
-                                        }}
-                                      >
-                                        <span className="text-sm">{supplier.name}</span>
-                                        {supplier.id === field.value && (
-                                          <Check className="h-4 w-4 text-blue-600" />
-                                        )}
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    label="Supplier"
+                    items={suppliers}
+                    valueKey={(s) => s.id}
+                    labelKey={(s) => s.name}
+                    placeholder="Select supplier"
+                    searchPlaceholder="Search suppliers..."
+                    emptyMessage="No suppliers found"
+                    colorClass="blue"
                   />
                 )}
 
                 {/* Customer Selection - Only for customer refunds */}
                 {paymentType === "customer_refund" && (
-                  <FormField
+                  <SearchableFormSelect
                     control={form.control}
                     name="customerId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700">Customer</FormLabel>
-                        <div className="relative">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
-                          >
-                            {field.value
-                              ? (() => {
-                                const customer = customers.find((customer) => customer.id === field.value);
-                                if (customer) {
-                                  return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
-                                }
-                                return "Select customer";
-                              })()
-                              : "Select customer"}
-                            <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-
-                          {customerDropdownOpen && (
-                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
-                              <div className="p-3">
-                                <Input
-                                  placeholder="Search customers..."
-                                  className="mb-3 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                                  value={customerSearch}
-                                  onChange={(e) => setCustomerSearch(e.target.value)}
-                                  autoFocus
-                                />
-                                <div className="max-h-[200px] overflow-y-auto">
-                                  {filteredCustomers.length === 0 ? (
-                                    <div className="text-center py-3 text-sm text-gray-500">
-                                      No customers found
-                                    </div>
-                                  ) : (
-                                    filteredCustomers.map((customer) => (
-                                      <div
-                                        key={customer.id}
-                                        className={cn(
-                                          "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-blue-50 transition-colors",
-                                          customer.id === field.value && "bg-blue-50 text-blue-700"
-                                        )}
-                                        onClick={() => {
-                                          field.onChange(customer.id);
-                                          setCustomerSearch("");
-                                          setCustomerDropdownOpen(false);
-                                        }}
-                                      >
-                                        <div className="flex flex-col">
-                                          <span className="text-sm font-medium">{customer.name}</span>
-                                          {customer.contact && (
-                                            <span className="text-xs text-gray-500">{customer.contact}</span>
-                                          )}
-                                        </div>
-                                        {customer.id === field.value && (
-                                          <Check className="h-4 w-4 text-blue-600" />
-                                        )}
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    label="Customer"
+                    items={customers}
+                    valueKey={(c) => c.id}
+                    labelKey={(c) => c.name}
+                    secondaryKey={(c) => c.contact}
+                    placeholder="Select customer"
+                    searchPlaceholder="Search customers..."
+                    emptyMessage="No customers found"
+                    colorClass="blue"
                   />
                 )}
 

@@ -6,8 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate, dateToUtc } from "@/lib/timezone-utils";
+import { dateToUtc } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -29,26 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExpenseFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
 import ImageUpload from "@/components/ui/image-upload";
+import { DatePickerField } from "@/components/forms/shared/DatePickerField";
+import { SearchableFormSelect } from "@/components/forms/shared/SearchableFormSelect";
+import { extractFormErrors } from "@/lib/transaction-schemas";
 
 const formSchema = z.object({
   expenseDate: z.date({
@@ -88,14 +73,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
   submitButtonText = "Create"
 }) => {
   const [loading, setLoading] = useState(false);
-  const [categorySearch, setCategorySearch] = useState("");
-  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
-
-  // Add this computed value
-  const filteredCategories = expenseCategories.filter(category =>
-    category.name.toLowerCase().includes(categorySearch.toLowerCase())
-  );  let defaultValues: Partial<ExpenseFormValues> = {
+  const [formErrors, setFormErrors] = useState<string[]>([]);  let defaultValues: Partial<ExpenseFormValues> = {
     expenseDate: new Date(),
     amount: 0,
     expenseCategoryId: "",
@@ -130,10 +108,6 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
     defaultValues,
   });
 
-  const getCategoryNameById = (id: string) => {
-    const category = expenseCategories.find(cat => cat.id === id);
-    return category ? category.name : "";
-  };
   const onSubmit = async (data: ExpenseFormValues) => {
     try {
       console.log("Expense form submission initiated with data:", {
@@ -190,15 +164,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
 
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
-
-    const errorMessages: string[] = [];
-    Object.entries(errors).forEach(([key, value]: [string, any]) => {
-      if (value?.message) {
-        errorMessages.push(`${key}: ${value.message}`);
-      }
-    });
-
-    setFormErrors(errorMessages);
+    setFormErrors(extractFormErrors(errors));
     toast.error("Please check the form for errors");
   };
 
@@ -239,107 +205,27 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
             </CardHeader>
             <CardContent className="px-8 py-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Category Select - Enhanced implementation */}
-                <FormField
+                {/* Category Select */}
+                <SearchableFormSelect
                   control={form.control}
                   name="expenseCategoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Expense Category</FormLabel>
-                      <div className="relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between h-11 border-gray-300 hover:border-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-                        >
-                          {field.value
-                            ? expenseCategories.find((category) => category.id === field.value)?.name || "Select category"
-                            : "Select expense category"}
-                          <Check className="ml-auto h-4 w-4" />
-                        </Button>
-
-                        {categoryDropdownOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-lg">
-                            <div className="p-3">
-                              <Input
-                                placeholder="Search categories..."
-                                className="mb-2 h-10 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                                value={categorySearch}
-                                onChange={(e) => setCategorySearch(e.target.value)}
-                                autoFocus
-                              />
-
-                              <div className="max-h-[200px] overflow-y-auto">
-                                {filteredCategories.length === 0 ? (
-                                  <div className="text-sm text-gray-500 text-center py-2">
-                                    No categories found
-                                  </div>
-                                ) : (
-                                  filteredCategories.map((category) => (
-                                    <div
-                                      key={category.id}
-                                      className="flex items-center justify-between p-2 hover:bg-gray-100 cursor-pointer rounded"
-                                      onClick={() => {
-                                        field.onChange(category.id);
-                                        setCategoryDropdownOpen(false);
-                                        setCategorySearch("");
-                                      }}
-                                    >
-                                      <span className="text-sm">{category.name}</span>
-                                      {category.id === field.value && (
-                                        <Check className="h-4 w-4 text-primary" />
-                                      )}
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Expense Category"
+                  items={expenseCategories}
+                  valueKey={(c) => c.id}
+                  labelKey={(c) => c.name}
+                  placeholder="Select expense category"
+                  searchPlaceholder="Search categories..."
+                  emptyMessage="No categories found"
+                  colorClass="orange"
                 />
 
                 {/* Expense Date */}
-                <FormField
+                <DatePickerField
                   control={form.control}
                   name="expenseDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-sm font-medium text-gray-700">Expense Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal h-11 border-gray-300 hover:border-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >                            {field.value
-                              ? formatLocalDate(field.value, "PPP")
-                              : "Select date"}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={createDatePickerValue(field.value)}
-                            onSelect={(date) => date && field.onChange(date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Expense Date"
+                  dateFormat="PPP"
+                  colorClass="orange"
                 />                {/* Amount */}
                 <FormField
                   control={form.control}

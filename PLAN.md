@@ -30,7 +30,7 @@ The codebase has **200,950 lines** across all `.tsx`/`.ts` files in `src/`. Ther
 ### 1a. `src/components/forms/shared/DatePickerField.tsx` (~50 lines)
 Wraps Calendar + Popover + FormField for date selection. Used in all 6 forms.
 
-### 1b. `src/components/forms/shared/SearchableEntitySelect.tsx` (~80 lines)
+### 1b. `src/components/forms/shared/SearchableFormSelect.tsx` (~80 lines)
 Searchable dropdown using Command+Popover for selecting customers/suppliers. Used in all 6 forms.
 
 ### 1c. `src/components/forms/shared/LineItemsTable.tsx` (~200 lines)

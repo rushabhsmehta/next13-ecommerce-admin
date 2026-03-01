@@ -73,6 +73,13 @@ const tourPackageQueryPage = async (
           },
         },
       },
+      queryVariantSnapshots: {
+        select: {
+          id: true,
+          name: true,
+          sourceVariantId: true,
+        },
+      },
     },
   });
 

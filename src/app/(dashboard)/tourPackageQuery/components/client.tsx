@@ -237,7 +237,12 @@ function MobileQueryCard({
             {item.tourPackageQueryName || "Untitled Query"}
           </Link>
         </div>
-        <StatusBadge confirmed={item.isFeatured} />
+        <StatusBadge
+          confirmed={item.isFeatured}
+          variantId={item.confirmedVariantId}
+          snapshots={item.queryVariantSnapshots}
+          customVariants={item.customQueryVariants}
+        />
       </div>
 
       <Separator className="opacity-30" />
@@ -280,16 +285,47 @@ function MobileQueryCard({
   );
 }
 
-function StatusBadge({ confirmed }: { confirmed: boolean }) {
+function StatusBadge({
+  confirmed,
+  variantId,
+  snapshots,
+  customVariants
+}: {
+  confirmed: boolean;
+  variantId?: string | null;
+  snapshots?: any[];
+  customVariants?: any[];
+}) {
+  let variantName = "";
+  if (confirmed && variantId) {
+    const snapshot = snapshots?.find(s => s.id === variantId || s.sourceVariantId === variantId);
+    if (snapshot) {
+      variantName = snapshot.name;
+    } else {
+      const custom = customVariants?.find(cv => cv.id === variantId);
+      if (custom) {
+        variantName = custom.name;
+      } else {
+        variantName = `ID: ${variantId.substring(0, 8)}`;
+      }
+    }
+  }
+
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 ${
-        confirmed
+    <div className="flex flex-col gap-1 items-end">
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 ${confirmed
           ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-800/60"
           : "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800/60"
-      }`}
-    >
-      {confirmed ? "Confirmed" : "Pending"}
-    </span>
+          }`}
+      >
+        {confirmed ? "Confirmed" : "Pending"}
+      </span>
+      {variantName && (
+        <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50">
+          {variantName}
+        </span>
+      )}
+    </div>
   );
 }

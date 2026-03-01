@@ -42,6 +42,15 @@ const tourPackageQueryPage = async (
       customerNumber: true,
       tourStartsFrom: true,
       updatedAt: true,
+      confirmedVariantId: true,
+      queryVariantSnapshots: {
+        select: {
+          id: true,
+          name: true,
+          sourceVariantId: true,
+        }
+      },
+      customQueryVariants: true,
       location: {
         select: {
           label: true,
@@ -69,6 +78,9 @@ const tourPackageQueryPage = async (
     location: item.location.label,
     tourStartsFrom: item.tourStartsFrom ? format(add(item.tourStartsFrom, { hours: 5, minutes: 30 }), 'dd-MM-yyyy') : '',
     updatedAt: item.updatedAt ? format(add(item.updatedAt, { hours: 5, minutes: 30 }), 'dd-MM-yyyy HH:mm') : '',
+    confirmedVariantId: item.confirmedVariantId,
+    queryVariantSnapshots: item.queryVariantSnapshots,
+    customQueryVariants: item.customQueryVariants as any[],
   }));
 
   return (

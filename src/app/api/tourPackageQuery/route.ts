@@ -306,37 +306,37 @@ export async function POST(
 
         // Validate selectedVariantIds
         if (selectedVariantIds !== undefined && selectedVariantIds !== null) {
-          if (!Array.isArray(selectedVariantIds)) {
-            return NextResponse.json(
-              { error: "selectedVariantIds must be an array" },
-              { status: 400 }
-            );
-          }
-          if (!selectedVariantIds.every((id) => typeof id === "string")) {
-            return NextResponse.json(
-              { error: "All variant IDs must be strings" },
-              { status: 400 }
-            );
-          }
+            if (!Array.isArray(selectedVariantIds)) {
+                return NextResponse.json(
+                    { error: "selectedVariantIds must be an array" },
+                    { status: 400 }
+                );
+            }
+            if (!selectedVariantIds.every((id) => typeof id === "string")) {
+                return NextResponse.json(
+                    { error: "All variant IDs must be strings" },
+                    { status: 400 }
+                );
+            }
         }
 
         // Validate variantHotelOverrides
         if (variantHotelOverrides !== undefined && variantHotelOverrides !== null) {
-          if (typeof variantHotelOverrides !== "object" || Array.isArray(variantHotelOverrides)) {
-            return NextResponse.json(
-              { error: "variantHotelOverrides must be an object" },
-              { status: 400 }
-            );
-          }
-          // Validate structure: { variantId: { itineraryId: hotelId } }
-          for (const [variantId, overrides] of Object.entries(variantHotelOverrides)) {
-            if (typeof overrides !== "object" || Array.isArray(overrides)) {
-              return NextResponse.json(
-                { error: `Invalid override structure for variant ${variantId}` },
-                { status: 400 }
-              );
+            if (typeof variantHotelOverrides !== "object" || Array.isArray(variantHotelOverrides)) {
+                return NextResponse.json(
+                    { error: "variantHotelOverrides must be an object" },
+                    { status: 400 }
+                );
             }
-          }
+            // Validate structure: { variantId: { itineraryId: hotelId } }
+            for (const [variantId, overrides] of Object.entries(variantHotelOverrides)) {
+                if (typeof overrides !== "object" || Array.isArray(overrides)) {
+                    return NextResponse.json(
+                        { error: `Invalid override structure for variant ${variantId}` },
+                        { status: 400 }
+                    );
+                }
+            }
         }
 
         /*   if (!tourPackageQueryName) {
@@ -434,7 +434,7 @@ export async function POST(
                 selectedTemplateType,
                 tourPackageTemplateName,
                 selectedMealPlanId,                // Store occupancy selections directly - don't transform it
-                occupancySelections: occupancySelections || undefined, 
+                occupancySelections: occupancySelections || undefined,
                 selectedVariantIds: selectedVariantIds || undefined, // Store selected variant IDs
                 variantHotelOverrides: variantHotelOverrides || undefined, // Store hotel overrides
                 variantRoomAllocations: variantRoomAllocations || undefined, // Store room allocations per variant
@@ -709,6 +709,15 @@ export async function GET(
                 assignedToEmail: true,
                 isFeatured: true,
                 isArchived: true,
+                confirmedVariantId: true,
+                queryVariantSnapshots: {
+                    select: {
+                        id: true,
+                        name: true,
+                        sourceVariantId: true,
+                    }
+                },
+                customQueryVariants: true,
                 createdAt: true,
                 updatedAt: true,
                 associatePartner: {

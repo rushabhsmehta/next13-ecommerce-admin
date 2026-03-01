@@ -19,19 +19,53 @@ export type TourPackageQueryColumn = {
   updatedAt: string;
   isFeatured: boolean;
   isArchived: boolean;
+  confirmedVariantId?: string | null;
+  queryVariantSnapshots?: any[];
+  customQueryVariants?: any[];
 }
 
-function StatusPill({ confirmed }: { confirmed: boolean }) {
+function StatusPill({
+  confirmed,
+  variantId,
+  snapshots,
+  customVariants
+}: {
+  confirmed: boolean;
+  variantId?: string | null;
+  snapshots?: any[];
+  customVariants?: any[];
+}) {
+  let variantName = "";
+  if (confirmed && variantId) {
+    const snapshot = snapshots?.find(s => s.id === variantId || s.sourceVariantId === variantId);
+    if (snapshot) {
+      variantName = snapshot.name;
+    } else {
+      const custom = customVariants?.find(cv => cv.id === variantId);
+      if (custom) {
+        variantName = custom.name;
+      } else {
+        variantName = `ID: ${variantId.substring(0, 8)}`;
+      }
+    }
+  }
+
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold leading-none ${
-        confirmed
+    <div className="flex flex-col gap-1 items-start">
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold leading-none ${confirmed
           ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-800/60"
           : "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800/60"
-      }`}
-    >
-      {confirmed ? "Confirmed" : "Pending"}
-    </span>
+          }`}
+      >
+        {confirmed ? "Confirmed" : "Pending"}
+      </span>
+      {variantName && (
+        <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50">
+          {variantName}
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -167,7 +201,14 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
         <ArrowUpDown className="ml-1.5 h-3 w-3 opacity-50" />
       </Button>
     ),
-    cell: ({ row }) => <StatusPill confirmed={row.getValue("isFeatured")} />,
+    cell: ({ row }) => (
+      <StatusPill
+        confirmed={row.original.isFeatured}
+        variantId={row.original.confirmedVariantId}
+        snapshots={row.original.queryVariantSnapshots}
+        customVariants={row.original.customQueryVariants}
+      />
+    ),
     enableSorting: true,
   },
   {

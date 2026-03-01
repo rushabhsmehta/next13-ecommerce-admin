@@ -1314,7 +1314,25 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         <div className="space-y-1">
           <Heading title={title} description={description} />
           {initialData?.isFeatured && (
-            <Badge variant="secondary" className="bg-green-500 text-white">Confirmed</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-green-500 text-white">Confirmed</Badge>
+              {(() => {
+                const confirmedVariantId = form.watch('confirmedVariantId');
+                if (confirmedVariantId) {
+                  const snapshots = (initialData as any)?.queryVariantSnapshots || [];
+                  const customVariants = (initialData as any)?.customQueryVariants || [];
+
+                  const snapshot = snapshots.find((s: any) => s.id === confirmedVariantId || s.sourceVariantId === confirmedVariantId);
+                  if (snapshot) return <span className="text-sm font-medium text-muted-foreground">({snapshot.name})</span>;
+
+                  const custom = customVariants.find((cv: any) => cv.id === confirmedVariantId);
+                  if (custom) return <span className="text-sm font-medium text-muted-foreground">({custom.name})</span>;
+
+                  return <span className="text-sm font-medium text-muted-foreground">(ID: {confirmedVariantId.substring(0, 8)})</span>;
+                }
+                return null;
+              })()}
+            </div>
           )}
         </div>
         {initialData && (

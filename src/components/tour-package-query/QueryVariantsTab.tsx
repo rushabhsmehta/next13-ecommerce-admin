@@ -23,6 +23,7 @@ import axios from "axios";
 import { cn } from "@/lib/utils";
 import { utcToLocal } from "@/lib/timezone-utils";
 import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
+import { PricingBreakdownTable } from "@/components/tour-package-query/PricingBreakdownTable";
 
 // Calculation method type for pricing
 type CalculationMethod = 'manual' | 'autoHotelTransport' | 'useTourPackagePricing';
@@ -180,6 +181,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [variantPriceCalculationResults, setVariantPriceCalculationResults] = useState<Record<string, any>>({});
   const [variantMarkupValues, setVariantMarkupValues] = useState<Record<string, string>>({});
   const [variantPricingTiers, setVariantPricingTiers] = useState<Record<string, 'standard' | 'premium' | 'luxury' | 'custom'>>({});
+  // Source tour package and variant selection per variant (for useTourPackagePricing mode)
+  const [variantSourcePackageIds, setVariantSourcePackageIds] = useState<Record<string, string>>({});
+  const [variantSourceVariantIds, setVariantSourceVariantIds] = useState<Record<string, string>>({});
   // Pricing breakdown items (always-visible, editable), total price, and remarks per variant
   const [variantPricingItems, setVariantPricingItems] = useState<Record<string, { name: string; price: string; description: string }[]>>({});
   const [variantTotalPrices, setVariantTotalPrices] = useState<Record<string, string>>({});
@@ -187,14 +191,25 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
   // Hydrate state from saved form data when component mounts or when variants change
   useEffect(() => {
-    if (savedVariantPricingData && selectedVariantIds && selectedVariantIds.length > 0) {
+    if (savedVariantPricingData) {
       const newPricingItems: Record<string, { name: string; price: string; description: string }[]> = {};
       const newTotalPrices: Record<string, string> = {};
       const newRemarks: Record<string, string> = {};
+      const newCalcMethods: Record<string, CalculationMethod> = {};
 
-      selectedVariantIds.forEach(variantId => {
+      // Get all active variant IDs (package + custom)
+      const allActiveIds = [
+        ...(selectedVariantIds || []),
+        ...((customQueryVariants || []) as any[]).map(v => v.id)
+      ];
+
+      allActiveIds.forEach(variantId => {
         const savedData = savedVariantPricingData[variantId];
         if (savedData) {
+          // Hydrate calculation method
+          if (savedData.calculationMethod) {
+            newCalcMethods[variantId] = savedData.calculationMethod as CalculationMethod;
+          }
           // Hydrate pricing items (components) - include empty arrays to maintain consistency with sync logic
           if (Array.isArray(savedData.components)) {
             newPricingItems[variantId] = savedData.components;
@@ -210,12 +225,13 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         }
       });
 
-      // Replace state entirely for selected variants (don't spread to avoid stale data)
+      // Replace state entirely for active variants (don't spread to avoid stale data)
       setVariantPricingItems(newPricingItems);
       setVariantTotalPrices(newTotalPrices);
       setVariantRemarks(newRemarks);
+      setVariantCalcMethods(newCalcMethods);
     }
-  }, [savedVariantPricingData, selectedVariantIds]);
+  }, [savedVariantPricingData, selectedVariantIds, customQueryVariants]);
 
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
@@ -252,9 +268,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
   // Handler to fetch available pricing components for a variant
   const handleFetchVariantPricingComponents = async (variantId: string) => {
-    const baseTourPackageId = selectedTourPackageId;
+    // Use user-selected source package, fallback to the form's linked tour package
+    const baseTourPackageId = variantSourcePackageIds[variantId] || selectedTourPackageId;
     if (!baseTourPackageId) {
-      toast.error("Tour package not found.");
+      toast.error("Please select a Tour Package to fetch pricing from.");
       return;
     }
 
@@ -281,8 +298,12 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     toast.loading("Fetching available pricing components...");
     try {
       const queryParams = new URLSearchParams();
-      queryParams.append('packageVariantId', variantId);
-      queryParams.append('includeGlobal', '1');
+      // Use user-selected variant from source package (if any)
+      const sourceVariantId = variantSourceVariantIds[variantId];
+      if (sourceVariantId) {
+        queryParams.append('packageVariantId', sourceVariantId);
+        queryParams.append('includeGlobal', '1');
+      }
 
       const requestUrl = `/api/tourPackages/${baseTourPackageId}/pricing?${queryParams.toString()}`;
       const response = await axios.get(requestUrl);
@@ -463,6 +484,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     toast.success("Manual pricing applied successfully!");
   };
 
+  // Calculate pricing for a package variant (uses variant room data)
   const handleCalculateVariantPricing = async (variant: VariantWithDetails) => {
     const variantId = variant.id;
     const tourStartsFrom = queryStartDate;
@@ -569,6 +591,77 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     setVariantMarkupValues(prev => ({ ...prev, [variantId]: '0' }));
     setVariantPricingTiers(prev => ({ ...prev, [variantId]: 'standard' }));
     toast.success("Pricing calculation reset");
+  };
+
+  // Calculate pricing for a custom variant (uses queryItineraries with variant overrides)
+  const handleCalculateCustomVariantPricing = async (variantId: string) => {
+    const tourStartsFrom = queryStartDate;
+    const tourEndsOn = queryEndDate;
+
+    if (!tourStartsFrom || !tourEndsOn) {
+      toast.error("Please select tour start and end dates first.");
+      return;
+    }
+
+    const itineraryList = queryItineraries || [];
+    if (itineraryList.length === 0) {
+      toast.error("No itineraries configured. Add itineraries in the Hotels tab first.");
+      return;
+    }
+
+    const pricingItineraries = itineraryList.map((itinerary: any, idx: number) => ({
+      locationId: itinerary.locationId || '',
+      dayNumber: itinerary.dayNumber || idx + 1,
+      hotelId: variantHotelOverrides?.[variantId]?.[itinerary.id] || itinerary.hotelId,
+      roomAllocations: variantRoomAllocations?.[variantId]?.[itinerary.id] || [],
+      transportDetails: variantTransportDetails?.[variantId]?.[itinerary.id] || [],
+    }));
+
+    if (!pricingItineraries.some((it: any) => (it.roomAllocations?.length || 0) > 0 || (it.transportDetails?.length || 0) > 0)) {
+      toast.error("Please add room allocations or transport details before calculating.");
+      return;
+    }
+
+    const markupValue = variantMarkupValues[variantId] || '0';
+    const markupPercentage = parseFloat(markupValue) || 0;
+
+    try {
+      toast.loading("Calculating pricing...");
+      const response = await axios.post('/api/pricing/calculate', {
+        tourStartsFrom,
+        tourEndsOn,
+        itineraries: pricingItineraries,
+        markup: markupPercentage
+      });
+
+      const result = response.data;
+      toast.dismiss();
+
+      setVariantPriceCalculationResults(prev => ({ ...prev, [variantId]: result }));
+
+      if (result && typeof result === 'object') {
+        const totalCost = result.totalCost || 0;
+        const pricingItems: { name: string; price: string; description: string }[] = [
+          { name: 'Total Cost', price: totalCost.toString(), description: 'Total package cost with markup' },
+          ...(result.breakdown?.accommodation ? [{ name: 'Accommodation', price: String(result.breakdown.accommodation), description: 'Hotel room costs' }] : []),
+          ...(result.breakdown?.transport > 0 ? [{ name: 'Transport', price: String(result.breakdown.transport), description: 'Vehicle costs' }] : []),
+        ];
+        setVariantPricingItems(prev => ({ ...prev, [variantId]: pricingItems }));
+        setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalCost.toString() }));
+
+        const currentPricingData = form.getValues('variantPricingData') || {};
+        form.setValue('variantPricingData', {
+          ...currentPricingData,
+          [variantId]: { calculationMethod: 'autoHotelTransport', ...result, calculatedAt: result.calculatedAt || new Date().toISOString() }
+        });
+      }
+
+      toast.success("Price calculation complete!");
+    } catch (error: any) {
+      toast.dismiss();
+      console.error('Custom variant pricing error:', error);
+      toast.error("Price calculation failed. Please try again.");
+    }
   };
 
   // Legacy: Fetch & Apply All Components directly for a variant
@@ -715,7 +808,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   // Accepts optional overrideItems to avoid stale closure issues (e.g. Load Default)
   const syncVariantPricingToForm = useCallback((
     variantId: string,
-    overrideItems?: { name: string; price: string; description: string }[]
+    overrideItems?: { name: string; price: string; description: string }[],
+    overrideCalcMethod?: CalculationMethod
   ) => {
     const currentPricingData = form.getValues('variantPricingData') || {};
     const existingData = currentPricingData[variantId] || {};
@@ -739,17 +833,22 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       ? stateRemarks
       : (typeof existingData.remarks === 'string' ? existingData.remarks : '');
 
+    const calcMethod = overrideCalcMethod !== undefined
+      ? overrideCalcMethod
+      : (variantCalcMethods[variantId] || existingData.calculationMethod || 'useTourPackagePricing');
+
     form.setValue('variantPricingData', {
       ...currentPricingData,
       [variantId]: {
         ...existingData,
+        calculationMethod: calcMethod,
         components: items,
         totalCost,
         remarks,
         updatedAt: new Date().toISOString()
       }
     });
-  }, [form, variantPricingItems, variantTotalPrices, variantRemarks]);
+  }, [form, variantPricingItems, variantTotalPrices, variantRemarks, variantCalcMethods]);
 
   // Copy pricing data from one variant to another
   const copyPricingFromVariant = (fromVariantId: string, toVariantId: string) => {
@@ -1240,7 +1339,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     const pricingItems = variantPricingItems[variantId] || [];
     const totalPrice = variantTotalPrices[variantId] || '';
     const remarks = variantRemarks[variantId] || '';
-    const calcMethod = variantCalcMethods[variantId] || 'useTourPackagePricing';
+    const calcMethod = variantCalcMethods[variantId] || 'manual';
 
     return (
       <div className="space-y-4">
@@ -1295,8 +1394,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           </Card>
         )}
 
-        {/* Calculation Method (only for package variants with tour package pricing) */}
-        {isPackageVariant && selectedTourPackageId && (
+        {/* Calculation Method (available for both package and custom variants) */}
+        {(isPackageVariant ? !!selectedTourPackageId : true) && (
           <Card className="shadow-sm border border-blue-200/60 bg-gradient-to-r from-blue-50/20 to-transparent">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center mb-3">
@@ -1305,13 +1404,16 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
               </div>
               <RadioGroup
                 value={calcMethod}
-                onValueChange={(v: CalculationMethod) => setVariantCalcMethods(prev => ({ ...prev, [variantId]: v }))}
+                onValueChange={(v: CalculationMethod) => {
+                  setVariantCalcMethods(prev => ({ ...prev, [variantId]: v }));
+                  syncVariantPricingToForm(variantId, undefined, v);
+                }}
                 className="grid grid-cols-1 md:grid-cols-3 gap-2"
               >
                 {[
-                  { value: 'manual', icon: <Receipt className="h-3.5 w-3.5 mr-1.5" />, label: 'Manual Entry', desc: 'Enter pricing items manually' },
-                  { value: 'autoHotelTransport', icon: <Calculator className="h-3.5 w-3.5 mr-1.5" />, label: 'Auto Calculate', desc: 'From hotels + transport' },
-                  { value: 'useTourPackagePricing', icon: <Package className="h-3.5 w-3.5 mr-1.5" />, label: 'Package Pricing', desc: 'From tour package template' },
+                  { value: 'manual', icon: <span className="mr-1.5 text-sm">✍️</span>, label: 'Manual Pricing Entry', desc: 'Enter pricing components manually with full control' },
+                  { value: 'autoHotelTransport', icon: <span className="mr-1.5 text-sm">🤖</span>, label: 'Auto Calculate (Hotel + Transport)', desc: 'Automatically calculate based on itinerary hotels and transport' },
+                  { value: 'useTourPackagePricing', icon: <span className="mr-1.5 text-sm">🗳️</span>, label: 'Use Tour Package Pricing', desc: 'Use pre-defined pricing from selected tour package template' },
                 ].map(opt => (
                   <div
                     key={opt.value}
@@ -1321,15 +1423,12 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         ? "border-blue-400 bg-blue-50 shadow-sm"
                         : "border-slate-200 hover:border-blue-300 hover:bg-blue-50/50"
                     )}
-                    onClick={() => setVariantCalcMethods(prev => ({ ...prev, [variantId]: opt.value as CalculationMethod }))}
                   >
                     <RadioGroupItem value={opt.value} id={`${opt.value}-${variantId}`} className="mt-0.5" />
-                    <div>
-                      <label htmlFor={`${opt.value}-${variantId}`} className="text-xs font-medium cursor-pointer flex items-center">
-                        {opt.icon}{opt.label}
-                      </label>
+                    <label htmlFor={`${opt.value}-${variantId}`} className="flex-1 cursor-pointer">
+                      <span className="text-xs font-medium flex items-center">{opt.icon}{opt.label}</span>
                       <p className="text-[10px] text-slate-500 mt-0.5">{opt.desc}</p>
-                    </div>
+                    </label>
                   </div>
                 ))}
               </RadioGroup>
@@ -1338,69 +1437,32 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         )}
 
         {/* Calculation method specific content */}
-        {isPackageVariant && calcMethod === 'manual' && (() => {
-          const manualItems = variantManualPricingItems[variantId] || [];
-          const manualTotal = manualItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
-          return (
-            <Card className="shadow-sm border border-indigo-200/60">
-              <CardHeader className="pb-3 border-b bg-indigo-50/50">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-indigo-600" /> Manual Pricing Entry
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
-                {manualItems.length === 0 ? (
-                  <p className="text-sm text-center text-muted-foreground py-4">Add items using the button below.</p>
-                ) : (
-                  manualItems.map((item, idx) => (
-                    <div key={idx} className="p-3 border rounded-md bg-white space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-medium text-slate-500">Item {idx + 1}</span>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => handleRemoveManualPricingItem(variantId, idx)} className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"><Trash className="h-3 w-3" /></Button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        <Input value={item.name} onChange={(e) => handleUpdateManualPricingItem(variantId, idx, 'name', e.target.value)} placeholder="Component name" className="h-8 text-xs" />
-                        <Input value={item.price} onChange={(e) => handleUpdateManualPricingItem(variantId, idx, 'price', e.target.value)} placeholder="Price" type="number" className="h-8 text-xs" />
-                        <Input value={item.description} onChange={(e) => handleUpdateManualPricingItem(variantId, idx, 'description', e.target.value)} placeholder="Description (optional)" className="h-8 text-xs" />
-                      </div>
-                    </div>
-                  ))
-                )}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Button type="button" variant="outline" size="sm" onClick={() => handleAddManualPricingItem(variantId)} className="h-8 text-xs">
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Item
-                  </Button>
-                  <Button type="button" size="sm" onClick={() => handleApplyManualPricing(variantId)} className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white" disabled={manualItems.length === 0}>
-                    <CheckCircle className="h-3.5 w-3.5 mr-1" /> Apply Manual Pricing
-                  </Button>
-                  {manualItems.length > 0 && (
-                    <span className="ml-auto text-sm font-semibold text-indigo-700 self-center">Total: {formatCurrency(manualTotal)}</span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
+        {/* Manual mode: no extra section needed — use the always-visible Pricing Breakdown & Total below */}
 
-        {isPackageVariant && calcMethod === 'autoHotelTransport' && (() => {
+        {calcMethod === 'autoHotelTransport' && (() => {
           const calcResult = variantPriceCalculationResults[variantId];
           const markupValue = variantMarkupValues[variantId] || '0';
           const pricingTier = variantPricingTiers[variantId] || 'custom';
           return (
-            <Card className="shadow-sm border border-green-200/60">
-              <CardHeader className="pb-3 border-b bg-green-50/50">
+            <Card className="shadow-sm border border-emerald-200/60 bg-gradient-to-r from-emerald-50/20 to-transparent">
+              <CardHeader className="pb-3 border-b bg-emerald-50/50">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Calculator className="h-4 w-4 text-green-600" /> Auto Calculate (Hotel + Transport)
+                  <Calculator className="h-4 w-4 text-emerald-600" /> 🤖 Auto Calculate (Hotel + Transport)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                <Alert><Info className="h-4 w-4" /><AlertDescription>Calculates pricing based on hotel and transport details from Room Allocation tab.</AlertDescription></Alert>
-                <div className="flex flex-wrap gap-3 items-end p-3 border border-emerald-200 rounded-lg bg-emerald-50/30">
+                <Alert className="border-emerald-200 bg-emerald-50">
+                  <Info className="h-4 w-4 text-emerald-600" />
+                  <AlertDescription className="text-emerald-700">
+                    Automatically calculates pricing based on room allocations and transport details from the Room Allocation tab.
+                  </AlertDescription>
+                </Alert>
+                <div className="flex flex-wrap gap-3 items-end p-4 border border-emerald-200 rounded-lg bg-white shadow-sm">
                   <div className="flex items-center gap-2">
                     <Target className="h-4 w-4 text-emerald-600" />
-                    <label className="text-xs font-medium text-emerald-700 whitespace-nowrap">Markup %:</label>
+                    <label className="text-xs font-semibold text-emerald-700 whitespace-nowrap">Markup %:</label>
                     <Input
-                      type="number" className="w-20 h-8 bg-white border-emerald-300" value={markupValue} min="0" max="100"
+                      type="number" className="w-24 h-8 bg-white border-emerald-300 focus:border-emerald-500" value={markupValue} min="0" max="100"
                       onChange={(e) => setVariantMarkupValues(prev => ({ ...prev, [variantId]: e.target.value }))}
                     />
                   </div>
@@ -1422,100 +1484,170 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     </SelectContent>
                   </Select>
                   <div className="flex gap-2">
-                    <Button type="button" onClick={() => variant && handleCalculateVariantPricing(variant)} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white" disabled={loading || !variant}>
-                      <Calculator className="mr-1.5 h-3.5 w-3.5" /> Calculate
+                    <Button
+                      type="button"
+                      onClick={() => variant ? handleCalculateVariantPricing(variant) : handleCalculateCustomVariantPricing(variantId)}
+                      className="h-8 text-xs bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-sm"
+                      disabled={loading}
+                    >
+                      <Calculator className="mr-1.5 h-3.5 w-3.5" /> 🧮 Calculate Price
                     </Button>
-                    <Button type="button" onClick={() => handleResetVariantCalculation(variantId)} variant="outline" className="h-8 text-xs" disabled={loading}>
+                    <Button type="button" onClick={() => handleResetVariantCalculation(variantId)} variant="outline" className="h-8 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300" disabled={loading}>
                       <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Reset
                     </Button>
                   </div>
                 </div>
-                {calcResult && calcResult.itineraryBreakdown?.length > 0 && (
-                  <div className="border border-blue-200 rounded-lg overflow-hidden">
-                    <Table>
-                      <TableCaption className="py-2 bg-blue-50 text-xs">Pricing Breakdown</TableCaption>
-                      <TableHeader>
-                        <TableRow className="bg-blue-100">
-                          <TableHead className="text-xs w-16">Day</TableHead>
-                          <TableHead className="text-xs">Description</TableHead>
-                          <TableHead className="text-xs text-right">Room</TableHead>
-                          <TableHead className="text-xs text-right">Transport</TableHead>
-                          <TableHead className="text-xs text-right">Total</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(() => {
-                          const days = new Set<number>();
-                          calcResult.itineraryBreakdown?.forEach((item: any) => days.add(item.day));
-                          calcResult.transportDetails?.forEach((t: any) => days.add(t.day));
-                          return Array.from(days).sort((a, b) => a - b).map(day => {
-                            const acc = calcResult.itineraryBreakdown?.find((item: any) => item.day === day);
-                            const transports = calcResult.transportDetails?.filter((t: any) => t.day === day);
-                            const transportCost = transports?.reduce((s: number, t: any) => s + t.totalCost, 0) || 0;
-                            const dayTotal = (acc?.accommodationCost || 0) + transportCost;
-                            return (
-                              <TableRow key={`day-${day}`}>
-                                <TableCell className="text-xs font-medium">Day {day}</TableCell>
-                                <TableCell className="text-xs text-gray-600">{acc?.roomBreakdown?.map((rb: any, i: number) => <div key={i}>{rb.roomTypeName} ({rb.occupancyTypeName}) - ₹{rb.totalCost.toFixed(2)}</div>)}</TableCell>
-                                <TableCell className="text-xs text-right">{acc?.accommodationCost ? `₹${acc.accommodationCost.toFixed(2)}` : '-'}</TableCell>
-                                <TableCell className="text-xs text-right">{transportCost ? `₹${transportCost.toFixed(2)}` : '-'}</TableCell>
-                                <TableCell className="text-xs text-right font-medium">₹{dayTotal.toFixed(2)}</TableCell>
-                              </TableRow>
-                            );
-                          });
-                        })()}
-                        <TableRow className="bg-blue-100 font-bold">
-                          <TableCell colSpan={4} className="text-xs text-right">Final Total</TableCell>
-                          <TableCell className="text-xs text-right">₹{calcResult.totalCost?.toFixed(2)}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                {/* Use the shared PricingBreakdownTable for consistent display */}
+                <PricingBreakdownTable
+                  priceCalculationResult={calcResult}
+                  hotels={hotels}
+                  roomTypes={roomTypes}
+                  occupancyTypes={occupancyTypes}
+                  mealPlans={mealPlans}
+                  vehicleTypes={vehicleTypes}
+                  itineraries={isPackageVariant ? itineraries : (queryItineraries || [])}
+                  variant={true}
+                />
               </CardContent>
             </Card>
           );
         })()}
 
-        {isPackageVariant && calcMethod === 'useTourPackagePricing' && (
-          <Card className="shadow-sm border border-purple-200/60">
+        {calcMethod === 'useTourPackagePricing' && (
+          <Card className="shadow-sm border border-purple-200/60 bg-gradient-to-r from-purple-50/20 to-transparent">
             <CardHeader className="pb-3 border-b bg-purple-50/50">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Package className="h-4 w-4 text-purple-600" /> Tour Package Pricing
+                <Package className="h-4 w-4 text-purple-600" /> 📦 Tour Package Pricing
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-purple-700 flex items-center gap-1.5"><UtensilsIcon className="h-3.5 w-3.5" /> Meal Plan <span className="text-red-500">*</span></label>
-                  <Select
-                    disabled={loading}
-                    onValueChange={(value) => {
-                      setVariantMealPlanIds(prev => ({ ...prev, [variantId]: value }));
-                      setVariantAvailableComponents(prev => ({ ...prev, [variantId]: [] }));
-                      setVariantComponentsFetched(prev => ({ ...prev, [variantId]: false }));
-                    }}
-                    value={variantMealPlanIds[variantId] || undefined}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-purple-300"><SelectValue placeholder="Select Meal Plan" /></SelectTrigger>
-                    <SelectContent>{mealPlans.map((plan) => <SelectItem key={plan.id} value={plan.id} className="text-xs">{plan.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-purple-700 flex items-center gap-1.5"><BedDouble className="h-3.5 w-3.5" /> Number of Rooms <span className="text-red-500">*</span></label>
-                  <div className="flex items-center gap-2">
-                    <Button type="button" size="icon" variant="outline" className="h-8 w-8 border-purple-300 hover:bg-purple-50" onClick={() => handleRoomCountChange(variantId, (variantRoomCounts[variantId] || 1) - 1)} disabled={loading || (variantRoomCounts[variantId] || 1) <= 1}>
-                      <span className="font-bold text-purple-600">-</span>
-                    </Button>
-                    <Input type="number" value={variantRoomCounts[variantId] || 1} onChange={(e) => handleRoomCountChange(variantId, parseInt(e.target.value) || 1)} min="1" disabled={loading} className="w-16 text-center h-8 text-sm border-purple-300 font-semibold" />
-                    <Button type="button" size="icon" variant="outline" className="h-8 w-8 border-purple-300 hover:bg-purple-50" onClick={() => handleRoomCountChange(variantId, (variantRoomCounts[variantId] || 1) + 1)} disabled={loading}>
-                      <span className="font-bold text-purple-600">+</span>
-                    </Button>
+              <Alert className="bg-indigo-50 border-indigo-200">
+                <Star className="h-4 w-4 text-indigo-600" />
+                <AlertDescription className="text-indigo-700 text-xs">
+                  Select a Tour Package and (optionally) a Variant below. Then choose the Meal Plan and Number of Rooms to fetch matching pre-defined pricing components. This will overwrite the Total Price and Pricing Options below.
+                </AlertDescription>
+              </Alert>
+
+              {/* Source Tour Package Selector */}
+              <div className="bg-white rounded-lg p-4 border border-violet-200">
+                <label className="text-sm font-semibold text-violet-700 flex items-center gap-1.5 mb-2">
+                  <Package className="h-4 w-4" /> 📦 Source Tour Package <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  disabled={loading}
+                  value={variantSourcePackageIds[variantId] || selectedTourPackageId || ''}
+                  onValueChange={(value) => {
+                    setVariantSourcePackageIds(prev => ({ ...prev, [variantId]: value }));
+                    // Reset variant selection when package changes
+                    setVariantSourceVariantIds(prev => ({ ...prev, [variantId]: '' }));
+                    // Reset meal plan and components
+                    setVariantMealPlanIds(prev => ({ ...prev, [variantId]: '' }));
+                    setVariantAvailableComponents(prev => ({ ...prev, [variantId]: [] }));
+                    setVariantComponentsFetched(prev => ({ ...prev, [variantId]: false }));
+                  }}
+                >
+                  <SelectTrigger className="bg-white border-violet-300 focus:border-violet-500 text-sm">
+                    <SelectValue placeholder="Select a Tour Package..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(tourPackages || []).map((pkg) => (
+                      <SelectItem key={pkg.id} value={pkg.id}>
+                        {pkg.tourPackageName || `Package ${pkg.id.substring(0, 8)}...`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!variantSourcePackageIds[variantId] && !selectedTourPackageId && (
+                  <p className="text-xs text-red-500 mt-1">Required — select a tour package to load pricing from</p>
+                )}
+                {(variantSourcePackageIds[variantId] || selectedTourPackageId) && !variantSourcePackageIds[variantId] && (
+                  <p className="text-xs text-violet-500 mt-1">Using the linked tour package from this query ({selectedTourPackageId?.substring(0, 8)}...)</p>
+                )}
+              </div>
+
+              {/* Source Package Variant Selector */}
+              {(() => {
+                const sourcePackageId = variantSourcePackageIds[variantId] || selectedTourPackageId;
+                const sourcePkg = (tourPackages || []).find(p => p.id === sourcePackageId);
+                const sourceVariants = sourcePkg?.packageVariants || [];
+                if (!sourcePackageId) return null;
+                return (
+                  <div className="bg-white rounded-lg p-4 border border-violet-200">
+                    <label className="text-sm font-semibold text-violet-700 flex items-center gap-1.5 mb-2">
+                      <Sparkles className="h-4 w-4" /> ✨ Package Variant <span className="text-slate-400 font-normal">(optional)</span>
+                    </label>
+                    <Select
+                      disabled={loading || sourceVariants.length === 0}
+                      value={variantSourceVariantIds[variantId] || '__global__'}
+                      onValueChange={(value) => {
+                        setVariantSourceVariantIds(prev => ({ ...prev, [variantId]: value === '__global__' ? '' : value }));
+                        // Reset components when variant selection changes
+                        setVariantAvailableComponents(prev => ({ ...prev, [variantId]: [] }));
+                        setVariantComponentsFetched(prev => ({ ...prev, [variantId]: false }));
+                      }}
+                    >
+                      <SelectTrigger className="bg-white border-violet-300 focus:border-violet-500 text-sm">
+                        <SelectValue placeholder="Global pricing (no specific variant)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__global__">🌐 Global (no variant filter)</SelectItem>
+                        {sourceVariants.map((v: any) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            ✨ {v.name || `Variant ${v.id.substring(0, 8)}...`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {sourceVariants.length === 0 && (
+                      <p className="text-xs text-slate-500 mt-1">This package has no variants — global pricing will be used</p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <label className="text-sm font-semibold text-purple-700 flex items-center gap-1.5 mb-2">
+                  <UtensilsIcon className="h-4 w-4" /> 🍽️ Meal Plan <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  disabled={loading}
+                  onValueChange={(value) => {
+                    setVariantMealPlanIds(prev => ({ ...prev, [variantId]: value }));
+                    setVariantAvailableComponents(prev => ({ ...prev, [variantId]: [] }));
+                    setVariantComponentsFetched(prev => ({ ...prev, [variantId]: false }));
+                  }}
+                  value={variantMealPlanIds[variantId] || undefined}
+                >
+                  <SelectTrigger className="bg-white border-purple-300 focus:border-purple-500 text-sm">
+                    <SelectValue placeholder="Select Meal Plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mealPlans.map((plan) => <SelectItem key={plan.id} value={plan.id}>🍽️ {plan.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {!variantMealPlanIds[variantId] && <p className="text-xs text-red-500 mt-1">Required</p>}
+              </div>
+
+              {/* Number of Rooms - full width with +/- counter */}
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <label className="text-sm font-semibold text-purple-700 flex items-center gap-1.5 mb-2">
+                  <BedDouble className="h-4 w-4" /> 🏨 Number of Rooms <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-4">
+                  <Button type="button" size="icon" variant="outline" className="rounded-full w-10 h-10 flex-shrink-0 bg-white border-purple-300 hover:bg-purple-50" onClick={() => handleRoomCountChange(variantId, (variantRoomCounts[variantId] || 1) - 1)} disabled={loading || (variantRoomCounts[variantId] || 1) <= 1}>
+                    <span className="text-lg font-bold text-purple-600">-</span>
+                  </Button>
+                  <Input type="number" value={variantRoomCounts[variantId] || 1} onChange={(e) => handleRoomCountChange(variantId, parseInt(e.target.value) || 1)} min="1" pattern="[0-9]*" inputMode="numeric" disabled={loading} className="w-24 text-center bg-white border-purple-300 focus:border-purple-500 font-semibold text-lg" />
+                  <Button type="button" size="icon" variant="outline" className="rounded-full w-10 h-10 flex-shrink-0 bg-white border-purple-300 hover:bg-purple-50" onClick={() => handleRoomCountChange(variantId, (variantRoomCounts[variantId] || 1) + 1)} disabled={loading}>
+                    <span className="text-lg font-bold text-purple-600">+</span>
+                  </Button>
+                  <div className="flex items-center bg-purple-100 px-3 py-2 rounded-lg">
+                    <span className="text-sm font-medium text-purple-700">🏨 {variantRoomCounts[variantId] || 1} room{(variantRoomCounts[variantId] || 1) > 1 ? 's' : ''}</span>
                   </div>
                 </div>
               </div>
-              <Button type="button" onClick={() => handleFetchVariantPricingComponents(variantId)} className="w-full h-9 text-xs bg-purple-600 hover:bg-purple-700 text-white" disabled={loading || !variantMealPlanIds[variantId] || (variantRoomCounts[variantId] || 1) <= 0}>
-                <Calculator className="mr-2 h-3.5 w-3.5" /> Fetch Available Pricing Components
+              <Button type="button" onClick={() => handleFetchVariantPricingComponents(variantId)} className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-md" disabled={loading || !(variantSourcePackageIds[variantId] || selectedTourPackageId) || !variantMealPlanIds[variantId] || (variantRoomCounts[variantId] || 1) <= 0}>
+                <Calculator className="mr-2 h-4 w-4" /> 🔍 Fetch Available Pricing Components
               </Button>
 
               {variantComponentsFetched[variantId] && variantAvailableComponents[variantId]?.length > 0 && (
@@ -1543,7 +1675,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             <div className="flex justify-between items-center gap-2">
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-medium text-slate-800 truncate">{component.pricingAttribute?.name || 'Pricing Component'}</p>
-                                <p className="text-[10px] text-slate-500">₹{parseFloat(component.price || '0').toFixed(2)} / person</p>
+                                <p className="text-[10px] text-slate-500">
+                                  <span className="font-medium">Sales:</span> ₹{parseFloat(component.price || '0').toFixed(2)} / person
+                                  {component.purchasePrice && <span className="ml-2 text-orange-600">Purchase: ₹{parseFloat(component.purchasePrice || '0').toFixed(2)}</span>}
+                                </p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
                                 <div className="flex items-center gap-1">
@@ -1580,6 +1715,20 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   </Button>
                 </div>
               )}
+
+              {/* Legacy: Fetch & Apply All Components */}
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-600 mb-2">Or apply all pricing components directly:</p>
+                <Button
+                  type="button"
+                  onClick={() => handleFetchAndApplyAllComponents(variantId)}
+                  variant="outline"
+                  className="w-full"
+                  disabled={loading || !variantMealPlanIds[variantId] || (variantRoomCounts[variantId] || 1) <= 0}
+                >
+                  <Calculator className="mr-2 h-4 w-4" /> Fetch &amp; Apply All Components (Legacy)
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -1646,7 +1795,19 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         <label className="text-[10px] font-medium text-slate-500">Notes</label>
                         <Input value={item.description} disabled={loading} placeholder="Description / calculation" onChange={(e) => handleUpdateVariantPricingItem(variantId, idx, 'description', e.target.value)} onBlur={() => syncVariantPricingToForm(variantId)} className="h-7 text-xs bg-white" />
                       </div>
-                      <Button type="button" variant="ghost" size="icon" disabled={loading} onClick={() => { handleRemoveVariantPricingItem(variantId, idx); setTimeout(() => syncVariantPricingToForm(variantId), 0); }} className="text-red-400 hover:text-red-600 hover:bg-red-50 h-7 w-7 self-end flex-shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={loading}
+                        onClick={() => {
+                          const currentItems = variantPricingItems[variantId] || [];
+                          const newItems = currentItems.filter((_, i) => i !== idx);
+                          handleRemoveVariantPricingItem(variantId, idx);
+                          syncVariantPricingToForm(variantId, newItems);
+                        }}
+                        className="text-red-400 hover:text-red-600 hover:bg-red-50 h-7 w-7 self-end flex-shrink-0"
+                      >
                         <Trash className="h-3.5 w-3.5" />
                       </Button>
                     </div>

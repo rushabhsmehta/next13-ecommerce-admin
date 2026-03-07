@@ -33,6 +33,7 @@ import ImageUpload from "@/components/ui/image-upload";
 import { DatePickerField } from "@/components/forms/shared/DatePickerField";
 import { SearchableFormSelect } from "@/components/forms/shared/SearchableFormSelect";
 import { extractFormErrors } from "@/lib/transaction-schemas";
+import { PurchaseAllocationPanel } from "@/components/forms/purchase-allocation-panel";
 
 const formSchema = z.object({
   paymentDate: z.date({
@@ -61,6 +62,11 @@ const formSchema = z.object({
   tdsMasterId: z.string().optional(),
   tdsOverrideRate: z.number().optional(),
   linkTdsTransactionId: z.string().optional(),
+  purchaseAllocations: z.array(z.object({
+    purchaseDetailId: z.string(),
+    allocatedAmount: z.coerce.number().min(0),
+    note: z.string().optional()
+  })).optional().default([])
 }).refine((data) => {
   if (data.paymentType === "supplier_payment" && !data.supplierId) {
     return false;
@@ -72,6 +78,13 @@ const formSchema = z.object({
 }, {
   message: "Please select the appropriate recipient for this payment type",
   path: ["supplierId", "customerId"]
+}).refine((data) => {
+  if (!data.purchaseAllocations?.length) return true;
+  const total = data.purchaseAllocations.reduce((s, a) => s + (Number(a.allocatedAmount) || 0), 0);
+  return total <= data.amount + 0.01;
+}, {
+  message: "Total allocated amount cannot exceed payment amount",
+  path: ["purchaseAllocations"]
 });
 
 type PaymentFormValues = z.infer<typeof formSchema>;
@@ -196,6 +209,15 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       (apiData as any).tdsMasterId = form.getValues('tdsMasterId') || null;
       (apiData as any).tdsOverrideRate = form.getValues('tdsOverrideRate') ? Number(form.getValues('tdsOverrideRate')) : null;
       (apiData as any).linkTdsTransactionId = form.getValues('linkTdsTransactionId') || null;
+
+      // Include purchase allocations (filter out zero-amount ones)
+      (apiData as any).purchaseAllocations = (data.purchaseAllocations || [])
+        .filter((a: any) => Number(a.allocatedAmount) > 0)
+        .map((a: any) => ({
+          purchaseDetailId: a.purchaseDetailId,
+          allocatedAmount: Number(a.allocatedAmount),
+          note: a.note || null
+        }));
 
       if (paymentData && paymentData.id) {
         await axios.patch(`/api/payments/${paymentData.id}`, apiData);
@@ -607,6 +629,23 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
               )}
             </CardContent>
           </Card>
+
+          {/* Purchase Allocation Panel - only for supplier payments */}
+          {paymentType === "supplier_payment" && (
+            <Card className="shadow-md border-0 bg-white">
+              <CardHeader className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-4">
+                <CardTitle className="text-lg font-semibold">Apply to Bills</CardTitle>
+              </CardHeader>
+              <CardContent className="px-6 pt-6">
+                <PurchaseAllocationPanel
+                  form={form as any}
+                  supplierId={supplierId || null}
+                  tourPackageQueryId={form.watch("tourPackageQueryId")}
+                  paymentAmount={form.watch("amount") || 0}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Submit Button */}
           <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">

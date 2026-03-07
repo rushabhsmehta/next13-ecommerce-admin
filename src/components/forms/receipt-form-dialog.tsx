@@ -33,6 +33,13 @@ import ImageUpload from "@/components/ui/image-upload";
 import { DatePickerField } from "@/components/forms/shared/DatePickerField";
 import { SearchableFormSelect } from "@/components/forms/shared/SearchableFormSelect";
 import { extractFormErrors } from "@/lib/transaction-schemas";
+import { SaleAllocationPanel } from "@/components/forms/sale-allocation-panel";
+
+const saleAllocationItemSchema = z.object({
+  saleDetailId: z.string(),
+  allocatedAmount: z.coerce.number().min(0),
+  note: z.string().optional()
+});
 
 const formSchema = z.object({
   receiptDate: z.date({
@@ -67,6 +74,8 @@ const formSchema = z.object({
     .optional()
     .nullable(),
   linkTdsTransactionId: z.string().optional().nullable(),
+  // --- Sale allocations ---
+  saleAllocations: z.array(saleAllocationItemSchema).optional().default([])
 }).refine((data) => {
   if (data.receiptType === "customer_payment" && !data.customerId) {
     return false;
@@ -78,6 +87,13 @@ const formSchema = z.object({
 }, {
   message: "Please select the appropriate sender for this receipt type",
   path: ["customerId", "supplierId"]
+}).refine((data) => {
+  if (!data.saleAllocations?.length) return true;
+  const total = data.saleAllocations.reduce((s, a) => s + (Number(a.allocatedAmount) || 0), 0);
+  return total <= data.amount + 0.01;
+}, {
+  message: "Total allocated amount cannot exceed receipt amount",
+  path: ["saleAllocations"]
 });
 
 type ReceiptFormValues = z.infer<typeof formSchema>;
@@ -132,6 +148,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     tdsMasterId: undefined,
     tdsOverrideRate: undefined,
     linkTdsTransactionId: undefined,
+    saleAllocations: [],
   };
 
   if (receiptData && Object.keys(receiptData).length > 1) {
@@ -151,6 +168,11 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       tdsMasterId: (receiptData as any).tdsMasterId || undefined,
       tdsOverrideRate: (receiptData as any).tdsOverrideRate || undefined,
       linkTdsTransactionId: undefined,
+      saleAllocations: (receiptData as any).saleAllocations?.map((a: any) => ({
+        saleDetailId: a.saleDetailId,
+        allocatedAmount: a.allocatedAmount,
+        note: a.note || ""
+      })) || [],
     };
   }
 
@@ -218,6 +240,15 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
         (apiData as any).tdsOverrideRate = null;
         (apiData as any).linkTdsTransactionId = null;
       }
+
+      // Include sale allocations (filter out zero-amount ones)
+      (apiData as any).saleAllocations = (data.saleAllocations || [])
+        .filter((a: any) => Number(a.allocatedAmount) > 0)
+        .map((a: any) => ({
+          saleDetailId: a.saleDetailId,
+          allocatedAmount: Number(a.allocatedAmount),
+          note: a.note || null
+        }));
 
       if (receiptData && receiptData.id) {
         await axios.patch(`/api/receipts/${receiptData.id}`, apiData);
@@ -608,6 +639,24 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
               )}
             </CardContent>
           </Card>
+
+          {/* Sale Allocation Panel - only for customer payments */}
+          {watchedReceiptType === "customer_payment" && (
+            <Card className="shadow-md border-0 bg-white">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-4">
+                <CardTitle className="text-lg font-semibold">Apply to Invoices</CardTitle>
+              </CardHeader>
+              <CardContent className="px-6 pt-6">
+                <SaleAllocationPanel
+                  form={form as any}
+                  customerId={watchedCustomerId || null}
+                  tourPackageQueryId={form.watch("tourPackageQueryId")}
+                  receiptAmount={form.watch("amount") || 0}
+                  receiptId={(receiptData as any)?.id || null}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Submit Button */}
           <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">

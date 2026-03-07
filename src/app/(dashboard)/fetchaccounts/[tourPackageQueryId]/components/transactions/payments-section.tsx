@@ -502,9 +502,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              <DialogTitle>
-                {editItem && editItem.id ? "Edit Payment" : "Add New Payment"}
-              </DialogTitle>
+              {editItem && editItem.id ? "Edit Payment" : "Add New Payment"}
             </DialogTitle>
             <DialogDescription>
               {editItem && editItem.id ? "Edit payment details" : "Create a new payment for this tour package."}

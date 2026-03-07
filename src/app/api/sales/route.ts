@@ -13,19 +13,25 @@ export async function POST(req: Request) {
     await requireFinanceOrAdmin(userId);
 
     const body = await req.json();
-    const { 
-      customerId, 
-      tourPackageQueryId, 
-      saleDate, 
-      invoiceNumber, 
+    const {
+      customerId,
+      tourPackageQueryId,
+      saleDate,
+      invoiceNumber,
       referenceNumber,
-      salePrice, 
-      gstAmount, 
+      salePrice,
+      gstAmount,
       gstPercentage,
-      description, 
+      description,
       status,
       totalWithTax,
-      items 
+      items,
+      isGst,
+      cgstAmount,
+      sgstAmount,
+      igstAmount,
+      gstin,
+      hsnCode
     } = body;
 
     // Validate required fields
@@ -51,6 +57,12 @@ export async function POST(req: Request) {
         gstPercentage: gstPercentage ? parseFloat(gstPercentage.toString()) : null,
         description: description || null,
         status: status || "completed",
+        isGst: isGst !== undefined ? Boolean(isGst) : true,
+        cgstAmount: cgstAmount ? parseFloat(cgstAmount.toString()) : null,
+        sgstAmount: sgstAmount ? parseFloat(sgstAmount.toString()) : null,
+        igstAmount: igstAmount ? parseFloat(igstAmount.toString()) : null,
+        gstin: gstin || null,
+        hsnCode: hsnCode || null,
       }
     });
 

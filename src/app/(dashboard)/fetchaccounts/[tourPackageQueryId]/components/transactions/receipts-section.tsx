@@ -509,9 +509,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              <DialogTitle>
-                {editItem && editItem.id ? "Edit Receipt" : "Add New Receipt"}
-              </DialogTitle>
+              {editItem && editItem.id ? "Edit Receipt" : "Add New Receipt"}
             </DialogTitle>
             <DialogDescription>
               {editItem && editItem.id ? "Edit receipt details" : "Create a new receipt for this tour package."}

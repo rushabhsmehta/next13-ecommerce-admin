@@ -229,9 +229,7 @@ const SalesSection: React.FC<SalesSectionProps> = ({
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              <DialogTitle>
-                {editItem && editItem.id ? "Edit Sale" : "Add New Sale"}
-              </DialogTitle>
+              {editItem && editItem.id ? "Edit Sale" : "Add New Sale"}
             </DialogTitle>
             <DialogDescription>
               {editItem && editItem.id ? "Edit sale details" : "Create a new sale for this tour package."}

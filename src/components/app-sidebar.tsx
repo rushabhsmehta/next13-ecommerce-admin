@@ -89,12 +89,13 @@ const NAV_ITEMS = [
   {
     title: "Finance",
     items: [
+      { title: "Accounts Overview", url: "/accounts" },
+      { title: "Sales", url: "/sales" },
+      { title: "Purchases", url: "/purchases" },
       { title: "Incomes", url: "/incomes" },
       { title: "Expenses", url: "/expenses" },
       { title: "Accrued Expenses", url: "/expenses/accrued" },
-      //  { title: "Sales", url: "/sales" },
       { title: "Sale Returns", url: "/sale-returns" },
-      // { title: "Purchases", url: "/purchases" },
       { title: "Purchase Returns", url: "/purchase-returns" },
       { title: "Sales Ledger", url: "/sales/ledger" },
       { title: "Purchase Ledger", url: "/purchases/ledger" },

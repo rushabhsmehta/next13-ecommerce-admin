@@ -14,25 +14,32 @@ export async function POST(req: Request) {
     await requireFinanceOrAdmin(userId);
 
     const body = await req.json();
-    const { 
-      supplierId, 
-      tourPackageQueryId, 
-      purchaseDate, 
-      billNumber, 
+    const {
+      supplierId,
+      tourPackageQueryId,
+      purchaseDate,
+      billNumber,
       billDate,
       dueDate,
       stateOfSupply,
       referenceNumber,
-      price, 
-      gstAmount, 
+      price,
+      gstAmount,
       gstPercentage,
-      description, 
+      description,
       status,
       items,
       // TDS optional inputs
       tdsMasterId,
       tdsOverrideRate,
-      tdsType // 'INCOME_TAX' | 'GST'
+      tdsType, // 'INCOME_TAX' | 'GST'
+      // GST differentiation
+      isGst,
+      cgstAmount,
+      sgstAmount,
+      igstAmount,
+      gstin,
+      hsnCode
     } = body;
 
     // Validate required fields
@@ -66,6 +73,13 @@ export async function POST(req: Request) {
         status: status || "pending",
         // TDS placeholders if provided
         tdsMasterId: tdsMasterId || null,
+        // GST differentiation
+        isGst: isGst !== undefined ? Boolean(isGst) : true,
+        cgstAmount: cgstAmount ? parseFloat(cgstAmount.toString()) : null,
+        sgstAmount: sgstAmount ? parseFloat(sgstAmount.toString()) : null,
+        igstAmount: igstAmount ? parseFloat(igstAmount.toString()) : null,
+        gstin: gstin || null,
+        hsnCode: hsnCode || null,
       } as any)
     });
 

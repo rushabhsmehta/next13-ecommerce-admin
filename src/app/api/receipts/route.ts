@@ -10,6 +10,12 @@ import { z } from 'zod';
 // Helper function to clean empty strings to null for UUID fields
 const cleanEmptyString = (val: any) => (val === "" || val === undefined) ? null : val;
 
+const saleAllocationItemSchema = z.object({
+  saleDetailId: z.string().uuid(),
+  allocatedAmount: z.number().positive(),
+  note: z.preprocess(cleanEmptyString, z.string().nullable().optional())
+});
+
 const receiptCreateSchema = z.object({
   customerId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
   supplierId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
@@ -26,17 +32,25 @@ const receiptCreateSchema = z.object({
   tdsMasterId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
   tdsOverrideRate: z.number().min(0).max(100).nullable().optional(),
   tdsType: z.enum(['GST','INCOME_TAX']).nullable().optional(),
-  linkTdsTransactionId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional())
-}).refine(d => d.bankAccountId || d.cashAccountId, { 
-  message: 'Either bankAccountId or cashAccountId required', 
-  path: ['bankAccountId'] 
+  linkTdsTransactionId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
+  saleAllocations: z.array(saleAllocationItemSchema).optional().default([])
+}).refine(d => d.bankAccountId || d.cashAccountId, {
+  message: 'Either bankAccountId or cashAccountId required',
+  path: ['bankAccountId']
 }).refine(d => {
   if (d.receiptType === 'customer_payment' && !d.customerId) return false;
   if (d.receiptType === 'supplier_refund' && !d.supplierId) return false;
   return true;
-}, { 
-  message: 'Customer ID required for customer payments, Supplier ID required for supplier refunds', 
-  path: ['customerId'] 
+}, {
+  message: 'Customer ID required for customer payments, Supplier ID required for supplier refunds',
+  path: ['customerId']
+}).refine(d => {
+  if (!d.saleAllocations?.length) return true;
+  const allocTotal = d.saleAllocations.reduce((s, a) => s + a.allocatedAmount, 0);
+  return allocTotal <= d.amount + 0.01; // small tolerance for float rounding
+}, {
+  message: 'Total allocated amount cannot exceed receipt amount',
+  path: ['saleAllocations']
 });
 
 export async function POST(req: Request) {
@@ -51,7 +65,7 @@ export async function POST(req: Request) {
     
     const parsed = receiptCreateSchema.parse(requestBody);
     console.log('[RECEIPTS_POST] Successfully parsed and validated request data');
-    const { customerId, supplierId, receiptType, receiptDate, amount, method, transactionId, note, bankAccountId, cashAccountId, images, tourPackageQueryId, tdsMasterId, tdsOverrideRate, tdsType, linkTdsTransactionId } = parsed;
+    const { customerId, supplierId, receiptType, receiptDate, amount, method, transactionId, note, bankAccountId, cashAccountId, images, tourPackageQueryId, tdsMasterId, tdsOverrideRate, tdsType, linkTdsTransactionId, saleAllocations } = parsed;
 
     // Store method and transactionId info in the note if provided (since DB doesn't have these fields)
     let finalNote = note || null;
@@ -59,19 +73,51 @@ export async function POST(req: Request) {
       finalNote = finalNote ? `${finalNote}\nPayment Method: ${method}` : `Payment Method: ${method}`;
     }
 
-    const receiptDetail = await (prismadb as any).receiptDetail.create({
-      data: ({
-        customerId: customerId || null,
-        supplierId: supplierId || null,
-        receiptType,
-        receiptDate: dateToUtc(receiptDate)!,
-        amount,
-        reference: transactionId || null, // Map transactionId to reference field
-        note: finalNote,
-        bankAccountId: bankAccountId || null,
-        cashAccountId: cashAccountId || null,
-        tourPackageQueryId: tourPackageQueryId || null,
-      } as any)
+    // Validate sale allocations belong to the correct customer
+    if (saleAllocations?.length && customerId) {
+      for (const alloc of saleAllocations) {
+        const sale = await (prismadb as any).saleDetail.findUnique({
+          where: { id: alloc.saleDetailId },
+          select: { customerId: true }
+        });
+        if (!sale || sale.customerId !== customerId) {
+          return jsonError(`Sale ${alloc.saleDetailId} does not belong to this customer`, 400, 'VALIDATION');
+        }
+      }
+    }
+
+    // Create receipt and allocations atomically
+    const receiptDetail = await prismadb.$transaction(async (tx: any) => {
+      const receipt = await tx.receiptDetail.create({
+        data: ({
+          customerId: customerId || null,
+          supplierId: supplierId || null,
+          receiptType,
+          receiptDate: dateToUtc(receiptDate)!,
+          amount,
+          reference: transactionId || null,
+          note: finalNote,
+          bankAccountId: bankAccountId || null,
+          cashAccountId: cashAccountId || null,
+          tourPackageQueryId: tourPackageQueryId || null,
+        } as any)
+      });
+
+      // Create sale allocations
+      if (saleAllocations?.length) {
+        await Promise.all(saleAllocations.map((alloc: any) =>
+          tx.receiptSaleAllocation.create({
+            data: {
+              receiptDetailId: receipt.id,
+              saleDetailId: alloc.saleDetailId,
+              allocatedAmount: alloc.allocatedAmount,
+              note: alloc.note || null
+            }
+          })
+        ));
+      }
+
+      return receipt;
     });
 
     if (images?.length) {

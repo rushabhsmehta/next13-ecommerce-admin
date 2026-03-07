@@ -63,7 +63,13 @@ export async function PATCH(req: Request, props: { params: Promise<{ saleId: str
             description,
             status,
             totalWithTax,
-            items
+            items,
+            isGst,
+            cgstAmount,
+            sgstAmount,
+            igstAmount,
+            gstin,
+            hsnCode
         } = body;
 
         if (!params.saleId) {
@@ -122,6 +128,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ saleId: str
                     gstPercentage: gstPercentage !== undefined ? parseFloat(gstPercentage.toString()) : null,
                     description: description || null,
                     status: status || "completed",
+                    isGst: isGst !== undefined ? Boolean(isGst) : undefined,
+                    cgstAmount: cgstAmount !== undefined ? (cgstAmount ? parseFloat(cgstAmount.toString()) : null) : undefined,
+                    sgstAmount: sgstAmount !== undefined ? (sgstAmount ? parseFloat(sgstAmount.toString()) : null) : undefined,
+                    igstAmount: igstAmount !== undefined ? (igstAmount ? parseFloat(igstAmount.toString()) : null) : undefined,
+                    gstin: gstin !== undefined ? (gstin || null) : undefined,
+                    hsnCode: hsnCode !== undefined ? (hsnCode || null) : undefined,
                 }
             });
 

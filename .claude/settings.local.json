@@ -29,7 +29,9 @@
       "Bash(sed -n '880,1100p' /d/GitHub/next13-ecommerce-admin/src/app/\\\\\\(dashboard\\\\\\)/\\\\\\(routes\\\\\\)/tourpackagequeryfrominquiry/[inquiryId]/components/tourpackagequery-form-classic.tsx)",
       "Bash(sed -n '1490,1520p' /d/GitHub/next13-ecommerce-admin/src/app/\\\\\\(dashboard\\\\\\)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form.tsx)",
       "Bash(grep -n \"value=\"\"variants\"\"\" /d/GitHub/next13-ecommerce-admin/src/app/\\\\\\(dashboard\\\\\\)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form.tsx)",
-      "Bash(sed -n '1521,1540p' /d/GitHub/next13-ecommerce-admin/src/app/\\\\\\(dashboard\\\\\\)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form.tsx)"
+      "Bash(sed -n '1521,1540p' /d/GitHub/next13-ecommerce-admin/src/app/\\\\\\(dashboard\\\\\\)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form.tsx)",
+      "Bash(find \"d:/GitHub/next13-ecommerce-admin/src/app/\\(dashboard\\)/purchases\" -type f)",
+      "Bash(find \"d:/GitHub/next13-ecommerce-admin/src/app/\\(dashboard\\)/receipts\" -type f)"
     ]
   }
 }

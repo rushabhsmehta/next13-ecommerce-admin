@@ -1,34 +1,24 @@
-import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { SalesListTable } from "./components/sales-list-table";
+import { SalesPageClient } from "./components/sales-page-client";
 
 export default async function SalesPage() {
-/*   const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/sign-in");
-  } */
-
-  
-  const sales = await prismadb.saleDetail.findMany({
-    orderBy: { saleDate: "desc" },
-    include: {
-      customer: {
-        select: {
-          name: true
-        }
+  const [sales, customers] = await Promise.all([
+    prismadb.saleDetail.findMany({
+      orderBy: { saleDate: "desc" },
+      include: {
+        customer: { select: { id: true, name: true } },
+        items: { select: { id: true } },
+        receiptAllocations: { select: { allocatedAmount: true } },
       },
-      items: {
-        select: {
-          id: true
-        }
-      }
-    }
-  });
+    }),
+    prismadb.customer.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="flex-col">
@@ -41,9 +31,8 @@ export default async function SalesPage() {
             </Button>
           </Link>
         </div>
-        <SalesListTable data={sales} />
+        <SalesPageClient sales={sales} customers={customers} />
       </div>
     </div>
   );
 }
-

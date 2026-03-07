@@ -389,6 +389,12 @@ model PurchaseDetail {
   tdsAmount          Float?
   tdsChallanId       String?
   tdsMasterId        String?
+  isGst              Boolean          @default(true)
+  cgstAmount         Float?
+  sgstAmount         Float?
+  igstAmount         Float?
+  gstin              String?
+  hsnCode            String?
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   items              PurchaseItem[]
@@ -396,6 +402,8 @@ model PurchaseDetail {
   tdsMaster          TDSMaster?       @relation(fields: [tdsMasterId], references: [id])
   tdsChallan         TDSChallan?      @relation(fields: [tdsChallanId], references: [id])
   tdsTransactions    TDSTransaction[]
+  paymentAllocations PaymentPurchaseAllocation[]
+  linkedSales        SalePurchaseLink[]
 
   @@index([supplierId])
   @@index([tourPackageQueryId])
@@ -456,7 +464,8 @@ model PaymentDetail {
   saleReturn         SaleReturn?      @relation(fields: [saleReturnId], references: [id], onDelete: SetNull)
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
-  tdsTransaction     TDSTransaction?  @relation(fields: [tdsTransactionId], references: [id], onDelete: SetNull)
+  tdsTransaction      TDSTransaction?  @relation(fields: [tdsTransactionId], references: [id], onDelete: SetNull)
+  purchaseAllocations PaymentPurchaseAllocation[]
 
   @@index([bankAccountId])
   @@index([cashAccountId])
@@ -484,10 +493,18 @@ model SaleDetail {
   invoiceNumber      String?
   stateOfSupply      String?
   status             String?          @default("pending")
+  isGst              Boolean          @default(true)
+  cgstAmount         Float?
+  sgstAmount         Float?
+  igstAmount         Float?
+  gstin              String?
+  hsnCode            String?
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items              SaleItem[]
   saleReturns        SaleReturn[]
+  receiptAllocations ReceiptSaleAllocation[]
+  linkedPurchases    SalePurchaseLink[]
 
   @@index([customerId])
   @@index([tourPackageQueryId])
@@ -542,6 +559,7 @@ model ReceiptDetail {
   purchaseReturn     PurchaseReturn?  @relation(fields: [purchaseReturnId], references: [id], onDelete: SetNull)
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
+  saleAllocations    ReceiptSaleAllocation[]
 
   @@index([bankAccountId])
   @@index([cashAccountId])
@@ -1320,6 +1338,54 @@ model SaleReturnItem {
   @@index([unitOfMeasureId])
   @@index([taxSlabId])
   @@index([saleReturnId, orderIndex])
+}
+
+model ReceiptSaleAllocation {
+  id              String        @id @default(uuid())
+  receiptDetailId String
+  saleDetailId    String
+  allocatedAmount Float
+  note            String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now())
+  receiptDetail   ReceiptDetail @relation(fields: [receiptDetailId], references: [id], onDelete: Cascade)
+  saleDetail      SaleDetail    @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
+
+  @@unique([receiptDetailId, saleDetailId])
+  @@index([receiptDetailId])
+  @@index([saleDetailId])
+}
+
+model PaymentPurchaseAllocation {
+  id               String         @id @default(uuid())
+  paymentDetailId  String
+  purchaseDetailId String
+  allocatedAmount  Float
+  note             String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now())
+  paymentDetail    PaymentDetail  @relation(fields: [paymentDetailId], references: [id], onDelete: Cascade)
+  purchaseDetail   PurchaseDetail @relation(fields: [purchaseDetailId], references: [id], onDelete: Cascade)
+
+  @@unique([paymentDetailId, purchaseDetailId])
+  @@index([paymentDetailId])
+  @@index([purchaseDetailId])
+}
+
+model SalePurchaseLink {
+  id               String         @id @default(uuid())
+  saleDetailId     String
+  purchaseDetailId String
+  linkType         String?
+  note             String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now())
+  saleDetail       SaleDetail     @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
+  purchaseDetail   PurchaseDetail @relation(fields: [purchaseDetailId], references: [id], onDelete: Cascade)
+
+  @@unique([saleDetailId, purchaseDetailId])
+  @@index([saleDetailId])
+  @@index([purchaseDetailId])
 }
 
 model FlightTicket {

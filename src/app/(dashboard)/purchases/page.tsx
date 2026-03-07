@@ -1,29 +1,23 @@
-import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { PurchasesListTable } from "./components/purchases-list-table";
+import { PurchasesPageClient } from "./components/purchases-page-client";
 
 export default async function PurchasesPage() {
-  /* const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/sign-in");
-  } */
-
-  
-  const purchases = await prismadb.purchaseDetail.findMany({
-    orderBy: { purchaseDate: "desc" },
-    include: {
-      supplier: {
-        select: {
-          name: true
-        }
-      }
-    }
-  });
+  const [purchases, suppliers] = await Promise.all([
+    prismadb.purchaseDetail.findMany({
+      orderBy: { purchaseDate: "desc" },
+      include: {
+        supplier: { select: { id: true, name: true } },
+        paymentAllocations: { select: { allocatedAmount: true } },
+      },
+    }),
+    prismadb.supplier.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="flex-col">
@@ -36,9 +30,8 @@ export default async function PurchasesPage() {
             </Button>
           </Link>
         </div>
-        <PurchasesListTable data={purchases} />
+        <PurchasesPageClient purchases={purchases} suppliers={suppliers} />
       </div>
     </div>
   );
 }
-

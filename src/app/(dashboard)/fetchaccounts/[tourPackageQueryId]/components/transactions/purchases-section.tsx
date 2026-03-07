@@ -208,9 +208,7 @@ const PurchasesSection: React.FC<PurchasesSectionProps> = ({
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              <DialogTitle>
-                {editItem && editItem.id ? "Edit Purchase" : "Add New Purchase"}
-              </DialogTitle>
+              {editItem && editItem.id ? "Edit Purchase" : "Add New Purchase"}
             </DialogTitle>
             <DialogDescription>
               {editItem && editItem.id ? "Edit purchase details" : "Create a new purchase for this tour package."}

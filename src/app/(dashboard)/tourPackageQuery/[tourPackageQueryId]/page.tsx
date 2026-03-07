@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
+import { FinancialSummaryPanel } from "@/components/financial-summary-panel";
 
 const IMAGE_SELECT = {
   id: true,
@@ -300,6 +301,9 @@ const tourPackageQueryPage = async (
             tourPackages={tourPackages}
             tourPackageQueries={tourPackageQueries}
           />
+          {params.tourPackageQueryId !== 'new' && tourPackageQuery && (
+            <FinancialSummaryPanel queryId={params.tourPackageQueryId} />
+          )}
         </div>
 
         {/*  <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">

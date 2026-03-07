@@ -21,7 +21,10 @@ export async function GET(req: Request, props: { params: Promise<{ receiptId: st
         customer: true,
         bankAccount: true,
         cashAccount: true,
-        images: true
+        images: true,
+        saleAllocations: {
+          select: { saleDetailId: true, allocatedAmount: true, note: true }
+        }
       }
     });
 
@@ -56,7 +59,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ receiptId: 
       note,
       bankAccountId,
       cashAccountId,
-      images
+      images,
+      saleAllocations
     } = body;
 
     // Get existing receipt to revert account balances
@@ -155,6 +159,29 @@ export async function PATCH(req: Request, props: { params: Promise<{ receiptId: 
               receiptDetailsId: params.receiptId
             }
           });
+        }
+      }
+    }
+
+    // Update sale allocations if provided
+    if (saleAllocations !== undefined) {
+      // Delete existing allocations for this receipt
+      await prismadb.receiptSaleAllocation.deleteMany({
+        where: { receiptDetailId: params.receiptId }
+      });
+      // Create new allocations
+      if (Array.isArray(saleAllocations) && saleAllocations.length > 0) {
+        for (const alloc of saleAllocations) {
+          if (Number(alloc.allocatedAmount) > 0) {
+            await prismadb.receiptSaleAllocation.create({
+              data: {
+                receiptDetailId: params.receiptId,
+                saleDetailId: alloc.saleDetailId,
+                allocatedAmount: Number(alloc.allocatedAmount),
+                note: alloc.note || null
+              }
+            });
+          }
         }
       }
     }

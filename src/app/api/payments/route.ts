@@ -8,6 +8,12 @@ import { jsonError, handleApi, noStore } from '@/lib/api-response';
 import { z } from 'zod';
 
 // Zod schemas
+const purchaseAllocationItemSchema = z.object({
+  purchaseDetailId: z.string().uuid(),
+  allocatedAmount: z.number().positive(),
+  note: z.union([z.string(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? null : val)
+});
+
 const paymentCreateSchema = z.object({
   supplierId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
   customerId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
@@ -25,10 +31,16 @@ const paymentCreateSchema = z.object({
   tdsMasterId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
   tdsOverrideRate: z.union([z.number().min(0).max(100), z.null()]).optional(),
   tdsType: z.enum(['GST','INCOME_TAX']).optional(),
-  linkTdsTransactionId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val)
+  linkTdsTransactionId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
+  purchaseAllocations: z.array(purchaseAllocationItemSchema).optional().default([])
 }).refine(d => d.bankAccountId || d.cashAccountId, { message: 'Either bankAccountId or cashAccountId required', path: ['bankAccountId'] })
   .refine(d => !(d.paymentType === 'supplier_payment' && !d.supplierId), { message: 'supplierId required for supplier_payment', path: ['supplierId'] })
-  .refine(d => !(d.paymentType === 'customer_refund' && !d.customerId), { message: 'customerId required for customer_refund', path: ['customerId'] });
+  .refine(d => !(d.paymentType === 'customer_refund' && !d.customerId), { message: 'customerId required for customer_refund', path: ['customerId'] })
+  .refine(d => {
+    if (!d.purchaseAllocations?.length) return true;
+    const allocTotal = d.purchaseAllocations.reduce((s, a) => s + a.allocatedAmount, 0);
+    return allocTotal <= d.amount + 0.01;
+  }, { message: 'Total allocated amount cannot exceed payment amount', path: ['purchaseAllocations'] });
 
 export async function POST(req: Request) {
   return handleApi(async () => {
@@ -36,23 +48,55 @@ export async function POST(req: Request) {
     if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
     await requireFinanceOrAdmin(userId);
     const parsed = paymentCreateSchema.parse(await req.json());
-    const { paymentType, supplierId, customerId, saleReturnId, tourPackageQueryId, paymentDate, amount, method, transactionId, note, bankAccountId, cashAccountId, images, tdsMasterId, tdsOverrideRate, tdsType, linkTdsTransactionId } = parsed;
+    const { paymentType, supplierId, customerId, saleReturnId, tourPackageQueryId, paymentDate, amount, method, transactionId, note, bankAccountId, cashAccountId, images, tdsMasterId, tdsOverrideRate, tdsType, linkTdsTransactionId, purchaseAllocations } = parsed;
 
-    const paymentDetail = await (prismadb as any).paymentDetail.create({
-      data: {
-        supplierId: paymentType === 'supplier_payment' ? supplierId : null,
-        customerId: paymentType === 'customer_refund' ? customerId : null,
-        paymentType,
-        saleReturnId: saleReturnId || null,
-        tourPackageQueryId: tourPackageQueryId || null,
-        paymentDate: dateToUtc(paymentDate)!,
-        amount,
-        method: method || null,
-        transactionId: transactionId || null,
-        note: note || null,
-        bankAccountId: bankAccountId || null,
-        cashAccountId: cashAccountId || null,
-      } as any
+    // Validate purchase allocations belong to the correct supplier
+    if (purchaseAllocations?.length && supplierId && paymentType === 'supplier_payment') {
+      for (const alloc of purchaseAllocations) {
+        const purchase = await (prismadb as any).purchaseDetail.findUnique({
+          where: { id: alloc.purchaseDetailId },
+          select: { supplierId: true }
+        });
+        if (!purchase || purchase.supplierId !== supplierId) {
+          return jsonError(`Purchase ${alloc.purchaseDetailId} does not belong to this supplier`, 400, 'VALIDATION');
+        }
+      }
+    }
+
+    // Create payment and allocations atomically
+    const paymentDetail = await prismadb.$transaction(async (tx: any) => {
+      const payment = await tx.paymentDetail.create({
+        data: {
+          supplierId: paymentType === 'supplier_payment' ? supplierId : null,
+          customerId: paymentType === 'customer_refund' ? customerId : null,
+          paymentType,
+          saleReturnId: saleReturnId || null,
+          tourPackageQueryId: tourPackageQueryId || null,
+          paymentDate: dateToUtc(paymentDate)!,
+          amount,
+          method: method || null,
+          transactionId: transactionId || null,
+          note: note || null,
+          bankAccountId: bankAccountId || null,
+          cashAccountId: cashAccountId || null,
+        } as any
+      });
+
+      // Create purchase allocations (only for supplier payments)
+      if (purchaseAllocations?.length && paymentType === 'supplier_payment') {
+        await Promise.all(purchaseAllocations.map((alloc: any) =>
+          tx.paymentPurchaseAllocation.create({
+            data: {
+              paymentDetailId: payment.id,
+              purchaseDetailId: alloc.purchaseDetailId,
+              allocatedAmount: alloc.allocatedAmount,
+              note: alloc.note || null
+            }
+          })
+        ));
+      }
+
+      return payment;
     });
 
     if (images?.length) {

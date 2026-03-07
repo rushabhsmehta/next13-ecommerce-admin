@@ -53,21 +53,27 @@ export async function PATCH(req: Request, props: { params: Promise<{ purchaseId:
     const body = await req.json();
     console.log("Received update data:", JSON.stringify(body));
     
-    const { 
-      supplierId, 
-      tourPackageQueryId, 
-      purchaseDate, 
-      billNumber, 
+    const {
+      supplierId,
+      tourPackageQueryId,
+      purchaseDate,
+      billNumber,
       billDate,
       dueDate,
       stateOfSupply,
       referenceNumber,
-      price, 
-      gstAmount, 
+      price,
+      gstAmount,
       gstPercentage,
-      description, 
+      description,
       status,
-      items 
+      items,
+      isGst,
+      cgstAmount,
+      sgstAmount,
+      igstAmount,
+      gstin,
+      hsnCode
     } = body;
 
     if (!params.purchaseId) {
@@ -93,7 +99,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ purchaseId:
       const updatedPurchase = await prismadb.purchaseDetail.update({
         where: {
           id: params.purchaseId
-        },        data: {
+        },
+        data: {
           supplierId,
           purchaseDate: dateToUtc(purchaseDate)!,
           billNumber: billNumber || null,
@@ -106,6 +113,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ purchaseId:
           gstPercentage: gstPercentage !== undefined ? parseFloat(gstPercentage.toString()) : null,
           description: description || null,
           status: status || "pending",
+          isGst: isGst !== undefined ? Boolean(isGst) : undefined,
+          cgstAmount: cgstAmount !== undefined ? (cgstAmount ? parseFloat(cgstAmount.toString()) : null) : undefined,
+          sgstAmount: sgstAmount !== undefined ? (sgstAmount ? parseFloat(sgstAmount.toString()) : null) : undefined,
+          igstAmount: igstAmount !== undefined ? (igstAmount ? parseFloat(igstAmount.toString()) : null) : undefined,
+          gstin: gstin !== undefined ? (gstin || null) : undefined,
+          hsnCode: hsnCode !== undefined ? (hsnCode || null) : undefined,
         }
       });
       

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Plus, Trash } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { cn, formatPrice } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +50,13 @@ const formSchema = z.object({
   description: z.string().optional().nullable(),
   status: z.string().default("pending"),
   totalWithTax: z.coerce.number().min(0).optional(),
-  items: z.array(purchaseItemSchema)
+  items: z.array(purchaseItemSchema),
+  isGst: z.boolean().default(true),
+  cgstAmount: z.coerce.number().min(0).optional().nullable(),
+  sgstAmount: z.coerce.number().min(0).optional().nullable(),
+  igstAmount: z.coerce.number().min(0).optional().nullable(),
+  gstin: z.string().optional().nullable(),
+  hsnCode: z.string().optional().nullable(),
 });
 type FormValues = z.infer<typeof formSchema>;
 
@@ -112,7 +119,13 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     description: initialData?.description || "",
     status: initialData?.status || "pending",
     totalWithTax: initialData?.totalWithTax || 0,
-    items: defaultItems
+    items: defaultItems,
+    isGst: initialData?.isGst !== undefined ? initialData.isGst : true,
+    cgstAmount: initialData?.cgstAmount || null,
+    sgstAmount: initialData?.sgstAmount || null,
+    igstAmount: initialData?.igstAmount || null,
+    gstin: initialData?.gstin || "",
+    hsnCode: initialData?.hsnCode || "",
   };
 
   const form = useForm<FormValues>({
@@ -180,6 +193,18 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     }
   }, [initialData?.id, recalculateTotals]);
 
+  // Auto-split GST into CGST/SGST/IGST
+  const watchedGstAmount = form.watch("gstAmount");
+  const watchedIsGst = form.watch("isGst");
+  useEffect(() => {
+    if (!watchedIsGst || !watchedGstAmount) return;
+    const gst = Number(watchedGstAmount) || 0;
+    const half = Math.round((gst / 2) * 100) / 100;
+    form.setValue("cgstAmount", half, { shouldValidate: false });
+    form.setValue("sgstAmount", gst - half, { shouldValidate: false });
+    form.setValue("igstAmount", null, { shouldValidate: false });
+  }, [watchedGstAmount, watchedIsGst]);
+
   const onSubmit = async (data: FormValues) => {
     try {
       setLoading(true);
@@ -197,6 +222,11 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
         referenceNumber: data.referenceNumber || null,
         billNumber: data.billNumber || null,
         stateOfSupply: data.stateOfSupply || null,
+        gstin: data.isGst ? (data.gstin || null) : null,
+        hsnCode: data.isGst ? (data.hsnCode || null) : null,
+        cgstAmount: data.isGst ? (data.cgstAmount ?? null) : null,
+        sgstAmount: data.isGst ? (data.sgstAmount ?? null) : null,
+        igstAmount: data.isGst ? (data.igstAmount ?? null) : null,
 
         // Convert date objects to ISO strings
         purchaseDate: data.purchaseDate.toISOString(),
@@ -437,7 +467,103 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                 </div>
               </CardContent>
             </Card>
-          </div>          {/* Purchase Items */}
+          </div>
+
+          {/* GST Details Card */}
+          <Card className="shadow-md border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold">GST Details</CardTitle>
+                <FormField
+                  control={form.control}
+                  name="isGst"
+                  render={({ field }) => (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-white/80">GST Invoice</span>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+            </CardHeader>
+            {watchedIsGst && (
+              <CardContent className="px-6 pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="gstin"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Supplier GSTIN</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="e.g. 27AAACR5055K1ZS" className="h-11 border-gray-300 focus:border-green-500" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="hsnCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">HSN / SAC Code</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="e.g. 998552" className="h-11 border-gray-300 focus:border-green-500" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="cgstAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">CGST Amount</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" disabled={loading} placeholder="0.00" className="h-11 border-gray-300 focus:border-green-500" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sgstAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">SGST Amount</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" disabled={loading} placeholder="0.00" className="h-11 border-gray-300 focus:border-green-500" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="igstAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">IGST Amount</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" disabled={loading} placeholder="0.00" className="h-11 border-gray-300 focus:border-green-500" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : null)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-3">CGST + SGST = Intra-state | IGST = Inter-state. Auto-calculated from Tax amount above.</p>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Purchase Items */}
           <Card className="shadow-md border-0 bg-white">
             <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4">
               <CardTitle className="text-lg font-semibold">Purchase Items</CardTitle>
@@ -455,7 +581,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                       <th className="h-10 px-4 text-right font-medium">Total</th>
                       <th className="h-10 px-2 text-center font-medium w-[60px]"></th>
                     </tr>
-                  </thead>                  <tbody>
+                  </thead>
+                  <tbody>
                     {fields.map((field, index) => (
                       <tr key={`item-${index}`} className="border-b hover:bg-muted/30">
                         <td className="p-2">

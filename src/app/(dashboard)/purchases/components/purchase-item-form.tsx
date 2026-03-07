@@ -188,19 +188,24 @@ export const PurchaseItemsForm: React.FC<PurchaseItemsFormProps> = ({
     }
     
     const priceAfterDiscount = calculatePriceAfterDiscount(subTotal, discountAmount);
-    
-    // Calculate tax if tax slab is selected
+
+    // Calculate tax (always compute, even if 0, so we can clear stale values)
     let taxAmount = 0;
     const taxSlabId = item.taxSlabId || "";
     const selectedTaxSlab = taxSlabs.find(ts => ts.id === taxSlabId);
-    
     if (selectedTaxSlab) {
       taxAmount = calculateTaxAmount(priceAfterDiscount, selectedTaxSlab.percentage);
+    }
+    // Only update if changed — prevents cascading watch triggers
+    if (item.taxAmount !== taxAmount) {
       form.setValue(`items.${index}.taxAmount`, taxAmount);
     }
-      // Calculate final total amount
+
+    // Calculate final total amount — only update if changed
     const totalAmount = priceAfterDiscount + taxAmount;
-    form.setValue(`items.${index}.totalAmount`, totalAmount);
+    if (item.totalAmount !== totalAmount) {
+      form.setValue(`items.${index}.totalAmount`, totalAmount);
+    }
   }, [form, taxSlabs]);
 
   // Watch for changes to fields that require recalculation

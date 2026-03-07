@@ -6,7 +6,7 @@ import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEf
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { AlertCircle, AlignLeft, BedDouble, BuildingIcon, CheckIcon, ChevronDown, ChevronsUpDown, ChevronUp, FileCheck, FileText, HotelIcon, ImageIcon, ListChecks, ListPlus, MapPin, Plane, Plus, ScrollText, Tag, Trash, Type, Users, Utensils } from "lucide-react"
+import { AlertCircle, AlignLeft, BedDouble, BuildingIcon, CheckIcon, ChevronDown, ChevronsUpDown, ChevronUp, FileCheck, FileText, HotelIcon, ImageIcon, ListChecks, ListPlus, MapPin, Plane, Plus, ScrollText, Sparkles, Tag, Trash, Type, Users, Utensils } from "lucide-react"
 import {
   Activity,
   ActivityMaster,
@@ -91,6 +91,7 @@ import LocationTab from '@/components/tour-package-query/LocationTab';
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab';
 import PricingTab from '@/components/tour-package-query/PricingTab';
 import HotelsTab from '@/components/tour-package-query/HotelsTab';
+import QueryVariantsTab from '@/components/tour-package-query/QueryVariantsTab';
 import { REMARKS_DEFAULT } from "@/app/(dashboard)/tourPackageQueryFromTourPackage/[tourPackageQueryFromTourPackageId]/components/defaultValues"
 import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues"
 
@@ -215,6 +216,10 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(),
+  variantHotelOverrides: z.record(z.record(z.string())).optional(),
+  variantRoomAllocations: z.record(z.record(z.array(z.any()))).optional(),
+  variantTransportDetails: z.record(z.record(z.array(z.any()))).optional(),
+  variantPricingData: z.record(z.any()).optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Use adjusted schema
   pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
   customMarkup: z.string().optional(), // Added for custom markup percentage
@@ -371,6 +376,11 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     flightDetails: [],
     itineraries: [],
     isFeatured: false,
+    selectedVariantIds: [],
+    variantHotelOverrides: {},
+    variantRoomAllocations: {},
+    variantTransportDetails: {},
+    variantPricingData: {},
   };
 
   const form = useForm<TourPackageQueryFormValues>({
@@ -823,7 +833,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             {/* Mobile-friendly tab list with responsive grid and scroll */}
             <div className="overflow-x-auto pb-2 mb-2 -mx-4 sm:mx-0">
               <div className="min-w-full px-4 sm:px-0">
-                <TabsList className="grid min-w-max md:min-w-0 grid-cols-4 md:grid-cols-9 w-full bg-muted/60">
+                <TabsList className="grid min-w-max md:min-w-0 grid-cols-4 md:grid-cols-10 w-full bg-muted/60">
                   <TabsTrigger value="basic" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
                     <FileText className="h-4 w-4" />
                     <span className="truncate">Basic</span>
@@ -868,6 +878,10 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
                   <TabsTrigger value="pricing" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
                     <Tag className="h-4 w-4" />
                     <span className="truncate">Pricing</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="variants" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <Sparkles className="h-4 w-4" />
+                    <span className="truncate">Variants</span>
                   </TabsTrigger>
                   <TabsTrigger value="policies" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
                     <FileCheck className="h-4 w-4" />
@@ -980,6 +994,20 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
                 selectedTemplateId={form.watch('selectedTemplateId')}
                 selectedTemplateType={form.watch('selectedTemplateType')}
                 selectedTourPackageVariantId={form.watch('selectedTourPackageVariantId')}
+              />
+            </TabsContent>
+
+            <TabsContent value="variants" className="space-y-4 mt-4">
+              <QueryVariantsTab
+                control={form.control}
+                form={form}
+                loading={loading || lookupLoading}
+                tourPackages={tourPackages || []}
+                hotels={hotels}
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
               />
             </TabsContent>
 

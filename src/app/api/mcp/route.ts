@@ -57,6 +57,9 @@ const ListHotelsSchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(20),
 });
 
+// ISO date-only string (YYYY-MM-DD) — matches what parseISO() expects in dateToUtc()
+const isoDateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date must be in YYYY-MM-DD format" });
+
 const CreateInquirySchema = z.object({
   customerName: z.string().min(1),
   customerMobileNumber: z.string().min(1),
@@ -66,9 +69,12 @@ const CreateInquirySchema = z.object({
   numChildrenAbove11: z.number().int().min(0).optional().default(0),
   numChildren5to11: z.number().int().min(0).optional().default(0),
   numChildrenBelow5: z.number().int().min(0).optional().default(0),
-  journeyDate: z.string().refine((d) => !isNaN(Date.parse(d)), { message: "Invalid date" }),
+  journeyDate: isoDateString,
   remarks: z.string().optional(),
   status: z.enum(ALLOWED_INQUIRY_STATUSES).optional().default("PENDING"),
+}).refine((d: { locationId?: string; locationName?: string }) => !!(d.locationId || d.locationName), {
+  message: "locationId or locationName is required",
+  path: ["locationId"],
 });
 
 const ListInquiriesSchema = z.object({
@@ -102,8 +108,8 @@ const CreateTourQuerySchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  tourStartsFrom: z.string().refine((d) => !isNaN(Date.parse(d)), { message: "Invalid date" }).optional(),
-  tourEndsOn: z.string().refine((d) => !isNaN(Date.parse(d)), { message: "Invalid date" }).optional(),
+  tourStartsFrom: isoDateString.optional(),
+  tourEndsOn: isoDateString.optional(),
   transport: z.string().optional(),
   pickup_location: z.string().optional(),
   drop_location: z.string().optional(),
@@ -111,6 +117,9 @@ const CreateTourQuerySchema = z.object({
   inquiryId: z.string().optional(),
   price: z.string().optional(),
   totalPrice: z.string().optional(),
+}).refine((d: { locationId?: string; locationName?: string }) => !!(d.locationId || d.locationName), {
+  message: "locationId or locationName is required",
+  path: ["locationId"],
 });
 
 const ListTourQueriesSchema = z.object({
@@ -208,7 +217,8 @@ async function createInquiry(rawParams: unknown) {
     locationId = loc.id;
   }
 
-  if (!locationId) throw new Error("locationId or locationName is required");
+  // locationId is guaranteed by the Zod refine — narrowing for TypeScript
+  const resolvedLocationId = locationId!;
 
   const journeyDate = dateToUtc(params.journeyDate);
   // dateToUtc returns undefined only when input is falsy; Zod already ensured journeyDate is a valid date string
@@ -218,7 +228,7 @@ async function createInquiry(rawParams: unknown) {
     data: {
       customerName: params.customerName,
       customerMobileNumber: params.customerMobileNumber,
-      locationId,
+      locationId: resolvedLocationId,
       numAdults: params.numAdults,
       numChildrenAbove11: params.numChildrenAbove11 ?? 0,
       numChildren5to11: params.numChildren5to11 ?? 0,
@@ -345,7 +355,8 @@ async function createTourQuery(rawParams: unknown) {
     locationId = loc.id;
   }
 
-  if (!locationId) throw new Error("locationId or locationName is required");
+  // locationId is guaranteed by the Zod refine — narrowing for TypeScript
+  const resolvedLocationId = locationId!;
 
   // Generate a collision-resistant query number using milliseconds + random suffix
   const now = new Date();
@@ -363,7 +374,7 @@ async function createTourQuery(rawParams: unknown) {
       tourPackageQueryNumber: queryNumber,
       customerName: params.customerName,
       customerNumber: params.customerNumber ?? null,
-      locationId,
+      locationId: resolvedLocationId,
       tourCategory: (params.tourCategory as any) ?? "Domestic",
       tourPackageQueryType: params.tourPackageQueryType ?? null,
       numDaysNight: params.numDaysNight ?? null,

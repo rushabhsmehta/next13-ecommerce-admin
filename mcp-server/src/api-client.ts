@@ -31,29 +31,28 @@ export async function callTool(
     );
   }
 
+  // Read the body once as text, then attempt JSON parsing.
+  // This avoids the "body already consumed" problem that occurs when res.json()
+  // throws and res.text() is called on an already-consumed stream.
+  const rawText = await res.text().catch(() => "");
+
   let json: { success: boolean; data?: unknown; error?: string } | null = null;
   try {
-    json = (await res.json()) as {
+    json = JSON.parse(rawText) as {
       success: boolean;
       data?: unknown;
       error?: string;
     };
   } catch {
-    // JSON parsing failed — fall back to text for a meaningful error
+    // Response body is not JSON
   }
 
   if (!res.ok) {
-    if (!json) {
-      const text = await res.text().catch(() => "");
-      const message =
-        text?.trim() ||
-        `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
-      throw new Error(message);
-    }
-    throw new Error(
-      json.error ||
-        `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`
-    );
+    const message =
+      json?.error ||
+      rawText.trim() ||
+      `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
+    throw new Error(message);
   }
 
   if (!json) {

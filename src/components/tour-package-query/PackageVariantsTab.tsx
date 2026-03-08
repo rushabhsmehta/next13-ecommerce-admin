@@ -1699,7 +1699,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
           }
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Calendar className="h-4 w-4 text-emerald-600" />
@@ -1710,7 +1710,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 overflow-y-auto flex-1 pr-1">
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-xs">Start Date</Label>

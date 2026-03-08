@@ -76,7 +76,7 @@ export async function startHttpServer(server: McpServer): Promise<void> {
     });
   });
 
-  const port = parseInt(process.env.MCP_PORT || "3100", 10);
+  const port = parseInt(process.env.MCP_PORT || process.env.PORT || "3100", 10);
 
   await new Promise<void>((resolve) => {
     app.listen(port, () => {

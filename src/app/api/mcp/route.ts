@@ -14,6 +14,7 @@ import prismadb from "@/lib/prismadb";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { z, ZodError } from "zod";
+import { INQUIRY_STATUSES } from "@/lib/inquiry-statuses";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +26,9 @@ function authenticateMcp(req: Request): boolean {
   return secret === process.env.MCP_API_SECRET;
 }
 
-// ── Allowed status values ─────────────────────────────────────────────────────
+// ── Allowed status values (imported from shared lib) ─────────────────────────
 
-const ALLOWED_INQUIRY_STATUSES = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"] as const;
+const ALLOWED_INQUIRY_STATUSES = INQUIRY_STATUSES;
 
 // ── Custom error types ────────────────────────────────────────────────────────
 
@@ -562,13 +563,15 @@ Output ONLY a valid JSON object with this structure:
 }
 
 async function getStats(_rawParams: unknown) {
-  let counts: [number, number, number, number, number];
+  let counts: [number, number, number, number, number, number, number];
   try {
     counts = await Promise.all([
       prismadb.inquiry.count(),
       prismadb.inquiry.count({ where: { status: "PENDING" } }),
       prismadb.inquiry.count({ where: { status: "CONFIRMED" } }),
       prismadb.inquiry.count({ where: { status: "CANCELLED" } }),
+      prismadb.inquiry.count({ where: { status: "HOT_QUERY" } }),
+      prismadb.inquiry.count({ where: { status: "QUERY_SENT" } }),
       prismadb.tourPackageQuery.count({ where: { isArchived: false } }),
     ]);
   } catch (err) {
@@ -580,9 +583,9 @@ async function getStats(_rawParams: unknown) {
       { cause: err instanceof Error ? err.message : String(err) }
     );
   }
-  const [total, pending, confirmed, cancelled, totalQueries] = counts;
+  const [total, pending, confirmed, cancelled, hotQuery, querySent, totalQueries] = counts;
   return {
-    inquiries: { total, pending, confirmed, cancelled },
+    inquiries: { total, pending, confirmed, cancelled, hotQuery, querySent },
     tourQueries: { total: totalQueries },
   };
 }

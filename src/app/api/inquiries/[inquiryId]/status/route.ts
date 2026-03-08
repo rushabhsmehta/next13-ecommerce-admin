@@ -3,8 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
+import { INQUIRY_STATUSES } from "@/lib/inquiry-statuses";
 
-const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"];
+const validStatuses: readonly string[] = INQUIRY_STATUSES;
 
 export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;

@@ -7,8 +7,9 @@ import { createAuditLog } from "@/lib/utils/audit-logger";
 import { normalizeWhatsAppPhone } from "@/lib/whatsapp-customers";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
+import { INQUIRY_STATUSES } from "@/lib/inquiry-statuses";
 
-const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"];
+const validStatuses: readonly string[] = INQUIRY_STATUSES;
 
 // Helper function to ensure customer exists in WhatsApp customer list
 async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string) {

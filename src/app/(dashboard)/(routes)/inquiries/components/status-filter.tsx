@@ -8,15 +8,9 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { INQUIRY_STATUS_FILTER_OPTIONS } from "@/lib/inquiry-statuses";
 
-const statusOptions = [
-  { value: "ALL", label: "All Status" },
-  { value: "PENDING", label: "Pending" },
-  { value: "HOT_QUERY", label: "Hot Query" },
-  { value: "CONFIRMED", label: "Confirmed" },
-  { value: "CANCELLED", label: "Cancelled" },
-  { value: "QUERY_SENT", label: "Query Sent" },
-];
+const statusOptions = INQUIRY_STATUS_FILTER_OPTIONS;
 
 export const StatusFilter = () => {
   const router = useRouter();

@@ -25,13 +25,8 @@ import { toast } from "react-hot-toast";
 import { CompactStaffAssignment } from "@/components/compact-staff-assignment";
 import { useAssociatePartner } from "@/hooks/use-associate-partner";
 
-const statusOptions = [
-  { value: "PENDING", label: "Pending" },
-  { value: "HOT_QUERY", label: "Hot Query" },
-  { value: "CONFIRMED", label: "Confirmed" },
-  { value: "CANCELLED", label: "Cancelled" },
-  { value: "QUERY_SENT", label: "Query Sent" },
-];
+import { INQUIRY_STATUS_OPTIONS } from "@/lib/inquiry-statuses";
+const statusOptions = INQUIRY_STATUS_OPTIONS;
 
 const getStatusColor = (status: string) => {
   switch (status) {

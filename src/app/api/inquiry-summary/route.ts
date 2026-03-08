@@ -26,15 +26,9 @@ export async function GET(req: Request) {
       whereClause.associatePartnerId = associateId;
     }
     
-    // Map the frontend status values to database status values - FIXED: use uppercase to match rest of app
-    if (status && status !== 'all') {
-      if (status === 'PENDING') {
-        whereClause.status = 'PENDING'; // Changed from lowercase 'pending'
-      } else if (status === 'CONFIRMED') {
-        whereClause.status = 'CONFIRMED'; // Changed from 'converted'
-      } else if (status === 'CANCELLED') {
-        whereClause.status = 'CANCELLED'; // Changed from lowercase 'cancelled'
-      }
+    // Filter by status — pass through all valid uppercase status values
+    if (status && status !== 'all' && status !== 'ALL') {
+      whereClause.status = status;
     }
     
     if (startDate && endDate) {
@@ -71,31 +65,31 @@ export async function GET(req: Request) {
           pendingInquiries: 0,
           confirmedInquiries: 0,
           cancelledInquiries: 0,
-          contactedInquiries: 0,
+          hotQueryInquiries: 0,
+          querySentInquiries: 0,
           responseTimesSum: 0,
           responsesCount: 0,
         });
       }
-      
+
       const associate = associatesMap.get(associateId);
       associate.totalInquiries += 1;
-      
-      // Count by status - FIXED: use uppercase status values consistently
+
       switch (inquiry.status) {
         case 'PENDING':
           associate.pendingInquiries += 1;
           break;
-        case 'CONFIRMED': // Changed from 'converted'
+        case 'CONFIRMED':
           associate.confirmedInquiries += 1;
           break;
         case 'CANCELLED':
           associate.cancelledInquiries += 1;
           break;
-        case 'QUERY_SENT':
-          associate.contactedInquiries += 1;
+        case 'HOT_QUERY':
+          associate.hotQueryInquiries += 1;
           break;
-        case 'contacted': // Keeping this lowercase since it might still exist in legacy data
-          associate.contactedInquiries += 1;
+        case 'QUERY_SENT':
+          associate.querySentInquiries += 1;
           break;
       }
       
@@ -125,7 +119,8 @@ export async function GET(req: Request) {
         pendingInquiries: associate.pendingInquiries,
         confirmedInquiries: associate.confirmedInquiries,
         cancelledInquiries: associate.cancelledInquiries,
-        contactedInquiries: associate.contactedInquiries,
+        hotQueryInquiries: associate.hotQueryInquiries,
+        querySentInquiries: associate.querySentInquiries,
         averageResponseTime
       };
     });

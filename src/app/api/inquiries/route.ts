@@ -120,7 +120,7 @@ export async function POST(req: Request) {
       }
       const trimmedName = locationName.trim();
       const matches = await prismadb.location.findMany({
-        where: { label: { equals: trimmedName, mode: "insensitive" } },
+        where: { label: { equals: trimmedName } },
         select: { id: true },
         take: 2
       });

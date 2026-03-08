@@ -21,14 +21,9 @@ import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { INQUIRY_STATUS_OPTIONS } from "@/lib/inquiry-statuses"
 
-const statusOptions = [
-  { value: "PENDING", label: "Pending" },
-  { value: "HOT_QUERY", label: "Hot Query" },
-  { value: "CONFIRMED", label: "Confirmed" },
-  { value: "CANCELLED", label: "Cancelled" },
-  { value: "QUERY_SENT", label: "Query Sent" },
-];
+const statusOptions = INQUIRY_STATUS_OPTIONS;
 
 const StatusCell = ({ row }: { row: any }) => {
   const [loading, setLoading] = useState(false);

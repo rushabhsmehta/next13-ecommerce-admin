@@ -1,4 +1,4 @@
-# Code Review Findings — Next.js 13 E-Commerce/Travel Admin
+# Code Review Findings — Next.js 13 Travel Admin
 
 **Date:** 2026-02-15
 **Reviewer:** Claude Code (Automated Review)

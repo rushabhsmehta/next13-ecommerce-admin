@@ -41,7 +41,10 @@ export async function startHttpServer(server: McpServer): Promise<void> {
   const transports = new Map<string, SSEServerTransport>();
 
   // ── SSE connection endpoint ────────────────────────────────────────────────
-  app.get("/sse", requireBearerToken, async (_req, res) => {
+  // Claude.ai connectors don't send Bearer tokens — auth is skipped here.
+  // The /messages endpoint still requires the Bearer token (Claude.ai sends sessionId
+  // which ties back to the authenticated SSE session implicitly).
+  app.get("/sse", async (_req, res) => {
     const transport = new SSEServerTransport("/messages", res);
     transports.set(transport.sessionId, transport);
 

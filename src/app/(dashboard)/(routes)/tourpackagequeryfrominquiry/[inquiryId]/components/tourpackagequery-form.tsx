@@ -1,2 +1,1 @@
-// Re-export the wrapper component as the main component
-export { TourPackageQueryFormWrapper as TourPackageQueryForm } from "./tourpackagequery-form-wrapper"
+export { TourPackageQueryFormClassic as TourPackageQueryForm } from "./tourpackagequery-form-classic"

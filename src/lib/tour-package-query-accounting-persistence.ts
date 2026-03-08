@@ -1,12 +1,11 @@
 import { resolveAccountingAccountFields } from "./tour-package-query-accounting-helpers";
 import type { TourPackageQueryAccountingPayload } from "./tour-package-query-accounting-schema";
 
-type DeleteManyArgs = { where: Record<string, unknown> };
-type CreateArgs = { data: Record<string, unknown> };
-
 type PrismaModel = {
-  deleteMany: (args: DeleteManyArgs) => Promise<unknown>;
-  create: (args: CreateArgs) => Promise<Record<string, unknown>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deleteMany: (args: any) => Promise<unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  create: (args: any) => Promise<Record<string, unknown>>;
 };
 
 type AccountingPrismaClient = {
@@ -22,7 +21,7 @@ type AccountingPrismaClient = {
 
 type ReplaceTourPackageQueryAccountingDependencies = {
   prismadb: AccountingPrismaClient;
-  dateToUtc: (value?: string | Date | null) => Date | null;
+  dateToUtc: (value?: string | Date | null, timezone?: string) => Date | undefined;
 };
 
 function toNumber(value: number | string): number {

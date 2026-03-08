@@ -65,7 +65,8 @@ export async function POST(req: Request) {
       customerName,
       customerMobileNumber,
       associatePartnerId,
-      locationId,
+      locationId: locationIdRaw,
+      locationName,
       numAdults,
       numChildrenAbove11,
       numChildren5to11,
@@ -82,23 +83,64 @@ export async function POST(req: Request) {
     } = body;
 
     if (!userId) {
-      return new NextResponse("Unauthenticated", { status: 403 });
+      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
     }
 
     if (!customerName) {
-      return new NextResponse("Customer name is required", { status: 400 });
+      return NextResponse.json({ error: "Customer name is required" }, { status: 400 });
     }
 
     if (!customerMobileNumber) {
-      return new NextResponse("Mobile number is required", { status: 400 });
-    }
-
-    if (!locationId) {
-      return new NextResponse("Location is required", { status: 400 });
+      return NextResponse.json({ error: "Mobile number is required" }, { status: 400 });
     }
 
     if (!journeyDate) {
-      return new NextResponse("Journey date is required", { status: 400 });
+      return NextResponse.json({ error: "Journey date is required" }, { status: 400 });
+    }
+
+    // Normalize and validate locationId when provided directly.
+    let locationId: string | undefined;
+    if (locationIdRaw !== undefined && locationIdRaw !== null) {
+      if (typeof locationIdRaw !== "string" || locationIdRaw.trim() === "") {
+        return NextResponse.json(
+          { error: "locationId must be a non-empty string when provided." },
+          { status: 400 }
+        );
+      }
+      locationId = locationIdRaw.trim();
+    }
+
+    // Resolve locationId — accept either locationId directly or locationName for lookup
+    if (!locationId && locationName !== undefined && locationName !== null) {
+      if (typeof locationName !== "string" || locationName.trim() === "") {
+        return NextResponse.json(
+          { error: "locationName must be a non-empty string." },
+          { status: 400 }
+        );
+      }
+      const trimmedName = locationName.trim();
+      const matches = await prismadb.location.findMany({
+        where: { label: { equals: trimmedName, mode: "insensitive" } },
+        select: { id: true },
+        take: 2
+      });
+      if (matches.length === 0) {
+        return NextResponse.json(
+          { error: `Location not found: "${trimmedName}". Provide a valid locationId or an exact location name.` },
+          { status: 400 }
+        );
+      }
+      if (matches.length > 1) {
+        return NextResponse.json(
+          { error: `Location lookup is ambiguous for name "${trimmedName}". Multiple locations share this label. Please provide a specific locationId.` },
+          { status: 400 }
+        );
+      }
+      locationId = matches[0].id;
+    }
+
+    if (!locationId) {
+      return NextResponse.json({ error: "Location is required (provide locationId or locationName)" }, { status: 400 });
     }
 
     // Determine user role (ADMIN or ASSOCIATE)
@@ -245,8 +287,14 @@ export async function POST(req: Request) {
 
     return NextResponse.json(inquiry);
   } catch (error) {
-    console.log('[INQUIRIES_POST]', error);
-    return new NextResponse("Internal error", { status: 500 });
+    console.error('[INQUIRIES_POST]', error);
+    const genericMessage = "An unexpected error occurred while creating the inquiry.";
+    const isDev = process.env.NODE_ENV === "development";
+    const details = error instanceof Error ? error.message : String(error);
+    if (isDev) {
+      return NextResponse.json({ error: genericMessage, details }, { status: 500 });
+    }
+    return NextResponse.json({ error: genericMessage }, { status: 500 });
   }
 }
 

@@ -31,10 +31,42 @@ export async function callTool(
     );
   }
 
-  const json = (await res.json()) as { success: boolean; data?: unknown; error?: string };
+  let json: { success: boolean; data?: unknown; error?: string } | null = null;
+  try {
+    json = (await res.json()) as {
+      success: boolean;
+      data?: unknown;
+      error?: string;
+    };
+  } catch {
+    // JSON parsing failed — fall back to text for a meaningful error
+  }
 
-  if (!res.ok || !json.success) {
-    throw new Error(json.error || `HTTP ${res.status}`);
+  if (!res.ok) {
+    if (!json) {
+      const text = await res.text().catch(() => "");
+      const message =
+        text?.trim() ||
+        `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
+      throw new Error(message);
+    }
+    throw new Error(
+      json.error ||
+        `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`
+    );
+  }
+
+  if (!json) {
+    throw new Error(
+      "MCP gateway returned a non-JSON response for a successful request"
+    );
+  }
+
+  if (!json.success) {
+    throw new Error(
+      json.error ||
+        `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`
+    );
   }
 
   return json.data;

@@ -12,6 +12,8 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { dateToUtc } from "@/lib/timezone-utils";
+import { z, ZodError } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +25,118 @@ function authenticateMcp(req: Request): boolean {
   return secret === process.env.MCP_API_SECRET;
 }
 
+// ── Allowed status values ─────────────────────────────────────────────────────
+
+const ALLOWED_INQUIRY_STATUSES = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"] as const;
+
+// ── Custom error types ────────────────────────────────────────────────────────
+
+class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
+// ── Per-tool Zod schemas (server-side validation) ─────────────────────────────
+
+const SearchLocationsSchema = z.object({
+  query: z.string().min(1),
+  limit: z.number().int().min(1).max(50).optional().default(10),
+});
+
+const ListTourPackagesSchema = z.object({
+  locationId: z.string().optional(),
+  tourCategory: z.enum(["Domestic", "International"]).optional(),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+const ListHotelsSchema = z.object({
+  locationId: z.string().optional(),
+  name: z.string().optional(),
+  limit: z.number().int().min(1).max(100).optional().default(20),
+});
+
+const CreateInquirySchema = z.object({
+  customerName: z.string().min(1),
+  customerMobileNumber: z.string().min(1),
+  locationId: z.string().optional(),
+  locationName: z.string().optional(),
+  numAdults: z.number().int().min(1),
+  numChildrenAbove11: z.number().int().min(0).optional().default(0),
+  numChildren5to11: z.number().int().min(0).optional().default(0),
+  numChildrenBelow5: z.number().int().min(0).optional().default(0),
+  journeyDate: z.string().refine((d) => !isNaN(Date.parse(d)), { message: "Invalid date" }),
+  remarks: z.string().optional(),
+  status: z.enum(ALLOWED_INQUIRY_STATUSES).optional().default("PENDING"),
+});
+
+const ListInquiriesSchema = z.object({
+  status: z.string().optional(),
+  customerName: z.string().optional(),
+  limit: z.number().int().min(1).max(200).optional().default(25),
+});
+
+const GetInquirySchema = z.object({ inquiryId: z.string().min(1) });
+
+const UpdateInquiryStatusSchema = z.object({
+  inquiryId: z.string().min(1),
+  status: z.enum(ALLOWED_INQUIRY_STATUSES),
+  remarks: z.string().optional(),
+});
+
+const AddInquiryNoteSchema = z.object({
+  inquiryId: z.string().min(1),
+  note: z.string().min(1),
+  actionType: z.string().optional(),
+});
+
+const CreateTourQuerySchema = z.object({
+  customerName: z.string().min(1),
+  customerNumber: z.string().optional(),
+  locationId: z.string().optional(),
+  locationName: z.string().optional(),
+  numDaysNight: z.string().optional(),
+  tourCategory: z.enum(["Domestic", "International"]).optional(),
+  tourPackageQueryType: z.string().optional(),
+  numAdults: z.string().optional(),
+  numChild5to12: z.string().optional(),
+  numChild0to5: z.string().optional(),
+  tourStartsFrom: z.string().refine((d) => !isNaN(Date.parse(d)), { message: "Invalid date" }).optional(),
+  tourEndsOn: z.string().refine((d) => !isNaN(Date.parse(d)), { message: "Invalid date" }).optional(),
+  transport: z.string().optional(),
+  pickup_location: z.string().optional(),
+  drop_location: z.string().optional(),
+  remarks: z.string().optional(),
+  inquiryId: z.string().optional(),
+  price: z.string().optional(),
+  totalPrice: z.string().optional(),
+});
+
+const ListTourQueriesSchema = z.object({
+  locationId: z.string().optional(),
+  customerName: z.string().optional(),
+  limit: z.number().int().min(1).max(200).optional().default(20),
+});
+
+const GenerateItinerarySchema = z.object({
+  destination: z.string().min(1),
+  nights: z.number().int().min(1).max(30),
+  days: z.number().int().min(1).max(31),
+  groupType: z.enum(["family", "couple", "friends", "solo", "corporate", "seniors"]),
+  budgetCategory: z.enum(["budget", "mid-range", "premium", "luxury"]),
+  specialRequirements: z.string().optional(),
+  customerName: z.string().optional(),
+  startDate: z.string().optional(),
+  numAdults: z.number().int().min(0).optional(),
+  numChildren: z.number().int().min(0).optional(),
+});
+
 // ── Tool handlers ────────────────────────────────────────────────────────────
 
-async function searchLocations(params: { query: string; limit?: number }) {
-  const { query, limit = 10 } = params;
+async function searchLocations(rawParams: unknown) {
+  const params = SearchLocationsSchema.parse(rawParams);
+  const { query, limit } = params;
   return prismadb.location.findMany({
     where: {
       isActive: true,
@@ -37,12 +147,9 @@ async function searchLocations(params: { query: string; limit?: number }) {
   });
 }
 
-async function listTourPackages(params: {
-  locationId?: string;
-  tourCategory?: string;
-  limit?: number;
-}) {
-  const { locationId, tourCategory, limit = 20 } = params;
+async function listTourPackages(rawParams: unknown) {
+  const params = ListTourPackagesSchema.parse(rawParams);
+  const { locationId, tourCategory, limit } = params;
   return prismadb.tourPackage.findMany({
     where: {
       isArchived: false,
@@ -67,12 +174,9 @@ async function listTourPackages(params: {
   });
 }
 
-async function listHotels(params: {
-  locationId?: string;
-  name?: string;
-  limit?: number;
-}) {
-  const { locationId, name, limit = 20 } = params;
+async function listHotels(rawParams: unknown) {
+  const params = ListHotelsSchema.parse(rawParams);
+  const { locationId, name, limit } = params;
   return prismadb.hotel.findMany({
     where: {
       ...(locationId && { locationId }),
@@ -88,19 +192,8 @@ async function listHotels(params: {
   });
 }
 
-async function createInquiry(params: {
-  customerName: string;
-  customerMobileNumber: string;
-  locationId?: string;
-  locationName?: string;
-  numAdults: number;
-  numChildrenAbove11?: number;
-  numChildren5to11?: number;
-  numChildrenBelow5?: number;
-  journeyDate: string;
-  remarks?: string;
-  status?: string;
-}) {
+async function createInquiry(rawParams: unknown) {
+  const params = CreateInquirySchema.parse(rawParams);
   let locationId = params.locationId;
 
   // Resolve location by name if ID not provided
@@ -117,6 +210,10 @@ async function createInquiry(params: {
 
   if (!locationId) throw new Error("locationId or locationName is required");
 
+  const journeyDate = dateToUtc(params.journeyDate);
+  // dateToUtc returns undefined only when input is falsy; Zod already ensured journeyDate is a valid date string
+  if (!journeyDate) throw new Error("Invalid journeyDate");
+
   const inquiry = await prismadb.inquiry.create({
     data: {
       customerName: params.customerName,
@@ -126,9 +223,9 @@ async function createInquiry(params: {
       numChildrenAbove11: params.numChildrenAbove11 ?? 0,
       numChildren5to11: params.numChildren5to11 ?? 0,
       numChildrenBelow5: params.numChildrenBelow5 ?? 0,
-      journeyDate: new Date(params.journeyDate),
+      journeyDate,
       remarks: params.remarks ?? null,
-      status: params.status ?? "NEW",
+      status: params.status ?? "PENDING",
     },
     include: {
       location: { select: { id: true, label: true } },
@@ -138,12 +235,9 @@ async function createInquiry(params: {
   return inquiry;
 }
 
-async function listInquiries(params: {
-  status?: string;
-  limit?: number;
-  customerName?: string;
-}) {
-  const { status, limit = 25, customerName } = params;
+async function listInquiries(rawParams: unknown) {
+  const params = ListInquiriesSchema.parse(rawParams);
+  const { status, limit, customerName } = params;
   return prismadb.inquiry.findMany({
     where: {
       ...(status && status !== "ALL" && { status }),
@@ -153,7 +247,6 @@ async function listInquiries(params: {
       id: true,
       customerName: true,
       customerMobileNumber: true,
-      customerEmail: true,
       status: true,
       journeyDate: true,
       numAdults: true,
@@ -172,7 +265,8 @@ async function listInquiries(params: {
   });
 }
 
-async function getInquiry(params: { inquiryId: string }) {
+async function getInquiry(rawParams: unknown) {
+  const params = GetInquirySchema.parse(rawParams);
   const inquiry = await prismadb.inquiry.findUnique({
     where: { id: params.inquiryId },
     include: {
@@ -193,15 +287,18 @@ async function getInquiry(params: { inquiryId: string }) {
       },
     },
   });
-  if (!inquiry) throw new Error(`Inquiry ${params.inquiryId} not found`);
+  if (!inquiry) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`);
   return inquiry;
 }
 
-async function updateInquiryStatus(params: {
-  inquiryId: string;
-  status: string;
-  remarks?: string;
-}) {
+async function updateInquiryStatus(rawParams: unknown) {
+  const params = UpdateInquiryStatusSchema.parse(rawParams);
+  const existing = await prismadb.inquiry.findUnique({
+    where: { id: params.inquiryId },
+    select: { id: true },
+  });
+  if (!existing) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`);
+
   return prismadb.inquiry.update({
     where: { id: params.inquiryId },
     data: {
@@ -217,48 +314,27 @@ async function updateInquiryStatus(params: {
   });
 }
 
-async function addInquiryNote(params: {
-  inquiryId: string;
-  note: string;
-  actionType?: string;
-}) {
+async function addInquiryNote(rawParams: unknown) {
+  const params = AddInquiryNoteSchema.parse(rawParams);
   // Verify inquiry exists
   const inquiry = await prismadb.inquiry.findUnique({
     where: { id: params.inquiryId },
     select: { id: true },
   });
-  if (!inquiry) throw new Error(`Inquiry ${params.inquiryId} not found`);
+  if (!inquiry) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`);
 
-  return (prismadb as any).inquiryAction.create({
+  return prismadb.inquiryAction.create({
     data: {
       inquiryId: params.inquiryId,
       actionType: params.actionType ?? "NOTE",
-      description: params.note,
+      remarks: params.note,
+      actionDate: new Date(),
     },
   });
 }
 
-async function createTourQuery(params: {
-  customerName: string;
-  customerNumber?: string;
-  locationId?: string;
-  locationName?: string;
-  numDaysNight?: string;
-  tourCategory?: "Domestic" | "International";
-  tourPackageQueryType?: string;
-  numAdults?: string;
-  numChild5to12?: string;
-  numChild0to5?: string;
-  tourStartsFrom?: string;
-  tourEndsOn?: string;
-  transport?: string;
-  pickup_location?: string;
-  drop_location?: string;
-  remarks?: string;
-  inquiryId?: string;
-  price?: string;
-  totalPrice?: string;
-}) {
+async function createTourQuery(rawParams: unknown) {
+  const params = CreateTourQuerySchema.parse(rawParams);
   let locationId = params.locationId;
 
   if (!locationId && params.locationName) {
@@ -271,10 +347,16 @@ async function createTourQuery(params: {
 
   if (!locationId) throw new Error("locationId or locationName is required");
 
-  // Auto-generate query number
+  // Generate a collision-resistant query number using milliseconds + random suffix
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
-  const queryNumber = `TPQ-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const queryNumber = `TPQ-${datePart}-${Date.now()}-${randomSuffix}`;
+
+  // Zod already validated the date strings; dateToUtc returns undefined only for falsy input
+  const tourStartsFrom = params.tourStartsFrom ? dateToUtc(params.tourStartsFrom) ?? null : null;
+  const tourEndsOn = params.tourEndsOn ? dateToUtc(params.tourEndsOn) ?? null : null;
 
   const query = await prismadb.tourPackageQuery.create({
     data: {
@@ -288,8 +370,8 @@ async function createTourQuery(params: {
       numAdults: params.numAdults ?? null,
       numChild5to12: params.numChild5to12 ?? null,
       numChild0to5: params.numChild0to5 ?? null,
-      tourStartsFrom: params.tourStartsFrom ? new Date(params.tourStartsFrom) : null,
-      tourEndsOn: params.tourEndsOn ? new Date(params.tourEndsOn) : null,
+      tourStartsFrom,
+      tourEndsOn,
       transport: params.transport ?? null,
       pickup_location: params.pickup_location ?? null,
       drop_location: params.drop_location ?? null,
@@ -308,12 +390,9 @@ async function createTourQuery(params: {
   return query;
 }
 
-async function listTourQueries(params: {
-  locationId?: string;
-  customerName?: string;
-  limit?: number;
-}) {
-  const { locationId, customerName, limit = 20 } = params;
+async function listTourQueries(rawParams: unknown) {
+  const params = ListTourQueriesSchema.parse(rawParams);
+  const { locationId, customerName, limit } = params;
   const result = await prismadb.tourPackageQuery.findMany({
     where: {
       isArchived: false,
@@ -342,18 +421,8 @@ async function listTourQueries(params: {
   return result;
 }
 
-async function generateItinerary(params: {
-  destination: string;
-  nights: number;
-  days: number;
-  groupType: "family" | "couple" | "friends" | "solo" | "corporate" | "seniors";
-  budgetCategory: "budget" | "mid-range" | "premium" | "luxury";
-  specialRequirements?: string;
-  customerName?: string;
-  startDate?: string;
-  numAdults?: number;
-  numChildren?: number;
-}) {
+async function generateItinerary(rawParams: unknown) {
+  const params = GenerateItinerarySchema.parse(rawParams);
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Gemini API key not configured");
 
@@ -401,26 +470,25 @@ Output ONLY a valid JSON object with this structure:
   return JSON.parse(text);
 }
 
-async function getStats(_params: Record<string, never>) {
-  const [total, pending, active, confirmed, cancelled, totalQueries] =
+async function getStats(_rawParams: unknown) {
+  const [total, pending, confirmed, cancelled, totalQueries] =
     await Promise.all([
       prismadb.inquiry.count(),
-      prismadb.inquiry.count({ where: { status: "NEW" } }),
-      prismadb.inquiry.count({ where: { status: "ACTIVE" } }),
+      prismadb.inquiry.count({ where: { status: "PENDING" } }),
       prismadb.inquiry.count({ where: { status: "CONFIRMED" } }),
       prismadb.inquiry.count({ where: { status: "CANCELLED" } }),
       prismadb.tourPackageQuery.count({ where: { isArchived: false } }),
     ]);
 
   return {
-    inquiries: { total, pending, active, confirmed, cancelled },
+    inquiries: { total, pending, confirmed, cancelled },
     tourQueries: { total: totalQueries },
   };
 }
 
 // ── Tool registry ────────────────────────────────────────────────────────────
 
-const TOOLS: Record<string, (params: any) => Promise<unknown>> = {
+const TOOLS: Record<string, (params: unknown) => Promise<unknown>> = {
   search_locations: searchLocations,
   list_tour_packages: listTourPackages,
   list_hotels: listHotels,
@@ -439,26 +507,27 @@ const TOOLS: Record<string, (params: any) => Promise<unknown>> = {
 
 export async function POST(req: Request) {
   if (!authenticateMcp(req)) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   let body: { tool: string; params: Record<string, unknown> };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 });
   }
 
   const { tool, params = {} } = body;
 
   if (!tool) {
-    return NextResponse.json({ error: "Missing tool name" }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Missing tool name" }, { status: 400 });
   }
 
   const handler = TOOLS[tool];
   if (!handler) {
     return NextResponse.json(
       {
+        success: false,
         error: `Unknown tool: ${tool}`,
         availableTools: Object.keys(TOOLS),
       },
@@ -472,12 +541,29 @@ export async function POST(req: Request) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
     console.error(`[MCP] Tool ${tool} failed:`, err);
+
+    // Zod validation errors → 422 Unprocessable Entity
+    if (err instanceof ZodError) {
+      return NextResponse.json(
+        { success: false, error: "Validation error", details: err.flatten() },
+        { status: 422 }
+      );
+    }
+
+    // Not-found errors → 404
+    if (err instanceof NotFoundError) {
+      return NextResponse.json({ success: false, error: message }, { status: 404 });
+    }
+
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
-// Allow health-check GET (no auth needed)
-export async function GET() {
+// Health-check GET — requires the same x-mcp-api-secret to avoid leaking capability details
+export async function GET(req: Request) {
+  if (!authenticateMcp(req)) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
   return NextResponse.json({
     status: "ok",
     server: "travel-admin-mcp-gateway",

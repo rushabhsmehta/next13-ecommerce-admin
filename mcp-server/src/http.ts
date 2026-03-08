@@ -4,11 +4,8 @@
  *   GET /sse    → Claude connects here to open the SSE stream
  *   POST /messages?sessionId=xxx → Claude sends tool calls here
  *
- * Authentication: callers must supply the correct bearer token in the
- * Authorization header: `Authorization: Bearer <MCP_HTTP_SECRET>`
- *
- * Set MCP_HTTP_SECRET in mcp-server/.env (it can be the same value as
- * MCP_API_SECRET or a separate one).
+ * No Bearer token auth — Claude.ai custom connectors don't support it.
+ * Session isolation is enforced by the random UUID sessionId.
  */
 
 import express from "express";
@@ -16,22 +13,6 @@ import type { Request, Response, NextFunction } from "express";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-const MCP_HTTP_SECRET = process.env.MCP_HTTP_SECRET || process.env.MCP_API_SECRET || "";
-
-function requireBearerToken(req: Request, res: Response, next: NextFunction): void {
-  if (!MCP_HTTP_SECRET) {
-    // No secret configured — block all requests to prevent accidental open access
-    res.status(500).json({ error: "MCP_HTTP_SECRET is not configured on the server", code: "INTERNAL_ERROR" });
-    return;
-  }
-  const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  if (!token || token !== MCP_HTTP_SECRET) {
-    res.status(401).json({ error: "Unauthorized: valid Bearer token required", code: "UNAUTHORIZED" });
-    return;
-  }
-  next();
-}
 
 export async function startHttpServer(server: McpServer): Promise<void> {
   const app = express();
@@ -41,9 +22,6 @@ export async function startHttpServer(server: McpServer): Promise<void> {
   const transports = new Map<string, SSEServerTransport>();
 
   // ── SSE connection endpoint ────────────────────────────────────────────────
-  // Claude.ai connectors don't send Bearer tokens — auth is skipped here.
-  // The /messages endpoint still requires the Bearer token (Claude.ai sends sessionId
-  // which ties back to the authenticated SSE session implicitly).
   app.get("/sse", async (_req, res) => {
     const transport = new SSEServerTransport("/messages", res);
     transports.set(transport.sessionId, transport);
@@ -70,7 +48,9 @@ export async function startHttpServer(server: McpServer): Promise<void> {
   });
 
   // ── Message endpoint (Claude sends tool calls here) ────────────────────────
-  app.post("/messages", requireBearerToken, async (req, res) => {
+  // Claude.ai doesn't send Bearer tokens — sessionId provides implicit session binding.
+  // An unknown sessionId returns 404, so random probes can't do anything useful.
+  app.post("/messages", async (req, res) => {
     const sessionId = req.query.sessionId as string;
 
     if (!sessionId) {
@@ -123,9 +103,6 @@ export async function startHttpServer(server: McpServer): Promise<void> {
       console.error(`[MCP HTTP] Server running on port ${port}`);
       console.error(`[MCP HTTP] SSE endpoint:  http://localhost:${port}/sse`);
       console.error(`[MCP HTTP] Health check:  http://localhost:${port}/health`);
-      if (!MCP_HTTP_SECRET) {
-        console.error("[MCP HTTP] ⚠️  WARNING: MCP_HTTP_SECRET is not set — all /sse and /messages requests will be rejected");
-      }
       resolve();
     });
   });

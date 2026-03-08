@@ -21,13 +21,13 @@ const MCP_HTTP_SECRET = process.env.MCP_HTTP_SECRET || process.env.MCP_API_SECRE
 function requireBearerToken(req: Request, res: Response, next: NextFunction): void {
   if (!MCP_HTTP_SECRET) {
     // No secret configured — block all requests to prevent accidental open access
-    res.status(500).json({ error: "MCP_HTTP_SECRET is not configured on the server" });
+    res.status(500).json({ error: "MCP_HTTP_SECRET is not configured on the server", code: "INTERNAL_ERROR" });
     return;
   }
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
   if (!token || token !== MCP_HTTP_SECRET) {
-    res.status(401).json({ error: "Unauthorized: valid Bearer token required" });
+    res.status(401).json({ error: "Unauthorized: valid Bearer token required", code: "UNAUTHORIZED" });
     return;
   }
   next();
@@ -51,20 +51,48 @@ export async function startHttpServer(server: McpServer): Promise<void> {
     };
 
     console.error(`[MCP HTTP] New session: ${transport.sessionId}`);
-    await server.connect(transport);
+    try {
+      await server.connect(transport);
+    } catch (err) {
+      transports.delete(transport.sessionId);
+      console.error(`[MCP HTTP] Session ${transport.sessionId} connect failed:`, err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "MCP server failed to initialize session", code: "INTERNAL_ERROR" });
+      } else {
+        // SSE headers already sent — signal error via SSE event then close
+        res.write(`event: error\ndata: ${JSON.stringify({ error: "Session setup failed", code: "INTERNAL_ERROR" })}\n\n`);
+        res.end();
+      }
+    }
   });
 
   // ── Message endpoint (Claude sends tool calls here) ────────────────────────
   app.post("/messages", requireBearerToken, async (req, res) => {
     const sessionId = req.query.sessionId as string;
-    const transport = transports.get(sessionId);
 
-    if (!transport) {
-      res.status(404).json({ error: "Session not found. Connect to /sse first." });
+    if (!sessionId) {
+      res.status(400).json({ error: "Missing sessionId query parameter", code: "INVALID_INPUT" });
       return;
     }
 
-    await transport.handlePostMessage(req, res);
+    const transport = transports.get(sessionId);
+    if (!transport) {
+      res.status(404).json({ error: "Session not found. Connect to /sse first.", code: "NOT_FOUND" });
+      return;
+    }
+
+    try {
+      await transport.handlePostMessage(req, res);
+    } catch (err) {
+      console.error(`[MCP HTTP] handlePostMessage failed for session ${sessionId}:`, err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: "Failed to process MCP message",
+          code: "INTERNAL_ERROR",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
   });
 
   // ── Health check (unauthenticated — returns no sensitive info) ─────────────
@@ -74,6 +102,15 @@ export async function startHttpServer(server: McpServer): Promise<void> {
       server: "travel-admin-mcp",
       activeSessions: transports.size,
     });
+  });
+
+  // ── Global Express error handler ───────────────────────────────────────────
+  // Catches any synchronous throws that escape route handlers (Express 4 requires 4 params)
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction): void => {
+    console.error("[MCP HTTP] Unhandled Express error:", err.message, err.stack);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message, code: "INTERNAL_ERROR" });
+    }
   });
 
   const port = parseInt(process.env.MCP_PORT || process.env.PORT || "3100", 10);

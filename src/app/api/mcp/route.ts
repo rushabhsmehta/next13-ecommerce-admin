@@ -31,11 +31,68 @@ const ALLOWED_INQUIRY_STATUSES = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUER
 
 // ── Custom error types ────────────────────────────────────────────────────────
 
-class NotFoundError extends Error {
-  constructor(message: string) {
+class McpError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly statusHint: number = 500,
+    public readonly details?: unknown
+  ) {
     super(message);
+    this.name = "McpError";
+  }
+}
+
+class NotFoundError extends McpError {
+  constructor(message: string, code = "NOT_FOUND") {
+    super(message, code, 404);
     this.name = "NotFoundError";
   }
+}
+
+// ── Prisma error mapper ───────────────────────────────────────────────────────
+
+function mapPrismaError(err: unknown): McpError | null {
+  if (typeof err !== "object" || err === null || !("code" in err)) return null;
+  const c = (err as any).code as string;
+  const meta = (err as any).meta as Record<string, unknown> | undefined;
+  switch (c) {
+    case "P2002": {
+      const fields = Array.isArray(meta?.target) ? (meta!.target as string[]).join(", ") : "unknown";
+      return new McpError(
+        `Duplicate value: a record with this ${fields} already exists`,
+        "DB_CONSTRAINT", 409, { prismaCode: c, fields }
+      );
+    }
+    case "P2025":
+      return new McpError("Record not found or already deleted", "NOT_FOUND", 404, { prismaCode: c });
+    case "P2003": {
+      const field = meta?.field_name ?? "unknown";
+      return new McpError(
+        `Foreign key constraint failed on: ${field}`,
+        "DB_CONSTRAINT", 409, { prismaCode: c, field }
+      );
+    }
+    case "P2000": {
+      const field = meta?.column_name ?? "unknown";
+      return new McpError(
+        `Value too long for field: ${field}`,
+        "DB_VALUE_TOO_LONG", 422, { prismaCode: c, field }
+      );
+    }
+    default: return null;
+  }
+}
+
+// ── Zod error summarizer ──────────────────────────────────────────────────────
+
+function summarizeZodError(err: ZodError): string {
+  const flat = err.flatten();
+  const parts = [
+    ...Object.entries(flat.fieldErrors).slice(0, 3).map(([f, m]) => `${f}: ${(m ?? []).join("; ")}`),
+    ...flat.formErrors.slice(0, 2),
+  ];
+  return parts.length ? parts.join(" | ") : "Invalid parameters";
 }
 
 // ── Per-tool Zod schemas (server-side validation) ─────────────────────────────
@@ -213,7 +270,10 @@ async function createInquiry(rawParams: unknown) {
         label: { contains: params.locationName },
       },
     });
-    if (!loc) throw new Error(`Location "${params.locationName}" not found. Use search_locations first.`);
+    if (!loc) throw new NotFoundError(
+      `Location "${params.locationName}" not found. Call search_locations first to find the correct name.`,
+      "LOCATION_NOT_FOUND"
+    );
     locationId = loc.id;
   }
 
@@ -297,7 +357,7 @@ async function getInquiry(rawParams: unknown) {
       },
     },
   });
-  if (!inquiry) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`);
+  if (!inquiry) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`, "INQUIRY_NOT_FOUND");
   return inquiry;
 }
 
@@ -307,7 +367,7 @@ async function updateInquiryStatus(rawParams: unknown) {
     where: { id: params.inquiryId },
     select: { id: true },
   });
-  if (!existing) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`);
+  if (!existing) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`, "INQUIRY_NOT_FOUND");
 
   return prismadb.inquiry.update({
     where: { id: params.inquiryId },
@@ -331,7 +391,7 @@ async function addInquiryNote(rawParams: unknown) {
     where: { id: params.inquiryId },
     select: { id: true },
   });
-  if (!inquiry) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`);
+  if (!inquiry) throw new NotFoundError(`Inquiry ${params.inquiryId} not found`, "INQUIRY_NOT_FOUND");
 
   return prismadb.inquiryAction.create({
     data: {
@@ -351,7 +411,10 @@ async function createTourQuery(rawParams: unknown) {
     const loc = await prismadb.location.findFirst({
       where: { isActive: true, label: { contains: params.locationName } },
     });
-    if (!loc) throw new Error(`Location "${params.locationName}" not found. Use search_locations first.`);
+    if (!loc) throw new NotFoundError(
+      `Location "${params.locationName}" not found. Call search_locations first to find the correct name.`,
+      "LOCATION_NOT_FOUND"
+    );
     locationId = loc.id;
   }
 
@@ -477,20 +540,47 @@ Output ONLY a valid JSON object with this structure:
     generationConfig: { temperature: 0.7, responseMimeType: "application/json" },
   });
 
-  const text = result.response.text().replace(/\n/g, " ").trim();
-  return JSON.parse(text);
+  let text: string;
+  try {
+    text = result.response.text().replace(/\n/g, " ").trim();
+  } catch (e) {
+    throw new McpError("Gemini returned an empty or inaccessible response", "AI_GENERATION_FAILED", 502, { cause: String(e) });
+  }
+
+  // Strip markdown code fences Gemini sometimes emits despite responseMimeType: "application/json"
+  const jsonText = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+
+  try {
+    return JSON.parse(jsonText);
+  } catch (e) {
+    console.error("[MCP] generateItinerary: non-JSON from Gemini:", jsonText.slice(0, 300));
+    throw new McpError(
+      `AI returned malformed JSON. Snippet: ${jsonText.slice(0, 120)}`,
+      "AI_PARSE_ERROR", 502, { rawSnippet: jsonText.slice(0, 300) }
+    );
+  }
 }
 
 async function getStats(_rawParams: unknown) {
-  const [total, pending, confirmed, cancelled, totalQueries] =
-    await Promise.all([
+  let counts: [number, number, number, number, number];
+  try {
+    counts = await Promise.all([
       prismadb.inquiry.count(),
       prismadb.inquiry.count({ where: { status: "PENDING" } }),
       prismadb.inquiry.count({ where: { status: "CONFIRMED" } }),
       prismadb.inquiry.count({ where: { status: "CANCELLED" } }),
       prismadb.tourPackageQuery.count({ where: { isArchived: false } }),
     ]);
-
+  } catch (err) {
+    const pe = mapPrismaError(err);
+    if (pe) throw pe;
+    throw new McpError(
+      "Failed to fetch dashboard statistics from the database",
+      "INTERNAL_ERROR", 500,
+      { cause: err instanceof Error ? err.message : String(err) }
+    );
+  }
+  const [total, pending, confirmed, cancelled, totalQueries] = counts;
   return {
     inquiries: { total, pending, confirmed, cancelled },
     tourQueries: { total: totalQueries },
@@ -550,23 +640,46 @@ export async function POST(req: Request) {
     const result = await handler(params);
     return NextResponse.json({ success: true, data: result });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Internal error";
     console.error(`[MCP] Tool ${tool} failed:`, err);
 
     // Zod validation errors → 422 Unprocessable Entity
     if (err instanceof ZodError) {
       return NextResponse.json(
-        { success: false, error: "Validation error", details: err.flatten() },
+        {
+          success: false,
+          error: `Validation error: ${summarizeZodError(err)}`,
+          code: "VALIDATION_ERROR",
+          details: err.flatten(),
+        },
         { status: 422 }
       );
     }
 
-    // Not-found errors → 404
-    if (err instanceof NotFoundError) {
-      return NextResponse.json({ success: false, error: message }, { status: 404 });
+    // Typed McpError hierarchy (includes NotFoundError, etc.)
+    if (err instanceof McpError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: err.message,
+          code: err.code,
+          ...(err.details !== undefined ? { details: err.details } : {}),
+        },
+        { status: err.statusHint }
+      );
     }
 
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    // Prisma-specific errors
+    const pe = mapPrismaError(err);
+    if (pe) {
+      return NextResponse.json(
+        { success: false, error: pe.message, code: pe.code, details: pe.details },
+        { status: pe.statusHint }
+      );
+    }
+
+    // Generic fallback
+    const message = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json({ success: false, error: message, code: "INTERNAL_ERROR" }, { status: 500 });
   }
 }
 

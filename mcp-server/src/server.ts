@@ -2,6 +2,34 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { callTool } from "./api-client.js";
 
+/**
+ * Formats a callTool() error into an MCP isError content block.
+ * Using isError:true tells the MCP SDK the tool call failed, so the AI agent
+ * sees structured error JSON in context and can reason about/explain it.
+ */
+function toolError(toolName: string, err: unknown): {
+  isError: true;
+  content: Array<{ type: "text"; text: string }>;
+} {
+  const message = err instanceof Error ? err.message : String(err);
+  const code = (err as any)?.code ?? "INTERNAL_ERROR";
+  const details = (err as any)?.details;
+  console.error(`[MCP server] Tool "${toolName}" failed: [${code}] ${message}`);
+  return {
+    isError: true,
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(
+          { error: true, tool: toolName, code, message, ...(details ? { details } : {}) },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
 export function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "travel-admin",
@@ -18,10 +46,14 @@ export function createMcpServer(): McpServer {
       limit: z.number().int().min(1).max(50).optional().default(10).describe("Max results to return"),
     },
     async ({ query, limit }) => {
-      const data = await callTool("search_locations", { query, limit });
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
+      try {
+        const data = await callTool("search_locations", { query, limit });
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        };
+      } catch (err) {
+        return toolError("search_locations", err);
+      }
     }
   );
 
@@ -36,10 +68,14 @@ export function createMcpServer(): McpServer {
       limit: z.number().int().min(1).max(50).optional().default(20).describe("Max results"),
     },
     async ({ locationId, tourCategory, limit }) => {
-      const data = await callTool("list_tour_packages", { locationId, tourCategory, limit });
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
+      try {
+        const data = await callTool("list_tour_packages", { locationId, tourCategory, limit });
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        };
+      } catch (err) {
+        return toolError("list_tour_packages", err);
+      }
     }
   );
 
@@ -54,10 +90,14 @@ export function createMcpServer(): McpServer {
       limit: z.number().int().min(1).max(50).optional().default(20).describe("Max results"),
     },
     async ({ locationId, name, limit }) => {
-      const data = await callTool("list_hotels", { locationId, name, limit });
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
+      try {
+        const data = await callTool("list_hotels", { locationId, name, limit });
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        };
+      } catch (err) {
+        return toolError("list_hotels", err);
+      }
     }
   );
 
@@ -80,18 +120,22 @@ export function createMcpServer(): McpServer {
       numChildrenBelow5: z.number().int().min(0).optional().default(0).describe("Children below 5 years"),
       journeyDate: z.string().describe("Planned travel date (ISO format: YYYY-MM-DD)"),
       remarks: z.string().optional().describe("Additional notes or requirements"),
-      status: z.string().optional().default("NEW").describe("Inquiry status (default: NEW)"),
+      status: z.string().optional().default("PENDING").describe("Inquiry status (default: PENDING)"),
     },
     async (params) => {
-      const data = await callTool("create_inquiry", params);
-      return {
-        content: [
-          {
-            type: "text",
-            text: `✅ Inquiry created successfully!\n\n${JSON.stringify(data, null, 2)}`,
-          },
-        ],
-      };
+      try {
+        const data = await callTool("create_inquiry", params);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `✅ Inquiry created successfully!\n\n${JSON.stringify(data, null, 2)}`,
+            },
+          ],
+        };
+      } catch (err) {
+        return toolError("create_inquiry", err);
+      }
     }
   );
 
@@ -99,15 +143,19 @@ export function createMcpServer(): McpServer {
     "list_inquiries",
     "List customer inquiries with optional filters. Shows recent inquiries by default.",
     {
-      status: z.string().optional().describe("Filter by status: NEW, ACTIVE, CONFIRMED, CANCELLED, ALL"),
+      status: z.string().optional().describe("Filter by status: PENDING, CONFIRMED, CANCELLED, HOT_QUERY, QUERY_SENT, ALL"),
       customerName: z.string().optional().describe("Search by customer name"),
       limit: z.number().int().min(1).max(100).optional().default(25).describe("Max results"),
     },
     async ({ status, customerName, limit }) => {
-      const data = await callTool("list_inquiries", { status, customerName, limit });
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
+      try {
+        const data = await callTool("list_inquiries", { status, customerName, limit });
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        };
+      } catch (err) {
+        return toolError("list_inquiries", err);
+      }
     }
   );
 
@@ -118,33 +166,41 @@ export function createMcpServer(): McpServer {
       inquiryId: z.string().describe("The inquiry ID to retrieve"),
     },
     async ({ inquiryId }) => {
-      const data = await callTool("get_inquiry", { inquiryId });
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
+      try {
+        const data = await callTool("get_inquiry", { inquiryId });
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        };
+      } catch (err) {
+        return toolError("get_inquiry", err);
+      }
     }
   );
 
   server.tool(
     "update_inquiry_status",
-    "Update the status of an inquiry. Valid statuses: NEW, ACTIVE, CONFIRMED, CANCELLED.",
+    "Update the status of an inquiry. Valid statuses: PENDING, CONFIRMED, CANCELLED, HOT_QUERY, QUERY_SENT.",
     {
       inquiryId: z.string().describe("The inquiry ID to update"),
       status: z
-        .enum(["NEW", "ACTIVE", "CONFIRMED", "CANCELLED", "FOLLOW_UP"])
+        .enum(["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"])
         .describe("New status for the inquiry"),
       remarks: z.string().optional().describe("Optional remarks/reason for the status change"),
     },
     async ({ inquiryId, status, remarks }) => {
-      const data = await callTool("update_inquiry_status", { inquiryId, status, remarks });
-      return {
-        content: [
-          {
-            type: "text",
-            text: `✅ Status updated to ${status}\n\n${JSON.stringify(data, null, 2)}`,
-          },
-        ],
-      };
+      try {
+        const data = await callTool("update_inquiry_status", { inquiryId, status, remarks });
+        return {
+          content: [
+            {
+              type: "text",
+              text: `✅ Status updated to ${status}\n\n${JSON.stringify(data, null, 2)}`,
+            },
+          ],
+        };
+      } catch (err) {
+        return toolError("update_inquiry_status", err);
+      }
     }
   );
 
@@ -161,15 +217,19 @@ export function createMcpServer(): McpServer {
         .describe("Type of action: NOTE, CALL, EMAIL, WHATSAPP, MEETING"),
     },
     async ({ inquiryId, note, actionType }) => {
-      const data = await callTool("add_inquiry_note", { inquiryId, note, actionType });
-      return {
-        content: [
-          {
-            type: "text",
-            text: `✅ Note added to inquiry\n\n${JSON.stringify(data, null, 2)}`,
-          },
-        ],
-      };
+      try {
+        const data = await callTool("add_inquiry_note", { inquiryId, note, actionType });
+        return {
+          content: [
+            {
+              type: "text",
+              text: `✅ Note added to inquiry\n\n${JSON.stringify(data, null, 2)}`,
+            },
+          ],
+        };
+      } catch (err) {
+        return toolError("add_inquiry_note", err);
+      }
     }
   );
 
@@ -203,15 +263,19 @@ export function createMcpServer(): McpServer {
       totalPrice: z.string().optional().describe("Total price"),
     },
     async (params) => {
-      const data = await callTool("create_tour_query", params);
-      return {
-        content: [
-          {
-            type: "text",
-            text: `✅ Tour query created!\n\n${JSON.stringify(data, null, 2)}\n\nOpen it in the admin at /tourPackageQuery/${(data as any).id}`,
-          },
-        ],
-      };
+      try {
+        const data = await callTool("create_tour_query", params);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `✅ Tour query created!\n\n${JSON.stringify(data, null, 2)}\n\nOpen it in the admin at /tourPackageQuery/${(data as any).id}`,
+            },
+          ],
+        };
+      } catch (err) {
+        return toolError("create_tour_query", err);
+      }
     }
   );
 
@@ -224,10 +288,14 @@ export function createMcpServer(): McpServer {
       limit: z.number().int().min(1).max(100).optional().default(20).describe("Max results"),
     },
     async ({ locationId, customerName, limit }) => {
-      const data = await callTool("list_tour_queries", { locationId, customerName, limit });
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
+      try {
+        const data = await callTool("list_tour_queries", { locationId, customerName, limit });
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        };
+      } catch (err) {
+        return toolError("list_tour_queries", err);
+      }
     }
   );
 
@@ -258,15 +326,19 @@ export function createMcpServer(): McpServer {
       numChildren: z.number().int().optional().describe("Number of children"),
     },
     async (params) => {
-      const data = await callTool("generate_itinerary", params);
-      return {
-        content: [
-          {
-            type: "text",
-            text: `🗺️ AI-Generated Itinerary for ${params.destination}\n\n${JSON.stringify(data, null, 2)}`,
-          },
-        ],
-      };
+      try {
+        const data = await callTool("generate_itinerary", params);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `🗺️ AI-Generated Itinerary for ${params.destination}\n\n${JSON.stringify(data, null, 2)}`,
+            },
+          ],
+        };
+      } catch (err) {
+        return toolError("generate_itinerary", err);
+      }
     }
   );
 
@@ -277,10 +349,14 @@ export function createMcpServer(): McpServer {
     "Get dashboard statistics: inquiry counts by status and total tour queries.",
     {},
     async () => {
-      const data = await callTool("get_stats", {});
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
+      try {
+        const data = await callTool("get_stats", {});
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        };
+      } catch (err) {
+        return toolError("get_stats", err);
+      }
     }
   );
 

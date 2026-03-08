@@ -5,18 +5,18 @@ import { CellAction } from "./cell-action"
 
 export type CashAccountColumn = {
   id: string
-  accountName: string;  // changed from name
-  currentBalance: number;  // changed from balance
+  accountName: string;
+  currentBalance: number;
   createdAt: string;
 }
 
 export const columns: ColumnDef<CashAccountColumn>[] = [
   {
-    accessorKey: "accountName",  // changed from name
+    accessorKey: "accountName",
     header: "Account Name",
   },
   {
-    accessorKey: "currentBalance",  // changed from balance
+    accessorKey: "currentBalance",
     header: "Current Balance",
     cell: ({ row }) => {
       const balance = parseFloat(row.getValue("currentBalance"));
@@ -27,10 +27,6 @@ export const columns: ColumnDef<CashAccountColumn>[] = [
     }
   },
   {
-    accessorKey: "description",
-    header: "Description",
-  },
-  {
     accessorKey: "createdAt",
     header: "Date Created",
   },
@@ -39,4 +35,3 @@ export const columns: ColumnDef<CashAccountColumn>[] = [
     cell: ({ row }) => <CellAction data={row.original} />
   },
 ];
-

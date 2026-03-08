@@ -5,7 +5,6 @@ export default async function AccountsDashboardPage() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Bank and cash accounts
   const [bankAccounts, cashAccounts] = await Promise.all([
     prismadb.bankAccount.findMany({
       where: { isActive: true },
@@ -25,7 +24,6 @@ export default async function AccountsDashboardPage() {
     }),
   ]);
 
-  // Outstanding receivables: total invoiced - total collected via allocations
   const salesWithAllocations = await prismadb.saleDetail.findMany({
     select: {
       salePrice: true,
@@ -44,7 +42,6 @@ export default async function AccountsDashboardPage() {
   );
   const outstandingReceivables = Math.max(0, totalInvoiced - totalCollected);
 
-  // Outstanding payables: total billed - total paid via allocations
   const purchasesWithAllocations = await prismadb.purchaseDetail.findMany({
     select: {
       price: true,
@@ -64,7 +61,6 @@ export default async function AccountsDashboardPage() {
   );
   const outstandingPayables = Math.max(0, totalBilled - totalPaid);
 
-  // MTD Revenue (sales this calendar month)
   const mtdSalesAgg = await prismadb.saleDetail.aggregate({
     where: { saleDate: { gte: startOfMonth } },
     _sum: { salePrice: true, gstAmount: true },
@@ -72,7 +68,6 @@ export default async function AccountsDashboardPage() {
   const mtdRevenue =
     (mtdSalesAgg._sum.salePrice || 0) + (mtdSalesAgg._sum.gstAmount || 0);
 
-  // MTD Expenses (purchases + expense details this month)
   const [mtdPurchasesAgg, mtdExpensesAgg] = await Promise.all([
     prismadb.purchaseDetail.aggregate({
       where: { purchaseDate: { gte: startOfMonth } },
@@ -88,8 +83,13 @@ export default async function AccountsDashboardPage() {
     (mtdPurchasesAgg._sum.price || 0) + (mtdPurchasesAgg._sum.gstAmount || 0);
   const mtdExpenses = mtdPurchaseAmount + (mtdExpensesAgg._sum.amount || 0);
 
-  // Recent 10 transactions (payments + receipts merged)
-  const [recentPayments, recentReceipts] = await Promise.all([
+  const [
+    recentPayments,
+    recentReceipts,
+    recentIncomes,
+    recentExpenses,
+    recentTransfers,
+  ] = await Promise.all([
     prismadb.paymentDetail.findMany({
       take: 10,
       orderBy: { paymentDate: "desc" },
@@ -118,6 +118,47 @@ export default async function AccountsDashboardPage() {
         cashAccount: { select: { accountName: true } },
       },
     }),
+    prismadb.incomeDetail.findMany({
+      take: 10,
+      orderBy: { incomeDate: "desc" },
+      select: {
+        id: true,
+        incomeDate: true,
+        amount: true,
+        description: true,
+        incomeCategory: { select: { name: true } },
+        bankAccount: { select: { accountName: true } },
+        cashAccount: { select: { accountName: true } },
+      },
+    }),
+    prismadb.expenseDetail.findMany({
+      take: 10,
+      orderBy: { expenseDate: "desc" },
+      select: {
+        id: true,
+        expenseDate: true,
+        amount: true,
+        description: true,
+        expenseCategory: { select: { name: true } },
+        bankAccount: { select: { accountName: true } },
+        cashAccount: { select: { accountName: true } },
+      },
+    }),
+    prismadb.transfer.findMany({
+      take: 10,
+      orderBy: { transferDate: "desc" },
+      select: {
+        id: true,
+        transferDate: true,
+        amount: true,
+        description: true,
+        reference: true,
+        fromBankAccount: { select: { accountName: true } },
+        fromCashAccount: { select: { accountName: true } },
+        toBankAccount: { select: { accountName: true } },
+        toCashAccount: { select: { accountName: true } },
+      },
+    }),
   ]);
 
   const recentTransactions = [
@@ -138,6 +179,48 @@ export default async function AccountsDashboardPage() {
       amount: r.amount,
       account: r.bankAccount?.accountName || r.cashAccount?.accountName || "N/A",
       note: r.note || "",
+    })),
+    ...recentIncomes.map((income) => ({
+      id: income.id,
+      date: income.incomeDate,
+      type: "receipt" as const,
+      party: income.incomeCategory?.name || "Income",
+      amount: income.amount,
+      account:
+        income.bankAccount?.accountName || income.cashAccount?.accountName || "N/A",
+      note: income.description || "",
+    })),
+    ...recentExpenses.map((expense) => ({
+      id: expense.id,
+      date: expense.expenseDate,
+      type: "payment" as const,
+      party: expense.expenseCategory?.name || "Expense",
+      amount: expense.amount,
+      account:
+        expense.bankAccount?.accountName || expense.cashAccount?.accountName || "N/A",
+      note: expense.description || "",
+    })),
+    ...recentTransfers.map((transfer) => ({
+      id: transfer.id,
+      date: transfer.transferDate,
+      type: "receipt" as const,
+      party: `Transfer: ${
+        transfer.fromBankAccount?.accountName ||
+        transfer.fromCashAccount?.accountName ||
+        "Unknown"
+      } -> ${
+        transfer.toBankAccount?.accountName ||
+        transfer.toCashAccount?.accountName ||
+        "Unknown"
+      }`,
+      amount: transfer.amount,
+      account:
+        transfer.toBankAccount?.accountName ||
+        transfer.toCashAccount?.accountName ||
+        transfer.fromBankAccount?.accountName ||
+        transfer.fromCashAccount?.accountName ||
+        "N/A",
+      note: transfer.description || transfer.reference || "",
     })),
   ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())

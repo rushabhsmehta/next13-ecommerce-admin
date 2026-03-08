@@ -56,12 +56,13 @@ export const BankAccountsClient: React.FC<BankAccountsClientProps> = ({
       item.accountName,
       item.accountNumber,
       item.bankName,
+      formatCurrencyForPDF(item.currentBalance),
       item.createdAt
     ]);
 
     // Add the table
     autoTable(doc, {
-      head: [["Account Name", "Account Number", "Bank Name", "Created Date"]],
+      head: [["Account Name", "Account Number", "Bank Name", "Current Balance", "Created Date"]],
       body: tableData,
       startY: 50,
     });
@@ -103,13 +104,14 @@ export const BankAccountsClient: React.FC<BankAccountsClientProps> = ({
 
     // Add data table headers
     const headers = [
-      ["Account Name", "Account Number", "Bank Name", "Created Date"]
+      ["Account Name", "Account Number", "Bank Name", "Current Balance", "Created Date"]
     ];
 
     const dataRows = data.map(item => [
       item.accountName,
       item.accountNumber,
       item.bankName,
+      formatCurrencyForPDF(item.currentBalance),
       item.createdAt
     ]);
 
@@ -122,6 +124,7 @@ export const BankAccountsClient: React.FC<BankAccountsClientProps> = ({
       { wch: 25 }, // Account Name
       { wch: 20 }, // Account Number
       { wch: 20 }, // Bank Name
+      { wch: 18 }, // Current Balance
       { wch: 20 }, // Created Date
     ];
 
@@ -130,7 +133,7 @@ export const BankAccountsClient: React.FC<BankAccountsClientProps> = ({
     // Add merge cells for the title
     if (!worksheet["!merges"]) worksheet["!merges"] = [];
     worksheet["!merges"].push(
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } } // Merge cells for the title row
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } } // Merge cells for the title row
     );
 
     // Create workbook
@@ -176,4 +179,3 @@ export const BankAccountsClient: React.FC<BankAccountsClientProps> = ({
     </>
   );
 };
-

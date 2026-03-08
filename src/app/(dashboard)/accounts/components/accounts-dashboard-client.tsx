@@ -172,7 +172,7 @@ export function AccountsDashboardClient({
                 <p className="text-sm font-medium text-muted-foreground">Total Cash in Hand</p>
                 <p className="text-2xl font-bold">{formatPrice(totalCash)}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Bank: {formatPrice(totalBankBalance)} · Cash: {formatPrice(totalCashBalance)}
+                  Bank: {formatPrice(totalBankBalance)} / Cash: {formatPrice(totalCashBalance)}
                 </p>
               </div>
               <Wallet className="h-8 w-8 text-slate-500 opacity-70" />
@@ -191,7 +191,7 @@ export function AccountsDashboardClient({
               Bank Accounts
             </h2>
             <Link href="/bankaccounts" className="text-sm text-blue-600 hover:underline">
-              Manage →
+              Manage
             </Link>
           </div>
           {bankAccounts.length === 0 ? (
@@ -205,7 +205,7 @@ export function AccountsDashboardClient({
                       <div>
                         <p className="font-medium">{account.accountName}</p>
                         <p className="text-sm text-muted-foreground">
-                          {account.bankName} · ···{account.accountNumber.slice(-4)}
+                          {account.bankName} / ****{account.accountNumber.slice(-4)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -230,7 +230,7 @@ export function AccountsDashboardClient({
               Cash Accounts
             </h2>
             <Link href="/cashaccounts" className="text-sm text-blue-600 hover:underline">
-              Manage →
+              Manage
             </Link>
           </div>
           {cashAccounts.length === 0 ? (
@@ -266,10 +266,10 @@ export function AccountsDashboardClient({
           <h2 className="text-lg font-semibold">Recent Transactions</h2>
           <div className="flex gap-3">
             <Link href="/payments/ledger" className="text-sm text-blue-600 hover:underline">
-              All Payments →
+              All Payments
             </Link>
             <Link href="/receipts/ledger" className="text-sm text-blue-600 hover:underline">
-              All Receipts →
+              All Receipts
             </Link>
           </div>
         </div>

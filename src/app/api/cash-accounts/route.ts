@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         currentBalance: parseFloat(openingBalance) || 0,
       }
     });
-  
+
     return NextResponse.json(cashAccount);
   } catch (error) {
     console.log('[CASH_ACCOUNTS_POST]', error);
@@ -34,16 +34,21 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
     const cashAccounts = await prismadb.cashAccount.findMany({
       orderBy: {
         createdAt: 'desc'
       }
     });
-  
+
     return NextResponse.json(cashAccounts);
   } catch (error) {
     console.log('[CASH_ACCOUNTS_GET]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }
-

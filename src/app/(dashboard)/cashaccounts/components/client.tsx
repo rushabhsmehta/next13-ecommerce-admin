@@ -171,8 +171,7 @@ export const CashAccountsClient: React.FC<CashAccountsClientProps> = ({
         </div>
       </div>
       <Separator />
-      <DataTable searchKey="name" columns={columns} data={data} />
+      <DataTable searchKey="accountName" columns={columns} data={data} />
     </>
   );
 };
-

@@ -8,6 +8,7 @@ export type BankAccountColumn = {
   accountName: string;
   accountNumber: string;
   bankName: string;
+  currentBalance: number;
   createdAt: string;
 }
 
@@ -25,6 +26,17 @@ export const columns: ColumnDef<BankAccountColumn>[] = [
     header: "Bank Name",
   },
   {
+    accessorKey: "currentBalance",
+    header: "Current Balance",
+    cell: ({ row }) => {
+      const balance = Number(row.getValue("currentBalance"));
+      return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR"
+      }).format(balance);
+    }
+  },
+  {
     accessorKey: "createdAt",
     header: "Date",
   },
@@ -33,4 +45,3 @@ export const columns: ColumnDef<BankAccountColumn>[] = [
     cell: ({ row }) => <CellAction data={row.original} />
   },
 ];
-

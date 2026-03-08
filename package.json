@@ -17,7 +17,8 @@
         "cleanup-legacy-whatsapp": "node scripts/cleanup-legacy-whatsapp.js",
         "cleanup-database": "node scripts/auto-cleanup-daily.js",
         "check-db-health": "node scripts/check-db-health.js",
-        "test-runpod": "node scripts/tests/test-runpod-image-gen.js"
+        "test-runpod": "node scripts/tests/test-runpod-image-gen.js",
+        "test:accounts": "node --test src/lib/tour-package-query-accounting*.test.cjs"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.995.0",

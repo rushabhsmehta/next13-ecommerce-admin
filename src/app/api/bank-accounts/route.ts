@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     const parsedOpeningBalance = parseFloat(openingBalance) || 0;
-    
+
     console.log(`[BANK_ACCOUNTS_POST] Creating bank account: ${accountName} with opening balance: ${parsedOpeningBalance}`);
 
     const bankAccount = await prismadb.bankAccount.create({
@@ -32,9 +32,9 @@ export async function POST(req: Request) {
         currentBalance: parsedOpeningBalance,
       }
     });
-    
+
     console.log(`[BANK_ACCOUNTS_POST] Bank account created: ${bankAccount.id} with current balance: ${bankAccount.currentBalance}`);
-  
+
     return NextResponse.json(bankAccount);
   } catch (error) {
     console.log('[BANK_ACCOUNTS_POST]', error);
@@ -44,16 +44,21 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
     const bankAccounts = await prismadb.bankAccount.findMany({
       orderBy: {
         createdAt: 'desc'
       }
     });
-  
+
     return NextResponse.json(bankAccounts);
   } catch (error) {
     console.log('[BANK_ACCOUNTS_GET]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }
-

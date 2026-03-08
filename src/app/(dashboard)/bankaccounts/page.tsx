@@ -16,6 +16,7 @@ const BankAccountsPage = async () => {
     accountName: item.accountName,
     accountNumber: item.accountNumber,
     bankName: item.bankName,
+    currentBalance: item.currentBalance,
     createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
@@ -29,4 +30,3 @@ const BankAccountsPage = async () => {
 };
 
 export default BankAccountsPage;
-

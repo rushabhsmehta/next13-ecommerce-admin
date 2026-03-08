@@ -31,10 +31,41 @@ export async function callTool(
     );
   }
 
-  const json = (await res.json()) as { success: boolean; data?: unknown; error?: string };
+  // Read the body once as text, then attempt JSON parsing.
+  // This avoids the "body already consumed" problem that occurs when res.json()
+  // throws and res.text() is called on an already-consumed stream.
+  const rawText = await res.text().catch(() => "");
 
-  if (!res.ok || !json.success) {
-    throw new Error(json.error || `HTTP ${res.status}`);
+  let json: { success: boolean; data?: unknown; error?: string } | null = null;
+  try {
+    json = JSON.parse(rawText) as {
+      success: boolean;
+      data?: unknown;
+      error?: string;
+    };
+  } catch {
+    // Response body is not JSON
+  }
+
+  if (!res.ok) {
+    const message =
+      json?.error ||
+      rawText.trim() ||
+      `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
+    throw new Error(message);
+  }
+
+  if (!json) {
+    throw new Error(
+      "MCP gateway returned a non-JSON response for a successful request"
+    );
+  }
+
+  if (!json.success) {
+    throw new Error(
+      json.error ||
+        `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`
+    );
   }
 
   return json.data;

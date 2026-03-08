@@ -83,30 +83,53 @@ Then **restart Claude Desktop**. You should see "travel-admin" appear in the too
 
 ## Step 3B: Claude.ai Setup (Remote MCP via HTTP)
 
+### ⚠️ Security: HTTP Authentication Required
+
+The MCP HTTP server enforces bearer-token authentication on all `/sse` and
+`/messages` requests. **You must set `MCP_HTTP_SECRET`** before starting the
+server — requests without a valid `Authorization: Bearer <token>` header will
+be rejected with HTTP 401.
+
+> **Why this matters:** Anyone who can reach the HTTP server can relay tool
+> calls using your embedded `MCP_API_SECRET`. Requiring a separate bearer
+> token prevents unauthorised access even if your server port is publicly
+> reachable.
+
 ### Start the MCP HTTP Server
 
 Create `mcp-server/.env`:
 ```env
 NEXT_APP_URL=https://your-production-app.com
 MCP_API_SECRET=your-strong-random-secret-here
+
+# Bearer token required by HTTP/SSE clients — keep separate from MCP_API_SECRET
+MCP_HTTP_SECRET=your-other-strong-random-secret-here
 MCP_TRANSPORT=http
 MCP_PORT=3100
+```
+
+Generate strong secrets with:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 Start the server:
 ```bash
 cd mcp-server
-MCP_TRANSPORT=http node dist/index.js
+npm run start:http
+# (on Windows the cross-env wrapper handles the MCP_TRANSPORT env var)
 ```
 
-For production, deploy this on Railway, Fly.io, or any Node.js host.
+For production, deploy this on Railway, Fly.io, or any Node.js host and ensure
+`MCP_HTTP_SECRET` is set as a secret environment variable.
 
 ### Add to Claude.ai
 
 1. Go to **Claude.ai → Settings → Integrations**
 2. Click **Add MCP Server**
 3. Enter your server URL: `https://your-mcp-server.com/sse`
-4. Name it: `Travel Admin`
+4. In the **Authorization** field enter: `Bearer <your MCP_HTTP_SECRET value>`
+5. Name it: `Travel Admin`
 
 ---
 

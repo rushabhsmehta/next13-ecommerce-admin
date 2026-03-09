@@ -521,6 +521,27 @@ export function createMcpServer(): McpServer {
   );
 
   server.tool(
+    "delete_expense",
+    "Delete an expense by its ID. This will also revert the account balance if the expense was already paid.",
+    {
+      expenseId: z.string().describe("The ID of the expense to delete"),
+    },
+    async ({ expenseId }) => {
+      try {
+        const data = await callTool("delete_expense", { expenseId });
+        return {
+          content: [{
+            type: "text",
+            text: `✅ Expense deleted successfully!\n\n${JSON.stringify(data, null, 2)}`,
+          }],
+        };
+      } catch (err) {
+        return toolError("delete_expense", err);
+      }
+    }
+  );
+
+  server.tool(
     "create_income",
     `Record income received into a bank or cash account. Automatically updates the account balance.
     You can resolve the income category by name (incomeCategoryName) if you don't have the ID.

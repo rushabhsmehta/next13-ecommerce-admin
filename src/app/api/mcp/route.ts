@@ -273,6 +273,10 @@ const CreateExpenseSchema = z.object({
   { message: "Provide bankAccountId, bankAccountName, cashAccountId, or cashAccountName", path: ["bankAccountId"] }
 );
 
+const DeleteExpenseSchema = z.object({
+  expenseId: z.string().min(1),
+});
+
 const CreateIncomeSchema = z.object({
   incomeDate: isoDateString,
   amount: z.number().positive(),
@@ -1070,6 +1074,51 @@ async function createExpense(rawParams: unknown) {
   };
 }
 
+async function deleteExpense(rawParams: unknown) {
+  const { expenseId } = DeleteExpenseSchema.parse(rawParams);
+
+  // Get expense to revert account balances
+  const expense = await prismadb.expenseDetail.findUnique({
+    where: { id: expenseId },
+    include: {
+      bankAccount: true,
+      cashAccount: true
+    }
+  });
+
+  if (!expense) {
+    throw new NotFoundError(`Expense ${expenseId} not found`, "EXPENSE_NOT_FOUND");
+  }
+
+  // Revert account balance only if expense was paid (not accrued)
+  if (!expense.isAccrued) {
+    if (expense.bankAccountId) {
+      await prismadb.bankAccount.update({
+        where: { id: expense.bankAccountId },
+        data: {
+          currentBalance: expense.bankAccount!.currentBalance + expense.amount
+        }
+      });
+    } else if (expense.cashAccountId) {
+      await prismadb.cashAccount.update({
+        where: { id: expense.cashAccountId },
+        data: {
+          currentBalance: expense.cashAccount!.currentBalance + expense.amount
+        }
+      });
+    }
+  }
+
+  // Delete the expense
+  await prismadb.expenseDetail.delete({
+    where: {
+      id: expenseId
+    }
+  });
+
+  return { message: "Expense deleted successfully", expenseId };
+}
+
 async function createIncome(rawParams: unknown) {
   const params = CreateIncomeSchema.parse(rawParams);
   const account = await resolveAccount({
@@ -1239,6 +1288,7 @@ const TOOLS: Record<string, (params: unknown) => Promise<unknown>> = {
   create_payment: createPayment,
   create_receipt: createReceipt,
   create_expense: createExpense,
+  delete_expense: deleteExpense,
   create_income: createIncome,
   create_transfer: createTransfer,
 };

@@ -495,10 +495,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedTemplateType: initialData.selectedTemplateType || '',
       tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
       // Restore dropdown field values based on saved template data
-      tourPackageTemplate: (initialData.selectedTemplateType === 'TourPackage' || initialData.selectedTemplateType === 'TourPackageVariant') ? (initialData.selectedTemplateId || '') : '',
+      tourPackageTemplate: (() => {
+        if (initialData.selectedTemplateType === 'TourPackage') {
+          return initialData.selectedTemplateId || '';
+        }
+        if (initialData.selectedTemplateType === 'TourPackageVariant') {
+          // If it's a variant, we need to find its parent tour package ID to correctly populate the dropdown
+          const variantId = initialData.selectedTemplateId;
+          const parentPackage = tourPackages?.find(tp =>
+            tp.packageVariants?.some(v => v.id === variantId)
+          );
+          return parentPackage?.id || '';
+        }
+        return '';
+      })(),
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
       selectedMealPlanId: initialData.selectedMealPlanId || '',
-      selectedVariantIds: (initialData as any).selectedVariantIds || [], // Initialize from saved data
+      selectedVariantIds: parseJsonField((initialData as any).selectedVariantIds), // Initialize from saved data
       variantHotelOverrides: (initialData as any).variantHotelOverrides || {}, // Initialize hotel overrides from saved data
       variantRoomAllocations: (initialData as any).variantRoomAllocations || {}, // Initialize room allocations from saved data
       variantTransportDetails: (initialData as any).variantTransportDetails || {}, // Initialize transport details from saved data

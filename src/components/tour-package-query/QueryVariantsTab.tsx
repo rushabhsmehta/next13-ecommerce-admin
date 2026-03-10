@@ -1921,13 +1921,14 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
                     <Accordion type="multiple" className="space-y-3">
                       {itineraries.map((itinerary, idx) => {
-                        const variantRooms = variantRoomAllocations?.[variant.id]?.[itinerary.id] || [];
-                        const variantTransports = variantTransportDetails?.[variant.id]?.[itinerary.id] || [];
+                        const itineraryKey = itinerary.id || `itinerary-${idx}`;
+                        const variantRooms = variantRoomAllocations?.[variant.id]?.[itineraryKey] || [];
+                        const variantTransports = variantTransportDetails?.[variant.id]?.[itineraryKey] || [];
 
                         return (
                           <AccordionItem
-                            key={itinerary.id}
-                            value={itinerary.id}
+                            key={itineraryKey}
+                            value={itineraryKey}
                             className="border rounded-md shadow-sm bg-white"
                           >
                             <AccordionTrigger className="px-4 py-3 hover:no-underline">

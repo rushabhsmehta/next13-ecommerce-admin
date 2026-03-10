@@ -129,6 +129,7 @@ const transportDetailsSchema = z.object({
 });
 
 const itinerarySchema = z.object({
+  id: z.string().optional(), // Preserved for accordion UI keying; stripped before API submit
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
   itineraryDescription: z.string().nullable().optional(),
@@ -575,7 +576,8 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     form.setValue('termsconditions', parseJsonField(selectedTourPackage.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
     form.setValue('images', selectedTourPackage.images || []);
 
-    const transformedItineraries = selectedTourPackage.itineraries?.map((itinerary) => ({
+    const transformedItineraries = selectedTourPackage.itineraries?.map((itinerary, idx) => ({
+      id: `temp-${idx}`, // Temporary ID for accordion UI; stripped before API submit
       locationId: itinerary.locationId || '',
       itineraryImages: itinerary.itineraryImages?.map((img) => ({ url: img.url })) || [],
       itineraryTitle: itinerary.itineraryTitle || '',
@@ -680,7 +682,8 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
       }
 
       if (selectedTourPackageQuery.itineraries && selectedTourPackageQuery.itineraries.length > 0) {
-        form.setValue('itineraries', selectedTourPackageQuery.itineraries.map(itinerary => ({
+        form.setValue('itineraries', selectedTourPackageQuery.itineraries.map((itinerary, idx) => ({
+          id: (itinerary as any).id || `temp-${idx}`, // Preserve ID for accordion UI; stripped before API submit
           locationId: itinerary.locationId || form.getValues('locationId') || '', // Use optional default
           itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
           itineraryTitle: itinerary.itineraryTitle || '',
@@ -735,9 +738,11 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
       // Apply timezone normalization to date fields
       tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
       tourEndsOn: normalizeApiDate(data.tourEndsOn),
-      // Explicitly type the 'itinerary' parameter
-      itineraries: data.itineraries.map((itinerary: z.infer<typeof itinerarySchema>) => ({
-        ...itinerary,
+      // Explicitly type the 'itinerary' parameter; strip 'id' so the API creates fresh records
+      itineraries: data.itineraries.map((itinerary: z.infer<typeof itinerarySchema>) => {
+        const { id: _itineraryId, ...itineraryWithoutId } = itinerary as any;
+        return {
+        ...itineraryWithoutId,
         locationId: data.locationId,
         activities: itinerary.activities?.map((activity) => ({
           ...activity,
@@ -752,7 +757,8 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
           ...detail,
           quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
         })),
-      })),
+        }; // close return {
+      }), // close .map(
       pricingSection: data.pricingSection || [],
     };
 

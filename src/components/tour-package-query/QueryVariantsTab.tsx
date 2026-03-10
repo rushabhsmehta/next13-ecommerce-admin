@@ -21,6 +21,9 @@ import axios from "axios";
 import { utcToLocal } from "@/lib/timezone-utils";
 import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
 
+/** Returns a fresh shallow-clone of each DEFAULT_PRICING_SECTION item to avoid shared-reference mutations. */
+const cloneDefaultPricingSection = () => DEFAULT_PRICING_SECTION.map(item => ({ ...item }));
+
 // Calculation method type for pricing
 type CalculationMethod = 'manual' | 'autoHotelTransport' | 'useTourPackagePricing';
 
@@ -109,6 +112,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       const newPricingItems: Record<string, { name: string; price: string; description: string }[]> = {};
       const newTotalPrices: Record<string, string> = {};
       const newRemarks: Record<string, string> = {};
+      // Track variants that had no components saved so we can write defaults into the form
+      // to ensure they persist even if the user saves without interacting with the inputs.
+      const variantsNeedingFormDefaults: string[] = [];
 
       selectedVariantIds.forEach(variantId => {
         const savedData = savedVariantPricingData[variantId];
@@ -118,7 +124,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
             newPricingItems[variantId] = savedData.components;
           } else {
             // savedData exists but components not set yet → auto-load defaults like main pricing tab
-            newPricingItems[variantId] = DEFAULT_PRICING_SECTION.map(item => ({ ...item }));
+            newPricingItems[variantId] = cloneDefaultPricingSection();
+            variantsNeedingFormDefaults.push(variantId);
           }
           // Hydrate total price - include zero values
           if (typeof savedData.totalCost === 'number' && Number.isFinite(savedData.totalCost)) {
@@ -130,7 +137,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           }
         } else {
           // No saved data → new variant, pre-populate with default pricing items like main pricing tab
-          newPricingItems[variantId] = DEFAULT_PRICING_SECTION.map(item => ({ ...item }));
+          newPricingItems[variantId] = cloneDefaultPricingSection();
+          variantsNeedingFormDefaults.push(variantId);
         }
       });
 
@@ -138,8 +146,24 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       setVariantPricingItems(newPricingItems);
       setVariantTotalPrices(newTotalPrices);
       setVariantRemarks(newRemarks);
+
+      // Persist auto-loaded defaults into the form so they are included when the user saves
+      // without first interacting with any pricing input (which would normally trigger syncVariantPricingToForm).
+      // On the next render savedVariantPricingData will have components set, so this branch
+      // won't fire again — no infinite loop.
+      if (variantsNeedingFormDefaults.length > 0) {
+        const currentPricingData = form.getValues('variantPricingData') || {};
+        const updatedPricingData = { ...currentPricingData };
+        variantsNeedingFormDefaults.forEach(variantId => {
+          updatedPricingData[variantId] = {
+            ...(updatedPricingData[variantId] || {}),
+            components: cloneDefaultPricingSection(),
+          };
+        });
+        form.setValue('variantPricingData', updatedPricingData, { shouldDirty: false });
+      }
     }
-  }, [savedVariantPricingData, selectedVariantIds]);
+  }, [savedVariantPricingData, selectedVariantIds, form]);
 
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
@@ -1412,7 +1436,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             size="sm"
                             disabled={loading}
                             onClick={() => {
-                              setVariantPricingItems(prev => ({ ...prev, [cVariant.id]: DEFAULT_PRICING_SECTION.map(item => ({ ...item })) }));
+                              setVariantPricingItems(prev => ({ ...prev, [cVariant.id]: cloneDefaultPricingSection() }));
                               setTimeout(() => syncVariantPricingToForm(cVariant.id), 0);
                               toast.success("Default pricing items loaded!");
                             }}
@@ -2826,7 +2850,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           size="sm"
                           disabled={loading}
                           onClick={() => {
-                            setVariantPricingItems(prev => ({ ...prev, [variant.id]: DEFAULT_PRICING_SECTION.map(item => ({ ...item })) }));
+                            setVariantPricingItems(prev => ({ ...prev, [variant.id]: cloneDefaultPricingSection() }));
                             setTimeout(() => syncVariantPricingToForm(variant.id), 0);
                             toast.success("Default pricing items loaded!");
                           }}

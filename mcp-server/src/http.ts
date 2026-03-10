@@ -10,7 +10,6 @@
  */
 
 import express from "express";
-import type { Request, Response, NextFunction } from "express";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -63,32 +62,13 @@ export async function startHttpServer(server: McpServer): Promise<void> {
                 return;
         }
 
-               const body = await readBody(req);
-        if (!body) {
-                res.status(400).json({ error: "Empty request body", code: "INVALID_INPUT" });
-                return;
-        }
-
                try {
-      transport.handleRequest(body, (result: any) => {                                 res.json(result);
-                       });
+                       await transport.handlePostMessage(req, res);
                } catch (err) {
                        console.error(`[MCP HTTP] Error processing message for ${sessionId}:`, err);
                        res.status(500).json({ error: "Failed to process message", code: "INTERNAL_ERROR" });
                }
   });
-
-  async function readBody(req: Request): Promise<string | null> {
-        return new Promise((resolve) => {
-                let body = "";
-                req.on("data", (chunk) => {
-                          body += chunk.toString();
-                });
-                req.on("end", () => {
-                          resolve(body || null);
-                });
-        });
-  }
 
   const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {

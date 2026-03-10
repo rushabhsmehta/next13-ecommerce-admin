@@ -80,7 +80,7 @@ const formSchema = z.object({
   customerName: z.string().min(1),
   customerMobileNumber: z.string()
     .min(1, "Phone number is required")
-    .regex(/^\+?[0-9]{12}$/, "Phone number must be exactly 12 digits including country code (e.g., +919724444701)"),
+    .regex(/^\+?[0-9]{10,13}$/, "Phone number must be 10-13 digits, optionally starting with + (e.g., +919724444701 or 9724444701)"),
   locationId: z.string().min(1, "Please select a location"),
   associatePartnerId: z.string().nullable(),
   numAdults: z.number().min(0),
@@ -89,10 +89,10 @@ const formSchema = z.object({
   remarks: z.string().nullable(),
   nextFollowUpDate: z.date().nullable(),
   actions: z.array(z.object({
-    actionType: z.string().min(1),
-    remarks: z.string().min(1),
+    actionType: z.string().optional().default(''),
+    remarks: z.string().optional().default(''),
     actionDate: z.date(),
-  })),
+  })).optional().default([]),
   journeyDate: z.date().nullable(),
   roomAllocations: z.array(roomAllocationSchema).optional().default([]),
   transportDetails: z.array(transportDetailSchema).optional().default([]),

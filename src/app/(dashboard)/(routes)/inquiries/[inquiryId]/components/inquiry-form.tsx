@@ -58,8 +58,8 @@ const roomAllocationSchema = z.object({
   guestNames: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   // New fields for enhanced room allocation
-  voucherNumber: z.string().optional(),
-  customRoomType: z.string().optional(),
+  voucherNumber: z.string().optional().nullable(),
+  customRoomType: z.string().optional().nullable(),
   useCustomRoomType: z.boolean().optional().default(false),
 });
 
@@ -474,7 +474,11 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       </div>
       <Separator />
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+        <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+          const fields = Object.keys(errors).join(', ');
+          toast.error(`Validation failed on: ${fields}`);
+          console.error("Form validation errors:", errors);
+        })} className="space-y-8 w-full">
           {/* Changed from grid-cols-3 to a responsive grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FormField

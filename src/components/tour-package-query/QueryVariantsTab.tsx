@@ -116,6 +116,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           // Hydrate pricing items (components) - include empty arrays to maintain consistency with sync logic
           if (Array.isArray(savedData.components)) {
             newPricingItems[variantId] = savedData.components;
+          } else {
+            // savedData exists but components not set yet → auto-load defaults like main pricing tab
+            newPricingItems[variantId] = DEFAULT_PRICING_SECTION.map(item => ({ ...item }));
           }
           // Hydrate total price - include zero values
           if (typeof savedData.totalCost === 'number' && Number.isFinite(savedData.totalCost)) {
@@ -125,6 +128,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           if (typeof savedData.remarks === 'string') {
             newRemarks[variantId] = savedData.remarks;
           }
+        } else {
+          // No saved data → new variant, pre-populate with default pricing items like main pricing tab
+          newPricingItems[variantId] = DEFAULT_PRICING_SECTION.map(item => ({ ...item }));
         }
       });
 

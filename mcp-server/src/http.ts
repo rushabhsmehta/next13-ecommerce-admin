@@ -70,8 +70,7 @@ export async function startHttpServer(server: McpServer): Promise<void> {
         }
 
                try {
-                       transport.handleRequest(body, (result) => {
-                                 res.json(result);
+      transport.handleRequest(body, (result: any) => {                                 res.json(result);
                        });
                } catch (err) {
                        console.error(`[MCP HTTP] Error processing message for ${sessionId}:`, err);

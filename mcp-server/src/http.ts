@@ -21,6 +21,11 @@ export async function startHttpServer(server: McpServer): Promise<void> {
   // Track active SSE sessions: sessionId -> transport
   const transports = new Map<string, SSEServerTransport>();
 
+  // --- Health check endpoint (required by Railway)
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
   // --- SSE connection endpoint
   app.get("/sse", async (_req, res) => {
         const transport = new SSEServerTransport("/.messages", res);

@@ -1,10 +1,11 @@
 /**
  * HTTP/SSE transport for Claude.ai remote MCP.
  * Exposes two endpoints:
- *   GET /sse    → Claude connects here to open the SSE stream
- *   POST /messages?sessionId=xxx → Claude sends tool calls here
  *
- * No Bearer token auth — Claude.ai custom connectors don't support it.
+ *  GET /sse  -> Claude connects here to open the SSE stream
+ *  POST /.messages?sessionId=xxx -> Claude sends tool calls here
+ *
+ * No Bearer token auth - Claude.ai custom connectors don't support it.
  * Session isolation is enforced by the random UUID sessionId.
  */
 
@@ -13,97 +14,89 @@ import type { Request, Response, NextFunction } from "express";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-
 export async function startHttpServer(server: McpServer): Promise<void> {
-  const app = express();
+    const app = express();
+
   app.use(express.json());
 
-  // Track active SSE sessions: sessionId → transport
+  // Track active SSE sessions: sessionId -> transport
   const transports = new Map<string, SSEServerTransport>();
 
-  // ── SSE connection endpoint ────────────────────────────────────────────────
+  // --- SSE connection endpoint
   app.get("/sse", async (_req, res) => {
-    const transport = new SSEServerTransport("/messages", res);
-    transports.set(transport.sessionId, transport);
+        const transport = new SSEServerTransport("/.messages", res);
 
-    transport.onclose = () => {
-      transports.delete(transport.sessionId);
-      console.error(`[MCP HTTP] Session closed: ${transport.sessionId}`);
-    };
+              transports.set(transport.sessionId, transport);
 
-    console.error(`[MCP HTTP] New session: ${transport.sessionId}`);
-    try {
-      await server.connect(transport);
-    } catch (err) {
-      transports.delete(transport.sessionId);
-      console.error(`[MCP HTTP] Session ${transport.sessionId} connect failed:`, err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "MCP server failed to initialize session", code: "INTERNAL_ERROR" });
-      } else {
-        // SSE headers already sent — signal error via SSE event then close
-        res.write(`event: error\ndata: ${JSON.stringify({ error: "Session setup failed", code: "INTERNAL_ERROR" })}\n\n`);
-        res.end();
-      }
-    }
+              transport.onclose = () => {
+                      transports.delete(transport.sessionId);
+                      console.error(`[MCP HTTP] Session closed: ${transport.sessionId}`);
+              };
+
+              console.error(`[MCP HTTP] New session: ${transport.sessionId}`);
+        try {
+                await server.connect(transport);
+        } catch (err) {
+                transports.delete(transport.sessionId);
+                console.error(`[MCP HTTP] Session ${transport.sessionId} connect failed:`, err);
+                if (!res.headersSent) {
+                          res.status(500).json({ error: "MCP server failed to initialize session", code: "INTERNAL_ERROR" });
+                } else {
+                          res.write(`event: error\ndata: ${JSON.stringify({ error: "Session setup failed", code: "INTERNAL_ERROR" })}\n\n`);
+                          res.end();
+                }
+        }
   });
 
-  // ── Message endpoint (Claude sends tool calls here) ────────────────────────
-  // Claude.ai doesn't send Bearer tokens — sessionId provides implicit session binding.
-  // An unknown sessionId returns 404, so random probes can't do anything useful.
-  app.post("/messages", async (req, res) => {
-    const sessionId = req.query.sessionId as string;
+  // --- Message endpoint
+  app.post("/.messages", async (req, res) => {
+        const sessionId = req.query.sessionId as string;
 
-    if (!sessionId) {
-      res.status(400).json({ error: "Missing sessionId query parameter", code: "INVALID_INPUT" });
-      return;
-    }
+               if (!sessionId) {
+                       res.status(400).json({ error: "Missing sessionId query parameter", code: "INVALID_INPUT" });
+                       return;
+               }
 
-    const transport = transports.get(sessionId);
-    if (!transport) {
-      res.status(404).json({ error: "Session not found. Connect to /sse first.", code: "NOT_FOUND" });
-      return;
-    }
+               const transport = transports.get(sessionId);
+        if (!transport) {
+                res.status(404).json({ error: "Session not found. Connect to /sse first.", code: "NOT_FOUND" });
+                return;
+        }
 
-    try {
-      await transport.handlePostMessage(req, res);
-    } catch (err) {
-      console.error(`[MCP HTTP] handlePostMessage failed for session ${sessionId}:`, err);
-      if (!res.headersSent) {
-        res.status(500).json({
-          error: "Failed to process MCP message",
-          code: "INTERNAL_ERROR",
-          message: err instanceof Error ? err.message : String(err),
+               const body = await readBody(req);
+        if (!body) {
+                res.status(400).json({ error: "Empty request body", code: "INVALID_INPUT" });
+                return;
+        }
+
+               try {
+                       transport.handleRequest(body, (result) => {
+                                 res.json(result);
+                       });
+               } catch (err) {
+                       console.error(`[MCP HTTP] Error processing message for ${sessionId}:`, err);
+                       res.status(500).json({ error: "Failed to process message", code: "INTERNAL_ERROR" });
+               }
+  });
+
+  async function readBody(req: Request): Promise<string | null> {
+        return new Promise((resolve) => {
+                let body = "";
+                req.on("data", (chunk) => {
+                          body += chunk.toString();
+                });
+                req.on("end", () => {
+                          resolve(body || null);
+                });
         });
-      }
-    }
-  });
+  }
 
-  // ── Health check (unauthenticated — returns no sensitive info) ─────────────
-  app.get("/health", (_req, res) => {
-    res.json({
-      status: "ok",
-      server: "travel-admin-mcp",
-      activeSessions: transports.size,
+  const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+          console.log(`[MCP HTTP] Server running on port ${PORT}`);
     });
-  });
+}
 
-  // ── Global Express error handler ───────────────────────────────────────────
-  // Catches any synchronous throws that escape route handlers (Express 4 requires 4 params)
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction): void => {
-    console.error("[MCP HTTP] Unhandled Express error:", err.message, err.stack);
-    if (!res.headersSent) {
-      res.status(500).json({ error: err.message, code: "INTERNAL_ERROR" });
-    }
-  });
-
-  const port = parseInt(process.env.MCP_PORT || process.env.PORT || "3100", 10);
-
-  await new Promise<void>((resolve) => {
-    app.listen(port, () => {
-      console.error(`[MCP HTTP] Server running on port ${port}`);
-      console.error(`[MCP HTTP] SSE endpoint:  http://localhost:${port}/sse`);
-      console.error(`[MCP HTTP] Health check:  http://localhost:${port}/health`);
-      resolve();
-    });
-  });
+export async function onclose() {
+    console.log("[MCP HTTP] Server closing");
 }

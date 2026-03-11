@@ -45,6 +45,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   }, [onChange]);
 
+  // Cloudinary widget sometimes leaves body overflow:hidden after closing,
+  // which causes page scrolling to get stuck.
+  const onWidgetClose = useCallback(() => {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }, []);
+
   if (!isMounted) {
     return null;
   }
@@ -71,6 +78,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       </div>
       <CldUploadWidget
         onSuccess={onUpload}
+        onClose={onWidgetClose}
         uploadPreset="ckwg6oej"
         options={{
           multiple: false,

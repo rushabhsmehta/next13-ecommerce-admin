@@ -2,33 +2,31 @@
 /**
  * Travel Admin MCP Server
  *
- * Supports two transport modes:
- *   - stdio (default): for Claude Desktop
- *   - http: for Claude.ai remote MCP
- *
- * Set MCP_TRANSPORT=http to enable HTTP mode.
+ * Transport modes (set MCP_TRANSPORT env var):
+ *   stdio  (default) — for Claude Desktop
+ *   http             — for Claude.ai remote MCP (OAuth 2.0 + Streamable HTTP)
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createMcpServer } from "./server.js";
 
-const transportMode = process.env.MCP_TRANSPORT || "stdio";
+const transportMode = process.env.MCP_TRANSPORT ?? "stdio";
 
-/**
- * Validate required env vars before doing anything else.
- * Failing here gives an immediate, readable message rather than a cryptic
- * error deep inside a tool call.
- */
 function validateStartupEnv(mode: string): void {
   const required: Array<{ key: string; desc: string }> = [
-    { key: "NEXT_APP_URL",   desc: "URL of the Next.js admin app" },
+    { key: "NEXT_APP_URL",   desc: "URL of the Next.js admin app (e.g. https://your-app.up.railway.app)" },
     { key: "MCP_API_SECRET", desc: "Shared secret for MCP gateway auth" },
   ];
   if (mode === "http") {
-    required.push({ key: "MCP_HTTP_SECRET", desc: "Bearer token for Claude.ai HTTP transport" });
+    required.push({
+      key: "MCP_PUBLIC_URL",
+      desc: "Public base URL of this MCP server (e.g. https://my-mcp.up.railway.app)",
+    });
   }
+
   const missing = required.filter((r) => !process.env[r.key]);
   if (missing.length === 0) return;
+
   console.error("[MCP] FATAL: Missing required environment variables:");
   missing.forEach((r) => console.error(`  ${r.key.padEnd(20)} — ${r.desc}`));
   console.error("\nSet these in mcp-server/.env and restart.");
@@ -37,15 +35,15 @@ function validateStartupEnv(mode: string): void {
 
 async function main() {
   validateStartupEnv(transportMode);
-  const server = createMcpServer();
 
   if (transportMode === "http") {
     const { startHttpServer } = await import("./http.js");
-    await startHttpServer(server);
+    // Pass factory so each MCP session gets a fresh server instance
+    startHttpServer(createMcpServer);
   } else {
+    const server = createMcpServer();
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    // Note: use stderr for logs in stdio mode — stdout is used for MCP protocol
     console.error("[MCP stdio] Travel Admin MCP Server running");
     console.error(`[MCP stdio] Connecting to: ${process.env.NEXT_APP_URL}`);
   }

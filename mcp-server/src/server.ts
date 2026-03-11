@@ -141,10 +141,10 @@ export function createMcpServer(): McpServer {
 
   server.tool(
     "list_inquiries",
-    "List customer inquiries with optional filters. Shows recent inquiries by default.",
+    "List or search customer inquiries. ALWAYS use this first when asked about a customer's inquiry — search by customerName (partial name works, e.g. 'Sheetal'). Do NOT ask the user for an inquiry ID; find it yourself using this tool.",
     {
       status: z.string().optional().describe("Filter by status: PENDING, CONFIRMED, CANCELLED, HOT_QUERY, QUERY_SENT, ALL"),
-      customerName: z.string().optional().describe("Search by customer name"),
+      customerName: z.string().optional().describe("Search by customer name (partial match works, e.g. 'Sheetal' will find 'Sheetal Sharma')"),
       limit: z.number().int().min(1).max(100).optional().default(25).describe("Max results"),
     },
     async ({ status, customerName, limit }) => {
@@ -161,9 +161,9 @@ export function createMcpServer(): McpServer {
 
   server.tool(
     "get_inquiry",
-    "Get full details of a specific inquiry including actions/notes and linked tour queries.",
+    "Get full details of a specific inquiry including actions/notes and linked tour queries. Use list_inquiries first to find the inquiryId if you only have the customer name.",
     {
-      inquiryId: z.string().describe("The inquiry ID to retrieve"),
+      inquiryId: z.string().describe("The inquiry ID to retrieve (use list_inquiries to find it by customer name if unknown)"),
     },
     async ({ inquiryId }) => {
       try {

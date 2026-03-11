@@ -115,7 +115,7 @@ const tourPackagePage = async (
 
   const currentLocationId = tourPackage?.locationId ?? null;
 
-  const availableTourPackages = currentLocationId
+  const availableTourPackagesRaw = currentLocationId
     ? await prismadb.tourPackage.findMany({
         where: {
           id: {
@@ -138,12 +138,40 @@ const tourPackagePage = async (
               dayNumber: 'asc',
             },
           },
+          packageVariants: {
+            where: { isDefault: true },
+            take: 1,
+            select: {
+              variantHotelMappings: {
+                select: { itineraryId: true, hotelId: true },
+              },
+            },
+          },
         },
         orderBy: {
           tourPackageName: 'asc',
         },
       })
     : [];
+
+  // Merge default variant hotel mappings into each itinerary as fallback
+  const availableTourPackages = availableTourPackagesRaw.map(pkg => {
+    const defaultVariantMappings: Record<string, string> = {};
+    pkg.packageVariants?.[0]?.variantHotelMappings?.forEach(m => {
+      if (m.itineraryId && m.hotelId) defaultVariantMappings[m.itineraryId] = m.hotelId;
+    });
+    return {
+      id: pkg.id,
+      tourPackageName: pkg.tourPackageName,
+      numDaysNight: pkg.numDaysNight,
+      itineraries: pkg.itineraries.map(itin => ({
+        id: itin.id,
+        dayNumber: itin.dayNumber,
+        // Use itinerary.hotelId first; fall back to default variant mapping
+        hotelId: itin.hotelId ?? defaultVariantMappings[itin.id] ?? null,
+      })),
+    };
+  });
 
 
   // console.log("Fetched tourPackage:", tourPackage);

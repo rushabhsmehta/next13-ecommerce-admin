@@ -327,7 +327,7 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
 
             {/* Income Entry/Edit Dialog */}
             <Dialog open={isIncomeModalOpen} onOpenChange={setIsIncomeModalOpen}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>
                             {editItem ? "Edit Income" : "Add New Income"}

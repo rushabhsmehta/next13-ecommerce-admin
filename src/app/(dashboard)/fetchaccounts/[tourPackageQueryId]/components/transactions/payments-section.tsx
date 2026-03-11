@@ -499,7 +499,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
 
       {/* Payment Entry/Edit Dialog */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>
               {editItem && editItem.id ? "Edit Payment" : "Add New Payment"}

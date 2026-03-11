@@ -316,7 +316,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
 
       {/* Expense Entry/Edit Dialog */}
       <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>
               {editItem ? "Edit Expense" : "Add New Expense"}

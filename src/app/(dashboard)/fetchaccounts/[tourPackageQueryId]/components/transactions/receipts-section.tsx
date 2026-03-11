@@ -506,7 +506,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
 
       {/* Receipt Entry/Edit Dialog */}
       <Dialog open={isReceiptModalOpen} onOpenChange={setIsReceiptModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>
               {editItem && editItem.id ? "Edit Receipt" : "Add New Receipt"}

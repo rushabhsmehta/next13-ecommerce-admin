@@ -971,7 +971,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
       next[variantIndex] = {
         ...next[variantIndex],
         hotelMappings: nextMappings,
-        copiedFromTourPackageId: undefined,
+        copiedFromTourPackageId: tourPackageId,
         seasonalPricings: [],
       };
       return next;
@@ -1003,7 +1003,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
         next[variantIndex] = {
           ...next[variantIndex],
           seasonalPricings: pricingEntries,
-          copiedFromTourPackageId: undefined,
+          copiedFromTourPackageId: tourPackageId,
         };
         return next;
       });

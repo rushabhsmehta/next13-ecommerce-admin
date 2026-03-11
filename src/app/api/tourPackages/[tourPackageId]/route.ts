@@ -421,10 +421,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
             const mappings = Object.entries(variant.hotelMappings)
               .map(([oldItineraryId, hotelId]) => {
                 // Get dayNumber from old ID (using pre-fetched map)
-                const dayNumber = oldItineraryIdToDayMap.get(oldItineraryId);
+                // Fallback: if key is a plain day number string (e.g. "1", "2"), parse it directly
+                let dayNumber = oldItineraryIdToDayMap.get(oldItineraryId);
                 if (dayNumber == null) {
-                  console.log(`[VARIANTS] ⚠️ Cannot find dayNumber for old ID: ${oldItineraryId}`);
-                  return null;
+                  const parsed = Number.parseInt(oldItineraryId, 10);
+                  if (Number.isFinite(parsed) && String(parsed) === oldItineraryId) {
+                    dayNumber = parsed;
+                    console.log(`[VARIANTS] 🔁 Key "${oldItineraryId}" treated as day number directly`);
+                  } else {
+                    console.log(`[VARIANTS] ⚠️ Cannot find dayNumber for old ID: ${oldItineraryId}`);
+                    return null;
+                  }
                 }
 
                 // Get new ID from dayNumber

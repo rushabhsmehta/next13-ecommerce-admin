@@ -64,28 +64,31 @@ function verifyS256(verifier: string, challenge: string): boolean {
 }
 
 /** Bearer-token auth middleware — used on /mcp */
-function requireBearer(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-): void {
-  const auth = req.headers.authorization ?? "";
-  if (!auth.startsWith("Bearer ")) {
-    res
-      .status(401)
-      .setHeader("WWW-Authenticate", "Bearer")
-      .json({ error: "unauthorized", error_description: "Bearer token required" });
-    return;
-  }
-  const token = auth.slice(7);
-  if (!accessTokens.has(token)) {
-    res
-      .status(401)
-      .setHeader("WWW-Authenticate", 'Bearer error="invalid_token"')
-      .json({ error: "invalid_token", error_description: "Unknown or expired token" });
-    return;
-  }
-  next();
+function makeRequireBearer(baseUrl: string) {
+  const resourceMetadata = `${baseUrl}/.well-known/oauth-protected-resource`;
+  return function requireBearer(
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ): void {
+    const auth = req.headers.authorization ?? "";
+    if (!auth.startsWith("Bearer ")) {
+      res
+        .status(401)
+        .setHeader("WWW-Authenticate", `Bearer resource_metadata="${resourceMetadata}"`)
+        .json({ error: "unauthorized", error_description: "Bearer token required" });
+      return;
+    }
+    const token = auth.slice(7);
+    if (!accessTokens.has(token)) {
+      res
+        .status(401)
+        .setHeader("WWW-Authenticate", `Bearer resource_metadata="${resourceMetadata}", error="invalid_token"`)
+        .json({ error: "invalid_token", error_description: "Unknown or expired token" });
+      return;
+    }
+    next();
+  };
 }
 
 // ── Server factory ───────────────────────────────────────────────────────────
@@ -97,13 +100,23 @@ export function startHttpServer(createServer: () => McpServer): void {
 
   const PORT = process.env.PORT ?? 3000;
   const BASE_URL = (process.env.MCP_PUBLIC_URL ?? `http://localhost:${PORT}`).replace(/\/$/, "");
+  const requireBearer = makeRequireBearer(BASE_URL);
 
   // ── Health check ────────────────────────────────────────────────────────────
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
 
-  // ── OAuth metadata discovery ─────────────────────────────────────────────
+  // ── OAuth protected resource metadata (RFC 9728) ────────────────────────
+  // Claude.ai checks this first to discover which authorization server to use.
+  app.get("/.well-known/oauth-protected-resource", (_req, res) => {
+    res.json({
+      resource: BASE_URL,
+      authorization_servers: [BASE_URL],
+    });
+  });
+
+  // ── OAuth authorization server metadata (RFC 8414) ───────────────────────
   app.get("/.well-known/oauth-authorization-server", (_req, res) => {
     res.json({
       issuer: BASE_URL,

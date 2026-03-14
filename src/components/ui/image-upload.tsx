@@ -43,6 +43,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     if (result?.info?.secure_url) {
       onChange(result.info.secure_url);
     }
+    // Widget auto-closes after success and onClose may not fire reliably,
+    // so reset overflow here to prevent scroll getting stuck.
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
   }, [onChange]);
 
   // Cloudinary widget sometimes leaves body overflow:hidden after closing,

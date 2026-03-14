@@ -221,6 +221,8 @@ const formSchema = z.object({
   variantRoomAllocations: z.record(z.record(z.array(z.any()))).optional(),
   variantTransportDetails: z.record(z.record(z.array(z.any()))).optional(),
   variantPricingData: z.record(z.any()).optional(),
+  confirmedVariantId: z.string().optional().nullable(),
+  customQueryVariants: z.array(z.any()).optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Use adjusted schema
   pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
   customMarkup: z.string().optional(), // Added for custom markup percentage
@@ -382,6 +384,8 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     variantRoomAllocations: {},
     variantTransportDetails: {},
     variantPricingData: {},
+    confirmedVariantId: null,
+    customQueryVariants: [],
   };
 
   const form = useForm<TourPackageQueryFormValues>({
@@ -1053,3 +1057,4 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     </>
   )
 }
+

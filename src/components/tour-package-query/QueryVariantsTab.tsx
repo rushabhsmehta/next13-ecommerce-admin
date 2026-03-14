@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Edit2, Check, X, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign, Copy } from "lucide-react";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Check, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign, Copy } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
@@ -85,8 +85,6 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const confirmedVariantId = useWatch({ control, name: "confirmedVariantId" }) as string | null | undefined;
   const customQueryVariants = useWatch({ control, name: "customQueryVariants" }) as any[] | undefined;
 
-  const [editingMapping, setEditingMapping] = useState<string | null>(null);
-  const [tempHotelId, setTempHotelId] = useState<string>("");
   const [variantCalcMethods, setVariantCalcMethods] = useState<Record<string, CalculationMethod>>({});
   const [copyFromVariantId, setCopyFromVariantId] = useState<Record<string, string>>({});
 
@@ -108,49 +106,44 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
   // Hydrate state from saved form data when component mounts or when variants change
   useEffect(() => {
-    if (savedVariantPricingData && selectedVariantIds && selectedVariantIds.length > 0) {
+    const activeVariantIds = Array.from(
+      new Set([
+        ...(selectedVariantIds || []),
+        ...((customQueryVariants || []).map((variant: any) => variant?.id).filter(Boolean) as string[]),
+      ])
+    );
+
+    if (savedVariantPricingData && activeVariantIds.length > 0) {
       const newPricingItems: Record<string, { name: string; price: string; description: string }[]> = {};
       const newTotalPrices: Record<string, string> = {};
       const newRemarks: Record<string, string> = {};
-      // Track variants that had no components saved so we can write defaults into the form
-      // to ensure they persist even if the user saves without interacting with the inputs.
       const variantsNeedingFormDefaults: string[] = [];
 
-      selectedVariantIds.forEach(variantId => {
+      activeVariantIds.forEach(variantId => {
         const savedData = savedVariantPricingData[variantId];
         if (savedData) {
-          // Hydrate pricing items (components) - include empty arrays to maintain consistency with sync logic
           if (Array.isArray(savedData.components)) {
             newPricingItems[variantId] = savedData.components;
           } else {
-            // savedData exists but components not set yet → auto-load defaults like main pricing tab
             newPricingItems[variantId] = cloneDefaultPricingSection();
             variantsNeedingFormDefaults.push(variantId);
           }
-          // Hydrate total price - include zero values
           if (typeof savedData.totalCost === 'number' && Number.isFinite(savedData.totalCost)) {
             newTotalPrices[variantId] = savedData.totalCost.toString();
           }
-          // Hydrate remarks - include empty strings to allow cleared remarks
           if (typeof savedData.remarks === 'string') {
             newRemarks[variantId] = savedData.remarks;
           }
         } else {
-          // No saved data → new variant, pre-populate with default pricing items like main pricing tab
           newPricingItems[variantId] = cloneDefaultPricingSection();
           variantsNeedingFormDefaults.push(variantId);
         }
       });
 
-      // Replace state entirely for selected variants (don't spread to avoid stale data)
       setVariantPricingItems(newPricingItems);
       setVariantTotalPrices(newTotalPrices);
       setVariantRemarks(newRemarks);
 
-      // Persist auto-loaded defaults into the form so they are included when the user saves
-      // without first interacting with any pricing input (which would normally trigger syncVariantPricingToForm).
-      // On the next render savedVariantPricingData will have components set, so this branch
-      // won't fire again — no infinite loop.
       if (variantsNeedingFormDefaults.length > 0) {
         const currentPricingData = form.getValues('variantPricingData') || {};
         const updatedPricingData = { ...currentPricingData };
@@ -163,18 +156,64 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         form.setValue('variantPricingData', updatedPricingData, { shouldDirty: false });
       }
     }
-  }, [savedVariantPricingData, selectedVariantIds, form]);
+  }, [savedVariantPricingData, selectedVariantIds, customQueryVariants, form]);
 
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
   const selectedVariants = allVariants.filter(v => selectedVariantIds?.includes(v.id));
 
-  // Use form's itineraries if available so it reflects user additions/deletions, otherwise fallback to template
   const itineraries = (queryItineraries && queryItineraries.length > 0)
     ? queryItineraries
     : (selectedTourPackage?.itineraries || []);
-  const locationId = selectedTourPackage?.locationId;
-  const availableHotels = hotels.filter(h => h.locationId === locationId);
+
+  useEffect(() => {
+    if (selectedVariants.length === 0) {
+      return;
+    }
+
+    setVariantMealPlanIds(prev => {
+      let changed = false;
+      const next = { ...prev };
+
+      selectedVariants.forEach((variant) => {
+        if (next[variant.id]) {
+          return;
+        }
+
+        const defaultPricing = [...(variant.tourPackagePricings || [])]
+          .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+          .find((pricing) => !!pricing.mealPlanId);
+
+        if (defaultPricing?.mealPlanId) {
+          next[variant.id] = defaultPricing.mealPlanId;
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+
+    setVariantRoomCounts(prev => {
+      let changed = false;
+      const next = { ...prev };
+      const fallbackRoomCount = Number(form.getValues('numberOfRooms')) || 1;
+
+      selectedVariants.forEach((variant) => {
+        if (next[variant.id]) {
+          return;
+        }
+
+        const defaultPricing = [...(variant.tourPackagePricings || [])]
+          .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+          .find((pricing) => typeof pricing.numberOfRooms === 'number' && pricing.numberOfRooms > 0);
+
+        next[variant.id] = defaultPricing?.numberOfRooms || fallbackRoomCount;
+        changed = true;
+      });
+
+      return changed ? next : prev;
+    });
+  }, [selectedVariants, form]);
 
   // Helper function to get occupancy multiplier from component name
   const getOccupancyMultiplier = (componentName: string): number => {
@@ -195,9 +234,50 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   };
 
   const formatCurrency = (amount: number): string => {
-    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `Rs.${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const formatShortDate = (value: Date | string | undefined) => {
+    if (!value) return "";
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return new Intl.DateTimeFormat('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  };
+
+  const formatDayList = (days: number[]) => days.map((day) => `Day ${day}`).join(', ');
+
+  const getMealPlanLabel = (mealPlanId?: string) =>
+    mealPlans.find((mealPlan: any) => mealPlan.id === mealPlanId)?.name || 'the selected meal plan';
+
+  const getPricingCriteriaLabel = (mealPlanId: string, roomCount: number) => {
+    const startLabel = formatShortDate(queryStartDate);
+    const endLabel = formatShortDate(queryEndDate);
+    const dateLabel = startLabel && endLabel
+      ? `${startLabel} to ${endLabel}`
+      : 'the selected travel dates';
+
+    return `${getMealPlanLabel(mealPlanId)}, ${roomCount} room${roomCount === 1 ? '' : 's'}, ${dateLabel}`;
+  };
+
+  const getHotelOptions = (itineraryLocationId?: string | null) => {
+    if (!itineraryLocationId) {
+      return hotels;
+    }
+
+    const preferred = hotels.filter((hotel) => hotel.locationId === itineraryLocationId);
+    const remaining = hotels.filter((hotel) => hotel.locationId !== itineraryLocationId);
+    return [...preferred, ...remaining];
+  };
+
+  // Handler to fetch available pricing components for a variant
   // Handler to fetch available pricing components for a variant
   const handleFetchVariantPricingComponents = async (variantId: string) => {
     const baseTourPackageId = selectedTourPackageId;
@@ -219,18 +299,17 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     }
 
     if (!queryStartDate || !queryEndDate) {
-      console.log('🚫 [Variants] Missing dates:', { queryStartDate, queryEndDate });
       toast.error("Please select tour start and end dates in the Dates tab.");
       return;
     }
-
-    console.log('✅ [Variants] Dates available:', { queryStartDate, queryEndDate });
 
     toast.loading("Fetching available pricing components...");
     try {
       const queryParams = new URLSearchParams();
       queryParams.append('packageVariantId', variantId);
       queryParams.append('includeGlobal', '1');
+      queryParams.append('startDate', new Date(queryStartDate as Date).toISOString());
+      queryParams.append('endDate', new Date(queryEndDate as Date).toISOString());
 
       const requestUrl = `/api/tourPackages/${baseTourPackageId}/pricing?${queryParams.toString()}`;
       const response = await axios.get(requestUrl);
@@ -238,7 +317,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       toast.dismiss();
 
       if (!tourPackagePricings || tourPackagePricings.length === 0) {
-        toast.error("No pricing periods found for this variant.");
+        toast.error("No active pricing periods were found for this variant. Check the package pricing setup.");
         return;
       }
 
@@ -252,14 +331,14 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       });
 
       if (matchedPricings.length === 0) {
-        toast.error(`No matching pricing period found for ${roomCount} room${roomCount > 1 ? 's' : ''} with selected meal plan.`);
+        toast.error(`No pricing matched ${getPricingCriteriaLabel(mealPlanId, roomCount)}.`);
         setVariantAvailableComponents(prev => ({ ...prev, [variantId]: [] }));
         setVariantComponentsFetched(prev => ({ ...prev, [variantId]: false }));
         return;
       }
 
       if (matchedPricings.length > 1) {
-        toast.error("Multiple pricing periods match. Please refine criteria.");
+        toast.error(`Multiple pricing periods matched ${getPricingCriteriaLabel(mealPlanId, roomCount)}. Narrow the dates or pricing setup.`);
         setVariantAvailableComponents(prev => ({ ...prev, [variantId]: [] }));
         setVariantComponentsFetched(prev => ({ ...prev, [variantId]: false }));
         return;
@@ -340,7 +419,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       finalComponents.push({
         name: componentName,
         price: basePrice.toString(),
-        description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = ₹${totalComponentPrice.toFixed(2)}`
+        description: `${basePrice.toFixed(2)} x ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` x ${roomQuantity} rooms` : ''} = Rs.${totalComponentPrice.toFixed(2)}`
       });
 
       totalPrice += totalComponentPrice;
@@ -417,20 +496,14 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     const tourEndsOn = queryEndDate;
 
     if (!tourStartsFrom || !tourEndsOn) {
-      console.log('🚫 [Variants] Missing dates for calculation:', { tourStartsFrom, tourEndsOn });
+      console.log('Missing dates for calculation:', { tourStartsFrom, tourEndsOn });
       toast.error("Please select tour start and end dates first.");
       return;
     }
 
-    console.log('✅ [Variants] Starting price calculation with dates:', { tourStartsFrom, tourEndsOn });
-
     const pricingItineraries = itineraries.map((itinerary, idx) => {
       const dayNum = itinerary.dayNumber || idx + 1;
-      // Priority: 1) explicit variant override, 2) variant hotel mapping (by ID or day number), 3) Hotels tab hotel
-      const overrideHotelId = variantHotelOverrides?.[variantId]?.[itinerary.id];
-      const mapping = variant.variantHotelMappings.find(m => m.itineraryId === itinerary.id)
-        || variant.variantHotelMappings.find(m => (m.itinerary?.dayNumber ?? 0) === dayNum);
-      const hotelId = overrideHotelId || mapping?.hotelId || itinerary.hotelId || undefined;
+      const hotelId = resolveVariantHotelId(variant, itinerary, idx) || undefined;
 
       return {
         locationId: itinerary.locationId || selectedTourPackage?.locationId || '',
@@ -443,6 +516,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
     if (!pricingItineraries.some(it => (it.roomAllocations?.length || 0) > 0 || (it.transportDetails?.length || 0) > 0)) {
       toast.error("Please add room allocations or transport details before calculating.");
+      return;
+    }
+
+    const missingHotelDays = pricingItineraries
+      .filter((itinerary) => (itinerary.roomAllocations?.length || 0) > 0 && !itinerary.hotelId)
+      .map((itinerary) => itinerary.dayNumber);
+    if (missingHotelDays.length > 0) {
+      toast.error(`Select a hotel for ${formatDayList(missingHotelDays)} before auto-calculating room costs.`);
+      return;
+    }
+
+    const incompleteRoomDays = pricingItineraries
+      .filter((itinerary) => (itinerary.roomAllocations || []).some((room: any) => !room.roomTypeId || !room.occupancyTypeId || !room.mealPlanId))
+      .map((itinerary) => itinerary.dayNumber);
+    if (incompleteRoomDays.length > 0) {
+      toast.error(`Complete room type, occupancy, and meal plan for ${formatDayList(incompleteRoomDays)} before auto-calculating.`);
+      return;
+    }
+
+    const incompleteTransportDays = pricingItineraries
+      .filter((itinerary) => (itinerary.transportDetails || []).some((transport: any) => !transport.vehicleTypeId))
+      .map((itinerary) => itinerary.dayNumber);
+    if (incompleteTransportDays.length > 0) {
+      toast.error(`Select a vehicle type for ${formatDayList(incompleteTransportDays)} before auto-calculating transport costs.`);
       return;
     }
 
@@ -476,7 +573,6 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         }
       });
 
-      // Also update the always-visible pricing breakdown and total
       if (result && typeof result === 'object') {
         const totalCost = result.totalCost || 0;
         const pricingItems: { name: string; price: string; description: string }[] = [];
@@ -550,6 +646,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       const queryParams = new URLSearchParams();
       queryParams.append('packageVariantId', variantId);
       queryParams.append('includeGlobal', '1');
+      queryParams.append('startDate', new Date(queryStartDate as Date).toISOString());
+      queryParams.append('endDate', new Date(queryEndDate as Date).toISOString());
 
       const requestUrl = `/api/tourPackages/${baseTourPackageId}/pricing?${queryParams.toString()}`;
       const response = await axios.get(requestUrl);
@@ -557,7 +655,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       toast.dismiss();
 
       if (!tourPackagePricings || tourPackagePricings.length === 0) {
-        toast.error("No pricing periods found for this variant.");
+        toast.error("No active pricing periods were found for this variant. Check the package pricing setup.");
         return;
       }
 
@@ -571,12 +669,12 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       });
 
       if (matchedPricings.length === 0) {
-        toast.error(`No matching pricing period found for ${roomCount} room${roomCount > 1 ? 's' : ''} with selected meal plan.`);
+        toast.error(`No pricing matched ${getPricingCriteriaLabel(mealPlanId, roomCount)}.`);
         return;
       }
 
       if (matchedPricings.length > 1) {
-        toast.error("Multiple pricing periods match. Please refine criteria.");
+        toast.error(`Multiple pricing periods matched ${getPricingCriteriaLabel(mealPlanId, roomCount)}. Narrow the dates or pricing setup.`);
         return;
       }
 
@@ -594,7 +692,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           finalComponents.push({
             name: componentName,
             price: basePrice.toString(),
-            description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${roomCount} room${roomCount > 1 ? 's' : ''} = ₹${totalComponentPrice.toFixed(2)}`
+            description: `${basePrice.toFixed(2)} x ${occupancyMultiplier} occupancy x ${roomCount} room${roomCount > 1 ? 's' : ''} = INR ${totalComponentPrice.toFixed(2)}`
           });
 
           totalPrice += totalComponentPrice;
@@ -620,7 +718,6 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         }
       });
 
-      // Also update the always-visible pricing breakdown and total
       setVariantPricingItems(prev => ({ ...prev, [variantId]: finalComponents }));
       setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalPrice.toString() }));
 
@@ -699,122 +796,6 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       }
     });
   };
-
-  if (!selectedTourPackageId) {
-    return (
-      <div className="space-y-5">
-        <Card>
-          <CardContent className="py-8">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Please select a tour package from the <strong>Basic Info</strong> tab first to view package variants.
-                You can still add custom variants below.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-
-        {/* Custom variants section even without a tour package */}
-        <Card className="shadow-sm border border-violet-200/70 bg-gradient-to-r from-white to-violet-50/30">
-          <CardHeader className="pb-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Package className="h-5 w-5 text-violet-500" /> Custom Query Variants
-              </CardTitle>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="h-3.5 w-3.5 text-violet-500" />
-                Standalone variants created directly on this query
-              </p>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={loading}
-              onClick={() => {
-                const newVariant = { id: crypto.randomUUID(), name: 'New Custom Variant', description: '' };
-                const current = (customQueryVariants || []) as any[];
-                form.setValue('customQueryVariants', [...current, newVariant], { shouldDirty: true });
-              }}
-              className="border-violet-300 text-violet-700 hover:bg-violet-50 h-8 text-xs"
-            >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Add Custom Variant
-            </Button>
-          </CardHeader>
-        </Card>
-
-        {(customQueryVariants || []).length === 0 && (
-          <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground border border-dashed border-violet-200 rounded-lg bg-violet-50/20">
-            <Package className="h-8 w-8 mb-2 text-violet-300" />
-            <p className="text-sm">No custom variants yet.</p>
-            <p className="text-xs mt-1">Click &quot;Add Custom Variant&quot; to create one.</p>
-          </div>
-        )}
-
-        {(customQueryVariants as any[] || []).map((cVariant: any) => {
-          const isConfirmed = confirmedVariantId === cVariant.id;
-          const pricingItems = variantPricingItems[cVariant.id] || [];
-          const totalPrice = variantTotalPrices[cVariant.id] || '';
-          const remarks = variantRemarks[cVariant.id] || '';
-          return (
-            <Card key={cVariant.id} className={`shadow-sm border bg-gradient-to-br from-white to-violet-50/30 ${isConfirmed ? 'border-green-500 ring-1 ring-green-400' : 'border-violet-200/60'}`}>
-              <CardHeader className="pb-3 border-b bg-gradient-to-r from-violet-50 via-violet-25 to-transparent">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Package className="h-4 w-4 text-violet-500 flex-shrink-0" />
-                    <Input value={cVariant.name} disabled={loading} placeholder="Variant name..." className="h-8 text-sm font-semibold border-violet-200 bg-white max-w-xs" onChange={(e) => { const updated = (customQueryVariants as any[]).map((v: any) => v.id === cVariant.id ? { ...v, name: e.target.value } : v); form.setValue('customQueryVariants', updated, { shouldDirty: true }); }} />
-                    {isConfirmed && <Badge className="text-xs bg-green-600 text-white">✓ Confirmed for Voucher</Badge>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button type="button" size="sm" variant={isConfirmed ? 'default' : 'outline'} disabled={loading} onClick={() => form.setValue('confirmedVariantId', isConfirmed ? null : cVariant.id, { shouldDirty: true })} className={isConfirmed ? 'bg-green-600 hover:bg-green-700 text-white h-8 text-xs' : 'border-green-500 text-green-700 hover:bg-green-50 h-8 text-xs'}>
-                      {isConfirmed ? <><Check className="h-3 w-3 mr-1" /> Confirmed</> : <><Trophy className="h-3 w-3 mr-1" /> Confirm for Voucher</>}
-                    </Button>
-                    <Button type="button" size="sm" variant="ghost" disabled={loading} onClick={() => { const updated = (customQueryVariants as any[]).filter((v: any) => v.id !== cVariant.id); form.setValue('customQueryVariants', updated, { shouldDirty: true }); if (isConfirmed) form.setValue('confirmedVariantId', null, { shouldDirty: true }); }} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"><Trash className="h-3.5 w-3.5" /></Button>
-                  </div>
-                </div>
-                <Input value={cVariant.description || ''} disabled={loading} placeholder="Description (optional)..." className="h-7 text-xs border-violet-100 bg-white/60 mt-2" onChange={(e) => { const updated = (customQueryVariants as any[]).map((v: any) => v.id === cVariant.id ? { ...v, description: e.target.value } : v); form.setValue('customQueryVariants', updated, { shouldDirty: true }); }} />
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                {/* Simplified pricing only when no itineraries available */}
-                <Card className="shadow-sm border-2 border-orange-200/60 bg-gradient-to-r from-orange-50 to-red-50">
-                  <CardContent className="pt-4 pb-4">
-                    <label className="text-sm font-semibold text-orange-700 flex items-center mb-2"><Trophy className="mr-2 h-4 w-4" /> Final Amount</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
-                      <Input value={totalPrice} disabled={loading} placeholder="Total price" type="number" className="text-xl font-bold pl-8 bg-white border-orange-300 h-12" onChange={(e) => setVariantTotalPrices(prev => ({ ...prev, [cVariant.id]: e.target.value }))} onBlur={() => syncVariantPricingToForm(cVariant.id)} />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm border border-slate-200/70">
-                  <CardContent className="pt-4 pb-4 space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2 mb-2"><Receipt className="h-4 w-4 text-violet-600" /> Remarks</label>
-                    <Input disabled={loading} placeholder="Additional remarks..." value={remarks} onChange={(e) => setVariantRemarks(prev => ({ ...prev, [cVariant.id]: e.target.value }))} onBlur={() => syncVariantPricingToForm(cVariant.id)} />
-                  </CardContent>
-                </Card>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (!selectedVariants || selectedVariants.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              No variants selected. Please select package variants from the <strong>Basic Info</strong> tab to view their details here.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
 
   // Room Allocation Helper Functions
   const addRoomAllocation = (variantId: string, itineraryId: string) => {
@@ -1060,37 +1041,41 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     });
   };
 
-  const getEffectiveHotelId = (variantId: string, itineraryId: string, originalHotelId: string) => {
-    return variantHotelOverrides?.[variantId]?.[itineraryId] || originalHotelId;
+  const getVariantHotelMapping = (variant: { variantHotelMappings?: any[] }, itinerary: any, index: number) => {
+    const dayNum = itinerary.dayNumber || index + 1;
+    return variant.variantHotelMappings?.find((mapping: any) => mapping.itineraryId === itinerary.id)
+      || variant.variantHotelMappings?.find((mapping: any) => (mapping.itinerary?.dayNumber ?? 0) === dayNum);
   };
 
-  const handleStartEdit = (mappingId: string, currentHotelId: string) => {
-    setEditingMapping(mappingId);
-    setTempHotelId(currentHotelId);
+  const resolveVariantHotelId = (variant: { id: string; variantHotelMappings?: any[] }, itinerary: any, index: number) => {
+    const overrideHotelId = variantHotelOverrides?.[variant.id]?.[itinerary.id];
+    if (overrideHotelId !== undefined) {
+      return overrideHotelId;
+    }
+
+    const mapping = getVariantHotelMapping(variant, itinerary, index);
+    return mapping?.hotelId || itinerary.hotelId || '';
   };
 
-  const handleSaveHotelChange = (variantId: string, itineraryId: string, newHotelId: string) => {
+  const resolveVariantHotel = (variant: { id: string; variantHotelMappings?: any[] }, itinerary: any, index: number) => {
+    const hotelId = resolveVariantHotelId(variant, itinerary, index);
+    const mapping = getVariantHotelMapping(variant, itinerary, index);
+    return hotels.find((hotel) => hotel.id === hotelId) || mapping?.hotel || null;
+  };
+
+  const setVariantHotelOverride = (variantId: string, itineraryId: string, hotelId: string) => {
     const currentOverrides = variantHotelOverrides || {};
     const variantOverrides = currentOverrides[variantId] || {};
 
-    const updatedOverrides = {
+    form.setValue('variantHotelOverrides', {
       ...currentOverrides,
       [variantId]: {
         ...variantOverrides,
-        [itineraryId]: newHotelId
+        [itineraryId]: hotelId
       }
-    };
-
-    form.setValue('variantHotelOverrides', updatedOverrides);
-    setEditingMapping(null);
-    setTempHotelId("");
-    toast.success("Hotel updated for this variant");
+    }, { shouldDirty: true });
   };
 
-  const handleCancelEdit = () => {
-    setEditingMapping(null);
-    setTempHotelId("");
-  };
 
   return (
     <div className="space-y-5">
@@ -1102,7 +1087,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
             </CardTitle>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Info className="h-3.5 w-3.5 text-primary" />
-              Variants from <strong className="font-semibold">{selectedTourPackage?.tourPackageName}</strong>
+              Variants from <strong className="font-semibold">{selectedTourPackage?.tourPackageName || 'this query'}</strong>
             </p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
@@ -1138,7 +1123,23 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         </CardHeader>
       </Card>
 
-      {/* ─── Custom Query Variants (shown BEFORE package variants) ─── */}
+      {!selectedTourPackageId ? (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Select a tour package from the <strong>Basic Info</strong> tab to use saved package variants. Custom variants remain available below.
+          </AlertDescription>
+        </Alert>
+      ) : selectedVariants.length === 0 ? (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No package variants are selected right now. Choose them in <strong>Basic Info</strong> or continue with custom variants below.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {/* --- Custom Query Variants (shown before package variants) --- */}
       {(customQueryVariants as any[] || []).map((cVariant: any) => {
         const isConfirmed = confirmedVariantId === cVariant.id;
         const pricingItems = variantPricingItems[cVariant.id] || [];
@@ -1164,7 +1165,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     }}
                   />
                   {isConfirmed && (
-                    <Badge className="text-xs bg-green-600 text-white">✓ Confirmed for Voucher</Badge>
+                    <Badge className="text-xs bg-green-600 text-white">Confirmed for Voucher</Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -1243,13 +1244,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       ) : (
                         <div className="space-y-3">
                           {queryItineraries.map((itinerary: any, idx: number) => {
-                            const dayNum = itinerary.dayNumber || idx + 1;
-                            const variantMappingHotelId = cVariant.variantHotelMappings?.find((m: any) => m.itineraryId === itinerary.id)?.hotelId
-                              || cVariant.variantHotelMappings?.find((m: any) => (m.itinerary?.dayNumber ?? 0) === dayNum)?.hotelId
-                              || '';
-                            const selectedHotelId = variantHotelOverrides?.[cVariant.id]?.[itinerary.id] || variantMappingHotelId;
-                            const selectedHotel = (availableHotels.length > 0 ? availableHotels : hotels).find(h => h.id === selectedHotelId);
-                            const hotelList = availableHotels.length > 0 ? availableHotels : hotels;
+                            const selectedHotelId = resolveVariantHotelId(cVariant, itinerary, idx);
+                            const selectedHotel = resolveVariantHotel(cVariant, itinerary, idx);
+                            const hotelList = getHotelOptions(itinerary.locationId);
                             return (
                               <div key={itinerary.id} className="flex items-start gap-3 p-3 border border-slate-200 rounded-md bg-white">
                                 <div className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white flex-shrink-0 mt-1">
@@ -1262,23 +1259,13 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                   />
                                   <Select
                                     value={selectedHotelId || 'none'}
-                                    onValueChange={(value) => {
-                                      const currentOverrides = variantHotelOverrides || {};
-                                      const variantOverrides = currentOverrides[cVariant.id] || {};
-                                      form.setValue('variantHotelOverrides', {
-                                        ...currentOverrides,
-                                        [cVariant.id]: {
-                                          ...variantOverrides,
-                                          [itinerary.id]: value === 'none' ? '' : value
-                                        }
-                                      });
-                                    }}
+                                    onValueChange={(value) => setVariantHotelOverride(cVariant.id, itinerary.id, value === 'none' ? '' : value)}
                                   >
                                     <SelectTrigger className="h-8 text-xs">
                                       <SelectValue placeholder="Select hotel..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="none" className="text-xs text-muted-foreground">— No hotel selected —</SelectItem>
+                                      <SelectItem value="none" className="text-xs text-muted-foreground">-- No hotel selected --</SelectItem>
                                       {hotelList.map((hotel) => (
                                         <SelectItem key={hotel.id} value={hotel.id} className="text-xs">
                                           {hotel.name}
@@ -1302,6 +1289,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                 </TabsContent>
 
                 {/* Room Allocation Tab for Custom Variant */}
+                {/* Room Allocation Tab for Custom Variant */}
                 <TabsContent value="rooms" className="mt-4">
                   {!queryItineraries || queryItineraries.length === 0 ? (
                     <Alert>
@@ -1312,6 +1300,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     <Accordion type="multiple" className="space-y-3">
                       {queryItineraries.map((itinerary: any, idx: number) => {
                         const variantRooms = variantRoomAllocations?.[cVariant.id]?.[itinerary.id] || [];
+                        const variantTransports = variantTransportDetails?.[cVariant.id]?.[itinerary.id] || [];
                         return (
                           <AccordionItem
                             key={itinerary.id}
@@ -1325,7 +1314,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 </div>
                                 <div className="text-left">
                                   <div className="font-medium text-sm" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${itinerary.dayNumber || idx + 1}` }} />
-                                  <div className="text-xs text-muted-foreground">{variantRooms.length} room(s)</div>
+                                  <div className="text-xs text-muted-foreground">{variantRooms.length} room(s), {variantTransports.length} transport(s)</div>
                                 </div>
                               </div>
                             </AccordionTrigger>
@@ -1412,6 +1401,90 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                   <Plus className="h-3.5 w-3.5 mr-1" /> Add Room
                                 </Button>
                               </div>
+
+                              <Card className="border-emerald-200/60">
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                      <Car className="h-4 w-4 text-emerald-600" />
+                                      Transport Details
+                                    </CardTitle>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => addTransportDetail(cVariant.id, itinerary.id)}
+                                      className="h-8 text-xs"
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add Transport
+                                    </Button>
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {variantTransports.length === 0 ? (
+                                    <div className="text-center py-4 text-sm text-muted-foreground">
+                                      No transport details yet. Click &quot;Add Transport&quot; to get started.
+                                    </div>
+                                  ) : (
+                                    variantTransports.map((transport: any, transportIdx: number) => (
+                                      <div key={transportIdx} className="p-3 border rounded-md space-y-2 bg-gradient-to-r from-emerald-50/50 to-transparent">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs font-medium text-slate-600">Transport {transportIdx + 1}</span>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => removeTransportDetail(cVariant.id, itinerary.id, transportIdx)}
+                                            className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                          >
+                                            <Trash className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div className="space-y-1">
+                                            <label className="text-[10px] font-medium text-slate-600">Vehicle Type</label>
+                                            <Select
+                                              value={transport.vehicleTypeId}
+                                              onValueChange={(value) => updateTransportDetail(cVariant.id, itinerary.id, transportIdx, 'vehicleTypeId', value)}
+                                            >
+                                              <SelectTrigger className="h-8 text-xs">
+                                                <SelectValue placeholder="Select vehicle" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {vehicleTypes.map((vt: any) => (
+                                                  <SelectItem key={vt.id} value={vt.id} className="text-xs">
+                                                    {vt.name}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div className="space-y-1">
+                                            <label className="text-[10px] font-medium text-slate-600">Quantity</label>
+                                            <Input
+                                              type="number"
+                                              min={1}
+                                              value={transport.quantity || 1}
+                                              onChange={(e) => updateTransportDetail(cVariant.id, itinerary.id, transportIdx, 'quantity', parseInt(e.target.value) || 1)}
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                          <div className="space-y-1 col-span-2">
+                                            <label className="text-[10px] font-medium text-slate-600">Description</label>
+                                            <Input
+                                              value={transport.description || ''}
+                                              onChange={(e) => updateTransportDetail(cVariant.id, itinerary.id, transportIdx, 'description', e.target.value)}
+                                              placeholder="Transport description (optional)"
+                                              className="h-8 text-xs"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </CardContent>
+                              </Card>
                             </AccordionContent>
                           </AccordionItem>
                         );
@@ -1476,7 +1549,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         <Trophy className="mr-2 h-4 w-4" /> Final Amount
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">Rs.</span>
                         <Input value={totalPrice} disabled={loading} placeholder="Total price" type="number" className="text-xl font-bold pl-8 bg-white border-orange-300 h-12" onChange={(e) => setVariantTotalPrices(prev => ({ ...prev, [cVariant.id]: e.target.value }))} onBlur={() => syncVariantPricingToForm(cVariant.id)} />
                       </div>
                     </CardContent>
@@ -1497,7 +1570,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         );
       })}
 
-      {/* ─── Selected Package Variants ─── */}
+      {/* --- Selected Package Variants --- */}
       <Tabs defaultValue={selectedVariants[0]?.id} className="w-full">
         <TabsList className="grid w-full mb-6 bg-gradient-to-r from-slate-100 to-slate-50 p-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(selectedVariants.length, 4)}, minmax(0, 1fr))` }}>
           {selectedVariants.map((variant) => (
@@ -1525,7 +1598,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     <Sparkles className="h-4 w-4 text-amber-500" />
                     Variant Details
                     {confirmedVariantId === variant.id && (
-                      <Badge className="text-xs bg-green-600 text-white ml-2">✓ Confirmed for Voucher</Badge>
+                      <Badge className="text-xs bg-green-600 text-white ml-2">Confirmed for Voucher</Badge>
                     )}
                   </CardTitle>
                   <Button
@@ -1594,254 +1667,200 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-100 to-transparent">
                     <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                       <HotelIcon className="h-4 w-4 text-blue-600" />
-                      Hotel Mappings ({variant.variantHotelMappings.length})
+                      Hotel Selection ({itineraries.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    {variant.variantHotelMappings.length === 0 ? (
+                    {itineraries.length === 0 ? (
                       <div className="text-center py-8 text-sm text-muted-foreground">
                         <HotelIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                        No hotel mappings configured.
+                        No itineraries configured.
                       </div>
                     ) : (
                       <Accordion type="multiple" className="space-y-3">
-                        {variant.variantHotelMappings
-                          .slice()
-                          .sort((a, b) => {
-                            const itinA = a.itinerary || itineraries.find(it => it.id === a.itineraryId);
-                            const itinB = b.itinerary || itineraries.find(it => it.id === b.itineraryId);
-                            return (itinA?.dayNumber || 0) - (itinB?.dayNumber || 0);
-                          })
-                          .map((mapping, idx) => {
-                            const itinerary = mapping.itinerary || itineraries.find(it => it.id === mapping.itineraryId);
-                            const effectiveHotelId = getEffectiveHotelId(variant.id, mapping.itineraryId, mapping.hotelId);
-                            const effectiveHotel = availableHotels.find(h => h.id === effectiveHotelId) || mapping.hotel;
-                            const isEditing = editingMapping === mapping.id;
-                            const isOverridden = variantHotelOverrides?.[variant.id]?.[mapping.itineraryId] !== undefined;
+                        {itineraries.map((itinerary: any, idx: number) => {
+                          const selectedHotelId = resolveVariantHotelId(variant, itinerary, idx);
+                          const selectedHotel = resolveVariantHotel(variant, itinerary, idx);
+                          const variantRooms = variantRoomAllocations?.[variant.id]?.[itinerary.id] || [];
+                          const variantTransports = variantTransportDetails?.[variant.id]?.[itinerary.id] || [];
+                          const hotelList = getHotelOptions(itinerary.locationId);
+                          const isOverridden = variantHotelOverrides?.[variant.id]?.[itinerary.id] !== undefined;
+                          const accentColors = [
+                            'before:bg-primary/80',
+                            'before:bg-emerald-500/80',
+                            'before:bg-sky-500/80',
+                            'before:bg-violet-500/80',
+                            'before:bg-amber-500/80',
+                            'before:bg-rose-500/80',
+                          ];
+                          const accent = accentColors[idx % accentColors.length];
 
-                            const accentColors = [
-                              'before:bg-primary/80',
-                              'before:bg-emerald-500/80',
-                              'before:bg-sky-500/80',
-                              'before:bg-violet-500/80',
-                              'before:bg-amber-500/80',
-                              'before:bg-rose-500/80',
-                            ];
-                            const accent = accentColors[idx % accentColors.length];
-
-                            return (
-                              <AccordionItem
-                                key={mapping.id}
-                                value={mapping.id}
-                                className={`relative border rounded-md overflow-hidden shadow-sm bg-white hover:shadow-md transition pl-0 before:absolute before:inset-y-0 before:left-0 before:w-1 ${accent}`}
-                              >
-                                <AccordionTrigger className="px-4 py-3 hover:no-underline data-[state=open]:bg-gradient-to-r data-[state=open]:from-primary/5 data-[state=open]:to-primary/10">
-                                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold bg-gradient-to-br from-primary to-primary/80 text-white border border-primary/20 shadow-sm">
-                                      {itinerary?.dayNumber || idx + 1}
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      <HotelIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                      <span className="font-medium text-sm truncate">{effectiveHotel.name}</span>
-                                    </div>
-                                    {isOverridden && (
-                                      <Badge variant="secondary" className="text-[10px] px-2 py-0.5 h-5 animate-pulse bg-amber-100 text-amber-700 border border-amber-200">
-                                        Modified
-                                      </Badge>
-                                    )}
+                          return (
+                            <AccordionItem
+                              key={itinerary.id}
+                              value={itinerary.id}
+                              className={`relative border rounded-md overflow-hidden shadow-sm bg-white hover:shadow-md transition pl-0 before:absolute before:inset-y-0 before:left-0 before:w-1 ${accent}`}
+                            >
+                              <AccordionTrigger className="px-4 py-3 hover:no-underline data-[state=open]:bg-gradient-to-r data-[state=open]:from-primary/5 data-[state=open]:to-primary/10">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <div className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold bg-gradient-to-br from-primary to-primary/80 text-white border border-primary/20 shadow-sm">
+                                    {itinerary.dayNumber || idx + 1}
                                   </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="px-4 pb-5 pt-4 space-y-4 bg-gradient-to-b from-white to-slate-50/40 border-t">
-                                  {effectiveHotel.images && effectiveHotel.images.length > 0 && (
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                      {effectiveHotel.images.slice(0, 4).map((img, imgIdx) => (
-                                        <div key={imgIdx} className="relative h-56 w-full rounded-md overflow-hidden border bg-slate-100 shadow-sm group">
-                                          <Image
-                                            src={img.url}
-                                            alt={effectiveHotel.name}
-                                            fill
-                                            className="object-cover group-hover:scale-105 transition duration-500"
-                                            sizes="(max-width: 768px) 50vw, 25vw"
-                                          />
-                                        </div>
-                                      ))}
-                                    </div>
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <HotelIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                    <span className="font-medium text-sm truncate">{selectedHotel?.name || 'No hotel selected'}</span>
+                                  </div>
+                                  {isOverridden && (
+                                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 h-5 animate-pulse bg-amber-100 text-amber-700 border border-amber-200">
+                                      Modified
+                                    </Badge>
                                   )}
-
-                                  <Card className="border-muted/40 bg-slate-50/60">
-                                    <CardContent className="pt-3 pb-3">
-                                      <div className="grid grid-cols-2 gap-3 text-xs">
-                                        <div className="flex flex-col space-y-1">
-                                          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">City</span>
-                                          <span className="font-medium text-slate-700">{'N/A'}</span>
-                                        </div>
-                                        <div className="flex flex-col space-y-1">
-                                          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Rating</span>
-                                          <span className="font-medium text-slate-700">
-                                            {'N/A'}
-                                          </span>
-                                        </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="px-4 pb-5 pt-4 space-y-4 bg-gradient-to-b from-white to-slate-50/40 border-t">
+                                {selectedHotel?.images && selectedHotel.images.length > 0 && (
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {selectedHotel.images.slice(0, 4).map((img: Images, imgIdx: number) => (
+                                      <div key={imgIdx} className="relative h-56 w-full rounded-md overflow-hidden border bg-slate-100 shadow-sm group">
+                                        <Image
+                                          src={img.url}
+                                          alt={selectedHotel.name}
+                                          fill
+                                          className="object-cover group-hover:scale-105 transition duration-500"
+                                          sizes="(max-width: 768px) 50vw, 25vw"
+                                        />
                                       </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                                  <CardContent className="pt-3 pb-3">
+                                    <div className="flex items-start gap-2">
+                                      <Calendar className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <div
+                                          className="font-semibold text-sm text-slate-800 [&>p]:m-0"
+                                          dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${itinerary.dayNumber || idx + 1}` }}
+                                        />
+                                        {itinerary.itineraryDescription && (
+                                          <div
+                                            className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed prose prose-xs max-w-none text-slate-600 [&>p]:m-0"
+                                            dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription }}
+                                          />
+                                        )}
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+
+                                {(variantRooms.length > 0 || variantTransports.length > 0) && (
+                                  <Card className="border-slate-200/70 bg-slate-50/50">
+                                    <CardContent className="pt-4 pb-4 space-y-3">
+                                      {variantRooms.length > 0 && (
+                                        <div className="space-y-2">
+                                          <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+                                            <BedDouble className="h-3.5 w-3.5 text-blue-600" />
+                                            Room Allocations ({variantRooms.length})
+                                          </div>
+                                          {variantRooms.map((room: any, roomIdx: number) => {
+                                            const roomType = roomTypes?.find((rt: any) => rt.id === room.roomTypeId);
+                                            const occupancyType = occupancyTypes?.find((ot: any) => ot.id === room.occupancyTypeId);
+                                            const mealPlan = mealPlans?.find((mp: any) => mp.id === room.mealPlanId);
+
+                                            return (
+                                              <div key={roomIdx} className="flex items-start gap-3 py-2 px-3 bg-white rounded-md border border-blue-100 text-xs">
+                                                <Users className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                                <div className="flex-1 space-y-1">
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-blue-50">
+                                                      {room.customRoomType || roomType?.name || 'Room'}
+                                                    </Badge>
+                                                    {occupancyType && (
+                                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                                                        {occupancyType.name}
+                                                      </Badge>
+                                                    )}
+                                                    {mealPlan && (
+                                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5">
+                                                        <UtensilsIcon className="h-2.5 w-2.5" />
+                                                        {mealPlan.name}
+                                                      </Badge>
+                                                    )}
+                                                    <span className="text-slate-600">x{room.quantity || 1}</span>
+                                                  </div>
+                                                  {room.guestNames && (
+                                                    <div className="text-slate-600 text-[10px]">Guests: {room.guestNames}</div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+
+                                      {variantTransports.length > 0 && (
+                                        <div className="space-y-2">
+                                          <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
+                                            <Car className="h-3.5 w-3.5 text-emerald-600" />
+                                            Transport Details ({variantTransports.length})
+                                          </div>
+                                          {variantTransports.map((transport: any, transportIdx: number) => {
+                                            const vehicleType = vehicleTypes.find((vehicle: any) => vehicle.id === transport.vehicleTypeId);
+
+                                            return (
+                                              <div key={transportIdx} className="flex items-start gap-3 py-2 px-3 bg-white rounded-md border border-emerald-100 text-xs">
+                                                <Car className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                                <div className="flex-1 space-y-1">
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-50">
+                                                      {vehicleType?.name || 'Vehicle not selected'}
+                                                    </Badge>
+                                                    <span className="text-slate-600">x{transport.quantity || 1}</span>
+                                                  </div>
+                                                  {transport.description && (
+                                                    <div className="text-slate-600 text-[10px]">{transport.description}</div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
                                     </CardContent>
                                   </Card>
+                                )}
 
-                                  {itinerary && (
-                                    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-                                      <CardContent className="pt-3 pb-3">
-                                        <div className="flex items-start gap-2">
-                                          <Calendar className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                                          <div className="flex-1 min-w-0">
-                                            <div
-                                              className="font-semibold text-sm text-slate-800 [&>p]:m-0"
-                                              dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}
-                                            />
-                                            {itinerary.itineraryDescription && (
-                                              <div
-                                                className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed prose prose-xs max-w-none text-slate-600 [&>p]:m-0"
-                                                dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription }}
-                                              />
-                                            )}
-                                          </div>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                  )}
-
-                                  {(() => {
-                                    let targetDayNumber: number | undefined;
-                                    if (itinerary && typeof itinerary.dayNumber === "number") {
-                                      targetDayNumber = itinerary.dayNumber;
-                                    } else {
-                                      targetDayNumber = idx + 1;
-                                    }
-
-                                    const queryItinerary = queryItineraries?.find(
-                                      (qi: any) => qi.dayNumber === targetDayNumber
-                                    );
-                                    const roomAllocations = queryItinerary?.roomAllocations || [];
-
-                                    if (roomAllocations.length > 0) {
-                                      return (
-                                        <Card className="border-blue-200/60 bg-gradient-to-br from-blue-50/40 to-transparent">
-                                          <CardContent className="pt-4 pb-4">
-                                            <div className="space-y-3">
-                                              <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide flex items-center gap-1.5">
-                                                <BedDouble className="h-3.5 w-3.5 text-blue-600" />
-                                                Room Allocations ({roomAllocations.length})
-                                              </div>
-                                              {roomAllocations.map((room: any, roomIdx: number) => {
-                                                const roomType = roomTypes?.find((rt: any) => rt.id === room.roomTypeId);
-                                                const occupancyType = occupancyTypes?.find((ot: any) => ot.id === room.occupancyTypeId);
-                                                const mealPlan = mealPlans?.find((mp: any) => mp.id === room.mealPlanId);
-
-                                                return (
-                                                  <div
-                                                    key={roomIdx}
-                                                    className="flex items-start gap-3 py-2 px-3 bg-white/80 rounded-md border border-blue-100 text-xs"
-                                                  >
-                                                    <Users className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                                                    <div className="flex-1 space-y-1">
-                                                      <div className="flex items-center gap-2 flex-wrap">
-                                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-blue-50">
-                                                          {room.customRoomType || roomType?.name || 'Room'}
-                                                        </Badge>
-                                                        {occupancyType && (
-                                                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-                                                            {occupancyType.name}
-                                                          </Badge>
-                                                        )}
-                                                        {mealPlan && (
-                                                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5">
-                                                            <UtensilsIcon className="h-2.5 w-2.5" />
-                                                            {mealPlan.name}
-                                                          </Badge>
-                                                        )}
-                                                        <span className="text-slate-600">×{room.quantity || 1}</span>
-                                                      </div>
-                                                      {room.guestNames && (
-                                                        <div className="text-slate-600 text-[10px]">
-                                                          Guests: {room.guestNames}
-                                                        </div>
-                                                      )}
-                                                      {room.voucherNumber && (
-                                                        <div className="text-slate-500 text-[10px]">
-                                                          Voucher: {room.voucherNumber}
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          </CardContent>
-                                        </Card>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
-
-                                  <div className="flex items-center gap-2 pt-2 border-t">
-                                    {isEditing ? (
-                                      <Card className="flex-1 border-primary/30">
-                                        <CardContent className="p-3 flex items-center gap-2">
-                                          <Select value={tempHotelId} onValueChange={setTempHotelId}>
-                                            <SelectTrigger className="flex-1 h-9 text-xs bg-white">
-                                              <SelectValue placeholder="Select hotel" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {availableHotels.map((hotel) => (
-                                                <SelectItem key={hotel.id} value={hotel.id} className="text-xs">
-                                                  <div className="flex items-center gap-2">
-                                                    {hotel.images?.[0]?.url && (
-                                                      <Image src={hotel.images[0].url} alt={hotel.name} width={24} height={18} className="rounded object-cover" />
-                                                    )}
-                                                    <div className="flex flex-col">
-                                                      <span className="font-medium">{hotel.name}</span>
-                                                      <span className="text-[10px] text-muted-foreground"> </span>
-                                                    </div>
-                                                  </div>
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="default"
-                                            onClick={() => handleSaveHotelChange(variant.id, mapping.itineraryId, tempHotelId)}
-                                            disabled={!tempHotelId}
-                                            className="h-9 px-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600"
-                                          >
-                                            <Check className="h-3.5 w-3.5" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={handleCancelEdit}
-                                            className="h-9 px-3"
-                                          >
-                                            <X className="h-3.5 w-3.5" />
-                                          </Button>
-                                        </CardContent>
-                                      </Card>
-                                    ) : (
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleStartEdit(mapping.id, effectiveHotelId)}
-                                        className="w-full h-9 text-xs hover:bg-primary/5 transition"
-                                      >
-                                        <Edit2 className="h-3 w-3 mr-2" />
-                                        Change Hotel
-                                      </Button>
-                                    )}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            );
-                          })}
+                                <Card className="border-primary/20">
+                                  <CardContent className="pt-3 pb-3 space-y-3">
+                                    <div className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">
+                                      Select Hotel
+                                    </div>
+                                    <Select
+                                      value={selectedHotelId || 'none'}
+                                      onValueChange={(value) => setVariantHotelOverride(variant.id, itinerary.id, value === 'none' ? '' : value)}
+                                    >
+                                      <SelectTrigger className="h-9 text-xs bg-white">
+                                        <SelectValue placeholder="Select hotel" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none" className="text-xs text-muted-foreground">-- No hotel selected --</SelectItem>
+                                        {hotelList.map((hotel) => (
+                                          <SelectItem key={hotel.id} value={hotel.id} className="text-xs">
+                                            {hotel.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <p className="text-[10px] text-slate-500">
+                                      Saved as a variant-specific hotel override for this day.
+                                    </p>
+                                  </CardContent>
+                                </Card>
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
                       </Accordion>
                     )}
                   </CardContent>
@@ -2197,14 +2216,14 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <CreditCard className="h-4 w-4 text-blue-600" />
-                      💰 Pricing Configuration
+                      Pricing Configuration
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="bg-white rounded-lg border border-slate-200 p-4">
                       <div className="flex items-center mb-3">
                         <Settings className="mr-2 h-4 w-4 text-indigo-600" />
-                        <h3 className="text-sm font-semibold">💼 Calculation Method</h3>
+                        <h3 className="text-sm font-semibold">Calculation Method</h3>
                       </div>
                       <RadioGroup
                         value={variantCalcMethods[variant.id] || 'useTourPackagePricing'}
@@ -2215,7 +2234,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <RadioGroupItem value="manual" id={`m-${variant.id}`} />
                           <div className="flex-1">
                             <label htmlFor={`m-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
-                              <Receipt className="mr-2 h-3.5 w-3.5" />✍️ Manual Pricing Entry
+                              <Receipt className="mr-2 h-3.5 w-3.5" />Manual Pricing Entry
                             </label>
                             <p className="text-[10px] text-slate-500 mt-0.5">Enter pricing components manually with full control</p>
                           </div>
@@ -2224,7 +2243,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <RadioGroupItem value="autoHotelTransport" id={`a-${variant.id}`} />
                           <div className="flex-1">
                             <label htmlFor={`a-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
-                              <Calculator className="mr-2 h-3.5 w-3.5" />🤖 Auto Calculate (Hotel + Transport)
+                              <Calculator className="mr-2 h-3.5 w-3.5" />Auto Calculate (Hotel + Transport)
                             </label>
                             <p className="text-[10px] text-slate-500 mt-0.5">Automatically calculate based on itinerary hotels and transport</p>
                           </div>
@@ -2233,7 +2252,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <RadioGroupItem value="useTourPackagePricing" id={`u-${variant.id}`} />
                           <div className="flex-1">
                             <label htmlFor={`u-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
-                              <Package className="mr-2 h-3.5 w-3.5" />📦 Use Tour Package Pricing
+                              <Package className="mr-2 h-3.5 w-3.5" />Use Tour Package Pricing
                             </label>
                             <p className="text-[10px] text-slate-500 mt-0.5">Use pre-defined pricing from selected tour package template</p>
                           </div>
@@ -2256,7 +2275,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         <CardHeader className="pb-3 border-b bg-gradient-to-r from-indigo-50 via-indigo-25 to-transparent">
                           <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                             <Receipt className="h-4 w-4 text-indigo-600" />
-                            ✍️ Manual Pricing Entry
+                            Manual Pricing Entry
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-4">
@@ -2271,7 +2290,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               <div className="text-center py-6 text-muted-foreground">
                                 <Receipt className="h-10 w-10 mx-auto mb-2 text-muted-foreground/50" />
                                 <p className="text-sm font-medium">No manual pricing items yet.</p>
-                                <p className="text-xs mt-1">Click “Add Item” to get started.</p>
+                                <p className="text-xs mt-1">Click "Add Item" to get started.</p>
                               </div>
                             ) : (
                               manualItems.map((item, idx) => (
@@ -2351,7 +2370,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <CardHeader className="pb-3 border-b bg-gradient-to-r from-green-50 via-green-25 to-transparent">
                             <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                               <Calculator className="h-4 w-4 text-green-600" />
-                              🤖 Auto Calculate Pricing
+                              Auto Calculate Pricing
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="pt-4">
@@ -2388,13 +2407,13 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                     }}
                                   >
                                     <SelectTrigger className="h-8 bg-white border-emerald-300 focus:border-emerald-500">
-                                      <SelectValue placeholder="🎯 Pricing Tier" />
+                                      <SelectValue placeholder="Pricing Tier" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="standard">⭐ Standard (10%)</SelectItem>
-                                      <SelectItem value="premium">🌟 Premium (20%)</SelectItem>
-                                      <SelectItem value="luxury">✨ Luxury (30%)</SelectItem>
-                                      <SelectItem value="custom">🎛️ Custom</SelectItem>
+                                      <SelectItem value="standard">Standard (10%)</SelectItem>
+                                      <SelectItem value="premium">Premium (20%)</SelectItem>
+                                      <SelectItem value="luxury">Luxury (30%)</SelectItem>
+                                      <SelectItem value="custom">Custom</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
@@ -2407,7 +2426,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                     disabled={loading}
                                   >
                                     <Calculator className="mr-2 h-4 w-4" />
-                                    🧮 Calculate Price
+                                    Calculate Price
                                   </Button>
                                   <Button
                                     type="button"
@@ -2455,43 +2474,43 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                               <div className="text-xs text-gray-600">
                                                 {accommodation?.roomBreakdown?.map((rb: any, idx: number) => (
                                                   <div key={idx} className="mb-1">
-                                                    {rb.roomTypeName || 'Room'} ({rb.occupancyTypeName || 'Occupancy'}) - ₹{rb.totalCost.toFixed(2)}
+                                                    {rb.roomTypeName || 'Room'} ({rb.occupancyTypeName || 'Occupancy'}) - Rs.{rb.totalCost.toFixed(2)}
                                                   </div>
                                                 ))}
                                               </div>
                                             </TableCell>
                                             <TableCell className="text-right text-sm">
-                                              {accommodation?.accommodationCost ? `₹${accommodation.accommodationCost.toFixed(2)}` : '-'}
+                                              {accommodation?.accommodationCost ? `Rs.${accommodation.accommodationCost.toFixed(2)}` : '-'}
                                             </TableCell>
                                             <TableCell className="text-right text-sm">
-                                              {transportCost ? `₹${transportCost.toFixed(2)}` : '-'}
+                                              {transportCost ? `Rs.${transportCost.toFixed(2)}` : '-'}
                                             </TableCell>
-                                            <TableCell className="text-right font-medium text-sm">₹{dayTotal.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right font-medium text-sm">Rs.{dayTotal.toFixed(2)}</TableCell>
                                           </TableRow>
                                         );
                                       });
                                     })()}
                                     <TableRow className="bg-blue-50">
                                       <TableCell colSpan={4} className="font-medium text-right text-sm">Base Accommodation Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-sm">₹{calcResult.breakdown.accommodation.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-bold text-sm">Rs.{calcResult.breakdown.accommodation.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow className="bg-blue-50">
                                       <TableCell colSpan={4} className="font-medium text-right text-sm">Base Transport Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-sm">₹{calcResult.breakdown.transport.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-bold text-sm">Rs.{calcResult.breakdown.transport.toFixed(2)}</TableCell>
                                     </TableRow>
                                     <TableRow className="bg-blue-100">
                                       <TableCell colSpan={4} className="font-medium text-right text-sm">Total Base Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-sm">₹{(calcResult.breakdown.accommodation + calcResult.breakdown.transport).toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-bold text-sm">Rs.{(calcResult.breakdown.accommodation + calcResult.breakdown.transport).toFixed(2)}</TableCell>
                                     </TableRow>
                                     {calcResult.appliedMarkup && (
                                       <TableRow className="bg-blue-100">
                                         <TableCell colSpan={4} className="font-medium text-right text-sm">Markup ({calcResult.appliedMarkup.percentage}%)</TableCell>
-                                        <TableCell className="text-right font-bold text-sm">₹{calcResult.appliedMarkup.amount.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right font-bold text-sm">Rs.{calcResult.appliedMarkup.amount.toFixed(2)}</TableCell>
                                       </TableRow>
                                     )}
                                     <TableRow className="bg-blue-200">
                                       <TableCell colSpan={4} className="font-medium text-right text-base">Final Total Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-base">₹{calcResult.totalCost.toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-bold text-base">Rs.{calcResult.totalCost.toFixed(2)}</TableCell>
                                     </TableRow>
                                   </TableBody>
                                 </Table>
@@ -2510,7 +2529,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         <CardHeader className="pb-3">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Package className="h-4 w-4 text-purple-600" />
-                            📦 Tour Package Pricing Configuration
+                            Tour Package Pricing Configuration
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -2522,7 +2541,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 <div>
                                   <p className="text-xs text-slate-600">Selected Tour Package:</p>
                                   <p className="font-semibold text-sm text-purple-700">
-                                    📋 {selectedTourPackage?.tourPackageName || `Package ID: ${selectedTourPackageId}`}
+                                    {selectedTourPackage?.tourPackageName || `Package ID: ${selectedTourPackageId}`}
                                   </p>
                                 </div>
                               </div>
@@ -2542,7 +2561,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             <FormItem className="space-y-3">
                               <FormLabel className="font-semibold text-purple-700 flex items-center">
                                 <ShoppingCart className="mr-2 h-4 w-4" />
-                                🍽️ Meal Plan <span className="text-red-500">*</span>
+                                Meal Plan <span className="text-red-500">*</span>
                               </FormLabel>
                               <Select
                                 disabled={loading}
@@ -2561,7 +2580,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 <SelectContent>
                                   {mealPlans.map((plan) => (
                                     <SelectItem key={plan.id} value={plan.id}>
-                                      🍽️ {plan.name}
+                                      {plan.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -2574,7 +2593,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             <FormItem className="space-y-3">
                               <FormLabel className="font-semibold text-purple-700 flex items-center">
                                 <Wallet className="mr-2 h-4 w-4" />
-                                🏨 Number of Rooms <span className="text-red-500">*</span>
+                                Number of Rooms <span className="text-red-500">*</span>
                               </FormLabel>
                               <div className="flex items-center gap-4">
                                 <Button
@@ -2607,7 +2626,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 </Button>
                                 <div className="flex items-center bg-purple-100 px-3 py-2 rounded-lg">
                                   <span className="text-sm font-medium text-purple-700">
-                                    🏨 {variantRoomCounts[variant.id] || 1} room{(variantRoomCounts[variant.id] || 1) > 1 ? 's' : ''}
+                                    {variantRoomCounts[variant.id] || 1} room{(variantRoomCounts[variant.id] || 1) > 1 ? 's' : ''}
                                   </span>
                                 </div>
                               </div>
@@ -2621,7 +2640,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             disabled={loading || !variantMealPlanIds[variant.id] || (variantRoomCounts[variant.id] || 1) <= 0}
                           >
                             <Calculator className="mr-2 h-4 w-4" />
-                            🔍 Fetch Available Pricing Components
+                            Fetch Available Pricing Components
                           </Button>
                         </CardContent>
                       </Card>
@@ -2701,15 +2720,15 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                             <p className="text-xs text-gray-600">{component.description}</p>
                                           )}
                                           <p className="text-xs text-gray-500 mt-1">
-                                            <span className="font-medium">Sales Price:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                            <span className="font-medium">Sales Price:</span> Rs.{parseFloat(component.price || '0').toFixed(2)} per person
                                             {component.purchasePrice && (
                                               <span className="ml-3">
-                                                <span className="font-medium text-orange-600">Purchase Price:</span> ₹{parseFloat(component.purchasePrice || '0').toFixed(2)} per person
+                                                <span className="font-medium text-orange-600">Purchase Price:</span> Rs.{parseFloat(component.purchasePrice || '0').toFixed(2)} per person
                                               </span>
                                             )}
                                             {getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 && (
                                               <span className="text-blue-600 ml-1 block">
-                                                (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
+                                                (x{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
                                               </span>
                                             )}
                                           </p>
@@ -2748,7 +2767,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                             <p className="font-semibold text-gray-900">{formatCurrency(totalPrice)}</p>
                                             {(quantity > 1 || getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1) && (
                                               <p className="text-[10px] text-gray-500">
-                                                {quantity} rooms × ₹{parseFloat(component.price || '0').toFixed(2)} × {getOccupancyMultiplier(component.pricingAttribute?.name || '')} occupancy
+                                                {quantity} rooms x Rs.{parseFloat(component.price || '0').toFixed(2)} x {getOccupancyMultiplier(component.pricingAttribute?.name || '')} occupancy
                                               </p>
                                             )}
                                           </div>
@@ -2776,9 +2795,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                       return (
                                         <div key={comp.id} className="flex justify-between text-xs">
                                           <span>{componentName} {qty > 1 ? `(${qty} rooms)` : ''}
-                                            {occupancyMultiplier > 1 ? ` × ${occupancyMultiplier}` : ''}
+                                            {occupancyMultiplier > 1 ? ` x ${occupancyMultiplier}` : ''}
                                           </span>
-                                          <span>₹{compTotal.toFixed(2)}</span>
+                                          <span>Rs.{compTotal.toFixed(2)}</span>
                                         </div>
                                       );
                                     })}
@@ -2842,7 +2861,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     <div className="flex justify-between items-center flex-wrap gap-2">
                       <CardTitle className="text-sm flex items-center gap-2 font-semibold">
                         <Receipt className="h-4 w-4 text-blue-600" />
-                        💰 Pricing Breakdown
+                        Pricing Breakdown
                       </CardTitle>
                       <div className="flex items-center gap-2">
                         <Button
@@ -2937,7 +2956,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 <Input
                                   value={item.description}
                                   disabled={loading}
-                                  placeholder="e.g., 15000.00 × 3 occupancy × 3 rooms = ₹135000"
+                                  placeholder="e.g., 15000.00 x 3 occupancy x 3 rooms = Rs.135000"
                                   onChange={(e) => {
                                     handleUpdateVariantPricingItem(variant.id, idx, 'description', e.target.value);
                                   }}
@@ -2974,15 +2993,15 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   <CardContent className="pt-5 pb-5">
                     <div className="flex items-center mb-3">
                       <Target className="mr-2 h-5 w-5 text-orange-600" />
-                      <h3 className="text-base font-bold text-orange-800">🎯 Total Package Price</h3>
+                      <h3 className="text-base font-bold text-orange-800">Total Package Price</h3>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-orange-700 flex items-center">
                         <Trophy className="mr-2 h-4 w-4" />
-                        💰 Final Amount
+                        Final Amount
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">Rs.</span>
                         <Input
                           value={variantTotalPrices[variant.id] || ''}
                           disabled={loading}
@@ -3016,7 +3035,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <p className="text-xs font-semibold text-green-700">Selected Meal Plan:</p>
                         </div>
                         <div className="flex items-center bg-white p-2 rounded-md border border-green-200">
-                          <span className="text-sm mr-2">🍽️</span>
+                          <span className="text-sm mr-2">MP</span>
                           <p className="font-semibold text-sm text-green-800">
                             {mealPlans.find((mp: any) => mp.id === variantMealPlanIds[variant.id])?.name || 'Unknown Meal Plan'}
                           </p>
@@ -3031,7 +3050,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         </div>
                         <div className="flex items-center justify-between bg-white p-2 rounded-md border border-blue-200">
                           <div className="flex items-center">
-                            <span className="text-sm mr-2">🏨</span>
+                            <span className="text-sm mr-2">RM</span>
                             <span className="font-semibold text-sm text-blue-800">Number of Rooms</span>
                           </div>
                           <div className="bg-blue-100 px-2 py-0.5 rounded-full">

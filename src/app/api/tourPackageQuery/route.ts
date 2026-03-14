@@ -230,6 +230,8 @@ export async function POST(
             variantRoomAllocations, // Room allocations per variant
             variantTransportDetails, // Transport details per variant
             variantPricingData, // Pricing data per variant
+            confirmedVariantId, // ID of the confirmed/booked variant for voucher generation
+            customQueryVariants, // Standalone variants created directly on this query
             tourStartsFrom,
             tourEndsOn,
             transport,
@@ -440,6 +442,8 @@ export async function POST(
                 variantRoomAllocations: variantRoomAllocations || undefined, // Store room allocations per variant
                 variantTransportDetails: variantTransportDetails || undefined, // Store transport details per variant
                 variantPricingData: variantPricingData || undefined, // Store pricing data per variant
+                confirmedVariantId: confirmedVariantId || null, // Store confirmed variant ID
+                customQueryVariants: customQueryVariants || undefined, // Store custom query variants
                 tourStartsFrom: dateToUtc(tourStartsFrom),
                 tourEndsOn: dateToUtc(tourEndsOn),
                 transport,

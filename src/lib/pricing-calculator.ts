@@ -336,15 +336,15 @@ export async function calculateVariantPricing(params: {
   const variantTransport = variantTransportDetails?.[variantId] || {};
 
   // Build pricing itineraries from variant data
+  // Use pre-computed roomAllocations/transportDetails already embedded in each itinerary object
+  // (the frontend correctly resolves these from variantRoomAllocations[variantId][itinerary.id])
   const pricingItineraries: PricingItinerary[] = itineraries.map((itinerary: any) => {
-    const itineraryId = itinerary.id || `day-${itinerary.dayNumber}`;
-    
     return {
       locationId: itinerary.locationId,
       dayNumber: itinerary.dayNumber,
       hotelId: itinerary.hotelId,
-      roomAllocations: variantRooms[itineraryId] || [],
-      transportDetails: variantTransport[itineraryId] || []
+      roomAllocations: itinerary.roomAllocations || [],
+      transportDetails: itinerary.transportDetails || []
     };
   });
 

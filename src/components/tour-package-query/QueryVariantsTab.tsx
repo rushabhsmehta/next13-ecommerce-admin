@@ -2472,6 +2472,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                             <TableCell className="font-medium">Day {day}</TableCell>
                                             <TableCell>
                                               <div className="text-xs text-gray-600">
+                                                {accommodation?.hotelName && (
+                                                  <div className="font-semibold text-gray-800 mb-1">{accommodation.hotelName}</div>
+                                                )}
                                                 {accommodation?.roomBreakdown?.map((rb: any, idx: number) => (
                                                   <div key={idx} className="mb-1">
                                                     {rb.roomTypeName || 'Room'} ({rb.occupancyTypeName || 'Occupancy'}) - Rs.{rb.totalCost.toFixed(2)}

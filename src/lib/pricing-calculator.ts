@@ -176,6 +176,12 @@ export async function calculatePricing(
       roomBreakdown: []
     };
 
+    // Fetch hotel name for display
+    if (hotelId && includeNames) {
+      const hotel = await prismadb.hotel.findUnique({ where: { id: hotelId }, select: { name: true } });
+      if (hotel) dayResult.hotelName = hotel.name;
+    }
+
     // Calculate accommodation costs
     if (hotelId && roomAllocations && roomAllocations.length > 0) {
       for (const room of roomAllocations) {

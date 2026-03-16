@@ -668,7 +668,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     // Show section whenever we have variant data; show '—' if pricing not configured
     const hasPricing = variants.some(v => v.pricingSnapshots.length > 0 || !!getVpd(v)?.totalCost);
 
-    // Collect component names from both pricingSnapshots AND variantPricingData
+    // Collect component names that have at least one non-zero value across variants
     const allComponents = Array.from(new Set([
       ...variants.flatMap(v =>
         v.pricingSnapshots.flatMap(p =>
@@ -676,7 +676,15 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         )
       ),
       ...variants.flatMap(v => (getVpd(v)?.components || []).map((c: any) => c.name as string).filter(Boolean)),
-    ]));
+    ])).filter(compName =>
+      variants.some(v => {
+        const vpd = getVpd(v);
+        const vpdComp = (vpd?.components || []).find((c: any) => c.name === compName);
+        if (vpdComp) return parseFloat(String(vpdComp.price || 0)) > 0;
+        const snap = v.pricingSnapshots[0]?.pricingComponentSnapshots.find(c => c.attributeName === compName);
+        return snap ? parseFloat(String(snap.price || 0)) > 0 : false;
+      })
+    );
 
     const variantCount = variants.length;
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1.6)));

@@ -125,7 +125,7 @@ export function VariantComparisonSection({
     new Set(variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber)))
   ).sort((a, b) => a - b);
 
-  // Get all unique pricing components
+  // Get all unique pricing components that have at least one non-zero value
   const allPricingComponents = Array.from(
     new Set([
       ...variants.flatMap(v =>
@@ -137,6 +137,14 @@ export function VariantComparisonSection({
         (getVpd(v)?.components || []).map(c => c.name).filter(Boolean)
       ),
     ])
+  ).filter(compName =>
+    variants.some(v => {
+      const vpd = getVpd(v);
+      const vpdComp = (vpd?.components || []).find(c => c.name === compName);
+      if (vpdComp) return parseFloat(String(vpdComp.price || 0)) > 0;
+      const snap = v.pricingSnapshots[0]?.pricingComponentSnapshots.find(c => c.attributeName === compName);
+      return snap ? parseFloat(String(snap.price || 0)) > 0 : false;
+    })
   );
 
   // Calculate totals for "Best Value" badge

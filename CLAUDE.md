@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer for managing tour packages, customer inquiries, hotel bookings, and financial transactions. Built on Next.js 13 App Router.
+Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer for managing tour packages, customer inquiries, hotel bookings, and financial transactions. Built on Next.js App Router.
 
 ## Tech Stack
 
-- **Framework:** Next.js 13.5.7 (App Router), React 18, TypeScript
+- **Framework:** Next.js 16.1.6 (App Router), React 19, TypeScript
 - **Database:** MySQL (main) + PostgreSQL (WhatsApp) via Prisma ORM
-- **Auth:** Clerk (`@clerk/nextjs`)
+- **Auth:** Clerk (`@clerk/nextjs@6`)
 - **UI:** Shadcn/Radix UI + Tailwind CSS
 - **State:** Zustand
 - **Forms:** React Hook Form + Zod validation
@@ -25,6 +25,7 @@ npm run dev          # Start dev server
 npm run build        # Generate Prisma clients + Next.js build
 npm run lint         # ESLint (next/core-web-vitals)
 npm start            # Production server
+npm run test:accounts # Run accounting module tests
 ```
 
 ## Project Structure
@@ -33,7 +34,7 @@ npm start            # Production server
 src/
   app/
     (auth)/              # Sign-in/sign-up routes
-    (dashboard)/         # Admin dashboard (50+ modules)
+    (dashboard)/         # Admin dashboard (37+ modules)
       accounts/          # Financial dashboard (overview, bank/cash balances)
       sales/             # Sales management with filters + balance tracking
       purchases/         # Purchase management with filters + balance tracking
@@ -41,35 +42,54 @@ src/
       hotels/            # Hotel management
       tourPackages/      # Tour package management
       tourPackageQuery/  # Tour inquiry/quote management
+      inquiries/         # Inquiry management & follow-ups
       payments/          # Payment tracking
       receipts/          # Receipt tracking
       expenses/          # Expense tracking (includes accrued)
       incomes/           # Income tracking
       reports/           # Analytics & reporting
       fetchaccounts/     # Per-query financial breakdown (tabbed view)
+      bank-book/         # Bank reconciliation
+      cash-book/         # Cash reconciliation
+      audit-logs/        # Audit logging
+      operational-staff/ # Staff management
+      associate-partners/# Partner management
+      export-contacts/   # Contact export
+      transport-pricing/ # Transport pricing configuration
     (root)/              # Public homepage
-    api/                 # API routes (60+ endpoints)
+    api/                 # API routes (67+ endpoints)
       mcp/               # MCP server API endpoint
     travel/              # Public-facing travel app
     ops/                 # Operations staff routes
   components/
     ui/                  # Shadcn UI components
     forms/               # Form components (expense, receipt, payment dialogs)
+    tour-package-query/  # Tour package query components (variants, pricing)
+    ai/                  # AI-related components
+    dialogs/             # Dialog components
+    modals/              # Modal components
+    notifications/       # Notification components
+    itinerary-groups/    # Itinerary grouping components
     whatsapp/            # WhatsApp UI components
   lib/                   # Utilities (pricing, GST, phone, PDF, etc.)
     prismadb.ts          # Main Prisma client singleton
     utils.ts             # formatPrice(), cn(), and general utilities
     timezone-utils.ts    # dateToUtc() for UTC date handling
     phone-utils.ts       # normalizePhoneNumber()
+    pricing-calculator.ts # Variant pricing calculation service
+    inquiry-statuses.ts  # Centralized inquiry status constants
+    authz.ts             # Authorization helpers
+    rate-limit.ts        # Rate limiting utility
+    tour-package-query-accounting*.ts # Accounting module (schema, helpers, persistence, route)
   hooks/                 # React hooks
   providers/             # Context providers (theme, modal, toast)
   types/                 # TypeScript type definitions
   middleware.ts          # Auth & routing middleware
-schema.prisma            # Main MySQL schema (~1,700 lines)
+schema.prisma            # Main MySQL schema (~1,800 lines)
 prisma/
   whatsapp-schema.prisma # PostgreSQL WhatsApp schema
 mcp-server/              # Custom MCP server for Claude integrations
-  src/server.ts          # Tool registration orchestrator (103 tools)
+  src/server.ts          # Tool registration orchestrator (99 tools)
   src/tools/             # 17 tool registration modules
   src/helpers.ts         # callTool + toolError helpers
   src/api-client.ts      # Calls Next.js /api/mcp endpoint
@@ -167,12 +187,12 @@ API routes log errors with a bracketed prefix: `console.log("[CUSTOMERS_POST]", 
 
 ## MCP Tools (travel-admin)
 
-**103 tools** available via the custom MCP server (expanded from 20 in Mar 2026):
+**99 tools** available via the custom MCP server:
 
-### Architecture (Modular - Mar 2026 Refactor)
-- **`src/app/api/mcp/route.ts`** — Slim gateway (90 lines): auth, dispatch, error handling
-- **`src/app/api/mcp/handlers/`** — 17 handler modules (2200+ lines of Prisma queries)
-- **`src/app/api/mcp/lib/`** — Shared utilities: errors, schemas, resolvers, date helpers
+### Architecture (Modular)
+- **`src/app/api/mcp/route.ts`** — Slim gateway (~117 lines): auth, dispatch, error handling
+- **`src/app/api/mcp/handlers/`** — 18 handler modules incl. index.ts dispatcher (2200+ lines of Prisma queries)
+- **`src/app/api/mcp/lib/`** — Shared utilities: `errors.ts`, `schemas.ts`, `resolve-account.ts`, `resolve-entity.ts`, `date-filter.ts`
 - **`mcp-server/src/tools/`** — 17 tool registration modules (2100+ lines of MCP tool definitions)
 - **`mcp-server/src/server.ts`** — Slim orchestrator (45 lines)
 

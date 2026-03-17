@@ -33,7 +33,10 @@
       "Bash(find \"/d/GitHub/next13-ecommerce-admin/src/app/\\(dashboard\\)/whatsapp\" -maxdepth 2 -type f -name \"page.tsx\")",
       "Bash(bash /tmp/analyze_routes.sh)",
       "Bash(find \"/d/GitHub/next13-ecommerce-admin/src/app/\\(dashboard\\)/tds\" -name \"page.tsx\")",
-      "Bash(npx next build)"
+      "Bash(npx next build)",
+      "Bash(ls -la src/app/\\\\\\(dashboard\\\\\\))",
+      "Bash(ls -1 /c/Users/HP/Documents/GitHub/next13-ecommerce-admin/src/app/\\\\\\(dashboard\\\\\\)/\\\\\\(routes\\\\\\)/)",
+      "Bash(ls src/app/\\\\\\(dashboard\\\\\\)/\\\\\\(routes\\\\\\)/)"
     ]
   }
 }

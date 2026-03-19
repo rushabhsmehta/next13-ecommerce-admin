@@ -523,8 +523,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       .filter((itinerary) => (itinerary.roomAllocations?.length || 0) > 0 && !itinerary.hotelId)
       .map((itinerary) => itinerary.dayNumber);
     if (missingHotelDays.length > 0) {
-      toast.error(`Select a hotel for ${formatDayList(missingHotelDays)} before auto-calculating room costs.`);
-      return;
+      toast(`No hotel selected for ${formatDayList(missingHotelDays)} — room costs for those days will be skipped.`, {
+        icon: '⚠️',
+        duration: 5000,
+      });
     }
 
     const incompleteRoomDays = pricingItineraries
@@ -2252,9 +2254,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <RadioGroupItem value="useTourPackagePricing" id={`u-${variant.id}`} />
                           <div className="flex-1">
                             <label htmlFor={`u-${variant.id}`} className="text-xs font-medium cursor-pointer flex items-center">
-                              <Package className="mr-2 h-3.5 w-3.5" />Use Tour Package Pricing
+                              <Package className="mr-2 h-3.5 w-3.5" />Fetch &amp; Select Pricing Components
                             </label>
-                            <p className="text-[10px] text-slate-500 mt-0.5">Use pre-defined pricing from selected tour package template</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Fetch pre-defined pricing components from the tour package template and select which to apply</p>
                           </div>
                         </div>
                       </RadioGroup>
@@ -2532,7 +2534,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                         <CardHeader className="pb-3">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Package className="h-4 w-4 text-purple-600" />
-                            Tour Package Pricing Configuration
+                            Fetch &amp; Select Pricing Components
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">

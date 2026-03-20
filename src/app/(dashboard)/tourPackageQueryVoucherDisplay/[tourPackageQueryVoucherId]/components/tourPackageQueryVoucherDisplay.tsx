@@ -1,4 +1,5 @@
 'use client'
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
@@ -532,14 +533,24 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                                 const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '-';
                                 const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '-';
                                 return (
-                                  <tr key={roomIdx} className="bg-white transition-colors hover:bg-orange-50/60">
-                                    <td className="px-3 py-2 font-medium text-gray-900">{roomTypeName}</td>
-                                    <td className="px-3 py-2">{occupancyName}</td>
-                                    <td className="px-3 py-2">{mealPlanName}</td>
-                                    <td className="px-3 py-2">{room.quantity || '-'}</td>
-                                    <td className="px-3 py-2 text-gray-600">{room.guestNames || '-'}</td>
-                                    <td className="px-3 py-2 text-gray-600">{room.voucherNumber || '-'}</td>
-                                  </tr>
+                                  <React.Fragment key={roomIdx}>
+                                    <tr className="bg-white transition-colors hover:bg-orange-50/60">
+                                      <td className="px-3 py-2 font-medium text-gray-900">{roomTypeName}</td>
+                                      <td className="px-3 py-2">{occupancyName}</td>
+                                      <td className="px-3 py-2">{mealPlanName}</td>
+                                      <td className="px-3 py-2">{room.quantity || '-'}</td>
+                                      <td className="px-3 py-2 text-gray-600">{room.guestNames || '-'}</td>
+                                      <td className="px-3 py-2 text-gray-600">{room.voucherNumber || '-'}</td>
+                                    </tr>
+                                    {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
+                                      <tr key={`eb-${ebIdx}`} className="bg-amber-50/40">
+                                        <td className="px-3 py-1 pl-6 text-xs text-amber-700 font-medium">
+                                          + {eb.occupancyType?.name || '-'}
+                                        </td>
+                                        <td colSpan={5} className="px-3 py-1 text-xs text-amber-600 italic">Extra Bed</td>
+                                      </tr>
+                                    ))}
+                                  </React.Fragment>
                                 );
                               })}
                             </tbody>
@@ -576,6 +587,16 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                                     <dt className="font-medium text-gray-700">Voucher No.</dt>
                                     <dd>{room.voucherNumber || '-'}</dd>
                                   </div>
+                                  {(room.extraBeds || []).length > 0 && (
+                                    <div className="col-span-2">
+                                      <dt className="font-medium text-amber-700">Extra Beds</dt>
+                                      <dd className="text-amber-700 text-xs space-y-0.5">
+                                        {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
+                                          <div key={ebIdx}>+ {eb.occupancyType?.name || '-'}</div>
+                                        ))}
+                                      </dd>
+                                    </div>
+                                  )}
                                 </dl>
                               </div>
                             );

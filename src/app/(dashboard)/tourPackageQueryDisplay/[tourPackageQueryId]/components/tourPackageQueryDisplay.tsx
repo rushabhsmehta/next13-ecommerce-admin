@@ -750,27 +750,37 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                       </thead>
                                       <tbody>
                                         {itinerary.roomAllocations?.map((room: any, idx: number) => (
-                                          <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                                            <td className="px-2 py-1 whitespace-nowrap">
-                                              <div>
-                                                {(() => {
-                                                  const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
-                                                  const isCustom = customText.length > 0;
-                                                  const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard');
-                                                  return (<span>{label}</span>);
-                                                })()}
-                                              </div>
-                                            </td>
-                                            <td className="px-2 py-1 whitespace-nowrap">
-                                              <span>{room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</span>
-                                            </td>
-                                            <td className="px-2 py-1 text-center whitespace-nowrap">
-                                              <span className="font-medium">{room.quantity || 1}</span>
-                                            </td>
-                                            <td className="px-2 py-1 whitespace-nowrap">
-                                              <span className="text-sm text-gray-600">{room.voucherNumber || '-'}</span>
-                                            </td>
-                                          </tr>
+                                          <React.Fragment key={idx}>
+                                            <tr className="border-t border-gray-100 hover:bg-gray-50">
+                                              <td className="px-2 py-1 whitespace-nowrap">
+                                                <div>
+                                                  {(() => {
+                                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+                                                    const isCustom = customText.length > 0;
+                                                    const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard');
+                                                    return (<span>{label}</span>);
+                                                  })()}
+                                                </div>
+                                              </td>
+                                              <td className="px-2 py-1 whitespace-nowrap">
+                                                <span>{room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</span>
+                                              </td>
+                                              <td className="px-2 py-1 text-center whitespace-nowrap">
+                                                <span className="font-medium">{room.quantity || 1}</span>
+                                              </td>
+                                              <td className="px-2 py-1 whitespace-nowrap">
+                                                <span className="text-sm text-gray-600">{room.voucherNumber || '-'}</span>
+                                              </td>
+                                            </tr>
+                                            {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
+                                              <tr key={`eb-${ebIdx}`} className="bg-amber-50/50">
+                                                <td className="px-2 py-0.5 pl-6 text-xs text-amber-700">
+                                                  + {eb.occupancyType?.name || '-'}
+                                                </td>
+                                                <td colSpan={3} className="px-2 py-0.5 text-xs text-amber-600 italic">Extra Bed</td>
+                                              </tr>
+                                            ))}
+                                          </React.Fragment>
                                         ))}
                                       </tbody>
                                     </table>

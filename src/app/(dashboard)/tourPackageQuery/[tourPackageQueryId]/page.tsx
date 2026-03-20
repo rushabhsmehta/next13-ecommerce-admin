@@ -58,6 +58,11 @@ const tourPackageQueryPage = async (
               roomType: true,
               occupancyType: true,
               mealPlan: true,
+              extraBeds: {
+                include: {
+                  occupancyType: true,
+                },
+              },
             },
           },
           transportDetails: {

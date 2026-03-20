@@ -37,7 +37,18 @@ export async function GET(req: Request, props: { params: Promise<{ tourPackageQu
         itineraries: {
           include: {
             itineraryImages: true,
-            roomAllocations: true,
+            roomAllocations: {
+              include: {
+                roomType: true,
+                occupancyType: true,
+                mealPlan: true,
+                extraBeds: {
+                  include: {
+                    occupancyType: true,
+                  },
+                },
+              },
+            },
             transportDetails: true,
             activities: {
               include: {

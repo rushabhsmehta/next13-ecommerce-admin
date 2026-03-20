@@ -26,7 +26,12 @@ const HotelDetailsUpdatePage = async (
             include: {
               roomType: true,
               occupancyType: true,
-              mealPlan: true
+              mealPlan: true,
+              extraBeds: {
+                include: {
+                  occupancyType: true,
+                },
+              },
             }
           },
           transportDetails: {

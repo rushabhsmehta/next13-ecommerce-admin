@@ -282,6 +282,9 @@ export async function calculatePricing(
                 roomCostDetail.extraBedCosts!.push(ebDetail);
                 roomCostDetail.extraBedTotalCost! += ebCost;
                 dayResult.accommodationCost += ebCost;
+              } else {
+                const occupancyName = occupancyTypes.find(ot => ot.id === eb.occupancyTypeId)?.name || eb.occupancyTypeId;
+                console.warn(`[PRICING_CALCULATOR] No pricing found for extra bed: occupancyType="${occupancyName}", hotel="${hotelId}", mealPlan="${mealPlanId}", dates=${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`);
               }
             }
           }

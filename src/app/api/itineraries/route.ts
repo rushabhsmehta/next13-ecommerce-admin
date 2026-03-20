@@ -100,7 +100,7 @@ export async function POST(
     // Create room allocations if provided
     if (roomAllocations && roomAllocations.length > 0) {
       await Promise.all(roomAllocations.map(async (allocation: any) => {
-        await prismadb.roomAllocation.create({
+        const createdRoom = await prismadb.roomAllocation.create({
           data: {
             itineraryId: itinerary.id,
             roomTypeId: allocation.roomTypeId,
@@ -111,6 +111,19 @@ export async function POST(
             notes: allocation.notes
           }
         });
+
+        // Create extra beds for this room allocation
+        if (allocation.extraBeds && Array.isArray(allocation.extraBeds) && allocation.extraBeds.length > 0) {
+          const validExtraBeds = allocation.extraBeds.filter((eb: any) => eb?.occupancyTypeId);
+          if (validExtraBeds.length > 0) {
+            await prismadb.extraBed.createMany({
+              data: validExtraBeds.map((eb: any) => ({
+                roomAllocationId: createdRoom.id,
+                occupancyTypeId: eb.occupancyTypeId,
+              })),
+            });
+          }
+        }
       }));
     }
     

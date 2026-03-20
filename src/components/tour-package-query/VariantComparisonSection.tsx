@@ -284,6 +284,19 @@ export function VariantComparisonSection({
                                               {room.quantity || 1} Room{(room.quantity || 1) > 1 ? 's' : ''}
                                               {mealPlanName ? ` · 🍽️ ${mealPlanName}` : ''}
                                             </div>
+                                            {/* Extra beds */}
+                                            {room.extraBeds && room.extraBeds.length > 0 && (
+                                              <div className="mt-0.5 space-y-0.5 pl-1 border-l border-amber-300">
+                                                {room.extraBeds.map((eb: any, ebIdx: number) => {
+                                                  const ebOccupancy = eb?.occupancyType || occupancyTypes.find((ot: any) => ot.id === eb?.occupancyTypeId);
+                                                  return (
+                                                    <div key={ebIdx} className="text-amber-700">
+                                                      + {getName(ebOccupancy) || 'Extra Bed'}
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            )}
                                             {room.voucherNumber && (
                                               <div className="text-gray-400">🎫 Voucher: {room.voucherNumber}</div>
                                             )}

@@ -2,7 +2,7 @@ import React from 'react';
 import { Control, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Minus, Trash, Home, Car, Receipt } from "lucide-react";
+import { Plus, Minus, Trash, Home, Car, Receipt, BedDouble } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -73,7 +73,8 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
         guestNames: '',
         voucherNumber: '',
         customRoomType: '',
-        useCustomRoomType: false
+        useCustomRoomType: false,
+        extraBeds: []
       };
       console.log('Appending room:', newRoom);
       append(newRoom);
@@ -370,6 +371,16 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                 )}
               />
             </div>
+
+            {/* Extra Beds Section */}
+            <ExtraBedsSection
+              control={control}
+              itineraryIndex={itineraryIndex}
+              roomIndex={roomIndex}
+              occupancyTypes={occupancyTypes}
+              loading={loading}
+              field={field}
+            />
           </div>
               );
             });
@@ -396,6 +407,90 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
           Add Room Allocation
         </Button>
       </div>
+    </div>
+  );
+};
+
+// ===== Extra Beds Sub-Component =====
+interface ExtraBedsSectionProps {
+  control: Control<any>;
+  itineraryIndex: number;
+  roomIndex: number;
+  occupancyTypes: OccupancyType[];
+  loading: boolean;
+  field: any; // field from parent useFieldArray
+}
+
+const ExtraBedsSection: React.FC<ExtraBedsSectionProps> = ({
+  control,
+  itineraryIndex,
+  roomIndex,
+  occupancyTypes,
+  loading,
+  field,
+}) => {
+  const { fields: extraBedFields, append: appendBed, remove: removeBed } = useFieldArray({
+    control,
+    name: `itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.extraBeds`
+  });
+
+  return (
+    <div className="mt-4 border-t pt-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h5 className="text-xs font-semibold text-amber-800 flex items-center gap-1">
+          <BedDouble className="h-3.5 w-3.5" /> Extra Beds
+        </h5>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={loading || extraBedFields.length >= 3}
+          onClick={() => appendBed({ occupancyTypeId: '' })}
+          className="h-7 px-2 text-[11px] border-amber-300 hover:bg-amber-50 text-amber-800"
+        >
+          <Plus className="h-3 w-3 mr-0.5" /> Add Extra Bed
+        </Button>
+      </div>
+      {extraBedFields.length === 0 && (
+        <p className="text-xs text-muted-foreground italic">
+          No extra beds. Click &quot;Add Extra Bed&quot; to add child with bed, child without bed, etc.
+        </p>
+      )}
+      {extraBedFields.map((bedField, bedIndex) => (
+        <div key={bedField.id} className="flex items-center gap-2">
+          <FormField
+            control={control}
+            name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.extraBeds.${bedIndex}.occupancyTypeId`}
+            render={({ field: bedOccField }) => (
+              <FormItem className="flex-1">
+                <Select disabled={loading} onValueChange={bedOccField.onChange} value={bedOccField.value || ''}>
+                  <FormControl>
+                    <SelectTrigger className="h-9 text-xs border-amber-200 bg-amber-50/40 hover:border-amber-400">
+                      <SelectValue placeholder="Select extra bed type (e.g. Child with Bed)" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {occupancyTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 hover:text-red-600 shrink-0"
+            disabled={loading}
+            onClick={() => removeBed(bedIndex)}
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
     </div>
   );
 };

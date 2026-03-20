@@ -115,7 +115,11 @@ const roomAllocationSchema = z.object({
   // Accept nulls from API/forms (some saved records contain null) as well as undefined
   voucherNumber: z.string().optional().nullable(),
   customRoomType: z.string().optional().nullable(),
-  useCustomRoomType: z.boolean().optional().default(false)
+  useCustomRoomType: z.boolean().optional().default(false),
+  // Extra beds: each entry is a separate extra bed slot with its own occupancy type
+  extraBeds: z.array(z.object({
+    occupancyTypeId: z.string()
+  })).optional().default([])
 });
 
 const transportDetailsSchema = z.object({

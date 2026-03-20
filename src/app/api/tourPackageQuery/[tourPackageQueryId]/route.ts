@@ -200,7 +200,7 @@ async function createItineraryAndActivities(itinerary: {
     }));
   }  // Create room allocations for this itinerary
   if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
-    await Promise.all(itinerary.roomAllocations.map((roomAllocation: any) => {
+    await Promise.all(itinerary.roomAllocations.map(async (roomAllocation: any) => {
       console.log("Creating room allocation with data:", roomAllocation);
 
       // Skip invalid room allocations - require occupancyTypeId and either roomTypeId OR customRoomType
@@ -209,7 +209,7 @@ async function createItineraryAndActivities(itinerary: {
         return Promise.resolve();
       }
 
-      return prismadb.roomAllocation.create({
+      const createdRoomAllocation = await prismadb.roomAllocation.create({
         data: {
           itineraryId: createdItinerary.id,
           roomTypeId: roomAllocation.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea", // Use Custom room type if no roomTypeId
@@ -221,6 +221,21 @@ async function createItineraryAndActivities(itinerary: {
           customRoomType: roomAllocation.customRoomType || ""
         }
       });
+
+      // Create extra bed records
+      if (roomAllocation.extraBeds && Array.isArray(roomAllocation.extraBeds) && roomAllocation.extraBeds.length > 0) {
+        const validExtraBeds = roomAllocation.extraBeds.filter((eb: any) => eb?.occupancyTypeId);
+        if (validExtraBeds.length > 0) {
+          await prismadb.extraBed.createMany({
+            data: validExtraBeds.map((eb: any) => ({
+              roomAllocationId: createdRoomAllocation.id,
+              occupancyTypeId: eb.occupancyTypeId,
+            }))
+          });
+        }
+      }
+
+      return createdRoomAllocation;
     }));
   }  // Create transport details for this itinerary
   if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
@@ -321,25 +336,39 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
       await Promise.all(activityCreationPromises);
     }
 
-    // Step 4: Batch create room allocations (if any)
+    // Step 4: Create room allocations with extra beds (if any)
     if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
       const validRoomAllocations = itinerary.roomAllocations.filter((ra: any) =>
         ra.occupancyTypeId && (ra.roomTypeId || ra.customRoomType)
       );
 
       if (validRoomAllocations.length > 0) {
-        await tx.roomAllocation.createMany({
-          data: validRoomAllocations.map((roomAllocation: any) => ({
-            itineraryId: createdItinerary.id,
-            roomTypeId: roomAllocation.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea",
-            occupancyTypeId: roomAllocation.occupancyTypeId,
-            mealPlanId: roomAllocation.mealPlanId,
-            quantity: roomAllocation.quantity || 1,
-            guestNames: roomAllocation.guestNames || "",
-            voucherNumber: roomAllocation.voucherNumber || "",
-            customRoomType: roomAllocation.customRoomType || ""
-          }))
-        });
+        await Promise.all(validRoomAllocations.map(async (roomAllocation: any) => {
+          const createdRA = await tx.roomAllocation.create({
+            data: {
+              itineraryId: createdItinerary.id,
+              roomTypeId: roomAllocation.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea",
+              occupancyTypeId: roomAllocation.occupancyTypeId,
+              mealPlanId: roomAllocation.mealPlanId,
+              quantity: roomAllocation.quantity || 1,
+              guestNames: roomAllocation.guestNames || "",
+              voucherNumber: roomAllocation.voucherNumber || "",
+              customRoomType: roomAllocation.customRoomType || ""
+            }
+          });
+          if (roomAllocation.extraBeds && Array.isArray(roomAllocation.extraBeds) && roomAllocation.extraBeds.length > 0) {
+            const validExtraBeds = roomAllocation.extraBeds.filter((eb: any) => eb?.occupancyTypeId);
+            if (validExtraBeds.length > 0) {
+              await tx.extraBed.createMany({
+                data: validExtraBeds.map((eb: any) => ({
+                  roomAllocationId: createdRA.id,
+                  occupancyTypeId: eb.occupancyTypeId,
+                }))
+              });
+            }
+          }
+          return createdRA;
+        }));
       }
     }
 
@@ -938,7 +967,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
               include: {
                 roomType: true,
                 occupancyType: true,
-                mealPlan: true
+                mealPlan: true,
+                extraBeds: {
+                  include: {
+                    occupancyType: true
+                  }
+                }
               }
             },
             transportDetails: {

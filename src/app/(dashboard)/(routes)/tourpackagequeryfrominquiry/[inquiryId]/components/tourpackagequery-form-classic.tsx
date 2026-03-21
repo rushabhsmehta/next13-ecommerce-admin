@@ -115,7 +115,10 @@ const roomAllocationSchema = z.object({
   // New fields for enhanced room allocation
   voucherNumber: z.string().optional().nullable(),
   customRoomType: z.string().optional().nullable(),
-  useCustomRoomType: z.boolean().optional().default(false)
+  useCustomRoomType: z.boolean().optional().default(false),
+  extraBeds: z.array(z.object({
+    occupancyTypeId: z.string()
+  })).optional().default([])
 });
 
 const transportDetailsSchema = z.object({
@@ -600,6 +603,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
         mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
         quantity: Number(alloc.quantity) || 1,
         guestNames: alloc.guestNames || '',
+        extraBeds: alloc.extraBeds || [],
       })) || [],
       transportDetails: (itinerary as any).transportDetails?.map((detail: any) => ({
         vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
@@ -706,7 +710,8 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
             mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
             quantity: Number(alloc.quantity) || 1,
-            guestNames: alloc.guestNames || ''
+            guestNames: alloc.guestNames || '',
+            extraBeds: alloc.extraBeds || [],
           })) || [],
           transportDetails: (itinerary as any).transportDetails?.map((detail: any) => ({
             vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',

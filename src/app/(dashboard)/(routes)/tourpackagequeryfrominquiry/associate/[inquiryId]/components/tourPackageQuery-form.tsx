@@ -94,7 +94,10 @@ const roomAllocationSchema = z.object({
   // New fields for enhanced room allocation
   voucherNumber: z.string().optional().nullable(),
   customRoomType: z.string().optional().nullable(),
-  useCustomRoomType: z.boolean().optional().default(false)
+  useCustomRoomType: z.boolean().optional().default(false),
+  extraBeds: z.array(z.object({
+    occupancyTypeId: z.string()
+  })).optional().default([])
 });
 
 const transportDetailsSchema = z.object({

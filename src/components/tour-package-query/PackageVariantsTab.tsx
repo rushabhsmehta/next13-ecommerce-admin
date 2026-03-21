@@ -1900,7 +1900,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                         variant="ghost"
                         className="h-8 w-8 text-red-600 hover:bg-red-50"
                         onClick={() => handleRemovePricingComponent(component.tempId)}
-                        disabled={pricingFormState.pricingComponents.length === 1}
+                        disabled={false}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>

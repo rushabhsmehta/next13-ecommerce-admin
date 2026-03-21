@@ -595,6 +595,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       defaultValues
     });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sharedControl = form.control as any;
+
   // This useFieldArray is now handled in the PricingTab component
   // Removing unused code
 
@@ -1448,7 +1451,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsList>
             <TabsContent value="basic" className="space-y-4 mt-4">
               <BasicInfoTab // Updated component name
-                control={form.control}
+                control={sharedControl}
                 loading={loading || fetchingPackages}
                 associatePartners={associatePartners}
                 tourPackages={dynamicTourPackages}
@@ -1465,13 +1468,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
             <TabsContent value="guests" className="space-y-4 mt-4">
               <GuestsTab // Updated component name
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
               />
             </TabsContent>
             <TabsContent value="location" className="space-y-4 mt-4">
               <LocationTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 locations={locations}
                 form={form}
@@ -1480,14 +1483,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
             <TabsContent value="dates" className="space-y-4 mt-4">
               <DatesTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 form={form}
               />
             </TabsContent>
             <TabsContent value="itinerary" className="space-y-4 mt-4">
               <ItineraryTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 hotels={hotels}
                 activitiesMaster={activitiesMaster}
@@ -1502,7 +1505,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
             <TabsContent value="hotels" className="space-y-4 mt-4">
               <HotelsTab
-                control={form.control}
+                control={sharedControl}
                 form={form}
                 loading={loading}
                 hotels={hotels}
@@ -1514,13 +1517,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
             <TabsContent value="flights" className="space-y-4 mt-4">
               <FlightsTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 form={form}
               />
             </TabsContent>            <TabsContent value="pricing" className="space-y-4 mt-4">
               <PricingTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 form={form}
                 hotels={hotels}
@@ -1537,7 +1540,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
             <TabsContent value="variants" className="space-y-4 mt-4">
               <QueryVariantsTab
-                control={form.control}
+                control={sharedControl}
                 form={form}
                 loading={loading || fetchingPackages}
                 tourPackages={dynamicTourPackages}
@@ -1550,7 +1553,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">
               <PoliciesTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 form={form}
                 useLocationDefaults={useLocationDefaults}

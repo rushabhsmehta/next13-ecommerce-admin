@@ -158,6 +158,7 @@ const flightDetailsSchema = z.object({
   departureTime: z.string().optional(),
   arrivalTime: z.string().optional(),
   flightDuration: z.string().optional(),
+  images: z.object({ url: z.string() }).array().optional(),
 
 }); // Assuming an array of flight details
 
@@ -188,6 +189,7 @@ const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
+  tourCategory: z.string().default("Domestic").optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -395,6 +397,9 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     resolver: zodResolver(formSchema),
     defaultValues
   });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sharedControl = form.control as any;
 
   // --- ADDED useEffect TO FETCH LOOKUP DATA ---
   useEffect(() => {
@@ -909,7 +914,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             <TabsContent value="basic" className="space-y-4 mt-4">
               {/* Use BasicInfoTab from shared components */}
               <BasicInfoTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 associatePartners={associatePartners}
                 tourPackages={tourPackages}
@@ -928,7 +933,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             {/* Use GuestsTab from shared components */}
             <TabsContent value="guests" className="space-y-4 mt-4">
               <GuestsTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
               />
             </TabsContent>
@@ -936,7 +941,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             {/* Use LocationTab from shared components */}
             <TabsContent value="location" className="space-y-4 mt-4">
               <LocationTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 locations={locations}
                 form={form}
@@ -947,7 +952,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             {/* Use DatesTab from shared components */}
             <TabsContent value="dates" className="space-y-4 mt-4">
               <DatesTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 form={form}
               />
@@ -956,7 +961,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             {/* Use ItineraryTab from shared components */}
             <TabsContent value="itinerary" className="space-y-4 mt-4">
               <ItineraryTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 hotels={hotels} // Correctly typed
                 activitiesMaster={activitiesMaster}
@@ -973,7 +978,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
 
             <TabsContent value="hotels" className="space-y-4 mt-4">
               <HotelsTab
-                control={form.control}
+                control={sharedControl}
                 form={form}
                 loading={loading}
                 hotels={hotels}
@@ -987,7 +992,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             {/* Use FlightsTab from shared components */}
             <TabsContent value="flights" className="space-y-4 mt-4">
               <FlightsTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 form={form}
               />
@@ -996,7 +1001,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             {/* Use PricingTab from shared components */}
             <TabsContent value="pricing" className="space-y-4 mt-4">
               <PricingTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 form={form}
                 hotels={hotels}
@@ -1014,7 +1019,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
 
             <TabsContent value="variants" className="space-y-4 mt-4">
               <QueryVariantsTab
-                control={form.control}
+                control={sharedControl}
                 form={form}
                 loading={loading || lookupLoading}
                 tourPackages={tourPackages || []}
@@ -1029,7 +1034,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             {/* Use PoliciesTab from shared components */}
             <TabsContent value="policies" className="space-y-4 mt-4">
               <PoliciesTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 form={form}
                 useLocationDefaults={useLocationDefaults}

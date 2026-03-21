@@ -469,7 +469,8 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                                       guestNames: allocation.guestNames || '',
                                                       voucherNumber: allocation.voucherNumber || '',
                                                       customRoomType: allocation.customRoomType || '',
-                                                      useCustomRoomType: Boolean(allocation.customRoomType && allocation.customRoomType.trim().length > 0)
+                                                      useCustomRoomType: Boolean(allocation.customRoomType && allocation.customRoomType.trim().length > 0),
+                                                      extraBeds: allocation.extraBeds || []
                                                     }))
                                                   : [];
                                                 

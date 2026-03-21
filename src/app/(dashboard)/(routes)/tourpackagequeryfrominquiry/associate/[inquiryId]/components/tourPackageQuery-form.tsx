@@ -349,6 +349,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     defaultValues
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sharedControl = form.control as any;
+
   // --- ADDED useEffect TO FETCH LOOKUP DATA ---
   useEffect(() => {
     const fetchLookupData = async () => {
@@ -1016,7 +1019,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             <TabsContent value="basic" className="space-y-4 mt-4 px-1 md:px-0 w-full max-w-full overflow-hidden">
               {/* Use BasicInfoTab from shared components */}
               <BasicInfoTab
-                control={form.control}
+                control={sharedControl}
                 loading={loading}
                 associatePartners={associatePartners}
                 tourPackages={tourPackages}
@@ -1060,7 +1063,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </p>
               </div>
               <GuestsTab
-                control={form.control}
+                control={sharedControl}
                 loading={true} // Always disabled for associate partners
               />
             </TabsContent>
@@ -1074,7 +1077,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </p>
               </div>
               <LocationTab
-                control={form.control}
+                control={sharedControl}
                 loading={true} // Always disabled for associate partners
                 locations={locations}
                 form={form}
@@ -1091,7 +1094,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </p>
               </div>
               <DatesTab
-                control={form.control}
+                control={sharedControl}
                 loading={false} // Don't override with loading=true for associates
                 form={form}
                 isAssociatePartner={true}
@@ -1111,7 +1114,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </p>
               </div>
               <ItineraryTab
-                control={form.control}
+                control={sharedControl}
                 loading={true} // Always disabled for associate partners
                 hotels={hotels}
                 activitiesMaster={activitiesMaster}
@@ -1140,7 +1143,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </p>
               </div>
               <FlightsTab
-                control={form.control}
+                control={sharedControl}
                 loading={true} // Always disabled for associate partners
                 form={form}
               />
@@ -1155,7 +1158,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </p>
               </div>
               <PoliciesTab
-                control={form.control}
+                control={sharedControl}
                 loading={true} // Always disabled for associate partners
                 form={form}
                 useLocationDefaults={useLocationDefaults}

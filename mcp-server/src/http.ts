@@ -20,12 +20,15 @@
  */
 
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import express from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-// ── In-memory OAuth state ────────────────────────────────────────────────────
-// Sufficient for single-tenant use; a restart requires re-auth (that's fine).
+// ── OAuth state ───────────────────────────────────────────────────────────────
+// authCodes are short-lived (10 min) — in-memory is fine.
+// accessTokens are persisted to disk so Railway restarts don't force re-auth.
 
 interface PendingCode {
   codeChallenge: string;
@@ -40,8 +43,29 @@ interface StoredToken {
   issuedAt: number;
 }
 
+const TOKENS_FILE = path.resolve(
+  process.env.MCP_TOKENS_FILE ?? "/tmp/mcp-tokens.json"
+);
+
+function loadTokens(): Map<string, StoredToken> {
+  try {
+    const raw = fs.readFileSync(TOKENS_FILE, "utf8");
+    return new Map(Object.entries(JSON.parse(raw) as Record<string, StoredToken>));
+  } catch {
+    return new Map();
+  }
+}
+
+function saveTokens(tokens: Map<string, StoredToken>): void {
+  try {
+    fs.writeFileSync(TOKENS_FILE, JSON.stringify(Object.fromEntries(tokens)), "utf8");
+  } catch (err) {
+    console.error("[MCP HTTP] Failed to persist tokens:", err);
+  }
+}
+
 const authCodes = new Map<string, PendingCode>();
-const accessTokens = new Map<string, StoredToken>();
+const accessTokens = loadTokens();
 
 // Active MCP sessions: sessionId -> transport
 const sessions = new Map<string, StreamableHTTPServerTransport>();
@@ -277,6 +301,7 @@ export function startHttpServer(createServer: () => McpServer): void {
 
     const token = crypto.randomBytes(32).toString("hex");
     accessTokens.set(token, { clientId: client_id, issuedAt: Date.now() });
+    saveTokens(accessTokens);
 
     res.json({
       access_token: token,

@@ -140,6 +140,23 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
                                     : '₹0.00'}
                               </span>
                             </div>
+                            {/* Extra beds */}
+                            {roomCost?.extraBedCosts && roomCost.extraBedCosts.length > 0 && (
+                              <div className="mt-1 space-y-0.5 pl-2 border-l border-amber-200">
+                                {roomCost.extraBedCosts.map((eb: any, ebIdx: number) => (
+                                  <div key={ebIdx} className="flex flex-wrap items-center gap-1 text-amber-800">
+                                    <span className="text-[10px]">+ Extra Bed: {eb.occupancyTypeName || occupancyTypes.find((ot: any) => ot.id === eb.occupancyTypeId)?.name || 'N/A'}</span>
+                                    <span className={`text-[10px] font-medium ${variant ? 'text-green-700' : 'text-blue-700'}`}>
+                                      {eb.totalCost > 0 && eb.pricePerNight > 0 && eb.quantity > 1
+                                        ? `₹${eb.pricePerNight.toFixed(2)} × ${eb.quantity} = ₹${eb.totalCost.toFixed(2)}`
+                                        : eb.totalCost > 0
+                                          ? `₹${eb.totalCost.toFixed(2)}`
+                                          : '₹0.00'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

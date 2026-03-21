@@ -147,6 +147,7 @@ model OccupancyType {
   roomAllocations   RoomAllocation[]
   itineraries       Itinerary[]
   itinerariesMaster ItineraryMaster[]
+  extraBeds         ExtraBed[]
 }
 
 model VehicleType {
@@ -1478,12 +1479,27 @@ model RoomAllocation {
   roomType          RoomType         @relation(fields: [roomTypeId], references: [id])
   occupancyType     OccupancyType    @relation(fields: [occupancyTypeId], references: [id])
   mealPlan          MealPlan?        @relation(fields: [mealPlanId], references: [id])
+  extraBeds         ExtraBed[]
 
   @@index([itineraryId])
   @@index([inquiryId])
   @@index([roomTypeId])
   @@index([occupancyTypeId])
   @@index([mealPlanId])
+}
+
+model ExtraBed {
+  id               String         @id @default(uuid())
+  roomAllocationId String
+  occupancyTypeId  String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  roomAllocation   RoomAllocation @relation(fields: [roomAllocationId], references: [id], onDelete: Cascade)
+  occupancyType    OccupancyType  @relation(fields: [occupancyTypeId], references: [id])
+
+  @@index([roomAllocationId])
+  @@index([occupancyTypeId])
 }
 
 model Notification {

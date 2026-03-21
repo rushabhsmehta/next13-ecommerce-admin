@@ -12,6 +12,14 @@ import prismadb from '@/lib/prismadb';
 import { dateToUtc } from '@/lib/timezone-utils';
 
 /**
+ * Extra bed entry within a room allocation
+ */
+export interface ExtraBedAllocation {
+  occupancyTypeId: string;
+  occupancyTypeName?: string; // populated when includeNames=true
+}
+
+/**
  * Room allocation for pricing calculation
  */
 export interface RoomAllocation {
@@ -19,6 +27,7 @@ export interface RoomAllocation {
   occupancyTypeId: string;
   mealPlanId: string;
   quantity: number;
+  extraBeds?: ExtraBedAllocation[];
   guestNames?: string;
   voucherNumber?: string;
 }
@@ -44,6 +53,17 @@ export interface PricingItinerary {
 }
 
 /**
+ * Extra bed cost breakdown within a room
+ */
+export interface ExtraBedCostDetail {
+  occupancyTypeId: string;
+  occupancyTypeName?: string;
+  pricePerNight: number;
+  quantity: number;   // same as parent room quantity
+  totalCost: number;  // pricePerNight × quantity
+}
+
+/**
  * Detailed room cost breakdown
  */
 export interface RoomCostDetail {
@@ -56,6 +76,8 @@ export interface RoomCostDetail {
   roomTypeName?: string;
   occupancyTypeName?: string;
   mealPlanName?: string;
+  extraBedCosts?: ExtraBedCostDetail[];
+  extraBedTotalCost?: number;
 }
 
 /**
@@ -185,7 +207,7 @@ export async function calculatePricing(
     // Calculate accommodation costs
     if (hotelId && roomAllocations && roomAllocations.length > 0) {
       for (const room of roomAllocations) {
-        const { quantity, roomTypeId, occupancyTypeId, mealPlanId } = room;
+        const { quantity, roomTypeId, occupancyTypeId, mealPlanId, extraBeds } = room;
 
         if (!quantity || quantity <= 0) continue;
 
@@ -214,7 +236,9 @@ export async function calculatePricing(
             mealPlanId,
             quantity,
             pricePerNight: pricing.price,
-            totalCost: roomCost
+            totalCost: roomCost,
+            extraBedCosts: [],
+            extraBedTotalCost: 0
           };
 
           // Add names if requested
@@ -222,6 +246,47 @@ export async function calculatePricing(
             roomCostDetail.roomTypeName = roomTypes.find(rt => rt.id === roomTypeId)?.name;
             roomCostDetail.occupancyTypeName = occupancyTypes.find(ot => ot.id === occupancyTypeId)?.name;
             roomCostDetail.mealPlanName = mealPlans.find(mp => mp.id === mealPlanId)?.name;
+          }
+
+          // Calculate extra bed costs (each extra bed slot × quantity rooms)
+          if (extraBeds && extraBeds.length > 0) {
+            for (const eb of extraBeds) {
+              if (!eb.occupancyTypeId) continue;
+
+              // Extra bed pricing lookup: hotel + occupancyType + mealPlan (no roomTypeId filter)
+              const ebPricing = await prismadb.hotelPricing.findFirst({
+                where: {
+                  hotelId,
+                  occupancyTypeId: eb.occupancyTypeId,
+                  mealPlanId,
+                  isActive: true,
+                  startDate: { lte: endDate },
+                  endDate: { gte: startDate }
+                },
+                orderBy: { startDate: 'desc' }
+              });
+
+              if (ebPricing) {
+                const ebCost = ebPricing.price * quantity;
+                const ebDetail: ExtraBedCostDetail = {
+                  occupancyTypeId: eb.occupancyTypeId,
+                  pricePerNight: ebPricing.price,
+                  quantity,
+                  totalCost: ebCost
+                };
+
+                if (includeNames) {
+                  ebDetail.occupancyTypeName = occupancyTypes.find(ot => ot.id === eb.occupancyTypeId)?.name;
+                }
+
+                roomCostDetail.extraBedCosts!.push(ebDetail);
+                roomCostDetail.extraBedTotalCost! += ebCost;
+                dayResult.accommodationCost += ebCost;
+              } else {
+                const occupancyName = occupancyTypes.find(ot => ot.id === eb.occupancyTypeId)?.name || eb.occupancyTypeId;
+                console.warn(`[PRICING_CALCULATOR] No pricing found for extra bed: occupancyType="${occupancyName}", hotel="${hotelId}", mealPlan="${mealPlanId}", dates=${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)}`);
+              }
+            }
           }
 
           dayResult.roomBreakdown.push(roomCostDetail);

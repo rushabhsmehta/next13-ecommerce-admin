@@ -968,6 +968,16 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                                 ${room.voucherNumber || '-'}
                               </td>
                             </tr>
+                            ${(room.extraBeds || []).map((eb: any) => `
+                            <tr style="background: #fffbeb;">
+                              <td style="${tableCellStyle}; padding-left: 20px; color: #92400e; font-size: 11px;">
+                                + ${eb.occupancyType?.name || eb.occupancyTypeId || '-'}
+                              </td>
+                              <td style="${tableCellStyle}; color: #92400e; font-size: 11px; font-style: italic;">Extra Bed</td>
+                              <td style="${tableCellStyle}"></td>
+                              <td style="${tableCellStyle}"></td>
+                            </tr>
+                            `).join('')}
                           `).join('');
               })()}
                       </tbody>

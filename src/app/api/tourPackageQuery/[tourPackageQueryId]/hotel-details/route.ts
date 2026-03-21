@@ -52,7 +52,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
         // Create new room allocations
         for (const roomAllocation of itinerary.roomAllocations) {
           if (roomAllocation.roomTypeId && roomAllocation.occupancyTypeId) {
-            await prismadb.roomAllocation.create({
+            const createdRoom = await prismadb.roomAllocation.create({
               data: {
                 itineraryId: itinerary.id,
                 roomTypeId: roomAllocation.roomTypeId,
@@ -65,6 +65,19 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
                 customRoomType: roomAllocation.customRoomType || null,
               },
             });
+
+            // Create extra beds for this room allocation
+            if (roomAllocation.extraBeds && Array.isArray(roomAllocation.extraBeds) && roomAllocation.extraBeds.length > 0) {
+              const validExtraBeds = roomAllocation.extraBeds.filter((eb: any) => eb?.occupancyTypeId);
+              if (validExtraBeds.length > 0) {
+                await prismadb.extraBed.createMany({
+                  data: validExtraBeds.map((eb: any) => ({
+                    roomAllocationId: createdRoom.id,
+                    occupancyTypeId: eb.occupancyTypeId,
+                  })),
+                });
+              }
+            }
           }
         }
       }
@@ -109,6 +122,11 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
                 roomType: true,
                 occupancyType: true,
                 mealPlan: true,
+                extraBeds: {
+                  include: {
+                    occupancyType: true,
+                  },
+                },
               },
             },
             transportDetails: {

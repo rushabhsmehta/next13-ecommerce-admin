@@ -146,7 +146,7 @@ async function createItineraryAndActivities(itinerary: {
                         }
                     }
 
-                    return await prismadb.roomAllocation.create({
+                    const createdRoomAllocation = await prismadb.roomAllocation.create({
                         data: {
                             itineraryId: createdItinerary.id,
                             roomTypeId: roomTypeIdToUse!,
@@ -158,6 +158,21 @@ async function createItineraryAndActivities(itinerary: {
                             customRoomType: customLabel || "",
                         }
                     });
+
+                    // Create extra bed records
+                    if (roomAllocation.extraBeds && Array.isArray(roomAllocation.extraBeds) && roomAllocation.extraBeds.length > 0) {
+                        const validExtraBeds = roomAllocation.extraBeds.filter((eb: any) => eb?.occupancyTypeId);
+                        if (validExtraBeds.length > 0) {
+                            await prismadb.extraBed.createMany({
+                                data: validExtraBeds.map((eb: any) => ({
+                                    roomAllocationId: createdRoomAllocation.id,
+                                    occupancyTypeId: eb.occupancyTypeId,
+                                }))
+                            });
+                        }
+                    }
+
+                    return createdRoomAllocation;
                 } catch (roomError) {
                     console.error('Failed to create room allocation:', roomError);
                     throw roomError;
@@ -768,6 +783,15 @@ export async function GET(
                                 guestNames: true,
                                 voucherNumber: true,
                                 customRoomType: true,
+                                roomTypeId: true,
+                                occupancyTypeId: true,
+                                mealPlanId: true,
+                                extraBeds: {
+                                    select: {
+                                        id: true,
+                                        occupancyTypeId: true,
+                                    }
+                                },
                             }
                         },
                         transportDetails: {

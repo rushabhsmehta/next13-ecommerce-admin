@@ -24,6 +24,11 @@ const tourPackageQueryVoucherPage = async (
               roomType: true,
               occupancyType: true,
               mealPlan: true,
+              extraBeds: {
+                include: {
+                  occupancyType: true,
+                },
+              },
             },
             orderBy: {
               createdAt: 'asc',

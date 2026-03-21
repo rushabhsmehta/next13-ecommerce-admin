@@ -74,9 +74,28 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
     const targetItinerary = currentItineraries[itineraryIndex];
     const newAllocations = [
       ...(targetItinerary.roomAllocations || []),
-      { roomTypeId: '', occupancyTypeId: '', mealPlanId: '', quantity: 1, useCustomRoomType: false, customRoomType: '', voucherNumber: '' }
+      { roomTypeId: '', occupancyTypeId: '', mealPlanId: '', quantity: 1, useCustomRoomType: false, customRoomType: '', voucherNumber: '', extraBeds: [] }
     ];
     form.setValue(`itineraries.${itineraryIndex}.roomAllocations`, newAllocations);
+  };
+
+  const addExtraBed = (itineraryIndex: number, allocationIndex: number) => {
+    const currentItineraries = form.getValues('itineraries');
+    const currentBeds = currentItineraries[itineraryIndex].roomAllocations[allocationIndex].extraBeds || [];
+    if (currentBeds.length >= 3) return; // max 3 extra beds
+    form.setValue(
+      `itineraries.${itineraryIndex}.roomAllocations.${allocationIndex}.extraBeds`,
+      [...currentBeds, { occupancyTypeId: '' }]
+    );
+  };
+
+  const removeExtraBed = (itineraryIndex: number, allocationIndex: number, bedIndex: number) => {
+    const currentItineraries = form.getValues('itineraries');
+    const currentBeds = currentItineraries[itineraryIndex].roomAllocations[allocationIndex].extraBeds || [];
+    form.setValue(
+      `itineraries.${itineraryIndex}.roomAllocations.${allocationIndex}.extraBeds`,
+      currentBeds.filter((_: any, i: number) => i !== bedIndex)
+    );
   };
 
   const removeRoomAllocation = (itineraryIndex: number, allocationIndex: number) => {
@@ -164,13 +183,13 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                     alert('No room allocations or transport details found on Day 1');
                     return;
                   }
-                  const roomsCloned = roomsSource.map((r: any) => ({ ...r }));
+                  const roomsCloned = roomsSource.map((r: any) => ({ ...r, extraBeds: (r.extraBeds || []).map((eb: any) => ({ ...eb })) }));
                   const transportCloned = transportSource.map((t: any) => ({ ...t }));
                   const updated = itineraries.map((it: any, idx: number) => {
                     if (idx === 0) return it;
                     const next: any = { ...it };
                     if (roomsCloned.length) {
-                      next.roomAllocations = roomsCloned.map((r: any) => ({ ...r }));
+                      next.roomAllocations = roomsCloned.map((r: any) => ({ ...r, extraBeds: (r.extraBeds || []).map((eb: any) => ({ ...eb })) }));
                     }
                     if (transportCloned.length) {
                       next.transportDetails = transportCloned.map((t: any) => ({ ...t }));
@@ -466,6 +485,63 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 </FormItem>
                               )}
                             />
+
+                            {/* Extra Beds Section */}
+                            <div className="space-y-2 border-t pt-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] uppercase tracking-wide font-medium text-amber-700 flex items-center gap-1">
+                                  <BedDouble className="h-3 w-3" /> Extra Beds
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 px-2 text-[10px] border-amber-300 hover:bg-amber-50 text-amber-700"
+                                  disabled={isDisabled || (room.extraBeds || []).length >= 3}
+                                  onClick={() => addExtraBed(index, rIndex)}
+                                >
+                                  <Plus className="h-3 w-3 mr-0.5" /> Add Extra Bed
+                                </Button>
+                              </div>
+                              {(room.extraBeds || []).length === 0 && (
+                                <p className="text-[10px] text-muted-foreground italic">No extra beds. Click &quot;Add Extra Bed&quot; to add child with bed, etc.</p>
+                              )}
+                              {(room.extraBeds || []).map((bed: any, bedIndex: number) => (
+                                <div key={bedIndex} className="flex items-center gap-2">
+                                  <FormField
+                                    control={control as any}
+                                    name={`itineraries.${index}.roomAllocations.${rIndex}.extraBeds.${bedIndex}.occupancyTypeId` as any}
+                                    render={({ field }) => (
+                                      <FormItem className="flex-1">
+                                        <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value || ''}>
+                                          <FormControl>
+                                            <SelectTrigger className="h-8 text-xs border-amber-200 bg-amber-50/40">
+                                              <SelectValue placeholder="Select extra bed type" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {occupancyTypes?.map(o => (
+                                              <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 hover:text-red-600 shrink-0"
+                                    disabled={isDisabled}
+                                    onClick={() => removeExtraBed(index, rIndex, bedIndex)}
+                                  >
+                                    <Trash className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
                           </CardContent>
                         </Card>
                       ))}

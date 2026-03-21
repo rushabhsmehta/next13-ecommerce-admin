@@ -558,6 +558,12 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                           <div style="color: ${brandColors.muted};">${room.quantity || 1} Room${(room.quantity || 1) > 1 ? 's' : ''}${mealPlanName ? ` · 🍽️ ${mealPlanName}` : ''}</div>
                           ${room.voucherNumber ? `<div style="color: ${brandColors.muted};">🎫 ${room.voucherNumber}</div>` : ''}
                           ${room.guestNames ? `<div style="color: ${brandColors.muted}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">👤 ${room.guestNames}</div>` : ''}
+                          ${(room.extraBeds || []).length > 0 ? `
+                          <div style="border-top: 1px solid #fde68a; margin-top: 2px; padding-top: 2px;">
+                            ${(room.extraBeds || []).map((eb: any) => `
+                            <div style="font-size: 9px; color: #92400e; line-height: 1.3;">+ ${eb.occupancyType?.name || getName(occupancyTypes.find((ot: any) => ot.id === eb?.occupancyTypeId)) || '-'}</div>
+                            `).join('')}
+                          </div>` : ''}
                         </div>
                       `;
         }).join('')}

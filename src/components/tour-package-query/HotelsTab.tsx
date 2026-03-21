@@ -48,6 +48,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
   const assignedHotels = itineraries.reduce((sum, it: any) => sum + (it.hotelId ? 1 : 0), 0);
   const daysMissingHotel = itineraries.reduce((acc, it: any) => !it?.hotelId ? acc + 1 : acc, 0);
   const [openHotelIndex, setOpenHotelIndex] = useState<number | null>(null);
+  const [openRoomTypeKey, setOpenRoomTypeKey] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
   const allAccordionValues = itineraries.map((_: any, i: number) => `day-${i}`);
   const showRoomAllocations = enableRoomAllocations && !!roomTypes?.length && !!occupancyTypes?.length && !!mealPlans?.length;
@@ -413,16 +414,42 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 } else {
                                   return (
                                     <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId` as any}
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
-                                          <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room" /></SelectTrigger></FormControl>
-                                            <SelectContent>{roomTypes?.map(rt => <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}</SelectContent>
-                                          </Select>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
+                                      render={({ field }) => {
+                                        const rtKey = `${index}-${rIndex}`;
+                                        const selectedRt = roomTypes?.find(rt => rt.id === field.value);
+                                        return (
+                                          <FormItem>
+                                            <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
+                                            <Popover open={openRoomTypeKey === rtKey} onOpenChange={(o) => setOpenRoomTypeKey(o ? rtKey : null)}>
+                                              <PopoverTrigger asChild>
+                                                <FormControl>
+                                                  <Button type="button" variant="outline" size="sm" className="w-full justify-between h-8 text-xs font-normal" disabled={isDisabled}>
+                                                    <span className="truncate">{selectedRt ? selectedRt.name : 'Room'}</span>
+                                                    <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
+                                                  </Button>
+                                                </FormControl>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-[200px] p-0" align="start">
+                                                <Command onKeyDownCapture={e => e.stopPropagation()}>
+                                                  <CommandInput placeholder="Search room type..." className="text-xs h-8" />
+                                                  <CommandList className="max-h-48 overflow-auto">
+                                                    <CommandEmpty className="text-xs py-2 text-center">No room type found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                      {roomTypes?.map(rt => (
+                                                        <CommandItem key={rt.id} value={rt.name} onSelect={() => { if (isDisabled) return; field.onChange(rt.id); setOpenRoomTypeKey(null); }} className="text-xs">
+                                                          <span className="flex-1 truncate">{rt.name}</span>
+                                                          {field.value === rt.id && <Check className="h-3.5 w-3.5 text-primary ml-auto" />}
+                                                        </CommandItem>
+                                                      ))}
+                                                    </CommandGroup>
+                                                  </CommandList>
+                                                </Command>
+                                              </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                          </FormItem>
+                                        );
+                                      }}
                                     />
                                   );
                                 }

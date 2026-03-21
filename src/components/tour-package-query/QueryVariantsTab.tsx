@@ -9,9 +9,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Check, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign, Copy } from "lucide-react";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Check, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign, Copy, ChevronsUpDown } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
@@ -103,6 +105,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [variantPricingItems, setVariantPricingItems] = useState<Record<string, { name: string; price: string; description: string }[]>>({});
   const [variantTotalPrices, setVariantTotalPrices] = useState<Record<string, string>>({});
   const [variantRemarks, setVariantRemarks] = useState<Record<string, string>>({});
+  const [openRoomTypeKey, setOpenRoomTypeKey] = useState<string | null>(null);
 
   // Hydrate state from saved form data when component mounts or when variants change
   useEffect(() => {
@@ -1347,10 +1350,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                           {room.useCustomRoomType ? (
                                             <Input value={room.customRoomType || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'customRoomType', e.target.value)} placeholder="Custom room type..." className="h-8 text-xs" />
                                           ) : (
-                                            <Select value={room.roomTypeId} onValueChange={(v) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'roomTypeId', v)}>
-                                              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room type" /></SelectTrigger>
-                                              <SelectContent>{roomTypes.map((rt: any) => <SelectItem key={rt.id} value={rt.id} className="text-xs">{rt.name}</SelectItem>)}</SelectContent>
-                                            </Select>
+                                            <Popover open={openRoomTypeKey === `c-${cVariant.id}-${itinerary.id}-${roomIdx}`} onOpenChange={(o) => setOpenRoomTypeKey(o ? `c-${cVariant.id}-${itinerary.id}-${roomIdx}` : null)}>
+                                              <PopoverTrigger asChild>
+                                                <Button type="button" variant="outline" size="sm" className="w-full justify-between h-8 text-xs font-normal">
+                                                  <span className="truncate">{roomTypes.find((rt: any) => rt.id === room.roomTypeId)?.name || 'Room type'}</span>
+                                                  <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
+                                                </Button>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-[200px] p-0" align="start">
+                                                <Command onKeyDownCapture={e => e.stopPropagation()}>
+                                                  <CommandInput placeholder="Search room type..." className="text-xs h-8" />
+                                                  <CommandList className="max-h-48 overflow-auto">
+                                                    <CommandEmpty className="text-xs py-2 text-center">No room type found.</CommandEmpty>
+                                                    <CommandGroup>
+                                                      {roomTypes.map((rt: any) => (
+                                                        <CommandItem key={rt.id} value={rt.name} onSelect={() => { updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'roomTypeId', rt.id); setOpenRoomTypeKey(null); }} className="text-xs">
+                                                          <span className="flex-1 truncate">{rt.name}</span>
+                                                          {room.roomTypeId === rt.id && <Check className="h-3.5 w-3.5 text-primary ml-auto" />}
+                                                        </CommandItem>
+                                                      ))}
+                                                    </CommandGroup>
+                                                  </CommandList>
+                                                </Command>
+                                              </PopoverContent>
+                                            </Popover>
                                           )}
                                         </div>
                                         <div className="space-y-1">
@@ -2095,21 +2118,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                                 className="h-8 text-xs"
                                               />
                                             ) : (
-                                              <Select
-                                                value={room.roomTypeId}
-                                                onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'roomTypeId', value)}
-                                              >
-                                                <SelectTrigger className="h-8 text-xs">
-                                                  <SelectValue placeholder="Select room type" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  {roomTypes.map((rt: any) => (
-                                                    <SelectItem key={rt.id} value={rt.id} className="text-xs">
-                                                      {rt.name}
-                                                    </SelectItem>
-                                                  ))}
-                                                </SelectContent>
-                                              </Select>
+                                              <Popover open={openRoomTypeKey === `v-${variant.id}-${itinerary.id}-${roomIdx}`} onOpenChange={(o) => setOpenRoomTypeKey(o ? `v-${variant.id}-${itinerary.id}-${roomIdx}` : null)}>
+                                                <PopoverTrigger asChild>
+                                                  <Button type="button" variant="outline" size="sm" className="w-full justify-between h-8 text-xs font-normal">
+                                                    <span className="truncate">{roomTypes.find((rt: any) => rt.id === room.roomTypeId)?.name || 'Select room type'}</span>
+                                                    <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0" />
+                                                  </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[200px] p-0" align="start">
+                                                  <Command onKeyDownCapture={e => e.stopPropagation()}>
+                                                    <CommandInput placeholder="Search room type..." className="text-xs h-8" />
+                                                    <CommandList className="max-h-48 overflow-auto">
+                                                      <CommandEmpty className="text-xs py-2 text-center">No room type found.</CommandEmpty>
+                                                      <CommandGroup>
+                                                        {roomTypes.map((rt: any) => (
+                                                          <CommandItem key={rt.id} value={rt.name} onSelect={() => { updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'roomTypeId', rt.id); setOpenRoomTypeKey(null); }} className="text-xs">
+                                                            <span className="flex-1 truncate">{rt.name}</span>
+                                                            {room.roomTypeId === rt.id && <Check className="h-3.5 w-3.5 text-primary ml-auto" />}
+                                                          </CommandItem>
+                                                        ))}
+                                                      </CommandGroup>
+                                                    </CommandList>
+                                                  </Command>
+                                                </PopoverContent>
+                                              </Popover>
                                             )}
                                           </div>
                                           <div className="space-y-1">

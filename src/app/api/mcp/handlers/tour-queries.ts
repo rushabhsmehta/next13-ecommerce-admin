@@ -4,6 +4,39 @@ import { dateToUtc } from "@/lib/timezone-utils";
 import { McpError, NotFoundError } from "../lib/errors";
 import { isoDateString, type ToolHandlerMap } from "../lib/schemas";
 
+// ── Sub-schemas for itinerary building ────────────────────────────────────────
+
+const ActivityInputSchema = z.object({
+  activityTitle: z.string().min(1),
+  activityDescription: z.string().optional(),
+});
+
+const RoomAllocationInputSchema = z.object({
+  roomTypeId: z.string().optional(),
+  roomTypeName: z.string().optional(),
+  occupancyTypeId: z.string().optional(),
+  occupancyTypeName: z.string().optional(),
+  mealPlanId: z.string().optional(),
+  mealPlanName: z.string().optional(),
+  quantity: z.number().int().min(1).optional().default(1),
+  guestNames: z.string().optional(),
+});
+
+const ItineraryInputSchema = z.object({
+  dayNumber: z.number().int().min(1),
+  itineraryTitle: z.string().min(1),
+  itineraryDescription: z.string().optional(),
+  locationId: z.string().optional(),
+  hotelId: z.string().optional(),
+  hotelName: z.string().optional(),
+  mealPlanId: z.string().optional(),
+  mealPlanName: z.string().optional(),
+  activities: z.array(ActivityInputSchema).optional().default([]),
+  roomAllocations: z.array(RoomAllocationInputSchema).optional().default([]),
+});
+
+const PolicyFieldSchema = z.array(z.string()).optional();
+
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
 const CreateTourQuerySchema = z.object({
@@ -26,6 +59,18 @@ const CreateTourQuerySchema = z.object({
   inquiryId: z.string().optional(),
   price: z.string().optional(),
   totalPrice: z.string().optional(),
+  // New fields
+  tourPackageQueryName: z.string().optional(),
+  itineraries: z.array(ItineraryInputSchema).optional().default([]),
+  inclusions: PolicyFieldSchema,
+  exclusions: PolicyFieldSchema,
+  importantNotes: PolicyFieldSchema,
+  paymentPolicy: PolicyFieldSchema,
+  usefulTip: PolicyFieldSchema,
+  cancellationPolicy: PolicyFieldSchema,
+  airlineCancellationPolicy: PolicyFieldSchema,
+  termsconditions: PolicyFieldSchema,
+  kitchenGroupPolicy: PolicyFieldSchema,
 }).refine((d: { locationId?: string; locationName?: string }) => !!(d.locationId || d.locationName), {
   message: "locationId or locationName is required",
   path: ["locationId"],
@@ -62,11 +107,261 @@ const UpdateTourQuerySchema = z.object({
   drop_location: z.string().optional(),
   remarks: z.string().optional(),
   totalPrice: z.string().optional(),
+  tourPackageQueryName: z.string().optional(),
+  itineraries: z.array(ItineraryInputSchema).optional(),
+  inclusions: PolicyFieldSchema,
+  exclusions: PolicyFieldSchema,
+  importantNotes: PolicyFieldSchema,
+  paymentPolicy: PolicyFieldSchema,
+  usefulTip: PolicyFieldSchema,
+  cancellationPolicy: PolicyFieldSchema,
+  airlineCancellationPolicy: PolicyFieldSchema,
+  termsconditions: PolicyFieldSchema,
+  kitchenGroupPolicy: PolicyFieldSchema,
 });
 
 const ArchiveTourQuerySchema = z.object({
   tourPackageQueryId: z.string().min(1),
 });
+
+// ── Lookup resolution helper ──────────────────────────────────────────────────
+
+interface LookupMaps {
+  hotelNameToIdMap: Map<string, string>;
+  roomTypeNameToIdMap: Map<string, string>;
+  occupancyTypeNameToIdMap: Map<string, string>;
+  mealPlanNameToIdMap: Map<string, string>;
+  customRoomTypeId: string | null;
+}
+
+async function resolveItineraryLookups(
+  itineraries: z.infer<typeof ItineraryInputSchema>[],
+  fallbackLocationId: string
+): Promise<LookupMaps> {
+  const allAllocations = itineraries.flatMap(it => it.roomAllocations ?? []);
+
+  // Collect unique names to look up
+  const hotelNames = Array.from(new Set(
+    itineraries.filter(it => !it.hotelId && it.hotelName).map(it => it.hotelName!)
+  ));
+  const roomTypeNames = Array.from(new Set(
+    allAllocations.filter(ra => !ra.roomTypeId && ra.roomTypeName).map(ra => ra.roomTypeName!)
+  ));
+  const occupancyTypeNames = Array.from(new Set(
+    allAllocations.filter(ra => !ra.occupancyTypeId && ra.occupancyTypeName).map(ra => ra.occupancyTypeName!)
+  ));
+  const mealPlanNames = Array.from(new Set([
+    ...itineraries.filter(it => !it.mealPlanId && it.mealPlanName).map(it => it.mealPlanName!),
+    ...allAllocations.filter(ra => !ra.mealPlanId && ra.mealPlanName).map(ra => ra.mealPlanName!),
+  ]));
+
+  // Validate: every allocation must have occupancyTypeId or occupancyTypeName
+  for (let i = 0; i < itineraries.length; i++) {
+    for (let j = 0; j < (itineraries[i].roomAllocations ?? []).length; j++) {
+      const ra = itineraries[i].roomAllocations![j];
+      if (!ra.occupancyTypeId && !ra.occupancyTypeName) {
+        throw new McpError(
+          `Day ${itineraries[i].dayNumber}, room allocation ${j + 1}: occupancyTypeId or occupancyTypeName is required. Use list_occupancy_types to see options.`,
+          "VALIDATION_ERROR",
+          422
+        );
+      }
+    }
+  }
+
+  // Parallel lookups
+  const [hotels, roomTypes, occupancyTypes, mealPlans] = await Promise.all([
+    hotelNames.length > 0
+      ? prismadb.hotel.findMany({
+          where: { locationId: fallbackLocationId, name: { in: hotelNames } },
+          select: { id: true, name: true },
+        })
+      : [],
+    roomTypeNames.length > 0
+      ? prismadb.roomType.findMany({
+          where: { name: { in: roomTypeNames } },
+          select: { id: true, name: true },
+        })
+      : [],
+    occupancyTypeNames.length > 0
+      ? prismadb.occupancyType.findMany({
+          where: { name: { in: occupancyTypeNames } },
+          select: { id: true, name: true },
+        })
+      : [],
+    mealPlanNames.length > 0
+      ? prismadb.mealPlan.findMany({
+          where: { name: { in: mealPlanNames } },
+          select: { id: true, name: true },
+        })
+      : [],
+  ]);
+
+  // Build case-insensitive maps
+  const hotelNameToIdMap = new Map((hotels as { id: string; name: string }[]).map(h => [h.name.toLowerCase(), h.id]));
+  const roomTypeNameToIdMap = new Map((roomTypes as { id: string; name: string }[]).map(rt => [rt.name.toLowerCase(), rt.id]));
+  const occupancyTypeNameToIdMap = new Map((occupancyTypes as { id: string; name: string }[]).map(ot => [ot.name.toLowerCase(), ot.id]));
+  const mealPlanNameToIdMap = new Map((mealPlans as { id: string; name: string }[]).map(mp => [mp.name.toLowerCase(), mp.id]));
+
+  // Validate all looked-up names were found
+  for (const name of hotelNames) {
+    if (!hotelNameToIdMap.has(name.toLowerCase())) {
+      throw new NotFoundError(
+        `Hotel "${name}" not found at this destination. Use list_hotels to find available hotels.`,
+        "HOTEL_NOT_FOUND"
+      );
+    }
+  }
+  for (const name of roomTypeNames) {
+    if (!roomTypeNameToIdMap.has(name.toLowerCase())) {
+      throw new NotFoundError(
+        `Room type "${name}" not found. Use list_room_types to see available types.`,
+        "ROOM_TYPE_NOT_FOUND"
+      );
+    }
+  }
+  for (const name of occupancyTypeNames) {
+    if (!occupancyTypeNameToIdMap.has(name.toLowerCase())) {
+      throw new NotFoundError(
+        `Occupancy type "${name}" not found. Use list_occupancy_types to see available types.`,
+        "OCCUPANCY_TYPE_NOT_FOUND"
+      );
+    }
+  }
+  for (const name of mealPlanNames) {
+    if (!mealPlanNameToIdMap.has(name.toLowerCase())) {
+      throw new NotFoundError(
+        `Meal plan "${name}" not found. Use list_meal_plans to see available plans.`,
+        "MEAL_PLAN_NOT_FOUND"
+      );
+    }
+  }
+
+  // Handle "Custom" placeholder for room allocations with neither roomTypeId nor roomTypeName
+  const needsCustom = allAllocations.some(ra => !ra.roomTypeId && !ra.roomTypeName);
+  let customRoomTypeId: string | null = null;
+  if (needsCustom) {
+    let placeholder = await prismadb.roomType.findUnique({ where: { name: "Custom" } });
+    if (!placeholder) {
+      placeholder = await prismadb.roomType.create({
+        data: { name: "Custom", description: "Custom ad-hoc room type placeholder", isActive: true },
+      });
+    }
+    customRoomTypeId = placeholder.id;
+  }
+
+  return { hotelNameToIdMap, roomTypeNameToIdMap, occupancyTypeNameToIdMap, mealPlanNameToIdMap, customRoomTypeId };
+}
+
+// ── Itinerary creation helper ─────────────────────────────────────────────────
+
+async function createItinerariesForQuery(
+  queryId: string,
+  fallbackLocationId: string,
+  itineraries: z.infer<typeof ItineraryInputSchema>[]
+): Promise<void> {
+  if (itineraries.length === 0) return;
+
+  const maps = await resolveItineraryLookups(itineraries, fallbackLocationId);
+
+  // Sequential to preserve dayNumber ordering
+  for (const itin of itineraries) {
+    const itinLocationId = itin.locationId ?? fallbackLocationId;
+
+    // Resolve hotel
+    const resolvedHotelId =
+      itin.hotelId ??
+      (itin.hotelName ? maps.hotelNameToIdMap.get(itin.hotelName.toLowerCase()) : undefined) ??
+      null;
+
+    // Resolve itinerary-level meal plan
+    const resolvedItinMealPlanId =
+      itin.mealPlanId ??
+      (itin.mealPlanName ? maps.mealPlanNameToIdMap.get(itin.mealPlanName.toLowerCase()) : undefined) ??
+      null;
+
+    const createdItinerary = await prismadb.itinerary.create({
+      data: {
+        tourPackageQueryId: queryId,
+        locationId: itinLocationId,
+        dayNumber: itin.dayNumber,
+        itineraryTitle: itin.itineraryTitle,
+        itineraryDescription: itin.itineraryDescription ?? null,
+        hotelId: resolvedHotelId ?? undefined,
+        mealPlanId: resolvedItinMealPlanId ?? undefined,
+      },
+    });
+
+    // Create activities in parallel
+    if (itin.activities && itin.activities.length > 0) {
+      await Promise.all(
+        itin.activities.map(act =>
+          prismadb.activity.create({
+            data: {
+              itineraryId: createdItinerary.id,
+              locationId: itinLocationId,
+              activityTitle: act.activityTitle,
+              activityDescription: act.activityDescription ?? null,
+            },
+          })
+        )
+      );
+    }
+
+    // Create room allocations in parallel
+    if (itin.roomAllocations && itin.roomAllocations.length > 0) {
+      await Promise.all(
+        itin.roomAllocations.map(ra => {
+          const resolvedRoomTypeId =
+            ra.roomTypeId ??
+            (ra.roomTypeName ? maps.roomTypeNameToIdMap.get(ra.roomTypeName.toLowerCase()) : undefined) ??
+            maps.customRoomTypeId!;
+
+          const resolvedOccupancyTypeId =
+            ra.occupancyTypeId ??
+            (ra.occupancyTypeName ? maps.occupancyTypeNameToIdMap.get(ra.occupancyTypeName.toLowerCase()) : undefined);
+
+          const resolvedMealPlanId =
+            ra.mealPlanId ??
+            (ra.mealPlanName ? maps.mealPlanNameToIdMap.get(ra.mealPlanName.toLowerCase()) : undefined) ??
+            null;
+
+          return prismadb.roomAllocation.create({
+            data: {
+              itineraryId: createdItinerary.id,
+              roomTypeId: resolvedRoomTypeId!,
+              occupancyTypeId: resolvedOccupancyTypeId!,
+              mealPlanId: resolvedMealPlanId ?? undefined,
+              quantity: ra.quantity ?? 1,
+              guestNames: ra.guestNames ?? "",
+              voucherNumber: "",
+            },
+          });
+        })
+      );
+    }
+  }
+}
+
+// ── Full include shape for returned queries ────────────────────────────────────
+
+const fullQueryInclude = {
+  location: { select: { id: true, label: true } },
+  itineraries: {
+    include: {
+      activities: { select: { id: true, activityTitle: true, activityDescription: true } },
+      roomAllocations: {
+        include: {
+          roomType: { select: { id: true, name: true } },
+          occupancyType: { select: { id: true, name: true } },
+          mealPlan: { select: { id: true, name: true } },
+        },
+      },
+      hotel: { select: { id: true, name: true } },
+    },
+    orderBy: { dayNumber: "asc" as const },
+  },
+} as const;
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -85,23 +380,22 @@ async function createTourQuery(rawParams: unknown) {
     locationId = loc.id;
   }
 
-  // locationId is guaranteed by the Zod refine — narrowing for TypeScript
   const resolvedLocationId = locationId!;
 
-  // Generate a collision-resistant query number using milliseconds + random suffix
+  // Generate collision-resistant query number
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
   const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
   const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
   const queryNumber = `TPQ-${datePart}-${Date.now()}-${randomSuffix}`;
 
-  // Zod already validated the date strings; dateToUtc returns undefined only for falsy input
   const tourStartsFrom = params.tourStartsFrom ? dateToUtc(params.tourStartsFrom) ?? null : null;
   const tourEndsOn = params.tourEndsOn ? dateToUtc(params.tourEndsOn) ?? null : null;
 
   const query = await prismadb.tourPackageQuery.create({
     data: {
       tourPackageQueryNumber: queryNumber,
+      tourPackageQueryName: params.tourPackageQueryName ?? null,
       customerName: params.customerName,
       customerNumber: params.customerNumber ?? null,
       locationId: resolvedLocationId,
@@ -120,15 +414,30 @@ async function createTourQuery(rawParams: unknown) {
       inquiryId: params.inquiryId ?? null,
       price: params.price ?? null,
       totalPrice: params.totalPrice ?? null,
+      inclusions: params.inclusions ?? null,
+      exclusions: params.exclusions ?? null,
+      importantNotes: params.importantNotes ?? null,
+      paymentPolicy: params.paymentPolicy ?? null,
+      usefulTip: params.usefulTip ?? null,
+      cancellationPolicy: params.cancellationPolicy ?? null,
+      airlineCancellationPolicy: params.airlineCancellationPolicy ?? null,
+      termsconditions: params.termsconditions ?? null,
+      kitchenGroupPolicy: params.kitchenGroupPolicy ?? null,
       isFeatured: false,
       isArchived: false,
     } as any,
-    include: {
-      location: { select: { id: true, label: true } },
-    },
   });
 
-  return query;
+  // Create itineraries if provided
+  if (params.itineraries && params.itineraries.length > 0) {
+    await createItinerariesForQuery(query.id, resolvedLocationId, params.itineraries);
+  }
+
+  // Return full record with itineraries
+  return prismadb.tourPackageQuery.findUnique({
+    where: { id: query.id },
+    include: fullQueryInclude,
+  });
 }
 
 async function listTourQueries(rawParams: unknown) {
@@ -193,7 +502,6 @@ async function confirmTourQuery(rawParams: unknown) {
   });
   if (!q) throw new NotFoundError(`Tour query ${tourPackageQueryId} not found`);
 
-  // Use a provided variantId or generate a placeholder
   const variantId = confirmedVariantId || "confirmed-via-mcp";
 
   const updated = await prismadb.tourPackageQuery.update({
@@ -202,12 +510,11 @@ async function confirmTourQuery(rawParams: unknown) {
     select: { id: true, tourPackageQueryNumber: true, customerName: true, confirmedVariantId: true },
   });
 
-  // If linked to inquiry, update inquiry status
   if (q.inquiryId) {
     await prismadb.inquiry.update({
       where: { id: q.inquiryId },
       data: { status: "CONFIRMED" },
-    }).catch(() => {}); // Don't fail if inquiry update fails
+    }).catch(() => {});
   }
 
   return updated;
@@ -264,14 +571,35 @@ async function getQueryFinancialSummary(rawParams: unknown) {
 }
 
 async function updateTourQuery(rawParams: unknown) {
-  const { tourPackageQueryId, tourStartsFrom, tourEndsOn, ...rest } = UpdateTourQuerySchema.parse(rawParams);
+  const { tourPackageQueryId, tourStartsFrom, tourEndsOn, itineraries, ...rest } = UpdateTourQuerySchema.parse(rawParams);
+
+  // Verify query exists and get locationId for itinerary fallback
+  const existing = await prismadb.tourPackageQuery.findUnique({
+    where: { id: tourPackageQueryId },
+    select: { id: true, locationId: true },
+  });
+  if (!existing) throw new NotFoundError(`Tour query ${tourPackageQueryId} not found`);
+
   const data: Record<string, unknown> = { ...rest };
   if (tourStartsFrom) { const d = dateToUtc(tourStartsFrom); if (d) data.tourStartsFrom = d; }
   if (tourEndsOn) { const d = dateToUtc(tourEndsOn); if (d) data.tourEndsOn = d; }
-  return prismadb.tourPackageQuery.update({
+
+  await prismadb.tourPackageQuery.update({
     where: { id: tourPackageQueryId },
     data,
-    select: { id: true, tourPackageQueryNumber: true, customerName: true, updatedAt: true },
+  });
+
+  // If itineraries provided, replace all existing
+  if (itineraries !== undefined) {
+    await prismadb.itinerary.deleteMany({ where: { tourPackageQueryId } });
+    if (itineraries.length > 0) {
+      await createItinerariesForQuery(tourPackageQueryId, existing.locationId, itineraries);
+    }
+  }
+
+  return prismadb.tourPackageQuery.findUnique({
+    where: { id: tourPackageQueryId },
+    include: fullQueryInclude,
   });
 }
 

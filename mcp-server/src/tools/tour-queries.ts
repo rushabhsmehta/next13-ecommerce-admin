@@ -107,10 +107,11 @@ POLICIES (ask the customer if they want to include):
         const d = data as any;
         const itinCount = d?.itineraries?.length ?? 0;
         const name = d?.tourPackageQueryName ?? "Unnamed";
+        const pdfUrl = d?.pdfGeneratorUrl ?? "";
         return {
           content: [{
             type: "text",
-            text: `Tour query created with ${itinCount} itinerary day(s)!\n\nID: ${d?.id}\nName: ${name}\nCustomer: ${d?.customerName}\nDestination: ${d?.location?.label ?? ""}\n\nOpen in admin: /tourPackageQuery/${d?.id}\n\n${JSON.stringify(data, null, 2)}`,
+            text: `Tour query created with ${itinCount} itinerary day(s)!\n\nID: ${d?.id}\nName: ${name}\nCustomer: ${d?.customerName}\nDestination: ${d?.location?.label ?? ""}\n\n📄 Download PDF: ${pdfUrl}\n\nOpen in admin: /tourPackageQuery/${d?.id}\n\n${JSON.stringify(data, null, 2)}`,
           }],
         };
       } catch (err) {
@@ -146,7 +147,10 @@ POLICIES (ask the customer if they want to include):
     async ({ tourPackageQueryId }) => {
       try {
         const data = await callTool("get_tour_query", { tourPackageQueryId });
-        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        const d = data as any;
+        const pdfUrl = d?.pdfGeneratorUrl ?? "";
+        const header = pdfUrl ? `📄 Download PDF: ${pdfUrl}\n\n` : "";
+        return { content: [{ type: "text", text: `${header}${JSON.stringify(data, null, 2)}` }] };
       } catch (err) {
         return toolError("get_tour_query", err);
       }

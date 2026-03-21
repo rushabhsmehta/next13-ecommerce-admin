@@ -434,10 +434,12 @@ async function createTourQuery(rawParams: unknown) {
   }
 
   // Return full record with itineraries
-  return prismadb.tourPackageQuery.findUnique({
+  const created = await prismadb.tourPackageQuery.findUnique({
     where: { id: query.id },
     include: fullQueryInclude,
   });
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return { ...created, pdfGeneratorUrl: `${baseUrl}/tourPackageQueryPDFGenerator/${created!.id}` };
 }
 
 async function listTourQueries(rawParams: unknown) {
@@ -468,7 +470,8 @@ async function listTourQueries(rawParams: unknown) {
     orderBy: { createdAt: "desc" },
     take: limit,
   });
-  return result;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return result.map((r) => ({ ...r, pdfGeneratorUrl: `${baseUrl}/tourPackageQueryPDFGenerator/${r.id}` }));
 }
 
 async function getTourQuery(rawParams: unknown) {
@@ -491,7 +494,8 @@ async function getTourQuery(rawParams: unknown) {
     },
   });
   if (!q) throw new NotFoundError(`Tour query ${tourPackageQueryId} not found`);
-  return q;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return { ...q, pdfGeneratorUrl: `${baseUrl}/tourPackageQueryPDFGenerator/${q.id}` };
 }
 
 async function confirmTourQuery(rawParams: unknown) {

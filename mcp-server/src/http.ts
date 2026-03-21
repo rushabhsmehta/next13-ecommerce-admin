@@ -146,10 +146,27 @@ export function startHttpServer(createServer: () => McpServer): void {
       issuer: BASE_URL,
       authorization_endpoint: `${BASE_URL}/authorize`,
       token_endpoint: `${BASE_URL}/token`,
+      registration_endpoint: `${BASE_URL}/register`,
       response_types_supported: ["code"],
       grant_types_supported: ["authorization_code"],
       code_challenge_methods_supported: ["S256"],
       token_endpoint_auth_methods_supported: ["none"],
+    });
+  });
+
+  // ── Dynamic client registration (RFC 7591) ───────────────────────────────
+  // mcp-remote requires this to register itself as an OAuth client.
+  app.post("/register", (req, res) => {
+    const { redirect_uris, client_name } = req.body as Record<string, unknown>;
+    const clientId = crypto.randomBytes(16).toString("hex");
+    res.status(201).json({
+      client_id: clientId,
+      client_id_issued_at: Math.floor(Date.now() / 1000),
+      redirect_uris: redirect_uris ?? [],
+      client_name: client_name ?? "MCP Client",
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
     });
   });
 

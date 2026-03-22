@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { defineToolContract, type ToolContract } from "./core.js";
+import { defineToolContract, type ToolContract } from "./core";
 
 export const SHARED_TOOL_CONTRACT_OVERRIDES = {
   list_customers: defineToolContract({

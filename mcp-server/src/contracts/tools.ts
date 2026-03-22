@@ -2,12 +2,12 @@ import {
   parseToolContractInput,
   type ToolContract,
   type ToolMetadata,
-} from "./core.js";
-import { inferToolMetadata } from "./metadata.js";
+} from "./core";
+import { inferToolMetadata } from "./metadata";
 import {
   getSharedToolContractOverride,
   SHARED_TOOL_CONTRACT_OVERRIDES,
-} from "./overrides.js";
+} from "./overrides";
 
 const sharedToolContracts: Record<string, ToolContract> = {
   ...SHARED_TOOL_CONTRACT_OVERRIDES,

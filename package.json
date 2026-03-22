@@ -4,8 +4,8 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
-        "build": "prisma generate && prisma generate --schema=prisma/whatsapp-schema.prisma && next build",
-        "vercel-build": "prisma generate && prisma generate --schema=prisma/whatsapp-schema.prisma && next build",
+        "build": "prisma generate && prisma generate --schema=prisma/whatsapp-schema.prisma && next build --webpack",
+        "vercel-build": "prisma generate && prisma generate --schema=prisma/whatsapp-schema.prisma && next build --webpack",
         "start": "next start",
         "lint": "next lint",
         "postinstall": "prisma generate && prisma generate --schema=prisma/whatsapp-schema.prisma",

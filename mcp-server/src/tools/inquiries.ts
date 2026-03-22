@@ -1,6 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { callTool, toolError } from "../helpers.js";
+import { SHARED_TOOL_CONTRACT_OVERRIDES } from "../contracts/overrides.js";
+
+const unassignInquiryStaffContract = SHARED_TOOL_CONTRACT_OVERRIDES.unassign_inquiry_staff;
+const setInquiryFollowUpContract = SHARED_TOOL_CONTRACT_OVERRIDES.set_inquiry_follow_up;
+const updateInquiryContract = SHARED_TOOL_CONTRACT_OVERRIDES.update_inquiry;
+const listFollowUpsDueContract = SHARED_TOOL_CONTRACT_OVERRIDES.list_follow_ups_due;
 
 export function registerInquiryTools(server: McpServer) {
   server.tool(
@@ -36,7 +42,7 @@ export function registerInquiryTools(server: McpServer) {
 
   server.tool(
     "list_inquiries",
-    "List or search customer inquiries. ALWAYS use this first when asked about a customer's inquiry — search by customerName (partial name works, e.g. 'Sheetal'). Do NOT ask the user for an inquiry ID; find it yourself using this tool.",
+    "List or search customer inquiries. ALWAYS use this first when asked about a customer's inquiry - search by customerName (partial name works, e.g. 'Sheetal'). Do NOT ask the user for an inquiry ID; find it yourself using this tool.",
     {
       status: z.string().optional().describe("Filter by status: PENDING, CONFIRMED, CANCELLED, HOT_QUERY, QUERY_SENT, ALL"),
       customerName: z.string().optional().describe("Search by customer name (partial match works, e.g. 'Sheetal' will find 'Sheetal Sharma')"),
@@ -134,40 +140,33 @@ export function registerInquiryTools(server: McpServer) {
   );
 
   server.tool(
-    "unassign_inquiry_staff",
-    "Remove staff assignment from an inquiry.",
-    {
-      inquiryId: z.string().describe("The inquiry ID"),
-      staffId: z.string().describe("The staff member ID to unassign"),
-    },
+    unassignInquiryStaffContract.name,
+    unassignInquiryStaffContract.description,
+    unassignInquiryStaffContract.inputSchema,
     async (params) => {
       try {
-        const data = await callTool("unassign_inquiry_staff", params);
+        const data = await callTool(unassignInquiryStaffContract.name, params);
         return {
           content: [{ type: "text", text: `Staff unassigned from inquiry\n\n${JSON.stringify(data, null, 2)}` }],
         };
       } catch (err) {
-        return toolError("unassign_inquiry_staff", err);
+        return toolError(unassignInquiryStaffContract.name, err);
       }
     }
   );
 
   server.tool(
-    "set_inquiry_follow_up",
-    "Set the next follow-up date for an inquiry.",
-    {
-      inquiryId: z.string().describe("The inquiry ID"),
-      followUpDate: z.string().describe("Next follow-up date (YYYY-MM-DD)"),
-      remarks: z.string().optional().describe("Optional note about what to follow up on"),
-    },
+    setInquiryFollowUpContract.name,
+    setInquiryFollowUpContract.description,
+    setInquiryFollowUpContract.inputSchema,
     async (params) => {
       try {
-        const data = await callTool("set_inquiry_follow_up", params);
+        const data = await callTool(setInquiryFollowUpContract.name, params);
         return {
           content: [{ type: "text", text: `Follow-up date set\n\n${JSON.stringify(data, null, 2)}` }],
         };
       } catch (err) {
-        return toolError("set_inquiry_follow_up", err);
+        return toolError(setInquiryFollowUpContract.name, err);
       }
     }
   );
@@ -189,29 +188,17 @@ export function registerInquiryTools(server: McpServer) {
   );
 
   server.tool(
-    "update_inquiry",
-    "Update inquiry details (customer info, traveler counts, dates, remarks).",
-    {
-      inquiryId: z.string().describe("The inquiry ID to update"),
-      customerName: z.string().optional().describe("Updated customer name"),
-      customerMobileNumber: z.string().optional().describe("Updated mobile number"),
-      locationId: z.string().optional().describe("Updated location ID"),
-      locationName: z.string().optional().describe("Updated location name"),
-      numAdults: z.number().int().min(1).optional().describe("Updated number of adults"),
-      numChildrenAbove11: z.number().int().min(0).optional().describe("Updated children above 11"),
-      numChildren5to11: z.number().int().min(0).optional().describe("Updated children 5-11"),
-      numChildrenBelow5: z.number().int().min(0).optional().describe("Updated children below 5"),
-      journeyDate: z.string().optional().describe("Updated travel date (YYYY-MM-DD)"),
-      remarks: z.string().optional().describe("Updated remarks"),
-    },
+    updateInquiryContract.name,
+    updateInquiryContract.description,
+    updateInquiryContract.inputSchema,
     async (params) => {
       try {
-        const data = await callTool("update_inquiry", params);
+        const data = await callTool(updateInquiryContract.name, params);
         return {
           content: [{ type: "text", text: `Inquiry updated\n\n${JSON.stringify(data, null, 2)}` }],
         };
       } catch (err) {
-        return toolError("update_inquiry", err);
+        return toolError(updateInquiryContract.name, err);
       }
     }
   );
@@ -235,18 +222,15 @@ export function registerInquiryTools(server: McpServer) {
   );
 
   server.tool(
-    "list_follow_ups_due",
-    "List inquiries with follow-ups due today or overdue. Great for daily follow-up reviews.",
-    {
-      date: z.string().optional().describe("Check follow-ups due on this date (YYYY-MM-DD, defaults to today)"),
-      includeOverdue: z.boolean().optional().default(true).describe("Include overdue follow-ups (default: true)"),
-    },
+    listFollowUpsDueContract.name,
+    listFollowUpsDueContract.description,
+    listFollowUpsDueContract.inputSchema,
     async (params) => {
       try {
-        const data = await callTool("list_follow_ups_due", params);
+        const data = await callTool(listFollowUpsDueContract.name, params);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err) {
-        return toolError("list_follow_ups_due", err);
+        return toolError(listFollowUpsDueContract.name, err);
       }
     }
   );

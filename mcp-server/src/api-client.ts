@@ -2,115 +2,201 @@
  * HTTP client that calls the Next.js MCP gateway at /api/mcp
  */
 
-// Validate required env vars at startup — fail fast with a clear message rather
-// than silently falling back to defaults and producing confusing errors later.
-const NEXT_APP_URL = process.env.NEXT_APP_URL;
-const MCP_API_SECRET = process.env.MCP_API_SECRET;
+import crypto from "crypto";
+import { inferToolMetadata } from "./contracts/metadata.js";
 
-(function validateEnv() {
-  const missing: string[] = [];
-  if (!NEXT_APP_URL)
-    missing.push("NEXT_APP_URL     — URL of the Next.js admin app (e.g. https://your-app.up.railway.app)");
-  if (!MCP_API_SECRET)
-    missing.push("MCP_API_SECRET   — shared secret for authenticating MCP gateway calls");
-  if (missing.length === 0) return;
-  console.error("[MCP] FATAL: Required environment variables are not set:");
-  missing.forEach((m) => console.error(`  ${m}`));
-  console.error("\nSet these in mcp-server/.env and restart.");
-  process.exit(1);
-})();
-
-const APP_URL = NEXT_APP_URL as string;
-const API_SECRET = MCP_API_SECRET as string;
-
-// Request timeout in ms — default 30 s, override with MCP_TOOL_TIMEOUT_MS.
-// generate_itinerary calls Gemini which can take 10–20 s; 30 s gives headroom.
 const TIMEOUT_MS = parseInt(process.env.MCP_TOOL_TIMEOUT_MS || "30000", 10);
+const RETRY_DELAY_MS = parseInt(process.env.MCP_TOOL_RETRY_DELAY_MS || "350", 10);
+
+interface GatewayEnvelope {
+  success?: boolean;
+  data?: unknown;
+  error?: string;
+  code?: string;
+  details?: unknown;
+  requestId?: string;
+}
+
+function getGatewayConfig(requestId: string): { appUrl: string; apiSecret: string } {
+  const appUrl = process.env.NEXT_APP_URL;
+  const apiSecret = process.env.MCP_API_SECRET;
+  const missing: string[] = [];
+
+  if (!appUrl) {
+    missing.push("NEXT_APP_URL     - URL of the Next.js admin app (e.g. https://your-app.up.railway.app)");
+  }
+  if (!apiSecret) {
+    missing.push("MCP_API_SECRET   - shared secret for authenticating MCP gateway calls");
+  }
+
+  if (missing.length === 0) {
+    return {
+      appUrl: appUrl as string,
+      apiSecret: apiSecret as string,
+    };
+  }
+
+  throw Object.assign(
+    new Error(
+      [
+        "[MCP_CONFIG_ERROR] Required environment variables are not set:",
+        ...missing.map((message) => `  ${message}`),
+        "",
+        "Set these in mcp-server/.env and restart.",
+      ].join("\n")
+    ),
+    {
+      code: "MCP_CONFIG_ERROR",
+      details: {
+        requestId,
+        missing,
+      },
+    }
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createToolError(
+  message: string,
+  options: {
+    code: string;
+    requestId: string;
+    attempt: number;
+    details?: unknown;
+    status?: number;
+  }
+): Error {
+  return Object.assign(new Error(message), {
+    code: options.code,
+    status: options.status,
+    details: {
+      requestId: options.requestId,
+      attempt: options.attempt,
+      ...(options.details !== undefined ? { gateway: options.details } : {}),
+    },
+  });
+}
 
 export async function callTool(
   tool: string,
   params: Record<string, unknown> = {}
 ): Promise<unknown> {
-  const url = `${APP_URL}/api/mcp`;
+  const requestId = crypto.randomUUID();
+  const { appUrl, apiSecret } = getGatewayConfig(requestId);
+  const url = `${appUrl}/api/mcp`;
+  const metadata = inferToolMetadata(tool);
 
-  const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  for (let attempt = 1; attempt <= (metadata.retryable ? 2 : 1); attempt += 1) {
+    const startedAt = Date.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-mcp-api-secret": API_SECRET,
-      },
-      body: JSON.stringify({ tool, params }),
-      signal: controller.signal,
-    });
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      throw Object.assign(
-        new Error(
-          `[GATEWAY_TIMEOUT] Tool "${tool}" timed out after ${TIMEOUT_MS}ms. ` +
-          `The Next.js app may be overloaded or still starting up — try again in a moment.`
-        ),
-        { code: "GATEWAY_TIMEOUT" }
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-mcp-api-secret": apiSecret,
+          "x-mcp-request-id": requestId,
+        },
+        body: JSON.stringify({ tool, params }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const durationMs = Date.now() - startedAt;
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      const code = isAbort ? "GATEWAY_TIMEOUT" : "NETWORK_ERROR";
+      const message = isAbort
+        ? `[GATEWAY_TIMEOUT] Tool "${tool}" timed out after ${TIMEOUT_MS}ms.`
+        : `[NETWORK_ERROR] Cannot reach Next.js app at ${appUrl}. Is it running? (${err})`;
+
+      console.error(
+        `[MCP client] requestId=${requestId} tool=${tool} attempt=${attempt} status=${code} durationMs=${durationMs}`
+      );
+
+      if (metadata.retryable && attempt === 1) {
+        await sleep(RETRY_DELAY_MS);
+        continue;
+      }
+
+      throw createToolError(message, {
+        code,
+        requestId,
+        attempt,
+      });
+    }
+
+    clearTimeout(timeoutId);
+    const durationMs = Date.now() - startedAt;
+    const rawText = await response.text().catch(() => "");
+
+    let json: GatewayEnvelope | null = null;
+    try {
+      json = JSON.parse(rawText) as GatewayEnvelope;
+    } catch {
+      json = null;
+    }
+
+    if (!response.ok) {
+      const code = json?.code || `HTTP_${response.status}`;
+      const message =
+        json?.error ||
+        rawText.trim() ||
+        `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`;
+
+      console.error(
+        `[MCP client] requestId=${requestId} tool=${tool} attempt=${attempt} status=${code} durationMs=${durationMs}`
+      );
+
+      if (metadata.retryable && attempt === 1 && (response.status === 502 || response.status === 503)) {
+        await sleep(RETRY_DELAY_MS);
+        continue;
+      }
+
+      throw createToolError(message, {
+        code,
+        requestId: json?.requestId || requestId,
+        attempt,
+        details: json?.details,
+        status: response.status,
+      });
+    }
+
+    if (!json) {
+      throw createToolError("MCP gateway returned a non-JSON success response", {
+        code: "INVALID_GATEWAY_RESPONSE",
+        requestId,
+        attempt,
+      });
+    }
+
+    if (!json.success) {
+      throw createToolError(
+        json.error || `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`,
+        {
+          code: json.code || "INTERNAL_ERROR",
+          requestId: json.requestId || requestId,
+          attempt,
+          details: json.details,
+          status: response.status,
+        }
       );
     }
-    throw Object.assign(
-      new Error(`[NETWORK_ERROR] Cannot reach Next.js app at ${APP_URL}. Is it running? (${err})`),
-      { code: "NETWORK_ERROR" }
+
+    console.error(
+      `[MCP client] requestId=${json.requestId || requestId} tool=${tool} attempt=${attempt} status=ok durationMs=${durationMs}`
     );
-  } finally {
-    clearTimeout(tid);
+    return json.data;
   }
 
-  // Read the body once as text, then attempt JSON parsing.
-  // This avoids the "body already consumed" problem that occurs when res.json()
-  // throws and res.text() is called on an already-consumed stream.
-  const rawText = await res.text().catch(() => "");
-
-  let json: { success: boolean; data?: unknown; error?: string; code?: string; details?: unknown } | null = null;
-  try {
-    json = JSON.parse(rawText) as {
-      success: boolean;
-      data?: unknown;
-      error?: string;
-      code?: string;
-      details?: unknown;
-    };
-  } catch {
-    // Response body is not JSON
-  }
-
-  if (!res.ok) {
-    const message =
-      json?.error ||
-      rawText.trim() ||
-      `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
-    // Propagate structured error code and details from gateway so toolError()
-    // in server.ts can surface them to the AI agent.
-    throw Object.assign(new Error(message), {
-      code: json?.code,
-      details: json?.details,
-    });
-  }
-
-  if (!json) {
-    throw new Error(
-      "MCP gateway returned a non-JSON response for a successful request"
-    );
-  }
-
-  if (!json.success) {
-    throw Object.assign(
-      new Error(
-        json.error ||
-          `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`
-      ),
-      { code: json.code, details: json.details }
-    );
-  }
-
-  return json.data;
+  throw createToolError(`Tool "${tool}" failed after retries`, {
+    code: "RETRY_EXHAUSTED",
+    requestId: crypto.randomUUID(),
+    attempt: 2,
+  });
 }

@@ -1,22 +1,22 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { callTool, toolError } from "../helpers.js";
+import { SHARED_TOOL_CONTRACT_OVERRIDES } from "../contracts/overrides.js";
+
+const listCustomersContract = SHARED_TOOL_CONTRACT_OVERRIDES.list_customers;
+const createCustomerContract = SHARED_TOOL_CONTRACT_OVERRIDES.create_customer;
 
 export function registerCustomerTools(server: McpServer) {
   server.tool(
-    "list_customers",
-    "Search customers by name or contact number.",
-    {
-      name: z.string().optional().describe("Search by customer name (partial match)"),
-      contactNumber: z.string().optional().describe("Search by contact number"),
-      limit: z.number().int().min(1).max(100).optional().default(25).describe("Max results"),
-    },
+    listCustomersContract.name,
+    listCustomersContract.description,
+    listCustomersContract.inputSchema,
     async (params) => {
       try {
-        const data = await callTool("list_customers", params);
+        const data = await callTool(listCustomersContract.name, params);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err) {
-        return toolError("list_customers", err);
+        return toolError(listCustomersContract.name, err);
       }
     }
   );
@@ -38,23 +38,17 @@ export function registerCustomerTools(server: McpServer) {
   );
 
   server.tool(
-    "create_customer",
-    "Create a new customer record.",
-    {
-      name: z.string().describe("Customer full name"),
-      contactNumber: z.string().optional().describe("Contact phone number"),
-      email: z.string().optional().describe("Email address"),
-      address: z.string().optional().describe("Postal address"),
-      gstNumber: z.string().optional().describe("GST registration number"),
-    },
+    createCustomerContract.name,
+    createCustomerContract.description,
+    createCustomerContract.inputSchema,
     async (params) => {
       try {
-        const data = await callTool("create_customer", params);
+        const data = await callTool(createCustomerContract.name, params);
         return {
           content: [{ type: "text", text: `Customer created\n\n${JSON.stringify(data, null, 2)}` }],
         };
       } catch (err) {
-        return toolError("create_customer", err);
+        return toolError(createCustomerContract.name, err);
       }
     }
   );

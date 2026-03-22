@@ -694,7 +694,7 @@ async function addTourQueryVariant(rawParams: unknown) {
       if (!itineraryId) continue;
       // Resolve hotel name → ID
       const hotel = await prismadb.hotel.findFirst({
-        where: { hotelName: { contains: override.hotelName }, locationId: query.locationId },
+        where: { name: { contains: override.hotelName }, locationId: query.locationId },
         select: { id: true },
       });
       if (hotel) hotelOverridesForVariant[itineraryId] = hotel.id;

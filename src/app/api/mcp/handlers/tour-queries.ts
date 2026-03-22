@@ -364,6 +364,15 @@ const fullQueryInclude = {
     },
     orderBy: { dayNumber: "asc" as const },
   },
+  queryVariantSnapshots: {
+    include: {
+      hotelSnapshots: { orderBy: { dayNumber: "asc" as const } },
+      pricingSnapshots: {
+        include: { pricingComponentSnapshots: true },
+      },
+    },
+    orderBy: { sortOrder: "asc" as const },
+  },
 } as const;
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -395,6 +404,16 @@ async function createTourQuery(rawParams: unknown) {
   const tourStartsFrom = params.tourStartsFrom ? dateToUtc(params.tourStartsFrom) ?? null : null;
   const tourEndsOn = params.tourEndsOn ? dateToUtc(params.tourEndsOn) ?? null : null;
 
+  // Resolve tour package template name if tourPackageId is provided
+  let tourPackageTemplateName: string | null = null;
+  if (params.tourPackageId) {
+    const pkg = await prismadb.tourPackage.findUnique({
+      where: { id: params.tourPackageId },
+      select: { tourPackageName: true },
+    });
+    tourPackageTemplateName = pkg?.tourPackageName ?? null;
+  }
+
   const query = await prismadb.tourPackageQuery.create({
     data: {
       tourPackageQueryNumber: queryNumber,
@@ -415,6 +434,9 @@ async function createTourQuery(rawParams: unknown) {
       drop_location: params.drop_location ?? null,
       remarks: params.remarks ?? null,
       inquiryId: params.inquiryId ?? null,
+      selectedTemplateId: params.tourPackageId ?? null,
+      selectedTemplateType: params.tourPackageId ? "tourPackage" : null,
+      tourPackageTemplateName,
       price: params.price ?? null,
       totalPrice: params.totalPrice ?? null,
       inclusions: params.inclusions ?? null,

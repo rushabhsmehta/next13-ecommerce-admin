@@ -114,12 +114,16 @@ POLICIES (ask the customer if they want to include):
         const data = await callTool("create_tour_query", params);
         const d = data as any;
         const itinCount = d?.itineraries?.length ?? 0;
+        const snapshotCount = d?.queryVariantSnapshots?.length ?? 0;
         const name = d?.tourPackageQueryName ?? "Unnamed";
         const pdfUrl = d?.pdfGeneratorUrl ?? "";
+        const variantInfo = snapshotCount > 0
+          ? `\nVariants: ${snapshotCount} variant snapshot(s) created`
+          : "";
         return {
           content: [{
             type: "text",
-            text: `Tour query created with ${itinCount} itinerary day(s)!\n\nID: ${d?.id}\nName: ${name}\nCustomer: ${d?.customerName}\nDestination: ${d?.location?.label ?? ""}\n\n📄 Download PDF: ${pdfUrl}\n\nOpen in admin: /tourPackageQuery/${d?.id}\n\n${JSON.stringify(data, null, 2)}`,
+            text: `Tour query created with ${itinCount} itinerary day(s)!${variantInfo}\n\nID: ${d?.id}\nName: ${name}\nCustomer: ${d?.customerName}\nDestination: ${d?.location?.label ?? ""}\n\n📄 Download PDF: ${pdfUrl}\n\nOpen in admin: /tourPackageQuery/${d?.id}\n\n${JSON.stringify(data, null, 2)}`,
           }],
         };
       } catch (err) {

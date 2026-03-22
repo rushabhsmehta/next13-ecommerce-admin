@@ -143,7 +143,7 @@ export function registerInquiryTools(server: McpServer) {
     unassignInquiryStaffContract.name,
     unassignInquiryStaffContract.description,
     unassignInquiryStaffContract.inputSchema,
-    async (params) => {
+    async (params: Record<string, unknown>) => {
       try {
         const data = await callTool(unassignInquiryStaffContract.name, params);
         return {
@@ -159,7 +159,7 @@ export function registerInquiryTools(server: McpServer) {
     setInquiryFollowUpContract.name,
     setInquiryFollowUpContract.description,
     setInquiryFollowUpContract.inputSchema,
-    async (params) => {
+    async (params: Record<string, unknown>) => {
       try {
         const data = await callTool(setInquiryFollowUpContract.name, params);
         return {
@@ -191,7 +191,7 @@ export function registerInquiryTools(server: McpServer) {
     updateInquiryContract.name,
     updateInquiryContract.description,
     updateInquiryContract.inputSchema,
-    async (params) => {
+    async (params: Record<string, unknown>) => {
       try {
         const data = await callTool(updateInquiryContract.name, params);
         return {
@@ -225,7 +225,7 @@ export function registerInquiryTools(server: McpServer) {
     listFollowUpsDueContract.name,
     listFollowUpsDueContract.description,
     listFollowUpsDueContract.inputSchema,
-    async (params) => {
+    async (params: Record<string, unknown>) => {
       try {
         const data = await callTool(listFollowUpsDueContract.name, params);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };

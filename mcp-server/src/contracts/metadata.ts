@@ -1,4 +1,4 @@
-import type { ToolMetadata } from "./core";
+import type { ToolMetadata } from "./core.js";
 
 export function inferToolMetadata(toolName: string): ToolMetadata {
   if (toolName === "generate_itinerary") {

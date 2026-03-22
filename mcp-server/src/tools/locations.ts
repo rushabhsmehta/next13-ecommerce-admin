@@ -39,6 +39,43 @@ export function registerLocationTools(server: McpServer) {
   );
 
   server.tool(
+    "get_tour_package",
+    `Get a tour package with its full variant details — hotels per day per variant, pricing tiers, and itinerary.
+
+WHEN TO USE:
+- After list_tour_packages, once the user has picked a package
+- To show the user which variants (Budget/Standard/Deluxe) are available and what hotels/prices they include
+- To get the variant IDs needed for create_tour_query selectedVariantIds
+
+The response includes:
+- packageVariants[].id — use this as selectedVariantIds in create_tour_query
+- packageVariants[].name — e.g. "Budget", "Standard", "Deluxe"
+- packageVariants[].variantHotelMappings — hotel per day per variant
+- packageVariants[].tourPackagePricings — pricing tiers with components
+- itineraries — day-by-day itinerary of the base package`,
+    {
+      tourPackageId: z.string().describe("Tour package ID from list_tour_packages"),
+    },
+    async ({ tourPackageId }) => {
+      try {
+        const data = await callTool("get_tour_package", { tourPackageId });
+        const d = data as any;
+        const variantSummary = (d?.packageVariants ?? [])
+          .map((v: any) => {
+            const pricing = v.tourPackagePricings?.[0];
+            const total = pricing ? `₹${pricing.totalPrice ?? "—"}` : "price not set";
+            return `  • ${v.name} (ID: ${v.id}) — ${total}`;
+          })
+          .join("\n");
+        const header = `Package: ${d?.tourPackageName}\nDuration: ${d?.numDaysNight}\nLocation: ${d?.location?.label}\n\nVariants:\n${variantSummary || "  No variants defined"}\n\n`;
+        return { content: [{ type: "text", text: `${header}${JSON.stringify(data, null, 2)}` }] };
+      } catch (err) {
+        return toolError("get_tour_package", err);
+      }
+    }
+  );
+
+  server.tool(
     "list_hotels",
     "Browse hotels available in the system, optionally filtered by location or name.",
     {

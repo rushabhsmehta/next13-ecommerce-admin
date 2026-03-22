@@ -33,6 +33,12 @@ export function registerTourQueryTools(server: McpServer) {
     "create_tour_query",
     `Create a complete tour package query (quote/itinerary proposal) for a customer.
 
+PACKAGE-BASED WORKFLOW (recommended):
+1. search_locations → get locationId
+2. list_tour_packages with locationId → pick a package
+3. get_tour_package → see variants (Budget/Standard/Deluxe) with hotel-per-day + pricing
+4. create_tour_query with tourPackageId + selectedVariantIds → snapshots variants into PDF
+
 IMPORTANT: Before calling this tool, collect ALL of the following from the user in one conversation:
 
 REQUIRED INFORMATION:
@@ -91,6 +97,8 @@ POLICIES (ask the customer if they want to include):
       drop_location: z.string().optional().describe("Drop location"),
       remarks: z.string().optional().describe("Additional notes or special requests"),
       inquiryId: z.string().optional().describe("Link to an existing inquiry ID"),
+      tourPackageId: z.string().optional().describe("Tour package ID from list_tour_packages — use get_tour_package to see its variants"),
+      selectedVariantIds: z.array(z.string()).optional().describe("Variant IDs from get_tour_package to snapshot into this query — creates variant comparison table in PDF"),
       price: z.string().optional().describe("Base price"),
       totalPrice: z.string().optional().describe("Total package price"),
       itineraries: z.array(itineraryDaySchema).optional().default([])
@@ -253,6 +261,62 @@ Supports the same itinerary structure as create_tour_query:
         };
       } catch (err) {
         return toolError("archive_tour_query", err);
+      }
+    }
+  );
+
+  server.tool(
+    "add_tour_query_variant",
+    `Add one or more pricing variants to an existing tour package query.
+
+Variants let customers compare alternative hotel/price options side-by-side (e.g., Budget, Standard, Deluxe).
+Each variant has a name, a breakdown of pricing components (Hotel, Transport, Meals, etc.), and optional
+hotel selections per day.
+
+WHEN TO USE:
+- After create_tour_query when the customer wants to see multiple price options
+- Use replaceExisting: true to overwrite all current variants
+- Use replaceExisting: false (default) to append new variants to existing ones
+
+EXAMPLE VARIANTS:
+- Budget: Economy hotels, shared transport → total ₹15,000
+- Standard: 3-star hotels, private cab → total ₹22,000
+- Deluxe: 5-star hotels, luxury vehicle → total ₹35,000
+
+The response includes pdfGeneratorUrl — open it to download the PDF with variant comparison table.`,
+    {
+      tourPackageQueryId: z.string().describe("The tour query ID to add variants to"),
+      replaceExisting: z.boolean().optional().default(false).describe("true = replace all existing variants, false = append to existing"),
+      variants: z.array(z.object({
+        name: z.string().describe("Variant name e.g. 'Budget', 'Standard', 'Deluxe'"),
+        description: z.string().optional().describe("Short description of what makes this variant different"),
+        totalPrice: z.number().optional().describe("Total price for this variant in INR"),
+        pricingComponents: z.array(z.object({
+          name: z.string().describe("Component name e.g. 'Hotel', 'Transport', 'Meals', 'Guide Charges'"),
+          price: z.number().describe("Component price in INR"),
+          description: z.string().optional().describe("Notes e.g. '3-star hotel for 2 nights'"),
+        })).optional().default([]).describe("Itemized price breakdown for this variant"),
+        hotelOverrides: z.array(z.object({
+          dayNumber: z.number().int().min(1).describe("Day number (1, 2, 3, ...) from the itinerary"),
+          hotelName: z.string().describe("Hotel name for this day in this variant"),
+        })).optional().default([]).describe("Which hotel to use per day — only needed if different hotels per variant"),
+        remarks: z.string().optional().describe("Additional notes for this variant"),
+      })).min(1).describe("List of variants to add"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("add_tour_query_variant", params);
+        const d = data as any;
+        const count = Array.isArray(d?.customQueryVariants) ? d.customQueryVariants.length : params.variants.length;
+        const pdfUrl = d?.pdfGeneratorUrl ?? "";
+        return {
+          content: [{
+            type: "text",
+            text: `${params.variants.length} variant(s) added. Query now has ${count} variant(s) total.\n\n📄 Download PDF with variant comparison: ${pdfUrl}\n\n${JSON.stringify(data, null, 2)}`,
+          }],
+        };
+      } catch (err) {
+        return toolError("add_tour_query_variant", err);
       }
     }
   );

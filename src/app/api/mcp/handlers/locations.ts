@@ -1,6 +1,7 @@
 import prismadb from "@/lib/prismadb";
 import { z } from "zod";
 import type { ToolHandlerMap } from "../lib/schemas";
+import { NotFoundError } from "../lib/errors";
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,10 @@ const ListHotelsSchema = z.object({
 const ListDestinationsSchema = z.object({
   locationId: z.string().optional(),
   limit: z.number().int().min(1).max(100).optional().default(50),
+});
+
+const GetTourPackageSchema = z.object({
+  tourPackageId: z.string().min(1),
 });
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -95,11 +100,54 @@ async function listDestinations(rawParams: unknown) {
   });
 }
 
+async function getTourPackage(rawParams: unknown) {
+  const { tourPackageId } = GetTourPackageSchema.parse(rawParams);
+  const pkg = await prismadb.tourPackage.findUnique({
+    where: { id: tourPackageId },
+    include: {
+      location: { select: { id: true, label: true } },
+      itineraries: {
+        select: {
+          id: true,
+          dayNumber: true,
+          itineraryTitle: true,
+          hotel: { select: { id: true, name: true } },
+        },
+        orderBy: { dayNumber: "asc" },
+      },
+      packageVariants: {
+        include: {
+          variantHotelMappings: {
+            include: {
+              hotel: { select: { id: true, name: true } },
+              itinerary: { select: { id: true, dayNumber: true, itineraryTitle: true } },
+            },
+          },
+          tourPackagePricings: {
+            where: { isActive: true },
+            include: {
+              mealPlan: { select: { id: true, name: true } },
+              vehicleType: { select: { id: true, name: true } },
+              pricingComponents: {
+                include: { pricingAttribute: { select: { id: true, name: true } } },
+              },
+            },
+          },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  });
+  if (!pkg) throw new NotFoundError(`Tour package ${tourPackageId} not found`);
+  return pkg;
+}
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export const locationHandlers: ToolHandlerMap = {
   search_locations: searchLocations,
   list_tour_packages: listTourPackages,
+  get_tour_package: getTourPackage,
   list_hotels: listHotels,
   list_destinations: listDestinations,
 };

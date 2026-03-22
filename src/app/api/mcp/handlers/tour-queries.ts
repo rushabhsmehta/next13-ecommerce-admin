@@ -3,6 +3,7 @@ import { z } from "zod";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { McpError, NotFoundError } from "../lib/errors";
 import { isoDateString, type ToolHandlerMap } from "../lib/schemas";
+import { createVariantSnapshots } from "@/lib/variant-snapshot";
 
 // ── Sub-schemas for itinerary building ────────────────────────────────────────
 
@@ -61,6 +62,8 @@ const CreateTourQuerySchema = z.object({
   totalPrice: z.string().optional(),
   // New fields
   tourPackageQueryName: z.string().optional(),
+  tourPackageId: z.string().optional(),
+  selectedVariantIds: z.array(z.string()).optional().default([]),
   itineraries: z.array(ItineraryInputSchema).optional().default([]),
   inclusions: PolicyFieldSchema,
   exclusions: PolicyFieldSchema,
@@ -433,6 +436,15 @@ async function createTourQuery(rawParams: unknown) {
     await createItinerariesForQuery(query.id, resolvedLocationId, params.itineraries);
   }
 
+  // Snapshot selected package variants if provided
+  if (params.selectedVariantIds && params.selectedVariantIds.length > 0) {
+    await prismadb.tourPackageQuery.update({
+      where: { id: query.id },
+      data: { selectedVariantIds: params.selectedVariantIds },
+    });
+    await createVariantSnapshots(query.id, params.selectedVariantIds, { overwrite: true });
+  }
+
   // Return full record with itineraries
   const created = await prismadb.tourPackageQuery.findUnique({
     where: { id: query.id },
@@ -616,6 +628,122 @@ async function archiveTourQuery(rawParams: unknown) {
   });
 }
 
+// ── Variant schemas ───────────────────────────────────────────────────────────
+
+const VariantComponentSchema = z.object({
+  name: z.string().min(1),
+  price: z.number(),
+  description: z.string().optional(),
+});
+
+const VariantInputSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  totalPrice: z.number().optional(),
+  pricingComponents: z.array(VariantComponentSchema).optional().default([]),
+  hotelOverrides: z.array(z.object({
+    dayNumber: z.number().int().min(1),
+    hotelName: z.string().min(1),
+  })).optional().default([]),
+  remarks: z.string().optional(),
+});
+
+const AddTourQueryVariantSchema = z.object({
+  tourPackageQueryId: z.string().min(1),
+  variants: z.array(VariantInputSchema).min(1),
+  replaceExisting: z.boolean().optional().default(false),
+});
+
+// ── addTourQueryVariant ───────────────────────────────────────────────────────
+
+async function addTourQueryVariant(rawParams: unknown) {
+  const { tourPackageQueryId, variants, replaceExisting } = AddTourQueryVariantSchema.parse(rawParams);
+
+  // Fetch existing query with itineraries and current variant JSON fields
+  const query = await prismadb.tourPackageQuery.findUnique({
+    where: { id: tourPackageQueryId },
+    select: {
+      id: true,
+      locationId: true,
+      customQueryVariants: true,
+      variantHotelOverrides: true,
+      variantPricingData: true,
+      itineraries: { select: { id: true, dayNumber: true }, orderBy: { dayNumber: "asc" } },
+    },
+  });
+  if (!query) throw new NotFoundError(`Tour query ${tourPackageQueryId} not found`);
+
+  // Build dayNumber → itineraryId map
+  const dayToItineraryId = new Map<number, string>();
+  for (const itin of query.itineraries) {
+    if (itin.dayNumber != null) dayToItineraryId.set(itin.dayNumber, itin.id);
+  }
+
+  // Seed existing data or start fresh
+  const existingCustomVariants: any[] = replaceExisting ? [] : (Array.isArray(query.customQueryVariants) ? query.customQueryVariants as any[] : []);
+  const existingHotelOverrides: Record<string, Record<string, string>> = replaceExisting ? {} : ((query.variantHotelOverrides as any) ?? {});
+  const existingPricingData: Record<string, any> = replaceExisting ? {} : ((query.variantPricingData as any) ?? {});
+
+  for (const variant of variants) {
+    const variantId = crypto.randomUUID();
+
+    // Build hotel overrides for this variant: { itineraryId: hotelId }
+    const hotelOverridesForVariant: Record<string, string> = {};
+    for (const override of variant.hotelOverrides ?? []) {
+      const itineraryId = dayToItineraryId.get(override.dayNumber);
+      if (!itineraryId) continue;
+      // Resolve hotel name → ID
+      const hotel = await prismadb.hotel.findFirst({
+        where: { hotelName: { contains: override.hotelName }, locationId: query.locationId },
+        select: { id: true },
+      });
+      if (hotel) hotelOverridesForVariant[itineraryId] = hotel.id;
+    }
+
+    // Build the customQueryVariant object
+    const customVariant = {
+      id: variantId,
+      name: variant.name,
+      description: variant.description ?? null,
+      totalPrice: variant.totalPrice?.toString() ?? null,
+      remarks: variant.remarks ?? null,
+      pricingData: {
+        calculationMethod: "manual",
+        components: (variant.pricingComponents ?? []).map((c) => ({ name: c.name, price: c.price, description: c.description ?? null })),
+        totalCost: variant.totalPrice ?? (variant.pricingComponents ?? []).reduce((sum, c) => sum + c.price, 0),
+        calculatedAt: new Date().toISOString(),
+      },
+    };
+
+    existingCustomVariants.push(customVariant);
+
+    if (Object.keys(hotelOverridesForVariant).length > 0) {
+      existingHotelOverrides[variantId] = hotelOverridesForVariant;
+    }
+
+    existingPricingData[variantId] = {
+      components: (variant.pricingComponents ?? []).map((c) => ({ name: c.name, price: c.price.toString() })),
+      totalCost: variant.totalPrice ?? (variant.pricingComponents ?? []).reduce((sum, c) => sum + c.price, 0),
+    };
+  }
+
+  await prismadb.tourPackageQuery.update({
+    where: { id: tourPackageQueryId },
+    data: {
+      customQueryVariants: existingCustomVariants,
+      variantHotelOverrides: existingHotelOverrides,
+      variantPricingData: existingPricingData,
+    },
+  });
+
+  const updated = await prismadb.tourPackageQuery.findUnique({
+    where: { id: tourPackageQueryId },
+    include: fullQueryInclude,
+  });
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return { ...updated, pdfGeneratorUrl: `${baseUrl}/tourPackageQueryPDFGenerator/${tourPackageQueryId}` };
+}
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export const tourQueryHandlers: ToolHandlerMap = {
@@ -626,4 +754,5 @@ export const tourQueryHandlers: ToolHandlerMap = {
   get_query_financial_summary: getQueryFinancialSummary,
   update_tour_query: updateTourQuery,
   archive_tour_query: archiveTourQuery,
+  add_tour_query_variant: addTourQueryVariant,
 };

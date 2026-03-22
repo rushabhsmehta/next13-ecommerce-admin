@@ -1,13 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // mcp-server contracts use .js extensions (NodeNext ESM convention) but are
-  // imported directly by the Next.js app. Tell both Turbopack and webpack to
-  // resolve .js → .ts so the source files are found.
-  turbopack: {
-    extensionAlias: {
-      '.js': ['.ts', '.tsx', '.js', '.jsx'],
-    },
-  },
+  // imported directly by the Next.js app. Tell webpack to resolve .js → .ts
+  // so the TypeScript source files are found during production builds.
   webpack: (config) => {
     config.resolve.extensionAlias = {
       '.js': ['.ts', '.tsx', '.js', '.jsx'],

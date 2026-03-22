@@ -3,8 +3,8 @@
  * Travel Admin MCP Server
  *
  * Transport modes (set MCP_TRANSPORT env var):
- *   stdio  (default) — for Claude Desktop
- *   http             — for Claude.ai remote MCP (OAuth 2.0 + Streamable HTTP)
+ *   stdio  (default) - for Claude Desktop
+ *   http             - for Claude.ai remote MCP (OAuth 2.0 + Streamable HTTP)
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -14,21 +14,27 @@ const transportMode = process.env.MCP_TRANSPORT ?? "stdio";
 
 function validateStartupEnv(mode: string): void {
   const required: Array<{ key: string; desc: string }> = [
-    { key: "NEXT_APP_URL",   desc: "URL of the Next.js admin app (e.g. https://your-app.up.railway.app)" },
+    { key: "NEXT_APP_URL", desc: "URL of the Next.js admin app (e.g. https://your-app.up.railway.app)" },
     { key: "MCP_API_SECRET", desc: "Shared secret for MCP gateway auth" },
   ];
   if (mode === "http") {
-    required.push({
-      key: "MCP_PUBLIC_URL",
-      desc: "Public base URL of this MCP server (e.g. https://my-mcp.up.railway.app)",
-    });
+    required.push(
+      {
+        key: "MCP_PUBLIC_URL",
+        desc: "Public base URL of this MCP server (e.g. https://my-mcp.up.railway.app)",
+      },
+      {
+        key: "MCP_APPROVAL_SECRET",
+        desc: "Shared HMAC secret used by the Next.js app to sign MCP approval decisions",
+      }
+    );
   }
 
-  const missing = required.filter((r) => !process.env[r.key]);
+  const missing = required.filter((entry) => !process.env[entry.key]);
   if (missing.length === 0) return;
 
   console.error("[MCP] FATAL: Missing required environment variables:");
-  missing.forEach((r) => console.error(`  ${r.key.padEnd(20)} — ${r.desc}`));
+  missing.forEach((entry) => console.error(`  ${entry.key.padEnd(20)} - ${entry.desc}`));
   console.error("\nSet these in mcp-server/.env and restart.");
   process.exit(1);
 }
@@ -38,7 +44,6 @@ async function main() {
 
   if (transportMode === "http") {
     const { startHttpServer } = await import("./http.js");
-    // Pass factory so each MCP session gets a fresh server instance
     startHttpServer(createMcpServer);
   } else {
     const server = createMcpServer();

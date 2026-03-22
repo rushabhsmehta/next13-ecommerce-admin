@@ -361,3 +361,4 @@ export const inquiryHandlers: ToolHandlerMap = {
   list_follow_ups_due: listFollowUpsDue,
   get_inquiry_summary: getInquirySummary,
 };
+

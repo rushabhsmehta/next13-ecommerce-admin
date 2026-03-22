@@ -1,213 +1,147 @@
 # MCP Integration Setup Guide
 
-This guide explains how to connect Claude (Desktop or Claude.ai) to your Travel Admin platform so you can manage inquiries, tour packages, and more by just talking to Claude.
+This guide explains how to connect Claude Desktop or Claude.ai to the Travel Admin platform through the dedicated `mcp-server` package.
 
----
+## Architecture
 
-## How It Works
-
-```
-You chat with Claude
-     ↓
-Claude calls MCP tools (create_inquiry, list_inquiries, etc.)
-     ↓
-MCP Server (Node.js) running locally or hosted
-     ↓
-Calls your Next.js app at /api/mcp (authenticated)
-     ↓
-Prisma → MySQL database
+```text
+Claude / Claude.ai
+  -> MCP server (stdio or Streamable HTTP)
+  -> Next.js MCP gateway at /api/mcp
+  -> Prisma / Travel Admin database
 ```
 
----
+Remote HTTP mode now uses a two-step approval flow:
 
-## Step 1: Add MCP Secret to Your Next.js App
+1. Claude.ai starts OAuth against `mcp-server`
+2. `mcp-server` redirects the browser to the Next.js app
+3. An authenticated `ADMIN` or `OWNER` approves the connector in the app
+4. The app signs the decision with `MCP_APPROVAL_SECRET`
+5. `mcp-server` verifies that signed decision, issues an auth code, and exchanges it for a bearer token
 
-Add this to your `.env` file:
+## 1. Configure the Next.js app
+
+Add these values to the main app `.env`:
 
 ```env
-# MCP API Secret — keep this private!
-MCP_API_SECRET=your-strong-random-secret-here
+MCP_API_SECRET=your-strong-random-secret
+MCP_APPROVAL_SECRET=your-second-strong-random-secret
 ```
 
-Generate a strong secret with:
+Generate strong secrets with:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Also add your Gemini API key (if not already present) for AI itinerary generation:
+If you use AI itinerary generation, also ensure one of these is present:
+
 ```env
 GOOGLE_GEMINI_API_KEY=your-gemini-api-key
-# OR (the route also checks this name)
+# or
 GEMINI_API_KEY=your-gemini-api-key
 ```
 
----
+## 2. Configure the MCP server package
 
-## Step 2: Install MCP Server Dependencies
+`mcp-server/.env` should contain:
+
+```env
+NEXT_APP_URL=https://your-admin-app.com
+MCP_API_SECRET=your-strong-random-secret
+MCP_APPROVAL_SECRET=your-second-strong-random-secret
+
+# HTTP mode only
+MCP_TRANSPORT=http
+MCP_PUBLIC_URL=https://your-mcp-server.com
+PORT=3000
+```
+
+Optional settings:
+
+```env
+MCP_TOKEN_TTL_SECONDS=7776000
+MCP_TOOL_TIMEOUT_MS=30000
+```
+
+## 3. Install and build
 
 ```bash
 cd mcp-server
 npm install
+npm run typecheck
 npm run build
+npm test
 ```
 
----
+## 4. Claude Desktop setup (stdio)
 
-## Step 3A: Claude Desktop Setup (stdio)
+Edit the Claude Desktop config file:
 
-Edit your Claude Desktop config file:
-
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "travel-admin": {
       "command": "node",
-      "args": ["/absolute/path/to/your/project/mcp-server/dist/index.js"],
+      "args": ["/absolute/path/to/next13-ecommerce-admin/mcp-server/dist/index.js"],
       "env": {
         "NEXT_APP_URL": "http://localhost:3000",
-        "MCP_API_SECRET": "your-strong-random-secret-here"
+        "MCP_API_SECRET": "your-strong-random-secret"
       }
     }
   }
 }
 ```
 
-> Replace `/absolute/path/to/your/project` with the actual path, e.g. `/Users/yourname/projects/next13-ecommerce-admin`
+Then restart Claude Desktop.
 
-Then **restart Claude Desktop**. You should see "travel-admin" appear in the tools menu.
+## 5. Claude.ai setup (remote HTTP)
 
----
+Start the MCP server in HTTP mode:
 
-## Step 3B: Claude.ai Setup (Remote MCP via HTTP)
-
-### ⚠️ Security: HTTP Authentication Required
-
-The MCP HTTP server enforces bearer-token authentication on all `/sse` and
-`/messages` requests. **You must set `MCP_HTTP_SECRET`** before starting the
-server — requests without a valid `Authorization: Bearer <token>` header will
-be rejected with HTTP 401.
-
-> **Why this matters:** Anyone who can reach the HTTP server can relay tool
-> calls using your embedded `MCP_API_SECRET`. Requiring a separate bearer
-> token prevents unauthorised access even if your server port is publicly
-> reachable.
-
-### Start the MCP HTTP Server
-
-Create `mcp-server/.env`:
-```env
-NEXT_APP_URL=https://your-production-app.com
-MCP_API_SECRET=your-strong-random-secret-here
-
-# Bearer token required by HTTP/SSE clients — keep separate from MCP_API_SECRET
-MCP_HTTP_SECRET=your-other-strong-random-secret-here
-MCP_TRANSPORT=http
-MCP_PORT=3100
-```
-
-Generate strong secrets with:
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-Start the server:
 ```bash
 cd mcp-server
 npm run start:http
-# (on Windows the cross-env wrapper handles the MCP_TRANSPORT env var)
 ```
 
-For production, deploy this on Railway, Fly.io, or any Node.js host and ensure
-`MCP_HTTP_SECRET` is set as a secret environment variable.
+Expose it through HTTPS, then add it in Claude.ai:
 
-### Add to Claude.ai
+1. Open `Claude.ai -> Settings -> Integrations`
+2. Click `Add MCP Server`
+3. Enter `https://your-mcp-server.com/mcp`
+4. Complete the OAuth flow
+5. When redirected into the Travel Admin app, sign in as an `ADMIN` or `OWNER`
+6. Approve or deny the connector from the in-app approval screen
 
-1. Go to **Claude.ai → Settings → Integrations**
-2. Click **Add MCP Server**
-3. Enter your server URL: `https://your-mcp-server.com/sse`
-4. In the **Authorization** field enter: `Bearer <your MCP_HTTP_SECRET value>`
-5. Name it: `Travel Admin`
+Notes:
 
----
+- The approval screen lives in the Next.js app, not in the standalone MCP server
+- `ADMIN` and `OWNER` are the only roles allowed to approve connectors
+- Existing remote tokens should be considered invalid after redeploying this hardened flow
 
-## Available Tools
+## 6. Deployment notes
 
-Once connected, you can talk to Claude naturally:
+For Railway or any Node host:
 
-| Tool | Description | Example |
-|------|-------------|---------|
-| `search_locations` | Find destination IDs | "Search for Goa" |
-| `list_tour_packages` | Browse packages | "Show me Kerala packages" |
-| `list_hotels` | Browse hotels | "Hotels in Goa" |
-| `create_inquiry` | New customer inquiry | "Create inquiry for Rahul..." |
-| `list_inquiries` | View inquiries | "Show pending inquiries" |
-| `get_inquiry` | Inquiry details | "Get inquiry INQ-123" |
-| `update_inquiry_status` | Change status | "Mark inquiry as confirmed" |
-| `add_inquiry_note` | Add a note | "Add note: customer called" |
-| `create_tour_query` | Create a quote | "Create tour query for Rahul..." |
-| `list_tour_queries` | View quotes | "Show recent tour queries" |
-| `generate_itinerary` | AI itinerary | "Generate 5-day Goa itinerary for family" |
-| `get_stats` | Dashboard stats | "How many inquiries today?" |
+- Deploy the `mcp-server` package as its own service
+- Set `NEXT_APP_URL`, `MCP_API_SECRET`, `MCP_APPROVAL_SECRET`, `MCP_PUBLIC_URL`, and `PORT`
+- Health check path: `/health`
+- Start command: `npm run start:http`
 
----
+## 7. Security notes
 
-## Example Conversations
+- Never expose `MCP_API_SECRET` or `MCP_APPROVAL_SECRET` in client-side code
+- `MCP_API_SECRET` protects the private `/api/mcp` gateway inside the Next.js app
+- `MCP_APPROVAL_SECRET` is only for signing approval decisions between the Next.js app and `mcp-server`
+- Remote bearer tokens are stored as hashes and expire automatically
+- Approval requests and OAuth codes are short-lived and single-use
 
-### Create an inquiry
-> "Create an inquiry for Priya Sharma, mobile 9876543210, she wants to visit Goa in April 2026 with 2 adults and 1 child."
+## 8. Troubleshooting
 
-Claude will:
-1. Call `search_locations` to find Goa's ID
-2. Call `create_inquiry` with all the details
-3. Confirm: "✅ Created inquiry #INQ-20260401-... for Priya Sharma going to Goa"
-
-### Generate and quote an itinerary
-> "Generate a 4-night 5-day Goa honeymoon itinerary for premium budget and create a tour query for it."
-
-Claude will:
-1. Call `generate_itinerary` to get AI-generated day-by-day plan
-2. Show you the itinerary
-3. Ask if you want to create the tour query
-4. Call `create_tour_query` with the details
-
-### Check dashboard stats
-> "How many inquiries do we have today? What's the breakdown by status?"
-
-Claude calls `get_stats` and presents:
-```
-Inquiries: 47 total
-  • New: 12
-  • Active: 23
-  • Confirmed: 8
-  • Cancelled: 4
-Tour Queries: 31 active
-```
-
----
-
-## Development
-
-```bash
-# Run Next.js dev server
-npm run dev
-
-# In another terminal, test MCP server locally (stdio)
-cd mcp-server
-NEXT_APP_URL=http://localhost:3000 MCP_API_SECRET=your-secret npm run dev
-
-# HTTP mode for testing
-cd mcp-server
-NEXT_APP_URL=http://localhost:3000 MCP_API_SECRET=your-secret MCP_TRANSPORT=http npm run dev
-```
-
----
-
-## Security Notes
-
-- **Never expose `MCP_API_SECRET` in client-side code**
-- The `/api/mcp` endpoint is only accessible with the correct secret header
-- For production Claude.ai use, deploy the MCP server behind HTTPS
-- The MCP secret bypasses Clerk auth — treat it like a master API key
+- `401 Unauthorized` from `/api/mcp`: verify `MCP_API_SECRET` matches in both services
+- Approval page says forbidden: sign in with an account that has `ADMIN` or `OWNER`
+- Claude.ai cannot finish OAuth: verify `MCP_PUBLIC_URL` is public HTTPS and the MCP server can reach `NEXT_APP_URL`
+- Remote connector stopped working after redeploy: reconnect it so a fresh token is issued

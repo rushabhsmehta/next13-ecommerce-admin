@@ -11,7 +11,7 @@ export function registerCustomerTools(server: McpServer) {
     listCustomersContract.name,
     listCustomersContract.description,
     listCustomersContract.inputSchema,
-    async (params) => {
+    async (params: Record<string, unknown>) => {
       try {
         const data = await callTool(listCustomersContract.name, params);
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
@@ -41,7 +41,7 @@ export function registerCustomerTools(server: McpServer) {
     createCustomerContract.name,
     createCustomerContract.description,
     createCustomerContract.inputSchema,
-    async (params) => {
+    async (params: Record<string, unknown>) => {
       try {
         const data = await callTool(createCustomerContract.name, params);
         return {

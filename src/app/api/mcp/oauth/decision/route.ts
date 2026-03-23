@@ -49,20 +49,21 @@ export async function POST(request: Request) {
 
   if (!approvalId || !mcpServerUrl || (decision !== "approve" && decision !== "deny")) {
     pageUrl.searchParams.set("error", "invalid_request");
-    return NextResponse.redirect(pageUrl);
+    return NextResponse.redirect(pageUrl, 302);
   }
 
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.redirect(
-      new URL(`/sign-in?redirect_url=${encodeURIComponent(pageUrl.pathname + pageUrl.search)}`, request.url)
+      new URL(`/sign-in?redirect_url=${encodeURIComponent(pageUrl.pathname + pageUrl.search)}`, request.url),
+      302
     );
   }
 
   const role = await getUserOrgRole(userId);
   if (!roleAtLeast(role, "ADMIN")) {
     pageUrl.searchParams.set("error", "forbidden");
-    return NextResponse.redirect(pageUrl);
+    return NextResponse.redirect(pageUrl, 302);
   }
 
   const approvalSecret = process.env.MCP_APPROVAL_SECRET;
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
     destination = new URL(`/authorize/${decision}`, mcpServerUrl);
   } catch {
     pageUrl.searchParams.set("error", "invalid_request");
-    return NextResponse.redirect(pageUrl);
+    return NextResponse.redirect(pageUrl, 302);
   }
 
   const approvalToken = createApprovalToken(approvalSecret, {
@@ -88,5 +89,5 @@ export async function POST(request: Request) {
   });
 
   destination.searchParams.set("approval_token", approvalToken);
-  return NextResponse.redirect(destination);
+  return NextResponse.redirect(destination, 302);
 }

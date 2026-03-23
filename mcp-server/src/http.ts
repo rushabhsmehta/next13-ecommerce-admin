@@ -336,7 +336,7 @@ export function startHttpServer(createServer: () => McpServer): void {
     res.redirect(approvalUrl.toString());
   });
 
-  app.get("/authorize/approve", (req, res) => {
+  app.all("/authorize/approve", (req, res) => {
     const approvalToken = req.query.approval_token;
     if (typeof approvalToken !== "string" || !approvalToken) {
       res.status(400).send("Missing approval token.");
@@ -380,7 +380,7 @@ export function startHttpServer(createServer: () => McpServer): void {
     }
   });
 
-  app.get("/authorize/deny", (req, res) => {
+  app.all("/authorize/deny", (req, res) => {
     const approvalToken = req.query.approval_token;
     if (typeof approvalToken !== "string" || !approvalToken) {
       res.status(400).send("Missing approval token.");

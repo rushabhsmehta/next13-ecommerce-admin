@@ -36,7 +36,10 @@
       "Bash(npx next build)",
       "Bash(ls -la src/app/\\\\\\(dashboard\\\\\\))",
       "Bash(ls -1 /c/Users/HP/Documents/GitHub/next13-ecommerce-admin/src/app/\\\\\\(dashboard\\\\\\)/\\\\\\(routes\\\\\\)/)",
-      "Bash(ls src/app/\\\\\\(dashboard\\\\\\)/\\\\\\(routes\\\\\\)/)"
+      "Bash(ls src/app/\\\\\\(dashboard\\\\\\)/\\\\\\(routes\\\\\\)/)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

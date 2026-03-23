@@ -280,40 +280,6 @@ const PreviewWhatsAppTemplateSchema = z.object({
   parameters: TemplatePreviewParametersSchema,
 });
 
-const GenerateWhatsAppTemplateExampleShape = {
-  name: PreviewWhatsAppTemplateFromComponentsShape.name,
-  language: PreviewWhatsAppTemplateFromComponentsShape.language,
-  category: PreviewWhatsAppTemplateFromComponentsShape.category,
-  parameterFormat: PreviewWhatsAppTemplateFromComponentsShape.parameterFormat,
-  parameter_format: PreviewWhatsAppTemplateFromComponentsShape.parameter_format,
-  allowCategoryChange: PreviewWhatsAppTemplateFromComponentsShape.allowCategoryChange,
-  allow_category_change: PreviewWhatsAppTemplateFromComponentsShape.allow_category_change,
-  components: PreviewWhatsAppTemplateFromComponentsShape.components,
-};
-
-const GenerateWhatsAppTemplateExampleSchema = z.object(GenerateWhatsAppTemplateExampleShape).superRefine((value, ctx) => {
-  if (!value.components.some((component) => component.type === "BODY")) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Template must include a BODY component",
-      path: ["components"],
-    });
-  }
-
-  value.components.forEach((component, index) => {
-    if (component.type === "HEADER" && ["IMAGE", "VIDEO", "DOCUMENT"].includes(component.format)) {
-      const handleCount = component.example?.header_handle?.length ?? 0;
-      if (!handleCount) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `${component.format} header requires an example.header_handle value`,
-          path: ["components", index, "example", "header_handle"],
-        });
-      }
-    }
-  });
-});
-
 const PreviewWhatsAppTemplateFromComponentsShape = {
   name: z.string().regex(/^[a-z0-9_]+$/, {
     message: "Template name must contain only lowercase alphanumeric characters and underscores",
@@ -363,6 +329,40 @@ const PreviewWhatsAppTemplateFromComponentsSchema = z
       }
     });
   });
+
+const GenerateWhatsAppTemplateExampleShape = {
+  name: PreviewWhatsAppTemplateFromComponentsShape.name,
+  language: PreviewWhatsAppTemplateFromComponentsShape.language,
+  category: PreviewWhatsAppTemplateFromComponentsShape.category,
+  parameterFormat: PreviewWhatsAppTemplateFromComponentsShape.parameterFormat,
+  parameter_format: PreviewWhatsAppTemplateFromComponentsShape.parameter_format,
+  allowCategoryChange: PreviewWhatsAppTemplateFromComponentsShape.allowCategoryChange,
+  allow_category_change: PreviewWhatsAppTemplateFromComponentsShape.allow_category_change,
+  components: PreviewWhatsAppTemplateFromComponentsShape.components,
+};
+
+const GenerateWhatsAppTemplateExampleSchema = z.object(GenerateWhatsAppTemplateExampleShape).superRefine((value, ctx) => {
+  if (!value.components.some((component) => component.type === "BODY")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Template must include a BODY component",
+      path: ["components"],
+    });
+  }
+
+  value.components.forEach((component, index) => {
+    if (component.type === "HEADER" && ["IMAGE", "VIDEO", "DOCUMENT"].includes(component.format)) {
+      const handleCount = component.example?.header_handle?.length ?? 0;
+      if (!handleCount) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${component.format} header requires an example.header_handle value`,
+          path: ["components", index, "example", "header_handle"],
+        });
+      }
+    }
+  });
+});
 
 const ValidateWhatsAppTemplateSchema = z.object(ValidateWhatsAppTemplateShape).superRefine((value, ctx) => {
   if (!value.components.some((component) => component.type === "BODY")) {
@@ -552,6 +552,119 @@ function formatLastInboundMessage(lastInboundMessage: any) {
   };
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightText(text: string | null | undefined, query: string) {
+  if (!text) {
+    return text ?? null;
+  }
+
+  const escaped = escapeRegExp(query);
+  if (!escaped) {
+    return text;
+  }
+
+  const regex = new RegExp(`(${escaped})`, "ig");
+  return text.replace(regex, "**$1**");
+}
+
+function extractMessageAttachments(message: any) {
+  const metadata = message?.metadata ?? {};
+  const payload = message?.payload ?? {};
+  const rawMessage = metadata.rawMessage ?? metadata.raw_message ?? payload?.messages?.[0] ?? payload;
+  const attachments: Array<{
+    type: string;
+    mediaId: string | null;
+    mediaUrl: string | null;
+    caption: string | null;
+    filename: string | null;
+    mimeType: string | null;
+    sha256: string | null;
+  }> = [];
+
+  const pushAttachment = (type: string, source: any, fallback: any = {}) => {
+    if (!source && !fallback) {
+      return;
+    }
+
+    const mediaId = source?.id ?? fallback?.id ?? null;
+    const mediaUrl = source?.link ?? source?.url ?? fallback?.link ?? fallback?.url ?? null;
+    const caption = source?.caption ?? fallback?.caption ?? null;
+    const filename = source?.filename ?? fallback?.filename ?? null;
+    const mimeType = source?.mime_type ?? source?.mimeType ?? fallback?.mime_type ?? fallback?.mimeType ?? null;
+    const sha256 = source?.sha256 ?? fallback?.sha256 ?? null;
+
+    if (!mediaId && !mediaUrl && !caption && !filename && !mimeType && !sha256) {
+      return;
+    }
+
+    attachments.push({
+      type,
+      mediaId,
+      mediaUrl,
+      caption,
+      filename,
+      mimeType,
+      sha256,
+    });
+  };
+
+  pushAttachment("image", payload.image ?? rawMessage.image, metadata.media);
+  pushAttachment("video", payload.video ?? rawMessage.video, metadata.media);
+  pushAttachment("audio", payload.audio ?? rawMessage.audio, metadata.media);
+  pushAttachment("document", payload.document ?? rawMessage.document, metadata.media);
+  pushAttachment("sticker", payload.sticker ?? rawMessage.sticker, metadata.media);
+
+  if (!attachments.length && metadata.media) {
+    attachments.push({
+      type: metadata.whatsappType || "media",
+      mediaId: metadata.media.id ?? null,
+      mediaUrl: metadata.media.url ?? null,
+      caption: metadata.media.caption ?? null,
+      filename: metadata.media.filename ?? null,
+      mimeType: metadata.media.mimeType ?? null,
+      sha256: metadata.media.sha256 ?? null,
+    });
+  }
+
+  return attachments;
+}
+
+function formatAttachmentLabel(attachments: ReturnType<typeof extractMessageAttachments>) {
+  if (!attachments.length) {
+    return "";
+  }
+
+  return attachments
+    .map((attachment) => {
+      const parts = [attachment.type];
+      if (attachment.filename) {
+        parts.push(attachment.filename);
+      }
+      if (attachment.mediaUrl) {
+        parts.push(attachment.mediaUrl);
+      }
+      return parts.join(": ");
+    })
+    .join(", ");
+}
+
+function formatConversationTranscript(messages: Array<{ direction: string; message: string | null; createdAt: Date; metadata?: any; payload?: any }>) {
+  return messages
+    .map((message) => {
+      const timestamp = new Date(message.createdAt).toISOString();
+      const label = message.direction === "inbound" ? "User" : "Business";
+      const attachments = extractMessageAttachments(message);
+      const attachmentLabel = formatAttachmentLabel(attachments);
+      const baseBody = message.message?.trim() || "[no text]";
+      const body = attachmentLabel ? `${baseBody} [${attachmentLabel}]` : baseBody;
+      return `${timestamp} | ${label}: ${body}`;
+    })
+    .join("\n");
+}
+
 async function sendWhatsAppMessage(rawParams: unknown) {
   const { phoneNumber, message, media, checkWindow } = SendWhatsAppMessageSchema.parse(rawParams);
 
@@ -688,24 +801,24 @@ async function previewWhatsAppTemplateHandler(rawParams: unknown) {
     if (!maybeTemplate) {
       throw new NotFoundError(`Template not found: ${templateId}`);
     }
-    template = maybeTemplate as WhatsAppTemplate;
+    template = maybeTemplate as unknown as WhatsAppTemplate;
   } else {
     const results = await searchTemplates({ name: templateName! });
     if (!results.length) {
       throw new NotFoundError(`Template not found: ${templateName}`);
     }
-    template = results[0];
+    template = results[0] as unknown as WhatsAppTemplate;
   }
 
   const required = extractTemplateParameters(template);
   if (parameters) {
-    const validation = validateTemplateParameters(template, parameters);
+    const validation = validateTemplateParameters(template, parameters as any);
     if (!validation.valid) {
       throw new McpError("Invalid parameters", "VALIDATION_ERROR", 422, { validation, required });
     }
   }
 
-  const preview = previewTemplate(template, parameters);
+  const preview = previewTemplate(template, parameters as any);
   return {
     success: true,
     template: {
@@ -759,12 +872,12 @@ async function previewWhatsAppTemplateFromComponentsHandler(rawParams: unknown) 
     status: "PENDING",
     category: validatedTemplate.category,
     components: validatedTemplate.components as WhatsAppTemplate["components"],
-    quality_score: null,
+    quality_score: undefined,
   };
 
   const required = extractTemplateParameters(template);
   if (parameters) {
-    const validation = validateTemplateParameters(template, parameters);
+    const validation = validateTemplateParameters(template, parameters as any);
     if (!validation.valid) {
       throw new McpError("Invalid parameters", "VALIDATION_ERROR", 422, { validation, required });
     }
@@ -846,7 +959,7 @@ async function validateWhatsAppTemplateHandler(rawParams: unknown) {
     status: "PENDING",
     category: templateRequest.category,
     components: templateRequest.components as WhatsAppTemplate["components"],
-    quality_score: null,
+    quality_score: undefined,
   };
 
   const required = extractTemplateParameters(template);
@@ -979,6 +1092,40 @@ const ListWhatsAppTemplatesSchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(50),
 });
 
+const ListWhatsAppMessagesSchema = z.object({
+  phoneNumber: z.string().optional(),
+  direction: z.enum(["inbound", "outbound"]).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  limit: z.number().int().min(1).max(100).optional().default(50),
+  skip: z.number().int().min(0).optional().default(0),
+});
+
+const GetWhatsAppConversationSchema = z.object({
+  phoneNumber: z.string().min(1),
+  limit: z.number().int().min(1).max(200).optional().default(100),
+  skip: z.number().int().min(0).optional().default(0),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
+const GetWhatsAppConversationSummarySchema = z.object({
+  phoneNumber: z.string().min(1),
+  limit: z.number().int().min(1).max(50).optional().default(10),
+  transcriptFormat: z.enum(["lines", "bullets", "markdown"]).optional().default("lines"),
+  sinceDate: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
+const SearchWhatsAppMessagesSchema = z.object({
+  query: z.string().min(1),
+  phoneNumber: z.string().optional(),
+  direction: z.enum(["inbound", "outbound"]).optional(),
+  limit: z.number().int().min(1).max(100).optional().default(25),
+  skip: z.number().int().min(0).optional().default(0),
+});
+
 async function listWhatsAppCampaigns(rawParams: unknown) {
   const { status, limit } = ListWhatsAppCampaignsSchema.parse(rawParams);
   return whatsappPrisma.whatsAppCampaign.findMany({
@@ -1080,6 +1227,253 @@ async function listWhatsAppTemplates(rawParams: unknown) {
   });
 }
 
+async function listWhatsAppMessages(rawParams: unknown) {
+  const { phoneNumber, direction, startDate, endDate, limit, skip } = ListWhatsAppMessagesSchema.parse(rawParams);
+
+  const phoneDigits = phoneNumber ? phoneNumber.replace(/\D/g, "") : null;
+  const start = startDate ? new Date(startDate) : null;
+  const end = endDate ? new Date(endDate) : null;
+
+  const messages = await whatsappPrisma.whatsAppMessage.findMany({
+    where: {
+      ...(direction ? { direction } : {}),
+      ...(phoneDigits
+        ? {
+            OR: [
+              { to: { contains: phoneDigits } },
+              { from: { contains: phoneDigits } },
+              { messageSid: { contains: phoneDigits } },
+            ],
+          }
+        : {}),
+      ...(start || end
+        ? {
+            createdAt: {
+              ...(start ? { gte: start } : {}),
+              ...(end ? { lte: end } : {}),
+            },
+          }
+        : {}),
+    },
+    include: {
+      session: true,
+      whatsappCustomer: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    skip,
+  });
+
+  return {
+    success: true,
+    count: messages.length,
+    messages: messages.map((message) => ({
+      ...message,
+      attachments: extractMessageAttachments(message),
+    })),
+  };
+}
+
+async function getWhatsAppConversation(rawParams: unknown) {
+  const { phoneNumber, limit, skip, startDate, endDate } = GetWhatsAppConversationSchema.parse(rawParams);
+  const phoneDigits = phoneNumber.replace(/\D/g, "");
+  const start = startDate ? new Date(startDate) : null;
+  const end = endDate ? new Date(endDate) : null;
+
+  const messages = await whatsappPrisma.whatsAppMessage.findMany({
+    where: {
+      OR: [
+        { to: { contains: phoneDigits } },
+        { from: { contains: phoneDigits } },
+      ],
+      ...(start || end
+        ? {
+            createdAt: {
+              ...(start ? { gte: start } : {}),
+              ...(end ? { lte: end } : {}),
+            },
+          }
+        : {}),
+    },
+    include: {
+      session: true,
+      whatsappCustomer: true,
+    },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    skip,
+  });
+
+  const inboundCount = messages.filter((message) => message.direction === "inbound").length;
+  const outboundCount = messages.filter((message) => message.direction === "outbound").length;
+  const lastMessage = messages[messages.length - 1] ?? null;
+
+  return {
+    success: true,
+    phoneNumber: phoneDigits,
+    count: messages.length,
+    inboundCount,
+    outboundCount,
+    lastMessage: lastMessage
+      ? {
+          id: lastMessage.id,
+          direction: lastMessage.direction,
+          message: lastMessage.message,
+          createdAt: lastMessage.createdAt,
+          status: lastMessage.status,
+        }
+      : null,
+    messages,
+    transcript: formatConversationTranscript(messages),
+  };
+}
+
+async function getWhatsAppConversationSummary(rawParams: unknown) {
+  const { phoneNumber, limit, transcriptFormat, sinceDate, startDate, endDate } =
+    GetWhatsAppConversationSummarySchema.parse(rawParams);
+  const phoneDigits = phoneNumber.replace(/\D/g, "");
+  const lowerBoundDate = startDate ?? sinceDate;
+  const start = lowerBoundDate ? new Date(lowerBoundDate) : null;
+  const end = endDate ? new Date(endDate) : null;
+
+  const messages = await whatsappPrisma.whatsAppMessage.findMany({
+    where: {
+      OR: [{ to: { contains: phoneDigits } }, { from: { contains: phoneDigits } }],
+      ...(start || end
+        ? {
+            createdAt: {
+              ...(start ? { gte: start } : {}),
+              ...(end ? { lte: end } : {}),
+            },
+          }
+        : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+
+  const inboundCount = messages.filter((message) => message.direction === "inbound").length;
+  const outboundCount = messages.filter((message) => message.direction === "outbound").length;
+  const latestInbound = messages.find((message) => message.direction === "inbound") ?? null;
+  const latestOutbound = messages.find((message) => message.direction === "outbound") ?? null;
+  const firstMessage = messages[messages.length - 1] ?? null;
+  const lastMessage = messages[0] ?? null;
+  const transcriptLines = [...messages]
+    .reverse()
+    .map((message) => {
+      const timestamp = new Date(message.createdAt).toISOString();
+      const label = message.direction === "inbound" ? "User" : "Business";
+      const body = message.message?.trim() || "[no text]";
+      if (transcriptFormat === "bullets") {
+        return `- ${timestamp} | ${label}: ${body}`;
+      }
+      if (transcriptFormat === "markdown") {
+        return `- **${timestamp}** | **${label}**: ${body}`;
+      }
+      return `${timestamp} | ${label}: ${body}`;
+    });
+
+  return {
+    success: true,
+    phoneNumber: phoneDigits,
+    sinceDate: sinceDate ?? null,
+    startDate: startDate ?? null,
+    endDate: endDate ?? null,
+    totalFetched: messages.length,
+    firstMessageAt: firstMessage?.createdAt ?? null,
+    lastMessageAt: lastMessage?.createdAt ?? null,
+    inboundCount,
+    outboundCount,
+    lastMessage: lastMessage
+      ? {
+          id: lastMessage.id,
+          direction: lastMessage.direction,
+          message: lastMessage.message,
+          createdAt: lastMessage.createdAt,
+          status: lastMessage.status,
+        }
+      : null,
+    latestInbound: latestInbound
+      ? {
+          id: latestInbound.id,
+          message: latestInbound.message,
+          createdAt: latestInbound.createdAt,
+          status: latestInbound.status,
+        }
+      : null,
+    latestOutbound: latestOutbound
+      ? {
+          id: latestOutbound.id,
+          message: latestOutbound.message,
+          createdAt: latestOutbound.createdAt,
+          status: latestOutbound.status,
+        }
+      : null,
+    recentMessages: messages.map((message) => ({
+      id: message.id,
+      direction: message.direction,
+      message: message.message,
+      createdAt: message.createdAt,
+      status: message.status,
+      attachments: extractMessageAttachments(message),
+    })),
+    transcriptFormat,
+    transcript: transcriptLines.join("\n"),
+  };
+}
+
+async function searchWhatsAppMessages(rawParams: unknown) {
+  const { query, phoneNumber, direction, limit, skip } = SearchWhatsAppMessagesSchema.parse(rawParams);
+  const phoneDigits = phoneNumber ? phoneNumber.replace(/\D/g, "") : null;
+
+  const filters: any[] = [
+    {
+      OR: [
+        { message: { contains: query, mode: "insensitive" } },
+        { from: { contains: query } },
+        { to: { contains: query } },
+        { messageSid: { contains: query } },
+      ],
+    },
+  ];
+
+  if (direction) {
+    filters.push({ direction });
+  }
+
+  const messages = await whatsappPrisma.whatsAppMessage.findMany({
+    where: {
+      ...(phoneDigits
+        ? {
+            AND: [{ OR: [{ to: { contains: phoneDigits } }, { from: { contains: phoneDigits } }] }, ...filters],
+          }
+        : {
+            AND: filters,
+          }),
+    },
+    include: {
+      session: true,
+      whatsappCustomer: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    skip,
+  });
+
+  return {
+    success: true,
+    query,
+    count: messages.length,
+    messages: messages.map((message) => ({
+      ...message,
+      highlightedMessage: highlightText(message.message, query),
+      highlightedFrom: highlightText(message.from, query),
+      highlightedTo: highlightText(message.to, query),
+      highlightedMessageSid: highlightText(message.messageSid, query),
+    })),
+  };
+}
+
 export const whatsappHandlers: ToolHandlerMap = {
   create_whatsapp_template: createWhatsAppTemplateHandler,
   preview_whatsapp_template: previewWhatsAppTemplateHandler,
@@ -1096,4 +1490,8 @@ export const whatsappHandlers: ToolHandlerMap = {
   get_whatsapp_campaign: getWhatsAppCampaign,
   list_whatsapp_customers: listWhatsAppCustomers,
   list_whatsapp_templates: listWhatsAppTemplates,
+  list_whatsapp_messages: listWhatsAppMessages,
+  get_whatsapp_conversation: getWhatsAppConversation,
+  get_whatsapp_conversation_summary: getWhatsAppConversationSummary,
+  search_whatsapp_messages: searchWhatsAppMessages,
 };

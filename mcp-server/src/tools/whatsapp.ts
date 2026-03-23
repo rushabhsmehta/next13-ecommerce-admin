@@ -844,6 +844,71 @@ export function registerWhatsappTools(server: McpServer) {
   );
 
   server.tool(
+    "get_whatsapp_conversation",
+    "Get a WhatsApp conversation thread for one phone number.",
+    {
+      phoneNumber: z.string().describe("Phone number with country code"),
+      limit: z.number().int().min(1).max(200).optional().default(100).describe("Max results"),
+      skip: z.number().int().min(0).optional().default(0).describe("Skip messages"),
+      startDate: z.string().optional().describe("Only include messages on or after this date"),
+      endDate: z.string().optional().describe("Only include messages on or before this date"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("get_whatsapp_conversation", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("get_whatsapp_conversation", err);
+      }
+    }
+  );
+
+  server.tool(
+    "get_whatsapp_conversation_summary",
+    "Get a short summary for a WhatsApp conversation thread.",
+    {
+      phoneNumber: z.string().describe("Phone number with country code"),
+      limit: z.number().int().min(1).max(50).optional().default(10).describe("Recent message count to inspect"),
+      transcriptFormat: z
+        .enum(["lines", "bullets", "markdown"])
+        .optional()
+        .default("lines")
+        .describe("Transcript formatting"),
+      sinceDate: z.string().optional().describe("Only include messages on or after this date"),
+      startDate: z.string().optional().describe("Only include messages on or after this date"),
+      endDate: z.string().optional().describe("Only include messages on or before this date"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("get_whatsapp_conversation_summary", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("get_whatsapp_conversation_summary", err);
+      }
+    }
+  );
+
+  server.tool(
+    "search_whatsapp_messages",
+    "Search WhatsApp messages by keyword and optional phone number.",
+    {
+      query: z.string().min(1).describe("Search keyword"),
+      phoneNumber: z.string().optional().describe("Optional phone number filter"),
+      direction: z.enum(["inbound", "outbound"]).optional().describe("Optional message direction filter"),
+      limit: z.number().int().min(1).max(100).optional().default(25).describe("Max results"),
+      skip: z.number().int().min(0).optional().default(0).describe("Skip results"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("search_whatsapp_messages", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("search_whatsapp_messages", err);
+      }
+    }
+  );
+
+  server.tool(
     "send_whatsapp_campaign",
     "Trigger sending a WhatsApp campaign to its recipients.",
     {

@@ -96,7 +96,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
       images: initialData?.images || [],
       locationId: initialData?.locationId || '',
       destinationId: initialData?.destinationId || '',
-      link: initialData?.link || ''
+      link: initialData?.link || undefined
     }
   });
 

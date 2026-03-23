@@ -6,7 +6,7 @@ import prismadb from "@/lib/prismadb";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
 import { createAuditLog } from "@/lib/utils/audit-logger";
-import { createVariantSnapshots } from '@/lib/variant-snapshot';
+import { createVariantSnapshots, applyVariantHotelOverrides } from '@/lib/variant-snapshot';
 
 export const dynamic = 'force-dynamic'; // Ensure API is not cached
 
@@ -1006,6 +1006,20 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
         console.log(`📸 Updating variant snapshots for ${selectedVariantIds.length} variants...`);
         await createVariantSnapshots(params.tourPackageQueryId, selectedVariantIds, { overwrite: true });
         console.log('✅ Variant snapshots updated successfully');
+
+        // Apply query-level hotel overrides on top of the package-default hotel snapshots
+        const savedOverrides = (tourPackageQuery as any)?.variantHotelOverrides as Record<string, Record<string, string>> | null;
+        if (savedOverrides && Object.keys(savedOverrides).length > 0 && tourPackageQuery?.itineraries) {
+          try {
+            await applyVariantHotelOverrides(
+              params.tourPackageQueryId,
+              savedOverrides,
+              tourPackageQuery.itineraries.map((i: any) => ({ id: i.id, dayNumber: i.dayNumber }))
+            );
+          } catch (overrideError) {
+            console.error('❌ Failed to apply hotel overrides:', overrideError);
+          }
+        }
       } catch (snapshotError) {
         console.error('❌ Failed to update variant snapshots:', snapshotError);
         // Non-fatal: Continue even if snapshots fail

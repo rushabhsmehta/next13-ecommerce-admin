@@ -202,8 +202,90 @@ export async function getVariantSnapshots(queryId: string) {
 }
 
 /**
+ * Apply variant hotel overrides to existing snapshots
+ *
+ * After createVariantSnapshots() runs (which reads from PackageVariant.variantHotelMappings),
+ * this function overwrites the relevant QueryVariantHotelSnapshot rows with the
+ * query-level hotel overrides stored in TourPackageQuery.variantHotelOverrides.
+ *
+ * @param queryId - TourPackageQuery ID
+ * @param overrides - { packageVariantId: { queryItineraryId: overrideHotelId } }
+ * @param itineraries - Current query itineraries (used to resolve itineraryId → dayNumber)
+ */
+export async function applyVariantHotelOverrides(
+  queryId: string,
+  overrides: Record<string, Record<string, string>>,
+  itineraries: { id: string; dayNumber: number | null }[]
+) {
+  if (!overrides || Object.keys(overrides).length === 0) return;
+
+  // Build itineraryId → dayNumber map
+  const itineraryDayMap: Record<string, number> = {};
+  for (const it of itineraries) {
+    if (typeof it.dayNumber === 'number') {
+      itineraryDayMap[it.id] = it.dayNumber;
+    }
+  }
+
+  // Build sourceVariantId → snapshotId map
+  const variantSnapshots = await prismadb.queryVariantSnapshot.findMany({
+    where: { tourPackageQueryId: queryId },
+    select: { id: true, sourceVariantId: true },
+  });
+  const snapshotByVariantId: Record<string, string> = {};
+  for (const s of variantSnapshots) {
+    snapshotByVariantId[s.sourceVariantId] = s.id;
+  }
+
+  for (const [variantId, itineraryOverrides] of Object.entries(overrides)) {
+    const snapshotId = snapshotByVariantId[variantId];
+    if (!snapshotId) continue;
+
+    for (const [itineraryId, overrideHotelId] of Object.entries(itineraryOverrides)) {
+      const dayNumber = itineraryDayMap[itineraryId];
+      if (typeof dayNumber !== 'number') continue;
+
+      const overrideHotel = await prismadb.hotel.findUnique({
+        where: { id: overrideHotelId },
+        include: {
+          images: { orderBy: { createdAt: 'asc' }, take: 1 },
+          location: true,
+        },
+      });
+      if (!overrideHotel?.location) continue;
+
+      await prismadb.queryVariantHotelSnapshot.upsert({
+        where: {
+          variantSnapshotId_dayNumber: {
+            variantSnapshotId: snapshotId,
+            dayNumber: dayNumber,
+          },
+        },
+        update: {
+          hotelId: overrideHotelId,
+          hotelName: overrideHotel.name,
+          locationLabel: overrideHotel.location.label,
+          imageUrl: overrideHotel.images[0]?.url || null,
+        },
+        create: {
+          variantSnapshotId: snapshotId,
+          dayNumber: dayNumber,
+          hotelId: overrideHotelId,
+          hotelName: overrideHotel.name,
+          locationLabel: overrideHotel.location.label,
+          imageUrl: overrideHotel.images[0]?.url || null,
+          roomCategory: null,
+        },
+      });
+    }
+  }
+
+  console.log(`✅ [Snapshot] Applied hotel overrides for query ${queryId}`);
+}
+
+/**
  * Delete variant snapshots for a tour package query
- * 
+ *
  * @param queryId - TourPackageQuery ID
  */
 export async function deleteVariantSnapshots(queryId: string) {

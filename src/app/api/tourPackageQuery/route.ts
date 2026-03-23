@@ -4,7 +4,7 @@ import { dateToUtc } from '@/lib/timezone-utils';
 
 import prismadb from '@/lib/prismadb';
 import { createAuditLog } from "@/lib/utils/audit-logger";
-import { createVariantSnapshots } from '@/lib/variant-snapshot';
+import { createVariantSnapshots, applyVariantHotelOverrides } from '@/lib/variant-snapshot';
 
 // Enable caching for GET requests - revalidate every 5 minutes
 export const revalidate = 300;
@@ -607,6 +607,23 @@ export async function POST(
                 console.log(`📸 Creating variant snapshots for ${selectedVariantIds.length} variants...`);
                 await createVariantSnapshots(newTourPackageQuery.id, selectedVariantIds, { overwrite: true });
                 console.log('✅ Variant snapshots created successfully');
+
+                // Apply query-level hotel overrides on top of the package-default hotel snapshots
+                if (variantHotelOverrides && Object.keys(variantHotelOverrides).length > 0) {
+                    try {
+                        const queryItineraries = await prismadb.itinerary.findMany({
+                            where: { tourPackageQueryId: newTourPackageQuery.id },
+                            select: { id: true, dayNumber: true },
+                        });
+                        await applyVariantHotelOverrides(
+                            newTourPackageQuery.id,
+                            variantHotelOverrides as Record<string, Record<string, string>>,
+                            queryItineraries
+                        );
+                    } catch (overrideError) {
+                        console.error('❌ Failed to apply hotel overrides:', overrideError);
+                    }
+                }
             } catch (snapshotError) {
                 console.error('❌ Failed to create variant snapshots:', snapshotError);
                 // Non-fatal: Continue even if snapshots fail

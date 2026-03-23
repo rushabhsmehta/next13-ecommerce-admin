@@ -392,7 +392,12 @@ export function VariantComparisonSection({
                       return (
                         <td key={variant.id} className="px-4 py-3 text-right">
                           {comp ? (
-                            <span className="font-semibold text-gray-900">₹ {formatINR(comp.price)}</span>
+                            <div>
+                              <span className="font-semibold text-gray-900">₹ {formatINR(comp.price)}</span>
+                              {comp.description && (
+                                <div className="text-xs text-gray-500 mt-0.5">{comp.description}</div>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-gray-300">—</span>
                           )}

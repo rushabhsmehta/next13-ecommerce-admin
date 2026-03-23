@@ -768,6 +768,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         if (comp) {
           return `<td style="${tdBase} background: ${bg}; text-align: right;">
             <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(comp.price.toString())}</span>
+            ${(comp as any).description ? `<div style="font-size: 9px; color: ${brandColors.muted}; margin-top: 2px;">${(comp as any).description}</div>` : ''}
           </td>`;
         }
 

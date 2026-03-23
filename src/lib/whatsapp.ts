@@ -388,6 +388,51 @@ function normalizeE164(input: string) {
   return `+${digits}`;
 }
 
+function normalizeWhatsAppLookupAddress(phoneNumber: string) {
+  const cleaned = phoneNumber.trim().replace(/^whatsapp:/i, '');
+  const normalized = normalizeE164(cleaned);
+  return `whatsapp:${normalized.replace(/^\+/, '')}`;
+}
+
+export interface WhatsAppMessagingWindowStatus {
+  canMessage: boolean;
+  lastInboundMessage?: WhatsAppMessage | null;
+  hoursRemaining?: number;
+}
+
+export async function checkWhatsAppMessagingWindow(phoneNumber: string): Promise<WhatsAppMessagingWindowStatus> {
+  try {
+    const normalizedPhone = normalizeWhatsAppLookupAddress(phoneNumber);
+    const lastInboundMessage = await prisma.whatsAppMessage.findFirst({
+      where: {
+        from: normalizedPhone,
+        direction: 'inbound',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!lastInboundMessage) {
+      return { canMessage: false, lastInboundMessage: null };
+    }
+
+    const now = new Date();
+    const lastMessageTime = new Date(lastInboundMessage.createdAt);
+    const hoursSinceLastMessage = (now.getTime() - lastMessageTime.getTime()) / (1000 * 60 * 60);
+    const hoursRemaining = 24 - hoursSinceLastMessage;
+
+    return {
+      canMessage: hoursSinceLastMessage < 24,
+      lastInboundMessage,
+      hoursRemaining: hoursRemaining > 0 ? hoursRemaining : 0,
+    };
+  } catch (error) {
+    console.error('[WhatsApp] Error checking messaging window:', error);
+    return { canMessage: false, lastInboundMessage: null };
+  }
+}
+
 type GraphMessageType =
   | 'text'
   | 'image'

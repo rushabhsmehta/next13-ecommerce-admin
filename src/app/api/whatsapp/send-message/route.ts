@@ -1,61 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import whatsappPrisma from '@/lib/whatsapp-prismadb';
+import { checkWhatsAppMessagingWindow } from '@/lib/whatsapp';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_ACCESS_TOKEN = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
 const META_WHATSAPP_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '';
-
-/**
- * Check if we're within the 24-hour messaging window
- * Returns true if customer has sent a message within the last 24 hours
- */
-async function checkMessagingWindow(phoneNumber: string): Promise<{
-  canMessage: boolean;
-  lastInboundMessage?: any;
-  hoursRemaining?: number;
-}> {
-  try {
-    // Normalize phone number for database lookup
-    const normalizedPhone = phoneNumber.startsWith('whatsapp:') 
-      ? phoneNumber 
-      : `whatsapp:${phoneNumber.replace(/^\+/, '')}`;
-
-    // Find the most recent inbound message from this customer
-    const lastInboundMessage = await whatsappPrisma.whatsAppMessage.findFirst({
-      where: {
-        from: normalizedPhone,
-        direction: 'inbound',
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    if (!lastInboundMessage) {
-      return {
-        canMessage: false,
-      };
-    }
-
-    // Calculate hours since last inbound message
-    const now = new Date();
-    const lastMessageTime = new Date(lastInboundMessage.createdAt);
-    const hoursSinceLastMessage = (now.getTime() - lastMessageTime.getTime()) / (1000 * 60 * 60);
-    const hoursRemaining = 24 - hoursSinceLastMessage;
-
-    return {
-      canMessage: hoursSinceLastMessage < 24,
-      lastInboundMessage,
-      hoursRemaining: hoursRemaining > 0 ? hoursRemaining : 0,
-    };
-  } catch (error) {
-    console.error('Error checking messaging window:', error);
-    return {
-      canMessage: false,
-    };
-  }
-}
 
 /**
  * Send a free-form text message via WhatsApp Cloud API
@@ -99,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Check 24-hour messaging window if requested
     if (checkWindow) {
-      const windowCheck = await checkMessagingWindow(phoneNumber);
+      const windowCheck = await checkWhatsAppMessagingWindow(phoneNumber);
       
       if (!windowCheck.canMessage) {
         return NextResponse.json({
@@ -235,7 +185,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const windowCheck = await checkMessagingWindow(to);
+    const windowCheck = await checkWhatsAppMessagingWindow(to);
 
     return NextResponse.json({
       phoneNumber: to,

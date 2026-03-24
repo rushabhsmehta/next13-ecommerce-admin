@@ -29,7 +29,8 @@ export type ButtonType =
   | 'FLOW'
   | 'OTP'
   | 'MPM'
-  | 'SPM';
+  | 'SPM'
+  | 'VOICE_CALL';
 
 /**
  * Template Component Types
@@ -122,11 +123,26 @@ export interface FlowButton {
 
 export interface OTPButton {
   type: 'OTP';
-  otp_type: 'COPY_CODE' | 'ONE_TAP';
+  otp_type: 'COPY_CODE' | 'ONE_TAP' | 'ZERO_TAP';
   text: string;
   autofill_text?: string;
   package_name?: string;
   signature_hash?: string;
+}
+
+export interface VoiceCallButton {
+  type: 'VOICE_CALL';
+  text: string;
+}
+
+export interface MPMButton {
+  type: 'MPM';
+  text: string;
+}
+
+export interface SPMButton {
+  type: 'SPM';
+  text: string;
 }
 
 export type Button = 
@@ -135,18 +151,40 @@ export type Button =
   | UrlButton 
   | CopyCodeButton 
   | FlowButton 
-  | OTPButton;
+  | OTPButton
+  | VoiceCallButton
+  | MPMButton
+  | SPMButton;
 
 export interface ButtonsComponent extends BaseComponent {
   type: 'BUTTONS';
   buttons: Button[];
 }
 
+// Carousel types
+export interface CarouselCardComponent {
+  type: 'header' | 'body' | 'buttons';
+  format?: 'IMAGE' | 'VIDEO';
+  text?: string;
+  example?: { header_handle?: string[] };
+  buttons?: Button[];
+}
+
+export interface CarouselCard {
+  components: CarouselCardComponent[];
+}
+
+export interface CarouselComponent {
+  type: 'CAROUSEL';
+  cards: CarouselCard[];
+}
+
 export type TemplateComponent = 
   | HeaderComponent 
   | BodyComponent 
   | FooterComponent 
-  | ButtonsComponent;
+  | ButtonsComponent
+  | CarouselComponent;
 
 /**
  * Template Creation Request
@@ -618,12 +656,52 @@ export function buildOTPButton(options: {
 }
 
 /**
+ * Build voice call button
+ */
+export function buildVoiceCallButton(text: string): VoiceCallButton {
+  return {
+    type: 'VOICE_CALL',
+    text,
+  };
+}
+
+/**
+ * Build MPM button
+ */
+export function buildMPMButton(text: string): MPMButton {
+  return {
+    type: 'MPM',
+    text,
+  };
+}
+
+/**
+ * Build SPM button
+ */
+export function buildSPMButton(text: string): SPMButton {
+  return {
+    type: 'SPM',
+    text,
+  };
+}
+
+/**
  * Build buttons component
  */
 export function buildButtons(buttons: Button[]): ButtonsComponent {
   return {
     type: 'BUTTONS',
     buttons,
+  };
+}
+
+/**
+ * Build a carousel component
+ */
+export function buildCarousel(cards: CarouselCard[]): CarouselComponent {
+  return {
+    type: 'CAROUSEL',
+    cards,
   };
 }
 
@@ -919,7 +997,11 @@ const whatsappTemplates = {
   buildCopyCodeButton,
   buildFlowButton,
   buildOTPButton,
+  buildVoiceCallButton,
+  buildMPMButton,
+  buildSPMButton,
   buildButtons,
+  buildCarousel,
   
   // Utilities
   extractParameters,

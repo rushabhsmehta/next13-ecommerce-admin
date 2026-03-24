@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useState, useMemo, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-hot-toast';
 import {
   Plus,
@@ -20,37 +21,124 @@ import {
   Eye,
   UploadCloud,
   Loader2,
-  Copy
+  Copy,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  ClipboardCopy,
+  ShoppingCart,
+  PhoneCall,
+  Layers
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-type ComponentType = 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS';
-type HeaderFormat = 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
-type ButtonType = 'QUICK_REPLY' | 'PHONE_NUMBER' | 'URL' | 'FLOW';
+type ComponentType = 'HEADER' | 'BODY' | 'FOOTER' | 'BUTTONS' | 'CAROUSEL';
+type HeaderFormat = 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION' | 'GIF';
+type ButtonType = 'QUICK_REPLY' | 'PHONE_NUMBER' | 'URL' | 'FLOW' | 'COPY_CODE' | 'OTP' | 'VOICE_CALL' | 'MPM' | 'SPM';
+type ParameterFormat = 'named' | 'positional';
+
+interface TemplateButton {
+  type: ButtonType;
+  text: string;
+  url?: string;
+  phone_number?: string;
+  flow_id?: string;
+  example?: string; // For COPY_CODE example or URL variable example
+  otp_type?: 'COPY_CODE' | 'ONE_TAP' | 'ZERO_TAP';
+  package_name?: string;
+  signature_hash?: string;
+  autofill_text?: string;
+}
+
+interface CarouselCard {
+  header_format: 'IMAGE' | 'VIDEO';
+  header_handle: string;
+  buttons: TemplateButton[];
+}
 
 interface TemplateComponent {
   type: ComponentType;
   format?: HeaderFormat;
   text?: string;
-  example?: string; // For media headers (IMAGE, VIDEO, DOCUMENT) - example URL
-  buttons?: Array<{
-    type: ButtonType;
-    text: string;
-    url?: string;
-    phone_number?: string;
-    flow_id?: string;
-  }>;
-}
-
-interface TemplateData {
-  name: string;
-  language: string;
-  category: string;
-  components: TemplateComponent[];
+  example?: string;
+  add_security_recommendation?: boolean;
+  code_expiration_minutes?: number;
+  buttons?: TemplateButton[];
+  cards?: CarouselCard[];
 }
 
 const MAX_DOCUMENT_SIZE_MB = 5;
 const MAX_DOCUMENT_SIZE_BYTES = MAX_DOCUMENT_SIZE_MB * 1024 * 1024;
+
+// Comprehensive Meta-supported languages
+const SUPPORTED_LANGUAGES = [
+  { code: 'en_US', label: 'English (US)' },
+  { code: 'en_GB', label: 'English (UK)' },
+  { code: 'hi', label: 'Hindi' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'fr', label: 'French' },
+  { code: 'de', label: 'German' },
+  { code: 'ar', label: 'Arabic' },
+  { code: 'pt_BR', label: 'Portuguese (BR)' },
+  { code: 'pt_PT', label: 'Portuguese (PT)' },
+  { code: 'it', label: 'Italian' },
+  { code: 'nl', label: 'Dutch' },
+  { code: 'ru', label: 'Russian' },
+  { code: 'ja', label: 'Japanese' },
+  { code: 'ko', label: 'Korean' },
+  { code: 'zh_CN', label: 'Chinese (Simplified)' },
+  { code: 'zh_TW', label: 'Chinese (Traditional)' },
+  { code: 'tr', label: 'Turkish' },
+  { code: 'id', label: 'Indonesian' },
+  { code: 'ms', label: 'Malay' },
+  { code: 'th', label: 'Thai' },
+  { code: 'vi', label: 'Vietnamese' },
+  { code: 'bn', label: 'Bengali' },
+  { code: 'ta', label: 'Tamil' },
+  { code: 'te', label: 'Telugu' },
+  { code: 'mr', label: 'Marathi' },
+  { code: 'gu', label: 'Gujarati' },
+  { code: 'kn', label: 'Kannada' },
+  { code: 'ml', label: 'Malayalam' },
+  { code: 'pa', label: 'Punjabi' },
+  { code: 'ur', label: 'Urdu' },
+  { code: 'pl', label: 'Polish' },
+  { code: 'uk', label: 'Ukrainian' },
+  { code: 'ro', label: 'Romanian' },
+  { code: 'sv', label: 'Swedish' },
+  { code: 'da', label: 'Danish' },
+  { code: 'fi', label: 'Finnish' },
+  { code: 'nb', label: 'Norwegian' },
+  { code: 'el', label: 'Greek' },
+  { code: 'cs', label: 'Czech' },
+  { code: 'hu', label: 'Hungarian' },
+  { code: 'he', label: 'Hebrew' },
+  { code: 'fil', label: 'Filipino' },
+  { code: 'sw', label: 'Swahili' },
+  { code: 'af', label: 'Afrikaans' },
+  { code: 'sq', label: 'Albanian' },
+  { code: 'az', label: 'Azerbaijani' },
+  { code: 'bg', label: 'Bulgarian' },
+  { code: 'ca', label: 'Catalan' },
+  { code: 'hr', label: 'Croatian' },
+  { code: 'et', label: 'Estonian' },
+  { code: 'ka', label: 'Georgian' },
+  { code: 'ha', label: 'Hausa' },
+  { code: 'lv', label: 'Latvian' },
+  { code: 'lt', label: 'Lithuanian' },
+  { code: 'mk', label: 'Macedonian' },
+  { code: 'fa', label: 'Persian' },
+  { code: 'sr', label: 'Serbian' },
+  { code: 'sk', label: 'Slovak' },
+  { code: 'sl', label: 'Slovenian' },
+  { code: 'zu', label: 'Zulu' },
+];
+
+/** Detect {{variables}} in text and return their names */
+function extractVariables(text: string): string[] {
+  const matches = text.matchAll(/\{\{([a-zA-Z0-9_]+)\}\}/g);
+  return Array.from(new Set(Array.from(matches, m => m[1])));
+}
 
 function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -68,6 +156,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
   const [templateName, setTemplateName] = useState('');
   const [language, setLanguage] = useState('en_US');
   const [category, setCategory] = useState('UTILITY');
+  const [parameterFormat, setParameterFormat] = useState<ParameterFormat>('positional');
   const [components, setComponents] = useState<TemplateComponent[]>([
     { type: 'BODY', text: '' }
   ]);
@@ -79,9 +168,45 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
   const [documentUploading, setDocumentUploading] = useState(false);
   const [documentInputKey, setDocumentInputKey] = useState(0);
 
+  // Variable example values: keyed by "componentType:variableName"
+  const [variableExamples, setVariableExamples] = useState<Record<string, string>>({});
+
+  // Auth template specific
+  const [authSecurityRecommendation, setAuthSecurityRecommendation] = useState(true);
+  const [authCodeExpiration, setAuthCodeExpiration] = useState<number>(10);
+  const [authOtpType, setAuthOtpType] = useState<'COPY_CODE' | 'ONE_TAP' | 'ZERO_TAP'>('COPY_CODE');
+  const [authPackageName, setAuthPackageName] = useState('');
+  const [authSignatureHash, setAuthSignatureHash] = useState('');
+
+  const isAuthCategory = category === 'AUTHENTICATION';
+
   const headerComponent = components.find((component) => component.type === 'HEADER');
   const headerFormat = headerComponent?.format;
   const headerExample = headerComponent?.example;
+
+  // Detect all variables in body and header text components
+  const detectedVariables = useMemo(() => {
+    const vars: { source: string; name: string }[] = [];
+    components.forEach(c => {
+      if (c.type === 'BODY' && c.text) {
+        extractVariables(c.text).forEach(v => vars.push({ source: 'body', name: v }));
+      }
+      if (c.type === 'HEADER' && c.format === 'TEXT' && c.text) {
+        extractVariables(c.text).forEach(v => vars.push({ source: 'header', name: v }));
+      }
+    });
+    // Also detect URL button variables
+    components.forEach(c => {
+      if (c.type === 'BUTTONS' && c.buttons) {
+        c.buttons.forEach((btn, i) => {
+          if (btn.type === 'URL' && btn.url) {
+            extractVariables(btn.url).forEach(v => vars.push({ source: `button_${i}`, name: v }));
+          }
+        });
+      }
+    });
+    return vars;
+  }, [components]);
 
   useEffect(() => {
     if (headerFormat !== 'DOCUMENT') {
@@ -145,10 +270,14 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
     const component = newComponents[componentIndex];
     
     if (component.buttons) {
-      if (component.buttons.length >= 3) {
-        toast.error('Maximum 3 buttons allowed');
+      if (component.buttons.length >= 10) {
+        toast.error('Maximum 10 buttons allowed per Meta limits');
         return;
       }
+      // Check CTA limit: max 2 CTA buttons (URL, PHONE_NUMBER, VOICE_CALL)
+      const ctaTypes: ButtonType[] = ['URL', 'PHONE_NUMBER', 'VOICE_CALL'];
+      const ctaCount = component.buttons.filter(b => ctaTypes.includes(b.type)).length;
+      // Add quick reply by default (always safe)
       component.buttons.push({ type: 'QUICK_REPLY', text: '' });
       setComponents(newComponents);
     }
@@ -307,64 +436,209 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
       return 'Template name must contain only lowercase letters, numbers, and underscores';
     }
 
-    const bodyComponent = components.find(c => c.type === 'BODY');
-    if (!bodyComponent || !bodyComponent.text?.trim()) {
-      return 'Body component is required';
+    // Auth templates have auto-generated body, skip body check
+    if (!isAuthCategory) {
+      const bodyComponent = components.find(c => c.type === 'BODY');
+      if (!bodyComponent || !bodyComponent.text?.trim()) {
+        return 'Body component is required';
+      }
+
+      // Validate variable examples are provided
+      if (detectedVariables.length > 0) {
+        for (const v of detectedVariables) {
+          const key = `${v.source}:${v.name}`;
+          if (!variableExamples[key]?.trim()) {
+            return `Example value required for variable {{${v.name}}} in ${v.source}`;
+          }
+        }
+      }
+    }
+
+    // Auth-specific validation
+    if (isAuthCategory) {
+      if (authOtpType === 'ONE_TAP' || authOtpType === 'ZERO_TAP') {
+        if (!authPackageName.trim()) return 'Package name is required for One-Tap/Zero-Tap auth';
+        if (!authSignatureHash.trim()) return 'Signature hash is required for One-Tap/Zero-Tap auth';
+      }
     }
 
     // Validate header media requirements
-    const headerComponent = components.find(c => c.type === 'HEADER');
-    if (headerComponent && headerComponent.format) {
-      const format = headerComponent.format;
-      const exampleValue = typeof headerComponent.example === 'string'
-        ? headerComponent.example.trim()
-        : '';
+    if (!isAuthCategory) {
+      const headerComponent = components.find(c => c.type === 'HEADER');
+      if (headerComponent && headerComponent.format) {
+        const format = headerComponent.format;
+        const exampleValue = typeof headerComponent.example === 'string'
+          ? headerComponent.example.trim()
+          : '';
 
-      if (['IMAGE', 'VIDEO'].includes(format)) {
-        if (!exampleValue) {
-          return `${format} header requires an example URL`;
+        if (['IMAGE', 'VIDEO', 'GIF'].includes(format)) {
+          if (!exampleValue) {
+            return `${format} header requires an example URL`;
+          }
+          try {
+            new URL(exampleValue);
+          } catch {
+            return 'Header example must be a valid URL';
+          }
         }
-        try {
-          new URL(exampleValue);
-        } catch {
-          return 'Header example must be a valid URL';
-        }
-      }
 
-      if (format === 'DOCUMENT') {
-        if (!exampleValue) {
-          return 'Document header requires a WhatsApp media handle';
+        if (format === 'DOCUMENT') {
+          if (!exampleValue) {
+            return 'Document header requires a WhatsApp media handle';
+          }
+          if (/^https?:\/\//i.test(exampleValue)) {
+            return 'Document headers must use a WhatsApp media handle. Upload the PDF to generate one.';
+          }
         }
-        if (/^https?:\/\//i.test(exampleValue)) {
-          return 'Document headers must use a WhatsApp media handle. Upload the PDF to generate one.';
-        }
+        // LOCATION requires no example at creation time
       }
     }
 
     // Validate buttons
-    const buttonComponents = components.filter(c => c.type === 'BUTTONS');
-    for (const component of buttonComponents) {
-      if (!component.buttons || component.buttons.length === 0) {
-        return 'Button component must have at least one button';
-      }
-      
-      for (const button of component.buttons) {
-        if (!button.text?.trim()) {
-          return 'All buttons must have text';
+    if (!isAuthCategory) {
+      const buttonComponents = components.filter(c => c.type === 'BUTTONS');
+      for (const component of buttonComponents) {
+        if (!component.buttons || component.buttons.length === 0) {
+          return 'Button component must have at least one button';
         }
-        if (button.type === 'URL' && !button.url) {
-          return 'URL buttons must have a URL';
+        
+        // Check CTA limit
+        const ctaTypes: ButtonType[] = ['URL', 'PHONE_NUMBER', 'VOICE_CALL'];
+        const ctaCount = component.buttons.filter(b => ctaTypes.includes(b.type)).length;
+        if (ctaCount > 2) {
+          return 'Maximum 2 CTA buttons (URL, Phone, Voice Call) allowed';
         }
-        if (button.type === 'PHONE_NUMBER' && !button.phone_number) {
-          return 'Phone buttons must have a phone number';
-        }
-        if (button.type === 'FLOW' && !button.flow_id) {
-          return 'Flow buttons must have a flow ID';
+
+        for (const button of component.buttons) {
+          if (!button.text?.trim() && button.type !== 'COPY_CODE') {
+            return 'All buttons must have text';
+          }
+          if (button.type === 'URL' && !button.url) {
+            return 'URL buttons must have a URL';
+          }
+          if (button.type === 'PHONE_NUMBER' && !button.phone_number) {
+            return 'Phone buttons must have a phone number';
+          }
+          if (button.type === 'FLOW' && !button.flow_id) {
+            return 'Flow buttons must have a flow ID';
+          }
+          if (button.type === 'COPY_CODE' && !button.example) {
+            return 'Copy Code buttons must have an example code';
+          }
         }
       }
     }
 
     return null;
+  };
+
+  const buildApiPayload = () => {
+    if (isAuthCategory) {
+      // Authentication templates use a special format
+      const authComponents: any[] = [
+        {
+          type: 'BODY',
+          add_security_recommendation: authSecurityRecommendation,
+        },
+        {
+          type: 'FOOTER',
+          code_expiration_minutes: authCodeExpiration,
+        },
+        {
+          type: 'BUTTONS',
+          buttons: [{
+            type: 'OTP',
+            otp_type: authOtpType,
+            ...(authOtpType !== 'COPY_CODE' ? {
+              supported_apps: [{
+                package_name: authPackageName,
+                signature_hash: authSignatureHash,
+              }]
+            } : {})
+          }]
+        }
+      ];
+      return {
+        name: templateName,
+        language,
+        category,
+        components: authComponents,
+      };
+    }
+
+    // Standard template: transform components with variable examples
+    const apiComponents = components.map((component: any) => {
+      const c = { ...component };
+
+      // Add body variable examples
+      if (c.type === 'BODY' && c.text) {
+        const bodyVars = extractVariables(c.text);
+        if (bodyVars.length > 0) {
+          if (parameterFormat === 'named') {
+            c.example = {
+              body_text_named_params: bodyVars.map(v => ({
+                param_name: v,
+                example: variableExamples[`body:${v}`] || '',
+              }))
+            };
+          } else {
+            c.example = {
+              body_text: [bodyVars.map(v => variableExamples[`body:${v}`] || '')]
+            };
+          }
+        }
+      }
+
+      // Add header text variable examples
+      if (c.type === 'HEADER' && c.format === 'TEXT' && c.text) {
+        const headerVars = extractVariables(c.text);
+        if (headerVars.length > 0) {
+          if (parameterFormat === 'named') {
+            c.example = {
+              header_text_named_params: headerVars.map(v => ({
+                param_name: v,
+                example: variableExamples[`header:${v}`] || '',
+              }))
+            };
+          } else {
+            c.example = {
+              header_text: headerVars.map(v => variableExamples[`header:${v}`] || '')
+            };
+          }
+        }
+      }
+
+      // Transform media header example to header_handle format
+      if (c.type === 'HEADER' && ['IMAGE', 'VIDEO', 'DOCUMENT', 'GIF'].includes(c.format || '')) {
+        if (typeof c.example === 'string') {
+          c.example = { header_handle: [c.example] };
+        }
+      }
+
+      // Handle URL button examples
+      if (c.type === 'BUTTONS' && c.buttons) {
+        c.buttons = c.buttons.map((btn: any, i: number) => {
+          const b = { ...btn };
+          if (b.type === 'URL' && b.url && b.url.includes('{{')) {
+            const urlVars = extractVariables(b.url);
+            if (urlVars.length > 0) {
+              b.example = urlVars.map((v: string) => variableExamples[`button_${i}:${v}`] || '');
+            }
+          }
+          return b;
+        });
+      }
+
+      return c;
+    });
+
+    return {
+      name: templateName,
+      language,
+      category,
+      parameter_format: parameterFormat,
+      components: apiComponents,
+    };
   };
 
   const createTemplate = async () => {
@@ -376,15 +650,12 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
 
     setLoading(true);
     try {
+      const payload = buildApiPayload();
+
       const response = await fetch('/api/whatsapp/templates/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: templateName,
-          language,
-          category,
-          components,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -396,7 +667,9 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
         setTemplateName('');
         setLanguage('en_US');
         setCategory('UTILITY');
+        setParameterFormat('positional');
         setComponents([{ type: 'BODY', text: '' }]);
+        setVariableExamples({});
         
         if (onComplete) onComplete();
       } else {
@@ -412,14 +685,16 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
 
   const getComponentIcon = (type: ComponentType, format?: HeaderFormat) => {
     if (type === 'HEADER') {
-      if (format === 'IMAGE') return <ImageIcon className="h-4 w-4" />;
+      if (format === 'IMAGE' || format === 'GIF') return <ImageIcon className="h-4 w-4" />;
       if (format === 'VIDEO') return <Video className="h-4 w-4" />;
       if (format === 'DOCUMENT') return <FileIcon className="h-4 w-4" />;
+      if (format === 'LOCATION') return <MapPin className="h-4 w-4" />;
       return <MessageSquare className="h-4 w-4" />;
     }
     if (type === 'BODY') return <MessageSquare className="h-4 w-4" />;
     if (type === 'FOOTER') return <MessageSquare className="h-4 w-4" />;
     if (type === 'BUTTONS') return <LinkIcon className="h-4 w-4" />;
+    if (type === 'CAROUSEL') return <Layers className="h-4 w-4" />;
     return <MessageSquare className="h-4 w-4" />;
   };
 
@@ -428,6 +703,45 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
     const bodyComponent = components.find(c => c.type === 'BODY');
     const footerComponent = components.find(c => c.type === 'FOOTER');
     const buttonComponents = components.filter(c => c.type === 'BUTTONS');
+
+    const getButtonIcon = (type: string) => {
+      switch (type) {
+        case 'PHONE_NUMBER': return '📞';
+        case 'URL': return '🔗';
+        case 'FLOW': return '⚡';
+        case 'COPY_CODE': return '📋';
+        case 'VOICE_CALL': return '📱';
+        case 'MPM': return '🛍️';
+        case 'SPM': return '🏷️';
+        default: return '';
+      }
+    };
+
+    // Auth template preview
+    if (isAuthCategory) {
+      return (
+        <div className="max-w-md mx-auto">
+          <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-4 rounded-t-lg">
+            <h3 className="text-white font-semibold">WhatsApp Preview</h3>
+          </div>
+          <div className="border border-t-0 rounded-b-lg overflow-hidden bg-white">
+            <div className="p-4">
+              <p className="text-sm"><strong>*123456*</strong> is your verification code.</p>
+              {authSecurityRecommendation && (
+                <p className="text-xs text-muted-foreground mt-1">For your security, do not share this code.</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1 italic">This code expires in {authCodeExpiration} minutes.</p>
+            </div>
+            <div className="border-t">
+              <button className="w-full py-3 text-center text-sm font-medium text-blue-600">
+                {authOtpType === 'COPY_CODE' ? '📋 Copy code' :
+                 authOtpType === 'ONE_TAP' ? '✨ Autofill' : '🔄 Verify'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="max-w-md mx-auto">
@@ -441,14 +755,14 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
               {headerComponent.format === 'TEXT' && headerComponent.text && (
                 <p className="font-semibold text-sm">{headerComponent.text}</p>
               )}
-              {headerComponent.format === 'IMAGE' && (
+              {(headerComponent.format === 'IMAGE' || headerComponent.format === 'GIF') && (
                 <div className="bg-gray-200 rounded p-8 text-center text-muted-foreground text-sm">
                   <ImageIcon className="h-8 w-8 mx-auto mb-2" />
-                  Image Header
+                  {headerComponent.format} Header
                 </div>
               )}
               {headerComponent.format === 'VIDEO' && (
-                <div className="bg-gray-200 rounded p-8 text-center text-muted-foreground text-sm">
+                <div className="bg-gray-800 rounded p-8 text-center text-white text-sm">
                   <Video className="h-8 w-8 mx-auto mb-2" />
                   Video Header
                 </div>
@@ -457,6 +771,13 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                 <div className="bg-gray-200 rounded p-8 text-center text-muted-foreground text-sm">
                   <FileIcon className="h-8 w-8 mx-auto mb-2" />
                   Document Header
+                </div>
+              )}
+              {headerComponent.format === 'LOCATION' && (
+                <div className="bg-green-50 rounded p-4 text-center text-sm">
+                  <MapPin className="h-8 w-8 mx-auto mb-2 text-green-600" />
+                  <p className="text-muted-foreground">Location</p>
+                  <p className="text-xs text-muted-foreground">Coordinates provided at send time</p>
                 </div>
               )}
             </div>
@@ -486,10 +807,9 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                   key={btnIdx}
                   className="w-full py-3 text-center text-sm font-medium text-blue-600 hover:bg-blue-50 border-t first:border-t-0"
                 >
-                  {button.type === 'PHONE_NUMBER' && '📞 '}
-                  {button.type === 'URL' && '🔗 '}
-                  {button.type === 'FLOW' && '✨ '}
-                  {button.text || 'Button'}
+                  {getButtonIcon(button.type)}{' '}
+                  {button.type === 'COPY_CODE' ? (button.example ? `Copy: ${button.example}` : 'Copy code') :
+                   (button.text || 'Button')}
                 </button>
               ))}
             </div>
@@ -557,14 +877,10 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en_US">English (US)</SelectItem>
-                        <SelectItem value="en_GB">English (UK)</SelectItem>
-                        <SelectItem value="es">Spanish</SelectItem>
-                        <SelectItem value="fr">French</SelectItem>
-                        <SelectItem value="de">German</SelectItem>
-                        <SelectItem value="hi">Hindi</SelectItem>
-                        <SelectItem value="ar">Arabic</SelectItem>
+                      <SelectContent className="max-h-60">
+                        {SUPPORTED_LANGUAGES.map(lang => (
+                          <SelectItem key={lang.code} value={lang.code}>{lang.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -583,10 +899,124 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                     </Select>
                   </div>
                 </div>
+
+                {!isAuthCategory && (
+                  <div className="space-y-2">
+                    <Label>Parameter Format</Label>
+                    <Select value={parameterFormat} onValueChange={(v) => setParameterFormat(v as ParameterFormat)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="positional">Positional ({"{{1}}"}, {"{{2}}"})</SelectItem>
+                        <SelectItem value="named">Named ({"{{first_name}}"}, {"{{order_id}}"})</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Named parameters are preferred by Meta and more readable.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Components */}
+            {/* Authentication Template Builder */}
+            {isAuthCategory && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5" />
+                    Authentication Template
+                  </CardTitle>
+                  <CardDescription>
+                    Meta auto-generates the body text. Configure the OTP delivery method below.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Security Disclaimer</Label>
+                      <p className="text-xs text-muted-foreground">
+                        &ldquo;For your security, do not share this code.&rdquo;
+                      </p>
+                    </div>
+                    <Switch
+                      checked={authSecurityRecommendation}
+                      onCheckedChange={setAuthSecurityRecommendation}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Code Expiration (minutes)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={90}
+                      value={authCodeExpiration}
+                      onChange={(e) => setAuthCodeExpiration(parseInt(e.target.value) || 10)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Footer will show: &ldquo;This code expires in {authCodeExpiration} minutes.&rdquo;
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>OTP Button Type</Label>
+                    <Select value={authOtpType} onValueChange={(v) => setAuthOtpType(v as any)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="COPY_CODE">Copy Code — user copies OTP to clipboard</SelectItem>
+                        <SelectItem value="ONE_TAP">One-Tap Autofill — OTP auto-fills into app</SelectItem>
+                        <SelectItem value="ZERO_TAP">Zero-Tap — invisible handoff, no user action</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {(authOtpType === 'ONE_TAP' || authOtpType === 'ZERO_TAP') && (
+                    <div className="space-y-3 rounded-md border border-dashed p-3">
+                      <p className="text-sm font-medium">Android App Configuration</p>
+                      <div className="space-y-2">
+                        <Label>Package Name *</Label>
+                        <Input
+                          placeholder="com.example.myapp"
+                          value={authPackageName}
+                          onChange={(e) => setAuthPackageName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Signature Hash *</Label>
+                        <Input
+                          placeholder="K8a/AINcGX7"
+                          value={authSignatureHash}
+                          onChange={(e) => setAuthSignatureHash(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Auth Preview */}
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+                    <p className="text-sm font-medium">Preview:</p>
+                    <p className="text-sm"><strong>*123456*</strong> is your verification code.</p>
+                    {authSecurityRecommendation && (
+                      <p className="text-xs text-muted-foreground">For your security, do not share this code.</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">This code expires in {authCodeExpiration} minutes.</p>
+                    <div className="mt-2 pt-2 border-t">
+                      <Badge variant="outline" className="text-blue-600">
+                        {authOtpType === 'COPY_CODE' ? '📋 Copy code' : 
+                         authOtpType === 'ONE_TAP' ? '✨ Autofill' : '🔄 Zero-tap'}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Standard Components (non-auth) */}
+            {!isAuthCategory && (
             <Card>
               <CardHeader>
                 <CardTitle>Template Components</CardTitle>
@@ -679,7 +1109,9 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                             <SelectItem value="TEXT">Text</SelectItem>
                             <SelectItem value="IMAGE">Image</SelectItem>
                             <SelectItem value="VIDEO">Video</SelectItem>
+                            <SelectItem value="GIF">GIF</SelectItem>
                             <SelectItem value="DOCUMENT">Document</SelectItem>
+                            <SelectItem value="LOCATION">Location</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -689,15 +1121,30 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                        component.type === 'BODY' ||
                        component.type === 'FOOTER' ? (
                         <Textarea
-                          placeholder={`Enter ${component.type.toLowerCase()} text... Use {{1}}, {{2}} for variables`}
+                          placeholder={parameterFormat === 'named'
+                            ? `Enter ${component.type.toLowerCase()} text... Use {{customer_name}}, {{order_id}} for variables`
+                            : `Enter ${component.type.toLowerCase()} text... Use {{1}}, {{2}} for variables`}
                           value={component.text || ''}
                           onChange={(e) => updateComponent(idx, { text: e.target.value })}
                           rows={component.type === 'BODY' ? 4 : 2}
                         />
                       ) : null}
 
-                      {/* Example URL for media headers (IMAGE, VIDEO, DOCUMENT) */}
-                      {component.type === 'HEADER' && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(component.format || '') && (
+                      {/* Location header info */}
+                      {component.type === 'HEADER' && component.format === 'LOCATION' && (
+                        <div className="bg-blue-50 dark:bg-blue-950/30 rounded-md p-3 text-sm">
+                          <div className="flex items-center gap-2 font-medium mb-1">
+                            <MapPin className="h-4 w-4" />
+                            Location Header
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            No example needed at creation. Latitude, longitude, name, and address will be provided at send time.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Example URL for media headers (IMAGE, VIDEO, GIF, DOCUMENT) */}
+                      {component.type === 'HEADER' && ['IMAGE', 'VIDEO', 'GIF', 'DOCUMENT'].includes(component.format || '') && (
                         <div className="space-y-3">
                           <div className="space-y-2">
                             <Label>
@@ -847,7 +1294,11 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                                     <SelectItem value="QUICK_REPLY">Quick Reply</SelectItem>
                                     <SelectItem value="PHONE_NUMBER">Phone Number</SelectItem>
                                     <SelectItem value="URL">URL</SelectItem>
+                                    <SelectItem value="COPY_CODE">Copy Code</SelectItem>
                                     <SelectItem value="FLOW">Flow</SelectItem>
+                                    <SelectItem value="VOICE_CALL">Voice Call</SelectItem>
+                                    <SelectItem value="MPM">Multi-Product</SelectItem>
+                                    <SelectItem value="SPM">Single-Product</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <Button
@@ -896,10 +1347,31 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                                   }
                                 />
                               )}
+
+                              {button.type === 'COPY_CODE' && (
+                                <Input
+                                  placeholder="Example code (e.g., 250FF)"
+                                  value={button.example || ''}
+                                  onChange={(e) =>
+                                    updateButton(idx, btnIdx, { example: e.target.value })
+                                  }
+                                />
+                              )}
+
+                              {button.type === 'VOICE_CALL' && (
+                                <p className="text-xs text-muted-foreground">Initiates a WhatsApp voice call when tapped.</p>
+                              )}
+
+                              {(button.type === 'MPM' || button.type === 'SPM') && (
+                                <p className="text-xs text-muted-foreground">
+                                  {button.type === 'MPM' ? 'Shows multi-product catalog selection.' : 'Shows single product from catalog.'}
+                                  {' '}Requires a connected Commerce Manager catalog.
+                                </p>
+                              )}
                             </div>
                           ))}
 
-                          {component.buttons && component.buttons.length < 3 && (
+                          {component.buttons && component.buttons.length < 10 && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -917,6 +1389,37 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                 </div>
               </CardContent>
             </Card>
+            )}
+
+            {/* Variable Examples */}
+            {!isAuthCategory && detectedVariables.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Variable Examples</CardTitle>
+                  <CardDescription>
+                    Meta requires example values for all variables to approve your template.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {detectedVariables.map((v, i) => {
+                    const key = `${v.source}:${v.name}`;
+                    return (
+                      <div key={i} className="space-y-1">
+                        <Label className="text-xs">
+                          <Badge variant="outline" className="mr-1">{v.source}</Badge>
+                          {'{{' + v.name + '}}'}
+                        </Label>
+                        <Input
+                          placeholder={`Example value for {{${v.name}}}`}
+                          value={variableExamples[key] || ''}
+                          onChange={(e) => setVariableExamples(prev => ({ ...prev, [key]: e.target.value }))}
+                        />
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Right: Preview */}

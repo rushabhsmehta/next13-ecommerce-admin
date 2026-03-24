@@ -55,7 +55,7 @@ const SendWhatsAppMediaSchema = z.object({
 
 const TemplateHeaderParamsSchema = z
   .object({
-    type: z.enum(["text", "image", "video", "document"]),
+    type: z.enum(["text", "image", "video", "document", "location"]),
     text: z.string().optional(),
     image: z.object({ link: z.string().url() }).optional(),
     video: z.object({ link: z.string().url() }).optional(),
@@ -63,6 +63,14 @@ const TemplateHeaderParamsSchema = z
       .object({
         link: z.string().url(),
         filename: z.string().optional(),
+      })
+      .optional(),
+    location: z
+      .object({
+        latitude: z.string(),
+        longitude: z.string(),
+        name: z.string().optional(),
+        address: z.string().optional(),
       })
       .optional(),
   })
@@ -98,6 +106,14 @@ const TemplateHeaderParamsSchema = z
         path: ["document"],
       });
     }
+
+    if (value.type === "location" && !value.location) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Location headers require a location object with latitude and longitude",
+        path: ["location"],
+      });
+    }
   });
 
 const SendWhatsAppTemplateSchema = z.object({
@@ -117,7 +133,7 @@ const UploadWhatsAppMediaSchema = z.object({
 
 const TemplateCategorySchema = z.enum(["AUTHENTICATION", "MARKETING", "UTILITY"]);
 const TemplateParameterFormatSchema = z.enum(["named", "positional"]);
-const TemplateHeaderFormatSchema = z.enum(["TEXT", "IMAGE", "VIDEO", "DOCUMENT", "LOCATION"]);
+const TemplateHeaderFormatSchema = z.enum(["TEXT", "IMAGE", "VIDEO", "DOCUMENT", "LOCATION", "GIF"]);
 
 const TemplateHeaderExampleSchema = z
   .object({
@@ -167,7 +183,13 @@ const TemplateBodyComponentSchema = z.object({
 
 const TemplateFooterComponentSchema = z.object({
   type: z.literal("FOOTER"),
-  text: z.string().min(1),
+  text: z.string().optional(),
+  code_expiration_minutes: z.number().int().min(1).max(90).optional(),
+});
+
+const TemplateAuthBodyComponentSchema = z.object({
+  type: z.literal("BODY"),
+  add_security_recommendation: z.boolean().optional(),
 });
 
 const TemplateButtonSchema = z.union([
@@ -202,11 +224,23 @@ const TemplateButtonSchema = z.union([
   }),
   z.object({
     type: z.literal("OTP"),
-    otp_type: z.enum(["COPY_CODE", "ONE_TAP"]),
+    otp_type: z.enum(["COPY_CODE", "ONE_TAP", "ZERO_TAP"]),
     text: z.string().min(1),
     autofill_text: z.string().optional(),
     package_name: z.string().optional(),
     signature_hash: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal("VOICE_CALL"),
+    text: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("MPM"),
+    text: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("SPM"),
+    text: z.string().min(1),
   }),
 ]);
 
@@ -218,6 +252,7 @@ const TemplateButtonsComponentSchema = z.object({
 const TemplateComponentSchema = z.union([
   TemplateHeaderComponentSchema,
   TemplateBodyComponentSchema,
+  TemplateAuthBodyComponentSchema,
   TemplateFooterComponentSchema,
   TemplateButtonsComponentSchema,
 ]);
@@ -476,6 +511,21 @@ function formatTemplateDraftPreview(
 
         if (button.type === "OTP") {
           lines.push(`  OTP: ${button.text} (${button.otp_type})`);
+          return;
+        }
+
+        if (button.type === "VOICE_CALL") {
+          lines.push(`  VOICE_CALL: ${button.text}`);
+          return;
+        }
+
+        if (button.type === "MPM") {
+          lines.push(`  MPM: ${button.text} (Multi-Product)`);
+          return;
+        }
+
+        if (button.type === "SPM") {
+          lines.push(`  SPM: ${button.text} (Single-Product)`);
         }
       });
     }
@@ -744,7 +794,7 @@ async function sendWhatsAppTemplate(rawParams: unknown) {
     templateName,
     languageCode,
     bodyParams: parameters,
-    headerParams,
+    headerParams: headerParams as any,
     saveToDb: true,
   });
 }
@@ -984,7 +1034,7 @@ async function listWhatsAppTemplateSchemaHandler() {
     name: "WhatsApp Template Create Schema",
     required: ["name", "language", "category", "components"],
     allowedCategories: ["AUTHENTICATION", "MARKETING", "UTILITY"],
-    allowedHeaderFormats: ["TEXT", "IMAGE", "VIDEO", "DOCUMENT", "LOCATION"],
+    allowedHeaderFormats: ["TEXT", "IMAGE", "VIDEO", "DOCUMENT", "LOCATION", "GIF"],
     allowedButtonTypes: [
       "QUICK_REPLY",
       "PHONE_NUMBER",
@@ -992,6 +1042,9 @@ async function listWhatsAppTemplateSchemaHandler() {
       "COPY_CODE",
       "FLOW",
       "OTP",
+      "VOICE_CALL",
+      "MPM",
+      "SPM",
     ],
     parameterFormat: ["named", "positional"],
     rules: [
@@ -1018,7 +1071,7 @@ async function listWhatsAppTemplateSchemaHandler() {
         text: "Optional footer text",
       },
       BUTTONS: {
-        types: ["QUICK_REPLY", "PHONE_NUMBER", "URL", "COPY_CODE", "FLOW", "OTP"],
+        types: ["QUICK_REPLY", "PHONE_NUMBER", "URL", "COPY_CODE", "FLOW", "OTP", "VOICE_CALL", "MPM", "SPM"],
       },
     },
     examples: {

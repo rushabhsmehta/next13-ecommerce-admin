@@ -155,6 +155,8 @@ export default function TemplateManager() {
       APPROVED: { variant: 'default', icon: CheckCircle },
       PENDING: { variant: 'secondary', icon: Clock },
       REJECTED: { variant: 'destructive', icon: XCircle },
+      PAUSED: { variant: 'outline', icon: AlertCircle },
+      DISABLED: { variant: 'outline', icon: XCircle },
     };
 
     const config = statusConfig[status] || { variant: 'outline', icon: AlertCircle };
@@ -254,6 +256,8 @@ export default function TemplateManager() {
                     <SelectItem value="APPROVED">Approved</SelectItem>
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="REJECTED">Rejected</SelectItem>
+                    <SelectItem value="PAUSED">Paused</SelectItem>
+                    <SelectItem value="DISABLED">Disabled</SelectItem>
                   </SelectContent>
                 </Select>
 

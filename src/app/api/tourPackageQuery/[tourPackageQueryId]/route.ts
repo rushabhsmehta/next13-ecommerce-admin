@@ -1004,7 +1004,10 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
     if (selectedVariantIds && Array.isArray(selectedVariantIds) && selectedVariantIds.length > 0) {
       try {
         console.log(`📸 Updating variant snapshots for ${selectedVariantIds.length} variants...`);
-        await createVariantSnapshots(params.tourPackageQueryId, selectedVariantIds, { overwrite: true });
+        await createVariantSnapshots(params.tourPackageQueryId, selectedVariantIds, {
+          overwrite: true,
+          tourPackageId: selectedTemplateId ?? undefined,
+        });
         console.log('✅ Variant snapshots updated successfully');
 
         // Apply query-level hotel overrides on top of the package-default hotel snapshots

@@ -605,7 +605,10 @@ export async function POST(
         if (selectedVariantIds && Array.isArray(selectedVariantIds) && selectedVariantIds.length > 0) {
             try {
                 console.log(`📸 Creating variant snapshots for ${selectedVariantIds.length} variants...`);
-                await createVariantSnapshots(newTourPackageQuery.id, selectedVariantIds, { overwrite: true });
+                await createVariantSnapshots(newTourPackageQuery.id, selectedVariantIds, {
+                    overwrite: true,
+                    tourPackageId: selectedTemplateId ?? undefined,
+                });
                 console.log('✅ Variant snapshots created successfully');
 
                 // Apply query-level hotel overrides on top of the package-default hotel snapshots

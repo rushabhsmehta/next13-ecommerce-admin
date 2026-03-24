@@ -10,6 +10,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 interface SnapshotOptions {
   overwrite?: boolean; // If true, delete existing snapshots before creating new ones
+  tourPackageId?: string;
 }
 
 /**
@@ -29,7 +30,8 @@ export async function createVariantSnapshots(
     return { success: true, count: 0 };
   }
 
-  console.log(`📸 [Snapshot] Creating snapshots for query ${queryId}, variants: ${variantIds.join(', ')}`);
+  const uniqueVariantIds = Array.from(new Set(variantIds.filter(Boolean)));
+  console.log(`📸 [Snapshot] Creating snapshots for query ${queryId}, variants: ${uniqueVariantIds.join(', ')}`);
 
   try {
     // Delete existing snapshots if overwrite is enabled
@@ -42,7 +44,10 @@ export async function createVariantSnapshots(
 
     // Fetch full variant data with all relations
     const variants = await prismadb.packageVariant.findMany({
-      where: { id: { in: variantIds } },
+      where: {
+        id: { in: uniqueVariantIds },
+        ...(options.tourPackageId ? { tourPackageId: options.tourPackageId } : {}),
+      },
       include: {
         variantHotelMappings: {
           include: {
@@ -72,6 +77,14 @@ export async function createVariantSnapshots(
       },
       orderBy: { sortOrder: 'asc' },
     });
+
+    if (options.tourPackageId && variants.length !== uniqueVariantIds.length) {
+      const foundIds = new Set(variants.map((variant) => variant.id));
+      const missingIds = uniqueVariantIds.filter((id) => !foundIds.has(id));
+      throw new Error(
+        `Selected variant ID(s) do not belong to tour package ${options.tourPackageId}: ${missingIds.join(', ')}`
+      );
+    }
 
     if (variants.length === 0) {
       console.log('⚠️ [Snapshot] No variants found for provided IDs');

@@ -38,6 +38,7 @@ PACKAGE-BASED WORKFLOW (recommended):
 2. list_tour_packages with locationId → pick a package
 3. get_tour_package → see variants (Budget/Standard/Deluxe) with hotel-per-day + pricing
 4. create_tour_query with tourPackageId + selectedVariantIds → snapshots variants into PDF
+   - If you pass selectedVariantIds, tourPackageId must also be present so the server can validate them.
 
 IMPORTANT: Before calling this tool, collect ALL of the following from the user in one conversation:
 
@@ -77,6 +78,10 @@ POLICIES (ask the customer if they want to include):
 - exclusions: string[] — what is NOT included (e.g. ["Airfare", "Personal expenses", "Entry fees"])
 - importantNotes: string[] — important notices
 - paymentPolicy: string[] — payment schedule and terms
+- usefulTip: string[] — optional helpful customer notes
+- airlineCancellationPolicy: string[] — airline-specific cancellation terms
+- termsconditions: string[] — general terms and conditions
+- kitchenGroupPolicy: string[] — meal / kitchen policy notes
 - cancellationPolicy: string[] — cancellation and refund rules`,
     {
       customerName: z.string().describe("Customer full name"),
@@ -107,6 +112,10 @@ POLICIES (ask the customer if they want to include):
       exclusions: z.array(z.string()).optional().describe("What is NOT included e.g. ['Airfare', 'Personal expenses']"),
       importantNotes: z.array(z.string()).optional().describe("Important notices for the customer"),
       paymentPolicy: z.array(z.string()).optional().describe("Payment schedule and terms"),
+      usefulTip: z.array(z.string()).optional().describe("Optional helpful customer notes"),
+      airlineCancellationPolicy: z.array(z.string()).optional().describe("Airline cancellation terms"),
+      termsconditions: z.array(z.string()).optional().describe("General terms and conditions"),
+      kitchenGroupPolicy: z.array(z.string()).optional().describe("Meal / kitchen policy notes"),
       cancellationPolicy: z.array(z.string()).optional().describe("Cancellation and refund policy"),
     },
     async (params) => {
@@ -235,6 +244,10 @@ Supports the same itinerary structure as create_tour_query:
       exclusions: z.array(z.string()).optional(),
       importantNotes: z.array(z.string()).optional(),
       paymentPolicy: z.array(z.string()).optional(),
+      usefulTip: z.array(z.string()).optional(),
+      airlineCancellationPolicy: z.array(z.string()).optional(),
+      termsconditions: z.array(z.string()).optional(),
+      kitchenGroupPolicy: z.array(z.string()).optional(),
       cancellationPolicy: z.array(z.string()).optional(),
     },
     async (params) => {

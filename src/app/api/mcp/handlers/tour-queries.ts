@@ -127,6 +127,213 @@ const ArchiveTourQuerySchema = z.object({
   tourPackageQueryId: z.string().min(1),
 });
 
+type TourQueryCreateDependencies = {
+  prismadb: typeof prismadb;
+  dateToUtc: typeof dateToUtc;
+  createVariantSnapshots: typeof createVariantSnapshots;
+};
+
+const defaultTourQueryCreateDependencies: TourQueryCreateDependencies = {
+  prismadb,
+  dateToUtc,
+  createVariantSnapshots,
+};
+
+function createRollbackError(message: string, code = "VALIDATION_ERROR") {
+  return new McpError(message, code, 422);
+}
+
+async function rollbackTourQueryIfNeeded(deps: TourQueryCreateDependencies, queryId: string) {
+  try {
+    await deps.prismadb.tourPackageQuery.delete({ where: { id: queryId } });
+  } catch (rollbackError) {
+    console.error("[MCP] Failed to roll back partially created tour query", rollbackError);
+  }
+}
+
+async function resolveTourPackageTemplate(
+  deps: TourQueryCreateDependencies,
+  tourPackageId: string | undefined
+): Promise<{ selectedTemplateId: string | null; selectedTemplateType: string | null; tourPackageTemplateName: string | null }> {
+  if (!tourPackageId) {
+    return {
+      selectedTemplateId: null,
+      selectedTemplateType: null,
+      tourPackageTemplateName: null,
+    };
+  }
+
+  const pkg = await deps.prismadb.tourPackage.findUnique({
+    where: { id: tourPackageId },
+    select: { id: true, tourPackageName: true },
+  });
+
+  if (!pkg) {
+    throw new NotFoundError(
+      `Tour package "${tourPackageId}" not found. Use list_tour_packages to find a valid package ID.`,
+      "TOUR_PACKAGE_NOT_FOUND"
+    );
+  }
+
+  return {
+    selectedTemplateId: pkg.id,
+    selectedTemplateType: "tourPackage",
+    tourPackageTemplateName: pkg.tourPackageName ?? null,
+  };
+}
+
+async function validateSelectedVariantIds(
+  deps: TourQueryCreateDependencies,
+  tourPackageId: string | null,
+  selectedVariantIds: string[]
+): Promise<string[]> {
+  const uniqueVariantIds = Array.from(
+    new Set(
+      selectedVariantIds
+        .filter((id): id is string => typeof id === "string")
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+    )
+  );
+
+  if (uniqueVariantIds.length === 0) {
+    return [];
+  }
+
+  if (!tourPackageId) {
+    throw createRollbackError("tourPackageId is required when selectedVariantIds are provided");
+  }
+
+  const variants = await deps.prismadb.packageVariant.findMany({
+    where: {
+      id: { in: uniqueVariantIds },
+      tourPackageId,
+    },
+    select: { id: true },
+  });
+
+  if (variants.length !== uniqueVariantIds.length) {
+    const foundIds = new Set(variants.map((variant) => variant.id));
+    const missingIds = uniqueVariantIds.filter((id) => !foundIds.has(id));
+    throw new NotFoundError(
+      `Variant ID(s) ${missingIds.join(", ")} do not belong to tour package "${tourPackageId}". Use get_tour_package to select valid variants.`,
+      "VARIANT_NOT_FOUND"
+    );
+  }
+
+  return uniqueVariantIds;
+}
+
+export async function createTourQueryWithDependencies(
+  deps: TourQueryCreateDependencies,
+  rawParams: unknown
+) {
+  const params = CreateTourQuerySchema.parse(rawParams);
+
+  if (params.itineraries.length === 0) {
+    throw createRollbackError("At least one itinerary is required to create a tour query");
+  }
+
+  let locationId = params.locationId;
+  if (!locationId && params.locationName) {
+    const loc = await deps.prismadb.location.findFirst({
+      where: { isActive: true, label: { contains: params.locationName } },
+    });
+    if (!loc) {
+      throw new NotFoundError(
+        `Location "${params.locationName}" not found. Call search_locations first to find the correct name.`,
+        "LOCATION_NOT_FOUND"
+      );
+    }
+    locationId = loc.id;
+  }
+
+  const resolvedLocationId = locationId!;
+  const template = await resolveTourPackageTemplate(deps, params.tourPackageId ?? undefined);
+  const normalizedSelectedVariantIds = await validateSelectedVariantIds(
+    deps,
+    template.selectedTemplateId,
+    params.selectedVariantIds
+  );
+
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const queryNumber = `TPQ-${datePart}-${Date.now()}-${randomSuffix}`;
+
+  const tourStartsFrom = params.tourStartsFrom ? deps.dateToUtc(params.tourStartsFrom) ?? null : null;
+  const tourEndsOn = params.tourEndsOn ? deps.dateToUtc(params.tourEndsOn) ?? null : null;
+
+  const query = await deps.prismadb.tourPackageQuery.create({
+    data: {
+      tourPackageQueryNumber: queryNumber,
+      tourPackageQueryName: params.tourPackageQueryName ?? null,
+      customerName: params.customerName,
+      customerNumber: params.customerNumber ?? null,
+      locationId: resolvedLocationId,
+      tourCategory: (params.tourCategory as any) ?? "Domestic",
+      tourPackageQueryType: params.tourPackageQueryType ?? null,
+      numDaysNight: params.numDaysNight ?? null,
+      numAdults: params.numAdults ?? null,
+      numChild5to12: params.numChild5to12 ?? null,
+      numChild0to5: params.numChild0to5 ?? null,
+      tourStartsFrom,
+      tourEndsOn,
+      transport: params.transport ?? null,
+      pickup_location: params.pickup_location ?? null,
+      drop_location: params.drop_location ?? null,
+      remarks: params.remarks ?? null,
+      inquiryId: params.inquiryId ?? null,
+      selectedTemplateId: template.selectedTemplateId,
+      selectedTemplateType: template.selectedTemplateType,
+      tourPackageTemplateName: template.tourPackageTemplateName,
+      price: params.price ?? null,
+      totalPrice: params.totalPrice ?? null,
+      inclusions: params.inclusions ?? null,
+      exclusions: params.exclusions ?? null,
+      importantNotes: params.importantNotes ?? null,
+      paymentPolicy: params.paymentPolicy ?? null,
+      usefulTip: params.usefulTip ?? null,
+      cancellationPolicy: params.cancellationPolicy ?? null,
+      airlineCancellationPolicy: params.airlineCancellationPolicy ?? null,
+      termsconditions: params.termsconditions ?? null,
+      kitchenGroupPolicy: params.kitchenGroupPolicy ?? null,
+      isFeatured: false,
+      isArchived: false,
+    } as any,
+  });
+
+  try {
+    await createItinerariesForQuery(deps, query.id, resolvedLocationId, params.itineraries);
+  } catch (error) {
+    await rollbackTourQueryIfNeeded(deps, query.id);
+    throw error;
+  }
+
+  if (normalizedSelectedVariantIds.length > 0) {
+    try {
+      await deps.prismadb.tourPackageQuery.update({
+        where: { id: query.id },
+        data: { selectedVariantIds: normalizedSelectedVariantIds },
+      });
+
+      await deps.createVariantSnapshots(query.id, normalizedSelectedVariantIds, {
+        overwrite: true,
+        tourPackageId: template.selectedTemplateId ?? undefined,
+      });
+    } catch (error) {
+      await rollbackTourQueryIfNeeded(deps, query.id);
+      throw error;
+    }
+  }
+
+  return deps.prismadb.tourPackageQuery.findUnique({
+    where: { id: query.id },
+    include: fullQueryInclude,
+  });
+}
+
 // ── Lookup resolution helper ──────────────────────────────────────────────────
 
 interface LookupMaps {
@@ -138,6 +345,7 @@ interface LookupMaps {
 }
 
 async function resolveItineraryLookups(
+  deps: TourQueryCreateDependencies,
   itineraries: z.infer<typeof ItineraryInputSchema>[],
   fallbackLocationId: string
 ): Promise<LookupMaps> {
@@ -175,25 +383,25 @@ async function resolveItineraryLookups(
   // Parallel lookups
   const [hotels, roomTypes, occupancyTypes, mealPlans] = await Promise.all([
     hotelNames.length > 0
-      ? prismadb.hotel.findMany({
+      ? deps.prismadb.hotel.findMany({
           where: { locationId: fallbackLocationId, name: { in: hotelNames } },
           select: { id: true, name: true },
         })
       : [],
     roomTypeNames.length > 0
-      ? prismadb.roomType.findMany({
+      ? deps.prismadb.roomType.findMany({
           where: { name: { in: roomTypeNames } },
           select: { id: true, name: true },
         })
       : [],
     occupancyTypeNames.length > 0
-      ? prismadb.occupancyType.findMany({
+      ? deps.prismadb.occupancyType.findMany({
           where: { name: { in: occupancyTypeNames } },
           select: { id: true, name: true },
         })
       : [],
     mealPlanNames.length > 0
-      ? prismadb.mealPlan.findMany({
+      ? deps.prismadb.mealPlan.findMany({
           where: { name: { in: mealPlanNames } },
           select: { id: true, name: true },
         })
@@ -244,9 +452,9 @@ async function resolveItineraryLookups(
   const needsCustom = allAllocations.some(ra => !ra.roomTypeId && !ra.roomTypeName);
   let customRoomTypeId: string | null = null;
   if (needsCustom) {
-    let placeholder = await prismadb.roomType.findUnique({ where: { name: "Custom" } });
+    let placeholder = await deps.prismadb.roomType.findUnique({ where: { name: "Custom" } });
     if (!placeholder) {
-      placeholder = await prismadb.roomType.create({
+      placeholder = await deps.prismadb.roomType.create({
         data: { name: "Custom", description: "Custom ad-hoc room type placeholder", isActive: true },
       });
     }
@@ -259,13 +467,14 @@ async function resolveItineraryLookups(
 // ── Itinerary creation helper ─────────────────────────────────────────────────
 
 async function createItinerariesForQuery(
+  deps: TourQueryCreateDependencies,
   queryId: string,
   fallbackLocationId: string,
   itineraries: z.infer<typeof ItineraryInputSchema>[]
 ): Promise<void> {
   if (itineraries.length === 0) return;
 
-  const maps = await resolveItineraryLookups(itineraries, fallbackLocationId);
+  const maps = await resolveItineraryLookups(deps, itineraries, fallbackLocationId);
 
   // Sequential to preserve dayNumber ordering
   for (const itin of itineraries) {
@@ -283,7 +492,7 @@ async function createItinerariesForQuery(
       (itin.mealPlanName ? maps.mealPlanNameToIdMap.get(itin.mealPlanName.toLowerCase()) : undefined) ??
       null;
 
-    const createdItinerary = await prismadb.itinerary.create({
+    const createdItinerary = await deps.prismadb.itinerary.create({
       data: {
         tourPackageQueryId: queryId,
         locationId: itinLocationId,
@@ -299,7 +508,7 @@ async function createItinerariesForQuery(
     if (itin.activities && itin.activities.length > 0) {
       await Promise.all(
         itin.activities.map(act =>
-          prismadb.activity.create({
+          deps.prismadb.activity.create({
             data: {
               itineraryId: createdItinerary.id,
               locationId: itinLocationId,
@@ -329,7 +538,7 @@ async function createItinerariesForQuery(
             (ra.mealPlanName ? maps.mealPlanNameToIdMap.get(ra.mealPlanName.toLowerCase()) : undefined) ??
             null;
 
-          return prismadb.roomAllocation.create({
+          return deps.prismadb.roomAllocation.create({
             data: {
               itineraryId: createdItinerary.id,
               roomTypeId: resolvedRoomTypeId!,
@@ -378,100 +587,7 @@ const fullQueryInclude = {
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
 async function createTourQuery(rawParams: unknown) {
-  const params = CreateTourQuerySchema.parse(rawParams);
-  let locationId = params.locationId;
-
-  if (!locationId && params.locationName) {
-    const loc = await prismadb.location.findFirst({
-      where: { isActive: true, label: { contains: params.locationName } },
-    });
-    if (!loc) throw new NotFoundError(
-      `Location "${params.locationName}" not found. Call search_locations first to find the correct name.`,
-      "LOCATION_NOT_FOUND"
-    );
-    locationId = loc.id;
-  }
-
-  const resolvedLocationId = locationId!;
-
-  // Generate collision-resistant query number
-  const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
-  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-  const queryNumber = `TPQ-${datePart}-${Date.now()}-${randomSuffix}`;
-
-  const tourStartsFrom = params.tourStartsFrom ? dateToUtc(params.tourStartsFrom) ?? null : null;
-  const tourEndsOn = params.tourEndsOn ? dateToUtc(params.tourEndsOn) ?? null : null;
-
-  // Resolve tour package template name if tourPackageId is provided
-  let tourPackageTemplateName: string | null = null;
-  if (params.tourPackageId) {
-    const pkg = await prismadb.tourPackage.findUnique({
-      where: { id: params.tourPackageId },
-      select: { tourPackageName: true },
-    });
-    tourPackageTemplateName = pkg?.tourPackageName ?? null;
-  }
-
-  const query = await prismadb.tourPackageQuery.create({
-    data: {
-      tourPackageQueryNumber: queryNumber,
-      tourPackageQueryName: params.tourPackageQueryName ?? null,
-      customerName: params.customerName,
-      customerNumber: params.customerNumber ?? null,
-      locationId: resolvedLocationId,
-      tourCategory: (params.tourCategory as any) ?? "Domestic",
-      tourPackageQueryType: params.tourPackageQueryType ?? null,
-      numDaysNight: params.numDaysNight ?? null,
-      numAdults: params.numAdults ?? null,
-      numChild5to12: params.numChild5to12 ?? null,
-      numChild0to5: params.numChild0to5 ?? null,
-      tourStartsFrom,
-      tourEndsOn,
-      transport: params.transport ?? null,
-      pickup_location: params.pickup_location ?? null,
-      drop_location: params.drop_location ?? null,
-      remarks: params.remarks ?? null,
-      inquiryId: params.inquiryId ?? null,
-      selectedTemplateId: params.tourPackageId ?? null,
-      selectedTemplateType: params.tourPackageId ? "tourPackage" : null,
-      tourPackageTemplateName,
-      price: params.price ?? null,
-      totalPrice: params.totalPrice ?? null,
-      inclusions: params.inclusions ?? null,
-      exclusions: params.exclusions ?? null,
-      importantNotes: params.importantNotes ?? null,
-      paymentPolicy: params.paymentPolicy ?? null,
-      usefulTip: params.usefulTip ?? null,
-      cancellationPolicy: params.cancellationPolicy ?? null,
-      airlineCancellationPolicy: params.airlineCancellationPolicy ?? null,
-      termsconditions: params.termsconditions ?? null,
-      kitchenGroupPolicy: params.kitchenGroupPolicy ?? null,
-      isFeatured: false,
-      isArchived: false,
-    } as any,
-  });
-
-  // Create itineraries if provided
-  if (params.itineraries && params.itineraries.length > 0) {
-    await createItinerariesForQuery(query.id, resolvedLocationId, params.itineraries);
-  }
-
-  // Snapshot selected package variants if provided
-  if (params.selectedVariantIds && params.selectedVariantIds.length > 0) {
-    await prismadb.tourPackageQuery.update({
-      where: { id: query.id },
-      data: { selectedVariantIds: params.selectedVariantIds },
-    });
-    await createVariantSnapshots(query.id, params.selectedVariantIds, { overwrite: true });
-  }
-
-  // Return full record with itineraries
-  const created = await prismadb.tourPackageQuery.findUnique({
-    where: { id: query.id },
-    include: fullQueryInclude,
-  });
+  const created = await createTourQueryWithDependencies(defaultTourQueryCreateDependencies, rawParams);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   return { ...created, pdfGeneratorUrl: `${baseUrl}/tourPackageQueryPDFGenerator/${created!.id}` };
 }
@@ -631,7 +747,7 @@ async function updateTourQuery(rawParams: unknown) {
   if (itineraries !== undefined) {
     await prismadb.itinerary.deleteMany({ where: { tourPackageQueryId } });
     if (itineraries.length > 0) {
-      await createItinerariesForQuery(tourPackageQueryId, existing.locationId, itineraries);
+      await createItinerariesForQuery({ prismadb, dateToUtc, createVariantSnapshots }, tourPackageQueryId, existing.locationId, itineraries);
     }
   }
 

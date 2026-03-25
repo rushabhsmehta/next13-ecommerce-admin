@@ -500,18 +500,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
       // Restore dropdown field values based on saved template data
       tourPackageTemplate: (() => {
-        if (initialData.selectedTemplateType === 'TourPackage') {
-          return initialData.selectedTemplateId || '';
-        }
+        const id = initialData.selectedTemplateId;
+        if (!id) return '';
+        // selectedTemplateId always stores the package ID (for both TourPackage and TourPackageVariant types)
+        const directPackage = tourPackages?.find(tp => tp.id === id);
+        if (directPackage) return id;
+        // Legacy fallback: older records may have stored a variant ID under TourPackageVariant type
         if (initialData.selectedTemplateType === 'TourPackageVariant') {
-          // If it's a variant, we need to find its parent tour package ID to correctly populate the dropdown
-          const variantId = initialData.selectedTemplateId;
           const parentPackage = tourPackages?.find(tp =>
-            tp.packageVariants?.some(v => v.id === variantId)
+            tp.packageVariants?.some(v => v.id === id)
           );
           return parentPackage?.id || '';
         }
-        return '';
+        return id;
       })(),
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
       selectedMealPlanId: initialData.selectedMealPlanId || '',

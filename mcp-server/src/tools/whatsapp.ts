@@ -809,7 +809,7 @@ export function registerWhatsappTools(server: McpServer) {
 
   server.tool(
     "list_whatsapp_templates",
-    "List available WhatsApp message templates.",
+    "List available WhatsApp message templates with live status from Meta (APPROVED, PENDING, REJECTED, PAUSED, DISABLED, DELETED), language, category, and quality score.",
     {
       limit: z.number().int().min(1).max(100).optional().default(25).describe("Max results"),
     },
@@ -819,6 +819,23 @@ export function registerWhatsappTools(server: McpServer) {
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err) {
         return toolError("list_whatsapp_templates", err);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_whatsapp_template",
+    "Delete a WhatsApp message template by name. This permanently removes the template from Meta's platform.",
+    {
+      name: z.string().min(1).describe("Template name to delete"),
+      hsm_id: z.string().optional().describe("Optional template ID for deleting a specific template version"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("delete_whatsapp_template", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("delete_whatsapp_template", err);
       }
     }
   );

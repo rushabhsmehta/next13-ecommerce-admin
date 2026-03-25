@@ -5,7 +5,7 @@ import {
   sendWhatsAppTemplate as sendWhatsAppTemplateViaLib,
   uploadWhatsAppMedia,
 } from "@/lib/whatsapp";
-import { createTemplate as createWhatsAppTemplateViaLib, type CreateTemplateRequest } from "@/lib/whatsapp-templates";
+import { createTemplate as createWhatsAppTemplateViaLib, deleteTemplate as deleteWhatsAppTemplateViaLib, listTemplates as listWhatsAppTemplatesViaLib, type CreateTemplateRequest } from "@/lib/whatsapp-templates";
 import {
   extractTemplateParameters,
   previewTemplate,
@@ -1145,6 +1145,11 @@ const ListWhatsAppTemplatesSchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(50),
 });
 
+const DeleteWhatsAppTemplateSchema = z.object({
+  name: z.string().min(1).describe("Template name to delete"),
+  hsm_id: z.string().optional().describe("Optional template ID for deleting a specific template version"),
+});
+
 const ListWhatsAppMessagesSchema = z.object({
   phoneNumber: z.string().optional(),
   direction: z.enum(["inbound", "outbound"]).optional(),
@@ -1266,18 +1271,28 @@ async function listWhatsAppCustomers(rawParams: unknown) {
 
 async function listWhatsAppTemplates(rawParams: unknown) {
   const { limit } = ListWhatsAppTemplatesSchema.parse(rawParams);
-  return whatsappPrisma.whatsAppTemplate.findMany({
-    select: {
-      id: true,
-      name: true,
-      body: true,
-      components: true,
-      variables: true,
-      createdAt: true,
-    },
-    orderBy: { name: "asc" },
-    take: limit,
-  });
+  const result = await listWhatsAppTemplatesViaLib({ limit });
+  return {
+    success: true,
+    count: result.data.length,
+    templates: result.data.map((t) => ({
+      id: t.id,
+      name: t.name,
+      language: t.language,
+      status: t.status,
+      category: t.category,
+      components: t.components,
+      rejected_reason: t.rejected_reason,
+      quality_score: t.quality_score,
+      last_updated_time: t.last_updated_time,
+    })),
+  };
+}
+
+async function deleteWhatsAppTemplate(rawParams: unknown) {
+  const { name, hsm_id } = DeleteWhatsAppTemplateSchema.parse(rawParams);
+  const result = await deleteWhatsAppTemplateViaLib(name, hsm_id);
+  return { success: result.success, message: `Template "${name}" deleted successfully` };
 }
 
 async function listWhatsAppMessages(rawParams: unknown) {
@@ -1543,6 +1558,7 @@ export const whatsappHandlers: ToolHandlerMap = {
   get_whatsapp_campaign: getWhatsAppCampaign,
   list_whatsapp_customers: listWhatsAppCustomers,
   list_whatsapp_templates: listWhatsAppTemplates,
+  delete_whatsapp_template: deleteWhatsAppTemplate,
   list_whatsapp_messages: listWhatsAppMessages,
   get_whatsapp_conversation: getWhatsAppConversation,
   get_whatsapp_conversation_summary: getWhatsAppConversationSummary,

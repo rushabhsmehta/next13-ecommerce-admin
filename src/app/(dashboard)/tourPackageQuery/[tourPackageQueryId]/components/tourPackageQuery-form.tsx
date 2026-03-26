@@ -445,6 +445,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - watch is set up once, form not available yet
 
+  // For existing queries, fetch fresh tour packages (with full variant data) on mount
+  useEffect(() => {
+    const locationId = initialData?.locationId;
+    if (locationId) {
+      fetchTourPackagesByLocation(locationId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchTourPackagesByLocation = async (locationId: string) => {
     if (!locationId) {
       setDynamicTourPackages([]);
@@ -504,10 +513,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           return initialData.selectedTemplateId || '';
         }
         if (initialData.selectedTemplateType === 'TourPackageVariant') {
-          // If it's a variant, we need to find its parent tour package ID to correctly populate the dropdown
-          const variantId = initialData.selectedTemplateId;
+          // selectedTemplateId stores the tour package ID (not a variant ID) in current implementation
+          if (tourPackages?.find(tp => tp.id === initialData.selectedTemplateId)) {
+            return initialData.selectedTemplateId || '';
+          }
+          // Legacy fallback: if stored as a variant ID, find the parent package
           const parentPackage = tourPackages?.find(tp =>
-            tp.packageVariants?.some(v => v.id === variantId)
+            tp.packageVariants?.some(v => v.id === initialData.selectedTemplateId)
           );
           return parentPackage?.id || '';
         }

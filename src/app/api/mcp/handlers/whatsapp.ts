@@ -5,6 +5,17 @@ import {
   sendWhatsAppTemplate as sendWhatsAppTemplateViaLib,
   uploadWhatsAppMedia,
 } from "@/lib/whatsapp";
+import {
+  createTourPackage,
+  updateTourPackage,
+  deleteTourPackage,
+  syncTourPackageToMeta,
+  syncPendingTourPackages,
+  ensureCatalogReady,
+  listTourPackages,
+  type TourPackageInput,
+  type TourPackageVariantInput,
+} from "@/lib/whatsapp-catalog";
 import { createTemplate as createWhatsAppTemplateViaLib, deleteTemplate as deleteWhatsAppTemplateViaLib, listTemplates as listWhatsAppTemplatesViaLib, type CreateTemplateRequest } from "@/lib/whatsapp-templates";
 import {
   extractTemplateParameters,
@@ -1542,6 +1553,154 @@ async function searchWhatsAppMessages(rawParams: unknown) {
   };
 }
 
+// ── Catalog handlers ────────────────────────────────────────────────────────
+
+const TourPackageVariantInputSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  priceOverride: z.union([z.number(), z.string()]).nullable().optional(),
+  heroImageUrl: z.string().url().optional(),
+  availabilityNotes: z.string().optional(),
+  seasonalAvailability: z
+    .array(z.object({ start: z.string(), end: z.string() }))
+    .optional(),
+  status: z.enum(["draft", "active", "inactive", "archived"]).optional(),
+});
+
+const TourPackageInputSchema = z.object({
+  title: z.string().min(1),
+  subtitle: z.string().optional(),
+  heroImageUrl: z.string().url().optional(),
+  gallery: z.array(z.string().url()).optional(),
+  location: z.string().optional(),
+  itinerarySummary: z.string().optional(),
+  highlights: z.array(z.string()).optional(),
+  inclusions: z.array(z.string()).optional(),
+  exclusions: z.array(z.string()).optional(),
+  bookingUrl: z.string().url().optional(),
+  termsAndConditions: z.string().optional(),
+  basePrice: z.union([z.number(), z.string()]).nullable().optional(),
+  currency: z.string().optional(),
+  seasonalAvailability: z
+    .array(z.object({ start: z.string(), end: z.string() }))
+    .optional(),
+  durationDays: z.number().int().nullable().optional(),
+  durationNights: z.number().int().nullable().optional(),
+  status: z.enum(["draft", "active", "inactive", "archived"]).optional(),
+  variants: z.array(TourPackageVariantInputSchema).optional(),
+});
+
+async function getWhatsAppCatalog() {
+  const catalog = await ensureCatalogReady();
+  const stats = await whatsappPrisma.whatsAppTourPackage.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  });
+  const syncStats = await whatsappPrisma.whatsAppTourPackage.groupBy({
+    by: ["syncStatus"],
+    _count: { _all: true },
+  });
+  return {
+    catalog,
+    stats: {
+      byStatus: Object.fromEntries(stats.map((s) => [s.status, s._count._all])),
+      bySyncStatus: Object.fromEntries(syncStats.map((s) => [s.syncStatus, s._count._all])),
+      total: stats.reduce((sum, s) => sum + s._count._all, 0),
+    },
+  };
+}
+
+const ListCatalogPackagesSchema = z.object({
+  status: z.enum(["draft", "active", "inactive", "archived"]).optional(),
+  syncStatus: z.enum(["pending", "in_progress", "synced", "failed"]).optional(),
+  search: z.string().optional(),
+  limit: z.number().int().min(1).max(100).optional().default(50),
+});
+
+async function listWhatsAppCatalogPackages(rawParams: unknown) {
+  const { status, syncStatus, search, limit } = ListCatalogPackagesSchema.parse(rawParams);
+
+  const where: Record<string, unknown> = {};
+  if (status) where.status = status;
+  if (syncStatus) where.syncStatus = syncStatus;
+  if (search) {
+    where.OR = [
+      { title: { contains: search, mode: "insensitive" } },
+      { subtitle: { contains: search, mode: "insensitive" } },
+      { location: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  const packages = await whatsappPrisma.whatsAppTourPackage.findMany({
+    where,
+    include: {
+      product: true,
+      variants: { include: { variant: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+  });
+
+  return { success: true, count: packages.length, packages };
+}
+
+async function createWhatsAppCatalogPackage(rawParams: unknown) {
+  const input = TourPackageInputSchema.parse(rawParams);
+  const pkg = await createTourPackage(input as TourPackageInput);
+  return { success: true, tourPackage: pkg };
+}
+
+const GetCatalogPackageSchema = z.object({ id: z.string().min(1) });
+
+async function getWhatsAppCatalogPackage(rawParams: unknown) {
+  const { id } = GetCatalogPackageSchema.parse(rawParams);
+  const pkg = await whatsappPrisma.whatsAppTourPackage.findUnique({
+    where: { id },
+    include: {
+      product: true,
+      variants: { include: { variant: true } },
+    },
+  });
+  if (!pkg) throw new NotFoundError(`Tour package ${id} not found`);
+  return { success: true, tourPackage: pkg };
+}
+
+const UpdateCatalogPackageSchema = TourPackageInputSchema.partial().extend({ id: z.string().min(1) });
+
+async function updateWhatsAppCatalogPackage(rawParams: unknown) {
+  const { id, ...input } = UpdateCatalogPackageSchema.parse(rawParams);
+  const pkg = await updateTourPackage(id, input as Partial<TourPackageInput>);
+  return { success: true, tourPackage: pkg };
+}
+
+const DeleteCatalogPackageSchema = z.object({
+  id: z.string().min(1),
+  removeFromMeta: z.boolean().optional().default(true),
+});
+
+async function deleteWhatsAppCatalogPackage(rawParams: unknown) {
+  const { id, removeFromMeta } = DeleteCatalogPackageSchema.parse(rawParams);
+  await deleteTourPackage(id, { removeFromMeta });
+  return { success: true, deleted: true, id };
+}
+
+async function syncWhatsAppCatalogPackage(rawParams: unknown) {
+  const { id } = GetCatalogPackageSchema.parse(rawParams);
+  const pkg = await syncTourPackageToMeta(id);
+  return { success: true, tourPackage: pkg };
+}
+
+const SyncCatalogSchema = z.object({ limit: z.number().int().min(1).max(25).optional().default(10) });
+
+async function syncWhatsAppCatalog(rawParams: unknown) {
+  const { limit } = SyncCatalogSchema.parse(rawParams);
+  const result = await syncPendingTourPackages(limit);
+  return { success: true, ...result };
+}
+
+// ── Handler map ─────────────────────────────────────────────────────────────
+
 export const whatsappHandlers: ToolHandlerMap = {
   create_whatsapp_template: createWhatsAppTemplateHandler,
   preview_whatsapp_template: previewWhatsAppTemplateHandler,
@@ -1563,4 +1722,13 @@ export const whatsappHandlers: ToolHandlerMap = {
   get_whatsapp_conversation: getWhatsAppConversation,
   get_whatsapp_conversation_summary: getWhatsAppConversationSummary,
   search_whatsapp_messages: searchWhatsAppMessages,
+  // Catalog
+  get_whatsapp_catalog: getWhatsAppCatalog,
+  list_whatsapp_catalog_packages: listWhatsAppCatalogPackages,
+  create_whatsapp_catalog_package: createWhatsAppCatalogPackage,
+  get_whatsapp_catalog_package: getWhatsAppCatalogPackage,
+  update_whatsapp_catalog_package: updateWhatsAppCatalogPackage,
+  delete_whatsapp_catalog_package: deleteWhatsAppCatalogPackage,
+  sync_whatsapp_catalog_package: syncWhatsAppCatalogPackage,
+  sync_whatsapp_catalog: syncWhatsAppCatalog,
 };

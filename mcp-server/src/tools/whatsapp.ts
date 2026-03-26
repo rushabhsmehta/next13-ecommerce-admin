@@ -956,4 +956,192 @@ export function registerWhatsappTools(server: McpServer) {
       }
     }
   );
+
+  // ── Catalog tools ──────────────────────────────────────────────────────────
+
+  server.tool(
+    "get_whatsapp_catalog",
+    "Get the default WhatsApp product catalog info and tour package statistics (total, by status, by sync status).",
+    {},
+    async () => {
+      try {
+        const data = await callTool("get_whatsapp_catalog", {});
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("get_whatsapp_catalog", err);
+      }
+    }
+  );
+
+  const TourPackageStatusSchema = z.enum(["draft", "active", "inactive", "archived"]);
+  const TourPackageSyncStatusSchema = z.enum(["pending", "in_progress", "synced", "failed"]);
+
+  const SeasonalAvailabilitySchema = z.array(
+    z.object({
+      start: z.string().describe("Start date (YYYY-MM-DD)"),
+      end: z.string().describe("End date (YYYY-MM-DD)"),
+    })
+  ).optional().describe("Seasonal availability windows");
+
+  const VariantShape = {
+    id: z.string().optional().describe("Existing variant ID (for updates)"),
+    name: z.string().min(1).describe("Variant name, e.g. '3N/4D Standard'"),
+    description: z.string().optional().describe("Variant description"),
+    priceOverride: z.number().nullable().optional().describe("Override price for this variant (INR)"),
+    heroImageUrl: z.string().url().optional().describe("Variant hero image URL"),
+    availabilityNotes: z.string().optional().describe("Availability notes"),
+    seasonalAvailability: SeasonalAvailabilitySchema,
+    status: TourPackageStatusSchema.optional().describe("Variant status"),
+  };
+
+  server.tool(
+    "list_whatsapp_catalog_packages",
+    "List WhatsApp catalog tour packages with optional filters for status, sync status, and keyword search.",
+    {
+      status: TourPackageStatusSchema.optional().describe("Filter by package status"),
+      syncStatus: TourPackageSyncStatusSchema.optional().describe("Filter by Meta sync status"),
+      search: z.string().optional().describe("Keyword search on title, subtitle, or location"),
+      limit: z.number().int().min(1).max(100).optional().default(50).describe("Max results to return"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("list_whatsapp_catalog_packages", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("list_whatsapp_catalog_packages", err);
+      }
+    }
+  );
+
+  server.tool(
+    "create_whatsapp_catalog_package",
+    "Create a new tour package in the WhatsApp catalog. The package will be stored locally and marked pending sync to Meta. Call sync_whatsapp_catalog_package afterward to push it to Meta.",
+    {
+      title: z.string().min(1).describe("Tour package title, e.g. 'Kerala Backwaters 5N/6D'"),
+      subtitle: z.string().optional().describe("Short tagline"),
+      heroImageUrl: z.string().url().optional().describe("Main display image URL"),
+      gallery: z.array(z.string().url()).optional().describe("Additional image URLs (up to 10)"),
+      location: z.string().optional().describe("Destination, e.g. 'Kerala, India'"),
+      itinerarySummary: z.string().optional().describe("Day-by-day summary text"),
+      highlights: z.array(z.string()).optional().describe("Key selling points"),
+      inclusions: z.array(z.string()).optional().describe("What is included"),
+      exclusions: z.array(z.string()).optional().describe("What is excluded"),
+      bookingUrl: z.string().url().optional().describe("Booking / enquiry URL"),
+      termsAndConditions: z.string().optional().describe("T&C text"),
+      basePrice: z.number().nullable().optional().describe("Base price in INR"),
+      currency: z.string().optional().default("INR").describe("Currency code"),
+      seasonalAvailability: SeasonalAvailabilitySchema,
+      durationDays: z.number().int().nullable().optional().describe("Number of days"),
+      durationNights: z.number().int().nullable().optional().describe("Number of nights"),
+      status: TourPackageStatusSchema.optional().default("draft").describe("Initial status (default: draft)"),
+      variants: z.array(z.object(VariantShape)).optional().describe("Optional pricing/variant options"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("create_whatsapp_catalog_package", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("create_whatsapp_catalog_package", err);
+      }
+    }
+  );
+
+  server.tool(
+    "get_whatsapp_catalog_package",
+    "Get a single WhatsApp catalog tour package by ID, including its variants and product details.",
+    {
+      id: z.string().min(1).describe("Tour package ID"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("get_whatsapp_catalog_package", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("get_whatsapp_catalog_package", err);
+      }
+    }
+  );
+
+  server.tool(
+    "update_whatsapp_catalog_package",
+    "Update an existing WhatsApp catalog tour package. Only provide fields to change. The package sync status will be reset to pending after content changes — call sync_whatsapp_catalog_package to re-push to Meta.",
+    {
+      id: z.string().min(1).describe("Tour package ID to update"),
+      title: z.string().min(1).optional().describe("Tour package title"),
+      subtitle: z.string().optional().describe("Short tagline"),
+      heroImageUrl: z.string().url().optional().describe("Main display image URL"),
+      gallery: z.array(z.string().url()).optional().describe("Additional image URLs (up to 10)"),
+      location: z.string().optional().describe("Destination"),
+      itinerarySummary: z.string().optional().describe("Day-by-day summary text"),
+      highlights: z.array(z.string()).optional().describe("Key selling points"),
+      inclusions: z.array(z.string()).optional().describe("What is included"),
+      exclusions: z.array(z.string()).optional().describe("What is excluded"),
+      bookingUrl: z.string().url().optional().describe("Booking / enquiry URL"),
+      termsAndConditions: z.string().optional().describe("T&C text"),
+      basePrice: z.number().nullable().optional().describe("Base price in INR"),
+      currency: z.string().optional().describe("Currency code"),
+      seasonalAvailability: SeasonalAvailabilitySchema,
+      durationDays: z.number().int().nullable().optional().describe("Number of days"),
+      durationNights: z.number().int().nullable().optional().describe("Number of nights"),
+      status: TourPackageStatusSchema.optional().describe("Package status"),
+      variants: z.array(z.object(VariantShape)).optional().describe("Variant options (include id to update existing)"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("update_whatsapp_catalog_package", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("update_whatsapp_catalog_package", err);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_whatsapp_catalog_package",
+    "Delete a WhatsApp catalog tour package. By default also removes it from Meta's catalog. Pass removeFromMeta: false to skip the Meta deletion.",
+    {
+      id: z.string().min(1).describe("Tour package ID to delete"),
+      removeFromMeta: z.boolean().optional().default(true).describe("Also delete from Meta catalog (default: true)"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("delete_whatsapp_catalog_package", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("delete_whatsapp_catalog_package", err);
+      }
+    }
+  );
+
+  server.tool(
+    "sync_whatsapp_catalog_package",
+    "Sync a single tour package to Meta's WhatsApp catalog. Creates or updates the product on Meta. Call this after creating or updating a package.",
+    {
+      id: z.string().min(1).describe("Tour package ID to sync"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("sync_whatsapp_catalog_package", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("sync_whatsapp_catalog_package", err);
+      }
+    }
+  );
+
+  server.tool(
+    "sync_whatsapp_catalog",
+    "Batch-sync all pending/failed tour packages to Meta's WhatsApp catalog. Processes up to `limit` packages at a time.",
+    {
+      limit: z.number().int().min(1).max(25).optional().default(10).describe("Max packages to sync in this batch (default: 10)"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("sync_whatsapp_catalog", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("sync_whatsapp_catalog", err);
+      }
+    }
+  );
 }

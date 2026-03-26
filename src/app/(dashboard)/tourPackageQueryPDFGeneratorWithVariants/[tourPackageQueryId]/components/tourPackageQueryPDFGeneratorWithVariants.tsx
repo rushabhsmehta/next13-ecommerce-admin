@@ -282,7 +282,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
     const variantPricingData = (initialData as any)?.variantPricingData as Record<string, any> | null | undefined;
     const getVpd = (v: typeof variants[0]) =>
-      variantPricingData?.[v.sourceVariantId] as { components?: { name: string; price: string; description?: string }[]; totalCost?: number; remarks?: string } | undefined;
+      (variantPricingData?.[v.sourceVariantId] ?? variantPricingData?.[v.id]) as { components?: { name: string; price: string; description?: string }[]; totalCost?: number; remarks?: string } | undefined;
 
     const allDays = Array.from(new Set(
       variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
@@ -667,9 +667,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     if (!variants || variants.length < 2) return "";
     const variantPricingData = (initialData as any)?.variantPricingData as Record<string, any> | null | undefined;
 
-    // Helper: get variantPricingData entry for a snapshot (keyed by sourceVariantId)
+    // Helper: get variantPricingData entry for a snapshot (keyed by sourceVariantId, falls back to snapshot id)
     const getVpd = (v: typeof variants[0]) =>
-      variantPricingData?.[v.sourceVariantId] as { components?: { name: string; price: string; description?: string }[]; totalCost?: number; remarks?: string } | undefined;
+      (variantPricingData?.[v.sourceVariantId] ?? variantPricingData?.[v.id]) as { components?: { name: string; price: string; description?: string }[]; totalCost?: number; remarks?: string } | undefined;
 
     // Show section whenever we have variant data; show '—' if pricing not configured
     const hasPricing = variants.some(v => v.pricingSnapshots.length > 0 || !!getVpd(v)?.totalCost);

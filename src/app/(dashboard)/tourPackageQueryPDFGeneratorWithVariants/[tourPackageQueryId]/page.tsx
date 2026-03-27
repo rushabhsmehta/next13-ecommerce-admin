@@ -1,5 +1,6 @@
 import prismadb from "@/lib/prismadb";
 import TourPackageQueryPDFGeneratorWithVariants from "./components/tourPackageQueryPDFGeneratorWithVariants";
+import { buildSyntheticSnapshots } from "@/lib/buildSyntheticSnapshots";
 
 const TourPackageQueryPDFWithVariantsPage = async (
   props: {
@@ -91,6 +92,48 @@ const TourPackageQueryPDFWithVariantsPage = async (
       location: true,
     }
   });
+
+  // Build synthetic snapshots if DB snapshots are empty but variant data exists
+  if (tourPackageQuery && (!tourPackageQuery.queryVariantSnapshots || tourPackageQuery.queryVariantSnapshots.length === 0)) {
+    const selectedVariantIds = (tourPackageQuery as any).selectedVariantIds as string[] | null;
+    const customQueryVariants = (tourPackageQuery as any).customQueryVariants as any[] | null;
+    const hasVariants = (selectedVariantIds && selectedVariantIds.length > 0) || (customQueryVariants && customQueryVariants.length > 0);
+
+    if (hasVariants) {
+      let packageVariants: any[] = [];
+      if (selectedVariantIds && selectedVariantIds.length > 0) {
+        packageVariants = await prismadb.packageVariant.findMany({
+          where: { id: { in: selectedVariantIds } },
+          include: {
+            variantHotelMappings: {
+              include: {
+                hotel: {
+                  include: {
+                    images: { orderBy: { createdAt: 'asc' }, take: 1 },
+                    location: true,
+                  },
+                },
+                itinerary: true,
+              },
+            },
+          },
+          orderBy: { sortOrder: 'asc' },
+        });
+      }
+
+      const syntheticSnapshots = buildSyntheticSnapshots({
+        selectedVariantIds,
+        packageVariants,
+        variantHotelOverrides: (tourPackageQuery as any).variantHotelOverrides,
+        variantPricingData: (tourPackageQuery as any).variantPricingData,
+        customQueryVariants,
+        itineraries: tourPackageQuery.itineraries,
+        hotels: hotels as any,
+      });
+
+      (tourPackageQuery as any).queryVariantSnapshots = syntheticSnapshots;
+    }
+  }
 
   const associatePartners = await prismadb.associatePartner.findMany();
 

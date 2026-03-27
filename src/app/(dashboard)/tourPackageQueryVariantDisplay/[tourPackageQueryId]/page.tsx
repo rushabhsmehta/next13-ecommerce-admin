@@ -2,6 +2,7 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryVariantDisplay } from "./components/tourPackageQueryVariantDisplay";
 import Link from "next/link";
+import { buildSyntheticSnapshots } from "@/lib/buildSyntheticSnapshots";
 
 const tourPackageQueryVariantPage = async (
     props: {
@@ -94,6 +95,7 @@ const tourPackageQueryVariantPage = async (
         }
     });
 
+    // Build synthetic snapshots if DB snapshots are empty but variant data exists
     const locations = await prismadb.location.findMany({});
 
     const hotels = await prismadb.hotel.findMany({
@@ -103,6 +105,48 @@ const tourPackageQueryVariantPage = async (
             destination: true,
         }
     });
+
+    if (tourPackageQuery && (!tourPackageQuery.queryVariantSnapshots || tourPackageQuery.queryVariantSnapshots.length === 0)) {
+        const selectedVariantIds = (tourPackageQuery as any).selectedVariantIds as string[] | null;
+        const customQueryVariants = (tourPackageQuery as any).customQueryVariants as any[] | null;
+        const hasVariants = (selectedVariantIds && selectedVariantIds.length > 0) || (customQueryVariants && customQueryVariants.length > 0);
+
+        if (hasVariants) {
+            // Fetch PackageVariant records for template-derived variants
+            let packageVariants: any[] = [];
+            if (selectedVariantIds && selectedVariantIds.length > 0) {
+                packageVariants = await prismadb.packageVariant.findMany({
+                    where: { id: { in: selectedVariantIds } },
+                    include: {
+                        variantHotelMappings: {
+                            include: {
+                                hotel: {
+                                    include: {
+                                        images: { orderBy: { createdAt: 'asc' }, take: 1 },
+                                        location: true,
+                                    },
+                                },
+                                itinerary: true,
+                            },
+                        },
+                    },
+                    orderBy: { sortOrder: 'asc' },
+                });
+            }
+
+            const syntheticSnapshots = buildSyntheticSnapshots({
+                selectedVariantIds,
+                packageVariants,
+                variantHotelOverrides: (tourPackageQuery as any).variantHotelOverrides,
+                variantPricingData: (tourPackageQuery as any).variantPricingData,
+                customQueryVariants,
+                itineraries: tourPackageQuery.itineraries,
+                hotels: hotels as any,
+            });
+
+            (tourPackageQuery as any).queryVariantSnapshots = syntheticSnapshots;
+        }
+    }
 
     const associatePartners = await prismadb.associatePartner.findMany();
 

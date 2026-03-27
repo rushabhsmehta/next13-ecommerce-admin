@@ -278,7 +278,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
   // Build Variant Comparison Table (hotel + pricing side-by-side)
   const buildVariantComparisonTable = useCallback((): string => {
     const variants = initialData?.queryVariantSnapshots;
-    if (!variants || variants.length < 2) return "";
+    if (!variants || variants.length < 1) return "";
 
     const variantPricingData = (initialData as any)?.variantPricingData as Record<string, any> | null | undefined;
     const getVpd = (v: typeof variants[0]) =>
@@ -469,7 +469,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
   // Build Hotel Comparison Section — 4 days per page, compact day column, larger hotel images
   const buildHotelComparisonSection = useCallback((): string => {
     const variants = initialData?.queryVariantSnapshots;
-    if (!variants || variants.length < 2) return "";
+    if (!variants || variants.length < 1) return "";
 
     const allDays = Array.from(new Set(
       variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
@@ -664,7 +664,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
   // Build Price Comparison Section — brand colors (Section 2)
   const buildPriceComparisonSection = useCallback((): string => {
     const variants = initialData?.queryVariantSnapshots;
-    if (!variants || variants.length < 2) return "";
+    if (!variants || variants.length < 1) return "";
     const variantPricingData = (initialData as any)?.variantPricingData as Record<string, any> | null | undefined;
 
     // Helper: get variantPricingData entry for a snapshot (keyed by sourceVariantId, falls back to snapshot id)
@@ -1407,11 +1407,12 @@ ${(() => {
       </div>
     ` : "";
 
-    // Build comparison sections — hotel → price (variants section is removed; covered by hotel comparison)
+    // Build comparison sections — hotel → price → individual variant cards
     const hotelComparisonSection = buildHotelComparisonSection();
     const priceComparisonSection = buildPriceComparisonSection();
+    const variantsSection = buildVariantsSection();
 
-    // Assemble Full HTML — strict order: header → tour info → hotel comparison → price comparison → itinerary → policies
+    // Assemble Full HTML — strict order: header → tour info → hotel comparison → price comparison → variant cards → itinerary → policies
     const fullHtml = `
       <html>
         <head>
@@ -1423,6 +1424,7 @@ ${(() => {
             ${tourInfoSection}
             ${hotelComparisonSection}
             ${priceComparisonSection}
+            ${variantsSection}
             ${itinerariesSection}
             ${policiesAndTermsSection}
           </div>
@@ -1430,7 +1432,7 @@ ${(() => {
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, buildHotelComparisonSection, buildPriceComparisonSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection]);
+  }, [initialData, currentCompany, locations, buildHotelComparisonSection, buildPriceComparisonSection, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

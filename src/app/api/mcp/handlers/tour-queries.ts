@@ -765,6 +765,7 @@ async function getTourQuery(rawParams: unknown) {
         include: {
           activities: true,
           roomAllocations: { include: { roomType: true, occupancyType: true, mealPlan: true, extraBeds: { include: { occupancyType: true } } } },
+          itineraryImages: { select: { id: true, url: true } },
         },
         orderBy: { dayNumber: "asc" },
       },

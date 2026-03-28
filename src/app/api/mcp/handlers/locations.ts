@@ -41,7 +41,7 @@ async function searchLocations(rawParams: unknown) {
       isActive: true,
       label: { contains: query },
     },
-    select: { id: true, label: true, value: true, slug: true },
+    select: { id: true, label: true, imageUrl: true, value: true, slug: true },
     take: limit,
   });
 }
@@ -95,7 +95,7 @@ async function listDestinations(rawParams: unknown) {
   const { locationId, limit } = ListDestinationsSchema.parse(rawParams);
   return prismadb.tourDestination.findMany({
     where: { ...(locationId && { locationId }) },
-    select: { id: true, name: true, description: true, locationId: true },
+    select: { id: true, name: true, description: true, imageUrl: true, locationId: true },
     take: limit,
   });
 }
@@ -112,6 +112,7 @@ async function getTourPackage(rawParams: unknown) {
           dayNumber: true,
           itineraryTitle: true,
           hotel: { select: { id: true, name: true } },
+          itineraryImages: { select: { id: true, url: true } },
         },
         orderBy: { dayNumber: "asc" },
       },

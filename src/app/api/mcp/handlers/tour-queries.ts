@@ -230,9 +230,22 @@ export async function createTourQueryWithDependencies(
 ) {
   const params = CreateTourQuerySchema.parse(rawParams);
 
-  if (params.itineraries.length === 0) {
-    throw createRollbackError("At least one itinerary is required to create a tour query");
-  }
+  // Mutable working copies of params fields that may be enriched below
+  let itineraries = [...params.itineraries];
+  let numAdults = params.numAdults;
+  let numChild5to12 = params.numChild5to12;
+  let numChild0to5 = params.numChild0to5;
+  let tourPackageQueryName = params.tourPackageQueryName;
+  let numDaysNight = params.numDaysNight;
+  let inclusions = params.inclusions;
+  let exclusions = params.exclusions;
+  let importantNotes = params.importantNotes;
+  let paymentPolicy = params.paymentPolicy;
+  let usefulTip = params.usefulTip;
+  let cancellationPolicy = params.cancellationPolicy;
+  let airlineCancellationPolicy = params.airlineCancellationPolicy;
+  let termsconditions = params.termsconditions;
+  let kitchenGroupPolicy = params.kitchenGroupPolicy;
 
   let locationId = params.locationId;
   if (!locationId && params.locationName) {
@@ -256,6 +269,124 @@ export async function createTourQueryWithDependencies(
     params.selectedVariantIds
   );
 
+  // ── Auto-derive itineraries from tour package when none are provided ─────────
+  if (params.tourPackageId && itineraries.length === 0) {
+    const pkg = await deps.prismadb.tourPackage.findUnique({
+      where: { id: params.tourPackageId },
+      select: {
+        tourPackageName: true,
+        numDaysNight: true,
+        inclusions: true,
+        exclusions: true,
+        importantNotes: true,
+        paymentPolicy: true,
+        usefulTip: true,
+        cancellationPolicy: true,
+        airlineCancellationPolicy: true,
+        termsconditions: true,
+        kitchenGroupPolicy: true,
+        itineraries: {
+          select: {
+            dayNumber: true,
+            itineraryTitle: true,
+            itineraryDescription: true,
+            hotelId: true,
+            mealPlanId: true,
+            locationId: true,
+            activities: {
+              select: { activityTitle: true, activityDescription: true },
+            },
+          },
+          orderBy: { dayNumber: "asc" },
+        },
+      },
+    });
+
+    if (pkg && pkg.itineraries.length > 0) {
+      itineraries = (pkg.itineraries as any[])
+        .filter((it: any) => it.dayNumber !== null)
+        .map((it: any) => ({
+          dayNumber: it.dayNumber as number,
+          itineraryTitle: (it.itineraryTitle as string | null) ?? `Day ${it.dayNumber}`,
+          itineraryDescription: (it.itineraryDescription as string | null) ?? undefined,
+          hotelId: (it.hotelId as string | null) ?? undefined,
+          mealPlanId: (it.mealPlanId as string | null) ?? undefined,
+          locationId: (it.locationId as string | null) ?? undefined,
+          activities: ((it.activities ?? []) as any[]).map((a: any) => ({
+            activityTitle: (a.activityTitle as string | null) ?? "",
+            activityDescription: (a.activityDescription as string | null) ?? undefined,
+          })).filter((a: any) => a.activityTitle),
+          roomAllocations: [] as z.infer<typeof RoomAllocationInputSchema>[],
+        }));
+    }
+
+    // Copy package policy fields as fallbacks (only if not explicitly provided)
+    if (!tourPackageQueryName && pkg?.tourPackageName) tourPackageQueryName = pkg.tourPackageName;
+    if (!numDaysNight && pkg?.numDaysNight) numDaysNight = pkg.numDaysNight;
+    if (!inclusions && pkg?.inclusions) inclusions = pkg.inclusions as string[];
+    if (!exclusions && pkg?.exclusions) exclusions = pkg.exclusions as string[];
+    if (!importantNotes && pkg?.importantNotes) importantNotes = pkg.importantNotes as string[];
+    if (!paymentPolicy && pkg?.paymentPolicy) paymentPolicy = pkg.paymentPolicy as string[];
+    if (!usefulTip && pkg?.usefulTip) usefulTip = pkg.usefulTip as string[];
+    if (!cancellationPolicy && pkg?.cancellationPolicy) cancellationPolicy = pkg.cancellationPolicy as string[];
+    if (!airlineCancellationPolicy && pkg?.airlineCancellationPolicy) airlineCancellationPolicy = pkg.airlineCancellationPolicy as string[];
+    if (!termsconditions && pkg?.termsconditions) termsconditions = pkg.termsconditions as string[];
+    if (!kitchenGroupPolicy && pkg?.kitchenGroupPolicy) kitchenGroupPolicy = pkg.kitchenGroupPolicy as string[];
+  }
+
+  // ── Auto-populate from inquiry when inquiryId is provided ───────────────────
+  if (params.inquiryId) {
+    const inquiry = await deps.prismadb.inquiry.findUnique({
+      where: { id: params.inquiryId },
+      select: {
+        numAdults: true,
+        numChildrenAbove11: true,
+        numChildren5to11: true,
+        numChildrenBelow5: true,
+        roomAllocations: {
+          select: {
+            roomTypeId: true,
+            occupancyTypeId: true,
+            mealPlanId: true,
+            quantity: true,
+            guestNames: true,
+          },
+        },
+      },
+    });
+
+    if (inquiry) {
+      // Apply guest counts from inquiry if not already set
+      if (!numAdults && inquiry.numAdults) numAdults = String(inquiry.numAdults);
+      if (!numChild5to12 && inquiry.numChildren5to11) numChild5to12 = String(inquiry.numChildren5to11);
+      if (!numChild0to5 && inquiry.numChildrenBelow5) numChild0to5 = String(inquiry.numChildrenBelow5);
+
+      // Apply inquiry room allocations to each itinerary day that has no room allocations
+      if (inquiry.roomAllocations.length > 0) {
+        const inquiryRoomAllocations = (inquiry.roomAllocations as any[]).map((ra: any) => ({
+          roomTypeId: (ra.roomTypeId as string | null) ?? undefined,
+          occupancyTypeId: ra.occupancyTypeId as string,
+          mealPlanId: (ra.mealPlanId as string | null) ?? undefined,
+          quantity: ra.quantity as number,
+          guestNames: (ra.guestNames as string | null) ?? undefined,
+        }));
+        itineraries = itineraries.map(it => ({
+          ...it,
+          roomAllocations: (it.roomAllocations && it.roomAllocations.length > 0)
+            ? it.roomAllocations
+            : inquiryRoomAllocations,
+        }));
+      }
+    }
+  }
+
+  // ── Final validation: must have at least one itinerary ──────────────────────
+  if (itineraries.length === 0) {
+    throw createRollbackError(
+      "At least one itinerary is required. Provide itineraries manually, or pass a tourPackageId to auto-derive them from the package."
+    );
+  }
+
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
   const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
@@ -268,16 +399,16 @@ export async function createTourQueryWithDependencies(
   const query = await deps.prismadb.tourPackageQuery.create({
     data: {
       tourPackageQueryNumber: queryNumber,
-      tourPackageQueryName: params.tourPackageQueryName ?? null,
+      tourPackageQueryName: tourPackageQueryName ?? null,
       customerName: params.customerName,
       customerNumber: params.customerNumber ?? null,
       locationId: resolvedLocationId,
       tourCategory: (params.tourCategory as any) ?? "Domestic",
       tourPackageQueryType: params.tourPackageQueryType ?? null,
-      numDaysNight: params.numDaysNight ?? null,
-      numAdults: params.numAdults ?? null,
-      numChild5to12: params.numChild5to12 ?? null,
-      numChild0to5: params.numChild0to5 ?? null,
+      numDaysNight: numDaysNight ?? null,
+      numAdults: numAdults ?? null,
+      numChild5to12: numChild5to12 ?? null,
+      numChild0to5: numChild0to5 ?? null,
       tourStartsFrom,
       tourEndsOn,
       transport: params.transport ?? null,
@@ -290,22 +421,22 @@ export async function createTourQueryWithDependencies(
       tourPackageTemplateName: template.tourPackageTemplateName,
       price: params.price ?? null,
       totalPrice: params.totalPrice ?? null,
-      inclusions: params.inclusions ?? null,
-      exclusions: params.exclusions ?? null,
-      importantNotes: params.importantNotes ?? null,
-      paymentPolicy: params.paymentPolicy ?? null,
-      usefulTip: params.usefulTip ?? null,
-      cancellationPolicy: params.cancellationPolicy ?? null,
-      airlineCancellationPolicy: params.airlineCancellationPolicy ?? null,
-      termsconditions: params.termsconditions ?? null,
-      kitchenGroupPolicy: params.kitchenGroupPolicy ?? null,
+      inclusions: inclusions ?? null,
+      exclusions: exclusions ?? null,
+      importantNotes: importantNotes ?? null,
+      paymentPolicy: paymentPolicy ?? null,
+      usefulTip: usefulTip ?? null,
+      cancellationPolicy: cancellationPolicy ?? null,
+      airlineCancellationPolicy: airlineCancellationPolicy ?? null,
+      termsconditions: termsconditions ?? null,
+      kitchenGroupPolicy: kitchenGroupPolicy ?? null,
       isFeatured: false,
       isArchived: false,
     } as any,
   });
 
   try {
-    await createItinerariesForQuery(deps, query.id, resolvedLocationId, params.itineraries);
+    await createItinerariesForQuery(deps, query.id, resolvedLocationId, itineraries);
   } catch (error) {
     await rollbackTourQueryIfNeeded(deps, query.id);
     throw error;
@@ -882,6 +1013,39 @@ async function addTourQueryVariant(rawParams: unknown) {
   return { ...updated, pdfGeneratorUrl: `${baseUrl}/tourPackageQueryPDFGenerator/${tourPackageQueryId}` };
 }
 
+// ── getTourQueryPdf ───────────────────────────────────────────────────────────
+
+async function getTourQueryPdf(rawParams: unknown) {
+  const { tourPackageQueryId } = z.object({ tourPackageQueryId: z.string().min(1) }).parse(rawParams);
+  const env = (globalThis as any).process?.env as Record<string, string | undefined> | undefined ?? {};
+  const baseUrl = env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const pdfUrl = `${baseUrl}/api/mcp/tour-query-pdf/${tourPackageQueryId}`;
+
+  const response = await fetch(pdfUrl, {
+    headers: { "x-mcp-api-secret": env.MCP_API_SECRET ?? "" },
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new McpError(
+      `PDF generation failed (${response.status}): ${errText}`,
+      "PDF_ERROR",
+      500
+    );
+  }
+
+  const pdfBuffer = await response.arrayBuffer();
+  // Buffer is available in Node.js / Next.js API routes at runtime
+  const NodeBuffer = (globalThis as any).Buffer as { from: (data: ArrayBuffer) => { toString: (enc: string) => string } };
+  const pdfBase64 = NodeBuffer.from(pdfBuffer).toString("base64");
+  return {
+    tourPackageQueryId,
+    pdfBase64,
+    contentType: "application/pdf",
+    downloadUrl: `${baseUrl}/tourPackageQueryPDFGenerator/${tourPackageQueryId}`,
+  };
+}
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export const tourQueryHandlers: ToolHandlerMap = {
@@ -893,4 +1057,5 @@ export const tourQueryHandlers: ToolHandlerMap = {
   update_tour_query: updateTourQuery,
   archive_tour_query: archiveTourQuery,
   add_tour_query_variant: addTourQueryVariant,
+  get_tour_query_pdf: getTourQueryPdf,
 };

@@ -194,6 +194,8 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
     where.nextFollowUpDate = {
       not: null
     };
+    // Always override any status filter when followUpsOnly is active — cancelled/confirmed
+    // inquiries should never appear in the follow-ups view regardless of other active filters.
     where.status = {
       notIn: ['CANCELLED', 'CONFIRMED']
     };
@@ -202,7 +204,14 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
   const noTourPackageQuery = searchParams?.noTourPackageQuery === '1';
   if (noTourPackageQuery) {
     where.tourPackageQueries = { none: {} };
-    where.status = { notIn: ['CANCELLED'] };
+    // Merge with any existing status exclusion (e.g. from followUpsOnly) instead of overwriting
+    if (where.status && where.status.notIn) {
+      if (!where.status.notIn.includes('CANCELLED')) {
+        where.status.notIn.push('CANCELLED');
+      }
+    } else {
+      where.status = { notIn: ['CANCELLED'] };
+    }
   }
 
   // Pagination parameters

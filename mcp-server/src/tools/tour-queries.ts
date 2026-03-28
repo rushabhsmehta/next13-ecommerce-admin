@@ -33,56 +33,64 @@ export function registerTourQueryTools(server: McpServer) {
     "create_tour_query",
     `Create a complete tour package query (quote/itinerary proposal) for a customer.
 
-PACKAGE-BASED WORKFLOW (recommended):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PACKAGE-BASED WORKFLOW (recommended)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+When a tour package already exists in the system, itineraries and policies are AUTO-DERIVED
+from the package — you do NOT need to pass the itineraries array.
+
+Steps:
 1. search_locations → get locationId
-2. list_tour_packages with locationId → pick a package
-3. get_tour_package → see variants (Budget/Standard/Deluxe) with hotel-per-day + pricing
-4. create_tour_query with tourPackageId + selectedVariantIds → snapshots variants into PDF
-   - If you pass selectedVariantIds, tourPackageId must also be present so the server can validate them.
+2. list_tour_packages (locationId) → pick tourPackageId + note the package name
+3. get_tour_package (tourPackageId) → see variants (Budget/Standard/Deluxe) with hotel-per-day + pricing
+   - Each variant has an ID → collect the IDs you want to include in selectedVariantIds
+4. [if inquiryId is available] get_inquiry(inquiryId)
+   - Room allocations are automatically copied from inquiry to each itinerary day
+   - Guest counts (numAdults, numChild5to12, numChild0to5) are auto-populated from inquiry
+5. create_tour_query with:
+   - tourPackageId (required to auto-derive itinerary)
+   - selectedVariantIds (variant IDs from step 3)
+   - inquiryId (optional — auto-populates room allocations & guest counts)
+   - customerName, customerNumber, tourStartsFrom, tourEndsOn, transport
+   - totalPrice (ask customer if not in inquiry)
 
-IMPORTANT: Before calling this tool, collect ALL of the following from the user in one conversation:
+AUTO-DERIVED when tourPackageId is provided:
+  ✓ itineraries (from package days, with hotels & activities)
+  ✓ inclusions / exclusions / importantNotes / paymentPolicy (from package)
+  ✓ cancellationPolicy / termsconditions / usefulTip / kitchenGroupPolicy
+  ✓ numDaysNight / tourPackageQueryName
 
-REQUIRED INFORMATION:
-- Destination: call search_locations first to get locationId (or use locationName as fallback)
-- Tour package name e.g. "Goa Honeymoon 4N5D" → tourPackageQueryName
+AUTO-POPULATED when inquiryId is provided:
+  ✓ roomAllocations per itinerary day (room type, occupancy type, meal plan, quantity)
+  ✓ numAdults, numChild5to12, numChild0to5 (if not explicitly passed)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CUSTOM WORKFLOW (manual — no tourPackageId)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Provide itineraries array manually. For EACH DAY:
+- dayNumber, itineraryTitle (e.g. "Day 1: Arrival in Goa")
+- Hotel: call list_hotels → hotelId (or hotelName as fallback)
+- Activities: title + description
+- Room allocation (REQUIRED per day):
+    * call list_occupancy_types → occupancyTypeId (or occupancyTypeName) — REQUIRED
+    * call list_room_types → roomTypeId (or roomTypeName)
+    * call list_meal_plans → mealPlanId (or mealPlanName)
+    * quantity (number of rooms), guestNames
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALWAYS COLLECT FROM USER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - Customer full name → customerName
-- Customer phone number → customerNumber
-- Tour type: Honeymoon / Family / Adventure / Group / Corporate → tourPackageQueryType
-- Domestic or International → tourCategory
+- Customer phone → customerNumber
 - Travel start date (YYYY-MM-DD) → tourStartsFrom
 - Travel end date (YYYY-MM-DD) → tourEndsOn
-- Duration string e.g. "3 Nights / 4 Days" → numDaysNight
-- Number of adults → numAdults
-- Children aged 5-12 → numChild5to12
-- Children aged 0-5 → numChild0to5
-- Total package price → totalPrice
-
-FOR EACH DAY build an entry in the itineraries array:
-- dayNumber, itineraryTitle (e.g. "Day 1: Arrival in Goa"), itineraryDescription
-- Hotel for the night: call list_hotels first → hotelId (or hotelName as fallback)
-- Activities for the day: title + description each
-- Room allocation:
-    * Room type: call list_room_types → roomTypeId (or roomTypeName)
-    * Occupancy type: call list_occupancy_types → occupancyTypeId (or occupancyTypeName) — THIS IS REQUIRED
-    * Meal plan: call list_meal_plans → mealPlanId (or mealPlanName)
-    * Number of rooms (quantity) and guest names
-
-OPTIONAL:
-- Pickup / drop locations → pickup_location, drop_location
+- Tour type: Honeymoon / Family / Adventure / Group → tourPackageQueryType
 - Transport mode → transport (e.g. "Private Cab", "Flight + Cab")
-- Extra notes → remarks
-- Link to existing inquiry → inquiryId
+- Total price → totalPrice (ask if not derived from variants)
 
-POLICIES (ask the customer if they want to include):
-- inclusions: string[] — what is included (e.g. ["Daily breakfast", "Airport transfers", "Hotel taxes"])
-- exclusions: string[] — what is NOT included (e.g. ["Airfare", "Personal expenses", "Entry fees"])
-- importantNotes: string[] — important notices
-- paymentPolicy: string[] — payment schedule and terms
-- usefulTip: string[] — optional helpful customer notes
-- airlineCancellationPolicy: string[] — airline-specific cancellation terms
-- termsconditions: string[] — general terms and conditions
-- kitchenGroupPolicy: string[] — meal / kitchen policy notes
-- cancellationPolicy: string[] — cancellation and refund rules`,
+NOTES:
+- If you pass selectedVariantIds, tourPackageId must also be present (for validation).
+- After creating the query, use get_tour_query_pdf to download a PDF of the itinerary.`,
     {
       customerName: z.string().describe("Customer full name"),
       customerNumber: z.string().optional().describe("Customer phone number"),
@@ -132,7 +140,7 @@ POLICIES (ask the customer if they want to include):
         return {
           content: [{
             type: "text",
-            text: `Tour query created with ${itinCount} itinerary day(s)!${variantInfo}\n\nID: ${d?.id}\nName: ${name}\nCustomer: ${d?.customerName}\nDestination: ${d?.location?.label ?? ""}\n\n📄 Download PDF: ${pdfUrl}\n\nOpen in admin: /tourPackageQuery/${d?.id}\n\n${JSON.stringify(data, null, 2)}`,
+            text: `Tour query created with ${itinCount} itinerary day(s)!${variantInfo}\n\nID: ${d?.id}\nName: ${name}\nCustomer: ${d?.customerName}\nDestination: ${d?.location?.label ?? ""}\n\n📄 View PDF in browser: ${pdfUrl}\n📥 Download PDF: call get_tour_query_pdf with tourPackageQueryId: "${d?.id}"\n\nOpen in admin: /tourPackageQuery/${d?.id}\n\n${JSON.stringify(data, null, 2)}`,
           }],
         };
       } catch (err) {
@@ -334,6 +342,38 @@ The response includes pdfGeneratorUrl — open it to download the PDF with varia
         };
       } catch (err) {
         return toolError("add_tour_query_variant", err);
+      }
+    }
+  );
+
+  server.tool(
+    "get_tour_query_pdf",
+    `Generate and download a PDF for a tour package query.
+
+Returns a base64-encoded PDF containing:
+- Customer & booking details
+- Day-by-day itinerary with hotels, activities, and room allocations
+- Variant comparison table (if variants were created)
+- Inclusions / exclusions / policy sections
+- Pricing summary
+
+Use this after create_tour_query or add_tour_query_variant to produce a shareable PDF quote.
+The PDF uses the same branded layout as the CRM PDF download.`,
+    {
+      tourPackageQueryId: z.string().describe("Tour query ID (from create_tour_query or list_tour_queries)"),
+    },
+    async ({ tourPackageQueryId }) => {
+      try {
+        const data = await callTool("get_tour_query_pdf", { tourPackageQueryId });
+        const d = data as any;
+        return {
+          content: [{
+            type: "text",
+            text: `PDF generated for tour query ${tourPackageQueryId}.\n\nContent-Type: ${d?.contentType ?? "application/pdf"}\nBrowser view: ${d?.downloadUrl ?? ""}\n\nBase64 PDF (save as .pdf):\n${d?.pdfBase64 ?? ""}`,
+          }],
+        };
+      } catch (err) {
+        return toolError("get_tour_query_pdf", err);
       }
     }
   );

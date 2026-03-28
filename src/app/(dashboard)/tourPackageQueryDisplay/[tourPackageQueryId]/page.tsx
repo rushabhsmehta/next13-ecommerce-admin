@@ -72,12 +72,33 @@ const tourPackageQueryPage = async (
         }
       },
       associatePartner: true,
+      queryVariantSnapshots: {
+        include: {
+          hotelSnapshots: {
+            orderBy: {
+              dayNumber: 'asc',
+            },
+          },
+          pricingSnapshots: {
+            include: {
+              pricingComponentSnapshots: {
+                orderBy: {
+                  createdAt: 'asc',
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+      },
     }
   });
   console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    
+
   });
 
   const hotels = await prismadb.hotel.findMany({
@@ -89,6 +110,11 @@ const tourPackageQueryPage = async (
   });
 
   const associatePartners = await prismadb.associatePartner.findMany();
+
+  const roomTypes = await prismadb.roomType.findMany({});
+  const occupancyTypes = await prismadb.occupancyType.findMany({});
+  const mealPlans = await prismadb.mealPlan.findMany({});
+  const vehicleTypes = await prismadb.vehicleType.findMany({});
 
   // Find latest CREATE audit log entry for this entity (prepared by)
   const preparedByLog = await prismadb.auditLog.findFirst({
@@ -132,6 +158,10 @@ const tourPackageQueryPage = async (
           locations={locations}
           hotels={hotels}
           associatePartners={associatePartners}
+          roomTypes={roomTypes}
+          occupancyTypes={occupancyTypes}
+          mealPlans={mealPlans}
+          vehicleTypes={vehicleTypes}
         //    itineraries={[]}
         />
       </div>

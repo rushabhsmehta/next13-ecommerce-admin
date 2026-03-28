@@ -66,6 +66,10 @@ interface TourPackageQueryDisplayProps {
   })[];
   selectedOption?: string;
   associatePartners: AssociatePartner[];
+  roomTypes?: any[];
+  occupancyTypes?: any[];
+  mealPlans?: any[];
+  vehicleTypes?: any[];
 };
 
 // Define a type for the company information
@@ -234,6 +238,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   locations,
   hotels,
   associatePartners,
+  roomTypes = [],
+  occupancyTypes = [],
+  mealPlans = [],
+  vehicleTypes = [],
   // selectedOption = 'Empty', // Provide a default value
 }) => {
 
@@ -527,7 +535,17 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </p>
           </CardHeader>
           <CardContent className="px-5 py-6">
-            <VariantComparisonSection variants={initialData.queryVariantSnapshots} />
+            <VariantComparisonSection
+              variants={initialData.queryVariantSnapshots}
+              variantPricingData={(initialData as any)?.variantPricingData}
+              variantRoomAllocations={(initialData as any)?.variantRoomAllocations}
+              variantTransportDetails={(initialData as any)?.variantTransportDetails}
+              itineraries={initialData.itineraries}
+              roomTypes={roomTypes}
+              occupancyTypes={occupancyTypes}
+              mealPlans={mealPlans}
+              vehicleTypes={vehicleTypes}
+            />
           </CardContent>
         </Card>
       )}

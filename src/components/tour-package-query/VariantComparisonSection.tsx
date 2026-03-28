@@ -107,7 +107,7 @@ export function VariantComparisonSection({
   }
 
   const getVpd = (v: VariantSnapshot): VariantPricingEntry | undefined =>
-    variantPricingData?.[(v as any).sourceVariantId] as VariantPricingEntry | undefined;
+    (variantPricingData?.[(v as any).sourceVariantId] ?? variantPricingData?.[v.id]) as VariantPricingEntry | undefined;
 
   // Build itinerary lookup by day number
   const itineraryByDay: Record<number, ItineraryData> = {};

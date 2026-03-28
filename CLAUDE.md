@@ -6,101 +6,144 @@ Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer f
 
 ## Tech Stack
 
-- **Framework:** Next.js 16.1.6 (App Router), React 19, TypeScript
-- **Database:** MySQL (main) + PostgreSQL (WhatsApp) via Prisma ORM
-- **Auth:** Clerk (`@clerk/nextjs@6`)
-- **UI:** Shadcn/Radix UI + Tailwind CSS
-- **State:** Zustand
-- **Forms:** React Hook Form + Zod validation
-- **Media:** Cloudinary, Cloudflare R2 (S3-compatible)
-- **Payments:** Stripe
-- **AI:** OpenAI, Google Gemini
-- **PDF:** jsPDF, @react-pdf/renderer, Puppeteer
+- **Framework:** Next.js 16.1.6 (App Router), React 19.2.4, TypeScript 5.9.3
+- **Database:** MySQL (main) + PostgreSQL (WhatsApp) via Prisma ORM 5.22.0
+- **Auth:** Clerk (`@clerk/nextjs@6.38.1`)
+- **UI:** Shadcn/Radix UI + Tailwind CSS 3.4.19
+- **State:** Zustand 4.5.7
+- **Forms:** React Hook Form 7.71.2 + Zod 3.21.4
+- **Tables:** TanStack React Table 8.21.3
+- **Media:** Cloudinary, Cloudflare R2 (S3-compatible via @aws-sdk/client-s3)
+- **Payments:** Stripe 17.7.0
+- **AI:** OpenAI 4.93.0, Google Gemini (@google/generative-ai 0.24.1)
+- **PDF:** jsPDF 3.0.1 + jspdf-autotable, @react-pdf/renderer 3.4.4, Puppeteer 22.15.0
+- **Editor:** Jodit React (WYSIWYG), React DnD (drag-and-drop)
+- **Excel:** xlsx 0.18.5
 - **MCP:** Custom travel-admin MCP server (`mcp-server/`) for Claude tool integrations
 
 ## Commands
 
 ```bash
 npm run dev          # Start dev server
-npm run build        # Generate Prisma clients + Next.js build
+npm run build        # Generate both Prisma clients + Next.js build (--webpack)
 npm run lint         # ESLint (next/core-web-vitals)
 npm start            # Production server
 npm run test:accounts # Run accounting module tests
+
+# Utility scripts
+npm run sync-whatsapp-templates   # Sync WhatsApp templates
+npm run cleanup-database          # Auto-cleanup daily
+npm run check-db-health           # Check database health
 ```
 
 ## Project Structure
 
 ```
-src/
-  app/
-    (auth)/              # Sign-in/sign-up routes
-    (dashboard)/         # Admin dashboard (37+ modules)
-      accounts/          # Financial dashboard (overview, bank/cash balances)
-      sales/             # Sales management with filters + balance tracking
-      purchases/         # Purchase management with filters + balance tracking
-      customers/         # Customer management
-      hotels/            # Hotel management
-      tourPackages/      # Tour package management
-      tourPackageQuery/  # Tour inquiry/quote management
-      inquiries/         # Inquiry management & follow-ups
-      payments/          # Payment tracking
-      receipts/          # Receipt tracking
-      expenses/          # Expense tracking (includes accrued)
-      incomes/           # Income tracking
-      reports/           # Analytics & reporting
-      fetchaccounts/     # Per-query financial breakdown (tabbed view)
-      bank-book/         # Bank reconciliation
-      cash-book/         # Cash reconciliation
-      audit-logs/        # Audit logging
-      operational-staff/ # Staff management
-      associate-partners/# Partner management
-      export-contacts/   # Contact export
-      transport-pricing/ # Transport pricing configuration
-    (root)/              # Public homepage
-    api/                 # API routes (67+ endpoints)
-      mcp/               # MCP server API endpoint
-    travel/              # Public-facing travel app
-    ops/                 # Operations staff routes
-  components/
-    ui/                  # Shadcn UI components
-    forms/               # Form components (expense, receipt, payment dialogs)
-    tour-package-query/  # Tour package query components (variants, pricing)
-    ai/                  # AI-related components
-    dialogs/             # Dialog components
-    modals/              # Modal components
-    notifications/       # Notification components
-    itinerary-groups/    # Itinerary grouping components
-    whatsapp/            # WhatsApp UI components
-  lib/                   # Utilities (pricing, GST, phone, PDF, etc.)
-    prismadb.ts          # Main Prisma client singleton
-    utils.ts             # formatPrice(), cn(), and general utilities
-    timezone-utils.ts    # dateToUtc() for UTC date handling
-    phone-utils.ts       # normalizePhoneNumber()
-    pricing-calculator.ts # Variant pricing calculation service
-    inquiry-statuses.ts  # Centralized inquiry status constants
-    authz.ts             # Authorization helpers
-    rate-limit.ts        # Rate limiting utility
-    tour-package-query-accounting*.ts # Accounting module (schema, helpers, persistence, route)
-  hooks/                 # React hooks
-  providers/             # Context providers (theme, modal, toast)
-  types/                 # TypeScript type definitions
-  middleware.ts          # Auth & routing middleware
-schema.prisma            # Main MySQL schema (~1,800 lines)
-prisma/
-  whatsapp-schema.prisma # PostgreSQL WhatsApp schema
-mcp-server/              # Custom MCP server for Claude integrations
-  src/server.ts          # Tool registration orchestrator (99 tools)
-  src/tools/             # 17 tool registration modules
-  src/helpers.ts         # callTool + toolError helpers
-  src/api-client.ts      # Calls Next.js /api/mcp endpoint
+/
+├── schema.prisma            # Main MySQL schema (70,000+ lines, 90+ models)
+├── prisma/
+│   └── whatsapp-schema.prisma   # PostgreSQL WhatsApp schema
+├── mcp-server/              # Custom MCP server for Claude integrations
+├── scripts/                 # Node.js utility scripts (WhatsApp, DB maintenance)
+├── docs/                    # Documentation files
+├── mobile/                  # Mobile app (excluded from TypeScript)
+└── src/
+    ├── app/
+    │   ├── (auth)/          # Sign-in/sign-up routes (Clerk)
+    │   ├── (dashboard)/     # Admin dashboard (50+ modules)
+    │   │   ├── (routes)/    # Route group sub-container
+    │   │   │   ├── associate-partners/
+    │   │   │   ├── audit-logs/
+    │   │   │   ├── bank-book/       # Bank reconciliation
+    │   │   │   ├── cash-book/       # Cash reconciliation
+    │   │   │   ├── export-contacts/
+    │   │   │   ├── inquiries/       # Inquiry management & follow-ups
+    │   │   │   ├── operational-staff/
+    │   │   │   ├── settings/        # Config: meal-plans, room-types, vehicle-types,
+    │   │   │   │                    #   occupancy-types, pricing-attributes, pricing-components
+    │   │   │   ├── tourpackagequeryfrominquiry/  # Convert inquiry to tour query
+    │   │   │   │   └── associate/   # Associate partner version (tabbed form)
+    │   │   │   └── transport-pricing/
+    │   │   └── Direct dashboard modules:
+    │   │       ├── accounts/        # Financial overview (bank/cash balances)
+    │   │       ├── activities/ & activitiesMaster/
+    │   │       ├── bankaccounts/ & cashaccounts/
+    │   │       ├── chat-management/
+    │   │       ├── customers/
+    │   │       ├── destinations/
+    │   │       ├── expense-categories/ & expenses/
+    │   │       ├── fetchaccounts/   # Per-query financial breakdown (tabbed)
+    │   │       ├── flight-tickets/
+    │   │       ├── hotel-pricing/
+    │   │       ├── hotels/
+    │   │       ├── income-categories/ & incomes/
+    │   │       ├── itineraries/ & itinerariesMaster/
+    │   │       ├── ledger/
+    │   │       ├── locations/ & locations-suppliers/
+    │   │       ├── payments/, purchases/, receipts/, sales/
+    │   │       ├── purchase-returns/ & sale-returns/
+    │   │       ├── reports/
+    │   │       ├── suppliers/
+    │   │       ├── tourPackages/
+    │   │       ├── tourPackageCreateCopy/ & tourPackageQueryCreateCopy/
+    │   │       ├── tourPackageQuery/
+    │   │       ├── tourPackageQueryDisplay/ & tourPackageQueryVariantDisplay/
+    │   │       ├── transfers/
+    │   │       ├── travel-users/
+    │   │       └── whatsapp/
+    │   ├── (root)/          # Public homepage
+    │   ├── api/             # API routes (48+ top-level endpoints, 194+ total routes)
+    │   │   └── mcp/         # MCP gateway + OAuth + 18 handler modules
+    │   ├── mcp/             # MCP authorization routes (OAuth PKCE)
+    │   ├── ops/             # Operations staff routes
+    │   └── travel/          # Public-facing travel app (destinations, packages, chat)
+    ├── components/
+    │   ├── ui/              # Shadcn UI components (44+ components)
+    │   ├── forms/           # Transaction form dialogs (expense, receipt, payment)
+    │   ├── tour-package-query/  # Tour query UI (variants, pricing, itinerary)
+    │   ├── ai/              # AI wizard components
+    │   ├── dialogs/         # Dialog components
+    │   ├── modals/          # Modal components
+    │   ├── notifications/   # Notification components
+    │   ├── whatsapp/        # WhatsApp UI components
+    │   ├── app-sidebar.tsx  # Main navigation sidebar
+    │   ├── GenerateMyPDF.tsx / ViewMyPDF.tsx   # PDF generation/viewing
+    │   ├── voucher-layout.tsx / voucher-actions.tsx  # Voucher UI
+    │   └── financial-summary-panel.tsx
+    ├── lib/                 # Utilities
+    │   ├── prismadb.ts      # Main Prisma client singleton
+    │   ├── whatsapp-prismadb.ts  # WhatsApp Prisma client
+    │   ├── utils.ts         # formatPrice(), formatSafeDate(), cn()
+    │   ├── timezone-utils.ts    # dateToUtc() for UTC date handling
+    │   ├── phone-utils.ts       # normalizePhoneNumber()
+    │   ├── authz.ts             # getUserOrgRole(), roleAtLeast(), requireFinanceOrAdmin()
+    │   ├── rate-limit.ts        # Rate limiting utility
+    │   ├── pricing-calculator.ts    # Variant pricing calculation service
+    │   ├── gst-utils.ts             # GST calculation helpers
+    │   ├── payment-utils.ts         # Payment processing utilities
+    │   ├── seasonal-periods.ts      # Seasonal pricing periods
+    │   ├── bank-balance.ts / cash-balance.ts
+    │   ├── buildSyntheticSnapshots.ts   # Pricing snapshot generation
+    │   ├── variant-snapshot.ts          # Variant snapshot management
+    │   ├── inquiry-statuses.ts          # Centralized inquiry status constants
+    │   ├── tds.ts                       # Tax deducted at source
+    │   ├── r2-client.ts                 # Cloudflare R2 S3 client
+    │   ├── pdf-cache.ts                 # PDF caching service
+    │   ├── whatsapp.ts                  # WhatsApp integration (86KB)
+    │   ├── transaction-service.ts       # Financial transaction processing
+    │   └── tour-package-query-accounting*.ts  # Accounting module (schema, helpers, persistence, route)
+    ├── hooks/               # React hooks (modals, notifications, mobile detection)
+    ├── providers/           # Context providers (theme, modal, toast)
+    ├── types/               # TypeScript type definitions (TransactionFormProps, etc.)
+    └── middleware.ts        # Auth & routing middleware (Clerk)
 ```
 
 ## Database
 
 Two Prisma schemas with separate clients:
 
-- **`schema.prisma`** (MySQL) - Main business data: tour packages, hotels, itineraries, financial transactions, customers, inquiries. Client: `@prisma/client`
-- **`prisma/whatsapp-schema.prisma`** (PostgreSQL) - WhatsApp messages, campaigns, catalogs, orders. Client: `@prisma/whatsapp-client`
+- **`schema.prisma`** (MySQL, root) — Main business data: tour packages, hotels, itineraries, financial transactions, customers, inquiries. Client: `@prisma/client`
+- **`prisma/whatsapp-schema.prisma`** (PostgreSQL) — WhatsApp messages, campaigns, catalogs, orders, customers. Client: `@prisma/whatsapp-client`
 
 Both clients are generated during `npm run build` and `postinstall`.
 
@@ -185,16 +228,33 @@ Forms use React Hook Form + Zod + Shadcn `<Form>`:
 
 API routes log errors with a bracketed prefix: `console.log("[CUSTOMERS_POST]", error)`
 
+### Currency & Formatting
+
+- Always use `formatPrice()` from `@/lib/utils` for INR amounts
+- Use `formatSafeDate()` from `@/lib/utils` for timezone-safe date display
+- Use `dateToUtc()` from `@/lib/timezone-utils` when storing dates to DB
+
+## Authorization
+
+Roles are stored in `OrganizationMember` model: `VIEWER`, `OPERATIONS`, `FINANCE`, `ADMIN`, `OWNER` (ordered by privilege).
+
+Key helpers in `src/lib/authz.ts`:
+- `getUserOrgRole(userId, organizationId?)` — returns user's role
+- `roleAtLeast(role, minimum)` — checks if role meets minimum level
+- `requireFinanceOrAdmin(userId, organizationId?)` — throws `FORBIDDEN` if not FINANCE/ADMIN/OWNER
+
 ## MCP Tools (travel-admin)
 
 **99 tools** available via the custom MCP server:
 
 ### Architecture (Modular)
-- **`src/app/api/mcp/route.ts`** — Slim gateway (~117 lines): auth, dispatch, error handling
-- **`src/app/api/mcp/handlers/`** — 18 handler modules incl. index.ts dispatcher (2200+ lines of Prisma queries)
+- **`src/app/api/mcp/route.ts`** — Slim gateway: auth via `x-mcp-api-secret` header, dispatch, error handling
+- **`src/app/api/mcp/handlers/`** — 18 handler modules + index.ts dispatcher (2200+ lines of Prisma queries)
 - **`src/app/api/mcp/lib/`** — Shared utilities: `errors.ts`, `schemas.ts`, `resolve-account.ts`, `resolve-entity.ts`, `date-filter.ts`
 - **`mcp-server/src/tools/`** — 17 tool registration modules (2100+ lines of MCP tool definitions)
 - **`mcp-server/src/server.ts`** — Slim orchestrator (45 lines)
+- **`mcp-server/src/http.ts`** — HTTP transport with OAuth 2.0 PKCE (17KB)
+- **`mcp-server/src/contracts/`** — Shared type contracts between MCP server and Next.js app
 
 ### Tools by Category
 
@@ -219,11 +279,51 @@ API routes log errors with a bracketed prefix: `console.log("[CUSTOMERS_POST]", 
 
 ## Key Patterns
 
-- **Domain-based access:** Main domain = full admin, `ops.*` = operations, `associate.*` = limited partner access
-- **Roles:** OWNER, ADMIN, FINANCE, OPERATIONS, VIEWER (organization-based)
+- **Domain-based access:** Main domain = full admin, `ops.*` = operations staff, `associate.*` = limited partner access
+- **Roles:** OWNER > ADMIN > FINANCE > OPERATIONS > VIEWER (organization-based, checked via `authz.ts`)
 - **API routes** are in `src/app/api/` following Next.js App Router conventions
 - **Server components** are the default; client components use `"use client"` directive
 - **Currency:** INR — use `formatPrice()` from `@/lib/utils`
+- **Webpack alias:** `.js` imports resolve to `.ts/.tsx` (enables MCP contracts sharing)
+
+## API Routes Reference
+
+Top-level routes in `src/app/api/`:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `activities/`, `activitiesMaster/` | Activity management |
+| `associate-partners/`, `associate-performance/` | Partner management |
+| `audit-logs/` | Audit trail |
+| `bank-accounts/`, `cash-accounts/` | Account management |
+| `customers/` | Customer CRUD (includes `[id]/open-sales/`) |
+| `destinations/` | Destination management |
+| `expense-categories/`, `expenses/` | Expense management (includes `expenses/accrued/`) |
+| `financial-records/` | Financial record management |
+| `flight-tickets/` | Flight ticket CRUD |
+| `generate-pdf/` | PDF generation endpoint |
+| `hotel-pricing/` | Hotel pricing config |
+| `hotels/` | Hotel CRUD |
+| `income-categories/`, `incomes/` | Income management |
+| `inquiries/`, `inquiry-summary/` | Inquiry management |
+| `itineraries/`, `itinerariesMaster/`, `itineraryMaster/` | Itinerary management |
+| `locations/`, `locationBySlug/`, `locations-suppliers/` | Location management |
+| `mcp/` | MCP gateway (auth + dispatch) |
+| `meal-plans/`, `occupancy-types/`, `room-types/`, `vehicle-types/` | Config lookups |
+| `notifications/` | Notification system |
+| `operational-staff/` | Staff management |
+| `package-variants/` | Package variant management |
+| `payments/`, `receipts/`, `transfers/` | Financial transactions |
+| `pricing-attributes/`, `pricing-components/` | Pricing configuration |
+| `purchase-returns/`, `sale-returns/` | Returns management |
+| `purchases/`, `sales/` | Transaction management (include balance sub-routes) |
+| `sale-purchase-links/` | Link sales to purchases |
+| `suppliers/` | Supplier CRUD |
+| `tourPackages/`, `tourPackagesForWebsite/`, `tourPackageBySlug/` | Tour packages |
+| `tourPackageQuery/` | Tour inquiries/quotes |
+| `transport-pricing/` | Transport pricing |
+| `travel-users/` | Travel app user management |
+| `whatsapp/` | WhatsApp messages, campaigns, catalogs |
 
 ## Sidebar Structure (Finance Section)
 
@@ -235,16 +335,19 @@ File: `src/components/app-sidebar.tsx`
 
 Required variables (see `.env` for full list):
 
-- `DATABASE_URL` - MySQL connection string
-- `WHATSAPP_DATABASE_URL` - PostgreSQL connection string
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` - Auth
-- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` - Image hosting
-- `STRIPE_API_KEY` / `STRIPE_WEBHOOK_SECRET` - Payments
-- `OPENAI_API_KEY` - AI tour generation
-- `META_WHATSAPP_PHONE_NUMBER_ID` / `META_WHATSAPP_ACCESS_TOKEN` - WhatsApp
+- `DATABASE_URL` — MySQL connection string
+- `WHATSAPP_DATABASE_URL` — PostgreSQL connection string
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` — Auth
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` — Image hosting
+- `STRIPE_API_KEY` / `STRIPE_WEBHOOK_SECRET` — Payments
+- `OPENAI_API_KEY` — AI tour generation
+- `META_WHATSAPP_PHONE_NUMBER_ID` / `META_WHATSAPP_ACCESS_TOKEN` — WhatsApp
+- `MCP_API_SECRET` — Secret for MCP gateway authentication
+- `R2_*` — Cloudflare R2 credentials (bucket, access key, secret, endpoint)
 
 ## Linting & TypeScript
 
-- ESLint extends `next/core-web-vitals`
+- ESLint extends `next/core-web-vitals` (configured in `eslint.config.mjs`)
 - TypeScript strict mode enabled
 - No Prettier config; formatting relies on ESLint
+- `tsconfig.json` excludes: `node_modules`, `mobile`, `scripts`, `prisma`, `.next`

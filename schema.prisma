@@ -100,7 +100,8 @@ model Hotel {
   itineraries          Itinerary[]           @relation("ItineraryToHotel")
   itinerariesMaster    ItineraryMaster[]     @relation("ItineraryMasterToHotel")
   seasonalPricing      HotelPricing[]
-  variantHotelMappings VariantHotelMapping[]
+  variantHotelMappings  VariantHotelMapping[]
+  variantHotelSnapshots QueryVariantHotelSnapshot[]
 
   @@index([locationId])
   @@index([destinationId])
@@ -322,6 +323,7 @@ model QueryVariantHotelSnapshot {
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   variantSnapshot   QueryVariantSnapshot @relation(fields: [variantSnapshotId], references: [id], onDelete: Cascade)
+  hotel             Hotel                @relation(fields: [hotelId], references: [id], onDelete: Restrict)
 
   @@unique([variantSnapshotId, dayNumber])
   @@index([variantSnapshotId])

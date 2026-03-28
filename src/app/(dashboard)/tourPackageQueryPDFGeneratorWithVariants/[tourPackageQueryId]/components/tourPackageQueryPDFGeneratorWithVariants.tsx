@@ -62,6 +62,7 @@ interface TourPackageQueryPDFGeneratorWithVariantsProps {
         locationLabel: string;
         imageUrl: string | null;
         roomCategory: string | null;
+        hotel?: { destination?: { name: string } | null } | null;
       }[];
       pricingSnapshots: {
         id: string;
@@ -323,6 +324,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
               `}
               <div>
                 <div style="font-size: 12px; font-weight: 600; color: ${brandColors.text}; line-height: 1.3;">${h.hotelName}</div>
+                ${h.hotel?.destination?.name ? `<div style="font-size: 10px; font-weight: 600; color: ${brandColors.secondary}; margin-top: 1px;">${h.hotel.destination.name}</div>` : ''}
                 <div style="font-size: 10px; color: ${brandColors.muted}; margin-top: 2px;">📍 ${h.locationLabel}</div>
                 ${h.roomCategory ? `<div style="font-size: 10px; color: ${brandColors.secondary}; margin-top: 1px; font-weight: 500;">${h.roomCategory}</div>` : ''}
               </div>
@@ -533,7 +535,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 </div>
               `}
               <div style="padding: 9px 10px; border-top: 2.5px solid ${accent};">
-                <div style="font-size: 12px; font-weight: 700; color: ${brandColors.text}; line-height: 1.35; margin-bottom: 4px;">${h.hotelName}</div>
+                <div style="font-size: 12px; font-weight: 700; color: ${brandColors.text}; line-height: 1.35; margin-bottom: 2px;">${h.hotelName}</div>
+                ${h.hotel?.destination?.name ? `<div style="font-size: 10px; font-weight: 600; color: ${brandColors.secondary}; margin-bottom: 2px;">${h.hotel.destination.name}</div>` : ''}
                 <div style="font-size: 10px; color: ${brandColors.muted}; margin-bottom: 4px;">📍 ${h.locationLabel}</div>
                 ${h.roomCategory ? `
                   <span style="font-size: 9px; color: white; background: ${accent}; padding: 2px 7px; border-radius: 999px; font-weight: 600; display: inline-block; margin-bottom: 6px;">${h.roomCategory}</span>
@@ -916,6 +919,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                           `}
                           <div style="padding: 10px 14px; flex: 1;">
                             <div style="font-size: 13px; font-weight: 600; color: ${brandColors.text}; line-height: 1.3;">${hotelSnapshot.hotelName}</div>
+                            ${hotelSnapshot.hotel?.destination?.name ? `<div style="font-size: 11px; font-weight: 600; color: ${brandColors.secondary}; margin-top: 2px;">${hotelSnapshot.hotel.destination.name}</div>` : ''}
                             <div style="font-size: 11px; color: ${brandColors.muted}; margin-top: 3px;">📍 ${hotelSnapshot.locationLabel}</div>
                             ${hotelSnapshot.roomCategory ? `<div style="margin-top: 3px; font-size: 10px; color: ${brandColors.secondary}; font-weight: 500;">${hotelSnapshot.roomCategory}</div>` : ''}
                           </div>

@@ -61,6 +61,13 @@ const TourPackageQueryPDFWithVariantsPage = async (
       queryVariantSnapshots: {
         include: {
           hotelSnapshots: {
+            include: {
+              hotel: {
+                include: {
+                  destination: true,
+                },
+              },
+            },
             orderBy: {
               dayNumber: 'asc',
             },

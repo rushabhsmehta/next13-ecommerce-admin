@@ -17,6 +17,7 @@ interface VariantHotelSnapshot {
   locationLabel: string;
   imageUrl: string | null;
   roomCategory: string | null;
+  hotel?: { destination?: { name: string } | null } | null;
 }
 
 interface PricingComponentSnapshot {
@@ -249,7 +250,10 @@ export function VariantComparisonSection({
                                 )}
                                 {/* Hotel Info */}
                                 <div className="p-3" style={{ borderTop: `3px solid ${accent}` }}>
-                                  <div className="font-bold text-gray-900 text-sm leading-tight mb-1">{hotelInfo.hotelName}</div>
+                                  <div className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{hotelInfo.hotelName}</div>
+                                  {hotelInfo.hotel?.destination?.name && (
+                                    <div className="text-xs font-medium text-orange-700 mb-0.5">{hotelInfo.hotel.destination.name}</div>
+                                  )}
                                   <div className="text-xs text-gray-500 flex items-center gap-1 mb-2">📍 {hotelInfo.locationLabel}</div>
                                   {hotelInfo.roomCategory && (
                                     <span

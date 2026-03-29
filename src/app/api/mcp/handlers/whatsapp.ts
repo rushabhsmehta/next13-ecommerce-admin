@@ -1,4 +1,5 @@
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
+import { prepareCampaignForDispatch } from "@/lib/whatsapp-campaign-worker";
 import {
   checkWhatsAppMessagingWindow,
   sendWhatsAppMessage as sendWhatsAppMessageViaLib,
@@ -1145,6 +1146,14 @@ const GetWhatsAppCampaignSchema = z.object({
   campaignId: z.string().min(1),
 });
 
+const GetWhatsAppCampaignStatsSchema = z.object({
+  campaignId: z.string().min(1),
+});
+
+const SendWhatsAppCampaignSchema = z.object({
+  campaignId: z.string().min(1),
+});
+
 const ListWhatsAppCustomersSchema = z.object({
   name: z.string().optional(),
   phoneNumber: z.string().optional(),
@@ -1249,6 +1258,173 @@ async function getWhatsAppCampaign(rawParams: unknown) {
   });
   if (!campaign) throw new NotFoundError(`Campaign ${campaignId} not found`);
   return campaign;
+}
+
+function getCampaignErrorDescription(code: string): string {
+  const errorMap: Record<string, string> = {
+    "131049": "Per-user marketing limit reached",
+    "131050": "User stopped marketing messages",
+    "131047": "24-hour messaging window expired",
+    "131026": "Message undeliverable",
+    "100": "Invalid template or parameters",
+    "130472": "User number is part of an experiment",
+    "131051": "Unsupported message type",
+    "133010": "Message failed to send",
+  };
+
+  return errorMap[code] || "Unknown error";
+}
+
+async function getWhatsAppCampaignStats(rawParams: unknown) {
+  const { campaignId } = GetWhatsAppCampaignStatsSchema.parse(rawParams);
+
+  const campaign = await whatsappPrisma.whatsAppCampaign.findUnique({
+    where: { id: campaignId },
+  });
+
+  if (!campaign) {
+    throw new NotFoundError(`Campaign ${campaignId} not found`);
+  }
+
+  const recipientStats = await whatsappPrisma.whatsAppCampaignRecipient.groupBy({
+    by: ["status"],
+    where: { campaignId },
+    _count: true,
+  });
+
+  const stats = {
+    pending: 0,
+    sending: 0,
+    sent: 0,
+    delivered: 0,
+    read: 0,
+    failed: 0,
+    opted_out: 0,
+    responded: 0,
+    retry: 0,
+  };
+
+  recipientStats.forEach((stat: any) => {
+    stats[stat.status as keyof typeof stats] = stat._count;
+  });
+
+  const errorBreakdown = await whatsappPrisma.whatsAppCampaignRecipient.groupBy({
+    by: ["errorCode"],
+    where: {
+      campaignId,
+      status: "failed",
+    },
+    _count: true,
+  });
+
+  const errors = errorBreakdown
+    .filter((item: any) => item.errorCode)
+    .map((item: any) => ({
+      code: item.errorCode,
+      count: item._count,
+      description: getCampaignErrorDescription(item.errorCode!),
+    }));
+
+  const total = campaign.totalRecipients;
+  const sent = stats.sent + stats.delivered + stats.read + stats.responded;
+  const delivered = stats.delivered + stats.read + stats.responded;
+  const read = stats.read + stats.responded;
+
+  const deliveryRate = total > 0 && sent > 0 ? ((delivered / sent) * 100).toFixed(2) : "0.00";
+  const readRate = delivered > 0 ? ((read / delivered) * 100).toFixed(2) : "0.00";
+  const responseRate = read > 0 ? ((stats.responded / read) * 100).toFixed(2) : "0.00";
+  const failureRate = total > 0 ? ((stats.failed / total) * 100).toFixed(2) : "0.00";
+
+  const sentOverTime = await whatsappPrisma.whatsAppCampaignRecipient.groupBy({
+    by: ["sentAt"],
+    where: {
+      campaignId,
+      status: { in: ["sent", "delivered", "read", "responded"] },
+    },
+    _count: true,
+    orderBy: { sentAt: "asc" },
+  });
+
+  let duration: string | null = null;
+  if (campaign.startedAt) {
+    const endTime = campaign.completedAt || new Date();
+    const durationMs = endTime.getTime() - campaign.startedAt.getTime();
+    const hours = Math.floor(durationMs / (1000 * 60 * 60));
+    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    duration = `${hours}h ${minutes}m`;
+  }
+
+  const failedRecipients = await whatsappPrisma.whatsAppCampaignRecipient.findMany({
+    where: {
+      campaignId,
+      status: "failed",
+    },
+    take: 10,
+    select: {
+      phoneNumber: true,
+      errorCode: true,
+      errorMessage: true,
+      failedAt: true,
+    },
+    orderBy: { failedAt: "desc" },
+  });
+
+  return {
+    campaign: {
+      id: campaign.id,
+      name: campaign.name,
+      status: campaign.status,
+      templateName: campaign.templateName,
+      scheduledFor: campaign.scheduledFor,
+      startedAt: campaign.startedAt,
+      completedAt: campaign.completedAt,
+      duration,
+    },
+    stats: {
+      total,
+      ...stats,
+    },
+    metrics: {
+      deliveryRate: `${deliveryRate}%`,
+      readRate: `${readRate}%`,
+      responseRate: `${responseRate}%`,
+      failureRate: `${failureRate}%`,
+    },
+    errors,
+    failedRecipients,
+    timeline: sentOverTime.map((item: any) => ({
+      timestamp: item.sentAt,
+      count: item._count,
+    })),
+  };
+}
+
+async function sendWhatsAppCampaign(rawParams: unknown) {
+  const { campaignId } = SendWhatsAppCampaignSchema.parse(rawParams);
+
+  try {
+    const prepared = await prepareCampaignForDispatch(campaignId);
+
+    return {
+      success: true,
+      campaignId: prepared.campaignId,
+      recipientsCount: prepared.recipientsCount,
+      mode: prepared.mode,
+      queued: true,
+      message: "Campaign queued for WhatsApp worker processing",
+    };
+  } catch (error: any) {
+    const message = error?.message || "Failed to queue campaign";
+    const statusHint =
+      message === "Campaign not found"
+        ? 404
+        : message === "Campaign cannot be sent in current status" ||
+          message === "Campaign has no recipients to send"
+        ? 400
+        : 500;
+
+    throw new McpError(message, "WHATSAPP_CAMPAIGN_QUEUE_FAILED", statusHint);
+  }
 }
 
 async function listWhatsAppCustomers(rawParams: unknown) {
@@ -1715,6 +1891,8 @@ export const whatsappHandlers: ToolHandlerMap = {
   upload_whatsapp_media: uploadWhatsAppMediaHandler,
   list_whatsapp_campaigns: listWhatsAppCampaigns,
   get_whatsapp_campaign: getWhatsAppCampaign,
+  get_whatsapp_campaign_stats: getWhatsAppCampaignStats,
+  send_whatsapp_campaign: sendWhatsAppCampaign,
   list_whatsapp_customers: listWhatsAppCustomers,
   list_whatsapp_templates: listWhatsAppTemplates,
   delete_whatsapp_template: deleteWhatsAppTemplate,

@@ -2041,13 +2041,25 @@ export default function WhatsAppSettingsPage() {
     fetchCatalogSummary();
     fetchOrg();
 
-    // Auto-refresh messages every 10 seconds
-    const messageRefreshInterval = setInterval(() => {
-      fetchMessages();
-    }, 10000);
+    const refreshMessages = () => {
+      if (document.visibilityState === 'visible') {
+        fetchMessages();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchMessages();
+      }
+    };
+
+    // Auto-refresh messages less aggressively and only while the tab is visible.
+    const messageRefreshInterval = setInterval(refreshMessages, 30000);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearInterval(messageRefreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [fetchMessages, fetchCatalogSummary]);
 

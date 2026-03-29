@@ -15,7 +15,9 @@
         "create-and-publish-catalog": "node scripts/whatsapp/run-create-and-publish-catalog.js",
         "create-multiple-catalog": "node scripts/whatsapp/create-multiple-catalog.js",
         "cleanup-legacy-whatsapp": "node scripts/cleanup-legacy-whatsapp.js",
+        "compact-whatsapp-storage": "node scripts/auto-cleanup-daily.js",
         "cleanup-database": "node scripts/auto-cleanup-daily.js",
+        "process-whatsapp-campaigns": "ts-node --transpile-only --compiler-options \"{\\\"module\\\":\\\"commonjs\\\",\\\"moduleResolution\\\":\\\"node\\\"}\" scripts/process-whatsapp-campaigns.ts",
         "check-db-health": "node scripts/check-db-health.js",
         "test-runpod": "node scripts/tests/test-runpod-image-gen.js",
         "test:accounts": "node --test src/lib/tour-package-query-accounting*.test.cjs"

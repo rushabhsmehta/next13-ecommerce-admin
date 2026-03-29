@@ -5,6 +5,118 @@ import { verifyWebhookSignature, updateMessageStatus, sendWhatsAppMessage } from
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_ACCESS_TOKEN = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
 const GRAPH_BASE_URL = `https://graph.facebook.com/${META_GRAPH_API_VERSION}`;
+const debugMode = process.env.WHATSAPP_DEBUG === '1';
+
+const removeUndefined = <T extends Record<string, any>>(value: T): T =>
+  Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
+
+const compactIncomingMessageForStorage = (message: any) =>
+  removeUndefined({
+    id: message?.id,
+    from: message?.from,
+    timestamp: message?.timestamp,
+    type: message?.type,
+    text: message?.text ? { body: message.text.body } : undefined,
+    image: message?.image
+      ? removeUndefined({
+          id: message.image.id,
+          caption: message.image.caption,
+          mime_type: message.image.mime_type,
+          sha256: message.image.sha256,
+        })
+      : undefined,
+    video: message?.video
+      ? removeUndefined({
+          id: message.video.id,
+          caption: message.video.caption,
+          mime_type: message.video.mime_type,
+          sha256: message.video.sha256,
+        })
+      : undefined,
+    audio: message?.audio
+      ? removeUndefined({
+          id: message.audio.id,
+          mime_type: message.audio.mime_type,
+          sha256: message.audio.sha256,
+        })
+      : undefined,
+    document: message?.document
+      ? removeUndefined({
+          id: message.document.id,
+          caption: message.document.caption,
+          filename: message.document.filename,
+          mime_type: message.document.mime_type,
+          sha256: message.document.sha256,
+        })
+      : undefined,
+    sticker: message?.sticker
+      ? removeUndefined({
+          id: message.sticker.id,
+          mime_type: message.sticker.mime_type,
+          sha256: message.sticker.sha256,
+        })
+      : undefined,
+    location: message?.location
+      ? removeUndefined({
+          latitude: message.location.latitude,
+          longitude: message.location.longitude,
+          name: message.location.name,
+          address: message.location.address,
+          url: message.location.url,
+        })
+      : undefined,
+    contacts: Array.isArray(message?.contacts) ? message.contacts : undefined,
+    interactive: message?.interactive
+      ? removeUndefined({
+          type: message.interactive.type,
+          body: message.interactive.body,
+          header: message.interactive.header,
+          button_reply: message.interactive.button_reply,
+          list_reply: message.interactive.list_reply,
+          nfm_reply: message.interactive.nfm_reply || message.interactive.nfmReply,
+          flow_response: message.interactive.flow_response || message.interactive.flowResponse,
+          action: message.interactive.action,
+        })
+      : undefined,
+    flow: message?.flow
+      ? removeUndefined({
+          body: message.flow.body,
+          name: message.flow.name,
+          flow_name: message.flow.flow_name,
+          flow_token: message.flow.flow_token,
+          flow_id: message.flow.flow_id,
+          response_json: message.flow.response_json,
+          summary: message.flow.summary,
+          screen: message.flow.screen,
+          flow_response: message.flow.flow_response || message.flow.response,
+        })
+      : undefined,
+    reaction: message?.reaction,
+  });
+
+const compactIncomingPayload = (value: any, message: any) =>
+  removeUndefined({
+    messaging_product: value?.messaging_product,
+    metadata: value?.metadata
+      ? removeUndefined({
+          display_phone_number: value.metadata.display_phone_number,
+          phone_number_id: value.metadata.phone_number_id,
+        })
+      : undefined,
+    contacts: Array.isArray(value?.contacts)
+      ? value.contacts.map((contact: any) =>
+          removeUndefined({
+            wa_id: contact?.wa_id,
+            profile: contact?.profile
+              ? removeUndefined({
+                  name: contact.profile.name,
+                })
+              : undefined,
+          })
+        )
+      : undefined,
+    messages: [compactIncomingMessageForStorage(message)],
+  });
 
 const normalizeE164 = (input?: string | null): string | undefined => {
   if (!input) return undefined;
@@ -94,9 +206,12 @@ const buildIncomingMetadata = async (value: any, message: any) => {
     contactName: profileName,
     waId,
     textPreview: message.text?.body || message.caption,
-    rawMessage: message,
-    rawPayload: value,
   };
+
+  if (debugMode) {
+    metadata.rawMessage = message;
+    metadata.rawPayload = value;
+  }
 
   let messageBody = message.text?.body || `[${message.type}]`;
 
@@ -224,7 +339,9 @@ const buildIncomingMetadata = async (value: any, message: any) => {
           summary: summaryCandidate,
         };
         metadata.flowSummary = summaryCandidate;
-        metadata.flowSummaryRaw = responseJsonRaw ?? flowResponse?.summary ?? flowResponse;
+        if (debugMode) {
+          metadata.flowSummaryRaw = responseJsonRaw ?? flowResponse?.summary ?? flowResponse;
+        }
         if (flowName) metadata.flowName = flowName;
         if (flowToken) metadata.flowToken = flowToken;
         if (flowId) metadata.flowId = flowId;
@@ -310,7 +427,9 @@ const buildIncomingMetadata = async (value: any, message: any) => {
       const screenPayload = flowResponse?.screen || flowResponse?.screens || flowPayload?.screen;
       metadata.whatsappType = 'flow';
       metadata.flowSummary = summaryCandidate;
-      metadata.flowSummaryRaw = responseJsonRaw ?? flowResponse?.summary ?? flowPayload?.summary ?? flowPayload;
+      if (debugMode) {
+        metadata.flowSummaryRaw = responseJsonRaw ?? flowResponse?.summary ?? flowPayload?.summary ?? flowPayload;
+      }
       if (flowName) metadata.flowName = flowName;
       if (flowToken) metadata.flowToken = flowToken;
       if (flowTokenLabel) metadata.flowTokenLabel = flowTokenLabel;
@@ -371,16 +490,18 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const timestamp = new Date().toISOString();
-  console.log('============================================');
-  console.log(`Webhook POST received at: ${timestamp}`);
-  console.log('============================================');
+  console.log(`[WhatsApp Webhook] POST received at ${timestamp}`);
 
   try {
     const body = await request.json();
-    console.log('Full webhook payload:', JSON.stringify(body, null, 2));
+    if (debugMode) {
+      console.log('Full webhook payload:', JSON.stringify(body, null, 2));
+    }
 
     if (body.object === 'whatsapp_business_account') {
-      console.log('Received WhatsApp webhook event');
+      if (debugMode) {
+        console.log('Received WhatsApp webhook event');
+      }
 
       for (const entry of body.entry || []) {
         for (const change of entry.changes || []) {
@@ -393,7 +514,9 @@ export async function POST(request: NextRequest) {
               const messageId = status.id;
               const statusValue = status.status;
 
-              console.log(`Message ${messageId} status: ${statusValue}`);
+              if (debugMode) {
+                console.log(`Message ${messageId} status: ${statusValue}`);
+              }
 
               try {
                 await updateMessageStatus(messageId, statusValue);
@@ -405,16 +528,18 @@ export async function POST(request: NextRequest) {
 
           if (!value.messages) continue;
 
-          console.log(`Found ${value.messages.length} incoming message(s)`);
+          console.log(`[WhatsApp Webhook] Found ${value.messages.length} incoming message(s)`);
 
           for (const message of value.messages) {
-            console.log('========== INCOMING MESSAGE ==========');
-            console.log('From:', message.from);
-            console.log('Type:', message.type);
-            console.log('Text:', message.text?.body);
-            console.log('Message ID:', message.id);
-            console.log('Timestamp:', message.timestamp);
-            console.log('Full message object:', JSON.stringify(message, null, 2));
+            if (debugMode) {
+              console.log('========== INCOMING MESSAGE ==========');
+              console.log('From:', message.from);
+              console.log('Type:', message.type);
+              console.log('Text:', message.text?.body);
+              console.log('Message ID:', message.id);
+              console.log('Timestamp:', message.timestamp);
+              console.log('Full message object:', JSON.stringify(message, null, 2));
+            }
 
             try {
               const businessNumber = normalizeE164(value.metadata?.display_phone_number);
@@ -431,9 +556,11 @@ export async function POST(request: NextRequest) {
                 const customer = await findCustomerByPhone(fromNumber);
                 if (customer) {
                   customerId = customer.id;
-                  console.log(
-                    `Linked message to customer: ${customer.firstName} ${customer.lastName || ''} (${customer.phoneNumber})`
-                  );
+                  if (debugMode) {
+                    console.log(
+                      `Linked message to customer: ${customer.firstName} ${customer.lastName || ''} (${customer.phoneNumber})`
+                    );
+                  }
                 }
               }
 
@@ -446,12 +573,14 @@ export async function POST(request: NextRequest) {
                   status: 'received',
                   direction: 'inbound',
                   metadata: metadata as any,
-                  payload: value as any,
+                  payload: compactIncomingPayload(value, message) as any,
                   whatsappCustomerId: customerId,
                 },
               });
 
-              console.log(`Saved incoming message ${message.id} from ${message.from}`);
+              if (debugMode) {
+                console.log(`Saved incoming message ${message.id} from ${message.from}`);
+              }
 
               const flowAckEligible =
                 message.type === 'interactive' &&
@@ -481,7 +610,9 @@ export async function POST(request: NextRequest) {
                     },
                     tags: ['flow-auto-ack'],
                   });
-                  console.log('Sent flow acknowledgement to', fromNumber);
+                  if (debugMode) {
+                    console.log('Sent flow acknowledgement to', fromNumber);
+                  }
                 } catch (ackError) {
                   console.error('Failed to send flow acknowledgement', ackError);
                 }
@@ -497,13 +628,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Unknown webhook event - object type:', body.object);
-    console.log('Full body:', JSON.stringify(body, null, 2));
+    if (debugMode) {
+      console.log('Full body:', JSON.stringify(body, null, 2));
+    }
     return NextResponse.json({ success: false, message: 'Unknown webhook event' });
   } catch (error: any) {
-    console.error('========== WEBHOOK ERROR ==========');
-    console.error('Error message:', error?.message);
-    console.error('Error stack:', error?.stack);
-    console.error('Full error:', error);
+    console.error('[WhatsApp Webhook] Error:', error?.message || error);
+    if (debugMode) {
+      console.error('Error stack:', error?.stack);
+      console.error('Full error:', error);
+    }
     return NextResponse.json(
       { success: false, error: error?.message || 'Internal server error' },
       { status: 500 }

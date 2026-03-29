@@ -19,6 +19,8 @@ const serverEnvSchema = z.object({
   // Meta WhatsApp (optional)
   META_WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   META_WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+  WHATSAPP_WORKER_TOKEN: z.string().optional(),
+  WHATSAPP_WORKER_ALLOWED_IPS: z.string().optional(),
 
   // Cloudflare R2 (optional)
   CLOUDFLARE_R2_ACCESS_KEY_ID: z.string().optional(),

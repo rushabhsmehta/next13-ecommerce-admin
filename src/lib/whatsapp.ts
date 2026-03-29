@@ -99,13 +99,14 @@ export async function graphRequest<T>(endpoint: string, options: GraphRequestOpt
     delete headers['Content-Type'];
   }
 
-  // Debug logging - request details
-  console.log('========== WhatsApp API Request ==========');
-  console.log('[URL]:', url.toString());
-  console.log('[Method]:', options.method || 'GET');
-  console.log('[Endpoint]:', endpoint);
-  console.log('[Request Body]:', JSON.stringify(options.body, null, 2));
-  console.log('==========================================');
+  if (debugMode) {
+    console.log('========== WhatsApp API Request ==========');
+    console.log('[URL]:', url.toString());
+    console.log('[Method]:', options.method || 'GET');
+    console.log('[Endpoint]:', endpoint);
+    console.log('[Request Body]:', JSON.stringify(options.body, null, 2));
+    console.log('==========================================');
+  }
 
   const response = await fetch(url.toString(), {
     method: options.method || 'GET',
@@ -131,12 +132,13 @@ export async function graphRequest<T>(endpoint: string, options: GraphRequestOpt
     }
   }
 
-  // Debug logging - response details
-  console.log('========== WhatsApp API Response ==========');
-  console.log('[Status]:', response.status);
-  console.log('[OK]:', response.ok);
-  console.log('[Response Body]:', JSON.stringify(payload, null, 2));
-  console.log('===========================================');
+  if (debugMode) {
+    console.log('========== WhatsApp API Response ==========');
+    console.log('[Status]:', response.status);
+    console.log('[OK]:', response.ok);
+    console.log('[Response Body]:', JSON.stringify(payload, null, 2));
+    console.log('===========================================');
+  }
 
   if (!response.ok || (payload && payload.error)) {
     const errorMessage =
@@ -734,18 +736,22 @@ function buildTemplateComponents(
     document?: { link: string; filename?: string };
   }
 ): Array<Record<string, any>> | undefined {
-  console.log('[buildTemplateComponents] Called with:', {
-    bodyParams,
-    bodyParamsLength: bodyParams.length,
-    buttonParams,
-    buttonParamsLength: buttonParams.length,
-    hasComponents: !!components,
-    componentsLength: components?.length,
-    headerParams,
-  });
+  if (debugMode) {
+    console.log('[buildTemplateComponents] Called with:', {
+      bodyParams,
+      bodyParamsLength: bodyParams.length,
+      buttonParams,
+      buttonParamsLength: buttonParams.length,
+      hasComponents: !!components,
+      componentsLength: components?.length,
+      headerParams,
+    });
+  }
 
   if (components && components.length) {
-    console.log('[buildTemplateComponents] Returning provided components:', components);
+    if (debugMode) {
+      console.log('[buildTemplateComponents] Returning provided components:', components);
+    }
     return components;
   }
 
@@ -861,12 +867,14 @@ function buildTemplateComponents(
   // Return undefined if no components were built (templates with no variables)
   const result = built.length > 0 ? built : undefined;
   
-  console.log('[buildTemplateComponents] Output:', {
-    builtLength: built.length,
-    built,
-    result,
-    willReturnUndefined: result === undefined,
-  });
+  if (debugMode) {
+    console.log('[buildTemplateComponents] Output:', {
+      builtLength: built.length,
+      built,
+      result,
+      willReturnUndefined: result === undefined,
+    });
+  }
   
   return result;
 }
@@ -1042,8 +1050,6 @@ export async function recordAnalyticsEvent(input: AnalyticsEventInput) {
   const shouldSample = isError || Math.random() < 0.1; // 10% sampling rate
   
   if (!shouldSample) {
-    // Still log to console for debugging, just don't save to DB
-    console.log(`[Analytics] Sampled out: ${input.eventType}`);
     return null;
   }
 
@@ -2133,20 +2139,24 @@ export async function sendWhatsAppTemplate(
     });
   }
 
-  console.log('[WhatsApp] sendWhatsAppTemplate called with params:', {
-    to: params.to,
-    templateName: params.templateName,
-    languageCode: params.languageCode,
-    bodyParams: params.bodyParams,
-    buttonParams: effectiveButtonParams,
-    headerParams: params.headerParams,
-    hasComponents: !!params.components,
-    componentsLength: params.components?.length,
-    flowTokens: uniqueFlowTokens,
-  });
+  if (debugMode) {
+    console.log('[WhatsApp] sendWhatsAppTemplate called with params:', {
+      to: params.to,
+      templateName: params.templateName,
+      languageCode: params.languageCode,
+      bodyParams: params.bodyParams,
+      buttonParams: effectiveButtonParams,
+      headerParams: params.headerParams,
+      hasComponents: !!params.components,
+      componentsLength: params.components?.length,
+      flowTokens: uniqueFlowTokens,
+    });
+  }
 
   const destination = normalizeE164(params.to);
-  console.log('[WhatsApp] Normalized destination:', destination);
+  if (debugMode) {
+    console.log('[WhatsApp] Normalized destination:', destination);
+  }
 
   const componentSource =
     Array.isArray(params.components) && params.components.length ? params.components : undefined;
@@ -2168,8 +2178,10 @@ export async function sendWhatsAppTemplate(
   // Only include components if they exist (templates with variables)
   if (components && components.length > 0) {
     templatePayload.components = components;
-    console.log('[WhatsApp] Added components to template payload:', components);
-  } else {
+    if (debugMode) {
+      console.log('[WhatsApp] Added components to template payload:', components);
+    }
+  } else if (debugMode) {
     console.log('[WhatsApp] No components to add (template has no variables)');
   }
 
@@ -2180,7 +2192,9 @@ export async function sendWhatsAppTemplate(
     template: templatePayload,
   };
 
-  console.log('[WhatsApp] Final payload to send:', JSON.stringify(payload, null, 2));
+  if (debugMode) {
+    console.log('[WhatsApp] Final payload to send:', JSON.stringify(payload, null, 2));
+  }
 
   const scheduleDate = parseDateInput(params.scheduleFor);
   

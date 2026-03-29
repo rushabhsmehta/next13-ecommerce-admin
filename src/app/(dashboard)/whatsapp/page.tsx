@@ -1,12 +1,80 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, FileText, Workflow, Megaphone, ArrowRight, Settings, Sparkles, CheckCircle2, Zap, Users, LayoutGrid, Image as ImageIcon } from 'lucide-react';
+import { MessageSquare, FileText, Workflow, Megaphone, ArrowRight, Settings, Sparkles, CheckCircle2, Zap, Users, LayoutGrid, Image as ImageIcon, ServerCog, ShieldCheck, CircleAlert, Link as LinkIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+
+type WhatsAppOverviewConfig = {
+  provider: 'meta' | 'unknown';
+  isCloudConfigured: boolean;
+  whatsappNumber?: string | null;
+  businessId?: string | null;
+  apiVersion?: string;
+  hasAccessToken?: boolean;
+  hasWebhookToken?: boolean;
+  worker?: {
+    configured: boolean;
+    ipAllowlistConfigured?: boolean;
+    endpoint: string;
+    supportsHttpTrigger: boolean;
+    supportsCommandTrigger: boolean;
+  };
+};
 
 export default function WhatsAppOverviewPage() {
   const router = useRouter();
+  const [config, setConfig] = useState<WhatsAppOverviewConfig | null>(null);
+  const [workerCheck, setWorkerCheck] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle');
+  const [workerMessage, setWorkerMessage] = useState<string>('');
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await fetch('/api/whatsapp/config');
+        if (!response.ok) {
+          throw new Error('Failed to load WhatsApp config');
+        }
+        const data = await response.json();
+        setConfig(data);
+      } catch (error) {
+        console.error('Failed to load WhatsApp config', error);
+      }
+    };
+
+    loadConfig();
+  }, []);
+
+  const workerConfigured = !!config?.worker?.configured;
+  const workerEndpoint = config?.worker?.endpoint || '/api/internal/whatsapp/campaign-worker';
+
+  const checkWorkerEndpoint = async () => {
+    setWorkerCheck('checking');
+    setWorkerMessage('');
+
+    try {
+      const response = await fetch(workerEndpoint);
+      if (response.status === 401) {
+        setWorkerCheck('ok');
+        setWorkerMessage('Endpoint is reachable and correctly protected by bearer auth.');
+        return;
+      }
+
+      if (response.ok) {
+        setWorkerCheck('ok');
+        setWorkerMessage('Endpoint responded successfully.');
+        return;
+      }
+
+      setWorkerCheck('error');
+      setWorkerMessage(`Unexpected status: ${response.status}`);
+    } catch (error: any) {
+      setWorkerCheck('error');
+      setWorkerMessage(error?.message || 'Failed to reach the worker endpoint');
+    }
+  };
 
   const features = [
     {
@@ -178,12 +246,18 @@ export default function WhatsAppOverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
+              {config?.isCloudConfigured === false ? (
+                <CircleAlert className="h-6 w-6 text-amber-600" />
+              ) : (
+                <CheckCircle2 className="h-6 w-6 text-green-600" />
+              )}
               <span className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Connected
+                {config ? (config.isCloudConfigured ? 'Connected' : 'Needs Setup') : 'Checking'}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Active & Ready</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {config ? (config.isCloudConfigured ? 'Active & Ready' : 'Meta credentials missing') : 'Loading config'}
+            </p>
           </CardContent>
         </Card>
         
@@ -205,7 +279,7 @@ export default function WhatsAppOverviewPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">API Version</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-600">v22.0</div>
+            <div className="text-3xl font-bold text-purple-600">{config?.apiVersion || 'v22.0'}</div>
             <p className="text-xs text-muted-foreground mt-2">Meta Graph API</p>
           </CardContent>
         </Card>
@@ -220,6 +294,90 @@ export default function WhatsAppOverviewPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-2 border-dashed border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 dark:border-emerald-900">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-100 p-3 dark:bg-emerald-900">
+              <ServerCog className="h-6 w-6 text-emerald-700 dark:text-emerald-300" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">Campaign Worker</CardTitle>
+              <CardDescription>
+                Background processor for queued WhatsApp campaigns
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border bg-background/70 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {workerConfigured ? (
+                  <ShieldCheck className="h-4 w-4 text-green-600" />
+                ) : (
+                  <CircleAlert className="h-4 w-4 text-amber-600" />
+                )}
+                Worker Token
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {workerConfigured ? 'Configured in environment' : 'Missing WHATSAPP_WORKER_TOKEN'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border bg-background/70 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {config?.worker?.ipAllowlistConfigured ? (
+                  <ShieldCheck className="h-4 w-4 text-green-600" />
+                ) : (
+                  <CircleAlert className="h-4 w-4 text-amber-600" />
+                )}
+                IP Allowlist
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {config?.worker?.ipAllowlistConfigured
+                  ? 'WHATSAPP_WORKER_ALLOWED_IPS is configured'
+                  : 'Optional, but recommended for Railway cron or fixed worker IPs'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border bg-background/70 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <LinkIcon className="h-4 w-4 text-blue-600" />
+                HTTP Trigger
+              </div>
+              <p className="mt-2 break-all text-sm text-muted-foreground">{workerEndpoint}</p>
+            </div>
+
+            <div className="rounded-lg border bg-background/70 p-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Zap className="h-4 w-4 text-orange-600" />
+                Recommended Command
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">`npm run process-whatsapp-campaigns` every minute</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={checkWorkerEndpoint}
+              disabled={workerCheck === 'checking'}
+            >
+              {workerCheck === 'checking' ? 'Checking...' : 'Test Endpoint'}
+            </Button>
+            <code className="rounded bg-background px-3 py-2 text-xs border">
+              Authorization: Bearer WHATSAPP_WORKER_TOKEN
+            </code>
+          </div>
+
+          {workerMessage ? (
+            <div className={`rounded-lg border px-4 py-3 text-sm ${workerCheck === 'ok' ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300' : 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300'}`}>
+              {workerMessage}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {/* Feature Cards with Enhanced Design */}
       <div className="space-y-3">
@@ -365,6 +523,12 @@ export default function WhatsAppOverviewPage() {
               </code>
               <code className="block text-xs bg-white dark:bg-black px-3 py-2 rounded border font-mono">
                 META_GRAPH_API_VERSION
+              </code>
+              <code className="block text-xs bg-white dark:bg-black px-3 py-2 rounded border font-mono">
+                WHATSAPP_WORKER_TOKEN
+              </code>
+              <code className="block text-xs bg-white dark:bg-black px-3 py-2 rounded border font-mono">
+                WHATSAPP_WORKER_ALLOWED_IPS
               </code>
             </div>
           </div>

@@ -23,14 +23,14 @@ const normalizeE164 = (input?: string | null): string | undefined => {
 /**
  * Find WhatsAppCustomer by phone number
  */
-const findCustomerByPhone = async (prisma: any, phoneNumber: string) => {
+const findCustomerByPhone = async (phoneNumber: string) => {
   if (!phoneNumber) return null;
-  
+
   const normalized = normalizeE164(phoneNumber);
   if (!normalized) return null;
-  
+
   try {
-    const customer = await whatsappPrisma.whatsAppCustomer.findFirst({
+    return await whatsappPrisma.whatsAppCustomer.findFirst({
       where: {
         phoneNumber: normalized,
       },
@@ -41,10 +41,8 @@ const findCustomerByPhone = async (prisma: any, phoneNumber: string) => {
         phoneNumber: true,
       },
     });
-    
-    return customer;
   } catch (error) {
-    console.error('❌ Error finding customer by phone:', error);
+    console.error('Error finding customer by phone:', error);
     return null;
   }
 };
@@ -58,13 +56,13 @@ const fetchMediaMimeType = async (mediaId?: string | null) => {
       },
     });
     if (!res.ok) {
-      console.warn('⚠️ Failed to fetch media metadata', mediaId, res.status);
+      console.warn('Failed to fetch media metadata', mediaId, res.status);
       return undefined;
     }
     const json = await res.json();
     return json?.mime_type as string | undefined;
   } catch (error) {
-    console.error('❌ Error fetching media metadata', mediaId, error);
+    console.error('Error fetching media metadata', mediaId, error);
     return undefined;
   }
 };
@@ -75,7 +73,7 @@ const safeParseJson = (input: unknown) => {
     try {
       return JSON.parse(input);
     } catch (err) {
-      console.warn('⚠️ Failed to parse JSON string', err);
+      console.warn('Failed to parse JSON string', err);
       return undefined;
     }
   }
@@ -118,7 +116,7 @@ const buildIncomingMetadata = async (value: any, message: any) => {
         metadata.media.mimeType = await fetchMediaMimeType(message.image?.id);
       }
       metadata.textPreview = message.image?.caption;
-      messageBody = message.image?.caption || '📷 Image';
+      messageBody = message.image?.caption || 'Image';
       break;
     case 'video':
       metadata.media = {
@@ -130,7 +128,7 @@ const buildIncomingMetadata = async (value: any, message: any) => {
       if (!metadata.media.mimeType) {
         metadata.media.mimeType = await fetchMediaMimeType(message.video?.id);
       }
-      messageBody = message.video?.caption || '🎞️ Video';
+      messageBody = message.video?.caption || 'Video';
       break;
     case 'audio':
     case 'voice':
@@ -142,7 +140,7 @@ const buildIncomingMetadata = async (value: any, message: any) => {
       if (!metadata.media.mimeType) {
         metadata.media.mimeType = await fetchMediaMimeType(message.audio?.id);
       }
-      messageBody = '🎧 Audio message';
+      messageBody = 'Audio message';
       break;
     case 'document':
       metadata.media = {
@@ -155,7 +153,7 @@ const buildIncomingMetadata = async (value: any, message: any) => {
       if (!metadata.media.mimeType) {
         metadata.media.mimeType = await fetchMediaMimeType(message.document?.id);
       }
-      messageBody = message.document?.filename || '📄 Document';
+      messageBody = message.document?.filename || 'Document';
       break;
     case 'sticker':
       metadata.media = {
@@ -166,7 +164,7 @@ const buildIncomingMetadata = async (value: any, message: any) => {
       if (!metadata.media.mimeType) {
         metadata.media.mimeType = await fetchMediaMimeType(message.sticker?.id);
       }
-      messageBody = '🩵 Sticker';
+      messageBody = 'Sticker';
       break;
     case 'location':
       metadata.location = {
@@ -177,8 +175,8 @@ const buildIncomingMetadata = async (value: any, message: any) => {
         url: message.location?.url,
       };
       messageBody = metadata.location.name
-        ? `📍 ${metadata.location.name}`
-        : '📍 Location shared';
+        ? `Location: ${metadata.location.name}`
+        : 'Location shared';
       break;
     case 'contacts':
       metadata.sharedContacts = message.contacts;
@@ -239,7 +237,10 @@ const buildIncomingMetadata = async (value: any, message: any) => {
           raw: flowResponse,
           screen: screenPayload,
         };
-        metadata.textPreview = message.interactive?.body?.text || metadata.textPreview || (flowName ? `Flow response: ${flowName}` : 'Flow response submitted');
+        metadata.textPreview =
+          message.interactive?.body?.text ||
+          metadata.textPreview ||
+          (flowName ? `Flow response: ${flowName}` : 'Flow response submitted');
         messageBody = metadata.textPreview || 'Flow response submitted';
         break;
       }
@@ -253,12 +254,14 @@ const buildIncomingMetadata = async (value: any, message: any) => {
           catalogId,
           productRetailerId,
         };
-        metadata.textPreview = message.interactive?.body?.text || message.interactive?.header?.text || metadata.textPreview;
+        metadata.textPreview =
+          message.interactive?.body?.text ||
+          message.interactive?.header?.text ||
+          metadata.textPreview;
         messageBody = metadata.textPreview || 'Catalog product shared';
       } else if (message.interactive?.type === 'product_list') {
         const action = message.interactive?.action || {};
         const sections = Array.isArray(action.sections) ? action.sections : [];
-        const catalogId = action.catalog_id || action.catalogId;
         const normalizedSections: Array<{ title?: string; productItems: string[] }> = sections.map((section: any) => {
           const items = Array.isArray(section.product_items)
             ? section.product_items
@@ -269,16 +272,19 @@ const buildIncomingMetadata = async (value: any, message: any) => {
             title: section.title,
             productItems: items
               .map((item: any) => item?.product_retailer_id || item?.productRetailerId)
-              .filter((value: any) => typeof value === 'string' && value.trim().length > 0),
+              .filter((entry: any) => typeof entry === 'string' && entry.trim().length > 0),
           };
         });
         metadata.catalog = {
           type: 'product_list',
-          catalogId,
+          catalogId: action.catalog_id || action.catalogId,
           sections: normalizedSections,
           productIds: normalizedSections.flatMap((section) => section.productItems),
         };
-        metadata.textPreview = message.interactive?.body?.text || message.interactive?.header?.text || metadata.textPreview;
+        metadata.textPreview =
+          message.interactive?.body?.text ||
+          message.interactive?.header?.text ||
+          metadata.textPreview;
         messageBody = metadata.textPreview || 'Catalog shared';
       } else if (metadata.interactive?.buttonReply?.title) {
         messageBody = `Button reply: ${metadata.interactive.buttonReply.title}`;
@@ -301,10 +307,10 @@ const buildIncomingMetadata = async (value: any, message: any) => {
       const flowToken = flowResponse?.flow_token || flowResponse?.flowToken || flowPayload?.flow_token;
       const flowId = flowResponse?.flow_id || flowResponse?.flowId || flowPayload?.flow_id;
       const flowTokenLabel = flowResponse?.flow_token_label || flowResponse?.flowTokenLabel || flowPayload?.flow_token_label;
-  const screenPayload = flowResponse?.screen || flowResponse?.screens || flowPayload?.screen;
+      const screenPayload = flowResponse?.screen || flowResponse?.screens || flowPayload?.screen;
       metadata.whatsappType = 'flow';
       metadata.flowSummary = summaryCandidate;
-  metadata.flowSummaryRaw = responseJsonRaw ?? flowResponse?.summary ?? flowPayload?.summary ?? flowPayload;
+      metadata.flowSummaryRaw = responseJsonRaw ?? flowResponse?.summary ?? flowPayload?.summary ?? flowPayload;
       if (flowName) metadata.flowName = flowName;
       if (flowToken) metadata.flowToken = flowToken;
       if (flowTokenLabel) metadata.flowTokenLabel = flowTokenLabel;
@@ -317,7 +323,10 @@ const buildIncomingMetadata = async (value: any, message: any) => {
         raw: flowPayload,
         screen: screenPayload,
       };
-      metadata.textPreview = flowPayload?.body?.text || metadata.textPreview || (flowName ? `Flow response: ${flowName}` : 'Flow response received');
+      metadata.textPreview =
+        flowPayload?.body?.text ||
+        metadata.textPreview ||
+        (flowName ? `Flow response: ${flowName}` : 'Flow response received');
       messageBody = metadata.textPreview || 'Flow response received';
       break;
     }
@@ -347,7 +356,7 @@ export async function GET(request: NextRequest) {
   }
 
   const verifiedChallenge = verifyWebhookSignature(mode, token, challenge || '');
-  
+
   if (verifiedChallenge) {
     console.log('Webhook verified successfully');
     return new NextResponse(verifiedChallenge, { status: 200 });
@@ -361,163 +370,140 @@ export async function GET(request: NextRequest) {
  * Webhook event handler for incoming WhatsApp messages and status updates
  */
 export async function POST(request: NextRequest) {
-  // Enhanced logging for debugging
   const timestamp = new Date().toISOString();
-  console.log('🔔 ============================================');
-  console.log(`🔔 Webhook POST received at: ${timestamp}`);
-  console.log('🔔 ============================================');
-  
+  console.log('============================================');
+  console.log(`Webhook POST received at: ${timestamp}`);
+  console.log('============================================');
+
   try {
     const body = await request.json();
-    
-    // Log the full payload for debugging
-    console.log('📦 Full webhook payload:', JSON.stringify(body, null, 2));
+    console.log('Full webhook payload:', JSON.stringify(body, null, 2));
 
-    // Meta sends a test POST request during webhook setup
     if (body.object === 'whatsapp_business_account') {
-      console.log('✅ Received WhatsApp webhook event');
+      console.log('Received WhatsApp webhook event');
 
-      // Import Prisma client once
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
+      for (const entry of body.entry || []) {
+        for (const change of entry.changes || []) {
+          if (change.field !== 'messages') continue;
 
-      try {
-        // Process webhook entries
-        for (const entry of body.entry || []) {
-          for (const change of entry.changes || []) {
-            if (change.field === 'messages') {
-              const value = change.value;
+          const value = change.value;
 
-              // Handle message status updates
-              if (value.statuses) {
-                for (const status of value.statuses) {
-                  const messageId = status.id;
-                  const statusValue = status.status; // sent, delivered, read, failed
+          if (value.statuses) {
+            for (const status of value.statuses) {
+              const messageId = status.id;
+              const statusValue = status.status;
 
-                  console.log(`📊 Message ${messageId} status: ${statusValue}`);
+              console.log(`Message ${messageId} status: ${statusValue}`);
 
-                  try {
-                    await updateMessageStatus(messageId, statusValue);
-                  } catch (error) {
-                    console.error('❌ Error updating message status:', error);
-                  }
-                }
-              }
-
-              // Handle incoming messages
-              if (value.messages) {
-                console.log(`📬 Found ${value.messages.length} incoming message(s)`);
-                
-                for (const message of value.messages) {
-                  const incomingData = {
-                    from: message.from,
-                    type: message.type,
-                    text: message.text?.body,
-                    timestamp: message.timestamp,
-                    messageId: message.id,
-                  };
-                  
-                  console.log('📨 ========== INCOMING MESSAGE ==========');
-                  console.log('📨 From:', message.from);
-                  console.log('📨 Type:', message.type);
-                  console.log('📨 Text:', message.text?.body);
-                  console.log('📨 Message ID:', message.id);
-                  console.log('📨 Timestamp:', message.timestamp);
-                  console.log('📨 Full message object:', JSON.stringify(message, null, 2));
-
-                  // Save incoming message to database
-                  try {
-                    const businessNumber = normalizeE164(value.metadata?.display_phone_number);
-                    const fromNumber = normalizeE164(message.from);
-                    const toAddress = businessNumber ? `whatsapp:${businessNumber}` : (value.metadata?.phone_number_id || 'business');
-
-                    const { messageBody, metadata } = await buildIncomingMetadata(value, message);
-                    metadata.timestamp = message.timestamp ? Number(message.timestamp) : undefined;
-
-                    // Find customer by phone number for inbound messages
-                    let customerId = null;
-                    if (fromNumber) {
-                      const customer = await findCustomerByPhone(prisma, fromNumber);
-                      if (customer) {
-                        customerId = customer.id;
-                        console.log(`🔗 Linked message to customer: ${customer.firstName} ${customer.lastName || ''} (${customer.phoneNumber})`);
-                      }
-                    }
-
-                    const savedMessage = await whatsappPrisma.whatsAppMessage.create({
-                      data: {
-                        to: toAddress,
-                        from: fromNumber ? `whatsapp:${fromNumber}` : message.from,
-                        message: messageBody,
-                        messageSid: message.id,
-                        status: 'received',
-                        direction: 'inbound',
-                        metadata: metadata as any,
-                        payload: value as any,
-                        whatsappCustomerId: customerId,
-                      },
-                    });
-                    
-                    console.log(`✅ Saved incoming message ${message.id} from ${message.from}`);
-
-                    const flowAckEligible =
-                      message.type === 'interactive' &&
-                      (message.interactive?.type === 'flow_response' ||
-                        message.interactive?.type === 'nfm_reply');
-
-                    if (flowAckEligible && fromNumber) {
-                      const flowToken =
-                        metadata.flowToken ||
-                        metadata.flowSubmission?.flowToken ||
-                        metadata.interactive?.flowResponse?.flow_token ||
-                        metadata.interactive?.flowResponse?.flowToken;
-                      const flowName = metadata.flowName || metadata.flowSubmission?.flowName;
-                      const acknowledgement =
-                        'Thank you. We received your response. Our representative will contact you soon.';
-
-                      try {
-                        await sendWhatsAppMessage({
-                          to: fromNumber,
-                          message: acknowledgement,
-                          context: { messageId: message.id },
-                          metadata: {
-                            automation: 'flow-auto-acknowledgement',
-                            flowToken,
-                            flowName,
-                            sourceMessageId: message.id,
-                          },
-                          tags: ['flow-auto-ack'],
-                        });
-                        console.log('🤖 Sent flow acknowledgement to', fromNumber);
-                      } catch (ackError) {
-                        console.error('❌ Failed to send flow acknowledgement', ackError);
-                      }
-                    }
-                  } catch (dbError) {
-                    console.error('❌ Error saving incoming message to database:', dbError);
-                  }
-
-                  // TODO: Implement auto-replies or business logic here
-                }
+              try {
+                await updateMessageStatus(messageId, statusValue);
+              } catch (error) {
+                console.error('Error updating message status:', error);
               }
             }
           }
+
+          if (!value.messages) continue;
+
+          console.log(`Found ${value.messages.length} incoming message(s)`);
+
+          for (const message of value.messages) {
+            console.log('========== INCOMING MESSAGE ==========');
+            console.log('From:', message.from);
+            console.log('Type:', message.type);
+            console.log('Text:', message.text?.body);
+            console.log('Message ID:', message.id);
+            console.log('Timestamp:', message.timestamp);
+            console.log('Full message object:', JSON.stringify(message, null, 2));
+
+            try {
+              const businessNumber = normalizeE164(value.metadata?.display_phone_number);
+              const fromNumber = normalizeE164(message.from);
+              const toAddress = businessNumber
+                ? `whatsapp:${businessNumber}`
+                : (value.metadata?.phone_number_id || 'business');
+
+              const { messageBody, metadata } = await buildIncomingMetadata(value, message);
+              metadata.timestamp = message.timestamp ? Number(message.timestamp) : undefined;
+
+              let customerId = null;
+              if (fromNumber) {
+                const customer = await findCustomerByPhone(fromNumber);
+                if (customer) {
+                  customerId = customer.id;
+                  console.log(
+                    `Linked message to customer: ${customer.firstName} ${customer.lastName || ''} (${customer.phoneNumber})`
+                  );
+                }
+              }
+
+              await whatsappPrisma.whatsAppMessage.create({
+                data: {
+                  to: toAddress,
+                  from: fromNumber ? `whatsapp:${fromNumber}` : message.from,
+                  message: messageBody,
+                  messageSid: message.id,
+                  status: 'received',
+                  direction: 'inbound',
+                  metadata: metadata as any,
+                  payload: value as any,
+                  whatsappCustomerId: customerId,
+                },
+              });
+
+              console.log(`Saved incoming message ${message.id} from ${message.from}`);
+
+              const flowAckEligible =
+                message.type === 'interactive' &&
+                (message.interactive?.type === 'flow_response' ||
+                  message.interactive?.type === 'nfm_reply');
+
+              if (flowAckEligible && fromNumber) {
+                const flowToken =
+                  metadata.flowToken ||
+                  metadata.flowSubmission?.flowToken ||
+                  metadata.interactive?.flowResponse?.flow_token ||
+                  metadata.interactive?.flowResponse?.flowToken;
+                const flowName = metadata.flowName || metadata.flowSubmission?.flowName;
+                const acknowledgement =
+                  'Thank you. We received your response. Our representative will contact you soon.';
+
+                try {
+                  await sendWhatsAppMessage({
+                    to: fromNumber,
+                    message: acknowledgement,
+                    context: { messageId: message.id },
+                    metadata: {
+                      automation: 'flow-auto-acknowledgement',
+                      flowToken,
+                      flowName,
+                      sourceMessageId: message.id,
+                    },
+                    tags: ['flow-auto-ack'],
+                  });
+                  console.log('Sent flow acknowledgement to', fromNumber);
+                } catch (ackError) {
+                  console.error('Failed to send flow acknowledgement', ackError);
+                }
+              }
+            } catch (dbError) {
+              console.error('Error saving incoming message to database:', dbError);
+            }
+          }
         }
-      } finally {
-        await prisma.$disconnect();
       }
 
       return NextResponse.json({ success: true, message: 'Webhook processed' });
     }
 
-    console.log('⚠️  Unknown webhook event - object type:', body.object);
-    console.log('⚠️  Full body:', JSON.stringify(body, null, 2));
+    console.log('Unknown webhook event - object type:', body.object);
+    console.log('Full body:', JSON.stringify(body, null, 2));
     return NextResponse.json({ success: false, message: 'Unknown webhook event' });
   } catch (error: any) {
-    console.error('❌ ========== WEBHOOK ERROR ==========');
-    console.error('❌ Error message:', error?.message);
-    console.error('❌ Error stack:', error?.stack);
-    console.error('❌ Full error:', error);
+    console.error('========== WEBHOOK ERROR ==========');
+    console.error('Error message:', error?.message);
+    console.error('Error stack:', error?.stack);
+    console.error('Full error:', error);
     return NextResponse.json(
       { success: false, error: error?.message || 'Internal server error' },
       { status: 500 }

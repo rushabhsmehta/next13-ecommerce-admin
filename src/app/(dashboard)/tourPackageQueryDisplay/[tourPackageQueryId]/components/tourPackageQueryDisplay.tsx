@@ -523,6 +523,33 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </Card>
         )}
  */}
+      {/* Variant Comparison Section */}
+      {initialData.queryVariantSnapshots && initialData.queryVariantSnapshots.length > 0 && (
+        <Card className="break-inside-avoid border border-blue-200 shadow-md rounded-xl avoid-break-inside">
+          <CardHeader className="px-5 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-blue-100">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text">
+              Package Variants
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Compare different package options with varying accommodations and pricing
+            </p>
+          </CardHeader>
+          <CardContent className="px-5 py-6">
+            <VariantComparisonSection
+              variants={initialData.queryVariantSnapshots}
+              variantPricingData={(initialData as any)?.variantPricingData}
+              variantRoomAllocations={(initialData as any)?.variantRoomAllocations}
+              variantTransportDetails={(initialData as any)?.variantTransportDetails}
+              itineraries={initialData.itineraries}
+              roomTypes={roomTypes}
+              occupancyTypes={occupancyTypes}
+              mealPlans={mealPlans}
+              vehicleTypes={vehicleTypes}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Enhanced Pricing Options Table */}
       {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && parsePricingSection(initialData.pricingSection).length > 0 && (
         <div className="mt-4 border border-orange-200 rounded-lg overflow-hidden shadow-sm">

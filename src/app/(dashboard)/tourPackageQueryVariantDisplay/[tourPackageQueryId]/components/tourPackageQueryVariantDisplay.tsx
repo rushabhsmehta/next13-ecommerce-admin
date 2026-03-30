@@ -462,6 +462,33 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                 </Card>
             )}
 
+            {/* Variant Comparison Section - Prominently displayed */}
+            {initialData.queryVariantSnapshots && initialData.queryVariantSnapshots.length > 0 && (
+                <Card className="break-inside-avoid border-2 border-orange-200 shadow-lg rounded-xl avoid-break-inside">
+                    <CardHeader className="px-5 py-4 bg-gradient-to-r from-red-50 to-orange-50 border-b border-orange-100">
+                        <h2 className="text-3xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-transparent bg-clip-text print-gradient-fallback">
+                            🏨 Package Variants
+                        </h2>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Compare different package options with varying accommodations and pricing
+                        </p>
+                    </CardHeader>
+                    <CardContent className="px-5 py-6">
+                        <VariantComparisonSection
+                            variants={initialData.queryVariantSnapshots}
+                            variantPricingData={(initialData as any)?.variantPricingData}
+                            variantRoomAllocations={(initialData as any)?.variantRoomAllocations}
+                            variantTransportDetails={(initialData as any)?.variantTransportDetails}
+                            itineraries={initialData.itineraries}
+                            roomTypes={roomTypes}
+                            occupancyTypes={occupancyTypes}
+                            mealPlans={mealPlans}
+                            vehicleTypes={vehicleTypes}
+                        />
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Enhanced Total Price Display */}
             {(() => {
                 const isPriceVisible = initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ';

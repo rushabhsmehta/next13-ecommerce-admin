@@ -839,196 +839,6 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     `;
   }, [initialData, brandColors, cardStyle, formatINR]);
 
-  // Build Package Variants Section (individual variant cards)
-  const buildVariantsSection = useCallback((): string => {
-    if (!initialData?.queryVariantSnapshots || initialData.queryVariantSnapshots.length === 0) {
-      return "";
-    }
-
-    const formatPriceModifier = (modifier: number | null): string => {
-      if (!modifier || modifier === 0) return "Base Price";
-      const sign = modifier > 0 ? "+" : "";
-      return `${sign}${modifier}%`;
-    };
-
-    const getPriceModifierColor = (modifier: number | null): string => {
-      if (!modifier || modifier === 0) return brandColors.muted;
-      return modifier > 0 ? brandColors.secondary : brandColors.success;
-    };
-
-    return `
-      <div style="${cardStyle}; ${pageBreakBefore}">
-        <div style="border-bottom: 2px solid ${brandColors.primary}; padding: 14px 18px;">
-          <h2 style="color: ${brandColors.primary}; font-size: 17px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
-            ✨ Package Variants & Hotel Options
-          </h2>
-          <p style="color: ${brandColors.muted}; font-size: 11px; margin: 3px 0 0 0;">Detailed view of each accommodation option</p>
-        </div>
-
-        <div style="${contentStyle}">
-          ${initialData.queryVariantSnapshots.map((variant, variantIndex) => {
-      const hotelsByDay = variant.hotelSnapshots.sort((a, b) => a.dayNumber - b.dayNumber);
-
-      return `
-              <div style="margin-bottom: ${variantIndex < initialData.queryVariantSnapshots!.length - 1 ? '32px' : '0'}; page-break-inside: avoid; break-inside: avoid-page;">
-                <div style="border-left: 4px solid ${brandColors.secondary}; padding: 12px 16px; border-radius: 0 6px 0 0; background: ${brandColors.lightOrange}; display: flex; align-items: center; justify-content: space-between;">
-                  <div style="flex: 1;">
-                    <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: ${brandColors.text}; display: flex; align-items: center; gap: 8px;">
-                      <span style="background: ${brandColors.primary}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;">
-                        ${variantIndex + 1}
-                      </span>
-                      ${variant.name}
-                    </h3>
-                    ${variant.description ? `
-                      <p style="margin: 4px 0 0 0; font-size: 12px; color: ${brandColors.muted}; line-height: 1.4;">
-                        ${variant.description}
-                      </p>
-                    ` : ''}
-                  </div>
-                  <div style="text-align: right; margin-left: 12px;">
-                    <div style="padding: 4px 10px; border-radius: 4px; border: 1px solid ${brandColors.border}; background: white;">
-                      <div style="font-size: 13px; font-weight: 700; color: ${getPriceModifierColor(variant.priceModifier)};">
-                        ${formatPriceModifier(variant.priceModifier)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                ${hotelsByDay.length > 0 ? `
-                  <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-top: none; border-radius: 0 0 8px 8px; padding: 16px 20px;">
-                    <div style="font-size: 13px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                      <span style="color: ${brandColors.secondary};">🏨</span>
-                      Hotel Accommodations
-                    </div>
-
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                      ${hotelsByDay.map((hotelSnapshot) => `
-                        <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; display: flex; align-items: center; gap: 0; page-break-inside: avoid; break-inside: avoid-page;">
-                          <div style="background: ${brandGradients.primary}; padding: 8px 12px; writing-mode: initial; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 56px; align-self: stretch;">
-                            <div style="font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.5px;">DAY</div>
-                            <div style="font-size: 18px; font-weight: 800; color: white; line-height: 1;">${hotelSnapshot.dayNumber}</div>
-                          </div>
-                          ${safeUrl(hotelSnapshot.imageUrl) ? `
-                            <div style="flex-shrink: 0; width: 80px; height: 60px; overflow: hidden; background: #f3f4f6;">
-                              <img src="${escapeAttr(safeUrl(hotelSnapshot.imageUrl))}" alt="${escapeAttr(hotelSnapshot.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
-                            </div>
-                          ` : `
-                            <div style="flex-shrink: 0; width: 80px; height: 60px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
-                              <span style="font-size: 22px;">🏨</span>
-                            </div>
-                          `}
-                          <div style="padding: 10px 14px; flex: 1;">
-                            <div style="font-size: 13px; font-weight: 600; color: ${brandColors.text}; line-height: 1.3;">${hotelSnapshot.hotelName}</div>
-                            ${hotelSnapshot.hotel?.destination?.name ? `<div style="font-size: 11px; font-weight: 600; color: ${brandColors.secondary}; margin-top: 2px;">${hotelSnapshot.hotel.destination.name}</div>` : ''}
-                            <div style="font-size: 11px; color: ${brandColors.muted}; margin-top: 3px;">📍 ${hotelSnapshot.locationLabel}</div>
-                            ${hotelSnapshot.roomCategory ? `<div style="margin-top: 3px; font-size: 10px; color: ${brandColors.secondary}; font-weight: 500;">${hotelSnapshot.roomCategory}</div>` : ''}
-                          </div>
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                ` : `
-                  <div style="background: ${brandColors.light}; border: 1px solid ${brandColors.border}; border-top: none; border-radius: 0 0 8px 8px; padding: 16px; text-align: center;">
-                    <p style="margin: 0; font-size: 13px; color: ${brandColors.muted};">
-                      No specific hotel mappings for this variant
-                    </p>
-                  </div>
-                `}
-
-${(() => {
-          // Prefer pricingSnapshots (snapshot system); fall back to variantPricingData (Pricing Tab)
-          if (variant.pricingSnapshots && variant.pricingSnapshots.length > 0) {
-            return `
-                      <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-top: none; padding: 20px; margin-top: -1px;">
-                        <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                          <span style="color: ${brandColors.secondary};">💰</span>
-                          Variant Pricing
-                        </div>
-                        ${variant.pricingSnapshots.map((pricing, idx) => `
-                          <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-radius: 6px; padding: 16px; margin-bottom: ${idx < variant.pricingSnapshots.length - 1 ? '12px' : '0'};">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                              <div>
-                                ${pricing.mealPlanName ? `
-                                  <div style="font-size: 13px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 4px;">🍽️ ${pricing.mealPlanName}</div>
-                                ` : ''}
-                                <div style="font-size: 11px; color: ${brandColors.muted};">${pricing.numberOfRooms} Room(s) ${pricing.vehicleTypeName ? `• 🚗 ${pricing.vehicleTypeName}` : ''}</div>
-                              </div>
-                              <div style="text-align: right;">
-                                <div style="font-size: 18px; font-weight: 700; color: ${brandColors.primary};">₹ ${formatINR(pricing.totalPrice.toString())}</div>
-                              </div>
-                            </div>
-                            ${pricing.pricingComponentSnapshots.length > 0 ? `
-                              <div style="border-top: 1px solid ${brandColors.border}; padding-top: 12px; margin-top: 8px;">
-                                <div style="font-size: 11px; font-weight: 600; color: ${brandColors.muted}; margin-bottom: 8px; text-transform: uppercase;">Price Breakdown</div>
-                                ${pricing.pricingComponentSnapshots.map(comp => `
-                                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px;">
-                                    <span style="color: ${brandColors.text};">${comp.attributeName}</span>
-                                    <span style="color: ${brandColors.muted}; font-weight: 500;">₹ ${formatINR(comp.price.toString())}</span>
-                                  </div>
-                                `).join('')}
-                              </div>
-                            ` : ''}
-                            ${pricing.description ? `
-                              <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid ${brandColors.border};">
-                                <div style="font-size: 11px; color: ${brandColors.muted}; line-height: 1.4;">${pricing.description}</div>
-                              </div>
-                            ` : ''}
-                          </div>
-                        `).join('')}
-                      </div>
-                    `;
-          }
-          // Fallback: read from variantPricingData (Pricing Tab)
-          const vpd = ((initialData as any)?.variantPricingData as Record<string, any> | null | undefined)?.[variant.sourceVariantId];
-          if (!vpd || (!vpd.totalCost && !(vpd.components?.length))) return '';
-          const vpdComponents: { name: string; price: string; description?: string }[] = vpd.components || [];
-          const vpdTotal = vpd.totalCost || 0;
-          const vpdRemarks = vpd.remarks || '';
-          return `
-                    <div style="background: ${brandColors.white}; border: 1px solid ${brandColors.border}; border-top: none; padding: 20px; margin-top: -1px;">
-                      <div style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                        <span style="color: ${brandColors.secondary};">💰</span>
-                        Variant Pricing
-                      </div>
-                      <div style="background: ${brandColors.subtlePanel}; border: 1px solid ${brandColors.border}; border-radius: 6px; padding: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${vpdComponents.length > 0 ? '12px' : '0'};">
-                          <div style="font-size: 12px; color: ${brandColors.muted};">Package Price</div>
-                          <div style="font-size: 18px; font-weight: 700; color: ${brandColors.primary};">₹ ${formatINR(String(vpdTotal))}</div>
-                        </div>
-                        ${vpdComponents.length > 0 ? `
-                          <div style="border-top: 1px solid ${brandColors.border}; padding-top: 12px; margin-top: 8px;">
-                            <div style="font-size: 11px; font-weight: 600; color: ${brandColors.muted}; margin-bottom: 8px; text-transform: uppercase;">Price Breakdown</div>
-                            ${vpdComponents.map(comp => `
-                              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px;">
-                                <span style="color: ${brandColors.text};">${comp.name}</span>
-                                <span style="color: ${brandColors.muted}; font-weight: 500;">₹ ${formatINR(String(comp.price || 0))}</span>
-                              </div>
-                            `).join('')}
-                          </div>
-                        ` : ''}
-                        ${vpdRemarks ? `
-                          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid ${brandColors.border};">
-                            <div style="font-size: 11px; color: ${brandColors.muted}; line-height: 1.4;">${vpdRemarks}</div>
-                          </div>
-                        ` : ''}
-                      </div>
-                    </div>
-                  `;
-        })()}
-              </div>
-            `;
-    }).join('')}
-
-          <div style="background: ${brandColors.lightOrange}; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px; margin-top: 20px; text-align: center;">
-            <p style="margin: 0; font-size: 12px; color: ${brandColors.secondary}; font-weight: 500; font-style: italic;">
-              💡 Select your preferred variant when booking. Prices and hotels may vary based on availability.
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
-  }, [initialData, brandColors, brandGradients, cardStyle, contentStyle, pageBreakBefore, formatINR]);
-
   // Build HTML Content
   const buildHtmlContent = useCallback((): string => {
     if (!initialData) return "";
@@ -1411,12 +1221,11 @@ ${(() => {
       </div>
     ` : "";
 
-    // Build comparison sections — hotel → price → individual variant cards
+    // Build comparison sections — hotel → price
     const hotelComparisonSection = buildHotelComparisonSection();
     const priceComparisonSection = buildPriceComparisonSection();
-    const variantsSection = buildVariantsSection();
 
-    // Assemble Full HTML — strict order: header → tour info → hotel comparison → price comparison → variant cards → itinerary → policies
+    // Assemble Full HTML — strict order: header → tour info → hotel comparison → price comparison → itinerary → policies
     const fullHtml = `
       <html>
         <head>
@@ -1428,7 +1237,6 @@ ${(() => {
             ${tourInfoSection}
             ${hotelComparisonSection}
             ${priceComparisonSection}
-            ${variantsSection}
             ${itinerariesSection}
             ${policiesAndTermsSection}
           </div>
@@ -1436,7 +1244,7 @@ ${(() => {
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, buildHotelComparisonSection, buildPriceComparisonSection, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection]);
+  }, [initialData, currentCompany, locations, buildHotelComparisonSection, buildPriceComparisonSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

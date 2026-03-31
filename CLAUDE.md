@@ -351,3 +351,17 @@ Required variables (see `.env` for full list):
 - TypeScript strict mode enabled
 - No Prettier config; formatting relies on ESLint
 - `tsconfig.json` excludes: `node_modules`, `mobile`, `scripts`, `prisma`, `.next`
+
+## Git Workflow
+
+- Always develop on a feature branch (never commit directly to `main`/`master`)
+- Commit and push all changes before ending a session
+- Branch naming convention: `claude/<feature-slug-XXXXX>` (e.g. `claude/add-export-button-4KmNp`)
+- Use descriptive commit messages; append the session URL at the end
+- Never force-push, never skip hooks (`--no-verify`)
+
+## Working Style
+
+- Confirm before taking risky or irreversible actions (destructive git ops, schema changes, deleting files)
+- Keep changes minimal and focused — don't refactor beyond the scope of the task
+- Read existing code before suggesting modifications

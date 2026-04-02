@@ -2,7 +2,7 @@
 
 /**
  * WhatsApp Business Account ID - Usage Examples
- * Account ID: 139266579261557
+ * Account ID: 1259119921508566
  */
 
 require('dotenv').config();
@@ -99,7 +99,7 @@ console.log('');
 console.log('═══════════════════════════════════════════════════════════');
 console.log('🔍 NOTE:\n');
 console.log('  • Phone Number ID (131371496722301) - Used for SENDING messages');
-console.log('  • Business Account ID (139266579261557) - Used for MANAGING account');
+console.log('  • Business Account ID (1259119921508566) - Used for MANAGING account');
 console.log('');
 console.log('  For day-to-day message sending, you use Phone Number ID.');
 console.log('  For admin tasks (templates, analytics, etc.), you use Business Account ID.');

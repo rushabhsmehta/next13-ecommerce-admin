@@ -21,7 +21,7 @@ Update `.env` and `.env.local`:
 ```bash
 # ✅ THESE ARE ALREADY SET!
 META_WHATSAPP_PHONE_NUMBER_ID=131371496722301
-META_WHATSAPP_BUSINESS_ACCOUNT_ID=139266579261557
+META_WHATSAPP_BUSINESS_ACCOUNT_ID=1259119921508566
 META_WHATSAPP_ACCESS_TOKEN=EAAVramqNmOUBPugZB4CosGSEzCuuWDDr1ytLZCOFYoKahSSq2pslZCBYEZB6Qlvso1cSAm4IMboPhuxErcaLWk6clA2ESRZBsMcKZBOv6ObtGqfiA1SJ2S9ZCaiEfSLOkI6bpLTMrT6Dy9KVRTIvFsrX9apB8nPDuJQAK1UuEAy5QR9uR1RddtAY5LttxYTdaOr4nvRSZCZADRjteB88SDODyBlq9BuXW1P9yAYgFIemjwOamYggZD
 META_GRAPH_API_VERSION=v22.0
 
@@ -167,7 +167,7 @@ https://business.facebook.com/wa/manage/message-templates/
 
 # Via API (if you have business account ID)
 curl -X GET \
-  "https://graph.facebook.com/v22.0/139266579261557/message_templates" \
+  "https://graph.facebook.com/v22.0/1259119921508566/message_templates" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

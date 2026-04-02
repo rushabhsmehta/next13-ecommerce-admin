@@ -19,7 +19,7 @@ META_APP_ACCESS_TOKEN=your_app_access_token_here
 
 ### 2. **WhatsApp Business Account ID** ✅ YOU HAVE THIS
 ```bash
-META_WHATSAPP_BUSINESS_ACCOUNT_ID=139266579261557
+META_WHATSAPP_BUSINESS_ACCOUNT_ID=1259119921508566
 ```
 
 ### 3. **Public Key File** ✅ YOU HAVE THIS
@@ -87,7 +87,7 @@ node scripts/whatsapp/upload-public-key.js
 Or manually via curl:
 ```bash
 curl -X POST \
-  "https://graph.facebook.com/v22.0/139266579261557/whatsapp_business_encryption" \
+  "https://graph.facebook.com/v22.0/1259119921508566/whatsapp_business_encryption" \
   -H "Authorization: Bearer YOUR_APP_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

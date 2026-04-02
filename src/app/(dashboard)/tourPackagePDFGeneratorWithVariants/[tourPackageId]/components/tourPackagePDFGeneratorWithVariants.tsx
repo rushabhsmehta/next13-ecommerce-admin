@@ -221,144 +221,6 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
 
   // BUILD SECTIONS
 
-  // Build Package Variants Section
-  const buildVariantsSection = useCallback((): string => {
-    if (!initialData?.packageVariants || initialData.packageVariants.length === 0) {
-      return "";
-    }
-
-    const formatPriceModifier = (modifier: number | null): string => {
-      if (!modifier || modifier === 0) return "Base Price";
-      const sign = modifier > 0 ? "+" : "";
-      return `${sign}${modifier}%`;
-    };
-
-    const getPriceModifierColor = (modifier: number | null): string => {
-      if (!modifier || modifier === 0) return brandColors.muted;
-      return modifier > 0 ? brandColors.secondary : brandColors.success;
-    };
-
-    // Build a mapping of variantIndex -> { dayNum -> hotelId }
-    const variantMappings = initialData.packageVariants.map((variant) => {
-      const hotelMappings: Record<string, string> = {};
-      if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
-        variant.variantHotelMappings.forEach((mapping: any) => {
-          const dayNum = mapping.itinerary?.dayNumber;
-          if (dayNum && mapping.hotelId) {
-            hotelMappings[String(dayNum)] = mapping.hotelId;
-          }
-        });
-      }
-      return hotelMappings;
-    });
-
-    // Collect all unique days across all variants, sorted
-    const allDays = Array.from(
-      new Set(variantMappings.flatMap(m => Object.keys(m)))
-    ).sort((a, b) => Number(a) - Number(b));
-
-    const hasAnyMappings = allDays.length > 0;
-
-    // Column width per variant (Day column is fixed narrow; variants split the rest)
-    const variantCount = initialData.packageVariants.length;
-    const dayColWidth = 8; // Day column only needs a small circle badge
-    const colWidth = (100 - dayColWidth) / variantCount;
-
-    return `
-      <div style="${cardStyle}; ${pageBreakBefore}">
-        <div style="background: ${brandGradients.primary}; padding: 20px; text-align: center;">
-          <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: 0.5px;">
-            ✨ Package Variants & Hotel Options
-          </h2>
-          <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 6px 0 0 0;">
-            Side-by-side hotel comparison across all variants
-          </p>
-        </div>
-
-        <div style="${contentStyle}">
-
-          ${hasAnyMappings ? `
-            <table style="width: 100%; border-collapse: collapse; border: 1px solid ${brandColors.border}; border-radius: 8px; overflow: hidden;">
-              <!-- Header row: Day label + one column per variant -->
-              <thead>
-                <tr>
-                  <th style="background: ${brandColors.tableHeaderBg}; padding: 12px 10px; text-align: center; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.5px; width: ${dayColWidth}%; border-right: 1px solid ${brandColors.border}; border-bottom: 2px solid ${brandColors.primary};">
-                    Day
-                  </th>
-                  ${initialData.packageVariants.map((variant, vi) => `
-                    <th style="background: ${brandColors.tableHeaderBg}; padding: 12px 10px; text-align: center; font-size: 12px; font-weight: 700; color: ${brandColors.text}; text-transform: uppercase; letter-spacing: 0.5px; width: ${colWidth}%; ${vi < variantCount - 1 ? `border-right: 1px solid ${brandColors.border};` : ''} border-bottom: 2px solid ${brandColors.primary};">
-                      <div style="font-size: 13px; font-weight: 700; color: ${brandColors.primary};">${escapeAttr(variant.name ?? '')}</div>
-                      <div style="font-size: 11px; font-weight: 600; color: ${getPriceModifierColor(variant.priceModifier)}; margin-top: 2px;">
-                        ${formatPriceModifier(variant.priceModifier)}
-                      </div>
-                      ${variant.description ? `
-                        <div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 400; margin-top: 3px; font-style: italic; line-height: 1.3;">${escapeAttr(variant.description)}</div>
-                      ` : ''}
-                    </th>
-                  `).join('')}
-                </tr>
-              </thead>
-              <!-- One row per day -->
-              <tbody>
-                ${allDays.map((dayNum, rowIdx) => `
-                  <tr style="background: ${rowIdx % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
-                    <td style="padding: 10px; text-align: center; border-right: 1px solid ${brandColors.border}; border-bottom: 1px solid ${brandColors.border}; vertical-align: middle;">
-                      <div style="background: ${brandColors.primary}; color: white; width: 36px; height: 36px; border-radius: 50%; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
-                        <span style="font-size: 7px; font-weight: 700; text-transform: uppercase;">DAY</span>
-                        <span style="font-size: 13px; font-weight: 800;">${dayNum}</span>
-                      </div>
-                    </td>
-                    ${(initialData.packageVariants ?? []).map((variant, vi) => {
-      const hotelId = variantMappings[vi][dayNum];
-      const hotel = hotelId ? hotels.find(h => h.id === hotelId) : null;
-      return `
-                        <td style="padding: 8px; text-align: center; ${vi < variantCount - 1 ? `border-right: 1px solid ${brandColors.border};` : ''} border-bottom: 1px solid ${brandColors.border}; vertical-align: top;">
-                          ${hotel ? `
-                            <div style="border-radius: 6px; overflow: hidden; border: 1px solid ${brandColors.border}; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                              ${hotel.images && hotel.images.length > 0 ? `
-                                <div style="width: 100%; padding-bottom: 100%; position: relative; overflow: hidden; background: #f3f4f6;">
-                                  <img src="${escapeAttr(hotel.images[0].url)}" alt="${escapeAttr(hotel.name)}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
-                                </div>
-                              ` : `
-                                <div style="width: 100%; padding-bottom: 100%; position: relative; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);">
-                                  <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af; font-size: 20px;">🏨</span>
-                                </div>
-                              `}
-                              <div style="padding: 6px 8px; text-align: left;">
-                                <div style="font-size: 11px; font-weight: 600; color: ${brandColors.text}; line-height: 1.3; margin-bottom: 2px;">${escapeAttr(hotel.name)}</div>
-                                ${hotel.destination ? `
-                                  <div style="font-size: 10px; color: ${brandColors.muted};">📍 ${escapeAttr(hotel.destination.name)}</div>
-                                ` : hotel.location ? `
-                                  <div style="font-size: 10px; color: ${brandColors.muted};">📍 ${escapeAttr(hotel.location.label)}</div>
-                                ` : ''}
-                              </div>
-                            </div>
-                          ` : `
-                            <div style="padding: 12px; color: ${brandColors.muted}; font-size: 11px; font-style: italic;">—</div>
-                          `}
-                        </td>
-                      `;
-    }).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          ` : `
-            <div style="background: ${brandColors.light}; border: 1px solid ${brandColors.border}; border-radius: 8px; padding: 20px; text-align: center;">
-              <p style="margin: 0; font-size: 13px; color: ${brandColors.muted};">No hotel mappings configured for any variant.</p>
-            </div>
-          `}
-
-          <div style="background: ${brandColors.lightOrange}; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px; margin-top: 20px; text-align: center;">
-            <p style="margin: 0; font-size: 12px; color: ${brandColors.secondary}; font-weight: 500; font-style: italic;">
-              💡 Select your preferred variant when booking. Prices and hotels may vary based on availability.
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
-  }, [initialData, hotels, brandColors, brandGradients, cardStyle, contentStyle, pageBreakBefore]);
-
   // Build HTML Content
   const buildHtmlContent = useCallback((): string => {
     if (!initialData) return "";
@@ -651,10 +513,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       </div>
     ` : "";
 
-    // Build Variants Section
-    const variantsSection = buildVariantsSection();
-
-    // Assemble Full HTML — order: header → tour info → total price → hotel comparison (variants) → itinerary → policies
+    // Assemble Full HTML — order: header → tour info → total price → itinerary → policies
     const fullHtml = `
       <html>
         <head>
@@ -665,7 +524,6 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
             ${headerSection}
             ${tourInfoSection}
             ${totalPriceSection}
-            ${variantsSection}
             ${itinerariesSection}
             ${policiesAndTermsSection}
           </div>
@@ -673,7 +531,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, sectionTitleStyle, parsePricingSection]);
+  }, [initialData, currentCompany, locations, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, sectionTitleStyle, parsePricingSection]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

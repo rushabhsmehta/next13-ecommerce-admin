@@ -245,7 +245,7 @@ Key helpers in `src/lib/authz.ts`:
 
 ## MCP Tools (travel-admin)
 
-**99 tools** available via the custom MCP server:
+**102 tools** available via the custom MCP server:
 
 ### Architecture (Modular)
 - **`src/app/api/mcp/route.ts`** — Slim gateway: auth via `x-mcp-api-secret` header, dispatch, error handling
@@ -274,7 +274,7 @@ Key helpers in `src/lib/authz.ts`:
 | **Flights & Bookings** | 3 | `get_flight_ticket`, `list_flight_tickets`, `create_flight_ticket` |
 | **Notifications** | 2 | `create_notification`, `list_notifications` |
 | **Pricing Lookups** | 2 | `get_hotel_pricing`, `get_transport_pricing` |
-| **WhatsApp Integration** | 10 | `send_whatsapp_message`, `send_whatsapp_template`, `list_whatsapp_campaigns`, `get_whatsapp_campaign_stats`, `list_whatsapp_customers`, `create_whatsapp_customer`, `list_whatsapp_templates`, `list_whatsapp_messages`, `send_whatsapp_campaign`, `get_whatsapp_database_health` |
+| **WhatsApp Integration** | 13 | `send_whatsapp_message`, `send_whatsapp_template`, `upload_whatsapp_template_media`, `send_whatsapp_product_message`, `send_whatsapp_product_list`, `list_whatsapp_campaigns`, `get_whatsapp_campaign_stats`, `list_whatsapp_customers`, `create_whatsapp_customer`, `list_whatsapp_templates`, `list_whatsapp_messages`, `send_whatsapp_campaign`, `get_whatsapp_database_health` |
 | **AI & Dashboard** | 2 | `generate_itinerary`, `get_stats` |
 
 ## Key Patterns

@@ -530,6 +530,8 @@ export async function POST(request: NextRequest) {
 
           console.log(`[WhatsApp Webhook] Found ${value.messages.length} incoming message(s)`);
 
+          let hasDbError = false;
+
           for (const message of value.messages) {
             if (debugMode) {
               console.log('========== INCOMING MESSAGE ==========');
@@ -542,6 +544,20 @@ export async function POST(request: NextRequest) {
             }
 
             try {
+              // Deduplication: skip if this messageSid was already stored (Meta retries webhooks)
+              if (message.id) {
+                const existing = await whatsappPrisma.whatsAppMessage.findFirst({
+                  where: { messageSid: message.id },
+                  select: { id: true },
+                });
+                if (existing) {
+                  if (debugMode) {
+                    console.log(`Skipping duplicate message ${message.id}`);
+                  }
+                  continue;
+                }
+              }
+
               const businessNumber = normalizeE164(value.metadata?.display_phone_number);
               const fromNumber = normalizeE164(message.from);
               const toAddress = businessNumber
@@ -619,7 +635,16 @@ export async function POST(request: NextRequest) {
               }
             } catch (dbError) {
               console.error('Error saving incoming message to database:', dbError);
+              hasDbError = true;
             }
+          }
+
+          if (hasDbError) {
+            // Return 500 so Meta retries the webhook instead of silently losing messages
+            return NextResponse.json(
+              { success: false, message: 'Partial failure saving messages' },
+              { status: 500 }
+            );
           }
         }
       }

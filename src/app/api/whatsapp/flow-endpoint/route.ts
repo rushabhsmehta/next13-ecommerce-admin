@@ -9,6 +9,8 @@ import {
   updateWhatsAppSession,
 } from '@/lib/whatsapp';
 
+const debugMode = process.env.WHATSAPP_DEBUG === '1';
+
 const DESTINATION_OPTIONS = [
   {
     id: 'bali',
@@ -187,8 +189,6 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
     let privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
     const passphrase = process.env.WHATSAPP_FLOW_KEY_PASSPHRASE || '';
     
-    console.log('[DECRYPT] Key found:', !!privateKeyPem, 'Length:', privateKeyPem?.length, 'Has BEGIN:', privateKeyPem?.includes('-----BEGIN'));
-    
     if (!privateKeyPem) {
       throw new Error('WHATSAPP_FLOW_PRIVATE_KEY not configured in environment');
     }
@@ -196,19 +196,11 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
     // Decode base64 if the key is base64-encoded (for Vercel compatibility)
     // Vercel doesn't support multi-line env vars, so we base64 encode them
     const isBase64 = !privateKeyPem.includes('-----BEGIN');
-    console.log('[DECRYPT] Is base64:', isBase64);
     if (isBase64) {
       privateKeyPem = Buffer.from(privateKeyPem, 'base64').toString('utf-8');
-      console.log('[DECRYPT] Decoded to length:', privateKeyPem.length, 'Has newlines:', privateKeyPem.includes('\n'));
     }
 
     const { encrypted_aes_key, encrypted_flow_data, initial_vector } = encryptedRequest;
-
-    console.log('[DECRYPT] Received data:', {
-      aes_key_length: encrypted_aes_key.length,
-      flow_data_length: encrypted_flow_data.length,
-      iv_length: initial_vector.length
-    });
 
     // Step 1: Decrypt the AES key created by the client
     // Create private key with passphrase support (following Meta's official example)
@@ -226,8 +218,6 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
       },
       Buffer.from(encrypted_aes_key, 'base64') as any
     );
-
-    console.log('[DECRYPT] AES key decrypted, length:', decryptedAesKey.length);
 
     // Step 2: Decrypt the Flow data
     const flowDataBuffer = Buffer.from(encrypted_flow_data, 'base64');
@@ -307,8 +297,8 @@ function isRequestSignatureValid(body: string, signature: string | null): boolea
   const appSecret = process.env.META_APP_SECRET;
   
   if (!appSecret) {
-    console.warn('META_APP_SECRET is not set. Skipping signature validation.');
-    return true;
+    console.error('META_APP_SECRET is not configured. Rejecting request.');
+    return false;
   }
   
   if (!signature) {
@@ -364,22 +354,21 @@ export async function POST(req: NextRequest) {
       initialVectorBuffer = result.initialVectorBuffer;
     } catch (error: any) {
       console.error('Decryption failed:', error);
-      // Return error details in development for debugging
       return NextResponse.json(
-        { error: 'Decryption failed', message: error.message, keyFound: !!process.env.WHATSAPP_FLOW_PRIVATE_KEY },
+        { error: 'Decryption failed' },
         { status: 421 }
       );
     }
 
-    console.log('WhatsApp Flow Request (Decrypted):', {
-      version: decryptedBody.version,
-      action: decryptedBody.action,
-      screen: decryptedBody.screen,
-      flow_token: decryptedBody.flow_token,
-    });
-
-    // Handle different actions
-    console.log('💬 Decrypted Request:', decryptedBody);
+    if (debugMode) {
+      console.log('WhatsApp Flow Request (Decrypted):', {
+        version: decryptedBody.version,
+        action: decryptedBody.action,
+        screen: decryptedBody.screen,
+        flow_token: decryptedBody.flow_token,
+      });
+      console.log('💬 Decrypted Request:', decryptedBody);
+    }
 
     // Handle ping/health check
     if (decryptedBody.action === 'ping') {

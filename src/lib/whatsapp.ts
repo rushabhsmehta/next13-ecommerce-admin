@@ -23,29 +23,11 @@ export async function getWhatsAppBusinessId(): Promise<string> {
     return resolvedBusinessId;
   }
 
-  // Fallback: derive WABA from phone number node (/PHONE_ID?fields=whatsapp_business_account)
-  if (!META_WHATSAPP_PHONE_NUMBER_ID) {
-    throw new Error('Missing META_WHATSAPP_PHONE_NUMBER_ID required to auto-resolve business id');
-  }
-
-  const url = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${META_WHATSAPP_PHONE_NUMBER_ID}?fields=whatsapp_business_account`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${META_WHATSAPP_ACCESS_TOKEN}` }
-  });
-  const payload = await res.json().catch(() => null);
-  if (!res.ok || !payload) {
-    throw new Error(
-      `Failed to auto-resolve WABA id from phone number: ${payload?.error?.message || res.statusText}`
-    );
-  }
-
-  const waba = payload?.whatsapp_business_account?.id;
-  if (!waba) {
-    throw new Error('Phone number record did not include whatsapp_business_account id');
-  }
-
-  resolvedBusinessId = String(waba);
-  return resolvedBusinessId;
+  // Meta no longer exposes a stable phone-number lookup that returns the WABA id
+  // in the way this integration previously expected, so require the explicit env var.
+  throw new Error(
+    'Missing Meta WhatsApp Business ID. Set META_WHATSAPP_BUSINESS_ACCOUNT_ID or META_WHATSAPP_BUSINESS_ID.'
+  );
 }
 
 const META_APP_ID = process.env.META_APP_ID || '';
@@ -68,6 +50,31 @@ export class GraphApiError extends Error {
     super(message);
     this.name = 'GraphApiError';
   }
+}
+
+const GRAPH_API_TIMEOUT_MS = Number(process.env.WHATSAPP_API_TIMEOUT_MS) || 30_000;
+const GRAPH_API_MAX_RETRIES = Number(process.env.WHATSAPP_API_MAX_RETRIES) || 3;
+
+/** Retry an async operation with exponential backoff. Retries on 429 and 5xx. */
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = GRAPH_API_MAX_RETRIES): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const isRetryable =
+        err instanceof GraphApiError && (err.status === 429 || err.status >= 500);
+      const isTimeout = err instanceof Error && err.name === 'AbortError';
+      if ((!isRetryable && !isTimeout) || attempt === maxRetries) break;
+      const delayMs = Math.min(1000 * 2 ** attempt + Math.random() * 200, 16_000);
+      if (debugMode) {
+        console.warn(`[WhatsApp] Retry ${attempt + 1}/${maxRetries} after ${Math.round(delayMs)}ms`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
 }
 
 export async function graphRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {
@@ -108,61 +115,71 @@ export async function graphRequest<T>(endpoint: string, options: GraphRequestOpt
     console.log('==========================================');
   }
 
-  const response = await fetch(url.toString(), {
-    method: options.method || 'GET',
-    headers,
-    body: options.body
-      ? isFormData
-        ? options.body
-        : JSON.stringify(options.body)
-      : undefined,
-  });
+  return withRetry(async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), GRAPH_API_TIMEOUT_MS);
 
-  let payload: any = null;
-  let responseText = '';
-  try {
-    responseText = await response.text();
-    payload = responseText ? JSON.parse(responseText) : null;
-  } catch (err) {
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), {
+        method: options.method || 'GET',
+        headers,
+        body: options.body
+          ? isFormData
+            ? options.body
+            : JSON.stringify(options.body)
+          : undefined,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+
+    let payload: any = null;
+    let responseText = '';
+    try {
+      responseText = await response.text();
+      payload = responseText ? JSON.parse(responseText) : null;
+    } catch (err) {
+      if (debugMode) {
+        console.error('[WhatsApp] Failed to parse response:', { responseText, error: err });
+      }
+      if (!response.ok) {
+        throw new GraphApiError(response.status, `Meta API responded with HTTP ${response.status}`, null);
+      }
+    }
+
     if (debugMode) {
-      console.error('[WhatsApp] Failed to parse response:', { responseText, error: err });
+      console.log('========== WhatsApp API Response ==========');
+      console.log('[Status]:', response.status);
+      console.log('[OK]:', response.ok);
+      console.log('[Response Body]:', JSON.stringify(payload, null, 2));
+      console.log('===========================================');
     }
-    if (!response.ok) {
-      throw new GraphApiError(response.status, `Meta API responded with HTTP ${response.status}`, null);
+
+    if (!response.ok || (payload && payload.error)) {
+      const errorMessage =
+        payload?.error?.message ||
+        payload?.error?.error_data?.details ||
+        `Meta API request failed (${response.status})`;
+
+      console.error('========== WhatsApp API ERROR ==========');
+      console.error('[Endpoint]:', endpoint);
+      console.error('[Method]:', options.method || 'GET');
+      console.error('[Status]:', response.status);
+      console.error('[Error Code]:', payload?.error?.code);
+      console.error('[Error Subcode]:', payload?.error?.error_subcode);
+      console.error('[Error Message]:', errorMessage);
+      console.error('[Full Error]:', JSON.stringify(payload?.error, null, 2));
+      console.error('[Request Body]:', JSON.stringify(options.body, null, 2));
+      console.error('[Full Response]:', JSON.stringify(payload, null, 2));
+      console.error('========================================');
+
+      throw new GraphApiError(response.status, errorMessage, payload);
     }
-  }
 
-  if (debugMode) {
-    console.log('========== WhatsApp API Response ==========');
-    console.log('[Status]:', response.status);
-    console.log('[OK]:', response.ok);
-    console.log('[Response Body]:', JSON.stringify(payload, null, 2));
-    console.log('===========================================');
-  }
-
-  if (!response.ok || (payload && payload.error)) {
-    const errorMessage =
-      payload?.error?.message ||
-      payload?.error?.error_data?.details ||
-      `Meta API request failed (${response.status})`;
-    
-    // Enhanced error logging
-    console.error('========== WhatsApp API ERROR ==========');
-    console.error('[Endpoint]:', endpoint);
-    console.error('[Method]:', options.method || 'GET');
-    console.error('[Status]:', response.status);
-    console.error('[Error Code]:', payload?.error?.code);
-    console.error('[Error Subcode]:', payload?.error?.error_subcode);
-    console.error('[Error Message]:', errorMessage);
-    console.error('[Full Error]:', JSON.stringify(payload?.error, null, 2));
-    console.error('[Request Body]:', JSON.stringify(options.body, null, 2));
-    console.error('[Full Response]:', JSON.stringify(payload, null, 2));
-    console.error('========================================');
-    
-    throw new GraphApiError(response.status, errorMessage, payload);
-  }
-
-  return payload as T;
+    return payload as T;
+  });
 }
 
 export async function graphBusinessRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {
@@ -196,42 +213,53 @@ export async function graphBusinessRequest<T>(endpoint: string, options: GraphRe
     delete headers['Content-Type'];
   }
 
-  const response = await fetch(url.toString(), {
-    method: options.method || 'GET',
-    headers,
-    body: options.body
-      ? isFormData
-        ? options.body
-        : JSON.stringify(options.body)
-      : undefined,
-  });
+  return withRetry(async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), GRAPH_API_TIMEOUT_MS);
 
-  let payload: any = null;
-  try {
-    const text = await response.text();
-    payload = text ? JSON.parse(text) : null;
-  } catch (err) {
-    if (!response.ok) {
-      throw new GraphApiError(response.status, `Meta API responded with HTTP ${response.status}`, null);
-    }
-  }
-
-  if (!response.ok || (payload && payload.error)) {
-    const errorMessage =
-      payload?.error?.message ||
-      payload?.error?.error_data?.details ||
-      `Meta API request failed (${response.status})`;
-    if (debugMode) {
-      console.error('[WhatsApp] Graph API business error', {
-        endpoint,
-        status: response.status,
-        payload,
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), {
+        method: options.method || 'GET',
+        headers,
+        body: options.body
+          ? isFormData
+            ? options.body
+            : JSON.stringify(options.body)
+          : undefined,
+        signal: controller.signal,
       });
+    } finally {
+      clearTimeout(timer);
     }
-    throw new GraphApiError(response.status, errorMessage, payload);
-  }
 
-  return payload as T;
+    let payload: any = null;
+    try {
+      const text = await response.text();
+      payload = text ? JSON.parse(text) : null;
+    } catch (err) {
+      if (!response.ok) {
+        throw new GraphApiError(response.status, `Meta API responded with HTTP ${response.status}`, null);
+      }
+    }
+
+    if (!response.ok || (payload && payload.error)) {
+      const errorMessage =
+        payload?.error?.message ||
+        payload?.error?.error_data?.details ||
+        `Meta API request failed (${response.status})`;
+      if (debugMode) {
+        console.error('[WhatsApp] Graph API business error', {
+          endpoint,
+          status: response.status,
+          payload,
+        });
+      }
+      throw new GraphApiError(response.status, errorMessage, payload);
+    }
+
+    return payload as T;
+  });
 }
 
 export async function uploadTemplateMediaHandle(params: {

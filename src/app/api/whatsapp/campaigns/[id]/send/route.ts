@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prepareCampaignForDispatch } from '@/lib/whatsapp-campaign-worker';
+import { rateLimit } from '@/lib/rate-limit';
+
+const campaignSendLimiter = rateLimit('expensive');
 
 interface RouteParams {
   params: Promise<{
@@ -10,6 +13,9 @@ interface RouteParams {
 
 // POST /api/whatsapp/campaigns/[id]/send - Queue campaign for the worker
 export async function POST(_req: NextRequest, props: RouteParams) {
+  const limited = campaignSendLimiter.check(_req);
+  if (limited) return limited;
+
   const params = await props.params;
 
   try {

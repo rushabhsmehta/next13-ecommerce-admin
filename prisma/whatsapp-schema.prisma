@@ -47,6 +47,8 @@ model WhatsAppMessage {
   analytics          WhatsAppAnalyticsEvent[]
 
   @@index([to])
+  @@index([from])
+  @@index([messageSid])
   @@index([status])
   @@index([direction])
   @@index([createdAt])
@@ -54,6 +56,7 @@ model WhatsAppMessage {
   @@index([automationId])
   @@index([scheduledAt])
   @@index([whatsappCustomerId])
+  @@index([from, direction, createdAt])
 }
 
 model WhatsAppSession {
@@ -275,6 +278,7 @@ model WhatsAppCustomer {
 
   @@index([firstName])
   @@index([lastName])
+  @@index([email])
   @@index([isOptedIn])
   @@index([associatePartnerId])
 }
@@ -578,6 +582,8 @@ model WhatsAppCart {
   @@index([status])
   @@index([customerId])
   @@index([createdAt])
+  @@index([expiresAt])
+  @@index([phoneNumber, status])
 }
 
 model WhatsAppCartItem {
@@ -668,6 +674,7 @@ model WhatsAppOrder {
   @@index([customerId])
   @@index([phoneNumber])
   @@index([createdAt])
+  @@index([phoneNumber, status])
 }
 
 model WhatsAppOrderItem {

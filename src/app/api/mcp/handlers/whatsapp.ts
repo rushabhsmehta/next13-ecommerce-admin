@@ -1875,6 +1875,79 @@ async function syncWhatsAppCatalog(rawParams: unknown) {
   return { success: true, ...result };
 }
 
+// ── create_whatsapp_customer ─────────────────────────────────────────────────
+
+const CreateWhatsAppCustomerSchema = z.object({
+  name: z.string().min(1),
+  phoneNumber: z.string().min(7),
+  email: z.string().email().optional(),
+});
+
+async function createWhatsAppCustomer(rawParams: unknown) {
+  const { name, phoneNumber, email } = CreateWhatsAppCustomerSchema.parse(rawParams);
+
+  // Normalize phone to E.164 format
+  const normalized = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber.replace(/\D/g, '')}`;
+
+  // Split name into first/last
+  const parts = name.trim().split(/\s+/);
+  const firstName = parts[0];
+  const lastName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+
+  const existing = await whatsappPrisma.whatsAppCustomer.findFirst({
+    where: { phoneNumber: normalized },
+    select: { id: true },
+  });
+  if (existing) {
+    throw new McpError(`Customer with phone ${normalized} already exists`, 'DUPLICATE_PHONE', 409);
+  }
+
+  const customer = await whatsappPrisma.whatsAppCustomer.create({
+    data: {
+      firstName,
+      lastName,
+      phoneNumber: normalized,
+      email,
+      isOptedIn: true,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      phoneNumber: true,
+      email: true,
+      isOptedIn: true,
+      createdAt: true,
+    },
+  });
+
+  return { success: true, customer };
+}
+
+// ── get_whatsapp_database_health ─────────────────────────────────────────────
+
+async function getWhatsAppDatabaseHealth() {
+  const start = Date.now();
+  try {
+    const [messageCount, customerCount, campaignCount] = await Promise.all([
+      whatsappPrisma.whatsAppMessage.count(),
+      whatsappPrisma.whatsAppCustomer.count(),
+      whatsappPrisma.whatsAppCampaign.count(),
+    ]);
+    return {
+      status: 'healthy',
+      latencyMs: Date.now() - start,
+      counts: { messages: messageCount, customers: customerCount, campaigns: campaignCount },
+    };
+  } catch (error: any) {
+    return {
+      status: 'unhealthy',
+      latencyMs: Date.now() - start,
+      error: error?.message || 'Database connection failed',
+    };
+  }
+}
+
 // ── Handler map ─────────────────────────────────────────────────────────────
 
 export const whatsappHandlers: ToolHandlerMap = {
@@ -1894,6 +1967,8 @@ export const whatsappHandlers: ToolHandlerMap = {
   get_whatsapp_campaign_stats: getWhatsAppCampaignStats,
   send_whatsapp_campaign: sendWhatsAppCampaign,
   list_whatsapp_customers: listWhatsAppCustomers,
+  create_whatsapp_customer: createWhatsAppCustomer,
+  get_whatsapp_database_health: getWhatsAppDatabaseHealth,
   list_whatsapp_templates: listWhatsAppTemplates,
   delete_whatsapp_template: deleteWhatsAppTemplate,
   list_whatsapp_messages: listWhatsAppMessages,

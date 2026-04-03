@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendWhatsAppTemplate, emitWhatsAppEvent } from '@/lib/whatsapp';
 import type { SessionUpdateInput } from '@/lib/whatsapp';
+import { rateLimit } from '@/lib/rate-limit';
+
+const templateLimiter = rateLimit({ maxRequests: 30, windowSeconds: 60 });
 
 export async function POST(request: NextRequest) {
+  const limited = templateLimiter.check(request);
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     

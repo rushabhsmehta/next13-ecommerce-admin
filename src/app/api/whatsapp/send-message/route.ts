@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import { checkWhatsAppMessagingWindow } from '@/lib/whatsapp';
+import { rateLimit } from '@/lib/rate-limit';
+
+const messageLimiter = rateLimit({ maxRequests: 30, windowSeconds: 60 });
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_ACCESS_TOKEN = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
@@ -19,6 +22,9 @@ const META_WHATSAPP_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID 
  * }
  */
 export async function POST(request: NextRequest) {
+  const limited = messageLimiter.check(request);
+  if (limited) return limited;
+
   try {
     // Authenticate the request
     const { userId } = await auth();

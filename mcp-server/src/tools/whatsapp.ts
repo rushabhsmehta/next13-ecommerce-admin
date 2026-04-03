@@ -531,6 +531,84 @@ export function registerWhatsappTools(server: McpServer) {
   );
 
   server.tool(
+    "upload_whatsapp_template_media",
+    "Upload a media file (PDF, image, video) from a public URL and return a Meta template media handle. Use this handle as the example.header_handle when creating a template with a DOCUMENT, IMAGE, or VIDEO header. This is different from upload_whatsapp_media — that tool returns a WhatsApp media ID for sending messages, while this tool returns a handle for template creation.",
+    {
+      url: z.string().url().describe("Public URL of the media file to upload (e.g. a PDF URL)"),
+      fileName: z.string().describe("File name with extension (e.g. 'invoice.pdf', 'header.jpg')"),
+      mimeType: z.string().describe("MIME type of the file (e.g. 'application/pdf', 'image/jpeg', 'video/mp4')"),
+    },
+    async (params) => {
+      try {
+        const data = (await callTool("upload_whatsapp_template_media", params)) as { handle: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Template media uploaded successfully.\n\nHandle: ${data.handle}\n\nUse this handle as the example.header_handle value when creating a template with a DOCUMENT/IMAGE/VIDEO header:\n\n{\n  "type": "HEADER",\n  "format": "DOCUMENT",\n  "example": {\n    "header_handle": ["${data.handle}"]\n  }\n}`,
+            },
+          ],
+        };
+      } catch (err) {
+        return toolError("upload_whatsapp_template_media", err);
+      }
+    }
+  );
+
+  server.tool(
+    "send_whatsapp_product_message",
+    "Send a single product message from your WhatsApp catalog to a customer. The product must be synced to Meta's catalog first (use sync_whatsapp_catalog_package). Requires the catalog ID and the product's retailer ID (SKU).",
+    {
+      phoneNumber: z.string().describe("Recipient phone number (with country code, e.g. '919876543210')"),
+      body: z.string().describe("Message body text to accompany the product card"),
+      catalogId: z.string().optional().describe("Meta catalog ID (defaults to the configured WHATSAPP_CATALOG_ID)"),
+      productRetailerId: z.string().describe("Product retailer ID / SKU (from the catalog package)"),
+      footer: z.string().optional().describe("Optional footer text"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("send_whatsapp_product_message", params);
+        return {
+          content: [{ type: "text", text: `Product message sent\n\n${JSON.stringify(data, null, 2)}` }],
+        };
+      } catch (err) {
+        return toolError("send_whatsapp_product_message", err);
+      }
+    }
+  );
+
+  server.tool(
+    "send_whatsapp_product_list",
+    "Send a multi-product catalog message with sections. Each section groups related products. Products must be synced to Meta's catalog first. Supports up to 30 products across all sections.",
+    {
+      phoneNumber: z.string().describe("Recipient phone number (with country code, e.g. '919876543210')"),
+      body: z.string().describe("Message body text"),
+      headerText: z.string().optional().describe("Header text for the product list (defaults to first section title or 'Catalog')"),
+      catalogId: z.string().optional().describe("Meta catalog ID (defaults to the configured WHATSAPP_CATALOG_ID)"),
+      sections: z
+        .array(
+          z.object({
+            title: z.string().describe("Section title (e.g. 'Budget Packages', 'Premium Packages')"),
+            productRetailerIds: z.array(z.string().min(1)).min(1).describe("List of product retailer IDs / SKUs in this section"),
+          })
+        )
+        .min(1)
+        .describe("Product sections (at least one section with at least one product)"),
+      footer: z.string().optional().describe("Optional footer text"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("send_whatsapp_product_list", params);
+        return {
+          content: [{ type: "text", text: `Product list message sent\n\n${JSON.stringify(data, null, 2)}` }],
+        };
+      } catch (err) {
+        return toolError("send_whatsapp_product_list", err);
+      }
+    }
+  );
+
+  server.tool(
     "create_whatsapp_template",
     "Create and submit a WhatsApp message template for review.",
     CreateWhatsAppTemplateShape,

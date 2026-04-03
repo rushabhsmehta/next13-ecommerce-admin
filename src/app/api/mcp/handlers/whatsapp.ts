@@ -4,7 +4,9 @@ import {
   checkWhatsAppMessagingWindow,
   sendWhatsAppMessage as sendWhatsAppMessageViaLib,
   sendWhatsAppTemplate as sendWhatsAppTemplateViaLib,
+  sendInteractiveMessage,
   uploadWhatsAppMedia,
+  uploadTemplateMediaHandle,
 } from "@/lib/whatsapp";
 import {
   createTourPackage,
@@ -827,6 +829,108 @@ async function uploadWhatsAppMediaHandler(rawParams: unknown) {
     url,
     fileName: fileName ?? null,
   };
+}
+
+async function uploadWhatsAppTemplateMediaHandler(rawParams: unknown) {
+  const schema = z.object({
+    url: z.string().url(),
+    fileName: z.string().min(1),
+    mimeType: z.string().min(1),
+  });
+  const { url, fileName, mimeType } = schema.parse(rawParams);
+
+  // Fetch the file from the public URL
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new McpError(`Failed to fetch media from URL: ${response.status} ${response.statusText}`, "FETCH_ERROR", 400);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  const result = await uploadTemplateMediaHandle({
+    buffer,
+    fileName,
+    mimeType,
+  });
+
+  return {
+    success: true,
+    handle: result.handle,
+    fileName,
+    mimeType,
+    sizeBytes: buffer.length,
+    usage: `Use this handle in template creation: { "type": "HEADER", "format": "DOCUMENT", "example": { "header_handle": ["${result.handle}"] } }`,
+  };
+}
+
+async function sendWhatsAppProductMessageHandler(rawParams: unknown) {
+  const schema = z.object({
+    phoneNumber: z.string().min(1),
+    body: z.string().min(1),
+    catalogId: z.string().optional(),
+    productRetailerId: z.string().min(1),
+    footer: z.string().optional(),
+  });
+  const { phoneNumber, body, catalogId, productRetailerId, footer } = schema.parse(rawParams);
+
+  const resolvedCatalogId = catalogId || process.env.WHATSAPP_CATALOG_ID;
+  if (!resolvedCatalogId) {
+    throw new McpError("No catalog ID provided and WHATSAPP_CATALOG_ID is not configured", "VALIDATION_ERROR", 422);
+  }
+
+  return sendInteractiveMessage({
+    to: phoneNumber,
+    interactive: {
+      type: "product",
+      body,
+      footer,
+      catalogId: resolvedCatalogId,
+      productRetailerId,
+    },
+    saveToDb: true,
+  });
+}
+
+async function sendWhatsAppProductListHandler(rawParams: unknown) {
+  const schema = z.object({
+    phoneNumber: z.string().min(1),
+    body: z.string().min(1),
+    headerText: z.string().optional(),
+    catalogId: z.string().optional(),
+    sections: z
+      .array(
+        z.object({
+          title: z.string().min(1),
+          productRetailerIds: z.array(z.string().min(1)).min(1),
+        })
+      )
+      .min(1),
+    footer: z.string().optional(),
+  });
+  const { phoneNumber, body, headerText, catalogId, sections, footer } = schema.parse(rawParams);
+
+  const resolvedCatalogId = catalogId || process.env.WHATSAPP_CATALOG_ID;
+  if (!resolvedCatalogId) {
+    throw new McpError("No catalog ID provided and WHATSAPP_CATALOG_ID is not configured", "VALIDATION_ERROR", 422);
+  }
+
+  return sendInteractiveMessage({
+    to: phoneNumber,
+    interactive: {
+      type: "product_list",
+      body,
+      footer,
+      header: headerText ? { type: "text", text: headerText } : undefined,
+      catalogId: resolvedCatalogId,
+      sections: sections.map((section) => ({
+        title: section.title,
+        productItems: section.productRetailerIds.map((id) => ({
+          productRetailerId: id,
+        })),
+      })),
+    },
+    saveToDb: true,
+  });
 }
 
 async function createWhatsAppTemplateHandler(rawParams: unknown) {
@@ -1962,6 +2066,9 @@ export const whatsappHandlers: ToolHandlerMap = {
   send_whatsapp_media: sendWhatsAppMedia,
   send_whatsapp_template: sendWhatsAppTemplate,
   upload_whatsapp_media: uploadWhatsAppMediaHandler,
+  upload_whatsapp_template_media: uploadWhatsAppTemplateMediaHandler,
+  send_whatsapp_product_message: sendWhatsAppProductMessageHandler,
+  send_whatsapp_product_list: sendWhatsAppProductListHandler,
   list_whatsapp_campaigns: listWhatsAppCampaigns,
   get_whatsapp_campaign: getWhatsAppCampaign,
   get_whatsapp_campaign_stats: getWhatsAppCampaignStats,

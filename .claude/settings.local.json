@@ -40,7 +40,8 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(grep -n \"export async function PATCH\" /d/GitHub/next13-ecommerce-admin/src/app/api/tourPackageQuery/[tourPackageQueryId]/route.ts)"
+      "Bash(grep -n \"export async function PATCH\" /d/GitHub/next13-ecommerce-admin/src/app/api/tourPackageQuery/[tourPackageQueryId]/route.ts)",
+      "Bash(find /d/GitHub/next13-ecommerce-admin/src/app/api/whatsapp -type f -name *.ts)"
     ]
   }
 }

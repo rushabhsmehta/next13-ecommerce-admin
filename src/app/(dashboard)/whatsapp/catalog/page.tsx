@@ -1013,6 +1013,15 @@ export default function WhatsAppCatalogDashboard() {
                             </p>
                           </div>
                         </div>
+                        {pkg.catalogProductId && (
+                          <div className="flex items-start gap-2">
+                            <PackageSearch className="mt-0.5 h-4 w-4" />
+                            <div>
+                              <p className="font-medium text-foreground">Catalog ID</p>
+                              <p className="truncate text-xs text-muted-foreground">{pkg.catalogProductId}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {pkg.lastSyncError && (

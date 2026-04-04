@@ -403,7 +403,7 @@ export default function WhatsAppCustomersPage() {
         ),
       },
     ],
-    [fetchCustomers, page]
+    [fetchCustomers, page, partnerIdToNameMap]
   );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

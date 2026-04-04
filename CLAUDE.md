@@ -40,7 +40,7 @@ npm run check-db-health           # Check database health
 
 ```
 /
-├── schema.prisma            # Main MySQL schema (70,000+ lines, 90+ models)
+├── schema.prisma            # Main MySQL schema (~1,800 lines, 77 models)
 ├── prisma/
 │   └── whatsapp-schema.prisma   # PostgreSQL WhatsApp schema
 ├── mcp-server/              # Custom MCP server for Claude integrations
@@ -50,7 +50,7 @@ npm run check-db-health           # Check database health
 └── src/
     ├── app/
     │   ├── (auth)/          # Sign-in/sign-up routes (Clerk)
-    │   ├── (dashboard)/     # Admin dashboard (50+ modules)
+    │   ├── (dashboard)/     # Admin dashboard (51 modules)
     │   │   ├── (routes)/    # Route group sub-container
     │   │   │   ├── associate-partners/
     │   │   │   ├── audit-logs/
@@ -84,21 +84,28 @@ npm run check-db-health           # Check database health
     │   │       ├── purchase-returns/ & sale-returns/
     │   │       ├── reports/
     │   │       ├── suppliers/
+    │   │       ├── tds/               # Tax deducted at source
     │   │       ├── tourPackages/
     │   │       ├── tourPackageCreateCopy/ & tourPackageQueryCreateCopy/
-    │   │       ├── tourPackageQuery/
+    │   │       ├── tourPackageDisplay/ & tourPackageQuery/
+    │   │       ├── tourPackageFromTourPackageQuery/ & tourPackageQueryFromTourPackage/
+    │   │       ├── tourPackagePDFGenerator/ & tourPackageQueryPDFGenerator/
+    │   │       ├── tourPackagePDFGeneratorWithVariants/ & tourPackageQueryPDFGeneratorWithVariants/
     │   │       ├── tourPackageQueryDisplay/ & tourPackageQueryVariantDisplay/
+    │   │       ├── tourPackageQueryHotelUpdate/
+    │   │       ├── tourPackageQueryVoucherDisplay/
     │   │       ├── transfers/
     │   │       ├── travel-users/
+    │   │       ├── viewpdfpage/
     │   │       └── whatsapp/
     │   ├── (root)/          # Public homepage
-    │   ├── api/             # API routes (48+ top-level endpoints, 194+ total routes)
+    │   ├── api/             # API routes (68 top-level endpoints, 197 total routes)
     │   │   └── mcp/         # MCP gateway + OAuth + 18 handler modules
     │   ├── mcp/             # MCP authorization routes (OAuth PKCE)
     │   ├── ops/             # Operations staff routes
     │   └── travel/          # Public-facing travel app (destinations, packages, chat)
     ├── components/
-    │   ├── ui/              # Shadcn UI components (44+ components)
+    │   ├── ui/              # Shadcn UI components (57 components)
     │   ├── forms/           # Transaction form dialogs (expense, receipt, payment)
     │   ├── tour-package-query/  # Tour query UI (variants, pricing, itinerary)
     │   ├── ai/              # AI wizard components
@@ -129,9 +136,27 @@ npm run check-db-health           # Check database health
     │   ├── tds.ts                       # Tax deducted at source
     │   ├── r2-client.ts                 # Cloudflare R2 S3 client
     │   ├── pdf-cache.ts                 # PDF caching service
-    │   ├── whatsapp.ts                  # WhatsApp integration (86KB)
     │   ├── transaction-service.ts       # Financial transaction processing
-    │   └── tour-package-query-accounting*.ts  # Accounting module (schema, helpers, persistence, route)
+    │   ├── transaction-schemas.ts       # Zod schemas for financial transactions
+    │   ├── tour-package-query-accounting*.ts  # Accounting module (schema, helpers, persistence, route)
+    │   ├── ai/                  # AI utility modules
+    │   ├── pdf/                 # PDF generation utilities
+    │   ├── utils/               # Additional utility modules
+    │   ├── api-response.ts      # Standardized API response helpers
+    │   ├── associate-utils.ts   # Associate partner utilities
+    │   ├── constants.ts         # Application constants
+    │   ├── env.ts               # Environment variable validation
+    │   ├── hotel-pricing-import.ts / hotel-pricing-json.ts  # Hotel pricing data import
+    │   ├── html-escape.ts / html-utils.ts  # HTML sanitization helpers
+    │   ├── itinerary-image-html.ts  # Itinerary image HTML generation
+    │   ├── meta-capi.ts         # Meta Conversions API integration
+    │   ├── social-media.ts      # Social media utilities
+    │   ├── stripe.ts            # Stripe client configuration
+    │   ├── whatsapp.ts          # Core WhatsApp integration
+    │   ├── whatsapp-campaign-worker.ts  # Campaign processing
+    │   ├── whatsapp-catalog.ts / whatsapp-customers.ts / whatsapp-customer-csv.ts
+    │   ├── whatsapp-flows.ts / whatsapp-media.ts / whatsapp-templates.ts
+    │   └── whatsapp-prismadb.ts # WhatsApp Prisma client
     ├── hooks/               # React hooks (modals, notifications, mobile detection)
     ├── providers/           # Context providers (theme, modal, toast)
     ├── types/               # TypeScript type definitions (TransactionFormProps, etc.)
@@ -293,12 +318,16 @@ Top-level routes in `src/app/api/`:
 | Endpoint | Purpose |
 |----------|---------|
 | `activities/`, `activitiesMaster/` | Activity management |
+| `ai/` | AI-powered features (itinerary generation, etc.) |
 | `associate-partners/`, `associate-performance/` | Partner management |
 | `audit-logs/` | Audit trail |
 | `bank-accounts/`, `cash-accounts/` | Account management |
+| `chat/` | Chat functionality |
+| `config/` | Application configuration |
 | `customers/` | Customer CRUD (includes `[id]/open-sales/`) |
 | `destinations/` | Destination management |
 | `expense-categories/`, `expenses/` | Expense management (includes `expenses/accrued/`) |
+| `export/` | Data export endpoints |
 | `financial-records/` | Financial record management |
 | `flight-tickets/` | Flight ticket CRUD |
 | `generate-pdf/` | PDF generation endpoint |
@@ -306,19 +335,26 @@ Top-level routes in `src/app/api/`:
 | `hotels/` | Hotel CRUD |
 | `income-categories/`, `incomes/` | Income management |
 | `inquiries/`, `inquiry-summary/` | Inquiry management |
+| `internal/` | Internal system endpoints |
 | `itineraries/`, `itinerariesMaster/`, `itineraryMaster/` | Itinerary management |
-| `locations/`, `locationBySlug/`, `locations-suppliers/` | Location management |
+| `locations/`, `locationBySlug/`, `locations-suppliers/`, `searchTermLocations/` | Location management |
 | `mcp/` | MCP gateway (auth + dispatch) |
+| `me/` | Current user info |
 | `meal-plans/`, `occupancy-types/`, `room-types/`, `vehicle-types/` | Config lookups |
 | `notifications/` | Notification system |
 | `operational-staff/` | Staff management |
+| `ops/` | Operations staff endpoints |
 | `package-variants/` | Package variant management |
 | `payments/`, `receipts/`, `transfers/` | Financial transactions |
-| `pricing-attributes/`, `pricing-components/` | Pricing configuration |
+| `pricing/`, `pricing-attributes/`, `pricing-components/` | Pricing configuration |
 | `purchase-returns/`, `sale-returns/` | Returns management |
 | `purchases/`, `sales/` | Transaction management (include balance sub-routes) |
+| `push/` | Push notification endpoints |
+| `report/` | Report generation |
 | `sale-purchase-links/` | Link sales to purchases |
+| `settings/` | Application settings |
 | `suppliers/` | Supplier CRUD |
+| `tds/` | Tax deducted at source |
 | `tourPackages/`, `tourPackagesForWebsite/`, `tourPackageBySlug/` | Tour packages |
 | `tourPackageQuery/` | Tour inquiries/quotes |
 | `transport-pricing/` | Transport pricing |

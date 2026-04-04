@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { MobileInquiryCard } from "./mobile-inquiry-card";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState, useTransition, useMemo } from "react";
+import { useEffect, useRef, useState, useTransition, useMemo } from "react";
 import { parseISO, isSameDay } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -71,17 +71,25 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   // Add this fallback state to ensure consistent behavior
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keep a local copy of rows so we can update optimistically without refresh
   const [rows, setRows] = useState<InquiryColumn[]>(data);
 
   // Initialize state from searchParams on client side
+  // NOTE: searchQuery is intentionally excluded — syncing it here causes the input
+  // to reset mid-keystroke when router.replace fires and searchParams updates.
   useEffect(() => {
     setLocalAssociateId(searchParams?.get('associateId') || '');
     setLocalAssignedStaffId(searchParams?.get('assignedStaffId') || '');
     setLocalStatus(searchParams?.get('status') || '');
     setLocalPeriod(searchParams?.get('period') || '');
-    setSearchQuery(searchParams?.get('q') || '');
   }, [searchParams]);
+
+  // Initialize searchQuery from URL only on mount
+  useEffect(() => {
+    setSearchQuery(searchParams?.get('q') || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Listen for updates from row-level components
   useEffect(() => {
@@ -200,17 +208,22 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   };
 
   const onSearchChange = (query: string) => {
-    setSearchQuery(query);
-    startTransition(() => {
-      const params = new URLSearchParams(searchParams?.toString() || '');
-      if (query) {
-        params.set('q', query);
-      } else {
-        params.delete('q');
-      }
-      params.set('page', '1'); // Reset to first page
-      router.replace(`/inquiries?${params.toString()}`);
-    });
+    setSearchQuery(query); // Update input immediately — no lag
+    // Debounce the URL update so intermediate keystrokes don't trigger
+    // router.replace mid-type (which resets the input via the searchParams effect)
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      startTransition(() => {
+        const params = new URLSearchParams(searchParams?.toString() || '');
+        if (query) {
+          params.set('q', query);
+        } else {
+          params.delete('q');
+        }
+        params.set('page', '1');
+        router.replace(`/inquiries?${params.toString()}`);
+      });
+    }, 400);
   };
 
   const clearAllFilters = () => {

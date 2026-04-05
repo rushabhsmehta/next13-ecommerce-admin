@@ -4,8 +4,9 @@ import { utcToLocal } from '@/lib/timezone-utils';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useRouter } from 'next/navigation';
 
 interface Transaction {
@@ -28,6 +29,7 @@ interface TransactionTableProps {
 export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, openingBalance }) => {
   const router = useRouter();
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [typeSearch, setTypeSearch] = useState('');
   const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' });
 
   const toggleRow = (id: string) => {
@@ -54,7 +56,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
     }
   };
 
-  // Calculate running balance and totals
+  // Calculate running balance from full transaction list
   const transactionsWithBalance = transactions.map((transaction, index) => {
     let runningBalance = openingBalance;
     for (let i = 0; i <= index; i++) {
@@ -65,12 +67,50 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
     return { ...transaction, balance: runningBalance };
   });
 
+  // Apply type search filter
+  const filteredTransactions = typeSearch.trim()
+    ? transactionsWithBalance.filter(t =>
+        t.type.toLowerCase().includes(typeSearch.toLowerCase().trim())
+      )
+    : transactionsWithBalance;
+
   const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
   const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
   const closingBalance = openingBalance + totalInflow - totalOutflow;
 
+  const filteredInflow = filteredTransactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+  const filteredOutflow = filteredTransactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+
   return (
     <div className="space-y-4">
+      {/* Type Search Filter */}
+      <div className="flex items-center gap-2">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by type..."
+            value={typeSearch}
+            onChange={(e) => setTypeSearch(e.target.value)}
+            className="pl-8 pr-8"
+          />
+          {typeSearch && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1 h-6 w-6 p-0"
+              onClick={() => setTypeSearch('')}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        {typeSearch && (
+          <span className="text-sm text-muted-foreground">
+            {filteredTransactions.length} of {transactions.length} transactions
+          </span>
+        )}
+      </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -96,7 +136,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
             </TableRow>
 
             {/* Transaction Rows with Expandable Details */}
-            {transactionsWithBalance.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
               <React.Fragment key={transaction.id}>
                 <TableRow className="cursor-pointer hover:bg-muted/50">
                   <TableCell>
@@ -172,15 +212,17 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
             {/* Totals Row */}
             <TableRow className="bg-slate-100 dark:bg-slate-800">
               <TableCell></TableCell>
-              <TableCell colSpan={4} className="font-medium">Totals</TableCell>
-              <TableCell className="text-right font-medium">
-                {formatter.format(totalInflow)}
+              <TableCell colSpan={4} className="font-medium">
+                {typeSearch ? 'Filtered Totals' : 'Totals'}
               </TableCell>
               <TableCell className="text-right font-medium">
-                {formatter.format(totalOutflow)}
+                {formatter.format(typeSearch ? filteredInflow : totalInflow)}
               </TableCell>
               <TableCell className="text-right font-medium">
-                {formatter.format(closingBalance)}
+                {formatter.format(typeSearch ? filteredOutflow : totalOutflow)}
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {formatter.format(typeSearch ? filteredInflow - filteredOutflow : closingBalance)}
               </TableCell>
               <TableCell></TableCell>
             </TableRow>

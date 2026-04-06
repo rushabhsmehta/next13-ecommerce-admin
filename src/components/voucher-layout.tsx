@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { ReactNode, useEffect, useState } from "react";
 
 export interface VoucherLayoutProps {
@@ -17,8 +16,8 @@ export interface VoucherLayoutProps {
   additionalNotes?: string;
   signatures?: { left: string; right: string };
   totalAmount?: number;
-  type: "sale" | "purchase" | "receipt" | "payment" | "income" | "expense" | "sale-return" | "purchase-return"; // Add new types
-  organization?: any; // Add organization prop
+  type: "sale" | "purchase" | "receipt" | "payment" | "income" | "expense" | "sale-return" | "purchase-return";
+  organization?: any;
   children?: ReactNode;
 }
 
@@ -39,7 +38,6 @@ export function VoucherLayout({
 }: VoucherLayoutProps) {
   const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
 
-  // Load organization logo if available
   useEffect(() => {
     if (organization?.logoUrl) {
       setOrgLogoUrl(organization.logoUrl);
@@ -47,134 +45,134 @@ export function VoucherLayout({
   }, [organization]);
 
   return (
-    <Card className="print:shadow-none" id="voucher-content">
-      <CardContent className="p-6 print:p-0">
-        <div className="space-y-6 print:space-y-4">
-          {/* Organization Header - Logo on left, details on right */}
+    <Card
+      className="print:shadow-none"
+      id="voucher-content"
+      data-pdf-footer-label={organization?.name ?? ""}
+      data-pdf-footer-primary={[organization?.phone ? `Phone: ${organization.phone}` : "", organization?.email ? `Email: ${organization.email}` : ""].filter(Boolean).join("  ·  ")}
+      data-pdf-footer-secondary={organization?.address ?? ""}
+      data-pdf-footer-website={organization?.website ?? ""}
+      data-pdf-footer-logo={organization?.logoUrl ?? ""}
+      data-pdf-footer-tagline="Crafting journeys with care and expertise."
+    >
+      <CardContent className="p-6">
+        <div className="space-y-3">
+
+          {/* ── Organization Header ── */}
           {organization && (
-            <div className="flex items-start mb-6">
-              {/* Logo on the left */}
+            <div className="flex items-center gap-4 pb-3 border-b">
               {orgLogoUrl && (
-                <div className="w-1/3 pr-4">
-                  <div className="relative h-24 w-full">
-                    <Image
-                      src={orgLogoUrl}
-                      alt="Organization Logo"
-                      fill
-                      style={{ objectFit: "contain", objectPosition: "left" }}
-                    />
-                  </div>
+                <div className="relative h-14 w-24 shrink-0">
+                  <Image
+                    src={orgLogoUrl}
+                    alt="Organization Logo"
+                    fill
+                    style={{ objectFit: "contain", objectPosition: "left" }}
+                  />
                 </div>
               )}
-              
-              {/* Organization details on the right */}
-              <div className={`${orgLogoUrl ? 'w-2/3' : 'w-full'} space-y-1`}>
-                <h2 className="text-xl font-bold">{organization.name}</h2>
-                {organization.address && <p className="text-sm">{organization.address}</p>}
-                <div className="text-xs text-muted-foreground">
-                  {organization.phone && <span className="mr-2">Phone: {organization.phone}</span>}
-                  {organization.email && <span className="mr-2">Email: {organization.email}</span>}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-base leading-tight">{organization.name}</p>
+                {organization.address && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{organization.address}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {organization.phone && <span className="mr-3">Phone: {organization.phone}</span>}
+                  {organization.email && <span className="mr-3">Email: {organization.email}</span>}
                   {organization.website && <span>Web: {organization.website}</span>}
-                </div>
+                </p>
                 {(organization.gstNumber || organization.panNumber) && (
-                  <div className="text-xs">
-                    {organization.gstNumber && <span className="mr-2">GST: {organization.gstNumber}</span>}
+                  <p className="text-xs text-muted-foreground">
+                    {organization.gstNumber && <span className="mr-3">GST: {organization.gstNumber}</span>}
                     {organization.panNumber && <span>PAN: {organization.panNumber}</span>}
-                  </div>
+                  </p>
                 )}
               </div>
             </div>
           )}
 
-          {/* Header Section */}
-          <div className="flex flex-col items-center text-center border-b pb-4 print:pb-2">
-            <h1 className="text-2xl font-bold tracking-tight print:text-xl">{title}</h1>
-            <p className="text-muted-foreground print:text-sm">{subtitle}</p>
+          {/* ── Document Title ── */}
+          <div className="text-center py-1">
+            <h1 className="text-lg font-bold tracking-widest uppercase">{title}</h1>
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
           </div>
 
-          {/* Details Section */}
-          <div className="flex flex-col md:flex-row justify-between gap-6">
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Voucher No.</div>
-              <div className="font-medium">{voucherNo}</div>
+          {/* ── Voucher No + Date on same row ── */}
+          <div className="flex justify-between items-start border-y py-2 bg-muted/30 px-2 rounded-sm">
+            <div>
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">Voucher No.&nbsp;</span>
+              <span className="font-semibold text-sm">{voucherNo}</span>
             </div>
-            <div className="space-y-1 md:text-right">
-              <div className="text-sm text-muted-foreground">Date</div>
-              <div className="font-medium">{date}</div>
+            <div className="text-right">
+              <span className="text-xs text-muted-foreground uppercase tracking-wide">Date&nbsp;</span>
+              <span className="font-semibold text-sm">{date}</span>
               {dueDate && (
-                <div className="text-sm font-medium text-muted-foreground">
-                  Due: {dueDate}
-                </div>
+                <div className="text-xs text-muted-foreground">Due: {dueDate}</div>
               )}
             </div>
           </div>
 
-          {/* Info Sections */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Info */}
-            <div className="space-y-4">
+          {/* ── Two-column Info (fixed, no md: breakpoint) ── */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <div className="space-y-2">
               {leftInfo.map((info, index) => (
-                <div key={`left-${index}`} className="space-y-1">
-                  <div className="text-sm font-medium text-muted-foreground">
+                <div key={`left-${index}`}>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {info.label}
                   </div>
-                  <div>{info.content}</div>
+                  <div className="text-sm mt-0.5">{info.content}</div>
                 </div>
               ))}
             </div>
-
-            {/* Right Info */}
-            <div className="space-y-4 md:text-right">
+            <div className="space-y-2">
               {rightInfo.map((info, index) => (
-                <div key={`right-${index}`} className="space-y-1">
-                  <div className="text-sm font-medium text-muted-foreground">
+                <div key={`right-${index}`}>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {info.label}
                   </div>
-                  <div>{info.content}</div>
+                  <div className="text-sm mt-0.5">{info.content}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Content Section - Now rendering children here */}
+          {/* ── Children (items table / amount block) ── */}
           {children}
 
-          {/* Only render the totalAmount section if children are not provided and totalAmount exists */}
+          {/* ── Fallback total when no children ── */}
           {!children && totalAmount !== undefined && (
-            <div className="bg-muted/40 p-4 rounded-md">
-              <div className="flex justify-between items-center">
-                <div className="font-medium">Total Amount</div>
-                <div className="text-xl font-bold">
-                  {formatPrice(totalAmount)}
+            <div className="flex justify-between items-center bg-muted/40 px-3 py-2 rounded-md">
+              <span className="font-medium text-sm">Total Amount</span>
+              <span className="text-base font-bold">{formatPrice(totalAmount)}</span>
+            </div>
+          )}
+
+          {/* ── Footer box: Notes + Signatures ── */}
+          {(additionalNotes || signatures) && (
+            <div className="rounded-md border bg-muted/20 px-4 py-3 space-y-3 mt-1">
+              {additionalNotes && (
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notes</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">{additionalNotes}</p>
                 </div>
-              </div>
+              )}
+              {signatures && (
+                <div className="grid grid-cols-2 gap-6 border-t border-dashed pt-3">
+                  <div className="text-center">
+                    <div className="h-8 border-b border-dashed mb-1" />
+                    <div className="text-xs text-muted-foreground">{signatures.left}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="h-8 border-b border-dashed mb-1" />
+                    <div className="text-xs text-muted-foreground">{signatures.right}</div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Notes Section */}
-          {additionalNotes && (
-            <div className="space-y-2 border-t pt-4">
-              <div className="text-sm font-medium">Notes</div>
-              <p className="text-muted-foreground">{additionalNotes}</p>
-            </div>
-          )}
-
-          {/* Signatures Section */}
-          {signatures && (
-            <div className="grid grid-cols-2 gap-6 border-t pt-6 mt-6">
-              <div className="text-center">
-                <div className="h-16 border-b mb-2" />
-                <div className="text-sm text-muted-foreground">{signatures.left}</div>
-              </div>
-              <div className="text-center">
-                <div className="h-16 border-b mb-2" />
-                <div className="text-sm text-muted-foreground">{signatures.right}</div>
-              </div>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
   );
 }
-

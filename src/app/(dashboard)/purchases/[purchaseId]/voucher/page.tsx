@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
@@ -6,84 +6,57 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { VoucherActions } from "@/components/voucher-actions";
 import { VoucherLayout } from "@/components/voucher-layout";
-import { ItemTransactionTable } from "@/components/item-transaction-table";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface PurchaseVoucherPageProps {
-  params: Promise<{
-    purchaseId: string;
-  }>;
+  params: Promise<{ purchaseId: string }>;
 }
 
 const PurchaseVoucherPage = async (props: PurchaseVoucherPageProps) => {
   const params = await props.params;
-  // Get purchase details with related data including items
+
   const purchase = await prismadb.purchaseDetail.findUnique({
     where: { id: params.purchaseId },
     include: {
       tourPackageQuery: true,
       supplier: true,
-      items: {
-        include: {
-          unitOfMeasure: true,
-          taxSlab: true
-        },
-        orderBy: {
-          orderIndex: 'asc'
-        }
-      }
     },
   });
 
-  if (!purchase) {
-    return notFound();
-  }
+  if (!purchase) return notFound();
 
-  // Get organization data for displaying in the voucher
   const organization = await prismadb.organization.findFirst({
-    orderBy: {
-      createdAt: 'asc'
-    }
+    orderBy: { createdAt: "asc" },
   });
 
-  // Format the purchase date
-  const formattedDate = format(purchase.purchaseDate, "MMMM d, yyyy");
-  const formattedDueDate = purchase.dueDate ? format(purchase.dueDate, "MMMM d, yyyy") : null;
+  const formattedDate = formatLocalDate(purchase.purchaseDate, "MMMM d, yyyy");
+  const formattedDueDate = purchase.dueDate
+    ? formatLocalDate(purchase.dueDate, "MMMM d, yyyy")
+    : null;
 
-  // Check if this is a multi-item purchase
-  const isMultiItem = purchase.items && purchase.items.length > 0;
-
-  // Package name and description
-  const packageName = purchase.tourPackageQuery?.tourPackageQueryName || "Purchase";
-  const description = purchase.description || "No description provided";
-
-  // Calculate tax details
+  const packageName =
+    purchase.tourPackageQuery?.tourPackageQueryName || "Purchase";
   const hasGst = !!purchase.gstAmount && purchase.gstAmount > 0;
-  const baseAmount = hasGst  
-    ? purchase.price - (purchase.gstAmount || 0)
-    : purchase.price;
-  const totalAmount = hasGst 
-    ? purchase.price + (purchase.gstAmount || 0)
-    : purchase.price;
+  const baseAmount = purchase.price;
+  const totalAmount = purchase.netPayable ?? purchase.price + (purchase.gstAmount || 0);
 
-  // Prepare data for voucher layout with GST info
   const voucherData = {
     title: "PURCHASE INVOICE",
-    subtitle: isMultiItem ? "Purchase Bill" : "Supplier Purchase Record",
-    voucherNo: purchase.billNumber || `PV-${purchase.id.substring(0, 8).toUpperCase()}`,
+    subtitle: "Supplier Bill",
+    voucherNo:
+      purchase.billNumber || `PV-${purchase.id.substring(0, 8).toUpperCase()}`,
     date: formattedDate,
     dueDate: formattedDueDate,
     leftInfo: [
-      { 
-        label: "Particulars", 
+      {
+        label: "SUPPLIER",
         content: (
           <div>
             <p className="font-medium">{purchase.supplier?.name || "N/A"}</p>
-            <p>{purchase.supplier?.contact || "No contact information"}</p>
-            <p>{purchase.supplier?.email || ""}</p>
+            {purchase.supplier?.contact && <p>{purchase.supplier.contact}</p>}
+            {purchase.supplier?.email && <p>{purchase.supplier.email}</p>}
           </div>
-        ) 
-      }
+        ),
+      },
     ],
     rightInfo: [
       {
@@ -93,64 +66,67 @@ const PurchaseVoucherPage = async (props: PurchaseVoucherPageProps) => {
             {purchase.stateOfSupply && <p>State of Supply: {purchase.stateOfSupply}</p>}
             {purchase.referenceNumber && <p>Reference: {purchase.referenceNumber}</p>}
             {purchase.dueDate && <p>Due Date: {formattedDueDate}</p>}
-            {hasGst && (
-              <p>GST Info: {purchase.gstPercentage}% { '(Inclusive)' }</p>
-            )}
+            {hasGst && <p>GST: {purchase.gstPercentage}% (Exclusive)</p>}
           </div>
-        )
-      }
+        ),
+      },
     ],
-    additionalNotes: description,
-    signatures: { left: "Prepared By", right: "Supplier Signature" }
+    additionalNotes: purchase.description || undefined,
+    signatures: { left: "Prepared By", right: "Supplier Signature" },
   };
 
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
         <div className="flex items-center justify-between">
-          <Heading 
-            title="Purchase Invoice" 
-            description="View and print Purchase Invoice"
+          <Heading
+            title="Purchase Invoice"
+            description="View and download purchase invoice"
           />
           <VoucherActions id={params.purchaseId} type="purchase" />
         </div>
         <Separator />
-        
-        <VoucherLayout 
+
+        <VoucherLayout
           type="purchase"
           organization={organization}
           {...voucherData}
         >
-          {/* Use ItemTransactionTable for multi-item purchases */}
-          {isMultiItem ? (
-            <ItemTransactionTable items={purchase.items} />
-          ) : (
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <h3 className="font-medium text-lg">{packageName}</h3>
-                    <span>{formatPrice(baseAmount)}</span>
-                  </div>
-                  <p className="text-muted-foreground">{description}</p>
-                  
-                  {hasGst && (
-                    <div className="flex justify-between border-t pt-4">
-                      <div>
-                        <span>GST ({purchase.gstPercentage}%) </span>                      
-                      </div>
-                      <span>{formatPrice(purchase.gstAmount || 0)}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between border-t pt-4 font-bold">
-                    <span>Total</span>
-                    <span>{formatPrice(totalAmount)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Consolidated view — no internal cost breakdown shown */}
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/40 border-b">
+                  <th className="text-left px-3 py-2 font-semibold">Description</th>
+                  <th className="text-right px-3 py-2 font-semibold">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="px-3 py-2 font-medium">{packageName}</td>
+                  <td className="px-3 py-2 text-right font-medium">
+                    {formatPrice(baseAmount)}
+                  </td>
+                </tr>
+                {hasGst && (
+                  <tr className="border-b text-muted-foreground">
+                    <td className="px-3 py-2 text-xs">
+                      GST @ {purchase.gstPercentage}%
+                    </td>
+                    <td className="px-3 py-2 text-right text-xs">
+                      {formatPrice(purchase.gstAmount || 0)}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="bg-muted/40 font-bold">
+                  <td className="px-3 py-2">Total</td>
+                  <td className="px-3 py-2 text-right">{formatPrice(totalAmount)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </VoucherLayout>
       </div>
     </div>

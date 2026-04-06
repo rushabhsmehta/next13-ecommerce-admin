@@ -7,8 +7,6 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { VoucherActions } from "@/components/voucher-actions";
 import { VoucherLayout } from "@/components/voucher-layout";
-import { ItemTransactionTable } from "@/components/item-transaction-table";
-import { Card, CardContent } from "@/components/ui/card";
 import { calculateSalePaymentStatus } from "@/lib/payment-utils";
 
 interface CreditNoteVoucherPageProps {
@@ -126,7 +124,9 @@ const CreditNoteVoucherPage = async (props: CreditNoteVoucherPageProps) => {
                 content: <p>{saleReturn.returnReason || "Not specified"}</p>
             }
         ],
-        additionalNotes: `This credit note is issued against invoice ${originalInvoice} for ${(creditablePercentage * 100).toFixed(0)}% of the return value, based on customer's payment status. ${saleReturn.returnReason ? `Reason for return: ${saleReturn.returnReason}` : ''}`,
+        additionalNotes: creditablePercentage < 1
+            ? `Issued against invoice ${originalInvoice}. Credit of ${(creditablePercentage * 100).toFixed(0)}% applied based on customer payment status.`
+            : `Issued against invoice ${originalInvoice}.`,
         signatures: {
             left: "Customer Signature",
             right: "Authorized Signature"
@@ -171,74 +171,60 @@ const CreditNoteVoucherPage = async (props: CreditNoteVoucherPageProps) => {
                     </div>
                 )}
                 <VoucherLayout {...voucherData}>
-                    {isMultiItem ? (
-                        <div className="space-y-4">
-                            <ItemTransactionTable
-                                items={saleReturn.items.map(item => ({
-                                    id: item.id,
-                                    productName: item.productName,
-                                    description: item.description || "",
-                                    quantity: item.quantity,
-                                    unitOfMeasure: item.unitOfMeasure,
-                                    pricePerUnit: item.pricePerUnit || 0,
-                                    totalAmount: item.totalAmount || 0,
-                                    taxAmount: item.taxAmount || 0,
-                                    taxSlab: item.taxSlab
-                                }))}
-                            />
-                        </div>
-                    ) : (
-                        <Card>
-                            <CardContent className="space-y-4 p-6">
-                                <div className="flex justify-between">
-                                    <div>
-                                        <h3 className="font-medium text-lg">{packageName}</h3>
-                                        <p className="text-sm text-muted-foreground">{saleReturn.returnReason}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="font-medium">{formatPrice(baseAmount)}</div>                                        {hasGst && (
-                                            <div className="text-sm text-muted-foreground">
-                                                + GST: {formatPrice(creditableGstAmount)} {gstDisplayText}
-                                            </div>
+                    {/* Consolidated view — never expose internal margin/commission breakdown */}
+                    <div className="rounded-md border overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="bg-muted/40 border-b">
+                                    <th className="text-left px-3 py-2 font-semibold">Description</th>
+                                    <th className="text-right px-3 py-2 font-semibold">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr className="border-b">
+                                    <td className="px-3 py-2">
+                                        <p className="font-medium">{packageName}</p>
+                                        {saleReturn.returnReason && (
+                                            <p className="text-xs text-muted-foreground mt-0.5">{saleReturn.returnReason}</p>
                                         )}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    <div className="mt-6 space-y-4">
-                        <div className="flex justify-end">
-                            <div className="w-60 space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span>Subtotal:</span>
-                                    <span>{formatPrice(summaryData.baseAmount)}</span>
-                                </div>
-
-                                {summaryData.hasGst && (
-                                    <div className="flex justify-between text-sm">
-                                        <span>GST {summaryData.gstDisplayText}:</span>
-                                        <span>{formatPrice(summaryData.gstAmount)}</span>
-                                    </div>
-                                )}                                <div className="flex justify-between text-sm">
-                                    <span>Payment status:</span>
-                                    <span>{(summaryData.paymentPercentage * 100).toFixed(0)}% paid</span>
-                                </div>
-                                
-                                {summaryData.paymentPercentage < 1 && (
-                                    <div className="flex justify-between text-sm text-muted-foreground">
-                                        <span>Original return value:</span>
-                                        <span>{formatPrice(summaryData.originalTotalAmount)}</span>
-                                    </div>
+                                    </td>
+                                    <td className="px-3 py-2 text-right font-medium">{formatPrice(baseAmount)}</td>
+                                </tr>
+                                {hasGst && (
+                                    <tr className="border-b text-muted-foreground">
+                                        <td className="px-3 py-2 text-xs">GST @ 18%</td>
+                                        <td className="px-3 py-2 text-right text-xs">{formatPrice(creditableGstAmount)}</td>
+                                    </tr>
                                 )}
-                                
-                                <div className="flex justify-between font-medium pt-2 border-t">
-                                    <span>Total credit:</span>
+                            </tbody>
+                            <tfoot>
+                                <tr className="bg-muted/40 font-bold">
+                                    <td className="px-3 py-2">Total Credit</td>
+                                    <td className="px-3 py-2 text-right">{formatPrice(totalAmount)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    {/* Only show adjustment summary when partially paid */}
+                    {summaryData.paymentPercentage < 1 && (
+                        <div className="flex justify-end mt-2">
+                            <div className="w-56 text-xs space-y-1 bg-muted/30 rounded-md px-3 py-2">
+                                <div className="flex justify-between text-muted-foreground">
+                                    <span>Original return value:</span>
+                                    <span>{formatPrice(summaryData.originalTotalAmount)}</span>
+                                </div>
+                                <div className="flex justify-between text-muted-foreground">
+                                    <span>Payment received:</span>
+                                    <span>{(summaryData.paymentPercentage * 100).toFixed(0)}%</span>
+                                </div>
+                                <div className="flex justify-between font-semibold border-t pt-1">
+                                    <span>Credit amount:</span>
                                     <span>{formatPrice(summaryData.totalAmount)}</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </VoucherLayout>
             </div>
         </div>

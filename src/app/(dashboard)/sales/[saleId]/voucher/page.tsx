@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
@@ -7,98 +6,57 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { VoucherActions } from "@/components/voucher-actions";
 import { VoucherLayout } from "@/components/voucher-layout";
-import { ItemTransactionTable } from "@/components/item-transaction-table";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface SaleVoucherPageProps {
-  params: Promise<{
-    saleId: string;
-  }>;
+  params: Promise<{ saleId: string }>;
 }
 
 const SaleVoucherPage = async (props: SaleVoucherPageProps) => {
   const params = await props.params;
-  // Get sale details with related data including items
+
   const sale = await prismadb.saleDetail.findUnique({
     where: { id: params.saleId },
     include: {
       tourPackageQuery: true,
-      customer: true,      items: {
-        include: {
-          unitOfMeasure: true,
-          taxSlab: true
-        },
-        orderBy: {
-          orderIndex: 'asc'
-        }
-      }
+      customer: true,
     },
   });
 
-  if (!sale) {
-    return notFound();
-  }
+  if (!sale) return notFound();
 
-  // Get organization data for displaying in the voucher
   const organization = await prismadb.organization.findFirst({
-    orderBy: {
-      createdAt: 'asc'
-    }
+    orderBy: { createdAt: "asc" },
   });
-  // Format the sale date
+
   const formattedDate = formatLocalDate(sale.saleDate, "MMMM d, yyyy");
-  const formattedDueDate = sale.dueDate ? formatLocalDate(sale.dueDate, "MMMM d, yyyy") : null;
+  const formattedDueDate = sale.dueDate
+    ? formatLocalDate(sale.dueDate, "MMMM d, yyyy")
+    : null;
 
-  // Check if this is a multi-item sale
-  const isMultiItem = sale.items && sale.items.length > 0;
-
-  // Package name and description
-  const packageName = sale.tourPackageQuery?.tourPackageQueryName || "Tour Package";
-  const description = sale.description || "No description provided";
-
-  // Calculate tax details with better handling for inclusive/exclusive scenarios
+  const packageName =
+    sale.tourPackageQuery?.tourPackageQueryName || "Tour Package";
   const hasGst = !!sale.gstAmount && sale.gstAmount > 0;
+  const baseAmount = sale.salePrice;
+  const totalAmount = sale.salePrice + (sale.gstAmount || 0);
 
-  // Define GST type (inclusive or exclusive)
-  const isGstInclusive = false; // You may want to store this in your database
-
-  // Calculate base and total amounts based on GST type
-  let baseAmount = sale.salePrice;
-  let totalAmount = sale.salePrice;
-  let gstDisplayText = "";
-
-  if (hasGst) {
-    if (isGstInclusive) {
-      // If GST is inclusive, the base amount is the sale price minus GST
-      baseAmount = sale.salePrice - (sale.gstAmount || 0);
-      totalAmount = sale.salePrice;
-      gstDisplayText = "(Inclusive)";
-    } else {
-      // If GST is exclusive, the base amount is the sale price and total includes GST
-      baseAmount = sale.salePrice;
-      totalAmount = sale.salePrice + (sale.gstAmount || 0);
-      gstDisplayText = "(Exclusive)";
-    }
-  }
-
-  // Prepare data for voucher layout with GST info
   const voucherData = {
     title: "SALES INVOICE",
-    subtitle: isMultiItem ? "Invoice" : "Tour Package Sale Receipt",
-    voucherNo: sale.invoiceNumber || `SV-${sale.id.substring(0, 8).toUpperCase()}`,
+    subtitle: "Tax Invoice",
+    voucherNo:
+      sale.invoiceNumber || `SV-${sale.id.substring(0, 8).toUpperCase()}`,
     date: formattedDate,
     dueDate: formattedDueDate,
     leftInfo: [
-      { 
-        label: "CUSTOMER", 
+      {
+        label: "BILL TO",
         content: (
           <div>
             <p className="font-medium">{sale.customer?.name || "N/A"}</p>
-            <p>{sale.customer?.contact || "No contact information"}</p>
-            <p>{sale.customer?.email || ""}</p>
+            {sale.customer?.contact && <p>{sale.customer.contact}</p>}
+            {sale.customer?.email && <p>{sale.customer.email}</p>}
           </div>
-        ) 
-      }
+        ),
+      },
     ],
     rightInfo: [
       {
@@ -107,63 +65,66 @@ const SaleVoucherPage = async (props: SaleVoucherPageProps) => {
           <div>
             {sale.stateOfSupply && <p>State of Supply: {sale.stateOfSupply}</p>}
             {sale.dueDate && <p>Due Date: {formattedDueDate}</p>}
-            {hasGst && (
-              <p>GST Info: {sale.gstPercentage}% {gstDisplayText}</p>
-            )}
+            {hasGst && <p>GST: {sale.gstPercentage}% (Exclusive)</p>}
+            {sale.gstin && <p>GSTIN: {sale.gstin}</p>}
           </div>
-        )
-      }
+        ),
+      },
     ],
-    additionalNotes: description,
-    signatures: { left: "Customer Signature", right: "Authorized Signature" }
+    additionalNotes: sale.description || undefined,
+    signatures: { left: "Customer Signature", right: "Authorized Signature" },
   };
 
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
         <div className="flex items-center justify-between">
-          <Heading 
-            title="Sales Inovice" 
-            description="View and print Sales Inovice"
+          <Heading
+            title="Sales Invoice"
+            description="View and download sales invoice"
           />
           <VoucherActions id={params.saleId} type="sale" />
         </div>
         <Separator />
-        
-        <VoucherLayout 
-          type="sale"
-          organization={organization}
-          {...voucherData}
-        >
-          {isMultiItem ? (
-            <ItemTransactionTable items={sale.items} />
-          ) : (
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <h3 className="font-medium text-lg">{packageName}</h3>
-                    <span>{formatPrice(baseAmount)}</span>
-                  </div>
-                  <p className="text-muted-foreground">{description}</p>
-                  
-                  {hasGst && (
-                    <div className="flex justify-between border-t pt-4">
-                      <div>
-                        <span>GST ({sale.gstPercentage}%) {gstDisplayText}</span>
-                      </div>
-                      <span>{formatPrice(sale.gstAmount || 0)}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between border-t pt-4 font-bold">
-                    <span>Total</span>
-                    <span>{formatPrice(totalAmount)}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+
+        <VoucherLayout type="sale" organization={organization} {...voucherData}>
+          {/* Consolidated view — internal item breakdown (margins) never shown to customer */}
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/40 border-b">
+                  <th className="text-left px-3 py-2 font-semibold">Description</th>
+                  <th className="text-right px-3 py-2 font-semibold">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="px-3 py-2 font-medium">{packageName}</td>
+                  <td className="px-3 py-2 text-right font-medium">
+                    {formatPrice(baseAmount)}
+                  </td>
+                </tr>
+                {hasGst && (
+                  <tr className="border-b text-muted-foreground">
+                    <td className="px-3 py-2 text-xs">
+                      GST @ {sale.gstPercentage}%
+                    </td>
+                    <td className="px-3 py-2 text-right text-xs">
+                      {formatPrice(sale.gstAmount || 0)}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="bg-muted/40 font-bold">
+                  <td className="px-3 py-2">Total</td>
+                  <td className="px-3 py-2 text-right">
+                    {formatPrice(totalAmount)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </VoucherLayout>
       </div>
     </div>

@@ -112,7 +112,7 @@ const buildVoucherHtml = (element: HTMLElement): string => {
       @page { size: A4; }
       html, body { margin: 0; padding: 0; background: #f8fafc; }
       body { font-family: 'Inter', 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
-  .pdf-wrapper { background: #f8fafc; padding: 120px 40px 200px 40px; box-sizing: border-box; }
+  .pdf-wrapper { background: #f8fafc; padding: 10px 32px 10px 32px; box-sizing: border-box; }
   #voucher-content { max-width: 780px; margin: 0 auto; }
       [data-pdf-section] { break-inside: avoid; page-break-inside: avoid; }
       [data-pdf-break-before="true"] { break-before: page; page-break-before: always; }
@@ -254,12 +254,12 @@ export const VoucherActions: React.FC<VoucherActionsProps> = ({ id, type }) => {
           headerHtml,
           footerHtml,
           margin: {
-            top: "72px",
-            right: "32px",
-            bottom: "128px",
-            left: "32px",
+            top: "50px",
+            right: "24px",
+            bottom: "110px",
+            left: "24px",
           },
-          scale: 0.92,
+          scale: 0.88,
         }),
       });
 

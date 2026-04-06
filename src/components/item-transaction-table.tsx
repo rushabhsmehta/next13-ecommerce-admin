@@ -70,49 +70,39 @@ export function ItemTransactionTable({ items }: ItemTransactionTableProps) {
         <TableBody>
           {items.map((item) => (
             <TableRow key={item.id}>
-              <TableCell>
-                <div>
-                  <p className="font-medium">{item.productName}</p>
-                  {item.description && (
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                  )}
-                </div>
+              <TableCell className="py-2">
+                <p className="font-medium text-sm">{item.productName}</p>
+                {item.description && (
+                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                )}
               </TableCell>
-              <TableCell className="text-right">
-                {item.quantity} {item.unitOfMeasure?.abbreviation || ''}
+              <TableCell className="text-right py-2 text-sm">
+                {item.quantity}{item.unitOfMeasure?.abbreviation ? ` ${item.unitOfMeasure.abbreviation}` : ''}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right py-2 text-sm">
                 {formatPrice(item.pricePerUnit)}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right py-2 text-sm">
                 {item.discountAmount ? (
-                  <div>
+                  <>
                     {formatPrice(item.discountAmount)}
-                    {item.discountPercent ? (
-                      <span className="text-xs text-muted-foreground ml-1">
-                        ({item.discountPercent}%)
-                      </span>
-                    ) : null}
-                  </div>
-                ) : (
-                  "-"
-                )}
+                    {item.discountPercent && (
+                      <span className="text-xs text-muted-foreground ml-1">({item.discountPercent}%)</span>
+                    )}
+                  </>
+                ) : "-"}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right py-2 text-sm">
                 {item.taxAmount ? (
-                  <div>
+                  <>
                     {formatPrice(item.taxAmount)}
-                    {item.taxSlab ? (
-                      <span className="text-xs text-muted-foreground ml-1">
-                        ({item.taxSlab.percentage}%)
-                      </span>
-                    ) : null}
-                  </div>
-                ) : (
-                  "-"
-                )}
+                    {item.taxSlab && (
+                      <span className="text-xs text-muted-foreground ml-1">({item.taxSlab.percentage}%)</span>
+                    )}
+                  </>
+                ) : "-"}
               </TableCell>
-              <TableCell className="text-right font-medium">
+              <TableCell className="text-right py-2 text-sm font-medium">
                 {formatPrice(item.totalAmount)}
               </TableCell>
             </TableRow>

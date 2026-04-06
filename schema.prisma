@@ -457,6 +457,7 @@ model PaymentDetail {
   customerId         String?
   paymentType        String?          @default("supplier_payment")
   saleReturnId       String?
+  purchaseReturnId   String?
   tdsCertificateNo   String?
   tdsDeductedAmount  Float?
   tdsTransactionId   String?          @unique
@@ -465,6 +466,7 @@ model PaymentDetail {
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
   saleReturn         SaleReturn?      @relation(fields: [saleReturnId], references: [id], onDelete: SetNull)
+  purchaseReturn     PurchaseReturn?  @relation("SupplierCreditPayments", fields: [purchaseReturnId], references: [id], onDelete: SetNull)
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
   tdsTransaction      TDSTransaction?  @relation(fields: [tdsTransactionId], references: [id], onDelete: SetNull)
@@ -475,6 +477,7 @@ model PaymentDetail {
   @@index([supplierId])
   @@index([customerId])
   @@index([saleReturnId])
+  @@index([purchaseReturnId])
   @@index([tourPackageQueryId])
   @@index([tdsTransactionId])
   @@index([paymentDate])
@@ -966,6 +969,7 @@ model Supplier {
   purchaseDetails PurchaseDetail[]
   paymentDetails  PaymentDetail[]
   refundReceipts  ReceiptDetail[]
+  purchaseReturns PurchaseReturn[] @relation("PurchaseReturnSupplier")
   defaultTds      TDSMaster?         @relation(fields: [defaultTdsId], references: [id])
   tdsTransactions TDSTransaction[]
 
@@ -1269,14 +1273,18 @@ model PurchaseReturn {
   supplierCreditType   String               @default("refund")
   supplierCreditExpiry DateTime?
   creditUsedInQueryId  String?
+  supplierId           String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @default(now())
   purchaseDetail       PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id])
+  supplier             Supplier?            @relation("PurchaseReturnSupplier", fields: [supplierId], references: [id], onDelete: SetNull)
   items                PurchaseReturnItem[]
   receipts             ReceiptDetail[]
+  creditPayments       PaymentDetail[]      @relation("SupplierCreditPayments")
 
   @@index([purchaseDetailId])
   @@index([supplierCreditType])
+  @@index([supplierId])
 }
 
 model PurchaseReturnItem {

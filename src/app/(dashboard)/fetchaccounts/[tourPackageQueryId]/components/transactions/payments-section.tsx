@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer } from 'lucide-react';
+import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer, Building2 } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PaymentFormWrapper } from "@/components/forms/payment-form-wrapper"; // Updated import
+import { ApplySupplierCreditDialog } from "@/components/forms/apply-supplier-credit-dialog";
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
@@ -54,6 +55,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
   const [editItem, setEditItem] = useState<any>(null);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, type: string } | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isApplySupplierCreditOpen, setIsApplySupplierCreditOpen] = useState(false);
   // States for image viewer and uploader
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -263,6 +265,15 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
           >
             <FileDown className="h-4 w-4 mr-1" />
             Download PDF
+          </Button>
+          <Button
+            onClick={() => setIsApplySupplierCreditOpen(true)}
+            size="sm"
+            variant="outline"
+            className="text-blue-700 border-blue-700 hover:bg-blue-50"
+          >
+            <Building2 className="h-4 w-4 mr-1" />
+            Apply Supplier Credit
           </Button>
           <Button
             onClick={() => {
@@ -532,6 +543,14 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+      {/* Apply Supplier Credit Dialog */}
+      <ApplySupplierCreditDialog
+        open={isApplySupplierCreditOpen}
+        onClose={() => setIsApplySupplierCreditOpen(false)}
+        onSuccess={onRefresh}
+        tourPackageQueryId={tourPackageId}
+        suppliers={suppliers.map(s => ({ id: s.id, name: s.name }))}
+      />
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmation
         isOpen={isDeleteDialogOpen}

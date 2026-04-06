@@ -223,6 +223,7 @@ export async function GET(req: Request) {
       where: query,
       include: {
         supplier: true,
+        paymentAllocations: { select: { allocatedAmount: true } },
         items: {
           include: {
             taxSlab: true,

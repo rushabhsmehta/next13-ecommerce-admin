@@ -98,6 +98,7 @@ const NAV_ITEMS = [
       { title: "Sale Returns", url: "/sale-returns" },
       { title: "Credit Notes", url: "/sale-returns/credit-notes" },
       { title: "Purchase Returns", url: "/purchase-returns" },
+      { title: "Supplier Credits", url: "/purchase-returns/supplier-credits" },
       { title: "Sales Ledger", url: "/sales/ledger" },
       { title: "Purchase Ledger", url: "/purchases/ledger" },
       { title: "Receipt Ledger", url: "/receipts/ledger" },

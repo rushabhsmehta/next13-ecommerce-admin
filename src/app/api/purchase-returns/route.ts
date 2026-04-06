@@ -11,15 +11,17 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { 
-      purchaseDetailId, 
-      returnDate, 
+    const {
+      purchaseDetailId,
+      returnDate,
       returnReason,
-      amount, 
-      gstAmount, 
+      amount,
+      gstAmount,
       reference,
       status,
-      items 
+      supplierCreditType,
+      supplierCreditExpiry,
+      items
     } = body;
 
     // Validation
@@ -29,7 +31,15 @@ export async function POST(req: Request) {
 
     if (!returnDate) {
       return new NextResponse("Return date is required", { status: 400 });
-    }    // Create purchase return record
+    }
+
+    // Auto-populate supplierId from purchase detail
+    const purchaseDetail = await prismadb.purchaseDetail.findUnique({
+      where: { id: purchaseDetailId },
+      select: { supplierId: true }
+    });
+
+    // Create purchase return record
     const purchaseReturn = await prismadb.purchaseReturn.create({
       data: {
         purchaseDetailId,
@@ -39,6 +49,9 @@ export async function POST(req: Request) {
         gstAmount: gstAmount ? parseFloat(gstAmount.toString()) : null,
         reference: reference || null,
         status: status || "pending",
+        supplierCreditType: supplierCreditType || "refund",
+        supplierCreditExpiry: supplierCreditExpiry ? new Date(supplierCreditExpiry) : null,
+        supplierId: purchaseDetail?.supplierId || null,
       }
     });
 

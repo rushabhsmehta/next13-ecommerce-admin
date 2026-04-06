@@ -96,6 +96,7 @@ const NAV_ITEMS = [
       { title: "Expenses", url: "/expenses" },
       { title: "Accrued Expenses", url: "/expenses/accrued" },
       { title: "Sale Returns", url: "/sale-returns" },
+      { title: "Credit Notes", url: "/sale-returns/credit-notes" },
       { title: "Purchase Returns", url: "/purchase-returns" },
       { title: "Sales Ledger", url: "/sales/ledger" },
       { title: "Purchase Ledger", url: "/purchases/ledger" },

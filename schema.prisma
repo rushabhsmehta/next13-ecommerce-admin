@@ -553,6 +553,7 @@ model ReceiptDetail {
   bankAccountId      String?
   cashAccountId      String?
   purchaseReturnId   String?
+  saleReturnId       String?
   receiptType        String?          @default("customer_receipt")
   supplierId         String?
   images             Images[]
@@ -560,6 +561,7 @@ model ReceiptDetail {
   customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   purchaseReturn     PurchaseReturn?  @relation(fields: [purchaseReturnId], references: [id], onDelete: SetNull)
+  saleReturn         SaleReturn?      @relation("CreditNoteReceipts", fields: [saleReturnId], references: [id], onDelete: SetNull)
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
   saleAllocations    ReceiptSaleAllocation[]
@@ -569,6 +571,7 @@ model ReceiptDetail {
   @@index([customerId])
   @@index([supplierId])
   @@index([purchaseReturnId])
+  @@index([saleReturnId])
   @@index([tourPackageQueryId])
   @@index([receiptDate])
 }
@@ -934,6 +937,7 @@ model Customer {
   saleDetails         SaleDetail[]
   receiptDetails      ReceiptDetail[]
   refundPayments      PaymentDetail[]
+  saleReturns         SaleReturn[]     @relation("SaleReturnCustomer")
   associatePartner    AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
   tdsTransactions     TDSTransaction[]
 
@@ -1254,21 +1258,25 @@ model TaxSlab {
 }
 
 model PurchaseReturn {
-  id               String               @id @default(uuid())
-  purchaseDetailId String
-  returnDate       DateTime
-  returnReason     String?              @db.Text
-  amount           Float
-  gstAmount        Float?
-  reference        String?
-  status           String               @default("pending")
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @default(now())
-  purchaseDetail   PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id])
-  items            PurchaseReturnItem[]
-  receipts         ReceiptDetail[]
+  id                   String               @id @default(uuid())
+  purchaseDetailId     String
+  returnDate           DateTime
+  returnReason         String?              @db.Text
+  amount               Float
+  gstAmount            Float?
+  reference            String?
+  status               String               @default("pending")
+  supplierCreditType   String               @default("refund")
+  supplierCreditExpiry DateTime?
+  creditUsedInQueryId  String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @default(now())
+  purchaseDetail       PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id])
+  items                PurchaseReturnItem[]
+  receipts             ReceiptDetail[]
 
   @@index([purchaseDetailId])
+  @@index([supplierCreditType])
 }
 
 model PurchaseReturnItem {
@@ -1299,21 +1307,30 @@ model PurchaseReturnItem {
 }
 
 model SaleReturn {
-  id           String           @id @default(uuid())
-  saleDetailId String
-  returnDate   DateTime
-  returnReason String?          @db.Text
-  amount       Float
-  gstAmount    Float?
-  reference    String?
-  status       String           @default("pending")
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @default(now())
-  saleDetail   SaleDetail       @relation(fields: [saleDetailId], references: [id])
-  items        SaleReturnItem[]
-  payments     PaymentDetail[]
+  id               String           @id @default(uuid())
+  saleDetailId     String
+  returnDate       DateTime
+  returnReason     String?          @db.Text
+  amount           Float
+  gstAmount        Float?
+  reference        String?
+  status           String           @default("pending")
+  creditType       String           @default("cash_refund")
+  creditNoteNumber String?
+  expiryDate       DateTime?
+  customerId       String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @default(now())
+  saleDetail       SaleDetail       @relation(fields: [saleDetailId], references: [id])
+  customer         Customer?        @relation("SaleReturnCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  items            SaleReturnItem[]
+  payments         PaymentDetail[]
+  creditReceipts   ReceiptDetail[]  @relation("CreditNoteReceipts")
 
   @@index([saleDetailId])
+  @@index([customerId])
+  @@index([creditType])
+  @@index([expiryDate])
 }
 
 model SaleReturnItem {

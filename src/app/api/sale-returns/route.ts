@@ -11,15 +11,16 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { 
-      saleDetailId, 
-      returnDate, 
+    const {
+      saleDetailId,
+      returnDate,
       returnReason,
-      amount, 
-      gstAmount, 
+      amount,
+      gstAmount,
       reference,
       status,
-      items 
+      creditType,
+      items
     } = body;
 
     // Validation
@@ -29,7 +30,15 @@ export async function POST(req: Request) {
 
     if (!returnDate) {
       return new NextResponse("Return date is required", { status: 400 });
-    }    // Create sale return record
+    }
+
+    // Auto-populate customerId from the sale detail
+    const saleDetail = await prismadb.saleDetail.findUnique({
+      where: { id: saleDetailId },
+      select: { customerId: true }
+    });
+
+    // Create sale return record
     const saleReturn = await prismadb.saleReturn.create({
       data: {
         saleDetailId,
@@ -39,6 +48,8 @@ export async function POST(req: Request) {
         gstAmount: gstAmount ? parseFloat(gstAmount.toString()) : null,
         reference: reference || null,
         status: status || "pending",
+        creditType: creditType || "cash_refund",
+        customerId: saleDetail?.customerId || null,
       }
     });
 

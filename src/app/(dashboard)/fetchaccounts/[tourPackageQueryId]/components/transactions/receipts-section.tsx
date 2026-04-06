@@ -5,12 +5,13 @@ import { format } from 'date-fns';
 import { CldUploadWidget } from 'next-cloudinary';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer } from 'lucide-react';
+import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer, BadgeCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ReceiptFormWrapper } from "@/components/forms/receipt-form-wrapper"; // Updated import
+import { ApplyCreditNoteDialog } from "@/components/forms/apply-credit-note-dialog";
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
@@ -54,6 +55,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
   const [editItem, setEditItem] = useState<any>(null);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, type: string } | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isApplyCNOpen, setIsApplyCNOpen] = useState(false);
   // States for image viewer and uploader
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -268,6 +270,15 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
           >
             <FileDown className="h-4 w-4 mr-1" />
             Download PDF
+          </Button>
+          <Button
+            onClick={() => setIsApplyCNOpen(true)}
+            size="sm"
+            variant="outline"
+            className="text-green-700 border-green-700 hover:bg-green-50"
+          >
+            <BadgeCheck className="h-4 w-4 mr-1" />
+            Apply Credit Note
           </Button>
           <Button
             onClick={() => {
@@ -539,6 +550,14 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+      {/* Apply Credit Note Dialog */}
+      <ApplyCreditNoteDialog
+        open={isApplyCNOpen}
+        onClose={() => setIsApplyCNOpen(false)}
+        onSuccess={onRefresh}
+        tourPackageQueryId={tourPackageId}
+        customers={customers.map(c => ({ id: c.id, name: c.name }))}
+      />
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmation
         isOpen={isDeleteDialogOpen}

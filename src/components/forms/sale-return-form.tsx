@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { CalendarIcon, Trash } from "lucide-react";
+import { CalendarIcon, Trash, BadgeCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -117,6 +117,27 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [selectedSaleItems, setSelectedSaleItems] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [issuingCN, setIssuingCN] = useState(false);
+  const [cnData, setCnData] = useState<{ creditNoteNumber?: string; expiryDate?: string; status?: string } | null>(
+    initialData?.creditType === 'credit_note'
+      ? { creditNoteNumber: initialData.creditNoteNumber, expiryDate: initialData.expiryDate, status: initialData.status }
+      : null
+  );
+
+  const handleIssueCreditNote = async () => {
+    if (!initialData?.id) return;
+    try {
+      setIssuingCN(true);
+      const res = await axios.post(`/api/credit-notes/${initialData.id}/issue`);
+      setCnData({ creditNoteNumber: res.data.creditNoteNumber, expiryDate: res.data.expiryDate, status: res.data.status });
+      toast.success(`Credit note ${res.data.creditNoteNumber} issued successfully`);
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err?.response?.data || "Failed to issue credit note");
+    } finally {
+      setIssuingCN(false);
+    }
+  };
 
   const title = initialData ? "Edit Sale Return" : "Create Sale Return";
   const description = initialData ? "Edit sale return details" : "Create a new sale return";
@@ -380,8 +401,48 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
               <p className="text-orange-100">{description}</p>
             </div>
           </div>
+          {initialData && !cnData && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="bg-white/20 text-white hover:bg-white/30 border-white/30"
+              onClick={handleIssueCreditNote}
+              disabled={issuingCN}
+            >
+              <BadgeCheck className="mr-2 h-4 w-4" />
+              {issuingCN ? "Issuing..." : "Issue as Credit Note"}
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Credit note info banner */}
+      {cnData && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+          <BadgeCheck className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-green-800">Credit Note Issued: {cnData.creditNoteNumber}</p>
+            <p className="text-sm text-green-700">
+              Status: <span className="capitalize">{cnData.status?.replace('_', ' ')}</span>
+              {cnData.expiryDate && (
+                <> &bull; Valid until: {format(new Date(cnData.expiryDate), 'dd MMM yyyy')}</>
+              )}
+            </p>
+            <p className="text-sm text-green-600 mt-1">
+              This credit note can be applied to a future tour booking via the Receipt form (select &quot;Credit Note Redemption&quot; as receipt type).
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-green-700 border-green-300 hover:bg-green-100"
+            onClick={() => router.push(`/sale-returns/${initialData.id}/voucher`)}
+          >
+            View Voucher
+          </Button>
+        </div>
+      )}
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-4xl mx-auto space-y-8 p-6">

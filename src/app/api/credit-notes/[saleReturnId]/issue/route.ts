@@ -18,13 +18,13 @@ async function generateCreditNoteNumber(): Promise<string> {
 
 export async function POST(
   req: Request,
-  { params }: { params: { saleReturnId: string } }
+  { params }: { params: Promise<{ saleReturnId: string }> }
 ) {
   try {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-    const { saleReturnId } = params;
+    const { saleReturnId } = await params;
 
     // Load sale return with its sale and existing allocations
     const saleReturn = await prismadb.saleReturn.findUnique({
@@ -62,7 +62,7 @@ export async function POST(
     const result = await prismadb.$transaction(async (tx) => {
       // 1. If there's a remaining balance on the sale, create a writeoff receipt to close it
       if (remainingBalance > 0.01) {
-        const writeoffReceipt = await (tx as any).receiptDetail.create({
+        const writeoffReceipt = await tx.receiptDetail.create({
           data: {
             tourPackageQueryId: sale.tourPackageQueryId,
             receiptDate: new Date(),
@@ -73,7 +73,7 @@ export async function POST(
             note: `Cancellation writeoff for credit note ${creditNoteNumber}`,
           }
         });
-        await (tx as any).receiptSaleAllocation.create({
+        await tx.receiptSaleAllocation.create({
           data: {
             receiptDetailId: writeoffReceipt.id,
             saleDetailId: sale.id,
@@ -84,7 +84,7 @@ export async function POST(
       }
 
       // 2. Update SaleReturn to become a credit note
-      return (tx as any).saleReturn.update({
+      return tx.saleReturn.update({
         where: { id: saleReturnId },
         data: {
           creditType: 'credit_note',

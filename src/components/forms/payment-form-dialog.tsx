@@ -587,18 +587,21 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">TDS Section</label>
-                    <select
-                      className="mt-1 w-full border rounded h-10 px-2"
-                      {...form.register('tdsMasterId')}
-                      defaultValue=""
+                    <Select
+                      value={form.watch('tdsMasterId') || undefined}
+                      onValueChange={(val) => form.setValue('tdsMasterId', val)}
                     >
-                      <option value="">Select</option>
-                      {tdsSections.map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.sectionCode} {s.isGstTds ? '(GST)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="mt-1 h-10">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tdsSections.map(s => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.sectionCode} {s.isGstTds ? '(GST)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Override Rate (%)</label>
@@ -612,18 +615,21 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">Link Existing Pending TDS</label>
-                    <select
-                      className="mt-1 w-full border rounded h-10 px-2"
-                      {...form.register('linkTdsTransactionId')}
-                      defaultValue=""
+                    <Select
+                      value={form.watch('linkTdsTransactionId') || undefined}
+                      onValueChange={(val) => form.setValue('linkTdsTransactionId', val)}
                     >
-                      <option value="">None</option>
-                      {linkableTds.map(t => (
-                        <option key={t.id} value={t.id}>
-                          {t.id} {t.tdsAmount}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="mt-1 h-10">
+                        <SelectValue placeholder="None" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {linkableTds.map(t => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.id} {t.tdsAmount}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               )}

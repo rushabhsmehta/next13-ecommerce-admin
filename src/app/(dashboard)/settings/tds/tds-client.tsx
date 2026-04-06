@@ -4,6 +4,13 @@ import { TdsForm } from './components/tds-form';
 import { tdsColumns, TdsRow } from './components/columns';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Props { initialRows: TdsRow[] }
 
@@ -51,11 +58,16 @@ const TdsClient: React.FC<Props> = ({ initialRows }) => {
 
   const toolbar = (
     <div className="flex gap-2 items-center flex-wrap">
-      <select value={filterMode} onChange={e=>setFilterMode(e.target.value as any)} className="border rounded px-2 py-1 text-xs">
-        <option value="active">Active</option>
-        <option value="historical">Historical</option>
-        <option value="all">All</option>
-      </select>
+      <Select value={filterMode} onValueChange={(val) => setFilterMode(val as 'active' | 'historical' | 'all')}>
+        <SelectTrigger className="w-32 h-8 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="active">Active</SelectItem>
+          <SelectItem value="historical">Historical</SelectItem>
+          <SelectItem value="all">All</SelectItem>
+        </SelectContent>
+      </Select>
       <Button variant="outline" size="sm" onClick={exportCsv}>Export CSV</Button>
       <Button variant="outline" size="sm" onClick={exportJson}>Export JSON</Button>
       <Button variant="outline" size="sm" onClick={triggerImport}>Import CSV</Button>

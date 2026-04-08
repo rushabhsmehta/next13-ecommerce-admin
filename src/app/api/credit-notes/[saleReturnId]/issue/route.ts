@@ -48,13 +48,34 @@ export async function POST(
     const alreadyAllocated = sale.receiptAllocations.reduce((sum, a) => sum + a.allocatedAmount, 0);
     const remainingBalance = Math.max(0, saleTotal - alreadyAllocated);
 
-    // Get 1-year expiry from body, default to today + 1 year
+    // Parse body for expiryDate and creditNoteAmount
     let expiryDate: Date;
+    let creditNoteAmount: number;
     try {
       const body = await req.json().catch(() => ({}));
       expiryDate = body.expiryDate ? new Date(body.expiryDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      // creditNoteAmount: user-specified, defaults to amount already received on the sale
+      if (body.creditNoteAmount !== undefined && body.creditNoteAmount !== null) {
+        creditNoteAmount = parseFloat(body.creditNoteAmount);
+        if (isNaN(creditNoteAmount) || creditNoteAmount < 0) {
+          return new NextResponse("Credit note amount must be a positive number", { status: 400 });
+        }
+        if (creditNoteAmount > alreadyAllocated + 0.01) {
+          return new NextResponse(
+            `Credit note amount cannot exceed amount already received (₹${alreadyAllocated.toFixed(2)})`,
+            { status: 400 }
+          );
+        }
+      } else {
+        creditNoteAmount = alreadyAllocated;
+      }
     } catch {
       expiryDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+      creditNoteAmount = alreadyAllocated;
+    }
+
+    if (creditNoteAmount <= 0) {
+      return new NextResponse("No amount received on this sale to issue a credit note for", { status: 400 });
     }
 
     const creditNoteNumber = await generateCreditNoteNumber();
@@ -83,12 +104,13 @@ export async function POST(
         });
       }
 
-      // 2. Update SaleReturn to become a credit note
+      // 2. Update SaleReturn to become a credit note with user-specified amount
       return tx.saleReturn.update({
         where: { id: saleReturnId },
         data: {
           creditType: 'credit_note',
           creditNoteNumber,
+          creditNoteAmount: parseFloat(creditNoteAmount.toFixed(2)),
           expiryDate,
           customerId: sale.customerId || null,
           status: 'issued',

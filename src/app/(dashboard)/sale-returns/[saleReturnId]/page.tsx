@@ -18,7 +18,8 @@ export default async function SaleReturnPage(
     include: {
       saleDetail: {
         include: {
-          customer: true
+          customer: true,
+          receiptAllocations: { select: { allocatedAmount: true } }
         }
       },
       items: {

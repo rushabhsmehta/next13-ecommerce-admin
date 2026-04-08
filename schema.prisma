@@ -1320,6 +1320,7 @@ model SaleReturn {
   returnDate       DateTime
   returnReason     String?          @db.Text
   amount           Float
+  creditNoteAmount Float?
   gstAmount        Float?
   reference        String?
   status           String           @default("pending")

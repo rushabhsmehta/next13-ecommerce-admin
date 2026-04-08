@@ -40,9 +40,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 // Helper to parse a date string (YYYY-MM-DD or ISO) into a local-only Date (midnight local)
 const parseLocalDate = (dateString: string | Date | null | undefined) => {
@@ -118,19 +126,30 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
   const [selectedSaleItems, setSelectedSaleItems] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [issuingCN, setIssuingCN] = useState(false);
+  const [showCNDialog, setShowCNDialog] = useState(false);
+  const [cnAmountInput, setCnAmountInput] = useState<number>(0);
   const [cnData, setCnData] = useState<{ creditNoteNumber?: string; expiryDate?: string; status?: string } | null>(
     initialData?.creditType === 'credit_note'
       ? { creditNoteNumber: initialData.creditNoteNumber, expiryDate: initialData.expiryDate, status: initialData.status }
       : null
   );
 
-  const handleIssueCreditNote = async () => {
+  // Compute amount already received on the sale (from receipt allocations)
+  const saleTotal = initialData?.saleDetail
+    ? (initialData.saleDetail.salePrice ?? 0) + (initialData.saleDetail.gstAmount ?? 0)
+    : 0;
+  const alreadyReceived = initialData?.saleDetail?.receiptAllocations
+    ?.reduce((sum: number, a: { allocatedAmount: number }) => sum + a.allocatedAmount, 0) ?? 0;
+
+  const handleIssueCreditNote = async (creditNoteAmount: number) => {
     if (!initialData?.id) return;
     try {
       setIssuingCN(true);
-      const res = await axios.post(`/api/credit-notes/${initialData.id}/issue`);
+      const res = await axios.post(`/api/credit-notes/${initialData.id}/issue`, {
+        creditNoteAmount,
+      });
       setCnData({ creditNoteNumber: res.data.creditNoteNumber, expiryDate: res.data.expiryDate, status: res.data.status });
-      toast.success(`Credit note ${res.data.creditNoteNumber} issued successfully`);
+      toast.success(`Credit note ${res.data.creditNoteNumber} issued for ${formatPrice(creditNoteAmount)}`);
       router.refresh();
     } catch (err: any) {
       toast.error(err?.response?.data || "Failed to issue credit note");
@@ -406,7 +425,10 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
               type="button"
               variant="secondary"
               className="bg-white/20 text-white hover:bg-white/30 border-white/30"
-              onClick={handleIssueCreditNote}
+              onClick={() => {
+                setCnAmountInput(alreadyReceived);
+                setShowCNDialog(true);
+              }}
               disabled={issuingCN}
             >
               <BadgeCheck className="mr-2 h-4 w-4" />
@@ -947,6 +969,64 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
           </Card>
         </form>
       </Form>
+
+      {/* Credit Note Amount Dialog */}
+      <Dialog open={showCNDialog} onOpenChange={setShowCNDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Issue Credit Note</DialogTitle>
+            <DialogDescription>
+              Specify the credit note amount. This should typically equal the amount already received from the customer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm text-muted-foreground">Sale Total</Label>
+                <p className="text-sm font-medium">{formatPrice(saleTotal)}</p>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Amount Already Received</Label>
+                <p className="text-sm font-medium">{formatPrice(alreadyReceived)}</p>
+              </div>
+            </div>
+            <Separator />
+            <div>
+              <Label htmlFor="creditNoteAmount">Credit Note Amount</Label>
+              <Input
+                id="creditNoteAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                max={alreadyReceived}
+                value={cnAmountInput}
+                onChange={(e) => setCnAmountInput(parseFloat(e.target.value) || 0)}
+                className="mt-1"
+              />
+              {cnAmountInput > alreadyReceived && (
+                <p className="text-sm text-red-500 mt-1">
+                  Cannot exceed amount received ({formatPrice(alreadyReceived)})
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowCNDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowCNDialog(false);
+                  handleIssueCreditNote(cnAmountInput);
+                }}
+                disabled={cnAmountInput <= 0 || cnAmountInput > alreadyReceived + 0.01 || issuingCN}
+              >
+                <BadgeCheck className="mr-2 h-4 w-4" />
+                {issuingCN ? "Issuing..." : "Issue Credit Note"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

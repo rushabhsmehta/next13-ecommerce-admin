@@ -36,7 +36,8 @@ export async function POST(
       return new NextResponse("Credit note has expired", { status: 400 });
 
     const usedAmount = creditNote.creditReceipts.reduce((sum, r) => sum + r.amount, 0);
-    const availableCredit = creditNote.amount - usedAmount;
+    const cnAmount = creditNote.creditNoteAmount ?? creditNote.amount;
+    const availableCredit = cnAmount - usedAmount;
 
     if (amount > availableCredit + 0.01)
       return new NextResponse(`Amount exceeds available credit (₹${availableCredit.toFixed(2)})`, { status: 400 });
@@ -57,7 +58,7 @@ export async function POST(
 
     const applyAmount = parseFloat(amount.toFixed(2));
     const newUsed = usedAmount + applyAmount;
-    const newStatus = newUsed >= creditNote.amount - 0.01 ? 'redeemed' : 'partially_redeemed';
+    const newStatus = newUsed >= cnAmount - 0.01 ? 'redeemed' : 'partially_redeemed';
 
     const result = await prismadb.$transaction(async (tx) => {
       // Create the redemption receipt on Tour 2 (no bank/cash account — no real cash)

@@ -62,13 +62,25 @@ const CreditNoteVoucherPage = async (props: CreditNoteVoucherPageProps) => {
     // Calculate the proportion of the return amount that should be credited based on payment status
     const creditablePercentage = paymentStatus.paymentPercentage;
 
-    // Convert the original amounts to creditable amounts based on payment percentage
+    // Convert the original amounts to creditable amounts
     const originalBaseAmount = saleReturn.amount;
     const originalGstAmount = saleReturn.gstAmount || 0;
 
-    // Apply payment percentage to get the actual amount to be credited
-    const creditableBaseAmount = parseFloat((originalBaseAmount * creditablePercentage).toFixed(2));
-    const creditableGstAmount = parseFloat((originalGstAmount * creditablePercentage).toFixed(2));
+    // If creditNoteAmount is explicitly set, use it; otherwise fall back to payment percentage
+    let creditableBaseAmount: number;
+    let creditableGstAmount: number;
+    if (saleReturn.creditNoteAmount != null) {
+      // User specified a credit note amount at issuance
+      creditableBaseAmount = saleReturn.creditNoteAmount;
+      // Proportionally compute GST based on the ratio of creditNoteAmount to original amount
+      creditableGstAmount = originalBaseAmount > 0
+        ? parseFloat((originalGstAmount * (saleReturn.creditNoteAmount / originalBaseAmount)).toFixed(2))
+        : 0;
+    } else {
+      // Legacy: apply payment percentage to get the actual amount to be credited
+      creditableBaseAmount = parseFloat((originalBaseAmount * creditablePercentage).toFixed(2));
+      creditableGstAmount = parseFloat((originalGstAmount * creditablePercentage).toFixed(2));
+    }
 
     // Calculate tax details
     const hasGst = !!creditableGstAmount && creditableGstAmount > 0;

@@ -1,13 +1,34 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
+import { rateLimit } from '@/lib/rate-limit';
+
+const limiter = rateLimit('export');
 
 // Force dynamic rendering to prevent static generation errors
 export const dynamic = 'force-dynamic';
 
+const escapeCsvValue = (value: unknown) => {
+  const text = value === null || value === undefined ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const formatDate = (value: Date | string | null | undefined) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+};
+
 export async function GET(req: Request) {
   try {
+    const limited = limiter.check(req);
+    if (limited) return limited;
+
+    const { userId } = await auth();
+    if (!userId) return new NextResponse('Unauthenticated', { status: 403 });
+
     console.log('[QUERIES_EXPORT] Starting export...');
-    
+
     // Fetch all tour package queries with customer details and associate partner info
     const queries = await prismadb.tourPackageQuery.findMany({
       select: {
@@ -15,38 +36,34 @@ export async function GET(req: Request) {
         tourPackageQueryNumber: true,
         customerName: true,
         customerNumber: true,
-        locationId: true,
         tourStartsFrom: true,
         createdAt: true,
-        associatePartnerId: true,
-        inquiryId: true,
         location: {
           select: {
             label: true,
-          }
+          },
         },
         associatePartner: {
           select: {
             name: true,
             mobileNumber: true,
             email: true,
-          }
+          },
         },
         inquiry: {
           select: {
             customerName: true,
             customerMobileNumber: true,
-          }
-        }
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
 
     console.log(`[QUERIES_EXPORT] Found ${queries.length} queries`);
 
-    // Convert to CSV format
     const csvHeaders = [
       'Query Number',
       'Customer Name (Query)',
@@ -58,34 +75,32 @@ export async function GET(req: Request) {
       'Query Created Date',
       'Associate Partner Name',
       'Associate Mobile',
-      'Associate Email'
+      'Associate Email',
     ].join(',');
 
     const csvRows = queries.map((query: any) => [
-      `"${query.tourPackageQueryNumber || query.id}"`,
-      `"${query.customerName || ''}"`,
-      `"${query.customerNumber || ''}"`,
-      `"${query.inquiry?.customerName || ''}"`,
-      `"${query.inquiry?.customerMobileNumber || ''}"`,
-      `"${query.location?.label || ''}"`,
-
-      query.tourStartsFrom ? `"${new Date(query.tourStartsFrom).toLocaleDateString()}"` : '""',
-      `"${new Date(query.createdAt).toLocaleDateString()}"`,
-      `"${query.associatePartner?.name || 'Direct'}"`,
-      `"${query.associatePartner?.mobileNumber || ''}"`,
-      `"${query.associatePartner?.email || ''}"`,
-
+      escapeCsvValue(query.tourPackageQueryNumber || query.id),
+      escapeCsvValue(query.customerName || ''),
+      escapeCsvValue(query.customerNumber || ''),
+      escapeCsvValue(query.inquiry?.customerName || ''),
+      escapeCsvValue(query.inquiry?.customerMobileNumber || ''),
+      escapeCsvValue(query.location?.label || ''),
+      escapeCsvValue(formatDate(query.tourStartsFrom)),
+      escapeCsvValue(formatDate(query.createdAt)),
+      escapeCsvValue(query.associatePartner?.name || 'Direct'),
+      escapeCsvValue(query.associatePartner?.mobileNumber || ''),
+      escapeCsvValue(query.associatePartner?.email || ''),
     ].join(','));
 
-    const csv = [csvHeaders, ...csvRows].join('\n');
+    const csv = ['\uFEFF' + csvHeaders, ...csvRows].join('\r\n');
 
     console.log(`[QUERIES_EXPORT] CSV generated, size: ${csv.length} bytes`);
 
-    // Return CSV file
     return new NextResponse(csv, {
       headers: {
-        'Content-Type': 'text/csv',
+        'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="tour-queries-contacts-${new Date().toISOString().split('T')[0]}.csv"`,
+        'Cache-Control': 'no-store, max-age=0',
       },
     });
   } catch (error) {

@@ -70,7 +70,7 @@ export async function GET(req: Request) {
       `"${new Date(inquiry.createdAt).toLocaleDateString()}"`,
       `"${inquiry.associatePartner?.name || 'Direct'}"`,
       `"${inquiry.associatePartner?.mobileNumber || ''}"`,
-      `"${inquiry.associatePartner?.email || ''}"`,,
+      `"${inquiry.associatePartner?.email || ''}"`
     ].join(','));
 
     const csv = [csvHeaders, ...csvRows].join('\n');

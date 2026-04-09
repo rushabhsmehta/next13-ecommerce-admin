@@ -1,14 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { BadgeCheck, Clock, AlertCircle } from "lucide-react";
+import { BadgeCheck, Clock, AlertCircle, Pencil } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatPrice } from "@/lib/utils";
+import { EditCreditNoteAmountDialog } from "@/components/forms/edit-credit-note-amount-dialog";
 
 interface CreditNoteRow {
   id: string;
@@ -52,8 +54,16 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+interface EditDialogState {
+  saleReturnId: string;
+  creditNoteNumber: string;
+  currentAmount: number;
+  usedAmount: number;
+}
+
 export const CreditNotesClient: React.FC<CreditNotesClientProps> = ({ data }) => {
   const router = useRouter();
+  const [editDialog, setEditDialog] = useState<EditDialogState | null>(null);
 
   const columns: ColumnDef<CreditNoteRow>[] = [
     {
@@ -112,7 +122,7 @@ export const CreditNotesClient: React.FC<CreditNotesClientProps> = ({ data }) =>
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           <Button
             size="sm"
             variant="outline"
@@ -129,6 +139,25 @@ export const CreditNotesClient: React.FC<CreditNotesClientProps> = ({ data }) =>
           >
             Voucher
           </Button>
+          {/* Only allow editing if not fully redeemed */}
+          {row.original.status !== 'redeemed' && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-7 text-blue-600 border-blue-200 hover:bg-blue-50"
+              onClick={() =>
+                setEditDialog({
+                  saleReturnId: row.original.saleReturnId,
+                  creditNoteNumber: row.original.creditNoteNumber,
+                  currentAmount: row.original.amount,
+                  usedAmount: row.original.usedAmount,
+                })
+              }
+            >
+              <Pencil className="h-3 w-3 mr-1" />
+              Edit Amount
+            </Button>
+          )}
         </div>
       )
     }
@@ -140,6 +169,16 @@ export const CreditNotesClient: React.FC<CreditNotesClientProps> = ({ data }) =>
 
   return (
     <div className="space-y-4">
+      {editDialog && (
+        <EditCreditNoteAmountDialog
+          open={!!editDialog}
+          onClose={() => setEditDialog(null)}
+          saleReturnId={editDialog.saleReturnId}
+          creditNoteNumber={editDialog.creditNoteNumber}
+          currentAmount={editDialog.currentAmount}
+          usedAmount={editDialog.usedAmount}
+        />
+      )}
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">

@@ -1171,7 +1171,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     }}
                   />
                   {isConfirmed && (
-                    <Badge className="text-xs bg-green-600 text-white">Confirmed for Voucher</Badge>
+                    <Badge className="text-xs bg-green-600 text-white">Query confirmed</Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -1183,7 +1183,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     onClick={() => form.setValue('confirmedVariantId', isConfirmed ? null : cVariant.id, { shouldDirty: true })}
                     className={isConfirmed ? 'bg-green-600 hover:bg-green-700 text-white h-8 text-xs' : 'border-green-500 text-green-700 hover:bg-green-50 h-8 text-xs'}
                   >
-                    {isConfirmed ? <><Check className="h-3 w-3 mr-1" /> Confirmed</> : <><Trophy className="h-3 w-3 mr-1" /> Confirm for Voucher</>}
+                    {isConfirmed ? <><Check className="h-3 w-3 mr-1" /> Query confirmed</> : <><Trophy className="h-3 w-3 mr-1" /> Confirm query</>}
                   </Button>
                   <Button
                     type="button"
@@ -1213,6 +1213,11 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   form.setValue('customQueryVariants', updated, { shouldDirty: true });
                 }}
               />
+              {isConfirmed && (
+                <p className="mt-2 text-[11px] text-green-700">
+                  Confirming this variant also confirms the parent tour package query.
+                </p>
+              )}
             </CardHeader>
 
             <CardContent className="pt-4">
@@ -1687,7 +1692,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     <Sparkles className="h-4 w-4 text-amber-500" />
                     Variant Details
                     {confirmedVariantId === variant.id && (
-                      <Badge className="text-xs bg-green-600 text-white ml-2">Confirmed for Voucher</Badge>
+                      <Badge className="text-xs bg-green-600 text-white ml-2">Query confirmed</Badge>
                     )}
                   </CardTitle>
                   <Button
@@ -1699,11 +1704,16 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     className={confirmedVariantId === variant.id ? "bg-green-600 hover:bg-green-700 text-white h-8 text-xs" : "border-green-500 text-green-700 hover:bg-green-50 h-8 text-xs"}
                   >
                     {confirmedVariantId === variant.id ? (
-                      <><Check className="h-3 w-3 mr-1" /> Confirmed</>
+                      <><Check className="h-3 w-3 mr-1" /> Query confirmed</>
                     ) : (
-                      <><Trophy className="h-3 w-3 mr-1" /> Confirm for Voucher</>
+                      <><Trophy className="h-3 w-3 mr-1" /> Confirm query</>
                     )}
                   </Button>
+                  {confirmedVariantId === variant.id && (
+                    <p className="text-[11px] text-green-700 mt-1 text-right">
+                      This variant confirmation also marks the query confirmed.
+                    </p>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="pt-5">

@@ -705,7 +705,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       termsconditions: processedTermsConditions,
       kitchenGroupPolicy: processedKitchenGroupPolicy,
       disclaimer,
-      isFeatured,
+      isFeatured: confirmedVariantId ? true : isFeatured,
       isArchived,
       assignedTo,
       assignedToMobileNumber,

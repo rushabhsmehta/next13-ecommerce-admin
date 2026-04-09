@@ -434,6 +434,8 @@ export async function POST(
 
         console.log('✅ All policy arrays processed successfully');
 
+        const shouldAutoConfirm = typeof confirmedVariantId === "string" && confirmedVariantId.trim().length > 0;
+
         const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
                 inquiryId,
@@ -457,6 +459,7 @@ export async function POST(
                 variantRoomAllocations: variantRoomAllocations || undefined, // Store room allocations per variant
                 variantTransportDetails: variantTransportDetails || undefined, // Store transport details per variant
                 variantPricingData: variantPricingData || undefined, // Store pricing data per variant
+                isFeatured: shouldAutoConfirm ? true : isFeatured,
                 confirmedVariantId: confirmedVariantId || null, // Store confirmed variant ID
                 customQueryVariants: customQueryVariants || undefined, // Store custom query variants
                 tourStartsFrom: dateToUtc(tourStartsFrom),

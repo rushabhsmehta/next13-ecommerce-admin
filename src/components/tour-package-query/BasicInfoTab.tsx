@@ -517,10 +517,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>
-                  Confirmed
+                  Query confirmed
                 </FormLabel>
                 <FormDescription>
-                  Please Select Whether Query is confirmed or not ?
+                  Selecting a confirmed variant also marks this query confirmed automatically.
                 </FormDescription>
               </div>
             </FormItem>

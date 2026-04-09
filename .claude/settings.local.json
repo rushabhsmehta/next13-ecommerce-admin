@@ -41,7 +41,11 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(grep -n \"export async function PATCH\" /d/GitHub/next13-ecommerce-admin/src/app/api/tourPackageQuery/[tourPackageQueryId]/route.ts)",
-      "Bash(find /d/GitHub/next13-ecommerce-admin/src/app/api/whatsapp -type f -name *.ts)"
+      "Bash(find /d/GitHub/next13-ecommerce-admin/src/app/api/whatsapp -type f -name *.ts)",
+      "mcp__Windows-MCP__App",
+      "mcp__Windows-MCP__Click",
+      "mcp__Windows-MCP__Type",
+      "mcp__Windows-MCP__Wait"
     ]
   }
 }

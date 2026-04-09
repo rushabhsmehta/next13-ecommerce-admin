@@ -1,4 +1,4 @@
-import prismadb from "@/lib/prismadb";
+﻿import prismadb from "@/lib/prismadb";
 import { z } from "zod";
 import { McpError, NotFoundError } from "../lib/errors";
 import { isoDateString, type ToolHandlerMap } from "../lib/schemas";
@@ -116,9 +116,10 @@ async function getCustomerStatement(rawParams: unknown) {
   if (!customer) throw new NotFoundError(`Customer ${customerId} not found`);
 
   const saleDateFilter = buildDateFilter(startDate, endDate);
+  const saleReturnDateFilter = buildDateFilter(startDate, endDate);
   const receiptDateFilter = buildDateFilter(startDate, endDate);
 
-  const [sales, receipts] = await Promise.all([
+  const [sales, saleReturns, receipts] = await Promise.all([
     prismadb.saleDetail.findMany({
       where: {
         customerId,
@@ -130,6 +131,35 @@ async function getCustomerStatement(rawParams: unknown) {
         receiptAllocations: { select: { allocatedAmount: true } },
       },
       orderBy: { saleDate: "asc" },
+    }),
+    prismadb.saleReturn.findMany({
+      where: {
+        ...(saleReturnDateFilter && { returnDate: saleReturnDateFilter }),
+        OR: [
+          { customerId },
+          { saleDetail: { customerId } },
+        ],
+      },
+      select: {
+        id: true,
+        returnDate: true,
+        amount: true,
+        gstAmount: true,
+        creditNoteAmount: true,
+        reference: true,
+        status: true,
+        saleDetailId: true,
+        saleDetail: {
+          select: {
+            id: true,
+            saleDate: true,
+            invoiceNumber: true,
+            description: true,
+            tourPackageQuery: { select: { id: true, tourPackageQueryNumber: true } },
+          },
+        },
+      },
+      orderBy: { returnDate: "asc" },
     }),
     prismadb.receiptDetail.findMany({
       where: {
@@ -145,18 +175,24 @@ async function getCustomerStatement(rawParams: unknown) {
   ]);
 
   const totalInvoiced = sales.reduce((s, r) => s + r.salePrice + (r.gstAmount ?? 0), 0);
+  const totalReturned = saleReturns.reduce((s, r) => s + r.amount + (r.gstAmount ?? 0), 0);
   const totalReceived = receipts.reduce((s, r) => s + r.amount, 0);
 
   return {
     customer,
     period: { startDate: startDate ?? "all", endDate: endDate ?? "all" },
     totalInvoiced,
+    totalReturned,
     totalReceived,
-    balance: totalInvoiced - totalReceived,
+    balance: totalInvoiced - totalReturned - totalReceived,
     sales: sales.map((s) => ({
       ...s,
       total: s.salePrice + (s.gstAmount ?? 0),
       allocated: s.receiptAllocations.reduce((sum, a) => sum + a.allocatedAmount, 0),
+    })),
+    saleReturns: saleReturns.map((saleReturn) => ({
+      ...saleReturn,
+      total: saleReturn.amount + (saleReturn.gstAmount ?? 0),
     })),
     receipts,
   };
@@ -168,9 +204,10 @@ async function getSupplierStatement(rawParams: unknown) {
   if (!supplier) throw new NotFoundError(`Supplier ${supplierId} not found`);
 
   const purchaseDateFilter = buildDateFilter(startDate, endDate);
+  const purchaseReturnDateFilter = buildDateFilter(startDate, endDate);
   const paymentDateFilter = buildDateFilter(startDate, endDate);
 
-  const [purchases, payments] = await Promise.all([
+  const [purchases, purchaseReturns, payments] = await Promise.all([
     prismadb.purchaseDetail.findMany({
       where: {
         supplierId,
@@ -182,6 +219,34 @@ async function getSupplierStatement(rawParams: unknown) {
         paymentAllocations: { select: { allocatedAmount: true } },
       },
       orderBy: { purchaseDate: "asc" },
+    }),
+    prismadb.purchaseReturn.findMany({
+      where: {
+        ...(purchaseReturnDateFilter && { returnDate: purchaseReturnDateFilter }),
+        OR: [
+          { supplierId },
+          { purchaseDetail: { supplierId } },
+        ],
+      },
+      select: {
+        id: true,
+        returnDate: true,
+        amount: true,
+        gstAmount: true,
+        reference: true,
+        status: true,
+        purchaseDetailId: true,
+        purchaseDetail: {
+          select: {
+            id: true,
+            purchaseDate: true,
+            billNumber: true,
+            description: true,
+            tourPackageQuery: { select: { id: true, tourPackageQueryNumber: true } },
+          },
+        },
+      },
+      orderBy: { returnDate: "asc" },
     }),
     prismadb.paymentDetail.findMany({
       where: {
@@ -197,18 +262,24 @@ async function getSupplierStatement(rawParams: unknown) {
   ]);
 
   const totalBilled = purchases.reduce((s, r) => s + (r.netPayable ?? (r.price + (r.gstAmount ?? 0))), 0);
+  const totalReturned = purchaseReturns.reduce((s, r) => s + r.amount + (r.gstAmount ?? 0), 0);
   const totalPaid = payments.reduce((s, r) => s + r.amount, 0);
 
   return {
     supplier,
     period: { startDate: startDate ?? "all", endDate: endDate ?? "all" },
     totalBilled,
+    totalReturned,
     totalPaid,
-    balance: totalBilled - totalPaid,
+    balance: totalBilled - totalReturned - totalPaid,
     purchases: purchases.map((p) => ({
       ...p,
       total: p.netPayable ?? (p.price + (p.gstAmount ?? 0)),
       allocated: p.paymentAllocations.reduce((sum, a) => sum + a.allocatedAmount, 0),
+    })),
+    purchaseReturns: purchaseReturns.map((purchaseReturn) => ({
+      ...purchaseReturn,
+      total: purchaseReturn.amount + (purchaseReturn.gstAmount ?? 0),
     })),
     payments,
   };

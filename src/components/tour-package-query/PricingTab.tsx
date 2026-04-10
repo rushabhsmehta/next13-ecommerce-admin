@@ -221,6 +221,10 @@ const PricingTab: React.FC<PricingTabProps> = ({
     return numAdultsPax;
   }, [numAdultsPax, numChild5to12Pax, numChild0to5Pax]);
 
+  // Matches descriptions that were auto-computed by this logic (e.g. "23900 × 8 = ₹1,91,200")
+  const isAutoComputedDescription = (desc: string): boolean =>
+    /^\d+ × \d+ = ₹[\d,]+$/.test(desc.trim());
+
   // Auto-update descriptions when pax counts change
   const pricingValues = form.watch('pricingSection');
   useEffect(() => {
@@ -228,12 +232,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
     pricingValues.forEach((item: any, index: number) => {
       const price = parseFloat(item.price || '0');
       const pax = getPaxForItem(item.name || '');
+      const currentDesc = item.description || '';
+
+      // Only touch descriptions that are empty or were previously auto-computed;
+      // skip descriptions the user has manually edited.
+      if (currentDesc && !isAutoComputedDescription(currentDesc)) return;
+
       if (price > 0 && pax > 0) {
         const total = price * pax;
         const computed = `${price.toFixed(0)} × ${pax} = ₹${total.toLocaleString('en-IN')}`;
-        if (item.description !== computed) {
+        if (currentDesc !== computed) {
           form.setValue(`pricingSection.${index}.description`, computed, { shouldDirty: false });
         }
+      } else if (currentDesc && pax === 0) {
+        // Pax dropped to zero — clear the now-stale auto-computed formula
+        form.setValue(`pricingSection.${index}.description`, '', { shouldDirty: false });
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps

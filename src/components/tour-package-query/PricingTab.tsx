@@ -204,6 +204,54 @@ const PricingTab: React.FC<PricingTabProps> = ({
     initializeFromForm();
   }, [form, isInitialLoad]);
 
+  // Watch pax counts for auto-calculating pricing descriptions
+  const numAdultsRaw = form.watch('numAdults');
+  const numChild5to12Raw = form.watch('numChild5to12');
+  const numChild0to5Raw = form.watch('numChild0to5');
+  const numAdultsPax = parseInt(numAdultsRaw || '0', 10) || 0;
+  const numChild5to12Pax = parseInt(numChild5to12Raw || '0', 10) || 0;
+  const numChild0to5Pax = parseInt(numChild0to5Raw || '0', 10) || 0;
+
+  // Returns the relevant pax count based on pricing item name
+  const getPaxForItem = useCallback((itemName: string): number => {
+    const n = itemName.toLowerCase();
+    if (n.includes('child') && (n.includes('5') || n.includes('11') || n.includes('12'))) return numChild5to12Pax;
+    if (n.includes('child') && (n.includes('0') || n.includes('below 5') || n.includes('infant'))) return numChild0to5Pax;
+    if (n.includes('air fare') || n.includes('airfare')) return numAdultsPax + numChild5to12Pax + numChild0to5Pax;
+    return numAdultsPax;
+  }, [numAdultsPax, numChild5to12Pax, numChild0to5Pax]);
+
+  // Matches descriptions that were auto-computed by this logic (e.g. "23900 × 8 = ₹1,91,200")
+  const isAutoComputedDescription = (desc: string): boolean =>
+    /^\d+ × \d+ = ₹[\d,]+$/.test(desc.trim());
+
+  // Auto-update descriptions when pax counts change
+  const pricingValues = form.watch('pricingSection');
+  useEffect(() => {
+    if (!pricingValues) return;
+    pricingValues.forEach((item: any, index: number) => {
+      const price = parseFloat(item.price || '0');
+      const pax = getPaxForItem(item.name || '');
+      const currentDesc = item.description || '';
+
+      // Only touch descriptions that are empty or were previously auto-computed;
+      // skip descriptions the user has manually edited.
+      if (currentDesc && !isAutoComputedDescription(currentDesc)) return;
+
+      if (price > 0 && pax > 0) {
+        const total = price * pax;
+        const computed = `${price.toFixed(0)} × ${pax} = ₹${total.toLocaleString('en-IN')}`;
+        if (currentDesc !== computed) {
+          form.setValue(`pricingSection.${index}.description`, computed, { shouldDirty: false });
+        }
+      } else if (currentDesc && pax === 0) {
+        // Pax dropped to zero — clear the now-stale auto-computed formula
+        form.setValue(`pricingSection.${index}.description`, '', { shouldDirty: false });
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [numAdultsPax, numChild5to12Pax, numChild0to5Pax]);
+
   // Set up field array for pricing section
   const {
     fields: pricingFields,
@@ -1410,10 +1458,23 @@ const PricingTab: React.FC<PricingTabProps> = ({
                         <FormControl>
                           <Input
                             {...field}
-                            disabled={loading} // Only disable when loading
+                            disabled={loading}
                             placeholder="e.g., 15000"
                             type="number"
                             className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const price = parseFloat(e.target.value || '0');
+                              const itemName = form.getValues(`pricingSection.${index}.name`) || '';
+                              const pax = getPaxForItem(itemName);
+                              if (price > 0 && pax > 0) {
+                                const total = price * pax;
+                                form.setValue(
+                                  `pricingSection.${index}.description`,
+                                  `${price.toFixed(0)} × ${pax} = ₹${total.toLocaleString('en-IN')}`
+                                );
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />

@@ -632,8 +632,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                               <FormItem className="mb-0">
                                 <Select
                                   disabled={loading}
-                                  onValueChange={field.onChange}
-                                  value={field.value || ""} defaultValue={field.value || ""}
+                                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                                  value={field.value ? field.value : "none"}
                                 >
                                   <FormControl>
                                     <SelectTrigger className="h-10 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200">
@@ -641,7 +641,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
                                     {units.map((unit) => (
                                       <SelectItem key={unit.id} value={unit.id}>
                                         {unit.name} ({unit.abbreviation})
@@ -693,9 +693,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                               <FormItem className="mb-0">
                                 <Select
                                   disabled={loading}
-                                  onValueChange={field.onChange}
-                                  value={field.value || ""}
-                                  defaultValue={field.value || ""}
+                                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                                  value={field.value ? field.value : "none"}
                                 >
                                   <FormControl>
                                     <SelectTrigger className="h-10 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200">
@@ -703,7 +702,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
                                     {taxSlabs.map((tax) => (
                                       <SelectItem key={tax.id} value={tax.id}>
                                         {tax.name} ({tax.percentage}%)

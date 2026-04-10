@@ -176,9 +176,8 @@ export const NewSaleForm: React.FC<NewSaleFormProps> = ({
                   <FormLabel>Tour Package (Optional)</FormLabel>
                   <Select
                     disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    defaultValue={field.value}
+                    onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                    value={field.value ? field.value : "none"}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -186,7 +185,7 @@ export const NewSaleForm: React.FC<NewSaleFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {tourPackageQueries.map((tpq) => (
                         <SelectItem key={tpq.id} value={tpq.id}>
                           {tpq.tourPackageQueryName}

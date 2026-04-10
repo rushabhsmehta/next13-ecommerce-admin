@@ -644,8 +644,8 @@ export const SaleItemsForm: React.FC<SaleItemsFormProps> = ({
                           <FormItem>
                             <FormLabel>Tax Rate</FormLabel>
                             <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
+                              value={field.value ? field.value : "none"}
+                              onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
                               disabled={loading}
                             >
                               <FormControl>
@@ -654,7 +654,7 @@ export const SaleItemsForm: React.FC<SaleItemsFormProps> = ({
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">No Tax</SelectItem>
+                                <SelectItem value="none">No Tax</SelectItem>
                                 {taxSlabs.map((slab) => (
                                   <SelectItem key={slab.id} value={slab.id}>
                                     {slab.name} ({slab.percentage}%)

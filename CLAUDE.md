@@ -34,6 +34,10 @@ npm run test:accounts # Run accounting module tests
 npm run sync-whatsapp-templates   # Sync WhatsApp templates
 npm run cleanup-database          # Auto-cleanup daily
 npm run check-db-health           # Check database health
+npm run vercel-build              # Prisma generation + Next.js build for Vercel
+npm run postinstall               # Auto-runs Prisma generation after npm install
+npm run seed-whatsapp-templates   # Seeds WhatsApp templates
+npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
 ```
 
 ## Project Structure
@@ -46,6 +50,9 @@ npm run check-db-health           # Check database health
 ├── mcp-server/              # Custom MCP server for Claude integrations
 ├── scripts/                 # Node.js utility scripts (WhatsApp, DB maintenance)
 ├── docs/                    # Documentation files
+├── flow-keys/              # RSA key pair for WhatsApp Flow encryption
+├── tools/                  # Utility scripts (balance checks, data fixes)
+├── types/                  # Standalone TypeScript type definitions
 ├── mobile/                  # Mobile app (excluded from TypeScript)
 └── src/
     ├── app/
@@ -57,12 +64,14 @@ npm run check-db-health           # Check database health
     │   │   │   ├── bank-book/       # Bank reconciliation
     │   │   │   ├── cash-book/       # Cash reconciliation
     │   │   │   ├── export-contacts/
+    │   │   │   ├── follow-ups/      # Follow-up management
     │   │   │   ├── inquiries/       # Inquiry management & follow-ups
     │   │   │   ├── operational-staff/
     │   │   │   ├── settings/        # Config: meal-plans, room-types, vehicle-types,
     │   │   │   │                    #   occupancy-types, pricing-attributes, pricing-components
     │   │   │   ├── tourpackagequeryfrominquiry/  # Convert inquiry to tour query
     │   │   │   │   └── associate/   # Associate partner version (tabbed form)
+    │   │   │   ├── website-management/  # Website content management
     │   │   │   └── transport-pricing/
     │   │   └── Direct dashboard modules:
     │   │       ├── accounts/        # Financial overview (bank/cash balances)
@@ -81,7 +90,8 @@ npm run check-db-health           # Check database health
     │   │       ├── ledger/
     │   │       ├── locations/ & locations-suppliers/
     │   │       ├── payments/, purchases/, receipts/, sales/
-    │   │       ├── purchase-returns/ & sale-returns/
+    │   │       ├── purchase-returns/     # Includes supplier-credits/ sub-route
+    │   │       ├── sale-returns/         # Includes credit-notes/ sub-route
     │   │       ├── reports/
     │   │       ├── suppliers/
     │   │       ├── tds/               # Tax deducted at source
@@ -99,7 +109,7 @@ npm run check-db-health           # Check database health
     │   │       ├── viewpdfpage/
     │   │       └── whatsapp/
     │   ├── (root)/          # Public homepage
-    │   ├── api/             # API routes (68 top-level endpoints, 197 total routes)
+    │   ├── api/             # API routes (75 top-level endpoints)
     │   │   └── mcp/         # MCP gateway + OAuth + 18 handler modules
     │   ├── mcp/             # MCP authorization routes (OAuth PKCE)
     │   ├── ops/             # Operations staff routes
@@ -141,7 +151,12 @@ npm run check-db-health           # Check database health
     │   ├── tour-package-query-accounting*.ts  # Accounting module (schema, helpers, persistence, route)
     │   ├── ai/                  # AI utility modules
     │   ├── pdf/                 # PDF generation utilities
+    │   │   ├── branding.ts      # PDF branding utilities
+    │   │   ├── styles.ts        # PDF styling utilities
+    │   │   └── text-utils.ts    # PDF text utilities
     │   ├── utils/               # Additional utility modules
+    │   │   ├── audit-logger.ts  # Audit logging utility
+    │   │   └── csv-export.ts    # CSV export functionality
     │   ├── api-response.ts      # Standardized API response helpers
     │   ├── associate-utils.ts   # Associate partner utilities
     │   ├── constants.ts         # Application constants
@@ -185,6 +200,10 @@ Key models and relationships for the accounting system:
 **Key calculations:**
 - Outstanding receivables = `SUM(salePrice + gstAmount)` - `SUM(receiptAllocations.allocatedAmount)`
 - Outstanding payables = `SUM(netPayable ?? price + gstAmount)` - `SUM(paymentAllocations.allocatedAmount)`
+
+**Credit notes & supplier credits:**
+- **Credit notes** (customer side) are tracked via `SaleReturn` fields: `creditNoteAmount`, `creditNoteNumber`, `creditType`. Managed through `sale-returns/credit-notes/` dashboard route and `credit-notes/` API.
+- **Supplier credits** (supplier side) are tracked via `PurchaseReturn` fields: `supplierCreditType`, `supplierCreditExpiry`. Managed through `purchase-returns/supplier-credits/` dashboard route and `supplier-credits/` API.
 
 ## Path Aliases
 
@@ -324,12 +343,16 @@ Top-level routes in `src/app/api/`:
 | `bank-accounts/`, `cash-accounts/` | Account management |
 | `chat/` | Chat functionality |
 | `config/` | Application configuration |
+| `credit-notes/` | Credit note management |
+| `cron/` | Cron job endpoints |
 | `customers/` | Customer CRUD (includes `[id]/open-sales/`) |
+| `debug/` | Debug endpoints |
 | `destinations/` | Destination management |
 | `expense-categories/`, `expenses/` | Expense management (includes `expenses/accrued/`) |
 | `export/` | Data export endpoints |
 | `financial-records/` | Financial record management |
 | `flight-tickets/` | Flight ticket CRUD |
+| `follow-ups/` | Follow-up management API |
 | `generate-pdf/` | PDF generation endpoint |
 | `hotel-pricing/` | Hotel pricing config |
 | `hotels/` | Hotel CRUD |
@@ -353,12 +376,19 @@ Top-level routes in `src/app/api/`:
 | `report/` | Report generation |
 | `sale-purchase-links/` | Link sales to purchases |
 | `settings/` | Application settings |
+| `supplier-credits/` | Supplier credit management |
 | `suppliers/` | Supplier CRUD |
 | `tds/` | Tax deducted at source |
+| `test-twilio/` | Twilio integration testing |
 | `tourPackages/`, `tourPackagesForWebsite/`, `tourPackageBySlug/` | Tour packages |
 | `tourPackageQuery/` | Tour inquiries/quotes |
+| `transport-detail/` | Transport detail API |
 | `transport-pricing/` | Transport pricing |
+| `travel/` | Public-facing travel API |
 | `travel-users/` | Travel app user management |
+| `uploads/` | File upload endpoints |
+| `vehicle-types/` | Vehicle type lookup API (standalone) |
+| `website-inquiry/` | Website inquiry endpoint |
 | `whatsapp/` | WhatsApp messages, campaigns, catalogs |
 
 ## Sidebar Structure (Finance Section)
@@ -380,6 +410,8 @@ Required variables (see `.env` for full list):
 - `META_WHATSAPP_PHONE_NUMBER_ID` / `META_WHATSAPP_ACCESS_TOKEN` — WhatsApp
 - `MCP_API_SECRET` — Secret for MCP gateway authentication
 - `R2_*` — Cloudflare R2 credentials (bucket, access key, secret, endpoint)
+- `CRON_SECRET` — Cron job authentication
+- `WHATSAPP_FLOW_PRIVATE_KEY` / `WHATSAPP_FLOW_KEY_PASSPHRASE` — WhatsApp Flow encryption
 
 ## Linting & TypeScript
 

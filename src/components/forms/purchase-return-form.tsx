@@ -757,14 +757,14 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
                                                             <FormControl>
                                                                 <Select
                                                                     disabled={loading}
-                                                                    value={field.value || ""}
-                                                                    onValueChange={field.onChange}
+                                                                    value={field.value ? field.value : "none"}
+                                                                    onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
                                                                 >
                                                                     <SelectTrigger className="h-11 border-gray-300 hover:border-purple-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-colors">
                                                                         <SelectValue placeholder="Select tax rate" />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
-                                                                        <SelectItem value="">No Tax</SelectItem>
+                                                                        <SelectItem value="none">No Tax</SelectItem>
                                                                         {taxSlabs.map((tax) => (
                                                                             <SelectItem key={tax.id} value={tax.id}>
                                                                                 {tax.name} ({tax.percentage}%)

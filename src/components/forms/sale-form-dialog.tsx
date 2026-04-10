@@ -678,16 +678,15 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                               <FormItem className="mb-0">
                                 <Select
                                   disabled={loading}
-                                  onValueChange={field.onChange}
-                                  value={field.value || ""}
-                                  defaultValue={field.value || ""}
+                                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                                  value={field.value ? field.value : "none"}
                                 >                                  <FormControl>
                                     <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
                                       <SelectValue placeholder="Unit" />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
                                     {units.map((unit) => (
                                       <SelectItem key={unit.id} value={unit.id}>
                                         {unit.name} ({unit.abbreviation})
@@ -742,16 +741,15 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                               <FormItem className="mb-0">
                                 <Select
                                   disabled={loading}
-                                  onValueChange={field.onChange}
-                                  value={field.value || ""}
-                                  defaultValue={field.value || ""}
+                                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                                  value={field.value ? field.value : "none"}
                                 >                                  <FormControl>
                                     <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
                                       <SelectValue placeholder="Tax" />
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
                                     {taxSlabs.map((tax) => (
                                       <SelectItem key={tax.id} value={tax.id}>
                                         {tax.name} ({tax.percentage}%)

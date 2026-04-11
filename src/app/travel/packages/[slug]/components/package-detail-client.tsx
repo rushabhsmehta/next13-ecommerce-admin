@@ -101,7 +101,7 @@ export function PackageDetailClient({
   };
 
   return (
-    <div className="min-h-screen pt-16 bg-white">
+    <div className="min-h-screen bg-white">
       {/* Image Gallery */}
       <div className="relative">
         <div className="relative h-[45vh] sm:h-[55vh] lg:h-[60vh] overflow-hidden">
@@ -119,7 +119,7 @@ export function PackageDetailClient({
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
           {/* Back Button & Actions */}
-          <div className="absolute top-4 left-4 right-4 flex justify-between">
+          <div className="absolute top-20 left-4 right-4 flex justify-between">
             <Link
               href="/travel/packages"
               className="flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-xl rounded-xl text-white hover:bg-white/25 transition-all duration-200 text-sm"
@@ -239,9 +239,12 @@ export function PackageDetailClient({
                               D{day.dayNumber || index + 1}
                             </div>
                             <div className="text-left">
-                              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
-                                {day.itineraryTitle || `Day ${day.dayNumber || index + 1}`}
-                              </h3>
+                              <h3
+                                className="font-semibold text-gray-900 text-sm sm:text-base"
+                                dangerouslySetInnerHTML={{
+                                  __html: DOMPurify.sanitize(day.itineraryTitle || `Day ${day.dayNumber || index + 1}`)
+                                }}
+                              />
                               {day.hotel && (
                                 <span className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                   <Hotel className="w-3 h-3" /> {day.hotel.name}
@@ -275,7 +278,12 @@ export function PackageDetailClient({
                             {day.itineraryDescription && (
                               <div
                                 className="text-gray-600 text-sm leading-relaxed mb-4 prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(day.itineraryDescription) }}
+                                dangerouslySetInnerHTML={{
+                                __html: DOMPurify.sanitize(day.itineraryDescription, {
+                                  ALLOWED_TAGS: ['p','br','b','strong','i','em','u','ul','ol','li','h1','h2','h3','h4','span','div','a'],
+                                  ALLOWED_ATTR: ['href','target','rel','class','style']
+                                })
+                              }}
                               />
                             )}
 
@@ -291,14 +299,16 @@ export function PackageDetailClient({
                                     className="bg-orange-50/60 rounded-xl p-3"
                                   >
                                     {activity.activityTitle && (
-                                      <p className="text-sm font-medium text-orange-800">
-                                        {activity.activityTitle}
-                                      </p>
+                                      <p
+                                        className="text-sm font-medium text-orange-800"
+                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activity.activityTitle) }}
+                                      />
                                     )}
                                     {activity.activityDescription && (
-                                      <p className="text-xs text-orange-700/70 mt-1">
-                                        {activity.activityDescription}
-                                      </p>
+                                      <p
+                                        className="text-xs text-orange-700/70 mt-1"
+                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activity.activityDescription) }}
+                                      />
                                     )}
                                     {activity.activityImages?.length > 0 && (
                                       <div className="flex gap-2 mt-2 overflow-x-auto scrollbar-hide">

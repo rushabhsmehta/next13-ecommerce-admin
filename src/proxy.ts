@@ -15,6 +15,8 @@ const isPublicRoute = createRouteMatcher([
   "/travel/packages/(.*)",
   "/travel/destinations",
   "/travel/destinations/(.*)",
+  "/travel/account-deletion",
+  "/travel/data-deletion",
   "/api/travel/packages",
   "/api/travel/destinations",
   "/api/travel/search",

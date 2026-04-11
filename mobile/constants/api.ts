@@ -3,12 +3,19 @@
 // The travel website is served at https://aagamholidays.com (Next.js /travel routes)
 // The mobile app connects to the same backend API
 
+const apiBaseOverride = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+const websiteOverride = process.env.EXPO_PUBLIC_WEBSITE_URL?.trim();
+
 // DEV: use local development host reachable from your phone (LAN IP)
-export const API_BASE_URL = __DEV__
-  ? "http://192.168.1.6:3000"
-  : "https://admin.aagamholidays.com";
+export const API_BASE_URL = apiBaseOverride
+  ? apiBaseOverride
+  : __DEV__
+    ? "http://192.168.29.133:3000"
+    : "https://admin.aagamholidays.com";
 
 // DEV: mobile app will use the local backend's /travel path when in development
-export const WEBSITE_URL = __DEV__
-  ? "http://192.168.1.6:3000/travel"
-  : "https://aagamholidays.com";
+export const WEBSITE_URL = websiteOverride
+  ? websiteOverride
+  : __DEV__
+    ? "http://192.168.29.133:3000/travel"
+    : "https://aagamholidays.com";

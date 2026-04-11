@@ -1,0 +1,33 @@
+name: EAS Update (Mobile)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - mobile/**
+
+jobs:
+  update:
+    name: Push OTA update to Expo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Install dependencies
+        run: cd mobile && npm install
+
+      - name: Push EAS Update
+        run: cd mobile && eas update --branch production --message "${{ github.event.head_commit.message }}" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

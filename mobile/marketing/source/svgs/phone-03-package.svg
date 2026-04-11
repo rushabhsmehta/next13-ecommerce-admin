@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" fill="none">
+  <defs>
+    <linearGradient id="brandGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0862a"/>
+      <stop offset="100%" stop-color="#c23a5e"/>
+    </linearGradient>
+    <linearGradient id="warmGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFD6A8"/>
+      <stop offset="100%" stop-color="#F97316"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#D95C2B" flood-opacity="0.14"/>
+    </filter>
+    
+  </defs>
+  
+      <rect x="0" y="0" width="1080" height="1920" rx="0" fill="#faf9f8" />
+      
+    <rect x="0" y="0" width="1080" height="712.8000000000001" rx="28" fill="url(#warmGradient)" />
+    <path d="M 86.4 570.2400000000001 C 302.40000000000003 342.144, 432 456.19200000000006, 626.4 299.37600000000003 S 950.4 399.16800000000006, 1015.1999999999999 213.84" stroke="rgba(255,255,255,0.72)" stroke-width="19.439999999999998" fill="none" stroke-linecap="round"/>
+    <circle cx="842.4" cy="171.072" r="86.4" fill="rgba(255,255,255,0.56)" />
+    <text x="86.4" y="128.304" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="75.60000000000001" font-weight="700" text-anchor="start">GOA</text>
+  
+      
+    <text x="54" y="64.26" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="37" font-weight="700" text-anchor="start">9:41</text>
+    <rect x="874.8" y="59.5" width="48.6" height="21.6" rx="4" fill="#ffffff" />
+    <rect x="933.12" y="59.5" width="42.12" height="21.6" rx="4" fill="#ffffff" opacity="0.82"/>
+    <rect x="988.2" y="59.5" width="25.92" height="21.6" rx="4" fill="#ffffff" opacity="0.65"/>
+  
+      <rect x="0" y="691.2" width="1080" height="1228.7999999999997" rx="86.4" fill="#faf9f8" />
+      <rect x="54" y="756.0000000000001" width="259.2" height="86.4" rx="43.2" fill="url(#brandGradient)" />
+      <text x="183.6" y="813.24" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" text-anchor="middle">Domestic</text>
+      <text x="54" y="918" fill="#1c1917" font-family="Arial, Helvetica, sans-serif" font-size="76" font-weight="800" text-anchor="start">Luxury Goa Escape</text>
+      <text x="54" y="1004.4000000000001" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="600" text-anchor="start">North Goa · 5 days · Beachside stays</text>
+      <rect x="54" y="1069.2" width="270" height="108" rx="54" fill="url(#brandGradient)" />
+      <text x="189" y="1139.4" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" text-anchor="middle">Itinerary</text>
+      <rect x="367.2" y="1069.2" width="270" height="108" rx="54" fill="#ffffff" stroke="#e8e5e1" stroke-width="2"/>
+      <text x="502.2" y="1139.4" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" text-anchor="middle">Inclusions</text>
+      <rect x="680.4" y="1069.2" width="270" height="108" rx="54" fill="#ffffff" stroke="#e8e5e1" stroke-width="2"/>
+      <text x="815.4" y="1139.4" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" text-anchor="middle">Policies</text>
+      
+    <rect x="54" y="1231.2" width="972" height="349.91999999999996" rx="28" fill="#ffffff" stroke="#e8e5e1" stroke-width="2"/>
+    <rect x="74" y="1251.2" width="155.52" height="155.52" rx="24" fill="url(#brandGradient)" />
+    <text x="131.76" y="1342.98" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="49" font-weight="800" text-anchor="middle">D1</text>
+    <text x="267.84000000000003" y="1328.4" fill="#1c1917" font-family="Arial, Helvetica, sans-serif" font-size="63" font-weight="700" text-anchor="start">Arrival + Sunset Cruise</text>
+    <text x="267.84000000000003" y="1406.16" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="500" text-anchor="start">Private transfer, check-in and marina evening</text>
+    <rect x="267.84000000000003" y="1454.76" width="583.1999999999999" height="10" rx="999" fill="#f5f3f1" />
+    <rect x="267.84000000000003" y="1493.64" width="408.24" height="10" rx="999" fill="#f5f3f1" />
+  
+      
+    <rect x="54" y="1663.2" width="972" height="349.91999999999996" rx="28" fill="#ffffff" stroke="#e8e5e1" stroke-width="2"/>
+    <rect x="74" y="1683.2" width="155.52" height="155.52" rx="24" fill="url(#brandGradient)" />
+    <text x="131.76" y="1774.98" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="49" font-weight="800" text-anchor="middle">D2</text>
+    <text x="267.84000000000003" y="1760.4" fill="#1c1917" font-family="Arial, Helvetica, sans-serif" font-size="63" font-weight="700" text-anchor="start">North Goa Beaches</text>
+    <text x="267.84000000000003" y="1838.16" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="500" text-anchor="start">Fort Aguada, Candolim and curated dining</text>
+    <rect x="267.84000000000003" y="1886.76" width="583.1999999999999" height="10" rx="999" fill="#f5f3f1" />
+    <rect x="267.84000000000003" y="1925.64" width="408.24" height="10" rx="999" fill="#f5f3f1" />
+  
+      <rect x="54" y="1704" width="972" height="129.6" rx="64.8" fill="url(#brandGradient)" filter="url(#softShadow)"/>
+      <text x="540" y="1787.16" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="43" font-weight="800" text-anchor="middle">Enquire Now</text>
+    
+</svg>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2560" viewBox="0 0 1600 2560" fill="none">
+  <defs>
+    <linearGradient id="brandGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0862a"/>
+      <stop offset="100%" stop-color="#c23a5e"/>
+    </linearGradient>
+    <linearGradient id="warmGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFD6A8"/>
+      <stop offset="100%" stop-color="#F97316"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#D95C2B" flood-opacity="0.14"/>
+    </filter>
+    
+  </defs>
+  
+      <rect x="0" y="0" width="1600" height="2560" rx="0" fill="#faf9f8" />
+      
+    <rect x="80" y="176" width="1440" height="768" rx="28" fill="url(#warmGradient)" />
+    <path d="M 195.2 790.4000000000001 C 483.20000000000005 544.64, 656 667.52, 915.1999999999999 498.56 S 1347.2 606.08, 1433.6 406.4" stroke="rgba(255,255,255,0.72)" stroke-width="25.919999999999998" fill="none" stroke-linecap="round"/>
+    <circle cx="1203.2" cy="360.32" r="115.2" fill="rgba(255,255,255,0.56)" />
+    <text x="195.2" y="314.24" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="100.80000000000001" font-weight="700" text-anchor="start">GOA</text>
+  
+      
+    <text x="80" y="95.04" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="700" text-anchor="start">9:41</text>
+    <rect x="1296" y="88" width="72" height="32" rx="4" fill="#ffffff" />
+    <rect x="1382.4" y="88" width="62.4" height="32" rx="4" fill="#ffffff" opacity="0.82"/>
+    <rect x="1464" y="88" width="38.4" height="32" rx="4" fill="#ffffff" opacity="0.65"/>
+  
+      <rect x="80" y="912" width="1440" height="1280" rx="64" fill="#faf9f8" />
+      <rect x="112" y="976" width="224.00000000000003" height="80" rx="40" fill="url(#brandGradient)" />
+      <text x="224" y="1032" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" text-anchor="middle">Domestic</text>
+      <text x="112" y="1120" fill="#1c1917" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="800" text-anchor="start">Luxury Goa Escape</text>
+      <text x="112" y="1200" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="600" text-anchor="start">North Goa · 5 days · Beachside stays</text>
+      <rect x="112" y="1264" width="176" height="80" rx="40" fill="url(#brandGradient)" />
+      <text x="200" y="1316.8" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="middle">Itinerary</text>
+      <rect x="320" y="1264" width="176" height="80" rx="40" fill="#ffffff" stroke="#e8e5e1" stroke-width="2"/>
+      <text x="408" y="1316.8" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="middle">Inclusions</text>
+      <rect x="528" y="1264" width="176" height="80" rx="40" fill="#ffffff" stroke="#e8e5e1" stroke-width="2"/>
+      <text x="616" y="1316.8" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" text-anchor="middle">Policies</text>
+      
+    <rect x="112" y="1408" width="816" height="293.76" rx="28" fill="#ffffff" stroke="#e8e5e1" stroke-width="2"/>
+    <rect x="132" y="1428" width="130.56" height="130.56" rx="24" fill="url(#brandGradient)" />
+    <text x="177.28" y="1501.84" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="41" font-weight="800" text-anchor="middle">D1</text>
+    <text x="291.52" y="1489.6" fill="#1c1917" font-family="Arial, Helvetica, sans-serif" font-size="53" font-weight="700" text-anchor="start">Arrival + Sunset Cruise</text>
+    <text x="291.52" y="1554.88" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="500" text-anchor="start">Private transfer, check-in and marina evening</text>
+    <rect x="291.52" y="1595.68" width="489.59999999999997" height="10" rx="999" fill="#f5f3f1" />
+    <rect x="291.52" y="1628.32" width="342.71999999999997" height="10" rx="999" fill="#f5f3f1" />
+  
+      
+    <rect x="112" y="1824" width="816" height="293.76" rx="28" fill="#ffffff" stroke="#e8e5e1" stroke-width="2"/>
+    <rect x="132" y="1844" width="130.56" height="130.56" rx="24" fill="url(#brandGradient)" />
+    <text x="177.28" y="1917.84" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="41" font-weight="800" text-anchor="middle">D2</text>
+    <text x="291.52" y="1905.6" fill="#1c1917" font-family="Arial, Helvetica, sans-serif" font-size="53" font-weight="700" text-anchor="start">North Goa Beaches</text>
+    <text x="291.52" y="1970.88" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="500" text-anchor="start">Fort Aguada, Candolim and curated dining</text>
+    <rect x="291.52" y="2011.68" width="489.59999999999997" height="10" rx="999" fill="#f5f3f1" />
+    <rect x="291.52" y="2044.32" width="342.71999999999997" height="10" rx="999" fill="#f5f3f1" />
+  
+      <rect x="976" y="976" width="544" height="736" rx="48" fill="#ffffff" stroke="#e8e5e1" stroke-width="2" filter="url(#softShadow)"/>
+      <text x="1024" y="1088" fill="#1c1917" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="800" text-anchor="start">Why travelers love this trip</text>
+      <circle cx="1040" cy="1188.8" r="12.8" fill="#e8612d" />
+      <text x="1088" y="1200" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="600" text-anchor="start">Luxury beach stays</text>
+      <circle cx="1040" cy="1300.8" r="12.8" fill="#e8612d" />
+      <text x="1088" y="1312" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="600" text-anchor="start">Private airport transfers</text>
+      <circle cx="1040" cy="1412.8" r="12.8" fill="#e8612d" />
+      <text x="1088" y="1424" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="600" text-anchor="start">Expert local support</text>
+      <circle cx="1040" cy="1524.8" r="12.8" fill="#e8612d" />
+      <text x="1088" y="1536" fill="#78716c" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="600" text-anchor="start">Instant trip chat updates</text>
+      <rect x="80" y="2288" width="1440" height="128" rx="64" fill="url(#brandGradient)" />
+      <text x="800" y="2371.2" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="800" text-anchor="middle">Enquire Now</text>
+    
+</svg>

@@ -44,3 +44,6 @@ mobile/node_modules/
 mobile/.expo/
 mobile/dist/
 mobile/web-build/
+
+# Claude local settings
+.claude/settings.local.json

@@ -20,6 +20,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/travel/packages",
   "/api/travel/destinations",
   "/api/travel/search",
+  "/api/tourPackageBySlug/(.*)",
   "/api/mcp",
 ]);
 

@@ -1,6 +1,8 @@
 node_modules/
 .expo/
 dist/
+expo-web.log
+expo-web.err.log
 *.jks
 *.p8
 *.p12

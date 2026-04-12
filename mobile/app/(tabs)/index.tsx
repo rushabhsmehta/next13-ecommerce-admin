@@ -8,7 +8,6 @@ import {
   Pressable,
   TextInput,
   RefreshControl,
-  Dimensions,
   ActivityIndicator,
   Linking,
 } from "react-native";
@@ -18,10 +17,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 const PHONE_NUMBER = "+919724444701";
-const WHATSAPP_NUMBER = "919724444701"; // Without +, for wa.me
+const WHATSAPP_NUMBER = "919724444701";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -38,67 +35,38 @@ export default function HomeScreen() {
         travelApi.getDestinations(),
         travelApi.getPackages({ limit: 6 }),
       ]);
-
-      if (destResult.status === "fulfilled") {
+      if (destResult.status === "fulfilled")
         setDestinations(destResult.value.destinations || []);
-      }
-
       if (pkgResult.status === "fulfilled") {
         const pkgs = pkgResult.value.packages || [];
         setPackages(pkgs);
-        const cats = [
-          ...new Set(pkgs.map((p: any) => p.tourCategory).filter(Boolean)),
-        ] as string[];
-        setCategories(cats);
+        setCategories([...new Set(pkgs.map((p: any) => p.tourCategory).filter(Boolean))] as string[]);
       } else {
         console.error("Failed to load packages:", pkgResult.reason);
       }
-    } catch (error) {
-      console.error("Failed to load data:", error);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSearch = () => {
-    if (searchQuery.trim()) {
-      router.push({
-        pathname: "/(tabs)/explore",
-        params: { q: searchQuery.trim() },
-      });
-    }
-  };
-
-  const handleCategoryTap = (cat: string) => {
-    router.push({
-      pathname: "/(tabs)/explore",
-      params: { category: cat },
-    });
-  };
-
-  const handleCall = () => {
-    Linking.openURL(`tel:${PHONE_NUMBER}`);
-  };
-
-  const handleWhatsApp = () => {
-    Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}?text=Hi, I would like to plan a tour.`);
+    if (searchQuery.trim())
+      router.push({ pathname: "/(tabs)/explore", params: { q: searchQuery.trim() } });
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Discovering amazing places...</Text>
+        <Text style={styles.loadingText}>Discovering amazing places…</Text>
       </View>
     );
   }
-
-  const trendingPackages = packages;
 
   return (
     <ScrollView
@@ -107,146 +75,143 @@ export default function HomeScreen() {
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            fetchData();
-          }}
+          onRefresh={() => { setRefreshing(true); fetchData(); }}
           tintColor={Colors.primary}
         />
       }
     >
-      {/* Hero Section with Gradient */}
+      {/* ── Hero ─────────────────────────────────────────────────── */}
       <LinearGradient
         colors={[Colors.gradient1, Colors.gradient2]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.hero}
       >
-        <View style={styles.heroContent}>
-          <Text style={styles.heroBrand}>AAGAM HOLIDAYS</Text>
-          <Text style={styles.heroTitle}>
-            Discover Your{"\n"}Next Adventure
-          </Text>
-          <Text style={styles.heroSubtitle}>
-            Handcrafted tours to stunning destinations
-          </Text>
+        <Text style={styles.heroBrand}>AAGAM HOLIDAYS</Text>
+        <Text style={styles.heroTitle}>Discover Your{"\n"}Next Adventure</Text>
+        <Text style={styles.heroSubtitle}>Handcrafted tours to stunning destinations</Text>
 
-          {/* Premium Search Bar */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchIconWrap}>
-              <Ionicons name="search" size={16} color="#fff" />
-            </View>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Where do you want to go?"
-              placeholderTextColor={Colors.textTertiary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-            />
-          </View>
+        {/* Search bar */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={16} color={Colors.textTertiary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Where do you want to go?"
+            placeholderTextColor={Colors.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+          />
+          {searchQuery ? (
+            <Pressable onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+            </Pressable>
+          ) : null}
         </View>
       </LinearGradient>
 
-      {/* Curved bottom overlay */}
-      <View style={styles.curveOverlay} />
+      {/* Curved white ledge */}
+      <View style={styles.ledge} />
 
-      {/* Stats Cards */}
+      {/* ── Stats ────────────────────────────────────────────────── */}
       <View style={styles.statsRow}>
         {[
-          { icon: "map", label: "Destinations", value: `${destinations.length}+` },
-          { icon: "briefcase", label: "Packages", value: "50+" },
-          { icon: "heart", label: "Happy Travelers", value: "10K+" },
-        ].map((stat) => (
-          <View key={stat.label} style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Ionicons name={stat.icon as any} size={18} color={Colors.primary} />
-            </View>
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
+          { icon: "map" as const,       label: "Destinations",   value: `${destinations.length}+` },
+          { icon: "briefcase" as const, label: "Packages",       value: "50+" },
+          { icon: "heart" as const,     label: "Happy Clients",  value: "10K+" },
+        ].map((s) => (
+          <View key={s.label} style={styles.statCard}>
+            <LinearGradient colors={[Colors.gradient1, Colors.gradient2]} style={styles.statIcon}>
+              <Ionicons name={s.icon} size={16} color="#fff" />
+            </LinearGradient>
+            <Text style={styles.statValue}>{s.value}</Text>
+            <Text style={styles.statLabel}>{s.label}</Text>
           </View>
         ))}
       </View>
 
-      {/* Trending Packages — shown first so users see them immediately */}
-      {trendingPackages.length > 0 && (
+      {/* ── Trending Packages ─────────────────────────────────────── */}
+      {packages.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionLabel}>FEATURED</Text>
+              <Text style={styles.sectionEye}>FEATURED</Text>
               <Text style={styles.sectionTitle}>Trending Packages</Text>
             </View>
-            <Pressable
-              style={styles.seeAllBtn}
-              onPress={() => router.push("/(tabs)/explore")}
-            >
+            <Pressable style={styles.seeAll} onPress={() => router.push("/(tabs)/explore")}>
               <Text style={styles.seeAllText}>See All</Text>
-              <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+              <Ionicons name="arrow-forward" size={13} color={Colors.primary} />
             </Pressable>
           </View>
 
-          {trendingPackages.map((pkg) => (
+          {packages.map((pkg) => (
             <Pressable
               key={pkg.id}
-              style={styles.packageCard}
+              style={styles.pkgCard}
               onPress={() => router.push(`/packages/${pkg.slug || pkg.id}`)}
             >
-              <View style={styles.packageImageWrap}>
-                {pkg.images?.[0]?.url ? (
-                  <Image
-                    source={{ uri: pkg.images[0].url }}
-                    style={styles.packageImage}
-                  />
-                ) : (
-                  <LinearGradient
-                    colors={[Colors.gradient1, Colors.gradient2]}
-                    style={[styles.packageImage, { justifyContent: "center", alignItems: "center" }]}
-                  >
-                    <Ionicons name="image-outline" size={40} color="rgba(255,255,255,0.5)" />
-                  </LinearGradient>
-                )}
+              {/* Full-bleed image */}
+              {pkg.images?.[0]?.url ? (
+                <Image source={{ uri: pkg.images[0].url }} style={styles.pkgImage} />
+              ) : (
                 <LinearGradient
-                  colors={["transparent", "rgba(0,0,0,0.4)"]}
-                  style={styles.packageImageOverlay}
+                  colors={[Colors.gradient1, Colors.gradient2]}
+                  style={styles.pkgImage}
                 />
-                {pkg.tourCategory && (
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryBadgeText}>{pkg.tourCategory}</Text>
-                  </View>
-                )}
-                {pkg.numDaysNight && (
-                  <View style={styles.durationBadge}>
+              )}
+
+              {/* Gradient overlay */}
+              <LinearGradient
+                colors={["transparent", "rgba(0,0,0,0.22)", "rgba(0,0,0,0.82)"]}
+                locations={[0, 0.3, 1]}
+                style={styles.pkgOverlay}
+              />
+
+              {/* Top badges */}
+              <View style={styles.pkgTop}>
+                {pkg.numDaysNight ? (
+                  <View style={styles.durationPill}>
                     <Ionicons name="time-outline" size={11} color="#fff" />
-                    <Text style={styles.durationBadgeText}>{pkg.numDaysNight}</Text>
+                    <Text style={styles.durationPillText}>{pkg.numDaysNight}</Text>
                   </View>
-                )}
+                ) : null}
+                {pkg.tourCategory ? (
+                  <View style={styles.categoryPill}>
+                    <Text style={styles.categoryPillText}>{pkg.tourCategory}</Text>
+                  </View>
+                ) : null}
               </View>
-              <View style={styles.packageInfo}>
-                <View style={styles.packageAccent} />
-                <View style={styles.packageDetails}>
-                  <View style={styles.packageLocationRow}>
-                    <Ionicons name="location" size={12} color={Colors.primary} />
-                    <Text style={styles.packageLocation}>{pkg.location?.label}</Text>
+
+              {/* Bottom content */}
+              <View style={styles.pkgBottom}>
+                <View style={styles.pkgBottomLeft}>
+                  <View style={styles.locRow}>
+                    <Ionicons name="location-sharp" size={11} color="rgba(255,255,255,0.75)" />
+                    <Text style={styles.locText}>{pkg.location?.label || ""}</Text>
                   </View>
-                  <Text style={styles.packageName} numberOfLines={2}>
-                    {pkg.tourPackageName || "Tour Package"}
-                  </Text>
-                  <View style={styles.packageFooter}>
-                    {pkg.pricePerAdult ? (
-                      <View>
-                        <Text style={styles.priceLabel}>Starting from</Text>
-                        <Text style={styles.priceValue}>
-                          ₹{Number(pkg.pricePerAdult).toLocaleString("en-IN")}
-                          <Text style={styles.priceUnit}> /person</Text>
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.priceLabel}>Contact for pricing</Text>
-                    )}
-                    <View style={styles.arrowBtn}>
-                      <Ionicons name="arrow-forward" size={16} color="#fff" />
+                  <Text style={styles.pkgTitle} numberOfLines={2}>{pkg.tourPackageName || "Tour Package"}</Text>
+                  {pkg._count?.itineraries > 0 && (
+                    <View style={styles.itinRow}>
+                      <Ionicons name="map-outline" size={11} color="rgba(255,255,255,0.7)" />
+                      <Text style={styles.itinText}>{pkg._count.itineraries} day itinerary</Text>
                     </View>
+                  )}
+                </View>
+                <View style={styles.pkgBottomRight}>
+                  <View style={styles.priceBadge}>
+                    {pkg.pricePerAdult ? (
+                      <>
+                        <Text style={styles.priceFrom}>from</Text>
+                        <Text style={styles.priceValue}>₹{Number(pkg.pricePerAdult).toLocaleString("en-IN")}</Text>
+                        <Text style={styles.pricePer}>/ person</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.priceContact}>Get Quote</Text>
+                    )}
+                  </View>
+                  <View style={styles.arrowCircle}>
+                    <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
                   </View>
                 </View>
               </View>
@@ -255,47 +220,39 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Popular Destinations */}
+      {/* ── Popular Destinations ──────────────────────────────────── */}
       {destinations.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionLabel}>EXPLORE</Text>
+              <Text style={styles.sectionEye}>EXPLORE</Text>
               <Text style={styles.sectionTitle}>Popular Destinations</Text>
             </View>
-            <Pressable
-              style={styles.seeAllBtn}
-              onPress={() => router.push("/(tabs)/explore")}
-            >
+            <Pressable style={styles.seeAll} onPress={() => router.push("/(tabs)/explore")}>
               <Text style={styles.seeAllText}>See All</Text>
-              <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+              <Ionicons name="arrow-forward" size={13} color={Colors.primary} />
             </Pressable>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.destRow}>
             {destinations.slice(0, 8).map((dest) => (
               <Pressable
                 key={dest.id}
-                style={styles.destinationCard}
-                onPress={() => router.push(`/destinations/${dest.id}`)}
+                style={styles.destCard}
+                onPress={() => router.push({ pathname: "/(tabs)/explore", params: { locationId: dest.id } })}
               >
-                <Image
-                  source={{ uri: dest.imageUrl }}
-                  style={styles.destinationImage}
-                />
+                {dest.imageUrl ? (
+                  <Image source={{ uri: dest.imageUrl }} style={styles.destImage} />
+                ) : (
+                  <LinearGradient colors={[Colors.gradient1, Colors.gradient2]} style={styles.destImage} />
+                )}
                 <LinearGradient
-                  colors={["transparent", "rgba(0,0,0,0.75)"]}
-                  style={styles.destinationGradient}
+                  colors={["transparent", "rgba(0,0,0,0.78)"]}
+                  style={styles.destGrad}
                 >
-                  <Text style={styles.destinationName}>{dest.label}</Text>
-                  <View style={styles.destinationMeta}>
-                    <Ionicons name="briefcase-outline" size={10} color="rgba(255,255,255,0.85)" />
-                    <Text style={styles.destinationCount}>
-                      {dest._count?.tourPackages || 0} Packages
-                    </Text>
+                  <Text style={styles.destName} numberOfLines={2}>{dest.label}</Text>
+                  <View style={styles.destMeta}>
+                    <Ionicons name="briefcase-outline" size={10} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.destCount}>{dest._count?.tourPackages || 0} pkg</Text>
                   </View>
                 </LinearGradient>
               </Pressable>
@@ -304,34 +261,28 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Browse by Category */}
+      {/* ── Tour Categories ───────────────────────────────────────── */}
       {categories.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionLabel}>BROWSE BY TYPE</Text>
+              <Text style={styles.sectionEye}>BROWSE BY TYPE</Text>
               <Text style={styles.sectionTitle}>Tour Categories</Text>
             </View>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryChipList}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
             {categories.map((cat) => (
               <Pressable
                 key={cat}
-                style={styles.categoryChip}
-                onPress={() => handleCategoryTap(cat)}
+                onPress={() => router.push({ pathname: "/(tabs)/explore", params: { category: cat } })}
               >
                 <LinearGradient
                   colors={[Colors.gradient1, Colors.gradient2]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.categoryChipGradient}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={styles.catChip}
                 >
                   <Ionicons name="compass-outline" size={14} color="#fff" />
-                  <Text style={styles.categoryChipText}>{cat}</Text>
+                  <Text style={styles.catChipText}>{cat}</Text>
                 </LinearGradient>
               </Pressable>
             ))}
@@ -339,64 +290,56 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Why Choose Us */}
-      <LinearGradient
-        colors={[Colors.primaryBg, "#fff1e6"]}
-        style={styles.whySection}
-      >
-        <Text style={styles.sectionLabel}>WHY TRAVEL WITH US</Text>
+      {/* ── Why Us ───────────────────────────────────────────────── */}
+      <View style={styles.whySection}>
+        <Text style={styles.sectionEye}>WHY TRAVEL WITH US</Text>
         <Text style={styles.whyTitle}>The Aagam Difference</Text>
-
         {[
-          { icon: "sparkles", title: "Handcrafted Itineraries", desc: "Every trip is meticulously planned by our travel experts." },
-          { icon: "shield-checkmark", title: "Safe & Secure", desc: "Your safety is our priority with highest standards." },
-          { icon: "headset", title: "24/7 Support", desc: "Dedicated support team available round the clock." },
-          { icon: "chatbubbles", title: "Live Trip Chat", desc: "Stay connected with your tour group via in-app chat." },
-        ].map((feature) => (
-          <View key={feature.title} style={styles.featureCard}>
-            <LinearGradient
-              colors={[Colors.gradient1, Colors.gradient2]}
-              style={styles.featureIcon}
-            >
-              <Ionicons name={feature.icon as any} size={22} color="#fff" />
+          { icon: "sparkles" as const,        title: "Handcrafted Itineraries", desc: "Every trip meticulously planned by our experts." },
+          { icon: "shield-checkmark" as const, title: "Safe & Secure",           desc: "Your safety is our top priority, always." },
+          { icon: "headset" as const,          title: "24/7 Support",            desc: "Dedicated team available round the clock." },
+          { icon: "chatbubbles" as const,      title: "Live Trip Chat",          desc: "Stay connected with your group in-app." },
+        ].map((f) => (
+          <View key={f.title} style={styles.featureRow}>
+            <LinearGradient colors={[Colors.gradient1, Colors.gradient2]} style={styles.featureIcon}>
+              <Ionicons name={f.icon} size={20} color="#fff" />
             </LinearGradient>
             <View style={styles.featureText}>
-              <Text style={styles.featureTitle}>{feature.title}</Text>
-              <Text style={styles.featureDesc}>{feature.desc}</Text>
+              <Text style={styles.featureTitle}>{f.title}</Text>
+              <Text style={styles.featureDesc}>{f.desc}</Text>
             </View>
           </View>
         ))}
-      </LinearGradient>
+      </View>
 
-      {/* Plan Your Trip CTA */}
-      <View style={styles.ctaSection}>
+      {/* ── CTA ──────────────────────────────────────────────────── */}
+      <View style={styles.ctaWrap}>
         <LinearGradient
           colors={[Colors.gradient1, Colors.gradient2]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.ctaCard}
         >
           <View style={styles.ctaIconWrap}>
-            <Ionicons name="airplane" size={28} color="#fff" />
+            <Ionicons name="airplane" size={26} color="#fff" />
           </View>
           <Text style={styles.ctaTitle}>Ready for Your Next Adventure?</Text>
-          <Text style={styles.ctaSubtitle}>
-            Our travel experts craft personalized itineraries just for you
-          </Text>
-          <View style={styles.ctaButtons}>
-            <Pressable style={styles.ctaButton} onPress={handleCall}>
+          <Text style={styles.ctaSub}>Our travel experts craft personalised itineraries just for you</Text>
+          <View style={styles.ctaBtns}>
+            <Pressable style={styles.ctaBtn} onPress={() => Linking.openURL(`tel:${PHONE_NUMBER}`)}>
               <Ionicons name="call" size={16} color={Colors.primary} />
-              <Text style={styles.ctaButtonText}>Call Us</Text>
+              <Text style={styles.ctaBtnText}>Call Us</Text>
             </Pressable>
-            <Pressable style={[styles.ctaButton, styles.ctaButtonWhatsApp]} onPress={handleWhatsApp}>
+            <Pressable
+              style={[styles.ctaBtn, styles.ctaBtnWA]}
+              onPress={() => Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}?text=Hi, I would like to plan a tour.`)}
+            >
               <Ionicons name="logo-whatsapp" size={16} color="#fff" />
-              <Text style={[styles.ctaButtonText, styles.ctaButtonTextWhatsApp]}>WhatsApp</Text>
+              <Text style={[styles.ctaBtnText, { color: "#fff" }]}>WhatsApp</Text>
             </Pressable>
           </View>
         </LinearGradient>
       </View>
 
-      {/* Bottom spacer for floating tab bar */}
       <View style={{ height: 100 }} />
     </ScrollView>
   );
@@ -404,487 +347,178 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.background,
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    color: Colors.textSecondary,
-    fontSize: FontSize.md,
-  },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
+  loadingText: { marginTop: Spacing.md, color: Colors.textSecondary, fontSize: FontSize.md },
 
-  // Hero
-  hero: {
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-  heroContent: {
-    paddingHorizontal: Spacing.xxl,
-  },
-  heroBrand: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-    color: "rgba(255,255,255,0.7)",
-    letterSpacing: 3,
-    marginBottom: Spacing.sm,
-  },
-  heroTitle: {
-    fontSize: FontSize.hero,
-    fontWeight: "800",
-    color: "#fff",
-    lineHeight: 42,
-    marginBottom: Spacing.sm,
-  },
-  heroSubtitle: {
-    fontSize: FontSize.lg,
-    color: "rgba(255,255,255,0.85)",
-    marginBottom: Spacing.xxl,
-    lineHeight: 24,
-  },
-  searchContainer: {
+  // ── Hero
+  hero: { paddingTop: 56, paddingBottom: 44, paddingHorizontal: Spacing.xl },
+  heroBrand: { fontSize: FontSize.xs, fontWeight: "700", color: "rgba(255,255,255,0.7)", letterSpacing: 3, marginBottom: Spacing.sm },
+  heroTitle: { fontSize: FontSize.hero, fontWeight: "800", color: "#fff", lineHeight: 42, marginBottom: Spacing.xs },
+  heroSubtitle: { fontSize: FontSize.md, color: "rgba(255,255,255,0.85)", marginBottom: Spacing.xl, lineHeight: 22 },
+  searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.95)",
+    gap: Spacing.sm,
+    backgroundColor: "rgba(255,255,255,0.97)",
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
+    paddingVertical: 13,
   },
-  searchIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: FontSize.md,
-    color: Colors.text,
-    paddingVertical: Spacing.xs,
-  },
+  searchInput: { flex: 1, fontSize: FontSize.md, color: Colors.text },
 
-  // Curved overlay
-  curveOverlay: {
-    height: 24,
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -24,
-  },
+  // ── Ledge
+  ledge: { height: 24, backgroundColor: Colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24 },
 
-  // Stats
+  // ── Stats
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.xl,
-    marginTop: -Spacing.sm,
-    marginBottom: Spacing.xl,
     gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.lg,
   },
   statCard: {
     flex: 1,
     alignItems: "center",
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.md,
+    gap: 3,
     ...Shadows.medium,
   },
-  statIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.primaryBg,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  statValue: { fontSize: FontSize.xl, fontWeight: "800", color: Colors.text },
-  statLabel: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
+  statIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: "center", alignItems: "center", marginBottom: 2 },
+  statValue: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
+  statLabel: { fontSize: 10, color: Colors.textSecondary, textAlign: "center" },
 
-  // Section
-  section: { paddingVertical: Spacing.lg },
+  // ── Section header
+  section: { paddingBottom: Spacing.md },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    paddingTop: Spacing.md,
   },
-  sectionLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-    color: Colors.primary,
-    letterSpacing: 2,
-    marginBottom: 4,
-  },
-  sectionTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  seeAllBtn: {
+  sectionEye: { fontSize: 10, fontWeight: "700", color: Colors.primary, letterSpacing: 1.5, marginBottom: 3 },
+  sectionTitle: { fontSize: FontSize.xl, fontWeight: "700", color: Colors.text },
+  seeAll: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     backgroundColor: Colors.primaryBg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
   },
-  seeAllText: {
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-    color: Colors.primary,
-  },
+  seeAllText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.primary },
 
-  // Category chips
-  categoryChipList: {
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  categoryChip: {
-    borderRadius: BorderRadius.full,
-    overflow: "hidden",
-  },
-  categoryChipGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-  },
-  categoryChipText: {
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    color: "#fff",
-  },
-
-  // Destination cards
-  horizontalList: { paddingHorizontal: Spacing.xl, gap: Spacing.md },
-  destinationCard: {
-    width: 180,
+  // ── Package card (full-bleed)
+  pkgCard: {
     height: 220,
-    borderRadius: BorderRadius.lg,
-    overflow: "hidden",
-    ...Shadows.medium,
-  },
-  destinationImage: { width: "100%", height: "100%" },
-  destinationGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.lg,
-    paddingTop: 60,
-  },
-  destinationName: {
-    fontSize: FontSize.lg,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  destinationMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 3,
-  },
-  destinationCount: {
-    fontSize: FontSize.xs,
-    color: "rgba(255,255,255,0.85)",
-  },
-
-  // Spotlight card
-  spotlightCard: {
-    marginHorizontal: Spacing.xl,
-    height: 280,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
     borderRadius: BorderRadius.xl,
     overflow: "hidden",
-    ...Shadows.heavy,
-  },
-  spotlightImage: {
-    width: "100%",
-    height: "100%",
-  },
-  spotlightOverlay: {
-    position: "absolute",
-    inset: 0,
-    justifyContent: "space-between",
-    padding: Spacing.xl,
-  },
-  spotlightBadgeRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
-  spotlightBadge: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-  },
-  spotlightBadgeText: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-    color: "#fff",
-  },
-  spotlightDurationBadge: {
-    backgroundColor: "rgba(0,0,0,0.4)",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  spotlightDurationText: {
-    fontSize: FontSize.xs,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  spotlightInfo: {
-    gap: 6,
-  },
-  spotlightLocationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  spotlightLocation: {
-    fontSize: FontSize.sm,
-    color: "rgba(255,255,255,0.8)",
-  },
-  spotlightName: {
-    fontSize: FontSize.xxl,
-    fontWeight: "800",
-    color: "#fff",
-    lineHeight: 28,
-  },
-  spotlightFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginTop: 4,
-  },
-  spotlightPriceLabel: {
-    fontSize: FontSize.xs,
-    color: "rgba(255,255,255,0.7)",
-  },
-  spotlightPrice: {
-    fontSize: FontSize.xl,
-    fontWeight: "800",
-    color: "#fff",
-  },
-  spotlightPriceUnit: {
-    fontSize: FontSize.xs,
-    fontWeight: "400",
-    color: "rgba(255,255,255,0.7)",
-  },
-  spotlightArrowBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // Package cards
-  packageCard: {
-    marginHorizontal: Spacing.xl,
-    marginBottom: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.background,
-    overflow: "hidden",
     ...Shadows.medium,
   },
-  packageImageWrap: { position: "relative" },
-  packageImage: { width: "100%", height: 200 },
-  packageImageOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-  },
-  categoryBadge: {
+  pkgImage: { position: "absolute", width: "100%", height: "100%" },
+  pkgOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, height: "75%" },
+  pkgTop: {
     position: "absolute",
     top: Spacing.md,
     left: Spacing.md,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-  },
-  categoryBadgeText: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: 0.3,
-  },
-  durationBadge: {
-    position: "absolute",
-    top: Spacing.md,
     right: Spacing.md,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    flexDirection: "row",
+    gap: Spacing.xs,
+  },
+  durationPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.45)",
     paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 5,
     borderRadius: BorderRadius.full,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
   },
-  durationBadgeText: {
-    fontSize: FontSize.xs,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  packageInfo: {
-    flexDirection: "row",
-  },
-  packageAccent: {
-    width: 4,
+  durationPillText: { fontSize: 11, color: "#fff", fontWeight: "700" },
+  categoryPill: {
     backgroundColor: Colors.primary,
-    borderRadius: 2,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
   },
-  packageDetails: {
-    flex: 1,
-    padding: Spacing.lg,
-  },
-  packageLocationRow: {
+  categoryPillText: { fontSize: 11, color: "#fff", fontWeight: "700" },
+  pkgBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 6,
-  },
-  packageLocation: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-  },
-  packageName: {
-    fontSize: FontSize.lg,
-    fontWeight: "700",
-    color: Colors.text,
-    marginBottom: Spacing.md,
-    lineHeight: 22,
-  },
-  packageFooter: {
-    flexDirection: "row",
+    alignItems: "flex-end",
     justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.md,
-  },
-  priceLabel: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  priceValue: { fontSize: FontSize.xl, fontWeight: "800", color: Colors.primary },
-  priceUnit: { fontSize: FontSize.xs, fontWeight: "400", color: Colors.textSecondary },
-  arrowBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // Why section
-  whySection: {
-    padding: Spacing.xl,
-    marginTop: Spacing.lg,
-    marginHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.xl,
-  },
-  whyTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: "700",
-    color: Colors.text,
-    marginBottom: Spacing.xl,
-  },
-  featureCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.lg,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  featureText: { flex: 1 },
-  featureTitle: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
-  featureDesc: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 3, lineHeight: 19 },
-
-  // CTA section
-  ctaSection: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
+    padding: Spacing.md,
     paddingBottom: Spacing.lg,
   },
-  ctaCard: {
+  pkgBottomLeft: { flex: 1, marginRight: Spacing.sm },
+  locRow: { flexDirection: "row", alignItems: "center", gap: 3, marginBottom: 4 },
+  locText: { fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: "500" },
+  pkgTitle: { fontSize: FontSize.lg, fontWeight: "800", color: "#fff", lineHeight: 22, marginBottom: 4 },
+  itinRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  itinText: { fontSize: 11, color: "rgba(255,255,255,0.7)" },
+  pkgBottomRight: { alignItems: "flex-end", gap: Spacing.xs },
+  priceBadge: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.md,
+    alignItems: "flex-end",
+  },
+  priceFrom: { fontSize: 9, color: "rgba(255,255,255,0.7)", fontWeight: "500" },
+  priceValue: { fontSize: FontSize.md, fontWeight: "800", color: "#fff" },
+  pricePer: { fontSize: 9, color: "rgba(255,255,255,0.7)" },
+  priceContact: { fontSize: FontSize.sm, color: "#fff", fontWeight: "700" },
+  arrowCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#fff", justifyContent: "center", alignItems: "center" },
+
+  // ── Destinations
+  destRow: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
+  destCard: { width: 140, height: 180, borderRadius: BorderRadius.lg, overflow: "hidden", ...Shadows.medium },
+  destImage: { width: "100%", height: "100%" },
+  destGrad: { position: "absolute", bottom: 0, left: 0, right: 0, padding: Spacing.sm, paddingTop: 40 },
+  destName: { fontSize: FontSize.sm, fontWeight: "700", color: "#fff", lineHeight: 18 },
+  destMeta: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
+  destCount: { fontSize: 10, color: "rgba(255,255,255,0.8)" },
+
+  // ── Categories
+  catRow: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
+  catChip: { flexDirection: "row", alignItems: "center", gap: Spacing.xs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full },
+  catChipText: { fontSize: FontSize.sm, fontWeight: "700", color: "#fff" },
+
+  // ── Why Us
+  whySection: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.xl,
+    backgroundColor: Colors.primaryBg,
     borderRadius: BorderRadius.xl,
-    padding: Spacing.xxl,
-    alignItems: "center",
   },
-  ctaIconWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: Spacing.lg,
-  },
-  ctaTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: "800",
-    color: "#fff",
-    textAlign: "center",
-    marginBottom: Spacing.sm,
-    lineHeight: 30,
-  },
-  ctaSubtitle: {
-    fontSize: FontSize.md,
-    color: "rgba(255,255,255,0.85)",
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
-  },
-  ctaButtons: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  ctaButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: "#fff",
-    borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-  },
-  ctaButtonText: {
-    fontSize: FontSize.md,
-    fontWeight: "700",
-    color: Colors.primary,
-  },
-  ctaButtonWhatsApp: {
-    backgroundColor: "#25D366",
-  },
-  ctaButtonTextWhatsApp: {
-    color: "#fff",
-  },
+  whyTitle: { fontSize: FontSize.xl, fontWeight: "700", color: Colors.text, marginBottom: Spacing.lg, marginTop: 4 },
+  featureRow: { flexDirection: "row", alignItems: "center", gap: Spacing.md, marginBottom: Spacing.md },
+  featureIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  featureText: { flex: 1 },
+  featureTitle: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
+  featureDesc: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2, lineHeight: 18 },
+
+  // ── CTA
+  ctaWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl },
+  ctaCard: { borderRadius: BorderRadius.xl, padding: Spacing.xl, alignItems: "center" },
+  ctaIconWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center", marginBottom: Spacing.md },
+  ctaTitle: { fontSize: FontSize.xl, fontWeight: "800", color: "#fff", textAlign: "center", marginBottom: Spacing.xs, lineHeight: 28 },
+  ctaSub: { fontSize: FontSize.sm, color: "rgba(255,255,255,0.85)", textAlign: "center", lineHeight: 20, marginBottom: Spacing.lg },
+  ctaBtns: { flexDirection: "row", gap: Spacing.md },
+  ctaBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Spacing.xs, backgroundColor: "#fff", borderRadius: BorderRadius.lg, paddingVertical: Spacing.md },
+  ctaBtnText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.primary },
+  ctaBtnWA: { backgroundColor: "#25D366" },
 });

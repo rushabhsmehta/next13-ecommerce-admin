@@ -724,19 +724,23 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       confirmedVariantId: confirmedVariantId !== undefined ? (confirmedVariantId || null) : undefined, // Store confirmed variant ID
       customQueryVariants: customQueryVariants || undefined, // Store custom query variants
 
-      images: images && images.length > 0 ? {
-        deleteMany: {},
-        createMany: {
-          data: [
-            ...images.map((img: { url: string }) => img),
-          ],
-        },
-      } : { deleteMany: {} },
+      // Only touch images when the caller explicitly sends the field.
+      // undefined  → skip nested write, existing images are preserved
+      // []         → deleteMany (intentional clear by the user)
+      // [...]      → deleteMany + createMany (replace)
+      ...(images !== undefined ? {
+        images: images.length > 0 ? {
+          deleteMany: {},
+          createMany: {
+            data: images.map((img: { url: string }) => ({ url: img.url })),
+          },
+        } : { deleteMany: {} }
+      } : {}),
 
-      flightDetails: {
-        deleteMany: {},
-        // Note: Flight details with images will be created separately after this update
-      }
+      // flightDetails are managed separately in the transaction below
+      // (delete-then-recreate only when flightDetails are explicitly provided).
+      // Do NOT include a deleteMany here — it would wipe flight details on
+      // every update regardless of whether the caller intended to change them.
     }
 
     // Capture original for audit logging
@@ -899,8 +903,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
                 itineraryTitle: itinerary.itineraryTitle,
                 error: itineraryError
               });
-              // In fallback mode, we continue with other itineraries but log the error
-              // Don't throw to prevent losing all progress
+              // Throw immediately — itineraries have already been deleted above.
+              // Silently continuing would leave the record with fewer itineraries
+              // than the user saved, with no indication that data was lost.
+              throw new Error(
+                `Fallback failed: could not recreate itinerary ${i + 1} "${itinerary.itineraryTitle}": ${itineraryError?.message || 'Unknown error'}`
+              );
             }
           }
 
@@ -941,8 +949,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
                 flightName: flightDetail.flightName,
                 error: flightError
               });
-              // In fallback mode, we continue with other flights but log the error
-              // Don't throw to prevent losing all progress
+              // Throw immediately — flight details have already been deleted above.
+              // Silently continuing would leave the record missing flight data
+              // with no indication of the loss.
+              throw new Error(
+                `Fallback failed: could not recreate flight detail ${i + 1} "${flightDetail.flightName || 'Unknown Flight'}": ${flightError?.message || 'Unknown error'}`
+              );
             }
           }
           console.log(`[FALLBACK] Completed processing flight details with fallback strategy`);

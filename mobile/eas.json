@@ -17,7 +17,11 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://admin.aagamholidays.com",
+        "EXPO_PUBLIC_WEBSITE_URL": "https://aagamholidays.com"
+      }
     },
     "production": {
       "autoIncrement": true,
@@ -27,7 +31,11 @@
       "android": {
         "image": "latest"
       },
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://admin.aagamholidays.com",
+        "EXPO_PUBLIC_WEBSITE_URL": "https://aagamholidays.com"
+      }
     }
   },
   "submit": {

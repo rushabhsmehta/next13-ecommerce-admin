@@ -34,20 +34,25 @@ export default function HomeScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [destData, pkgData] = await Promise.all([
+      const [destResult, pkgResult] = await Promise.allSettled([
         travelApi.getDestinations(),
         travelApi.getPackages({ limit: 6 }),
       ]);
-      const dests = destData.destinations || [];
-      const pkgs = pkgData.packages || [];
-      setDestinations(dests);
-      setPackages(pkgs);
 
-      // Extract unique categories for quick chips
-      const cats = [
-        ...new Set(pkgs.map((p: any) => p.tourCategory).filter(Boolean)),
-      ] as string[];
-      setCategories(cats);
+      if (destResult.status === "fulfilled") {
+        setDestinations(destResult.value.destinations || []);
+      }
+
+      if (pkgResult.status === "fulfilled") {
+        const pkgs = pkgResult.value.packages || [];
+        setPackages(pkgs);
+        const cats = [
+          ...new Set(pkgs.map((p: any) => p.tourCategory).filter(Boolean)),
+        ] as string[];
+        setCategories(cats);
+      } else {
+        console.error("Failed to load packages:", pkgResult.reason);
+      }
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {

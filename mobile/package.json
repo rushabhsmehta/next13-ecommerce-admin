@@ -11,7 +11,9 @@
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
     "submit:android": "eas submit --platform android",
-    "submit:ios": "eas submit --platform ios"
+    "submit:ios": "eas submit --platform ios",
+    "update:production": "EXPO_PUBLIC_API_BASE_URL=https://admin.aagamholidays.com EXPO_PUBLIC_WEBSITE_URL=https://aagamholidays.com eas update --channel production",
+    "update:preview": "EXPO_PUBLIC_API_BASE_URL=https://admin.aagamholidays.com EXPO_PUBLIC_WEBSITE_URL=https://aagamholidays.com eas update --channel preview"
   },
   "dependencies": {
     "@expo/ngrok": "^4.1.3",

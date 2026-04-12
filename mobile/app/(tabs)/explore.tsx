@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
-  Animated,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -103,83 +102,80 @@ export default function ExploreScreen() {
 
   const activeDestLabel = destinations.find((d) => d.id === activeLocation)?.label;
 
-  // ─── Package Card ────────────────────────────────────────────────────────────
-  const renderPackage = ({ item, index }: { item: any; index: number }) => (
+  // ─── Package Card (Thrillophilia-style full-bleed overlay) ──────────────────
+  const renderPackage = ({ item }: { item: any }) => (
     <Pressable
       style={styles.card}
       onPress={() => router.push(`/packages/${item.slug || item.id}`)}
     >
-      {/* Image */}
-      <View style={styles.cardImageContainer}>
-        {item.images?.[0]?.url ? (
-          <Image source={{ uri: item.images[0].url }} style={styles.cardImage} />
-        ) : (
-          <LinearGradient
-            colors={[Colors.gradient1, Colors.gradient2]}
-            style={styles.cardImagePlaceholder}
-          >
-            <Ionicons name="image-outline" size={32} color="rgba(255,255,255,0.6)" />
-          </LinearGradient>
-        )}
+      {/* Full-bleed image */}
+      {item.images?.[0]?.url ? (
+        <Image source={{ uri: item.images[0].url }} style={styles.cardImage} />
+      ) : (
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.55)"]}
-          style={styles.cardImageGradient}
+          colors={[Colors.gradient1, Colors.gradient2]}
+          style={styles.cardImage}
         />
-        {/* Badges */}
-        <View style={styles.cardBadgeRow}>
-          {item.tourCategory ? (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{item.tourCategory}</Text>
-            </View>
-          ) : null}
-        </View>
+      )}
+
+      {/* Dark gradient overlay — bottom 65% */}
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.25)", "rgba(0,0,0,0.82)"]}
+        locations={[0, 0.35, 1]}
+        style={styles.cardOverlay}
+      />
+
+      {/* Top row: duration + category */}
+      <View style={styles.cardTop}>
         {item.numDaysNight ? (
-          <View style={styles.durationBadge}>
+          <View style={styles.durationPill}>
             <Ionicons name="time-outline" size={11} color="#fff" />
-            <Text style={styles.durationText}>{item.numDaysNight}</Text>
+            <Text style={styles.durationPillText}>{item.numDaysNight}</Text>
+          </View>
+        ) : null}
+        {item.tourCategory ? (
+          <View style={styles.categoryPill}>
+            <Text style={styles.categoryPillText}>{item.tourCategory}</Text>
           </View>
         ) : null}
       </View>
 
-      {/* Info */}
-      <View style={styles.cardInfo}>
-        <View style={styles.cardInfoLeft}>
+      {/* Bottom overlay: location + title + price */}
+      <View style={styles.cardBottom}>
+        <View style={styles.cardBottomLeft}>
           <View style={styles.locationRow}>
-            <Ionicons name="location-sharp" size={12} color={Colors.primary} />
+            <Ionicons name="location-sharp" size={11} color="rgba(255,255,255,0.75)" />
             <Text style={styles.locationText} numberOfLines={1}>
-              {item.location?.label || "—"}
+              {item.location?.label || ""}
             </Text>
           </View>
           <Text style={styles.cardTitle} numberOfLines={2}>
             {item.tourPackageName || "Tour Package"}
           </Text>
+          {item._count?.itineraries > 0 && (
+            <View style={styles.itinRow}>
+              <Ionicons name="map-outline" size={11} color="rgba(255,255,255,0.7)" />
+              <Text style={styles.itinText}>{item._count.itineraries} day itinerary</Text>
+            </View>
+          )}
         </View>
-        <View style={styles.cardInfoRight}>
+        <View style={styles.cardBottomRight}>
           {item.pricePerAdult ? (
-            <>
+            <View style={styles.priceBadge}>
               <Text style={styles.priceFrom}>from</Text>
               <Text style={styles.priceValue}>
                 ₹{Number(item.pricePerAdult).toLocaleString("en-IN")}
               </Text>
-              <Text style={styles.pricePer}>/person</Text>
-            </>
+              <Text style={styles.pricePer}>/ person</Text>
+            </View>
           ) : (
-            <Text style={styles.priceContact}>Contact us</Text>
+            <View style={styles.priceBadge}>
+              <Text style={styles.priceContact}>Get Quote</Text>
+            </View>
           )}
-        </View>
-      </View>
-
-      {/* Footer */}
-      <View style={styles.cardFooter}>
-        <View style={styles.itineraryTag}>
-          <Ionicons name="map-outline" size={12} color={Colors.primary} />
-          <Text style={styles.itineraryTagText}>
-            {item._count?.itineraries || 0} days planned
-          </Text>
-        </View>
-        <View style={styles.viewBtn}>
-          <Text style={styles.viewBtnText}>View Details</Text>
-          <Ionicons name="arrow-forward" size={12} color="#fff" />
+          <View style={styles.viewArrow}>
+            <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+          </View>
         </View>
       </View>
     </Pressable>
@@ -495,111 +491,97 @@ const styles = StyleSheet.create({
   },
   resultsText: { fontSize: FontSize.sm, color: Colors.textTertiary, fontWeight: "500" },
 
-  // ─── Card ──────────────────────────────────────────────────────────
+  // ─── Card (Thrillophilia full-bleed style) ─────────────────────────
   card: {
-    backgroundColor: Colors.background,
     borderRadius: BorderRadius.xl,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
+    height: 220,
     overflow: "hidden",
     ...Shadows.medium,
   },
-  cardImageContainer: { position: "relative", height: 180 },
-  cardImage: { width: "100%", height: "100%" },
-  cardImagePlaceholder: {
+  cardImage: {
+    position: "absolute",
     width: "100%",
     height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
   },
-  cardImageGradient: {
+  cardOverlay: {
     position: "absolute",
-    bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
+    bottom: 0,
+    height: "75%",
   },
-  cardBadgeRow: {
+  cardTop: {
     position: "absolute",
     top: Spacing.md,
     left: Spacing.md,
+    right: Spacing.md,
     flexDirection: "row",
     gap: Spacing.xs,
   },
-  categoryBadge: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  categoryBadgeText: { fontSize: 10, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
-  durationBadge: {
-    position: "absolute",
-    top: Spacing.md,
-    right: Spacing.md,
+  durationPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  durationText: { fontSize: 10, color: "#fff", fontWeight: "600" },
-
-  cardInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  cardInfoLeft: { flex: 1 },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginBottom: 4 },
-  locationText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "500", flex: 1 },
-  cardTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: "700",
-    color: Colors.text,
-    lineHeight: 22,
-  },
-  cardInfoRight: { alignItems: "flex-end", minWidth: 80 },
-  priceFrom: { fontSize: 9, color: Colors.textTertiary, fontWeight: "500" },
-  priceValue: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.primary, lineHeight: 22 },
-  pricePer: { fontSize: 9, color: Colors.textSecondary },
-  priceContact: { fontSize: FontSize.sm, color: Colors.textSecondary, fontStyle: "italic" },
-
-  cardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    paddingTop: Spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    marginTop: Spacing.sm,
-  },
-  itineraryTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: "rgba(0,0,0,0.45)",
     paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 5,
     borderRadius: BorderRadius.full,
   },
-  itineraryTagText: { fontSize: 11, color: Colors.primary, fontWeight: "600" },
-  viewBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+  durationPillText: { fontSize: 11, color: "#fff", fontWeight: "700" },
+  categoryPill: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
   },
-  viewBtnText: { fontSize: 11, fontWeight: "700", color: "#fff" },
+  categoryPillText: { fontSize: 11, color: "#fff", fontWeight: "700" },
+  cardBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    padding: Spacing.md,
+    paddingBottom: Spacing.lg,
+  },
+  cardBottomLeft: { flex: 1, marginRight: Spacing.sm },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginBottom: 4 },
+  locationText: { fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: "500" },
+  cardTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "800",
+    color: "#fff",
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  itinRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  itinText: { fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: "500" },
+  cardBottomRight: { alignItems: "flex-end", gap: Spacing.xs },
+  priceBadge: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.md,
+    alignItems: "flex-end",
+  },
+  priceFrom: { fontSize: 9, color: "rgba(255,255,255,0.7)", fontWeight: "500" },
+  priceValue: { fontSize: FontSize.md, fontWeight: "800", color: "#fff" },
+  pricePer: { fontSize: 9, color: "rgba(255,255,255,0.7)" },
+  priceContact: { fontSize: FontSize.sm, color: "#fff", fontWeight: "700" },
+  viewArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
   // ─── States ────────────────────────────────────────────────────────
   centeredState: {

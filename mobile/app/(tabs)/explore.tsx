@@ -324,6 +324,7 @@ export default function ExploreScreen() {
           renderItem={renderPackage}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

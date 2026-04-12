@@ -36,7 +36,7 @@ export default function HomeScreen() {
     try {
       const [destData, pkgData] = await Promise.all([
         travelApi.getDestinations(),
-        travelApi.getPackages({ limit: 7 }),
+        travelApi.getPackages({ limit: 6 }),
       ]);
       const dests = destData.destinations || [];
       const pkgs = pkgData.packages || [];
@@ -93,9 +93,7 @@ export default function HomeScreen() {
     );
   }
 
-  // packages[0] = spotlight, packages.slice(1) = trending list
-  const spotlightPackage = packages[0] || null;
-  const trendingPackages = packages.slice(1, 7);
+  const trendingPackages = packages;
 
   return (
     <ScrollView
@@ -166,164 +164,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* Quick Category Chips */}
-      {categories.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionLabel}>BROWSE BY TYPE</Text>
-              <Text style={styles.sectionTitle}>Tour Categories</Text>
-            </View>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryChipList}
-          >
-            {categories.map((cat) => (
-              <Pressable
-                key={cat}
-                style={styles.categoryChip}
-                onPress={() => handleCategoryTap(cat)}
-              >
-                <LinearGradient
-                  colors={[Colors.gradient1, Colors.gradient2]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.categoryChipGradient}
-                >
-                  <Ionicons name="compass-outline" size={14} color="#fff" />
-                  <Text style={styles.categoryChipText}>{cat}</Text>
-                </LinearGradient>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Featured Destinations */}
-      {destinations.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionLabel}>EXPLORE</Text>
-              <Text style={styles.sectionTitle}>Popular Destinations</Text>
-            </View>
-            <Pressable
-              style={styles.seeAllBtn}
-              onPress={() => router.push("/(tabs)/explore")}
-            >
-              <Text style={styles.seeAllText}>See All</Text>
-              <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
-            </Pressable>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          >
-            {destinations.slice(0, 8).map((dest) => (
-              <Pressable
-                key={dest.id}
-                style={styles.destinationCard}
-                onPress={() => router.push(`/destinations/${dest.id}`)}
-              >
-                <Image
-                  source={{ uri: dest.imageUrl }}
-                  style={styles.destinationImage}
-                />
-                <LinearGradient
-                  colors={["transparent", "rgba(0,0,0,0.75)"]}
-                  style={styles.destinationGradient}
-                >
-                  <Text style={styles.destinationName}>{dest.label}</Text>
-                  <View style={styles.destinationMeta}>
-                    <Ionicons name="briefcase-outline" size={10} color="rgba(255,255,255,0.85)" />
-                    <Text style={styles.destinationCount}>
-                      {dest._count?.tourPackages || 0} Packages
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Featured Package Spotlight */}
-      {spotlightPackage && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionLabel}>EDITOR'S PICK</Text>
-              <Text style={styles.sectionTitle}>Featured Package</Text>
-            </View>
-          </View>
-
-          <Pressable
-            style={styles.spotlightCard}
-            onPress={() => router.push(`/packages/${spotlightPackage.slug || spotlightPackage.id}`)}
-          >
-            {spotlightPackage.images?.[0]?.url ? (
-              <Image
-                source={{ uri: spotlightPackage.images[0].url }}
-                style={styles.spotlightImage}
-              />
-            ) : (
-              <LinearGradient
-                colors={[Colors.gradient1, Colors.gradient2]}
-                style={styles.spotlightImage}
-              />
-            )}
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.85)"]}
-              style={styles.spotlightOverlay}
-            >
-              <View style={styles.spotlightBadgeRow}>
-                {spotlightPackage.tourCategory && (
-                  <View style={styles.spotlightBadge}>
-                    <Text style={styles.spotlightBadgeText}>{spotlightPackage.tourCategory}</Text>
-                  </View>
-                )}
-                {spotlightPackage.numDaysNight && (
-                  <View style={styles.spotlightDurationBadge}>
-                    <Ionicons name="time-outline" size={11} color="#fff" />
-                    <Text style={styles.spotlightDurationText}>{spotlightPackage.numDaysNight}</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.spotlightInfo}>
-                <View style={styles.spotlightLocationRow}>
-                  <Ionicons name="location" size={13} color="rgba(255,255,255,0.8)" />
-                  <Text style={styles.spotlightLocation}>{spotlightPackage.location?.label}</Text>
-                </View>
-                <Text style={styles.spotlightName} numberOfLines={2}>
-                  {spotlightPackage.tourPackageName || "Tour Package"}
-                </Text>
-                <View style={styles.spotlightFooter}>
-                  {spotlightPackage.pricePerAdult ? (
-                    <View>
-                      <Text style={styles.spotlightPriceLabel}>Starting from</Text>
-                      <Text style={styles.spotlightPrice}>
-                        ₹{Number(spotlightPackage.pricePerAdult).toLocaleString("en-IN")}
-                        <Text style={styles.spotlightPriceUnit}> /person</Text>
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.spotlightPriceLabel}>Contact for pricing</Text>
-                  )}
-                  <View style={styles.spotlightArrowBtn}>
-                    <Ionicons name="arrow-forward" size={18} color="#fff" />
-                  </View>
-                </View>
-              </View>
-            </LinearGradient>
-          </Pressable>
-        </View>
-      )}
-
-      {/* Trending Packages */}
+      {/* Trending Packages — shown first so users see them immediately */}
       {trendingPackages.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -406,6 +247,90 @@ export default function HomeScreen() {
               </View>
             </Pressable>
           ))}
+        </View>
+      )}
+
+      {/* Popular Destinations */}
+      {destinations.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionLabel}>EXPLORE</Text>
+              <Text style={styles.sectionTitle}>Popular Destinations</Text>
+            </View>
+            <Pressable
+              style={styles.seeAllBtn}
+              onPress={() => router.push("/(tabs)/explore")}
+            >
+              <Text style={styles.seeAllText}>See All</Text>
+              <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+            </Pressable>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalList}
+          >
+            {destinations.slice(0, 8).map((dest) => (
+              <Pressable
+                key={dest.id}
+                style={styles.destinationCard}
+                onPress={() => router.push(`/destinations/${dest.id}`)}
+              >
+                <Image
+                  source={{ uri: dest.imageUrl }}
+                  style={styles.destinationImage}
+                />
+                <LinearGradient
+                  colors={["transparent", "rgba(0,0,0,0.75)"]}
+                  style={styles.destinationGradient}
+                >
+                  <Text style={styles.destinationName}>{dest.label}</Text>
+                  <View style={styles.destinationMeta}>
+                    <Ionicons name="briefcase-outline" size={10} color="rgba(255,255,255,0.85)" />
+                    <Text style={styles.destinationCount}>
+                      {dest._count?.tourPackages || 0} Packages
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Browse by Category */}
+      {categories.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionLabel}>BROWSE BY TYPE</Text>
+              <Text style={styles.sectionTitle}>Tour Categories</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryChipList}
+          >
+            {categories.map((cat) => (
+              <Pressable
+                key={cat}
+                style={styles.categoryChip}
+                onPress={() => handleCategoryTap(cat)}
+              >
+                <LinearGradient
+                  colors={[Colors.gradient1, Colors.gradient2]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.categoryChipGradient}
+                >
+                  <Ionicons name="compass-outline" size={14} color="#fff" />
+                  <Text style={styles.categoryChipText}>{cat}</Text>
+                </LinearGradient>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
       )}
 

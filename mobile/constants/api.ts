@@ -1,21 +1,11 @@
 // API base URL - points to the Next.js backend
-// In production, this would be https://admin.aagamholidays.com
-// The travel website is served at https://aagamholidays.com (Next.js /travel routes)
-// The mobile app connects to the same backend API
+// __DEV__ is a compile-time constant (true in Expo Go, false in production bundles)
+// This is resolved by Metro at bundle time — never depends on env vars or shell state.
 
-const apiBaseOverride = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
-const websiteOverride = process.env.EXPO_PUBLIC_WEBSITE_URL?.trim();
+export const API_BASE_URL = __DEV__
+  ? "http://192.168.29.133:3000"
+  : "https://admin.aagamholidays.com";
 
-// DEV: use local development host reachable from your phone (LAN IP)
-export const API_BASE_URL = apiBaseOverride
-  ? apiBaseOverride
-  : __DEV__
-    ? "http://192.168.29.133:3000"
-    : "https://admin.aagamholidays.com";
-
-// DEV: mobile app will use the local backend's /travel path when in development
-export const WEBSITE_URL = websiteOverride
-  ? websiteOverride
-  : __DEV__
-    ? "http://192.168.29.133:3000/travel"
-    : "https://aagamholidays.com";
+export const WEBSITE_URL = __DEV__
+  ? "http://192.168.29.133:3000/travel"
+  : "https://aagamholidays.com";

@@ -31,6 +31,9 @@ export async function GET() {
     return NextResponse.json({ destinations: activeDestinations });
   } catch (error) {
     console.log("[TRAVEL_DESTINATIONS_GET]", error);
-    return new NextResponse("Internal error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal error", destinations: [] },
+      { status: 500 }
+    );
   }
 }

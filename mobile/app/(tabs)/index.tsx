@@ -31,6 +31,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -42,14 +43,16 @@ export default function HomeScreen() {
       const pkgs = pkgData.packages || [];
       setDestinations(dests);
       setPackages(pkgs);
+      setError(null);
 
       // Extract unique categories for quick chips
       const cats = [
         ...new Set(pkgs.map((p: any) => p.tourCategory).filter(Boolean)),
       ] as string[];
       setCategories(cats);
-    } catch (error) {
-      console.error("Failed to load data:", error);
+    } catch (err: any) {
+      console.error("Failed to load data:", err);
+      setError(err?.message || "Failed to load data");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -89,6 +92,31 @@ export default function HomeScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Discovering amazing places...</Text>
+      </View>
+    );
+  }
+
+  if (error && packages.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <View style={styles.errorIconWrap}>
+          <Ionicons name="cloud-offline-outline" size={40} color={Colors.primary} />
+        </View>
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorSubtitle}>
+          Could not load packages. Please check your connection.
+        </Text>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => {
+            setError(null);
+            setLoading(true);
+            fetchData();
+          }}
+        >
+          <Ionicons name="refresh" size={16} color="#fff" />
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -409,6 +437,42 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     color: Colors.textSecondary,
     fontSize: FontSize.md,
+  },
+  errorIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  errorTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  errorSubtitle: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    paddingHorizontal: Spacing.xxl,
+    marginTop: Spacing.xs,
+  },
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.lg,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: FontSize.md,
+    fontWeight: "700",
   },
 
   // Hero

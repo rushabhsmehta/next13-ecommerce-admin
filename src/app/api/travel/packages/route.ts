@@ -60,6 +60,9 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.log("[TRAVEL_PACKAGES_GET]", error);
-    return new NextResponse("Internal error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal error", packages: [], total: 0, limit: 50, offset: 0, hasMore: false },
+      { status: 500 }
+    );
   }
 }

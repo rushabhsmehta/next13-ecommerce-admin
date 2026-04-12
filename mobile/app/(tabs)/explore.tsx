@@ -29,6 +29,7 @@ export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPackages = useCallback(
     async (category?: string, search?: string, locationId?: string | null) => {
@@ -39,6 +40,7 @@ export default function ExploreScreen() {
         if (locationId) p.locationId = locationId;
         const data = await travelApi.getPackages(p);
         setPackages(data.packages || []);
+        setError(null);
 
         const cats = [
           ...new Set(
@@ -50,8 +52,9 @@ export default function ExploreScreen() {
         if (cats.length > 0 && categories.length === 0) {
           setCategories(cats);
         }
-      } catch (error) {
-        console.error("Failed to load packages:", error);
+      } catch (err: any) {
+        console.error("Failed to load packages:", err);
+        setError(err?.message || "Failed to load packages");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -306,6 +309,27 @@ export default function ExploreScreen() {
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : error ? (
+        <View style={styles.centered}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="cloud-offline-outline" size={32} color={Colors.primary} />
+          </View>
+          <Text style={styles.emptyTitle}>Something went wrong</Text>
+          <Text style={styles.emptySubtitle}>
+            Could not load packages. Please check your connection.
+          </Text>
+          <Pressable
+            style={styles.retryButton}
+            onPress={() => {
+              setError(null);
+              setLoading(true);
+              fetchPackages(activeCategory, searchQuery, activeLocation);
+            }}
+          >
+            <Ionicons name="refresh" size={16} color="#fff" />
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
         </View>
       ) : packages.length === 0 ? (
         <View style={styles.centered}>
@@ -572,5 +596,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   emptyTitle: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.text },
-  emptySubtitle: { fontSize: FontSize.md, color: Colors.textSecondary },
+  emptySubtitle: { fontSize: FontSize.md, color: Colors.textSecondary, textAlign: "center", paddingHorizontal: Spacing.lg },
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.md,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: FontSize.md,
+    fontWeight: "700",
+  },
 });

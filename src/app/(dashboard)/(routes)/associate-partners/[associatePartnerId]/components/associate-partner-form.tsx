@@ -5,7 +5,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Trash } from "lucide-react";
+import { Trash, Copy, Check } from "lucide-react";
 import { AssociatePartner } from "@prisma/client";
 import { useParams, useRouter } from "next/navigation";
 
@@ -47,6 +47,15 @@ export const AssociatePartnerForm: React.FC<AssociatePartnerFormProps> = ({
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copyToken = () => {
+    if (initialData?.accessToken) {
+      navigator.clipboard.writeText(initialData.accessToken);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const title = initialData ? 'Edit associate partner' : 'Create associate partner';
   const description = initialData ? 'Edit associate partner.' : 'Add a new associate partner';
@@ -123,6 +132,20 @@ export const AssociatePartnerForm: React.FC<AssociatePartnerFormProps> = ({
         )}
       </div>
       <Separator />
+      {initialData?.accessToken && (
+        <div className="rounded-lg border p-4 bg-muted/50">
+          <p className="text-sm font-medium mb-1">Access Token</p>
+          <p className="text-xs text-muted-foreground mb-2">Share this token with the associate partner to log in to the mobile app along with their mobile number.</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-sm bg-background border rounded px-3 py-2 font-mono break-all">
+              {initialData.accessToken}
+            </code>
+            <Button type="button" variant="outline" size="sm" onClick={copyToken}>
+              {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

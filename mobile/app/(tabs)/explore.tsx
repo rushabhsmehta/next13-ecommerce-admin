@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
+  Animated,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,19 +40,15 @@ export default function ExploreScreen() {
         if (locationId) p.locationId = locationId;
         const data = await travelApi.getPackages(p);
         setPackages(data.packages || []);
-
         const cats = [
           ...new Set(
-            (data.packages || [])
-              .map((pkg: any) => pkg.tourCategory)
-              .filter(Boolean)
+            (data.packages || []).map((pkg: any) => pkg.tourCategory).filter(Boolean)
           ),
         ] as string[];
-        if (cats.length > 0 && categories.length === 0) {
-          setCategories(cats);
-        }
+        if (cats.length > 0 && categories.length === 0) setCategories(cats);
       } catch (error) {
         console.error("Failed to load packages:", error);
+        setPackages([]);
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -64,8 +61,8 @@ export default function ExploreScreen() {
     try {
       const data = await travelApi.getDestinations();
       setDestinations(data.destinations || []);
-    } catch (error) {
-      console.error("Failed to load destinations:", error);
+    } catch {
+      /* silent */
     }
   }, []);
 
@@ -74,7 +71,6 @@ export default function ExploreScreen() {
     fetchPackages(activeCategory, "", activeLocation);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle incoming params from Home's category/location chips
   useEffect(() => {
     if (params.category && params.category !== activeCategory) {
       setActiveCategory(params.category);
@@ -105,107 +101,127 @@ export default function ExploreScreen() {
     fetchPackages(activeCategory, searchQuery, activeLocation);
   };
 
-  const renderPackage = ({ item }: { item: any }) => (
+  const activeDestLabel = destinations.find((d) => d.id === activeLocation)?.label;
+
+  // ─── Package Card ────────────────────────────────────────────────────────────
+  const renderPackage = ({ item, index }: { item: any; index: number }) => (
     <Pressable
       style={styles.card}
       onPress={() => router.push(`/packages/${item.slug || item.id}`)}
     >
-      <View style={styles.cardImageWrap}>
+      {/* Image */}
+      <View style={styles.cardImageContainer}>
         {item.images?.[0]?.url ? (
-          <Image
-            source={{ uri: item.images[0].url }}
-            style={styles.cardImage}
-          />
+          <Image source={{ uri: item.images[0].url }} style={styles.cardImage} />
         ) : (
           <LinearGradient
             colors={[Colors.gradient1, Colors.gradient2]}
-            style={[styles.cardImage, { justifyContent: "center", alignItems: "center" }]}
+            style={styles.cardImagePlaceholder}
           >
-            <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.5)" />
+            <Ionicons name="image-outline" size={32} color="rgba(255,255,255,0.6)" />
           </LinearGradient>
         )}
         <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.35)"]}
-          style={styles.cardImageOverlay}
+          colors={["transparent", "rgba(0,0,0,0.55)"]}
+          style={styles.cardImageGradient}
         />
-        {item.tourCategory && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{item.tourCategory}</Text>
-          </View>
-        )}
-        {item.numDaysNight && (
+        {/* Badges */}
+        <View style={styles.cardBadgeRow}>
+          {item.tourCategory ? (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{item.tourCategory}</Text>
+            </View>
+          ) : null}
+        </View>
+        {item.numDaysNight ? (
           <View style={styles.durationBadge}>
-            <Ionicons name="time-outline" size={10} color="#fff" />
+            <Ionicons name="time-outline" size={11} color="#fff" />
             <Text style={styles.durationText}>{item.numDaysNight}</Text>
           </View>
-        )}
+        ) : null}
       </View>
-      <View style={styles.cardBody}>
-        <View style={styles.cardAccent} />
-        <View style={styles.cardContent}>
+
+      {/* Info */}
+      <View style={styles.cardInfo}>
+        <View style={styles.cardInfoLeft}>
           <View style={styles.locationRow}>
-            <Ionicons name="location" size={11} color={Colors.primary} />
-            <Text style={styles.location}>{item.location?.label}</Text>
+            <Ionicons name="location-sharp" size={12} color={Colors.primary} />
+            <Text style={styles.locationText} numberOfLines={1}>
+              {item.location?.label || "—"}
+            </Text>
           </View>
-          <Text style={styles.name} numberOfLines={2}>
+          <Text style={styles.cardTitle} numberOfLines={2}>
             {item.tourPackageName || "Tour Package"}
           </Text>
-          <View style={styles.cardFooter}>
-            {item.pricePerAdult ? (
-              <Text style={styles.price}>
+        </View>
+        <View style={styles.cardInfoRight}>
+          {item.pricePerAdult ? (
+            <>
+              <Text style={styles.priceFrom}>from</Text>
+              <Text style={styles.priceValue}>
                 ₹{Number(item.pricePerAdult).toLocaleString("en-IN")}
-                <Text style={styles.priceUnit}> /person</Text>
               </Text>
-            ) : (
-              <Text style={styles.contactPrice}>Contact for pricing</Text>
-            )}
-            <View style={styles.arrowBtn}>
-              <Ionicons name="arrow-forward" size={14} color="#fff" />
-            </View>
-          </View>
+              <Text style={styles.pricePer}>/person</Text>
+            </>
+          ) : (
+            <Text style={styles.priceContact}>Contact us</Text>
+          )}
+        </View>
+      </View>
+
+      {/* Footer */}
+      <View style={styles.cardFooter}>
+        <View style={styles.itineraryTag}>
+          <Ionicons name="map-outline" size={12} color={Colors.primary} />
+          <Text style={styles.itineraryTagText}>
+            {item._count?.itineraries || 0} days planned
+          </Text>
+        </View>
+        <View style={styles.viewBtn}>
+          <Text style={styles.viewBtnText}>View Details</Text>
+          <Ionicons name="arrow-forward" size={12} color="#fff" />
         </View>
       </View>
     </Pressable>
   );
 
-  return (
-    <View style={styles.container}>
-      {/* Destinations row */}
+  // ─── List Header (destinations + search + filters) ───────────────────────────
+  const ListHeader = (
+    <View>
+      {/* Destinations */}
       {destinations.length > 0 && (
-        <View style={styles.destinationsSection}>
-          <Text style={styles.destinationsSectionLabel}>Browse by Destination</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>BROWSE BY DESTINATION</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.destinationsList}
+            contentContainerStyle={styles.destRow}
           >
-            {/* "All" chip */}
             <Pressable
               style={[styles.destChip, !activeLocation && styles.destChipActive]}
               onPress={() => handleLocationChange(null)}
             >
-              <View style={[styles.destChipIcon, !activeLocation && styles.destChipIconActive]}>
-                <Ionicons name="globe-outline" size={18} color={!activeLocation ? "#fff" : Colors.primary} />
+              <View style={[styles.destIcon, !activeLocation && styles.destIconActive]}>
+                <Ionicons name="globe-outline" size={16} color={!activeLocation ? "#fff" : Colors.primary} />
               </View>
-              <Text style={[styles.destChipLabel, !activeLocation && styles.destChipLabelActive]}>All</Text>
+              <Text style={[styles.destLabel, !activeLocation && styles.destLabelActive]}>All</Text>
             </Pressable>
-
             {destinations.map((dest) => {
-              const isActive = activeLocation === dest.id;
+              const active = activeLocation === dest.id;
               return (
                 <Pressable
                   key={dest.id}
-                  style={[styles.destChip, isActive && styles.destChipActive]}
-                  onPress={() => handleLocationChange(isActive ? null : dest.id)}
+                  style={[styles.destChip, active && styles.destChipActive]}
+                  onPress={() => handleLocationChange(active ? null : dest.id)}
                 >
                   {dest.imageUrl ? (
-                    <Image source={{ uri: dest.imageUrl }} style={styles.destChipImage} />
+                    <Image source={{ uri: dest.imageUrl }} style={styles.destImage} />
                   ) : (
-                    <View style={[styles.destChipIcon, isActive && styles.destChipIconActive]}>
-                      <Ionicons name="map-outline" size={18} color={isActive ? "#fff" : Colors.primary} />
+                    <View style={[styles.destIcon, active && styles.destIconActive]}>
+                      <Ionicons name="map-outline" size={16} color={active ? "#fff" : Colors.primary} />
                     </View>
                   )}
-                  <Text style={[styles.destChipLabel, isActive && styles.destChipLabelActive]} numberOfLines={1}>
+                  <Text style={[styles.destLabel, active && styles.destLabelActive]} numberOfLines={1}>
                     {dest.label}
                   </Text>
                 </Pressable>
@@ -216,80 +232,72 @@ export default function ExploreScreen() {
       )}
 
       {/* Search */}
-      <View style={styles.searchBar}>
-        <View style={styles.searchIconWrap}>
-          <Ionicons name="search" size={14} color="#fff" />
+      <View style={styles.searchRow}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={16} color={Colors.textTertiary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search packages, destinations..."
+            placeholderTextColor={Colors.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+          />
+          {searchQuery ? (
+            <Pressable onPress={() => { setSearchQuery(""); fetchPackages(activeCategory, "", activeLocation); }}>
+              <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+            </Pressable>
+          ) : null}
         </View>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search packages..."
-          placeholderTextColor={Colors.textTertiary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-        />
-        {searchQuery ? (
-          <Pressable
-            onPress={() => {
-              setSearchQuery("");
-              fetchPackages(activeCategory, "", activeLocation);
-            }}
-          >
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
       </View>
 
-      {/* Category Filter */}
+      {/* Category chips */}
       {categories.length > 0 && (
-        <FlatList
+        <ScrollView
           horizontal
-          data={["all", ...categories]}
-          keyExtractor={(item) => item}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryList}
-          renderItem={({ item }) => {
-            const isActive = item === activeCategory;
-            const label = item === "all" ? "All Packages" : item;
+          contentContainerStyle={styles.catRow}
+        >
+          {["all", ...categories].map((cat) => {
+            const active = cat === activeCategory;
             return (
-              <Pressable
-                style={styles.categoryChipOuter}
-                onPress={() => handleCategoryChange(item)}
-              >
-                {isActive ? (
+              <Pressable key={cat} onPress={() => handleCategoryChange(cat)} style={styles.catChipWrap}>
+                {active ? (
                   <LinearGradient
                     colors={[Colors.gradient1, Colors.gradient2]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={styles.categoryChipInner}
+                    style={styles.catChip}
                   >
-                    <Text style={styles.categoryChipTextActive}>{label}</Text>
+                    <Text style={styles.catChipTextActive}>
+                      {cat === "all" ? "All Packages" : cat}
+                    </Text>
                   </LinearGradient>
                 ) : (
-                  <View style={styles.categoryChipInactive}>
-                    <Text style={styles.categoryChipText}>{label}</Text>
+                  <View style={[styles.catChip, styles.catChipInactive]}>
+                    <Text style={styles.catChipText}>
+                      {cat === "all" ? "All Packages" : cat}
+                    </Text>
                   </View>
                 )}
               </Pressable>
             );
-          }}
-        />
+          })}
+        </ScrollView>
       )}
 
-      {/* Active filters summary */}
+      {/* Active filter pill */}
       {(activeLocation || activeCategory !== "all") && (
-        <View style={styles.activeFilters}>
-          <Ionicons name="funnel" size={12} color={Colors.primary} />
-          <Text style={styles.activeFiltersText}>
-            {[
-              activeLocation && destinations.find((d) => d.id === activeLocation)?.label,
-              activeCategory !== "all" && activeCategory,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </Text>
+        <View style={styles.filterPillRow}>
+          <View style={styles.filterPill}>
+            <Ionicons name="funnel" size={11} color={Colors.primary} />
+            <Text style={styles.filterPillText}>
+              {[activeDestLabel, activeCategory !== "all" && activeCategory].filter(Boolean).join(" · ")}
+            </Text>
+          </View>
           <Pressable
+            style={styles.clearBtn}
             onPress={() => {
               setActiveLocation(null);
               setActiveCategory("all");
@@ -297,96 +305,104 @@ export default function ExploreScreen() {
               fetchPackages("all", searchQuery, null);
             }}
           >
-            <Text style={styles.clearFilters}>Clear</Text>
+            <Ionicons name="close" size={12} color={Colors.primary} />
+            <Text style={styles.clearBtnText}>Clear</Text>
           </Pressable>
         </View>
       )}
 
-      {/* Package List */}
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      ) : packages.length === 0 ? (
-        <View style={styles.centered}>
-          <View style={styles.emptyIconWrap}>
-            <Ionicons name="search" size={32} color={Colors.primary} />
-          </View>
-          <Text style={styles.emptyTitle}>No packages found</Text>
-          <Text style={styles.emptySubtitle}>
-            Try adjusting your search or filters
+      {/* Results count / loading hint */}
+      {!loading && (
+        <View style={styles.resultsRow}>
+          <Text style={styles.resultsText}>
+            {packages.length} package{packages.length !== 1 ? "s" : ""} found
           </Text>
         </View>
-      ) : (
-        <FlatList
-          data={packages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderPackage}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={Colors.primary}
-            />
-          }
-        />
       )}
+    </View>
+  );
+
+  // ─── Empty & Loading states ───────────────────────────────────────────────────
+  const ListEmpty = loading ? (
+    <View style={styles.centeredState}>
+      <ActivityIndicator size="large" color={Colors.primary} />
+      <Text style={styles.stateText}>Finding packages…</Text>
+    </View>
+  ) : (
+    <View style={styles.centeredState}>
+      <LinearGradient colors={[Colors.gradient1, Colors.gradient2]} style={styles.emptyIcon}>
+        <Ionicons name="search-outline" size={28} color="#fff" />
+      </LinearGradient>
+      <Text style={styles.emptyTitle}>No packages found</Text>
+      <Text style={styles.emptySubtitle}>Try clearing your filters or search with different terms</Text>
+      {(activeLocation || activeCategory !== "all" || searchQuery) && (
+        <Pressable
+          style={styles.emptyResetBtn}
+          onPress={() => {
+            setActiveLocation(null);
+            setActiveCategory("all");
+            setSearchQuery("");
+            setLoading(true);
+            fetchPackages("all", "", null);
+          }}
+        >
+          <Text style={styles.emptyResetText}>Reset Filters</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+
+  return (
+    <View style={styles.root}>
+      <FlatList
+        data={loading ? [] : packages}
+        keyExtractor={(item) => item.id}
+        renderItem={renderPackage}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={ListEmpty}
+        ListFooterComponent={<View style={{ height: 100 }} />}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+        }
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.surface },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
+  root: { flex: 1, backgroundColor: Colors.surface },
+  listContent: { paddingBottom: 20 },
 
-  // Destinations section
-  destinationsSection: {
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
-  },
-  destinationsSectionLabel: {
+  // ─── Section ───────────────────────────────────────────────────────
+  section: { paddingTop: Spacing.lg },
+  sectionLabel: {
     fontSize: FontSize.xs,
     fontWeight: "700",
     color: Colors.textSecondary,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     textTransform: "uppercase",
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
   },
-  destinationsList: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-  },
+
+  // ─── Destinations ──────────────────────────────────────────────────
+  destRow: { paddingHorizontal: Spacing.lg, gap: Spacing.sm, paddingBottom: Spacing.md },
   destChip: {
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.sm,
+    gap: 5,
+    width: 72,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
     backgroundColor: Colors.background,
-    minWidth: 68,
     borderWidth: 1.5,
     borderColor: Colors.border,
     ...Shadows.light,
   },
-  destChipActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryBg,
-  },
-  destChipImage: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-  },
-  destChipIcon: {
+  destChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryBg },
+  destImage: { width: 40, height: 40, borderRadius: BorderRadius.md },
+  destIcon: {
     width: 40,
     height: 40,
     borderRadius: BorderRadius.md,
@@ -394,183 +410,226 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  destChipIconActive: {
-    backgroundColor: Colors.primary,
-  },
-  destChipLabel: {
-    fontSize: FontSize.xs,
+  destIconActive: { backgroundColor: Colors.primary },
+  destLabel: {
+    fontSize: 10,
     fontWeight: "600",
     color: Colors.textSecondary,
-    maxWidth: 64,
     textAlign: "center",
+    maxWidth: 64,
   },
-  destChipLabelActive: {
-    color: Colors.primary,
-  },
+  destLabelActive: { color: Colors.primary },
 
-  // Active filters
-  activeFilters: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  activeFiltersText: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    color: Colors.primary,
-    fontWeight: "500",
-  },
-  clearFilters: {
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    color: Colors.primary,
-    textDecorationLine: "underline",
-  },
-
-  // Search
+  // ─── Search ────────────────────────────────────────────────────────
+  searchRow: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.background,
-    margin: Spacing.lg,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
     ...Shadows.light,
-  },
-  searchIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
   },
   searchInput: { flex: 1, fontSize: FontSize.md, color: Colors.text },
 
-  // Categories
-  categoryList: {
+  // ─── Categories ────────────────────────────────────────────────────
+  catRow: { paddingHorizontal: Spacing.lg, gap: Spacing.sm, paddingBottom: Spacing.sm },
+  catChipWrap: {},
+  catChip: {
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-    height: 40,
-  },
-  categoryChipOuter: {
-    height: 36,
-  },
-  categoryChipInner: {
-    height: 36,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: 9,
     borderRadius: BorderRadius.full,
     justifyContent: "center",
     alignItems: "center",
   },
-  categoryChipInactive: {
-    height: 36,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.full,
-    justifyContent: "center",
-    alignItems: "center",
+  catChipInactive: {
     backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  categoryChipText: {
-    fontSize: FontSize.sm,
-    fontWeight: "500",
-    color: Colors.textSecondary,
-  },
-  categoryChipTextActive: {
-    color: "#fff",
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-  },
+  catChipTextActive: { fontSize: FontSize.sm, fontWeight: "700", color: "#fff" },
+  catChipText: { fontSize: FontSize.sm, fontWeight: "500", color: Colors.textSecondary },
 
-  // Cards
-  listContent: { padding: Spacing.lg, paddingBottom: 100, gap: Spacing.lg },
+  // ─── Filter pill ───────────────────────────────────────────────────
+  filterPillRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  filterPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  filterPillText: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: "600", flex: 1 },
+  clearBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  clearBtnText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.primary },
+
+  // ─── Results count ─────────────────────────────────────────────────
+  resultsRow: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+  },
+  resultsText: { fontSize: FontSize.sm, color: Colors.textTertiary, fontWeight: "500" },
+
+  // ─── Card ──────────────────────────────────────────────────────────
   card: {
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
     overflow: "hidden",
     ...Shadows.medium,
   },
-  cardImageWrap: { position: "relative" },
-  cardImage: { width: "100%", height: 180 },
-  cardImageOverlay: {
+  cardImageContainer: { position: "relative", height: 180 },
+  cardImage: { width: "100%", height: "100%" },
+  cardImagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardImageGradient: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: 60,
+    height: 80,
   },
-  badge: {
+  cardBadgeRow: {
     position: "absolute",
-    top: Spacing.sm,
-    left: Spacing.sm,
+    top: Spacing.md,
+    left: Spacing.md,
+    flexDirection: "row",
+    gap: Spacing.xs,
+  },
+  categoryBadge: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
   },
-  badgeText: { fontSize: FontSize.xs, fontWeight: "700", color: "#fff" },
+  categoryBadgeText: { fontSize: 10, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
   durationBadge: {
     position: "absolute",
-    top: Spacing.sm,
-    right: Spacing.sm,
+    top: Spacing.md,
+    right: Spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     backgroundColor: "rgba(0,0,0,0.5)",
     paddingHorizontal: Spacing.sm + 2,
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
+  },
+  durationText: { fontSize: 10, color: "#fff", fontWeight: "600" },
+
+  cardInfo: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
+    alignItems: "flex-start",
+    padding: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
   },
-  durationText: { fontSize: FontSize.xs, color: "#fff", fontWeight: "600" },
-  cardBody: { flexDirection: "row" },
-  cardAccent: {
-    width: 4,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
+  cardInfoLeft: { flex: 1 },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 3, marginBottom: 4 },
+  locationText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "500", flex: 1 },
+  cardTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "700",
+    color: Colors.text,
+    lineHeight: 22,
   },
-  cardContent: { flex: 1, padding: Spacing.lg },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
-  location: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  name: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.text, marginBottom: Spacing.md, lineHeight: 22 },
+  cardInfoRight: { alignItems: "flex-end", minWidth: 80 },
+  priceFrom: { fontSize: 9, color: Colors.textTertiary, fontWeight: "500" },
+  priceValue: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.primary, lineHeight: 22 },
+  pricePer: { fontSize: 9, color: Colors.textSecondary },
+  priceContact: { fontSize: FontSize.sm, color: Colors.textSecondary, fontStyle: "italic" },
+
   cardFooter: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    paddingTop: Spacing.xs,
     borderTopWidth: 1,
     borderTopColor: Colors.borderLight,
-    paddingTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
-  price: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.primary },
-  priceUnit: { fontSize: FontSize.xs, fontWeight: "400", color: Colors.textSecondary },
-  contactPrice: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  arrowBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
+  itineraryTag: {
+    flexDirection: "row",
     alignItems: "center",
-  },
-
-  // Empty state
-  emptyIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    gap: 5,
     backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+  },
+  itineraryTagText: { fontSize: 11, color: Colors.primary, fontWeight: "600" },
+  viewBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+  },
+  viewBtnText: { fontSize: 11, fontWeight: "700", color: "#fff" },
+
+  // ─── States ────────────────────────────────────────────────────────
+  centeredState: {
+    alignItems: "center",
+    paddingTop: 60,
+    paddingHorizontal: Spacing.xxl,
+    gap: Spacing.sm,
+  },
+  stateText: { fontSize: FontSize.md, color: Colors.textSecondary, marginTop: Spacing.sm },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.sm,
   },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.text },
-  emptySubtitle: { fontSize: FontSize.md, color: Colors.textSecondary },
+  emptyTitle: { fontSize: FontSize.xl, fontWeight: "700", color: Colors.text },
+  emptySubtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  emptyResetBtn: {
+    marginTop: Spacing.md,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  emptyResetText: { fontSize: FontSize.md, fontWeight: "700", color: "#fff" },
 });

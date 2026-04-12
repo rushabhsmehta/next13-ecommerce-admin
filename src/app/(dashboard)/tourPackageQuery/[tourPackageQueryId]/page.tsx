@@ -124,6 +124,7 @@ const tourPackageQueryPage = async (
         isActive: true,
         gmail: true,
         createdAt: true,
+        accessToken: true,
       },
     }),
     prismadb.location.findMany({

@@ -1013,6 +1013,7 @@ model AssociatePartner {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @default(now())
   gmail              String?
+  accessToken        String?            @unique @default(uuid())
   inquiries          Inquiry[]
   customers          Customer[]
   tourPackageQueries TourPackageQuery[]

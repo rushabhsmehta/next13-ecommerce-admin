@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Updates from "expo-updates";
 import { Colors } from "@/constants/theme";
+import { AuthProvider } from "@/context/AuthContext";
 
 async function checkForOTAUpdate() {
   try {
@@ -40,7 +41,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <AuthProvider>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -68,7 +69,15 @@ export default function RootLayout() {
           name="chat/[groupId]"
           options={{ headerTitle: "Chat" }}
         />
+        <Stack.Screen
+          name="auth/associate-login"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="inquiries/new"
+          options={{ headerTitle: "New Inquiry", headerShown: true }}
+        />
       </Stack>
-    </>
+    </AuthProvider>
   );
 }

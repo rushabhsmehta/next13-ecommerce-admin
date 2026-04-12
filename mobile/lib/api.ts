@@ -113,6 +113,80 @@ export const chatApi = {
     request(`/api/chat/groups/${groupId}/members`, { token }),
 };
 
+// ========== Associate Partner APIs ==========
+
+export const associateApi = {
+  // Authenticate with mobileNumber + accessToken
+  auth: (mobileNumber: string, accessToken: string) =>
+    request("/api/associate/auth", {
+      method: "POST",
+      body: { mobileNumber, accessToken },
+    }),
+
+  // Verify stored token is still valid
+  me: (token: string) => request("/api/associate/me", { token }),
+
+  // Create a new inquiry (full form)
+  createInquiry: (
+    data: {
+      customerName: string;
+      customerMobileNumber: string;
+      locationId: string;
+      journeyDate: string;
+      numAdults?: number;
+      numChildrenAbove11?: number;
+      numChildren5to11?: number;
+      numChildrenBelow5?: number;
+      remarks?: string;
+      nextFollowUpDate?: string;
+      roomAllocations?: Array<{
+        roomTypeId: string;
+        occupancyTypeId: string;
+        mealPlanId?: string;
+        quantity?: number;
+        guestNames?: string;
+        notes?: string;
+      }>;
+      transportDetails?: Array<{
+        vehicleTypeId: string;
+        quantity?: number;
+        isAirportPickupRequired?: boolean;
+        isAirportDropRequired?: boolean;
+        pickupLocation?: string;
+        dropLocation?: string;
+        requirementDate: string;
+        notes?: string;
+      }>;
+    },
+    token: string
+  ) =>
+    request("/api/associate/inquiries", {
+      method: "POST",
+      body: data,
+      token,
+    }),
+
+  // List associate's inquiries
+  listInquiries: (
+    token: string,
+    params?: { status?: string; limit?: number; offset?: number }
+  ) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.offset) qs.set("offset", String(params.offset));
+    const q = qs.toString();
+    return request(`/api/associate/inquiries${q ? `?${q}` : ""}`, { token });
+  },
+
+  // Fetch config data for form pickers (these endpoints are public)
+  getLocations: () => request("/api/travel/destinations"),
+  getRoomTypes: () => request("/api/room-types"),
+  getMealPlans: () => request("/api/meal-plans"),
+  getOccupancyTypes: () => request("/api/occupancy-types"),
+  getVehicleTypes: () => request("/api/vehicle-types"),
+};
+
 // ========== Push Notification APIs ==========
 
 export const pushApi = {

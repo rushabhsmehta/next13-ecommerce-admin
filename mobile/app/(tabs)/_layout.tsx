@@ -3,9 +3,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Shadows } from "@/constants/theme";
+import { useAuth } from "@/context/AuthContext";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { isLoggedIn, userType } = useAuth();
+  const isAssociate = userType === "associate";
+  // Tourists: explicitly set as tourist, or logged in without a type (legacy tourist token)
+  const isTourist = isLoggedIn && !isAssociate;
 
   return (
     <Tabs
@@ -61,7 +66,7 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: "Explore",
-          headerTitle: "Tour Packages",
+          headerTitle: "Explore",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconWrap : undefined}>
               <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
@@ -69,21 +74,16 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Always hidden — destinations merged into Explore */}
       <Tabs.Screen
         name="destinations"
-        options={{
-          title: "Places",
-          headerTitle: "Destinations",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons name={focused ? "map" : "map-outline"} size={22} color={color} />
-            </View>
-          ),
-        }}
+        options={{ href: null }}
       />
+      {/* Trip Chat — tourists only */}
       <Tabs.Screen
         name="chat"
         options={{
+          href: isTourist ? undefined : null,
           title: "Chat",
           headerTitle: "Trip Chat",
           tabBarIcon: ({ color, focused }) => (
@@ -93,11 +93,25 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Inquiries — associates only */}
+      <Tabs.Screen
+        name="inquiries"
+        options={{
+          href: isAssociate ? undefined : null,
+          title: "Inquiries",
+          headerTitle: "My Inquiries",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons name={focused ? "document-text" : "document-text-outline"} size={22} color={color} />
+            </View>
+          ),
+        }}
+      />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
-          headerTitle: "My Profile",
+          title: isLoggedIn ? "Profile" : "Account",
+          headerTitle: isLoggedIn ? "My Profile" : "Account",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconWrap : undefined}>
               <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />

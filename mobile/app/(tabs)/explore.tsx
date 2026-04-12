@@ -9,8 +9,9 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
@@ -18,26 +19,31 @@ import { travelApi } from "@/lib/api";
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ category?: string; locationId?: string }>();
+
   const [packages, setPackages] = useState<any[]>([]);
+  const [destinations, setDestinations] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeCategory, setActiveCategory] = useState(params.category || "all");
+  const [activeLocation, setActiveLocation] = useState<string | null>(params.locationId || null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchPackages = useCallback(
-    async (category?: string, search?: string) => {
+    async (category?: string, search?: string, locationId?: string | null) => {
       try {
-        const params: any = { limit: 50 };
-        if (category && category !== "all") params.category = category;
-        if (search) params.search = search;
-        const data = await travelApi.getPackages(params);
+        const p: any = { limit: 50 };
+        if (category && category !== "all") p.category = category;
+        if (search) p.search = search;
+        if (locationId) p.locationId = locationId;
+        const data = await travelApi.getPackages(p);
         setPackages(data.packages || []);
 
         const cats = [
           ...new Set(
             (data.packages || [])
-              .map((p: any) => p.tourCategory)
+              .map((pkg: any) => pkg.tourCategory)
               .filter(Boolean)
           ),
         ] as string[];
@@ -54,19 +60,49 @@ export default function ExploreScreen() {
     [categories.length]
   );
 
+  const fetchDestinations = useCallback(async () => {
+    try {
+      const data = await travelApi.getDestinations();
+      setDestinations(data.destinations || []);
+    } catch (error) {
+      console.error("Failed to load destinations:", error);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchPackages();
-  }, [fetchPackages]);
+    fetchDestinations();
+    fetchPackages(activeCategory, "", activeLocation);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle incoming params from Home's category/location chips
+  useEffect(() => {
+    if (params.category && params.category !== activeCategory) {
+      setActiveCategory(params.category);
+      setLoading(true);
+      fetchPackages(params.category, searchQuery, activeLocation);
+    }
+  }, [params.category]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCategoryChange = (cat: string) => {
     setActiveCategory(cat);
     setLoading(true);
-    fetchPackages(cat, searchQuery);
+    fetchPackages(cat, searchQuery, activeLocation);
+  };
+
+  const handleLocationChange = (locationId: string | null) => {
+    setActiveLocation(locationId);
+    setLoading(true);
+    fetchPackages(activeCategory, searchQuery, locationId);
   };
 
   const handleSearch = () => {
     setLoading(true);
-    fetchPackages(activeCategory, searchQuery);
+    fetchPackages(activeCategory, searchQuery, activeLocation);
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchPackages(activeCategory, searchQuery, activeLocation);
   };
 
   const renderPackage = ({ item }: { item: any }) => (
@@ -134,6 +170,51 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Destinations row */}
+      {destinations.length > 0 && (
+        <View style={styles.destinationsSection}>
+          <Text style={styles.destinationsSectionLabel}>Browse by Destination</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.destinationsList}
+          >
+            {/* "All" chip */}
+            <Pressable
+              style={[styles.destChip, !activeLocation && styles.destChipActive]}
+              onPress={() => handleLocationChange(null)}
+            >
+              <View style={[styles.destChipIcon, !activeLocation && styles.destChipIconActive]}>
+                <Ionicons name="globe-outline" size={18} color={!activeLocation ? "#fff" : Colors.primary} />
+              </View>
+              <Text style={[styles.destChipLabel, !activeLocation && styles.destChipLabelActive]}>All</Text>
+            </Pressable>
+
+            {destinations.map((dest) => {
+              const isActive = activeLocation === dest.id;
+              return (
+                <Pressable
+                  key={dest.id}
+                  style={[styles.destChip, isActive && styles.destChipActive]}
+                  onPress={() => handleLocationChange(isActive ? null : dest.id)}
+                >
+                  {dest.imageUrl ? (
+                    <Image source={{ uri: dest.imageUrl }} style={styles.destChipImage} />
+                  ) : (
+                    <View style={[styles.destChipIcon, isActive && styles.destChipIconActive]}>
+                      <Ionicons name="map-outline" size={18} color={isActive ? "#fff" : Colors.primary} />
+                    </View>
+                  )}
+                  <Text style={[styles.destChipLabel, isActive && styles.destChipLabelActive]} numberOfLines={1}>
+                    {dest.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Search */}
       <View style={styles.searchBar}>
         <View style={styles.searchIconWrap}>
@@ -152,7 +233,7 @@ export default function ExploreScreen() {
           <Pressable
             onPress={() => {
               setSearchQuery("");
-              fetchPackages(activeCategory, "");
+              fetchPackages(activeCategory, "", activeLocation);
             }}
           >
             <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
@@ -196,6 +277,31 @@ export default function ExploreScreen() {
         />
       )}
 
+      {/* Active filters summary */}
+      {(activeLocation || activeCategory !== "all") && (
+        <View style={styles.activeFilters}>
+          <Ionicons name="funnel" size={12} color={Colors.primary} />
+          <Text style={styles.activeFiltersText}>
+            {[
+              activeLocation && destinations.find((d) => d.id === activeLocation)?.label,
+              activeCategory !== "all" && activeCategory,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </Text>
+          <Pressable
+            onPress={() => {
+              setActiveLocation(null);
+              setActiveCategory("all");
+              setLoading(true);
+              fetchPackages("all", searchQuery, null);
+            }}
+          >
+            <Text style={styles.clearFilters}>Clear</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* Package List */}
       {loading ? (
         <View style={styles.centered}>
@@ -221,10 +327,7 @@ export default function ExploreScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                fetchPackages(activeCategory, searchQuery);
-              }}
+              onRefresh={handleRefresh}
               tintColor={Colors.primary}
             />
           }
@@ -243,12 +346,96 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
 
+  // Destinations section
+  destinationsSection: {
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  destinationsSectionLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.textSecondary,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  destinationsList: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  destChip: {
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.background,
+    minWidth: 68,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    ...Shadows.light,
+  },
+  destChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+  },
+  destChipImage: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+  },
+  destChipIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  destChipIconActive: {
+    backgroundColor: Colors.primary,
+  },
+  destChipLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    maxWidth: 64,
+    textAlign: "center",
+  },
+  destChipLabelActive: {
+    color: Colors.primary,
+  },
+
+  // Active filters
+  activeFilters: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  activeFiltersText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: "500",
+  },
+  clearFilters: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.primary,
+    textDecorationLine: "underline",
+  },
+
   // Search
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.background,
     margin: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,

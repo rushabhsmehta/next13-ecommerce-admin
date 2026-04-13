@@ -19,6 +19,13 @@ const PurchaseVoucherPage = async (props: PurchaseVoucherPageProps) => {
     include: {
       tourPackageQuery: true,
       supplier: true,
+      items: {
+        include: {
+          unitOfMeasure: true,
+          taxSlab: true,
+        },
+        orderBy: { orderIndex: "asc" },
+      },
     },
   });
 
@@ -38,6 +45,15 @@ const PurchaseVoucherPage = async (props: PurchaseVoucherPageProps) => {
   const hasGst = !!purchase.gstAmount && purchase.gstAmount > 0;
   const baseAmount = purchase.price;
   const totalAmount = purchase.netPayable ?? purchase.price + (purchase.gstAmount || 0);
+
+  const hasItems = purchase.items.length > 0;
+  const hasDiscount = purchase.items.some((item) => (item.discountAmount ?? 0) > 0);
+  const itemsSubtotal = purchase.items.reduce(
+    (sum, item) => sum + item.quantity * item.pricePerUnit - (item.discountAmount ?? 0),
+    0
+  );
+  const itemsTax = purchase.items.reduce((sum, item) => sum + (item.taxAmount ?? 0), 0);
+  const colSpan = hasDiscount ? 7 : 6;
 
   const voucherData = {
     title: "PURCHASE INVOICE",
@@ -92,41 +108,114 @@ const PurchaseVoucherPage = async (props: PurchaseVoucherPageProps) => {
           organization={organization}
           {...voucherData}
         >
-          {/* Consolidated view — no internal cost breakdown shown */}
-          <div className="rounded-md border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/40 border-b">
-                  <th className="text-left px-3 py-2 font-semibold">Description</th>
-                  <th className="text-right px-3 py-2 font-semibold">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="px-3 py-2 font-medium">{packageName}</td>
-                  <td className="px-3 py-2 text-right font-medium">
-                    {formatPrice(baseAmount)}
-                  </td>
-                </tr>
-                {hasGst && (
-                  <tr className="border-b text-muted-foreground">
-                    <td className="px-3 py-2 text-xs">
-                      GST @ {purchase.gstPercentage}%
-                    </td>
-                    <td className="px-3 py-2 text-right text-xs">
-                      {formatPrice(purchase.gstAmount || 0)}
+          {hasItems ? (
+            /* Item-wise breakdown */
+            <div className="rounded-md border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/40 border-b">
+                    <th className="text-left px-3 py-2 font-semibold w-6">#</th>
+                    <th className="text-left px-3 py-2 font-semibold">Product / Service</th>
+                    <th className="text-right px-3 py-2 font-semibold">Qty</th>
+                    <th className="text-left px-3 py-2 font-semibold">Unit</th>
+                    <th className="text-right px-3 py-2 font-semibold">Price</th>
+                    {hasDiscount && (
+                      <th className="text-right px-3 py-2 font-semibold">Discount</th>
+                    )}
+                    <th className="text-right px-3 py-2 font-semibold">Tax</th>
+                    <th className="text-right px-3 py-2 font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchase.items.map((item, idx) => (
+                    <tr key={item.id} className="border-b">
+                      <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
+                      <td className="px-3 py-2">
+                        <p className="font-medium">{item.productName}</p>
+                        {item.description && (
+                          <p className="text-xs text-muted-foreground">{item.description}</p>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right">{item.quantity}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {item.unitOfMeasure?.abbreviation ?? item.unitOfMeasure?.name ?? "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right">{formatPrice(item.pricePerUnit)}</td>
+                      {hasDiscount && (
+                        <td className="px-3 py-2 text-right text-muted-foreground">
+                          {(item.discountAmount ?? 0) > 0
+                            ? formatPrice(item.discountAmount!)
+                            : "—"}
+                        </td>
+                      )}
+                      <td className="px-3 py-2 text-right text-muted-foreground">
+                        {item.taxSlab?.name
+                          ? `${item.taxSlab.name}${item.taxAmount ? ` (${formatPrice(item.taxAmount)})` : ""}`
+                          : item.taxAmount
+                          ? formatPrice(item.taxAmount)
+                          : "None"}
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium">
+                        {formatPrice(item.totalAmount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t text-muted-foreground">
+                    <td colSpan={colSpan} className="px-3 py-1.5 text-right text-xs">Subtotal</td>
+                    <td className="px-3 py-1.5 text-right text-xs">{formatPrice(itemsSubtotal)}</td>
+                  </tr>
+                  <tr className="text-muted-foreground">
+                    <td colSpan={colSpan} className="px-3 py-1.5 text-right text-xs">Tax</td>
+                    <td className="px-3 py-1.5 text-right text-xs">
+                      {formatPrice(purchase.gstAmount ?? itemsTax)}
                     </td>
                   </tr>
-                )}
-              </tbody>
-              <tfoot>
-                <tr className="bg-muted/40 font-bold">
-                  <td className="px-3 py-2">Total</td>
-                  <td className="px-3 py-2 text-right">{formatPrice(totalAmount)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                  <tr className="bg-muted/40 font-bold">
+                    <td colSpan={colSpan} className="px-3 py-2 text-right">Total</td>
+                    <td className="px-3 py-2 text-right">{formatPrice(totalAmount)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            /* Consolidated fallback for purchases without line items */
+            <div className="rounded-md border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/40 border-b">
+                    <th className="text-left px-3 py-2 font-semibold">Description</th>
+                    <th className="text-right px-3 py-2 font-semibold">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="px-3 py-2 font-medium">{packageName}</td>
+                    <td className="px-3 py-2 text-right font-medium">
+                      {formatPrice(baseAmount)}
+                    </td>
+                  </tr>
+                  {hasGst && (
+                    <tr className="border-b text-muted-foreground">
+                      <td className="px-3 py-2 text-xs">
+                        GST @ {purchase.gstPercentage}%
+                      </td>
+                      <td className="px-3 py-2 text-right text-xs">
+                        {formatPrice(purchase.gstAmount || 0)}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-muted/40 font-bold">
+                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2 text-right">{formatPrice(totalAmount)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </VoucherLayout>
       </div>
     </div>

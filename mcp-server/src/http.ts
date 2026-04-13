@@ -451,7 +451,7 @@ export function startHttpServer(createServer: () => McpServer): void {
     res.json({ access_token: rawToken, token_type: "Bearer", expires_in: TOKEN_TTL_SECONDS });
   });
 
-  app.post("/mcp", requireBearer, async (req, res) => {
+  app.post(["/", "/mcp"], requireBearer, async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     const body = req.body as Record<string, unknown>;
     if (sessionId && sessions.has(sessionId)) {
@@ -498,7 +498,7 @@ export function startHttpServer(createServer: () => McpServer): void {
     }
   });
 
-  app.get("/mcp", requireBearer, async (req, res) => {
+  app.get(["/", "/mcp"], requireBearer, async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !sessions.has(sessionId)) {
       log("MCP_GET", "400 unknown session", {
@@ -516,7 +516,7 @@ export function startHttpServer(createServer: () => McpServer): void {
     }
   });
 
-  app.delete("/mcp", requireBearer, async (req, res) => {
+  app.delete(["/", "/mcp"], requireBearer, async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (sessionId) await closeSession(sessionId);
     res.status(200).end();

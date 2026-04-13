@@ -1,13 +1,30 @@
 import prismadb from "@/lib/prismadb";
 import { HeroSection } from "./components/hero-section";
+import { TourCategories } from "./components/tour-categories";
 import { FeaturedDestinations } from "./components/featured-destinations";
 import { FeaturedPackages } from "./components/featured-packages";
+import { SpecialDeals } from "./components/special-deals";
+import { PopularActivities } from "./components/popular-activities";
+import { FeaturedHotels } from "./components/featured-hotels";
+import { HowItWorks } from "./components/how-it-works";
+import { StatsSection } from "./components/stats-section";
+import { Testimonials } from "./components/testimonials";
+import { InquiryCta } from "./components/inquiry-cta";
 import { WhyChooseUs } from "./components/why-choose-us";
 
 export const dynamic = "force-dynamic";
 
 export default async function TravelHomePage() {
-  const [destinations, featuredPackages] = await Promise.all([
+  const [
+    destinations,
+    featuredPackages,
+    categories,
+    deals,
+    activities,
+    hotels,
+    [destinationCount, packageCount],
+  ] = await Promise.all([
+    // Existing queries
     prismadb.location.findMany({
       where: { isActive: true },
       select: {
@@ -42,6 +59,67 @@ export default async function TravelHomePage() {
       orderBy: [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
       take: 6,
     }),
+
+    // New: Tour categories
+    prismadb.tourPackage.groupBy({
+      by: ["tourCategory"],
+      where: {
+        isFeatured: true,
+        isArchived: false,
+        tourCategory: { not: null },
+      },
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+    }),
+
+    // New: Special deals (packages with per-adult pricing)
+    prismadb.tourPackage.findMany({
+      where: { isArchived: false, pricePerAdult: { not: null } },
+      select: {
+        id: true,
+        tourPackageName: true,
+        slug: true,
+        price: true,
+        pricePerAdult: true,
+        numDaysNight: true,
+        tourCategory: true,
+        location: { select: { label: true } },
+        images: { select: { url: true }, take: 1 },
+        _count: { select: { itineraries: true } },
+      },
+      orderBy: { pricePerAdult: "asc" },
+      take: 4,
+    }),
+
+    // New: Popular activities with images
+    prismadb.activityMaster.findMany({
+      where: { activityMasterImages: { some: {} } },
+      select: {
+        id: true,
+        activityMasterTitle: true,
+        activityMasterImages: { select: { url: true }, take: 1 },
+        location: { select: { label: true, slug: true } },
+      },
+      take: 8,
+    }),
+
+    // New: Featured hotels with images
+    prismadb.hotel.findMany({
+      where: { images: { some: {} } },
+      select: {
+        id: true,
+        name: true,
+        images: { select: { url: true }, take: 1 },
+        location: { select: { label: true, slug: true } },
+      },
+      take: 6,
+    }),
+
+    // New: Stats counts
+    Promise.all([
+      prismadb.location.count({ where: { isActive: true } }),
+      prismadb.tourPackage.count({ where: { isArchived: false } }),
+    ]),
   ]);
 
   const activeDestinations = destinations.filter(
@@ -51,8 +129,19 @@ export default async function TravelHomePage() {
   return (
     <div className="min-h-screen">
       <HeroSection />
+      <TourCategories categories={categories} />
       <FeaturedDestinations destinations={activeDestinations} />
       <FeaturedPackages packages={featuredPackages} />
+      <SpecialDeals deals={deals} />
+      <PopularActivities activities={activities} />
+      <FeaturedHotels hotels={hotels} />
+      <HowItWorks />
+      <StatsSection
+        destinationCount={destinationCount}
+        packageCount={packageCount}
+      />
+      <Testimonials />
+      <InquiryCta />
       <WhyChooseUs />
     </div>
   );

@@ -4,6 +4,7 @@
  * Implements:
  *  - OAuth 2.0 with PKCE
  *  - Streamable HTTP MCP transport
+ *  - Stateless HMAC-signed Bearer tokens (survive Railway restarts)
  */
 
 import crypto from "crypto";
@@ -32,13 +33,6 @@ interface PendingApprovalRequest {
   expiresAt: number;
 }
 
-interface StoredToken {
-  clientId: string;
-  issuedAt: number;
-  expiresAt: number;
-  lastUsedAt: number;
-}
-
 interface RegisteredClient {
   clientId: string;
   clientName: string;
@@ -52,9 +46,24 @@ interface SessionEntry {
   createdAt: number;
 }
 
-const TOKENS_FILE = path.resolve(process.env.MCP_TOKENS_FILE ?? "/tmp/mcp-tokens.json");
-const CLIENTS_FILE = path.resolve(process.env.MCP_CLIENTS_FILE ?? "/tmp/mcp-clients.json");
+// ── Stateless token config ────────────────────────────────────────────────────
+// Tokens are HMAC-signed and self-verifying — no file storage needed.
+// They survive Railway restarts as long as MCP_TOKEN_SECRET stays the same.
+const TOKEN_SECRET = process.env.MCP_TOKEN_SECRET ?? "";
 const TOKEN_TTL_SECONDS = Math.max(60, parseInt(process.env.MCP_TOKEN_TTL_SECONDS ?? "7776000", 10));
+
+if (!TOKEN_SECRET) {
+  console.error(
+    "[MCP HTTP] WARNING: MCP_TOKEN_SECRET is not set. " +
+    "Tokens will be issued with an empty secret and will NOT survive restarts securely. " +
+    "Set MCP_TOKEN_SECRET to a long random hex string in your Railway environment variables."
+  );
+}
+
+// ── Client registration (file-backed, gracefully handles restarts) ────────────
+// Clients auto-re-register via the OAuth flow if this file is lost on restart.
+const CLIENTS_FILE = path.resolve(process.env.MCP_CLIENTS_FILE ?? "/tmp/mcp-clients.json");
+
 const AUTH_CODE_TTL_MS = 10 * 60 * 1000;
 const APPROVAL_REQUEST_TTL_MS = 10 * 60 * 1000;
 const NEXT_BASE_URL = (process.env.NEXT_APP_URL ?? "").replace(/\/$/, "");
@@ -62,7 +71,6 @@ const APPROVAL_SECRET = process.env.MCP_APPROVAL_SECRET ?? "";
 
 const authCodes = new Map<string, PendingCode>();
 const approvalRequests = new Map<string, PendingApprovalRequest>();
-const accessTokens = loadMap<StoredToken>(TOKENS_FILE);
 const registeredClients = loadMap<RegisteredClient>(CLIENTS_FILE);
 const sessions = new Map<string, SessionEntry>();
 
@@ -84,47 +92,68 @@ function saveMap<T>(filePath: string, entries: Map<string, T>) {
   fs.writeFileSync(filePath, JSON.stringify(Object.fromEntries(entries), null, 2), "utf8");
 }
 
-function saveTokens() {
-  saveMap(TOKENS_FILE, accessTokens);
-}
-
 function saveClients() {
   saveMap(CLIENTS_FILE, registeredClients);
 }
 
-function hashToken(token: string): string {
-  return crypto.createHash("sha256").update(token).digest("hex");
+// ── Stateless HMAC token helpers ──────────────────────────────────────────────
+/**
+ * Issues a stateless Bearer token.
+ * Format: base64url(JSON payload) + "." + base64url(HMAC-SHA256 signature)
+ * No server-side storage needed — the signature proves authenticity.
+ */
+function issueStatelessToken(clientId: string): {
+  rawToken: string;
+  issuedAt: number;
+  expiresAt: number;
+} {
+  const issuedAt = Date.now();
+  const expiresAt = issuedAt + TOKEN_TTL_SECONDS * 1000;
+  const payload = Buffer.from(
+    JSON.stringify({ clientId, issuedAt, expiresAt })
+  ).toString("base64url");
+  const sig = crypto
+    .createHmac("sha256", TOKEN_SECRET || "insecure-fallback")
+    .update(payload)
+    .digest("base64url");
+  return { rawToken: `${payload}.${sig}`, issuedAt, expiresAt };
 }
 
-function verifyS256(verifier: string, challenge: string): boolean {
-  const hash = crypto.createHash("sha256").update(verifier).digest();
-  return hash.toString("base64url") === challenge;
+/**
+ * Verifies a stateless Bearer token.
+ * Returns the payload if valid and not expired, otherwise null.
+ */
+function verifyStatelessToken(
+  rawToken: string
+): { clientId: string; issuedAt: number; expiresAt: number } | null {
+  const dotIdx = rawToken.lastIndexOf(".");
+  if (dotIdx === -1) return null;
+  const payload = rawToken.slice(0, dotIdx);
+  const sig = rawToken.slice(dotIdx + 1);
+  const expected = crypto
+    .createHmac("sha256", TOKEN_SECRET || "insecure-fallback")
+    .update(payload)
+    .digest("base64url");
+  // Constant-time comparison to prevent timing attacks
+  if (sig.length !== expected.length) return null;
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      clientId: string; issuedAt: number; expiresAt: number;
+    };
+    if (Date.now() > data.expiresAt) return null;
+    return data;
+  } catch { return null; }
 }
 
+// ── Cleanup loop ───────────────────────────────────────────────────────────────
 function pruneExpiredState(): void {
   const now = Date.now();
-
   for (const [code, pending] of authCodes.entries()) {
-    if (pending.expiresAt <= now) {
-      authCodes.delete(code);
-    }
+    if (pending.expiresAt <= now) authCodes.delete(code);
   }
-
   for (const [approvalId, pending] of approvalRequests.entries()) {
-    if (pending.expiresAt <= now) {
-      approvalRequests.delete(approvalId);
-    }
-  }
-
-  let tokensChanged = false;
-  for (const [tokenHash, token] of accessTokens.entries()) {
-    if (token.expiresAt <= now) {
-      accessTokens.delete(tokenHash);
-      tokensChanged = true;
-    }
-  }
-  if (tokensChanged) {
-    saveTokens();
+    if (pending.expiresAt <= now) approvalRequests.delete(approvalId);
   }
 }
 
@@ -133,11 +162,10 @@ function startCleanupLoop(): void {
   timer.unref?.();
 }
 
+// ── Misc helpers ───────────────────────────────────────────────────────────────
 function redirectToClient(res: express.Response, redirectUri: string, params: Record<string, string>) {
   const destination = new URL(redirectUri);
-  for (const [key, value] of Object.entries(params)) {
-    destination.searchParams.set(key, value);
-  }
+  for (const [key, value] of Object.entries(params)) destination.searchParams.set(key, value);
   res.redirect(destination.toString());
 }
 
@@ -148,51 +176,36 @@ function isRedirectUriAllowed(client: RegisteredClient, redirectUri: string): bo
 function makeRequireBearer(baseUrl: string) {
   const resourceMetadata = `${baseUrl}/.well-known/oauth-protected-resource`;
   return function requireBearer(
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
+    req: express.Request, res: express.Response, next: express.NextFunction
   ): void {
     pruneExpiredState();
-
     const auth = req.headers.authorization ?? "";
     if (!auth.startsWith("Bearer ")) {
       log("BEARER", `401 No Bearer token on ${req.method} ${req.path}`, {
         authHeaderPresent: !!req.headers.authorization,
         authHeaderPrefix: auth.slice(0, 10) || "(empty)",
-        storedTokenCount: accessTokens.size,
       });
-      res
-        .status(401)
+      res.status(401)
         .setHeader("WWW-Authenticate", `Bearer resource_metadata="${resourceMetadata}"`)
         .json({ error: "unauthorized", error_description: "Bearer token required" });
       return;
     }
-
     const rawToken = auth.slice(7);
-    const tokenHash = hashToken(rawToken);
-    const token = accessTokens.get(tokenHash);
+    const token = verifyStatelessToken(rawToken);
     if (!token) {
-      log("BEARER", `401 Invalid/unknown Bearer token on ${req.method} ${req.path}`, {
-        tokenPrefix: rawToken.slice(0, 8),
-        storedTokenCount: accessTokens.size,
-        storedClientIds: [...accessTokens.values()].map(t => t.clientId),
+      log("BEARER", `401 Invalid/expired stateless token on ${req.method} ${req.path}`, {
+        tokenPrefix: rawToken.slice(0, 12),
       });
-      res
-        .status(401)
+      res.status(401)
         .setHeader("WWW-Authenticate", `Bearer resource_metadata="${resourceMetadata}", error="invalid_token"`)
         .json({ error: "invalid_token", error_description: "Unknown or expired token" });
       return;
     }
-
     log("BEARER", `Token OK for ${req.method} ${req.path}`, {
       clientId: token.clientId,
       issuedAt: new Date(token.issuedAt).toISOString(),
       expiresAt: new Date(token.expiresAt).toISOString(),
     });
-
-    token.lastUsedAt = Date.now();
-    accessTokens.set(tokenHash, token);
-    saveTokens();
     next();
   };
 }
@@ -200,47 +213,30 @@ function makeRequireBearer(baseUrl: string) {
 async function closeMcpServer(server: McpServer): Promise<void> {
   const close = (server as { close?: () => Promise<void> | void }).close;
   const disconnect = (server as { disconnect?: () => Promise<void> | void }).disconnect;
-
   try {
-    if (typeof close === "function") {
-      await close.call(server);
-      return;
-    }
-    if (typeof disconnect === "function") {
-      await disconnect.call(server);
-    }
-  } catch (err) {
-    console.error("[MCP HTTP] Failed to close MCP server cleanly:", err);
-  }
+    if (typeof close === "function") { await close.call(server); return; }
+    if (typeof disconnect === "function") { await disconnect.call(server); }
+  } catch (err) { console.error("[MCP HTTP] Failed to close MCP server cleanly:", err); }
 }
 
 async function closeTransport(transport: StreamableHTTPServerTransport): Promise<void> {
   const close = (transport as { close?: () => Promise<void> | void }).close;
-  if (typeof close !== "function") {
-    return;
-  }
-
-  try {
-    await close.call(transport);
-  } catch (err) {
+  if (typeof close !== "function") return;
+  try { await close.call(transport); } catch (err) {
     console.error("[MCP HTTP] Failed to close MCP transport cleanly:", err);
   }
 }
 
 async function closeSession(sessionId: string): Promise<void> {
   const entry = sessions.get(sessionId);
-  if (!entry) {
-    return;
-  }
-
+  if (!entry) return;
   sessions.delete(sessionId);
   await closeTransport(entry.transport);
   await closeMcpServer(entry.server);
   console.error(`[MCP HTTP] Session closed: ${sessionId}`);
 }
 
-// ── Logging helpers ───────────────────────────────────────────────────────────
-
+// ── Logging helpers ────────────────────────────────────────────────────────────
 function log(tag: string, message: string, extra?: Record<string, unknown>) {
   const ts = new Date().toISOString();
   const extraStr = extra ? " " + JSON.stringify(extra) : "";
@@ -250,56 +246,34 @@ function log(tag: string, message: string, extra?: Record<string, unknown>) {
 function sanitizeHeaders(headers: Record<string, string | string[] | undefined>): Record<string, string | string[] | undefined> {
   const out: Record<string, string | string[] | undefined> = {};
   for (const [k, v] of Object.entries(headers)) {
-    const lower = k.toLowerCase();
-    if (lower === "authorization") {
-      out[k] = v ? "Bearer ***" : v;
-    } else {
-      out[k] = v;
-    }
+    out[k] = k.toLowerCase() === "authorization" ? (v ? "Bearer ***" : v) : v;
   }
   return out;
 }
 
-function bad400(
-  res: express.Response,
-  tag: string,
-  reason: string,
-  ctx?: Record<string, unknown>
-): void {
+function bad400(res: express.Response, tag: string, reason: string, ctx?: Record<string, unknown>): void {
   log(tag, `400 ${reason}`, ctx);
   res.status(400).send(reason);
 }
 
-function bad400json(
-  res: express.Response,
-  tag: string,
-  error: string,
-  error_description: string,
-  ctx?: Record<string, unknown>
-): void {
+function bad400json(res: express.Response, tag: string, error: string, error_description: string, ctx?: Record<string, unknown>): void {
   log(tag, `400 ${error}: ${error_description}`, ctx);
   res.status(400).json({ error, error_description });
 }
 
+// ── Main HTTP server ───────────────────────────────────────────────────────────
 export function startHttpServer(createServer: () => McpServer): void {
   startCleanupLoop();
-
   const app = express();
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: false }));
 
-  // ── Request logger ────────────────────────────────────────────────────────
   app.use((req, _res, next) => {
     pruneExpiredState();
     log("REQ", `${req.method} ${req.path}`, {
       ip: req.ip,
       query: Object.keys(req.query).length ? req.query : undefined,
       headers: sanitizeHeaders(req.headers as Record<string, string | string[] | undefined>),
-      body: req.method !== "GET" && req.body && Object.keys(req.body).length
-        ? (typeof req.body === "object"
-          ? { ...req.body, code: req.body.code ? "***" : undefined, code_verifier: req.body.code_verifier ? "***" : undefined }
-          : "[non-object body]")
-        : undefined,
     });
     next();
   });
@@ -309,14 +283,11 @@ export function startHttpServer(createServer: () => McpServer): void {
   const requireBearer = makeRequireBearer(baseUrl);
 
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok" });
+    res.json({ status: "ok", tokenMode: "stateless-hmac" });
   });
 
   app.get("/.well-known/oauth-protected-resource", (_req, res) => {
-    res.json({
-      resource: baseUrl,
-      authorization_servers: [baseUrl],
-    });
+    res.json({ resource: baseUrl, authorization_servers: [baseUrl] });
   });
 
   app.get("/.well-known/oauth-authorization-server", (_req, res) => {
@@ -335,29 +306,17 @@ export function startHttpServer(createServer: () => McpServer): void {
   app.post("/register", (req, res) => {
     const body = req.body as Record<string, unknown>;
     const redirectUris = Array.isArray(body.redirect_uris)
-      ? body.redirect_uris.filter((value): value is string => typeof value === "string" && value.length > 0)
+      ? body.redirect_uris.filter((v): v is string => typeof v === "string" && v.length > 0)
       : [];
-
     const clientId = crypto.randomBytes(16).toString("hex");
     const clientName = typeof body.client_name === "string" && body.client_name.length > 0
-      ? body.client_name
-      : "MCP Client";
-
-    registeredClients.set(clientId, {
-      clientId,
-      clientName,
-      redirectUris,
-      createdAt: Date.now(),
-    });
+      ? body.client_name : "MCP Client";
+    registeredClients.set(clientId, { clientId, clientName, redirectUris, createdAt: Date.now() });
     saveClients();
-
     res.status(201).json({
-      client_id: clientId,
-      client_id_issued_at: Math.floor(Date.now() / 1000),
-      redirect_uris: redirectUris,
-      client_name: clientName,
-      grant_types: ["authorization_code"],
-      response_types: ["code"],
+      client_id: clientId, client_id_issued_at: Math.floor(Date.now() / 1000),
+      redirect_uris: redirectUris, client_name: clientName,
+      grant_types: ["authorization_code"], response_types: ["code"],
       token_endpoint_auth_method: "none",
     });
   });
@@ -366,289 +325,148 @@ export function startHttpServer(createServer: () => McpServer): void {
     const query = req.query as Record<string, string>;
     const { response_type, client_id, redirect_uri, code_challenge, state } = query;
     const codeChallengeMethod = query.code_challenge_method ?? "S256";
-
-    log("AUTHORIZE", "Incoming authorize request", {
-      response_type,
-      client_id,
-      redirect_uri,
-      code_challenge: code_challenge ? `${code_challenge.slice(0, 10)}…` : undefined,
-      code_challenge_method: codeChallengeMethod,
-      state,
-      knownClients: registeredClients.size,
-    });
-
     if (response_type !== "code" || !client_id || !redirect_uri || !code_challenge) {
-      bad400(res, "AUTHORIZE", "Invalid authorization request - missing required parameters.", {
-        response_type,
-        hasClientId: !!client_id,
-        hasRedirectUri: !!redirect_uri,
-        hasCodeChallenge: !!code_challenge,
-      });
+      bad400(res, "AUTHORIZE", "Invalid authorization request - missing required parameters.");
       return;
     }
     if (codeChallengeMethod !== "S256") {
       bad400(res, "AUTHORIZE", "Only PKCE S256 is supported.", { codeChallengeMethod });
       return;
     }
-
     const client = registeredClients.get(client_id);
     if (!client) {
       bad400(res, "AUTHORIZE", "Unknown OAuth client.", {
-        client_id,
-        registeredClientIds: [...registeredClients.keys()],
+        client_id, registeredClientIds: [...registeredClients.keys()],
       });
       return;
     }
     if (!isRedirectUriAllowed(client, redirect_uri)) {
-      bad400(res, "AUTHORIZE", "Redirect URI is not registered for this client.", {
-        redirect_uri,
-        allowedUris: client.redirectUris,
-      });
+      bad400(res, "AUTHORIZE", "Redirect URI is not registered for this client.");
       return;
     }
-
     const approvalId = crypto.randomUUID();
     approvalRequests.set(approvalId, {
-      clientId: client_id,
-      clientName: client.clientName,
-      redirectUri: redirect_uri,
-      codeChallenge: code_challenge,
-      codeChallengeMethod,
-      state,
+      clientId: client_id, clientName: client.clientName, redirectUri: redirect_uri,
+      codeChallenge: code_challenge, codeChallengeMethod, state,
       expiresAt: Date.now() + APPROVAL_REQUEST_TTL_MS,
     });
-
     const approvalUrl = new URL("/mcp/authorize", NEXT_BASE_URL || baseUrl);
     approvalUrl.searchParams.set("approvalId", approvalId);
     approvalUrl.searchParams.set("mcpServerUrl", baseUrl);
     approvalUrl.searchParams.set("clientId", client_id);
     approvalUrl.searchParams.set("clientName", client.clientName);
-
     res.redirect(approvalUrl.toString());
   });
 
   app.all("/authorize/approve", (req, res) => {
     const approvalToken = req.query.approval_token;
     if (typeof approvalToken !== "string" || !approvalToken) {
-      bad400(res, "APPROVE", "Missing approval token.", { query: req.query });
-      return;
+      bad400(res, "APPROVE", "Missing approval token."); return;
     }
-
     try {
       const payload = verifyApprovalToken(APPROVAL_SECRET, approvalToken);
-      log("APPROVE", "Approval token verified", {
-        decision: payload.decision,
-        approvalId: payload.approvalId,
-        actor: payload.actorUserId,
-        pendingRequests: approvalRequests.size,
-      });
       if (payload.decision !== "approve") {
-        bad400(res, "APPROVE", "Approval token does not grant access.", { decision: payload.decision });
-        return;
+        bad400(res, "APPROVE", "Approval token does not grant access."); return;
       }
-
       const approvalRequest = approvalRequests.get(payload.approvalId);
       if (!approvalRequest || approvalRequest.expiresAt <= Date.now()) {
         bad400(res, "APPROVE", "Approval request not found or expired.", {
-          approvalId: payload.approvalId,
-          found: !!approvalRequest,
-          expired: approvalRequest ? approvalRequest.expiresAt <= Date.now() : null,
-          pendingIds: [...approvalRequests.keys()],
+          approvalId: payload.approvalId, pendingIds: [...approvalRequests.keys()],
         });
-        approvalRequests.delete(payload.approvalId);
-        return;
+        approvalRequests.delete(payload.approvalId); return;
       }
-
       approvalRequests.delete(payload.approvalId);
       const code = crypto.randomBytes(32).toString("hex");
       authCodes.set(code, {
-        clientId: approvalRequest.clientId,
-        redirectUri: approvalRequest.redirectUri,
+        clientId: approvalRequest.clientId, redirectUri: approvalRequest.redirectUri,
         codeChallenge: approvalRequest.codeChallenge,
         codeChallengeMethod: approvalRequest.codeChallengeMethod,
         expiresAt: Date.now() + AUTH_CODE_TTL_MS,
       });
-
-      console.error(
-        `[MCP HTTP] Approval granted approvalId=${payload.approvalId} clientId=${approvalRequest.clientId} actor=${payload.actorUserId}`
-      );
-
+      console.error(`[MCP HTTP] Approval granted approvalId=${payload.approvalId} clientId=${approvalRequest.clientId}`);
       redirectToClient(res, approvalRequest.redirectUri, {
-        code,
-        ...(approvalRequest.state ? { state: approvalRequest.state } : {}),
+        code, ...(approvalRequest.state ? { state: approvalRequest.state } : {}),
       });
-    } catch (err) {
-      log("APPROVE", `400 Invalid approval token`, { error: String(err) });
-      res.status(400).send(`Invalid approval token: ${String(err)}`);
-    }
+    } catch (err) { res.status(400).send(`Invalid approval token: ${String(err)}`); }
   });
 
   app.all("/authorize/deny", (req, res) => {
     const approvalToken = req.query.approval_token;
     if (typeof approvalToken !== "string" || !approvalToken) {
-      bad400(res, "DENY", "Missing approval token.", { query: req.query });
-      return;
+      bad400(res, "DENY", "Missing approval token."); return;
     }
-
     try {
       const payload = verifyApprovalToken(APPROVAL_SECRET, approvalToken);
-      log("DENY", "Denial token verified", {
-        decision: payload.decision,
-        approvalId: payload.approvalId,
-        actor: payload.actorUserId,
-      });
       if (payload.decision !== "deny") {
-        bad400(res, "DENY", "Approval token does not represent a denial.", { decision: payload.decision });
-        return;
+        bad400(res, "DENY", "Approval token does not represent a denial."); return;
       }
-
       const approvalRequest = approvalRequests.get(payload.approvalId);
       if (!approvalRequest || approvalRequest.expiresAt <= Date.now()) {
-        bad400(res, "DENY", "Approval request not found or expired.", {
-          approvalId: payload.approvalId,
-          found: !!approvalRequest,
-          expired: approvalRequest ? approvalRequest.expiresAt <= Date.now() : null,
-        });
         approvalRequests.delete(payload.approvalId);
-        return;
+        bad400(res, "DENY", "Approval request not found or expired."); return;
       }
-
       approvalRequests.delete(payload.approvalId);
-      console.error(
-        `[MCP HTTP] Approval denied approvalId=${payload.approvalId} clientId=${approvalRequest.clientId} actor=${payload.actorUserId}`
-      );
+      console.error(`[MCP HTTP] Approval denied approvalId=${payload.approvalId}`);
       redirectToClient(res, approvalRequest.redirectUri, {
-        error: "access_denied",
-        ...(approvalRequest.state ? { state: approvalRequest.state } : {}),
+        error: "access_denied", ...(approvalRequest.state ? { state: approvalRequest.state } : {}),
       });
-    } catch (err) {
-      log("DENY", `400 Invalid denial token`, { error: String(err) });
-      res.status(400).send(`Invalid approval token: ${String(err)}`);
-    }
+    } catch (err) { res.status(400).send(`Invalid approval token: ${String(err)}`); }
   });
 
   app.post("/token", (req, res) => {
     const body = req.body as Record<string, string>;
     const { grant_type, code, code_verifier, client_id, redirect_uri } = body;
-
-    log("TOKEN", "Token exchange attempt", {
-      grant_type,
-      hasCode: !!code,
-      hasCodeVerifier: !!code_verifier,
-      client_id,
-      redirect_uri,
-      pendingCodes: authCodes.size,
-    });
-
     if (grant_type !== "authorization_code") {
       bad400json(res, "TOKEN", "unsupported_grant_type", `Expected authorization_code, got ${grant_type}`);
       return;
     }
     if (!code || !code_verifier || !client_id || !redirect_uri) {
-      bad400json(res, "TOKEN", "invalid_request", "Missing required parameters", {
-        hasCode: !!code,
-        hasCodeVerifier: !!code_verifier,
-        hasClientId: !!client_id,
-        hasRedirectUri: !!redirect_uri,
-      });
-      return;
+      bad400json(res, "TOKEN", "invalid_request", "Missing required parameters"); return;
     }
-
     const stored = authCodes.get(code);
     if (!stored) {
-      bad400json(res, "TOKEN", "invalid_grant", "Authorization code not found", {
-        codePrefix: code.slice(0, 8),
-        pendingCodePrefixes: [...authCodes.keys()].map(c => c.slice(0, 8)),
-      });
-      return;
+      bad400json(res, "TOKEN", "invalid_grant", "Authorization code not found"); return;
     }
     if (Date.now() > stored.expiresAt) {
       authCodes.delete(code);
-      bad400json(res, "TOKEN", "invalid_grant", "Code expired", {
-        expiredAt: new Date(stored.expiresAt).toISOString(),
-        now: new Date().toISOString(),
-      });
-      return;
+      bad400json(res, "TOKEN", "invalid_grant", "Code expired"); return;
     }
     if (stored.clientId !== client_id || stored.redirectUri !== redirect_uri) {
-      bad400json(res, "TOKEN", "invalid_grant", "client_id or redirect_uri mismatch", {
-        storedClientId: stored.clientId,
-        gotClientId: client_id,
-        storedRedirectUri: stored.redirectUri,
-        gotRedirectUri: redirect_uri,
-        clientIdMatch: stored.clientId === client_id,
-        redirectUriMatch: stored.redirectUri === redirect_uri,
-      });
-      return;
+      bad400json(res, "TOKEN", "invalid_grant", "client_id or redirect_uri mismatch"); return;
     }
-    if (!verifyS256(code_verifier, stored.codeChallenge)) {
+    // Verify PKCE S256
+    const hash = crypto.createHash("sha256").update(code_verifier).digest();
+    if (hash.toString("base64url") !== stored.codeChallenge) {
       authCodes.delete(code);
-      bad400json(res, "TOKEN", "invalid_grant", "PKCE verification failed", {
-        challenge: stored.codeChallenge,
-        verifierLength: code_verifier.length,
-      });
-      return;
+      bad400json(res, "TOKEN", "invalid_grant", "PKCE verification failed"); return;
     }
-
     authCodes.delete(code);
 
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const issuedAt = Date.now();
-    const expiresAt = issuedAt + TOKEN_TTL_SECONDS * 1000;
-    accessTokens.set(hashToken(rawToken), {
-      clientId: client_id,
-      issuedAt,
-      expiresAt,
-      lastUsedAt: issuedAt,
+    // Issue stateless HMAC-signed token — no file storage needed, survives restarts
+    const { rawToken, expiresAt } = issueStatelessToken(client_id);
+    log("TOKEN", "Stateless token issued", {
+      client_id, expiresIn: TOKEN_TTL_SECONDS,
+      expiresAt: new Date(expiresAt).toISOString(), tokenMode: "stateless-hmac",
     });
-    saveTokens();
-
-    log("TOKEN", "Token issued successfully", {
-      client_id,
-      expiresIn: TOKEN_TTL_SECONDS,
-      expiresAt: new Date(expiresAt).toISOString(),
-      totalTokens: accessTokens.size,
-    });
-
-    res.json({
-      access_token: rawToken,
-      token_type: "Bearer",
-      expires_in: TOKEN_TTL_SECONDS,
-    });
+    res.json({ access_token: rawToken, token_type: "Bearer", expires_in: TOKEN_TTL_SECONDS });
   });
 
   app.post("/mcp", requireBearer, async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     const body = req.body as Record<string, unknown>;
-
-    log("MCP_POST", "Incoming POST /mcp", {
-      sessionId: sessionId ?? "(none)",
-      sessionExists: sessionId ? sessions.has(sessionId) : false,
-      activeSessions: sessions.size,
-      method: body?.method,
-      jsonrpcId: body?.id,
-    });
-
     if (sessionId && sessions.has(sessionId)) {
       const entry = sessions.get(sessionId)!;
       try {
         await entry.transport.handleRequest(req, res, req.body);
       } catch (err) {
-        log("MCP_POST", `500 transport error session=${sessionId}`, { error: String(err) });
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Internal server error" });
-        }
+        if (!res.headersSent) res.status(500).json({ error: "Internal server error" });
       }
       return;
     }
-
     if (body?.method !== "initialize") {
       log("MCP_POST", "400 non-initialize message without a valid session", {
-        sessionId: sessionId ?? "(none)",
-        sessionExists: sessionId ? sessions.has(sessionId) : false,
-        method: body?.method,
-        activeSessions: sessions.size,
-        activeSessionIds: [...sessions.keys()],
+        sessionId: sessionId ?? "(none)", method: body?.method,
+        activeSessions: sessions.size, activeSessionIds: [...sessions.keys()],
       });
       res.status(400).json({
         error: "bad_request",
@@ -656,7 +474,6 @@ export function startHttpServer(createServer: () => McpServer): void {
       });
       return;
     }
-
     const server = createServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
@@ -667,26 +484,17 @@ export function startHttpServer(createServer: () => McpServer): void {
     });
     transport.onclose = () => {
       const id = transport.sessionId;
-      if (!id) {
-        return;
-      }
-      const entry = sessions.get(id);
+      if (!id) return;
       sessions.delete(id);
-      if (entry) {
-        void closeMcpServer(entry.server);
-      }
       console.error(`[MCP HTTP] Session closed by client: ${id}`);
     };
-
     try {
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
     } catch (err) {
       console.error("[MCP HTTP] Initialize error:", err);
       await closeMcpServer(server);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Internal server error" });
-      }
+      if (!res.headersSent) res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -694,36 +502,30 @@ export function startHttpServer(createServer: () => McpServer): void {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !sessions.has(sessionId)) {
       log("MCP_GET", "400 unknown session", {
-        sessionId: sessionId ?? "(none)",
-        activeSessions: sessions.size,
-        activeSessionIds: [...sessions.keys()],
+        sessionId: sessionId ?? "(none)", activeSessions: sessions.size,
       });
       res.status(400).json({ error: "bad_request", error_description: "Unknown session" });
       return;
     }
-
     const entry = sessions.get(sessionId)!;
     try {
       await entry.transport.handleRequest(req, res);
     } catch (err) {
       console.error(`[MCP HTTP] GET error session=${sessionId}:`, err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Internal server error" });
-      }
+      if (!res.headersSent) res.status(500).json({ error: "Internal server error" });
     }
   });
 
   app.delete("/mcp", requireBearer, async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
-    if (sessionId) {
-      await closeSession(sessionId);
-    }
+    if (sessionId) await closeSession(sessionId);
     res.status(200).end();
   });
 
   app.listen(port, () => {
     console.error(`[MCP HTTP] Listening on port ${port}`);
     console.error(`[MCP HTTP] Public URL:      ${baseUrl}`);
+    console.error(`[MCP HTTP] Token mode:      stateless-hmac (restart-safe ✓)`);
     console.error(`[MCP HTTP] OAuth discovery: ${baseUrl}/.well-known/oauth-authorization-server`);
     console.error(`[MCP HTTP] MCP endpoint:    ${baseUrl}/mcp`);
   });

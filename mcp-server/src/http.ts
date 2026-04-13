@@ -156,6 +156,11 @@ function makeRequireBearer(baseUrl: string) {
 
     const auth = req.headers.authorization ?? "";
     if (!auth.startsWith("Bearer ")) {
+      log("BEARER", `401 No Bearer token on ${req.method} ${req.path}`, {
+        authHeaderPresent: !!req.headers.authorization,
+        authHeaderPrefix: auth.slice(0, 10) || "(empty)",
+        storedTokenCount: accessTokens.size,
+      });
       res
         .status(401)
         .setHeader("WWW-Authenticate", `Bearer resource_metadata="${resourceMetadata}"`)
@@ -167,12 +172,23 @@ function makeRequireBearer(baseUrl: string) {
     const tokenHash = hashToken(rawToken);
     const token = accessTokens.get(tokenHash);
     if (!token) {
+      log("BEARER", `401 Invalid/unknown Bearer token on ${req.method} ${req.path}`, {
+        tokenPrefix: rawToken.slice(0, 8),
+        storedTokenCount: accessTokens.size,
+        storedClientIds: [...accessTokens.values()].map(t => t.clientId),
+      });
       res
         .status(401)
         .setHeader("WWW-Authenticate", `Bearer resource_metadata="${resourceMetadata}", error="invalid_token"`)
         .json({ error: "invalid_token", error_description: "Unknown or expired token" });
       return;
     }
+
+    log("BEARER", `Token OK for ${req.method} ${req.path}`, {
+      clientId: token.clientId,
+      issuedAt: new Date(token.issuedAt).toISOString(),
+      expiresAt: new Date(token.expiresAt).toISOString(),
+    });
 
     token.lastUsedAt = Date.now();
     accessTokens.set(tokenHash, token);
@@ -223,14 +239,68 @@ async function closeSession(sessionId: string): Promise<void> {
   console.error(`[MCP HTTP] Session closed: ${sessionId}`);
 }
 
+// ── Logging helpers ───────────────────────────────────────────────────────────
+
+function log(tag: string, message: string, extra?: Record<string, unknown>) {
+  const ts = new Date().toISOString();
+  const extraStr = extra ? " " + JSON.stringify(extra) : "";
+  console.error(`[${ts}] [${tag}] ${message}${extraStr}`);
+}
+
+function sanitizeHeaders(headers: Record<string, string | string[] | undefined>): Record<string, string | string[] | undefined> {
+  const out: Record<string, string | string[] | undefined> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    const lower = k.toLowerCase();
+    if (lower === "authorization") {
+      out[k] = v ? "Bearer ***" : v;
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+function bad400(
+  res: express.Response,
+  tag: string,
+  reason: string,
+  ctx?: Record<string, unknown>
+): void {
+  log(tag, `400 ${reason}`, ctx);
+  res.status(400).send(reason);
+}
+
+function bad400json(
+  res: express.Response,
+  tag: string,
+  error: string,
+  error_description: string,
+  ctx?: Record<string, unknown>
+): void {
+  log(tag, `400 ${error}: ${error_description}`, ctx);
+  res.status(400).json({ error, error_description });
+}
+
 export function startHttpServer(createServer: () => McpServer): void {
   startCleanupLoop();
 
   const app = express();
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: false }));
-  app.use((_req, _res, next) => {
+
+  // ── Request logger ────────────────────────────────────────────────────────
+  app.use((req, _res, next) => {
     pruneExpiredState();
+    log("REQ", `${req.method} ${req.path}`, {
+      ip: req.ip,
+      query: Object.keys(req.query).length ? req.query : undefined,
+      headers: sanitizeHeaders(req.headers as Record<string, string | string[] | undefined>),
+      body: req.method !== "GET" && req.body && Object.keys(req.body).length
+        ? (typeof req.body === "object"
+          ? { ...req.body, code: req.body.code ? "***" : undefined, code_verifier: req.body.code_verifier ? "***" : undefined }
+          : "[non-object body]")
+        : undefined,
+    });
     next();
   });
 
@@ -297,22 +367,43 @@ export function startHttpServer(createServer: () => McpServer): void {
     const { response_type, client_id, redirect_uri, code_challenge, state } = query;
     const codeChallengeMethod = query.code_challenge_method ?? "S256";
 
+    log("AUTHORIZE", "Incoming authorize request", {
+      response_type,
+      client_id,
+      redirect_uri,
+      code_challenge: code_challenge ? `${code_challenge.slice(0, 10)}…` : undefined,
+      code_challenge_method: codeChallengeMethod,
+      state,
+      knownClients: registeredClients.size,
+    });
+
     if (response_type !== "code" || !client_id || !redirect_uri || !code_challenge) {
-      res.status(400).send("Invalid authorization request - missing required parameters.");
+      bad400(res, "AUTHORIZE", "Invalid authorization request - missing required parameters.", {
+        response_type,
+        hasClientId: !!client_id,
+        hasRedirectUri: !!redirect_uri,
+        hasCodeChallenge: !!code_challenge,
+      });
       return;
     }
     if (codeChallengeMethod !== "S256") {
-      res.status(400).send("Only PKCE S256 is supported.");
+      bad400(res, "AUTHORIZE", "Only PKCE S256 is supported.", { codeChallengeMethod });
       return;
     }
 
     const client = registeredClients.get(client_id);
     if (!client) {
-      res.status(400).send("Unknown OAuth client.");
+      bad400(res, "AUTHORIZE", "Unknown OAuth client.", {
+        client_id,
+        registeredClientIds: [...registeredClients.keys()],
+      });
       return;
     }
     if (!isRedirectUriAllowed(client, redirect_uri)) {
-      res.status(400).send("Redirect URI is not registered for this client.");
+      bad400(res, "AUTHORIZE", "Redirect URI is not registered for this client.", {
+        redirect_uri,
+        allowedUris: client.redirectUris,
+      });
       return;
     }
 
@@ -339,21 +430,32 @@ export function startHttpServer(createServer: () => McpServer): void {
   app.all("/authorize/approve", (req, res) => {
     const approvalToken = req.query.approval_token;
     if (typeof approvalToken !== "string" || !approvalToken) {
-      res.status(400).send("Missing approval token.");
+      bad400(res, "APPROVE", "Missing approval token.", { query: req.query });
       return;
     }
 
     try {
       const payload = verifyApprovalToken(APPROVAL_SECRET, approvalToken);
+      log("APPROVE", "Approval token verified", {
+        decision: payload.decision,
+        approvalId: payload.approvalId,
+        actor: payload.actorUserId,
+        pendingRequests: approvalRequests.size,
+      });
       if (payload.decision !== "approve") {
-        res.status(400).send("Approval token does not grant access.");
+        bad400(res, "APPROVE", "Approval token does not grant access.", { decision: payload.decision });
         return;
       }
 
       const approvalRequest = approvalRequests.get(payload.approvalId);
       if (!approvalRequest || approvalRequest.expiresAt <= Date.now()) {
+        bad400(res, "APPROVE", "Approval request not found or expired.", {
+          approvalId: payload.approvalId,
+          found: !!approvalRequest,
+          expired: approvalRequest ? approvalRequest.expiresAt <= Date.now() : null,
+          pendingIds: [...approvalRequests.keys()],
+        });
         approvalRequests.delete(payload.approvalId);
-        res.status(400).send("Approval request not found or expired.");
         return;
       }
 
@@ -376,6 +478,7 @@ export function startHttpServer(createServer: () => McpServer): void {
         ...(approvalRequest.state ? { state: approvalRequest.state } : {}),
       });
     } catch (err) {
+      log("APPROVE", `400 Invalid approval token`, { error: String(err) });
       res.status(400).send(`Invalid approval token: ${String(err)}`);
     }
   });
@@ -383,21 +486,30 @@ export function startHttpServer(createServer: () => McpServer): void {
   app.all("/authorize/deny", (req, res) => {
     const approvalToken = req.query.approval_token;
     if (typeof approvalToken !== "string" || !approvalToken) {
-      res.status(400).send("Missing approval token.");
+      bad400(res, "DENY", "Missing approval token.", { query: req.query });
       return;
     }
 
     try {
       const payload = verifyApprovalToken(APPROVAL_SECRET, approvalToken);
+      log("DENY", "Denial token verified", {
+        decision: payload.decision,
+        approvalId: payload.approvalId,
+        actor: payload.actorUserId,
+      });
       if (payload.decision !== "deny") {
-        res.status(400).send("Approval token does not represent a denial.");
+        bad400(res, "DENY", "Approval token does not represent a denial.", { decision: payload.decision });
         return;
       }
 
       const approvalRequest = approvalRequests.get(payload.approvalId);
       if (!approvalRequest || approvalRequest.expiresAt <= Date.now()) {
+        bad400(res, "DENY", "Approval request not found or expired.", {
+          approvalId: payload.approvalId,
+          found: !!approvalRequest,
+          expired: approvalRequest ? approvalRequest.expiresAt <= Date.now() : null,
+        });
         approvalRequests.delete(payload.approvalId);
-        res.status(400).send("Approval request not found or expired.");
         return;
       }
 
@@ -410,6 +522,7 @@ export function startHttpServer(createServer: () => McpServer): void {
         ...(approvalRequest.state ? { state: approvalRequest.state } : {}),
       });
     } catch (err) {
+      log("DENY", `400 Invalid denial token`, { error: String(err) });
       res.status(400).send(`Invalid approval token: ${String(err)}`);
     }
   });
@@ -418,38 +531,62 @@ export function startHttpServer(createServer: () => McpServer): void {
     const body = req.body as Record<string, string>;
     const { grant_type, code, code_verifier, client_id, redirect_uri } = body;
 
+    log("TOKEN", "Token exchange attempt", {
+      grant_type,
+      hasCode: !!code,
+      hasCodeVerifier: !!code_verifier,
+      client_id,
+      redirect_uri,
+      pendingCodes: authCodes.size,
+    });
+
     if (grant_type !== "authorization_code") {
-      res.status(400).json({ error: "unsupported_grant_type" });
+      bad400json(res, "TOKEN", "unsupported_grant_type", `Expected authorization_code, got ${grant_type}`);
       return;
     }
     if (!code || !code_verifier || !client_id || !redirect_uri) {
-      res.status(400).json({
-        error: "invalid_request",
-        error_description: "Missing required parameters",
+      bad400json(res, "TOKEN", "invalid_request", "Missing required parameters", {
+        hasCode: !!code,
+        hasCodeVerifier: !!code_verifier,
+        hasClientId: !!client_id,
+        hasRedirectUri: !!redirect_uri,
       });
       return;
     }
 
     const stored = authCodes.get(code);
     if (!stored) {
-      res.status(400).json({
-        error: "invalid_grant",
-        error_description: "Authorization code not found",
+      bad400json(res, "TOKEN", "invalid_grant", "Authorization code not found", {
+        codePrefix: code.slice(0, 8),
+        pendingCodePrefixes: [...authCodes.keys()].map(c => c.slice(0, 8)),
       });
       return;
     }
     if (Date.now() > stored.expiresAt) {
       authCodes.delete(code);
-      res.status(400).json({ error: "invalid_grant", error_description: "Code expired" });
+      bad400json(res, "TOKEN", "invalid_grant", "Code expired", {
+        expiredAt: new Date(stored.expiresAt).toISOString(),
+        now: new Date().toISOString(),
+      });
       return;
     }
     if (stored.clientId !== client_id || stored.redirectUri !== redirect_uri) {
-      res.status(400).json({ error: "invalid_grant", error_description: "client_id or redirect_uri mismatch" });
+      bad400json(res, "TOKEN", "invalid_grant", "client_id or redirect_uri mismatch", {
+        storedClientId: stored.clientId,
+        gotClientId: client_id,
+        storedRedirectUri: stored.redirectUri,
+        gotRedirectUri: redirect_uri,
+        clientIdMatch: stored.clientId === client_id,
+        redirectUriMatch: stored.redirectUri === redirect_uri,
+      });
       return;
     }
     if (!verifyS256(code_verifier, stored.codeChallenge)) {
       authCodes.delete(code);
-      res.status(400).json({ error: "invalid_grant", error_description: "PKCE verification failed" });
+      bad400json(res, "TOKEN", "invalid_grant", "PKCE verification failed", {
+        challenge: stored.codeChallenge,
+        verifierLength: code_verifier.length,
+      });
       return;
     }
 
@@ -466,6 +603,13 @@ export function startHttpServer(createServer: () => McpServer): void {
     });
     saveTokens();
 
+    log("TOKEN", "Token issued successfully", {
+      client_id,
+      expiresIn: TOKEN_TTL_SECONDS,
+      expiresAt: new Date(expiresAt).toISOString(),
+      totalTokens: accessTokens.size,
+    });
+
     res.json({
       access_token: rawToken,
       token_type: "Bearer",
@@ -475,13 +619,22 @@ export function startHttpServer(createServer: () => McpServer): void {
 
   app.post("/mcp", requireBearer, async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    const body = req.body as Record<string, unknown>;
+
+    log("MCP_POST", "Incoming POST /mcp", {
+      sessionId: sessionId ?? "(none)",
+      sessionExists: sessionId ? sessions.has(sessionId) : false,
+      activeSessions: sessions.size,
+      method: body?.method,
+      jsonrpcId: body?.id,
+    });
 
     if (sessionId && sessions.has(sessionId)) {
       const entry = sessions.get(sessionId)!;
       try {
         await entry.transport.handleRequest(req, res, req.body);
       } catch (err) {
-        console.error(`[MCP HTTP] POST error session=${sessionId}:`, err);
+        log("MCP_POST", `500 transport error session=${sessionId}`, { error: String(err) });
         if (!res.headersSent) {
           res.status(500).json({ error: "Internal server error" });
         }
@@ -489,8 +642,14 @@ export function startHttpServer(createServer: () => McpServer): void {
       return;
     }
 
-    const body = req.body as Record<string, unknown>;
     if (body?.method !== "initialize") {
+      log("MCP_POST", "400 non-initialize message without a valid session", {
+        sessionId: sessionId ?? "(none)",
+        sessionExists: sessionId ? sessions.has(sessionId) : false,
+        method: body?.method,
+        activeSessions: sessions.size,
+        activeSessionIds: [...sessions.keys()],
+      });
       res.status(400).json({
         error: "bad_request",
         error_description: "Send an initialize message to start a new session",
@@ -534,6 +693,11 @@ export function startHttpServer(createServer: () => McpServer): void {
   app.get("/mcp", requireBearer, async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !sessions.has(sessionId)) {
+      log("MCP_GET", "400 unknown session", {
+        sessionId: sessionId ?? "(none)",
+        activeSessions: sessions.size,
+        activeSessionIds: [...sessions.keys()],
+      });
       res.status(400).json({ error: "bad_request", error_description: "Unknown session" });
       return;
     }

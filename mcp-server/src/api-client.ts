@@ -80,6 +80,12 @@ function createToolError(
   });
 }
 
+function logClient(message: string, extra?: Record<string, unknown>) {
+  const ts = new Date().toISOString();
+  const extraStr = extra ? " " + JSON.stringify(extra) : "";
+  console.error(`[${ts}] [MCP_CLIENT] ${message}${extraStr}`);
+}
+
 export async function callTool(
   tool: string,
   params: Record<string, unknown> = {}
@@ -88,6 +94,14 @@ export async function callTool(
   const { appUrl, apiSecret } = getGatewayConfig(requestId);
   const url = `${appUrl}/api/mcp`;
   const metadata = inferToolMetadata(tool);
+
+  logClient(`Calling tool "${tool}"`, {
+    requestId,
+    url,
+    attempt: "1/" + (metadata.retryable ? "2" : "1"),
+    paramKeys: Object.keys(params),
+    timeoutMs: TIMEOUT_MS,
+  });
 
   for (let attempt = 1; attempt <= (metadata.retryable ? 2 : 1); attempt += 1) {
     const startedAt = Date.now();
@@ -115,9 +129,12 @@ export async function callTool(
         ? `[GATEWAY_TIMEOUT] Tool "${tool}" timed out after ${TIMEOUT_MS}ms.`
         : `[NETWORK_ERROR] Cannot reach Next.js app at ${appUrl}. Is it running? (${err})`;
 
-      console.error(
-        `[MCP client] requestId=${requestId} tool=${tool} attempt=${attempt} status=${code} durationMs=${durationMs}`
-      );
+      logClient(`${code} tool=${tool} attempt=${attempt} durationMs=${durationMs}`, {
+        requestId,
+        url,
+        error: String(err),
+        isAbort,
+      });
 
       if (metadata.retryable && attempt === 1) {
         await sleep(RETRY_DELAY_MS);
@@ -149,9 +166,15 @@ export async function callTool(
         rawText.trim() ||
         `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`;
 
-      console.error(
-        `[MCP client] requestId=${requestId} tool=${tool} attempt=${attempt} status=${code} durationMs=${durationMs}`
-      );
+      logClient(`ERROR tool=${tool} attempt=${attempt} httpStatus=${response.status} code=${code} durationMs=${durationMs}`, {
+        requestId,
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        responseHeaders: Object.fromEntries(response.headers.entries()),
+        rawBody: rawText.slice(0, 1000),
+        parsedError: json ? { error: json.error, code: json.code, details: json.details } : null,
+      });
 
       if (metadata.retryable && attempt === 1 && (response.status === 502 || response.status === 503)) {
         await sleep(RETRY_DELAY_MS);
@@ -188,9 +211,9 @@ export async function callTool(
       );
     }
 
-    console.error(
-      `[MCP client] requestId=${json.requestId || requestId} tool=${tool} attempt=${attempt} status=ok durationMs=${durationMs}`
-    );
+    logClient(`OK tool=${tool} attempt=${attempt} durationMs=${durationMs}`, {
+      requestId: json.requestId || requestId,
+    });
     return json.data;
   }
 

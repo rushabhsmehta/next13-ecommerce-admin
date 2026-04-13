@@ -33,11 +33,13 @@ function getRequestId(req: Request): string {
   return req.headers.get("x-mcp-request-id") ?? crypto.randomUUID();
 }
 
-function authenticateMcp(req: Request): boolean {
+function authenticateMcp(req: Request): { ok: boolean; reason?: string } {
   const secret = req.headers.get("x-mcp-api-secret");
   const expected = process.env.MCP_API_SECRET;
-  if (!secret || !expected) return false;
-  return timingSafeEqualString(secret, expected);
+  if (!expected) return { ok: false, reason: "MCP_API_SECRET env var is not set on Next.js server" };
+  if (!secret) return { ok: false, reason: "x-mcp-api-secret header is missing" };
+  if (!timingSafeEqualString(secret, expected)) return { ok: false, reason: "x-mcp-api-secret value does not match" };
+  return { ok: true };
 }
 
 function withRequestId(requestId: string, payload: Record<string, unknown>, status = 200) {
@@ -46,25 +48,37 @@ function withRequestId(requestId: string, payload: Record<string, unknown>, stat
 
 export async function POST(req: Request) {
   const requestId = getRequestId(req);
+  const ts = () => new Date().toISOString();
 
-  if (!authenticateMcp(req)) {
+  const authResult = authenticateMcp(req);
+  if (!authResult.ok) {
+    console.error(`[${ts()}] [MCP_GATEWAY] 401 Unauthorized requestId=${requestId} reason="${authResult.reason}"`, {
+      hasSecretHeader: !!req.headers.get("x-mcp-api-secret"),
+      envSecretSet: !!process.env.MCP_API_SECRET,
+    });
     return withRequestId(requestId, { success: false, error: "Unauthorized", code: "UNAUTHORIZED" }, 401);
   }
 
   let body: { tool: string; params?: unknown };
   try {
     body = await req.json();
-  } catch {
+  } catch (err) {
+    console.error(`[${ts()}] [MCP_GATEWAY] 400 Invalid JSON requestId=${requestId}`, { error: String(err) });
     return withRequestId(requestId, { success: false, error: "Invalid JSON body", code: "BAD_REQUEST" }, 400);
   }
 
   const tool = body.tool;
   if (!tool) {
+    console.error(`[${ts()}] [MCP_GATEWAY] 400 Missing tool name requestId=${requestId}`, { body });
     return withRequestId(requestId, { success: false, error: "Missing tool name", code: "BAD_REQUEST" }, 400);
   }
 
   const handler = TOOLS[tool];
   if (!handler) {
+    console.error(`[${ts()}] [MCP_GATEWAY] 400 Unknown tool requestId=${requestId}`, {
+      tool,
+      availableTools: Object.keys(TOOLS),
+    });
     return withRequestId(
       requestId,
       {
@@ -138,8 +152,11 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   const requestId = getRequestId(req);
+  const ts = () => new Date().toISOString();
 
-  if (!authenticateMcp(req)) {
+  const authResult = authenticateMcp(req);
+  if (!authResult.ok) {
+    console.error(`[${ts()}] [MCP_GATEWAY] 401 Unauthorized GET requestId=${requestId} reason="${authResult.reason}"`);
     return withRequestId(requestId, { success: false, error: "Unauthorized", code: "UNAUTHORIZED" }, 401);
   }
 

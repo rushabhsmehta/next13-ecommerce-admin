@@ -126,6 +126,11 @@ export default async function TravelHomePage() {
     (d) => d._count.tourPackages > 0
   );
 
+  const filteredActivities = activities.filter(
+    (a): a is typeof a & { activityMasterTitle: string } =>
+      a.activityMasterTitle !== null
+  );
+
   return (
     <div className="min-h-screen">
       <HeroSection />
@@ -133,7 +138,7 @@ export default async function TravelHomePage() {
       <FeaturedDestinations destinations={activeDestinations} />
       <FeaturedPackages packages={featuredPackages} />
       <SpecialDeals deals={deals} />
-      <PopularActivities activities={activities} />
+      <PopularActivities activities={filteredActivities} />
       <FeaturedHotels hotels={hotels} />
       <HowItWorks />
       <StatsSection

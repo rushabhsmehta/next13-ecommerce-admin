@@ -97,6 +97,10 @@ const tourPackageQueryPage = async (
   const locationFilter = locationId ? { locationId } : undefined;
   const itineraryMasterFilter = locationId ? { locationId } : { locationId: "" };
 
+  // Extract saved template reference so we can always include it in the package fetch
+  const selectedTemplateId = (tourPackageQuery as any)?.selectedTemplateId as string | undefined;
+  const selectedTemplateType = (tourPackageQuery as any)?.selectedTemplateType as string | undefined;
+
   // Fetch supporting datasets in parallel to avoid sequential Prisma round-trips.
   const [
     associatePartners,
@@ -188,10 +192,20 @@ const tourPackageQueryPage = async (
     }),
     prismadb.tourPackage.findMany({
       where: {
-        isArchived: false,
-        // For new queries, don't fetch any packages (will be loaded dynamically)
-        // For editing, fetch packages for that location
-        locationId: locationId || 'no-initial-fetch',
+        OR: [
+          {
+            isArchived: false,
+            // For new queries, don't fetch any packages (will be loaded dynamically)
+            // For editing, fetch packages for that location
+            locationId: locationId || 'no-initial-fetch',
+          },
+          // Always include the specifically selected template package so it displays
+          // correctly even if it is archived or beyond the take:100 alphabetical cutoff
+          ...(selectedTemplateId && selectedTemplateType !== 'TourPackageQuery'
+            ? [{ id: selectedTemplateId }]
+            : []
+          ),
+        ],
       },
       include: {
         images: {

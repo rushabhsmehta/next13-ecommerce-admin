@@ -510,7 +510,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           const parentPackage = tourPackages?.find(tp =>
             tp.packageVariants?.some(v => v.id === id)
           );
-          return parentPackage?.id || '';
+          // If parentPackage found, return its id; otherwise fall back to raw id (never return '')
+          return parentPackage?.id || id;
         }
         return id;
       })(),

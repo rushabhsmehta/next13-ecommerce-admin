@@ -144,7 +144,9 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                         ? "Select a location first"
                         : field.value && tourPackages?.find(tp => tp.id === field.value)
                           ? tourPackages.find(tp => tp.id === field.value)?.tourPackageName
-                          : "Select Tour Package Template"
+                          : field.value
+                            ? (form.getValues('tourPackageTemplateName') || "Select Tour Package Template")
+                            : "Select Tour Package Template"
                       }
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>

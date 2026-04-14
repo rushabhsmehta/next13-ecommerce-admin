@@ -609,6 +609,53 @@ export function registerWhatsappTools(server: McpServer) {
   );
 
   server.tool(
+    "send_whatsapp_catalog_package",
+    "Send a single WhatsApp catalog package to a customer by its local package ID. Automatically resolves the retailer ID — no need to look it up manually. The package must be synced to Meta first (use sync_whatsapp_catalog_package).",
+    {
+      packageId: z.string().describe("The catalog package ID (from list_whatsapp_catalog_packages)"),
+      phoneNumber: z.string().describe("Recipient phone number with country code, e.g. '919876543210'"),
+      body: z.string().describe("Message body text shown alongside the product card"),
+      footer: z.string().optional().describe("Optional footer text"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("send_whatsapp_catalog_package", params);
+        return { content: [{ type: "text", text: `Catalog package sent\n\n${JSON.stringify(data, null, 2)}` }] };
+      } catch (err) {
+        return toolError("send_whatsapp_catalog_package", err);
+      }
+    }
+  );
+
+  server.tool(
+    "send_whatsapp_catalog_packages",
+    "Send multiple WhatsApp catalog packages as a product list to a customer, by their local package IDs. Automatically resolves retailer IDs. Packages not yet synced to Meta are skipped with a warning. Supports up to 30 packages.",
+    {
+      packageIds: z
+        .array(z.string().min(1))
+        .min(1)
+        .max(30)
+        .describe("List of catalog package IDs (from list_whatsapp_catalog_packages), max 30"),
+      phoneNumber: z.string().describe("Recipient phone number with country code, e.g. '919876543210'"),
+      body: z.string().describe("Message body text"),
+      headerText: z.string().optional().describe("Header text for the product list"),
+      sectionTitle: z
+        .string()
+        .optional()
+        .describe("Section title grouping the packages (defaults to 'Our Packages')"),
+      footer: z.string().optional().describe("Optional footer text"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("send_whatsapp_catalog_packages", params);
+        return { content: [{ type: "text", text: `Catalog packages sent\n\n${JSON.stringify(data, null, 2)}` }] };
+      } catch (err) {
+        return toolError("send_whatsapp_catalog_packages", err);
+      }
+    }
+  );
+
+  server.tool(
     "create_whatsapp_template",
     "Create and submit a WhatsApp message template for review.",
     CreateWhatsAppTemplateShape,

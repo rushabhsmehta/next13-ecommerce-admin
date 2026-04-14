@@ -933,6 +933,103 @@ async function sendWhatsAppProductListHandler(rawParams: unknown) {
   });
 }
 
+async function sendWhatsAppCatalogPackageHandler(rawParams: unknown) {
+  const schema = z.object({
+    packageId: z.string().min(1),
+    phoneNumber: z.string().min(1),
+    body: z.string().min(1),
+    footer: z.string().optional(),
+  });
+  const { packageId, phoneNumber, body, footer } = schema.parse(rawParams);
+
+  const pkg = await whatsappPrisma.whatsAppTourPackage.findUnique({
+    where: { id: packageId },
+    include: { product: { include: { catalog: true } } },
+  });
+  if (!pkg) throw new McpError(`Catalog package ${packageId} not found`, "NOT_FOUND", 404);
+  if (pkg.syncStatus !== "synced") {
+    throw new McpError(
+      `Package "${pkg.title}" is not synced to Meta (status: ${pkg.syncStatus}). Call sync_whatsapp_catalog_package first.`,
+      "VALIDATION_ERROR",
+      422
+    );
+  }
+
+  const catalogId = pkg.product.catalog.metaCatalogId ?? process.env.WHATSAPP_CATALOG_ID;
+  if (!catalogId) throw new McpError("No Meta catalog ID configured", "VALIDATION_ERROR", 422);
+  if (!pkg.retailerId) throw new McpError(`Package "${pkg.title}" has no retailer ID`, "VALIDATION_ERROR", 422);
+
+  return sendInteractiveMessage({
+    to: phoneNumber,
+    interactive: {
+      type: "product",
+      body,
+      footer,
+      catalogId,
+      productRetailerId: pkg.retailerId,
+    },
+    saveToDb: true,
+  });
+}
+
+async function sendWhatsAppCatalogPackagesHandler(rawParams: unknown) {
+  const schema = z.object({
+    packageIds: z.array(z.string().min(1)).min(1).max(30),
+    phoneNumber: z.string().min(1),
+    body: z.string().min(1),
+    headerText: z.string().optional(),
+    sectionTitle: z.string().optional(),
+    footer: z.string().optional(),
+  });
+  const { packageIds, phoneNumber, body, headerText, sectionTitle, footer } = schema.parse(rawParams);
+
+  const packages = await whatsappPrisma.whatsAppTourPackage.findMany({
+    where: { id: { in: packageIds } },
+    include: { product: { include: { catalog: true } } },
+  });
+
+  const notFound = packageIds.filter((id) => !packages.find((p) => p.id === id));
+  const notSynced = packages.filter((p) => p.syncStatus !== "synced");
+  const ready = packages.filter((p) => p.syncStatus === "synced" && p.retailerId);
+
+  if (ready.length === 0) {
+    throw new McpError(
+      `None of the requested packages are synced to Meta. Not synced: ${notSynced.map((p) => p.title).join(", ")}`,
+      "VALIDATION_ERROR",
+      422
+    );
+  }
+
+  const catalogId = ready[0].product.catalog.metaCatalogId ?? process.env.WHATSAPP_CATALOG_ID;
+  if (!catalogId) throw new McpError("No Meta catalog ID configured", "VALIDATION_ERROR", 422);
+
+  const result = await sendInteractiveMessage({
+    to: phoneNumber,
+    interactive: {
+      type: "product_list",
+      body,
+      footer,
+      header: headerText ? { type: "text", text: headerText } : undefined,
+      catalogId,
+      sections: [
+        {
+          title: sectionTitle || "Our Packages",
+          productItems: ready.map((p) => ({ productRetailerId: p.retailerId! })),
+        },
+      ],
+    },
+    saveToDb: true,
+  });
+
+  return {
+    ...result,
+    warnings: [
+      ...notFound.map((id) => `Package ID ${id} not found`),
+      ...notSynced.map((p) => `Package "${p.title}" skipped — not synced to Meta`),
+    ],
+  };
+}
+
 async function createWhatsAppTemplateHandler(rawParams: unknown) {
   const parsed = CreateWhatsAppTemplateSchema.safeParse(rawParams);
   if (!parsed.success) {
@@ -2069,6 +2166,8 @@ export const whatsappHandlers: ToolHandlerMap = {
   upload_whatsapp_template_media: uploadWhatsAppTemplateMediaHandler,
   send_whatsapp_product_message: sendWhatsAppProductMessageHandler,
   send_whatsapp_product_list: sendWhatsAppProductListHandler,
+  send_whatsapp_catalog_package: sendWhatsAppCatalogPackageHandler,
+  send_whatsapp_catalog_packages: sendWhatsAppCatalogPackagesHandler,
   list_whatsapp_campaigns: listWhatsAppCampaigns,
   get_whatsapp_campaign: getWhatsAppCampaign,
   get_whatsapp_campaign_stats: getWhatsAppCampaignStats,

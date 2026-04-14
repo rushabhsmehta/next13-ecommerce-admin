@@ -218,14 +218,73 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     });
   }, [selectedVariants, form]);
 
-  // Helper function to get occupancy multiplier from component name
+  // Helper function to get occupancy multiplier from component name or occupancy type name
   const getOccupancyMultiplier = (componentName: string): number => {
     const name = componentName.toLowerCase();
-    if (name.includes('single')) return 1;
-    if (name.includes('double')) return 2;
-    if (name.includes('triple')) return 3;
     if (name.includes('quad')) return 4;
+    if (name.includes('triple') || name.includes('extra bed') || name.includes('extra mattress')) return 3;
+    if (name.includes('double') || name.includes('twin') || name.includes('couple')) return 2;
+    if (name.includes('single') || (name.includes('per person') && !name.includes('extra'))) return 1;
     return 1;
+  };
+
+  // Auto-calculate pricing items from room allocations
+  const recalculatePricingFromRooms = (variantId: string) => {
+    const roomsByVariant = variantRoomAllocations?.[variantId] || {};
+
+    // Aggregate total rooms per occupancy multiplier across all itinerary days
+    const roomsByMultiplier: Record<number, number> = {};
+    Object.values(roomsByVariant).forEach((dayAllocations: any[]) => {
+      (dayAllocations || []).forEach((alloc: any) => {
+        const occType = occupancyTypes.find((ot: any) => ot.id === alloc.occupancyTypeId);
+        const multiplier = occType ? getOccupancyMultiplier(occType.name) : 1;
+        roomsByMultiplier[multiplier] = (roomsByMultiplier[multiplier] || 0) + (alloc.quantity || 1);
+      });
+    });
+
+    const currentItems = variantPricingItems[variantId] || [];
+    if (currentItems.length === 0) {
+      toast.error("Add pricing items first, then calculate from rooms.");
+      return;
+    }
+
+    let newTotal = 0;
+    const updatedItems = currentItems.map((item: any) => {
+      const price = parseFloat(item.price || '0');
+      if (!price || price <= 0) return item;
+
+      const multiplier = getOccupancyMultiplier(item.name);
+      const rooms = roomsByMultiplier[multiplier] || 0;
+      if (rooms === 0) return item;
+
+      const itemTotal = price * rooms;
+      newTotal += itemTotal;
+      const paxLabel = multiplier > 1 ? `${multiplier} pax` : '1 pax';
+      return {
+        ...item,
+        description: `${price.toFixed(2)} × ${rooms} room${rooms !== 1 ? 's' : ''} (${paxLabel}) = Rs.${itemTotal.toFixed(2)}`
+      };
+    });
+
+    setVariantPricingItems(prev => ({ ...prev, [variantId]: updatedItems }));
+    if (newTotal > 0) {
+      setVariantTotalPrices(prev => ({ ...prev, [variantId]: newTotal.toString() }));
+    }
+
+    // Sync directly with computed values to avoid stale closure issues
+    const currentPricingData = form.getValues('variantPricingData') || {};
+    const existingData = currentPricingData[variantId] || {};
+    form.setValue('variantPricingData', {
+      ...currentPricingData,
+      [variantId]: {
+        ...existingData,
+        components: updatedItems,
+        ...(newTotal > 0 ? { totalCost: newTotal } : {}),
+        updatedAt: new Date().toISOString()
+      }
+    }, { shouldDirty: true });
+
+    toast.success("Pricing recalculated from room allocations.");
   };
 
   // Helper function to calculate total price for a component
@@ -749,10 +808,15 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   };
 
   const handleRemoveVariantPricingItem = (variantId: string, index: number) => {
-    setVariantPricingItems(prev => ({
-      ...prev,
-      [variantId]: (prev[variantId] || []).filter((_, i) => i !== index)
-    }));
+    const newItems = (variantPricingItems[variantId] || []).filter((_, i) => i !== index);
+    setVariantPricingItems(prev => ({ ...prev, [variantId]: newItems }));
+    // Sync directly with computed newItems to avoid stale closure issues from setTimeout
+    const currentPricingData = form.getValues('variantPricingData') || {};
+    const existingData = currentPricingData[variantId] || {};
+    form.setValue('variantPricingData', {
+      ...currentPricingData,
+      [variantId]: { ...existingData, components: newItems, updatedAt: new Date().toISOString() }
+    }, { shouldDirty: true });
   };
 
   const handleUpdateVariantPricingItem = (variantId: string, index: number, field: 'name' | 'price' | 'description', value: string) => {
@@ -1611,6 +1675,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           >
                             <RefreshCw className="h-3 w-3 mr-1" /> Load Default
                           </Button>
+                          <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => recalculatePricingFromRooms(cVariant.id)} className="h-7 text-xs border-blue-300 hover:bg-blue-50 text-blue-700">
+                            <Calculator className="h-3 w-3 mr-1" /> Calculate from Rooms
+                          </Button>
                           <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => handleAddVariantPricingItem(cVariant.id)} className="h-7 text-xs border-violet-300 hover:bg-violet-50 text-violet-700">
                             <Plus className="h-3 w-3 mr-1" /> Add Item
                           </Button>
@@ -1629,7 +1696,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             <Input value={item.price} disabled={loading} placeholder="Price" type="number" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'price', e.target.value)} onBlur={() => syncVariantPricingToForm(cVariant.id)} className="h-8 text-xs" />
                             <div className="flex gap-1">
                               <Input value={item.description} disabled={loading} placeholder="Notes" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'description', e.target.value)} onBlur={() => syncVariantPricingToForm(cVariant.id)} className="h-8 text-xs flex-1" />
-                              <Button type="button" variant="ghost" size="icon" disabled={loading} onClick={() => { handleRemoveVariantPricingItem(cVariant.id, idx); setTimeout(() => syncVariantPricingToForm(cVariant.id), 0); }} className="text-red-500 hover:text-red-700 h-8 w-8 flex-shrink-0"><Trash className="h-3.5 w-3.5" /></Button>
+                              <Button type="button" variant="ghost" size="icon" disabled={loading} onClick={() => handleRemoveVariantPricingItem(cVariant.id, idx)} className="text-red-500 hover:text-red-700 h-8 w-8 flex-shrink-0"><Trash className="h-3.5 w-3.5" /></Button>
                             </div>
                           </div>
                         ))
@@ -3060,6 +3127,17 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           variant="outline"
                           size="sm"
                           disabled={loading}
+                          onClick={() => recalculatePricingFromRooms(variant.id)}
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300 text-xs"
+                        >
+                          <Calculator className="mr-1.5 h-3 w-3" />
+                          Calculate from Rooms
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={loading}
                           onClick={() => handleAddVariantPricingItem(variant.id)}
                           className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
                         >
@@ -3147,11 +3225,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                 variant="ghost"
                                 size="icon"
                                 disabled={loading}
-                                onClick={() => {
-                                  handleRemoveVariantPricingItem(variant.id, idx);
-                                  // Sync after removal (need slight delay for state to update)
-                                  setTimeout(() => syncVariantPricingToForm(variant.id), 0);
-                                }}
+                                onClick={() => handleRemoveVariantPricingItem(variant.id, idx)}
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7"
                               >
                                 <Trash className="h-3.5 w-3.5" />

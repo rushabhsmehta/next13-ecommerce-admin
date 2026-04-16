@@ -297,6 +297,90 @@ export async function applyVariantHotelOverrides(
 }
 
 /**
+ * Apply variant pricing overrides to existing snapshots.
+ *
+ * After createVariantSnapshots() runs (which copies pricing from
+ * PackageVariant.tourPackagePricings → QueryVariantPricingSnapshot), this
+ * function replaces those pricing rows for any variant that has a
+ * query-level override in TourPackageQuery.variantPricingData.
+ *
+ * Semantics: a query-level pricing entry fully replaces the variant's
+ * master pricing (mirrors buildSyntheticSnapshots, which emits a single
+ * pricing snapshot per variant when variantPricingData is present).
+ *
+ * @param queryId - TourPackageQuery ID
+ * @param pricingData - { packageVariantId: { components, totalCost, mealPlanName, vehicleTypeName, numberOfRooms, remarks, ... } }
+ * @param fallbackDates - Tour start/end dates used when the JSON entry has none
+ */
+export async function applyVariantPricingOverrides(
+  queryId: string,
+  pricingData: Record<string, any>,
+  fallbackDates: { startDate?: Date | null; endDate?: Date | null } = {}
+) {
+  if (!pricingData || Object.keys(pricingData).length === 0) return;
+
+  // Build sourceVariantId → snapshotId map
+  const variantSnapshots = await prismadb.queryVariantSnapshot.findMany({
+    where: { tourPackageQueryId: queryId },
+    select: { id: true, sourceVariantId: true },
+  });
+  const snapshotByVariantId: Record<string, string> = {};
+  for (const s of variantSnapshots) {
+    snapshotByVariantId[s.sourceVariantId] = s.id;
+  }
+
+  const defaultStart = fallbackDates.startDate ?? new Date();
+  const defaultEnd = fallbackDates.endDate ?? fallbackDates.startDate ?? new Date();
+
+  for (const [variantId, entry] of Object.entries(pricingData)) {
+    const snapshotId = snapshotByVariantId[variantId];
+    if (!snapshotId || !entry) continue;
+
+    // Replace existing pricing rows for this variant (cascade removes components)
+    await prismadb.queryVariantPricingSnapshot.deleteMany({
+      where: { variantSnapshotId: snapshotId },
+    });
+
+    const totalPrice = new Decimal(String(entry.totalCost ?? 0));
+
+    const pricingSnapshot = await prismadb.queryVariantPricingSnapshot.create({
+      data: {
+        variantSnapshotId: snapshotId,
+        startDate: entry.startDate ? new Date(entry.startDate) : defaultStart,
+        endDate: entry.endDate ? new Date(entry.endDate) : defaultEnd,
+        mealPlanId: entry.mealPlanId ?? null,
+        mealPlanName: entry.mealPlanName || 'Package Pricing',
+        numberOfRooms: typeof entry.numberOfRooms === 'number' ? entry.numberOfRooms : 1,
+        isGroupPricing: !!entry.isGroupPricing,
+        vehicleTypeId: entry.vehicleTypeId ?? null,
+        vehicleTypeName: entry.vehicleTypeName ?? null,
+        totalPrice,
+        description: entry.remarks ?? entry.description ?? null,
+      },
+    });
+
+    if (Array.isArray(entry.components) && entry.components.length > 0) {
+      await Promise.all(
+        entry.components.map((comp: any) =>
+          prismadb.queryVariantPricingComponentSnapshot.create({
+            data: {
+              pricingSnapshotId: pricingSnapshot.id,
+              pricingAttributeId: comp.pricingAttributeId ?? null,
+              attributeName: comp.name || comp.attributeName || 'Component',
+              price: new Decimal(String(comp.price ?? 0)),
+              purchasePrice: comp.purchasePrice != null ? new Decimal(String(comp.purchasePrice)) : null,
+              description: comp.description ?? null,
+            },
+          })
+        )
+      );
+    }
+  }
+
+  console.log(`✅ [Snapshot] Applied pricing overrides for query ${queryId}`);
+}
+
+/**
  * Delete variant snapshots for a tour package query
  *
  * @param queryId - TourPackageQuery ID

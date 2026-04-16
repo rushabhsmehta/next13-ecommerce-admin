@@ -6,7 +6,7 @@ import prismadb from "@/lib/prismadb";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
 import { createAuditLog } from "@/lib/utils/audit-logger";
-import { createVariantSnapshots, applyVariantHotelOverrides } from '@/lib/variant-snapshot';
+import { createVariantSnapshots, applyVariantHotelOverrides, applyVariantPricingOverrides } from '@/lib/variant-snapshot';
 
 export const dynamic = 'force-dynamic'; // Ensure API is not cached
 
@@ -1033,6 +1033,24 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
             );
           } catch (overrideError) {
             console.error('❌ Failed to apply hotel overrides:', overrideError);
+          }
+        }
+
+        // Apply query-level pricing overrides so user-edited pricing doesn't
+        // get clobbered by the master PackageVariant pricing on every save.
+        const savedPricing = (tourPackageQuery as any)?.variantPricingData as Record<string, any> | null;
+        if (savedPricing && Object.keys(savedPricing).length > 0) {
+          try {
+            await applyVariantPricingOverrides(
+              params.tourPackageQueryId,
+              savedPricing,
+              {
+                startDate: (tourPackageQuery as any)?.tourStartsFrom ?? null,
+                endDate: (tourPackageQuery as any)?.tourEndsOn ?? null,
+              }
+            );
+          } catch (pricingError) {
+            console.error('❌ Failed to apply pricing overrides:', pricingError);
           }
         }
       } catch (snapshotError) {

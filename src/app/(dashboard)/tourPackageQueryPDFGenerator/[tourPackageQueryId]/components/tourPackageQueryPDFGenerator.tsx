@@ -270,7 +270,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   // --- Build Variant Comparison Table ---
   const buildVariantComparisonTable = useCallback((): string => {
     const variants = (initialData as any)?.queryVariantSnapshots as QueryVariantSnapshotForPDF[] | undefined;
-    if (!variants || variants.length < 2) return "";
+    if (!variants || variants.length < 1) return "";
 
     const fmtINR = (val: string | number): string => {
       try {

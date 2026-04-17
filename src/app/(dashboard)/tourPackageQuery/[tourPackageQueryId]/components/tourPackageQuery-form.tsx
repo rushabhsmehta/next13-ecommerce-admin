@@ -1228,7 +1228,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         setLoading(false);
         return;
-      } const formattedData = {
+      } const formattedData: any = {
         ...data,
         // Apply timezone normalization to tour dates
         tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
@@ -1247,6 +1247,45 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         totalPrice: data.totalPrice || '',
         disclaimer: data.disclaimer || '',
       };
+
+      // Strip variant fields the user didn't actually change. Paired with the
+      // API's body-presence contract this guarantees an update that only
+      // changes (say) the title never overwrites saved variant/pricing JSON
+      // with whatever stale default react-hook-form is carrying.
+      //
+      // Deep-equality against initialData is used instead of formState.dirtyFields
+      // because several setValue callsites explicitly pass { shouldDirty: false }
+      // (e.g. BasicInfoTab's variant-sync effect), so dirtyFields is unreliable
+      // as a signal of "user intent to change".
+      if (initialData) {
+        const parseInitial = (raw: unknown) => {
+          if (raw === null || raw === undefined) return undefined;
+          if (typeof raw === 'string') {
+            try { return JSON.parse(raw); } catch { return raw; }
+          }
+          return raw;
+        };
+        const initialSource = initialData as any;
+        const variantKeys: Array<keyof typeof formattedData> = [
+          'selectedVariantIds',
+          'variantHotelOverrides',
+          'variantRoomAllocations',
+          'variantTransportDetails',
+          'variantPricingData',
+          'customQueryVariants',
+          'occupancySelections',
+          'confirmedVariantId',
+        ];
+        for (const key of variantKeys) {
+          const currentVal = formattedData[key as string];
+          const initialVal = parseInitial(initialSource[key as string]);
+          const currentJson = JSON.stringify(currentVal ?? null);
+          const initialJson = JSON.stringify(initialVal ?? null);
+          if (currentJson === initialJson) {
+            delete formattedData[key as string];
+          }
+        }
+      }
 
       // 🔍 LOG: Verify variant data is included in submission
       console.log('📤 [onSubmit] Submitting form data:', {

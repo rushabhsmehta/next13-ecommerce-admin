@@ -580,6 +580,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       itineraries,
     } = body;
 
+    // Body-presence check — distinguishes "field not sent by caller" from
+    // "field sent as undefined/null/empty". This is the contract we enforce
+    // for variant-related JSON columns so untouched tabs cannot clobber
+    // saved overrides with stale empty values.
+    const hasBodyKey = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
+
     console.log("===== INCOMING PATCH REQUEST ITINERARIES =====");
     if (itineraries) {
       try {
@@ -715,14 +721,18 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       selectedTemplateType,
       tourPackageTemplateName,
       selectedMealPlanId,
-      occupancySelections: occupancySelections || undefined,
-      selectedVariantIds: selectedVariantIds || undefined, // Store selected variant IDs
-      variantHotelOverrides: variantHotelOverrides || undefined, // Store hotel overrides
-      variantRoomAllocations: variantRoomAllocations || undefined, // Store room allocations per variant
-      variantTransportDetails: variantTransportDetails || undefined, // Store transport details per variant
-      variantPricingData: variantPricingData || undefined, // Store pricing data per variant
+      // Variant JSON columns: preserve unless the caller explicitly sent the field.
+      // Contract: key absent from body → preserve; key present with any value
+      // (including null / {} / []) → write that value. This stops stale
+      // form defaults from wiping saved overrides.
+      ...(hasBodyKey('occupancySelections') ? { occupancySelections } : {}),
+      ...(hasBodyKey('selectedVariantIds') ? { selectedVariantIds } : {}),
+      ...(hasBodyKey('variantHotelOverrides') ? { variantHotelOverrides } : {}),
+      ...(hasBodyKey('variantRoomAllocations') ? { variantRoomAllocations } : {}),
+      ...(hasBodyKey('variantTransportDetails') ? { variantTransportDetails } : {}),
+      ...(hasBodyKey('variantPricingData') ? { variantPricingData } : {}),
+      ...(hasBodyKey('customQueryVariants') ? { customQueryVariants } : {}),
       confirmedVariantId: confirmedVariantId !== undefined ? (confirmedVariantId || null) : undefined, // Store confirmed variant ID
-      customQueryVariants: customQueryVariants || undefined, // Store custom query variants
 
       // Only touch images when the caller explicitly sends the field.
       // undefined  → skip nested write, existing images are preserved
@@ -1012,50 +1022,55 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       }
     });
 
-    // Update variant snapshots if variant IDs are provided
-    if (selectedVariantIds && Array.isArray(selectedVariantIds) && selectedVariantIds.length > 0) {
-      try {
-        console.log(`📸 Updating variant snapshots for ${selectedVariantIds.length} variants...`);
-        await createVariantSnapshots(params.tourPackageQueryId, selectedVariantIds, {
-          overwrite: true,
-          tourPackageId: selectedTemplateId ?? undefined,
-        });
-        console.log('✅ Variant snapshots updated successfully');
+    // Only refresh snapshots when the caller explicitly sent a variant-affecting
+    // field. If the user didn't touch the Variants tab, the form should omit
+    // these keys — and we must not rebuild snapshots from master PackageVariant
+    // data on every save, which was destroying user-edited pricing.
+    const variantFieldsTouched =
+      hasBodyKey('selectedVariantIds') ||
+      hasBodyKey('variantHotelOverrides') ||
+      hasBodyKey('variantPricingData') ||
+      hasBodyKey('variantRoomAllocations') ||
+      hasBodyKey('variantTransportDetails');
 
-        // Apply query-level hotel overrides on top of the package-default hotel snapshots
-        const savedOverrides = (tourPackageQuery as any)?.variantHotelOverrides as Record<string, Record<string, string>> | null;
-        if (savedOverrides && Object.keys(savedOverrides).length > 0 && tourPackageQuery?.itineraries) {
-          try {
-            await applyVariantHotelOverrides(
-              params.tourPackageQueryId,
-              savedOverrides,
-              tourPackageQuery.itineraries.map((i: any) => ({ id: i.id, dayNumber: i.dayNumber }))
-            );
-          } catch (overrideError) {
-            console.error('❌ Failed to apply hotel overrides:', overrideError);
-          }
-        }
+    const shouldRefreshSnapshots =
+      variantFieldsTouched &&
+      Array.isArray(selectedVariantIds) &&
+      selectedVariantIds.length > 0;
 
-        // Apply query-level pricing overrides so user-edited pricing doesn't
-        // get clobbered by the master PackageVariant pricing on every save.
-        const savedPricing = (tourPackageQuery as any)?.variantPricingData as Record<string, any> | null;
-        if (savedPricing && Object.keys(savedPricing).length > 0) {
-          try {
-            await applyVariantPricingOverrides(
-              params.tourPackageQueryId,
-              savedPricing,
-              {
-                startDate: (tourPackageQuery as any)?.tourStartsFrom ?? null,
-                endDate: (tourPackageQuery as any)?.tourEndsOn ?? null,
-              }
-            );
-          } catch (pricingError) {
-            console.error('❌ Failed to apply pricing overrides:', pricingError);
+    if (shouldRefreshSnapshots) {
+      // Let snapshot errors propagate. Previously they were swallowed and the
+      // API returned 200 even when snapshots had been wiped — the exact failure
+      // mode users were reporting as "variants/pricing deleted on save".
+      console.log(`📸 Updating variant snapshots for ${selectedVariantIds.length} variants...`);
+      await createVariantSnapshots(params.tourPackageQueryId, selectedVariantIds, {
+        overwrite: true,
+        tourPackageId: selectedTemplateId ?? undefined,
+      });
+      console.log('✅ Variant snapshots updated successfully');
+
+      // Apply query-level hotel overrides on top of the package-default hotel snapshots
+      const savedOverrides = (tourPackageQuery as any)?.variantHotelOverrides as Record<string, Record<string, string>> | null;
+      if (savedOverrides && Object.keys(savedOverrides).length > 0 && tourPackageQuery?.itineraries) {
+        await applyVariantHotelOverrides(
+          params.tourPackageQueryId,
+          savedOverrides,
+          tourPackageQuery.itineraries.map((i: any) => ({ id: i.id, dayNumber: i.dayNumber }))
+        );
+      }
+
+      // Apply query-level pricing overrides so user-edited pricing doesn't
+      // get clobbered by the master PackageVariant pricing on every save.
+      const savedPricing = (tourPackageQuery as any)?.variantPricingData as Record<string, any> | null;
+      if (savedPricing && Object.keys(savedPricing).length > 0) {
+        await applyVariantPricingOverrides(
+          params.tourPackageQueryId,
+          savedPricing,
+          {
+            startDate: (tourPackageQuery as any)?.tourStartsFrom ?? null,
+            endDate: (tourPackageQuery as any)?.tourEndsOn ?? null,
           }
-        }
-      } catch (snapshotError) {
-        console.error('❌ Failed to update variant snapshots:', snapshotError);
-        // Non-fatal: Continue even if snapshots fail
+        );
       }
     }
 

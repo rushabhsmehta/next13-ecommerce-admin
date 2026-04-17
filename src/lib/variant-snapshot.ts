@@ -6,11 +6,15 @@
  */
 
 import prismadb from '@/lib/prismadb';
+import type { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+
+type PrismaExecutor = typeof prismadb | Prisma.TransactionClient;
 
 interface SnapshotOptions {
   overwrite?: boolean; // If true, delete existing snapshots before creating new ones
   tourPackageId?: string;
+  tx?: Prisma.TransactionClient; // When provided, writes join the caller's transaction
 }
 
 /**
@@ -33,70 +37,68 @@ export async function createVariantSnapshots(
   const uniqueVariantIds = Array.from(new Set(variantIds.filter(Boolean)));
   console.log(`📸 [Snapshot] Creating snapshots for query ${queryId}, variants: ${uniqueVariantIds.join(', ')}`);
 
-  try {
-    // Delete existing snapshots if overwrite is enabled
+  // Pre-fetch source variants BEFORE the write transaction so we validate
+  // existence/tourPackageId before dropping existing snapshots. This is the
+  // core fix for the delete-then-recreate data-loss class of bugs: never
+  // delete until we know we can replace.
+  const variants = await prismadb.packageVariant.findMany({
+    where: {
+      id: { in: uniqueVariantIds },
+      ...(options.tourPackageId ? { tourPackageId: options.tourPackageId } : {}),
+    },
+    include: {
+      variantHotelMappings: {
+        include: {
+          hotel: {
+            include: {
+              images: { orderBy: { createdAt: 'asc' }, take: 1 },
+              location: true,
+            },
+          },
+          itinerary: true,
+        },
+      },
+      tourPackagePricings: {
+        include: {
+          mealPlan: true,
+          vehicleType: true,
+          pricingComponents: {
+            include: { pricingAttribute: true },
+          },
+        },
+      },
+    },
+    orderBy: { sortOrder: 'asc' },
+  });
+
+  if (options.tourPackageId && variants.length !== uniqueVariantIds.length) {
+    const foundIds = new Set(variants.map((variant) => variant.id));
+    const missingIds = uniqueVariantIds.filter((id) => !foundIds.has(id));
+    throw new Error(
+      `Selected variant ID(s) do not belong to tour package ${options.tourPackageId}: ${missingIds.join(', ')}`
+    );
+  }
+
+  if (variants.length === 0) {
+    console.log('⚠️ [Snapshot] No variants found for provided IDs — skipping to avoid wiping existing snapshots');
+    return { success: true, count: 0 };
+  }
+
+  // Single write unit: delete + recreate. If anything throws, Prisma rolls
+  // back and existing snapshots are preserved.
+  const runWrites = async (db: PrismaExecutor) => {
     if (options.overwrite) {
-      const deleted = await prismadb.queryVariantSnapshot.deleteMany({
+      const deleted = await db.queryVariantSnapshot.deleteMany({
         where: { tourPackageQueryId: queryId },
       });
       console.log(`🗑️ [Snapshot] Deleted ${deleted.count} existing snapshots`);
     }
 
-    // Fetch full variant data with all relations
-    const variants = await prismadb.packageVariant.findMany({
-      where: {
-        id: { in: uniqueVariantIds },
-        ...(options.tourPackageId ? { tourPackageId: options.tourPackageId } : {}),
-      },
-      include: {
-        variantHotelMappings: {
-          include: {
-            hotel: {
-              include: {
-                images: {
-                  orderBy: { createdAt: 'asc' },
-                  take: 1,
-                },
-                location: true,
-              },
-            },
-            itinerary: true,
-          },
-        },
-        tourPackagePricings: {
-          include: {
-            mealPlan: true,
-            vehicleType: true,
-            pricingComponents: {
-              include: {
-                pricingAttribute: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { sortOrder: 'asc' },
-    });
-
-    if (options.tourPackageId && variants.length !== uniqueVariantIds.length) {
-      const foundIds = new Set(variants.map((variant) => variant.id));
-      const missingIds = uniqueVariantIds.filter((id) => !foundIds.has(id));
-      throw new Error(
-        `Selected variant ID(s) do not belong to tour package ${options.tourPackageId}: ${missingIds.join(', ')}`
-      );
-    }
-
-    if (variants.length === 0) {
-      console.log('⚠️ [Snapshot] No variants found for provided IDs');
-      return { success: true, count: 0 };
-    }
-
-    // Create snapshots for each variant
-    const snapshotPromises = variants.map(async (variant) => {
+    let created = 0;
+    for (const variant of variants) {
       console.log(`📦 [Snapshot] Processing variant: ${variant.name}`);
 
-      // Create variant snapshot
-      const variantSnapshot = await prismadb.queryVariantSnapshot.create({
+      const variantSnapshot = await db.queryVariantSnapshot.create({
         data: {
           tourPackageQueryId: queryId,
           sourceVariantId: variant.id,
@@ -108,39 +110,32 @@ export async function createVariantSnapshots(
         },
       });
 
-      // Create hotel mapping snapshots
-      const hotelSnapshotPromises = variant.variantHotelMappings.map(async (mapping) => {
+      for (const mapping of variant.variantHotelMappings) {
         const dayNumber = mapping.itinerary?.dayNumber;
         if (typeof dayNumber !== 'number') {
           console.log(`⚠️ [Snapshot] Skipping hotel mapping - no day number for itinerary ${mapping.itineraryId}`);
-          return null;
+          continue;
         }
-
-        return prismadb.queryVariantHotelSnapshot.create({
+        await db.queryVariantHotelSnapshot.create({
           data: {
             variantSnapshotId: variantSnapshot.id,
-            dayNumber: dayNumber,
+            dayNumber,
             hotelId: mapping.hotelId,
             hotelName: mapping.hotel.name,
             locationLabel: mapping.hotel.location.label,
             imageUrl: mapping.hotel.images[0]?.url || null,
-            roomCategory: null, // Room category not stored at hotel level
+            roomCategory: null,
           },
         });
-      });
+      }
 
-      const hotelSnapshots = await Promise.all(hotelSnapshotPromises);
-      console.log(`🏨 [Snapshot] Created ${hotelSnapshots.filter(Boolean).length} hotel snapshots for ${variant.name}`);
-
-      // Create pricing snapshots
-      const pricingSnapshotPromises = variant.tourPackagePricings.map(async (pricing) => {
-        // Calculate total price from components
+      for (const pricing of variant.tourPackagePricings) {
         const totalPrice = pricing.pricingComponents.reduce(
           (sum, component) => sum.add(component.price),
           new Decimal(0)
         );
 
-        const pricingSnapshot = await prismadb.queryVariantPricingSnapshot.create({
+        const pricingSnapshot = await db.queryVariantPricingSnapshot.create({
           data: {
             variantSnapshotId: variantSnapshot.id,
             startDate: pricing.startDate,
@@ -151,14 +146,13 @@ export async function createVariantSnapshots(
             isGroupPricing: pricing.isGroupPricing,
             vehicleTypeId: pricing.vehicleTypeId,
             vehicleTypeName: pricing.vehicleType?.name || null,
-            totalPrice: totalPrice,
+            totalPrice,
             description: pricing.description,
           },
         });
 
-        // Create pricing component snapshots
-        const componentSnapshotPromises = pricing.pricingComponents.map((component) =>
-          prismadb.queryVariantPricingComponentSnapshot.create({
+        for (const component of pricing.pricingComponents) {
+          await db.queryVariantPricingComponentSnapshot.create({
             data: {
               pricingSnapshotId: pricingSnapshot.id,
               pricingAttributeId: component.pricingAttributeId,
@@ -167,25 +161,22 @@ export async function createVariantSnapshots(
               purchasePrice: component.purchasePrice,
               description: component.description,
             },
-          })
-        );
+          });
+        }
+      }
+      created += 1;
+    }
+    console.log(`✅ [Snapshot] Successfully created ${created} variant snapshots`);
+    return created;
+  };
 
-        await Promise.all(componentSnapshotPromises);
-        return pricingSnapshot;
-      });
-
-      const pricingSnapshots = await Promise.all(pricingSnapshotPromises);
-      console.log(`💰 [Snapshot] Created ${pricingSnapshots.length} pricing snapshots for ${variant.name}`);
-
-      return variantSnapshot;
-    });
-
-    const snapshots = await Promise.all(snapshotPromises);
-    console.log(`✅ [Snapshot] Successfully created ${snapshots.length} variant snapshots`);
-
-    return { success: true, count: snapshots.length };
+  try {
+    const count = options.tx
+      ? await runWrites(options.tx)
+      : await prismadb.$transaction(runWrites, { timeout: 30000 });
+    return { success: true, count };
   } catch (error) {
-    console.error('❌ [Snapshot] Error creating snapshots:', error);
+    console.error('❌ [Snapshot] Error creating snapshots (rolled back):', error);
     throw error;
   }
 }
@@ -228,7 +219,8 @@ export async function getVariantSnapshots(queryId: string) {
 export async function applyVariantHotelOverrides(
   queryId: string,
   overrides: Record<string, Record<string, string>>,
-  itineraries: { id: string; dayNumber: number | null }[]
+  itineraries: { id: string; dayNumber: number | null }[],
+  tx?: Prisma.TransactionClient
 ) {
   if (!overrides || Object.keys(overrides).length === 0) return;
 
@@ -240,57 +232,65 @@ export async function applyVariantHotelOverrides(
     }
   }
 
-  // Build sourceVariantId → snapshotId map
-  const variantSnapshots = await prismadb.queryVariantSnapshot.findMany({
-    where: { tourPackageQueryId: queryId },
-    select: { id: true, sourceVariantId: true },
-  });
-  const snapshotByVariantId: Record<string, string> = {};
-  for (const s of variantSnapshots) {
-    snapshotByVariantId[s.sourceVariantId] = s.id;
-  }
+  const runWrites = async (db: PrismaExecutor) => {
+    // Build sourceVariantId → snapshotId map
+    const variantSnapshots = await db.queryVariantSnapshot.findMany({
+      where: { tourPackageQueryId: queryId },
+      select: { id: true, sourceVariantId: true },
+    });
+    const snapshotByVariantId: Record<string, string> = {};
+    for (const s of variantSnapshots) {
+      snapshotByVariantId[s.sourceVariantId] = s.id;
+    }
 
-  for (const [variantId, itineraryOverrides] of Object.entries(overrides)) {
-    const snapshotId = snapshotByVariantId[variantId];
-    if (!snapshotId) continue;
+    for (const [variantId, itineraryOverrides] of Object.entries(overrides)) {
+      const snapshotId = snapshotByVariantId[variantId];
+      if (!snapshotId) continue;
 
-    for (const [itineraryId, overrideHotelId] of Object.entries(itineraryOverrides)) {
-      const dayNumber = itineraryDayMap[itineraryId];
-      if (typeof dayNumber !== 'number') continue;
+      for (const [itineraryId, overrideHotelId] of Object.entries(itineraryOverrides)) {
+        const dayNumber = itineraryDayMap[itineraryId];
+        if (typeof dayNumber !== 'number') continue;
 
-      const overrideHotel = await prismadb.hotel.findUnique({
-        where: { id: overrideHotelId },
-        include: {
-          images: { orderBy: { createdAt: 'asc' }, take: 1 },
-          location: true,
-        },
-      });
-      if (!overrideHotel?.location) continue;
+        const overrideHotel = await db.hotel.findUnique({
+          where: { id: overrideHotelId },
+          include: {
+            images: { orderBy: { createdAt: 'asc' }, take: 1 },
+            location: true,
+          },
+        });
+        if (!overrideHotel?.location) continue;
 
-      await prismadb.queryVariantHotelSnapshot.upsert({
-        where: {
-          variantSnapshotId_dayNumber: {
+        await db.queryVariantHotelSnapshot.upsert({
+          where: {
+            variantSnapshotId_dayNumber: {
+              variantSnapshotId: snapshotId,
+              dayNumber: dayNumber,
+            },
+          },
+          update: {
+            hotelId: overrideHotelId,
+            hotelName: overrideHotel.name,
+            locationLabel: overrideHotel.location.label,
+            imageUrl: overrideHotel.images[0]?.url || null,
+          },
+          create: {
             variantSnapshotId: snapshotId,
             dayNumber: dayNumber,
+            hotelId: overrideHotelId,
+            hotelName: overrideHotel.name,
+            locationLabel: overrideHotel.location.label,
+            imageUrl: overrideHotel.images[0]?.url || null,
+            roomCategory: null,
           },
-        },
-        update: {
-          hotelId: overrideHotelId,
-          hotelName: overrideHotel.name,
-          locationLabel: overrideHotel.location.label,
-          imageUrl: overrideHotel.images[0]?.url || null,
-        },
-        create: {
-          variantSnapshotId: snapshotId,
-          dayNumber: dayNumber,
-          hotelId: overrideHotelId,
-          hotelName: overrideHotel.name,
-          locationLabel: overrideHotel.location.label,
-          imageUrl: overrideHotel.images[0]?.url || null,
-          roomCategory: null,
-        },
-      });
+        });
+      }
     }
+  };
+
+  if (tx) {
+    await runWrites(tx);
+  } else {
+    await prismadb.$transaction(runWrites, { timeout: 30000 });
   }
 
   console.log(`✅ [Snapshot] Applied hotel overrides for query ${queryId}`);
@@ -315,54 +315,68 @@ export async function applyVariantHotelOverrides(
 export async function applyVariantPricingOverrides(
   queryId: string,
   pricingData: Record<string, any>,
-  fallbackDates: { startDate?: Date | null; endDate?: Date | null } = {}
+  fallbackDates: { startDate?: Date | null; endDate?: Date | null } = {},
+  tx?: Prisma.TransactionClient
 ) {
   if (!pricingData || Object.keys(pricingData).length === 0) return;
-
-  // Build sourceVariantId → snapshotId map
-  const variantSnapshots = await prismadb.queryVariantSnapshot.findMany({
-    where: { tourPackageQueryId: queryId },
-    select: { id: true, sourceVariantId: true },
-  });
-  const snapshotByVariantId: Record<string, string> = {};
-  for (const s of variantSnapshots) {
-    snapshotByVariantId[s.sourceVariantId] = s.id;
-  }
 
   const defaultStart = fallbackDates.startDate ?? new Date();
   const defaultEnd = fallbackDates.endDate ?? fallbackDates.startDate ?? new Date();
 
-  for (const [variantId, entry] of Object.entries(pricingData)) {
-    const snapshotId = snapshotByVariantId[variantId];
-    if (!snapshotId || !entry) continue;
+  // An entry is only a meaningful override if it carries at least pricing
+  // components or a non-zero totalCost. Treating empty/stale entries as
+  // overrides was wiping master pricing in the delete-then-recreate path.
+  const isMeaningfulEntry = (entry: any): boolean => {
+    if (!entry || typeof entry !== 'object') return false;
+    const hasComponents = Array.isArray(entry.components) && entry.components.length > 0;
+    const rawTotal = entry.totalCost;
+    const hasTotal = rawTotal !== undefined && rawTotal !== null && Number(rawTotal) !== 0;
+    return hasComponents || hasTotal;
+  };
 
-    // Replace existing pricing rows for this variant (cascade removes components)
-    await prismadb.queryVariantPricingSnapshot.deleteMany({
-      where: { variantSnapshotId: snapshotId },
+  const runWrites = async (db: PrismaExecutor) => {
+    const variantSnapshots = await db.queryVariantSnapshot.findMany({
+      where: { tourPackageQueryId: queryId },
+      select: { id: true, sourceVariantId: true },
     });
+    const snapshotByVariantId: Record<string, string> = {};
+    for (const s of variantSnapshots) {
+      snapshotByVariantId[s.sourceVariantId] = s.id;
+    }
 
-    const totalPrice = new Decimal(String(entry.totalCost ?? 0));
+    for (const [variantId, entry] of Object.entries(pricingData)) {
+      const snapshotId = snapshotByVariantId[variantId];
+      if (!snapshotId) continue;
+      if (!isMeaningfulEntry(entry)) {
+        console.log(`⏭️ [Snapshot] Skipping empty pricing entry for variant ${variantId} (preserving master pricing)`);
+        continue;
+      }
 
-    const pricingSnapshot = await prismadb.queryVariantPricingSnapshot.create({
-      data: {
-        variantSnapshotId: snapshotId,
-        startDate: entry.startDate ? new Date(entry.startDate) : defaultStart,
-        endDate: entry.endDate ? new Date(entry.endDate) : defaultEnd,
-        mealPlanId: entry.mealPlanId ?? null,
-        mealPlanName: entry.mealPlanName || 'Package Pricing',
-        numberOfRooms: typeof entry.numberOfRooms === 'number' ? entry.numberOfRooms : 1,
-        isGroupPricing: !!entry.isGroupPricing,
-        vehicleTypeId: entry.vehicleTypeId ?? null,
-        vehicleTypeName: entry.vehicleTypeName ?? null,
-        totalPrice,
-        description: entry.remarks ?? entry.description ?? null,
-      },
-    });
+      await db.queryVariantPricingSnapshot.deleteMany({
+        where: { variantSnapshotId: snapshotId },
+      });
 
-    if (Array.isArray(entry.components) && entry.components.length > 0) {
-      await Promise.all(
-        entry.components.map((comp: any) =>
-          prismadb.queryVariantPricingComponentSnapshot.create({
+      const totalPrice = new Decimal(String(entry.totalCost ?? 0));
+
+      const pricingSnapshot = await db.queryVariantPricingSnapshot.create({
+        data: {
+          variantSnapshotId: snapshotId,
+          startDate: entry.startDate ? new Date(entry.startDate) : defaultStart,
+          endDate: entry.endDate ? new Date(entry.endDate) : defaultEnd,
+          mealPlanId: entry.mealPlanId ?? null,
+          mealPlanName: entry.mealPlanName || 'Package Pricing',
+          numberOfRooms: typeof entry.numberOfRooms === 'number' ? entry.numberOfRooms : 1,
+          isGroupPricing: !!entry.isGroupPricing,
+          vehicleTypeId: entry.vehicleTypeId ?? null,
+          vehicleTypeName: entry.vehicleTypeName ?? null,
+          totalPrice,
+          description: entry.remarks ?? entry.description ?? null,
+        },
+      });
+
+      if (Array.isArray(entry.components) && entry.components.length > 0) {
+        for (const comp of entry.components) {
+          await db.queryVariantPricingComponentSnapshot.create({
             data: {
               pricingSnapshotId: pricingSnapshot.id,
               pricingAttributeId: comp.pricingAttributeId ?? null,
@@ -371,10 +385,16 @@ export async function applyVariantPricingOverrides(
               purchasePrice: comp.purchasePrice != null ? new Decimal(String(comp.purchasePrice)) : null,
               description: comp.description ?? null,
             },
-          })
-        )
-      );
+          });
+        }
+      }
     }
+  };
+
+  if (tx) {
+    await runWrites(tx);
+  } else {
+    await prismadb.$transaction(runWrites, { timeout: 30000 });
   }
 
   console.log(`✅ [Snapshot] Applied pricing overrides for query ${queryId}`);

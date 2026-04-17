@@ -289,7 +289,7 @@ Key helpers in `src/lib/authz.ts`:
 
 ## MCP Tools (travel-admin)
 
-**102 tools** available via the custom MCP server:
+**128 tools** available via the custom MCP server:
 
 ### Architecture (Modular)
 - **`src/app/api/mcp/route.ts`** — Slim gateway: auth via `x-mcp-api-secret` header, dispatch, error handling
@@ -304,11 +304,13 @@ Key helpers in `src/lib/authz.ts`:
 
 | Category | Count | Tools |
 |----------|-------|-------|
-| **Locations & Setup** | 4 | `search_locations`, `list_tour_packages`, `list_hotels`, `list_destinations` |
+| **Locations & Setup** | 5 | `search_locations`, `list_tour_packages`, `get_tour_package`, `list_hotels`, `list_destinations` |
 | **Inquiries & Follow-ups** | 13 | `create_inquiry`, `list_inquiries`, `get_inquiry`, `update_inquiry_status`, `add_inquiry_note`, `assign_inquiry_staff`, `unassign_inquiry_staff`, `set_inquiry_follow_up`, `get_inquiry_actions`, `update_inquiry`, `delete_inquiry`, `list_follow_ups_due`, `get_inquiry_summary` |
-| **Tour Queries & Lifecycle** | 7 | `create_tour_query`, `list_tour_queries`, `get_tour_query`, `confirm_tour_query`, `get_query_financial_summary`, `update_tour_query`, `archive_tour_query` |
-| **Customers & Suppliers** | 10 | `list_customers`, `get_customer`, `create_customer`, `get_customer_outstanding`, `list_customer_sales`, `list_suppliers`, `get_supplier`, `create_supplier`, `get_supplier_outstanding`, `list_supplier_purchases` |
-| **Sales & Purchases** | 8 | `list_sales`, `get_sale`, `create_sale`, `get_sale_balance`, `list_purchases`, `get_purchase`, `create_purchase`, `get_purchase_balance` |
+| **Tour Queries & Lifecycle** | 9 | `create_tour_query`, `list_tour_queries`, `get_tour_query`, `confirm_tour_query`, `get_query_financial_summary`, `update_tour_query`, `archive_tour_query`, `add_tour_query_variant`, `get_tour_query_pdf` |
+| **Customers** | 5 | `list_customers`, `get_customer`, `create_customer`, `get_customer_outstanding`, `list_customer_sales` |
+| **Suppliers** | 5 | `list_suppliers`, `get_supplier`, `create_supplier`, `get_supplier_outstanding`, `list_supplier_purchases` |
+| **Sales** | 4 | `list_sales`, `get_sale`, `create_sale`, `get_sale_balance` |
+| **Purchases** | 4 | `list_purchases`, `get_purchase`, `create_purchase`, `get_purchase_balance` |
 | **Financial Transactions** | 13 | `list_accounts`, `get_account_transactions`, `get_financial_summary`, `create_payment`, `create_receipt`, `create_transfer`, `allocate_receipt_to_sale`, `allocate_payment_to_purchase`, `list_receipts`, `list_payments`, `list_transfers`, `get_outstanding_receivables`, `get_outstanding_payables` |
 | **Expenses & Income** | 9 | `create_expense`, `delete_expense`, `create_income`, `list_expenses`, `list_incomes`, `list_expense_categories`, `list_income_categories`, `create_accrued_expense`, `pay_accrued_expense` |
 | **Returns & Adjustments** | 4 | `create_sale_return`, `list_sale_returns`, `create_purchase_return`, `list_purchase_returns` |
@@ -316,10 +318,9 @@ Key helpers in `src/lib/authz.ts`:
 | **Configuration Lookups** | 4 | `list_room_types`, `list_meal_plans`, `list_vehicle_types`, `list_occupancy_types` |
 | **Staff & Operations** | 2 | `list_operational_staff`, `list_associate_partners` |
 | **Flights & Bookings** | 3 | `get_flight_ticket`, `list_flight_tickets`, `create_flight_ticket` |
-| **Notifications** | 2 | `create_notification`, `list_notifications` |
-| **Pricing Lookups** | 2 | `get_hotel_pricing`, `get_transport_pricing` |
-| **WhatsApp Integration** | 13 | `send_whatsapp_message`, `send_whatsapp_template`, `upload_whatsapp_template_media`, `send_whatsapp_product_message`, `send_whatsapp_product_list`, `list_whatsapp_campaigns`, `get_whatsapp_campaign_stats`, `list_whatsapp_customers`, `create_whatsapp_customer`, `list_whatsapp_templates`, `list_whatsapp_messages`, `send_whatsapp_campaign`, `get_whatsapp_database_health` |
-| **AI & Dashboard** | 2 | `generate_itinerary`, `get_stats` |
+| **WhatsApp Integration** | 36 | `send_whatsapp_message`, `send_whatsapp_template`, `send_whatsapp_media`, `send_whatsapp_product_message`, `send_whatsapp_product_list`, `send_whatsapp_catalog_package`, `send_whatsapp_catalog_packages`, `send_whatsapp_campaign`, `upload_whatsapp_media`, `upload_whatsapp_template_media`, `create_whatsapp_template`, `validate_whatsapp_template`, `preview_whatsapp_template`, `preview_whatsapp_template_from_components`, `preview_whatsapp_template_from_saved`, `generate_whatsapp_template_example`, `list_whatsapp_template_schema`, `list_whatsapp_templates`, `delete_whatsapp_template`, `list_whatsapp_campaigns`, `get_whatsapp_campaign_stats`, `list_whatsapp_customers`, `create_whatsapp_customer`, `list_whatsapp_messages`, `get_whatsapp_conversation`, `get_whatsapp_conversation_summary`, `search_whatsapp_messages`, `get_whatsapp_database_health`, `get_whatsapp_catalog`, `list_whatsapp_catalog_packages`, `create_whatsapp_catalog_package`, `get_whatsapp_catalog_package`, `update_whatsapp_catalog_package`, `delete_whatsapp_catalog_package`, `sync_whatsapp_catalog_package`, `sync_whatsapp_catalog` |
+| **AI** | 1 | `generate_itinerary` |
+| **Stats & Dashboard** | 1 | `get_stats` |
 
 ## Key Patterns
 

@@ -1,6 +1,6 @@
 // filepath: src/app/api/pricing/calculate-variant/route.ts
 import { NextResponse } from 'next/server';
-import { calculateVariantPricing } from '@/lib/pricing-calculator';
+import { calculateVariantPricing, derivePerPersonRates } from '@/lib/pricing-calculator';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       tourStartsFrom,
       tourEndsOn,
       markup = 0,
+      includeBreakdown = false,
     } = body;
 
     // Validation
@@ -67,7 +68,24 @@ export async function POST(req: Request) {
       markup: result.appliedMarkup
     });
 
-    return NextResponse.json(result);
+    let perPersonRates = undefined;
+    if (includeBreakdown) {
+      const pricingItineraries = itineraries.map((it: any) => ({
+        locationId: it.locationId,
+        dayNumber: it.dayNumber,
+        hotelId: it.hotelId,
+        roomAllocations: it.roomAllocations || [],
+        transportDetails: it.transportDetails || [],
+      }));
+      perPersonRates = await derivePerPersonRates({
+        calculationResult: result,
+        itineraries: pricingItineraries,
+        tourStartsFrom,
+        tourEndsOn,
+      });
+    }
+
+    return NextResponse.json({ ...result, perPersonRates });
 
   } catch (error: any) {
     console.error('❌ [VARIANT-PRICING-ERROR]', error);

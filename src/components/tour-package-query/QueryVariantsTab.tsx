@@ -228,63 +228,129 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     return 1;
   };
 
-  // Auto-calculate pricing items from room allocations
-  const recalculatePricingFromRooms = (variantId: string) => {
-    const roomsByVariant = variantRoomAllocations?.[variantId] || {};
+  // Resolve a variant (selected or custom) to the shape resolveVariantHotelId expects
+  const findVariantForPricing = (variantId: string): { id: string; variantHotelMappings?: any[] } | null => {
+    const selected = selectedVariants.find((v) => v.id === variantId);
+    if (selected) return selected;
+    const custom = (customQueryVariants || []).find((v: any) => v?.id === variantId);
+    if (custom) return { id: custom.id, variantHotelMappings: [] };
+    return null;
+  };
 
-    // Aggregate total rooms per occupancy multiplier across all itinerary days
-    const roomsByMultiplier: Record<number, number> = {};
-    Object.values(roomsByVariant).forEach((dayAllocations: any[]) => {
-      (dayAllocations || []).forEach((alloc: any) => {
-        const occType = occupancyTypes.find((ot: any) => ot.id === alloc.occupancyTypeId);
-        const multiplier = occType ? getOccupancyMultiplier(occType.name) : 1;
-        roomsByMultiplier[multiplier] = (roomsByMultiplier[multiplier] || 0) + (alloc.quantity || 1);
-      });
-    });
+  // Map a pricing-item label to the corresponding derived rate key from the API.
+  const matchRateKey = (label: string):
+    | 'perPerson'
+    | 'perCouple'
+    | 'perPersonWithExtraBed'
+    | 'childWithMattress'
+    | 'childWithoutMattress'
+    | 'childBelow5WithSeat'
+    | 'childBelow5WithoutSeat'
+    | null => {
+    const l = (label || '').toLowerCase();
+    if (l.includes('couple')) return 'perCouple';
+    if (l.includes('extra bed') || l.includes('extra mattress')) return 'perPersonWithExtraBed';
+    if (l.includes('child below 5') && (l.includes('without seat') || l.includes('no seat'))) return 'childBelow5WithoutSeat';
+    if (l.includes('child below 5') && l.includes('with seat')) return 'childBelow5WithSeat';
+    if (l.includes('child') && l.includes('without') && l.includes('mattress')) return 'childWithoutMattress';
+    if (l.includes('child') && l.includes('with') && l.includes('mattress')) return 'childWithMattress';
+    if (l.includes('per person')) return 'perPerson';
+    return null;
+  };
 
+  // Auto-calculate the Pricing Breakdown rate sheet from hotel + transport data.
+  const recalculatePricingFromRooms = async (variantId: string) => {
+    const variant = findVariantForPricing(variantId);
+    if (!variant) {
+      toast.error('Variant not found.');
+      return;
+    }
+    if (!queryStartDate || !queryEndDate) {
+      toast.error('Select tour start and end dates first.');
+      return;
+    }
     const currentItems = variantPricingItems[variantId] || [];
     if (currentItems.length === 0) {
-      toast.error("Add pricing items first, then calculate from rooms.");
+      toast.error('Add pricing items (or click Load Default) before calculating.');
       return;
     }
 
-    let newTotal = 0;
-    const updatedItems = currentItems.map((item: any) => {
-      const price = parseFloat(item.price || '0');
-      if (!price || price <= 0) return item;
+    const pricingItineraries = itineraries.map((itinerary: any, idx: number) => ({
+      locationId: itinerary.locationId || selectedTourPackage?.locationId || '',
+      dayNumber: itinerary.dayNumber || idx + 1,
+      hotelId: resolveVariantHotelId(variant, itinerary, idx) || undefined,
+      roomAllocations: variantRoomAllocations?.[variantId]?.[itinerary.id] || [],
+      transportDetails: variantTransportDetails?.[variantId]?.[itinerary.id] || [],
+    }));
 
-      const multiplier = getOccupancyMultiplier(item.name);
-      const rooms = roomsByMultiplier[multiplier] || 0;
-      if (rooms === 0) return item;
-
-      const itemTotal = price * rooms;
-      newTotal += itemTotal;
-      const paxLabel = multiplier > 1 ? `${multiplier} pax` : '1 pax';
-      return {
-        ...item,
-        description: `${price.toFixed(2)} × ${rooms} room${rooms !== 1 ? 's' : ''} (${paxLabel}) = Rs.${itemTotal.toFixed(2)}`
-      };
-    });
-
-    setVariantPricingItems(prev => ({ ...prev, [variantId]: updatedItems }));
-    if (newTotal > 0) {
-      setVariantTotalPrices(prev => ({ ...prev, [variantId]: newTotal.toString() }));
+    if (!pricingItineraries.some((it) => (it.roomAllocations?.length || 0) > 0)) {
+      toast.error('Add room allocations to the variant before calculating.');
+      return;
     }
 
-    // Sync directly with computed values to avoid stale closure issues
-    const currentPricingData = form.getValues('variantPricingData') || {};
-    const existingData = currentPricingData[variantId] || {};
-    form.setValue('variantPricingData', {
-      ...currentPricingData,
-      [variantId]: {
-        ...existingData,
-        components: updatedItems,
-        ...(newTotal > 0 ? { totalCost: newTotal } : {}),
-        updatedAt: new Date().toISOString()
-      }
-    }, { shouldDirty: true });
+    const incompleteRoomDays = pricingItineraries
+      .filter((it) => (it.roomAllocations || []).some((r: any) => !r.roomTypeId || !r.occupancyTypeId || !r.mealPlanId))
+      .map((it) => it.dayNumber);
+    if (incompleteRoomDays.length > 0) {
+      toast.error(`Complete room type, occupancy, and meal plan for ${formatDayList(incompleteRoomDays)} first.`);
+      return;
+    }
 
-    toast.success("Pricing recalculated from room allocations.");
+    try {
+      toast.loading('Deriving rates from hotel + transport...');
+      const response = await axios.post('/api/pricing/calculate-variant', {
+        variantId,
+        variantRoomAllocations,
+        variantTransportDetails,
+        itineraries: pricingItineraries,
+        tourStartsFrom: queryStartDate,
+        tourEndsOn: queryEndDate,
+        markup: 0,
+        includeBreakdown: true,
+      });
+      toast.dismiss();
+
+      const perPersonRates = response.data?.perPersonRates;
+      if (!perPersonRates?.rates) {
+        toast.error('Could not derive rates. Check hotel pricing setup.');
+        return;
+      }
+
+      const updatedItems = currentItems.map((item: any) => {
+        const key = matchRateKey(item.name || '');
+        if (!key) return item;
+        const rate = perPersonRates.rates[key];
+        if (!rate) return item;
+        return {
+          ...item,
+          price: rate.price !== null && rate.price !== undefined ? rate.price.toString() : '',
+          description: rate.description || '',
+        };
+      });
+
+      setVariantPricingItems((prev) => ({ ...prev, [variantId]: updatedItems }));
+
+      const currentPricingData = form.getValues('variantPricingData') || {};
+      const existingData = currentPricingData[variantId] || {};
+      form.setValue(
+        'variantPricingData',
+        {
+          ...currentPricingData,
+          [variantId]: {
+            ...existingData,
+            components: updatedItems,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+        { shouldDirty: true }
+      );
+
+      toast.success('Per-guest rates calculated from hotel + transport.');
+    } catch (error) {
+      toast.dismiss();
+      console.log('[RECALCULATE_PRICING_FROM_ROOMS]', error);
+      toast.error('Failed to calculate rates. Check hotel pricing setup.');
+    }
   };
 
   // Helper function to calculate total price for a component

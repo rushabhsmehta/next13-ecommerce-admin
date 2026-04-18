@@ -430,6 +430,253 @@ export async function calculateVariantPricing(params: {
 }
 
 /**
+ * One line of the per-guest pricing breakdown sheet.
+ * `price === null` means a required hotel rate is missing — render the row blank.
+ */
+export interface PerGuestRate {
+  price: number | null;
+  description: string;
+}
+
+export interface PerPersonRatesResult {
+  nights: number;
+  totalPax: number;
+  transportTotal: number;
+  transportPerPerson: number;
+  rates: {
+    perPerson: PerGuestRate;
+    perCouple: PerGuestRate;
+    perPersonWithExtraBed: PerGuestRate;
+    childWithMattress: PerGuestRate;
+    childWithoutMattress: PerGuestRate;
+    childBelow5WithSeat: PerGuestRate;
+    childBelow5WithoutSeat: PerGuestRate;
+  };
+}
+
+function matchOccupancyByKeywords(
+  occupancyTypes: { id: string; name: string }[],
+  keywordSets: string[][]
+): { id: string; name: string } | null {
+  for (const keywords of keywordSets) {
+    const found = occupancyTypes.find((ot) => {
+      const name = (ot.name || '').toLowerCase();
+      return keywords.every((kw) => name.includes(kw));
+    });
+    if (found) return found;
+  }
+  return null;
+}
+
+function formatINR(n: number): string {
+  return n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
+/**
+ * Derive a per-guest rate sheet (per-person twin-sharing, per-couple, extra bed, child rates)
+ * from an existing `PricingCalculationResult`.
+ *
+ * Formulas (confirmed with business):
+ *   Per Person       = (DoubleRate ÷ 2) × nights  +   transportPerPerson
+ *   Per Couple       =  DoubleRate      × nights  + 2×transportPerPerson
+ *   Extra Bed        =  ExtraBedRate    × nights  +   transportPerPerson
+ *   Child w/ Mattress=  ChildMatRate    × nights  +   transportPerPerson
+ *   Child w/o Mat.   =  ChildNoMatRate  × nights  +   transportPerPerson
+ *   Child <5 w/ Seat =  transportPerPerson
+ *   Child <5 no Seat =  0
+ *
+ * `transportPerPerson = totalTransport ÷ totalPaxInAllocation` (adults + children + extra beds).
+ *
+ * If the hotel has no row on file for a required occupancy, the corresponding rate is returned
+ * with `price = null` and a description explaining why.
+ */
+export async function derivePerPersonRates(params: {
+  calculationResult: PricingCalculationResult;
+  itineraries: PricingItinerary[];
+  tourStartsFrom: Date | string;
+  tourEndsOn: Date | string;
+}): Promise<PerPersonRatesResult> {
+  const { calculationResult, itineraries, tourStartsFrom, tourEndsOn } = params;
+
+  const startDate = dateToUtc(tourStartsFrom) || new Date();
+  const endDate = dateToUtc(tourEndsOn) || new Date();
+
+  const occupancyTypes = await prismadb.occupancyType.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, maxPersons: true },
+  });
+
+  // Total pax in allocation (adults + children, across all days is the same — use first non-empty day)
+  let totalPax = 0;
+  for (const it of itineraries) {
+    let dayPax = 0;
+    for (const room of it.roomAllocations || []) {
+      const occ = occupancyTypes.find((o) => o.id === room.occupancyTypeId);
+      const perRoom = occ?.maxPersons || 1;
+      const qty = room.quantity || 0;
+      dayPax += qty * perRoom + (room.extraBeds?.length || 0) * qty;
+    }
+    if (dayPax > totalPax) totalPax = dayPax;
+  }
+  totalPax = Math.max(totalPax, 1);
+
+  const transportTotal = calculationResult.breakdown.transport || 0;
+  const transportPerPerson = transportTotal / totalPax;
+
+  // Aggregate per-occupancy nightly totals already priced in the breakdown
+  const priced: Record<string, number> = {};
+  for (const day of calculationResult.itineraryBreakdown) {
+    for (const room of day.roomBreakdown) {
+      priced[room.occupancyTypeId] = (priced[room.occupancyTypeId] || 0) + room.pricePerNight;
+      for (const eb of room.extraBedCosts || []) {
+        priced[eb.occupancyTypeId] = (priced[eb.occupancyTypeId] || 0) + eb.pricePerNight;
+      }
+    }
+  }
+
+  // For days where we need a rate not in the allocation, fall back to HotelPricing
+  const dayContexts = itineraries.map((it) => ({
+    dayNumber: it.dayNumber,
+    hotelId: it.hotelId,
+    mealPlanId: it.roomAllocations?.[0]?.mealPlanId,
+  }));
+
+  async function nightlyTotalFor(occupancyId: string | null | undefined): Promise<number | null> {
+    if (!occupancyId) return null;
+    if (priced[occupancyId] !== undefined) return priced[occupancyId];
+
+    let anyFound = false;
+    let total = 0;
+    for (const ctx of dayContexts) {
+      if (!ctx.hotelId || !ctx.mealPlanId) continue;
+      const pricing = await prismadb.hotelPricing.findFirst({
+        where: {
+          hotelId: ctx.hotelId,
+          occupancyTypeId: occupancyId,
+          mealPlanId: ctx.mealPlanId,
+          isActive: true,
+          startDate: { lte: endDate },
+          endDate: { gte: startDate },
+        },
+        orderBy: { startDate: 'desc' },
+      });
+      if (pricing) {
+        anyFound = true;
+        total += pricing.price;
+      }
+    }
+    return anyFound ? total : null;
+  }
+
+  const doubleOcc = matchOccupancyByKeywords(occupancyTypes, [['double'], ['twin']]);
+  const extraBedOcc = matchOccupancyByKeywords(occupancyTypes, [['extra', 'bed'], ['extra', 'mattress']]);
+  const childWithMatOcc = matchOccupancyByKeywords(occupancyTypes, [['child', 'with', 'mattress']]);
+  const childNoMatOcc = matchOccupancyByKeywords(occupancyTypes, [
+    ['child', 'without', 'mattress'],
+    ['child', 'w/o', 'mattress'],
+    ['child', 'no', 'mattress'],
+  ]);
+
+  const [doubleTotal, extraBedTotal, childMatTotal, childNoMatTotal] = await Promise.all([
+    nightlyTotalFor(doubleOcc?.id),
+    nightlyTotalFor(extraBedOcc?.id),
+    nightlyTotalFor(childWithMatOcc?.id),
+    nightlyTotalFor(childNoMatOcc?.id),
+  ]);
+
+  const transportLabel = `Transport share (Rs.${formatINR(transportPerPerson)} = total Rs.${formatINR(transportTotal)} ÷ ${totalPax} pax)`;
+  const missingRate = (name: string): PerGuestRate => ({
+    price: null,
+    description: `No ${name} rate on file for this hotel / meal plan / date range. Add a HotelPricing row or type the rate manually.`,
+  });
+
+  const perPerson: PerGuestRate =
+    doubleTotal === null
+      ? missingRate('Double/Twin')
+      : (() => {
+          const share = doubleTotal / 2;
+          const price = share + transportPerPerson;
+          return {
+            price: Math.round(price),
+            description: `Twin-sharing: Double ÷ 2 (Rs.${formatINR(share)}) + ${transportLabel} = Rs.${formatINR(price)}`,
+          };
+        })();
+
+  const perCouple: PerGuestRate =
+    doubleTotal === null
+      ? missingRate('Double/Twin')
+      : (() => {
+          const price = doubleTotal + 2 * transportPerPerson;
+          return {
+            price: Math.round(price),
+            description: `Double (Rs.${formatINR(doubleTotal)}) + 2× ${transportLabel} = Rs.${formatINR(price)}`,
+          };
+        })();
+
+  const perPersonWithExtraBed: PerGuestRate =
+    extraBedTotal === null
+      ? missingRate('Extra Bed / Extra Mattress')
+      : (() => {
+          const price = extraBedTotal + transportPerPerson;
+          return {
+            price: Math.round(price),
+            description: `Extra Bed (Rs.${formatINR(extraBedTotal)}) + ${transportLabel} = Rs.${formatINR(price)}`,
+          };
+        })();
+
+  const childWithMattress: PerGuestRate =
+    childMatTotal === null
+      ? missingRate('Child with Mattress')
+      : (() => {
+          const price = childMatTotal + transportPerPerson;
+          return {
+            price: Math.round(price),
+            description: `Child with Mattress (Rs.${formatINR(childMatTotal)}) + ${transportLabel} = Rs.${formatINR(price)}`,
+          };
+        })();
+
+  const childWithoutMattress: PerGuestRate =
+    childNoMatTotal === null
+      ? missingRate('Child without Mattress')
+      : (() => {
+          const price = childNoMatTotal + transportPerPerson;
+          return {
+            price: Math.round(price),
+            description: `Child without Mattress (Rs.${formatINR(childNoMatTotal)}) + ${transportLabel} = Rs.${formatINR(price)}`,
+          };
+        })();
+
+  const childBelow5WithSeat: PerGuestRate = {
+    price: Math.round(transportPerPerson),
+    description: `Transport seat only: ${transportLabel}`,
+  };
+
+  const childBelow5WithoutSeat: PerGuestRate = {
+    price: 0,
+    description: 'Complimentary — parents sharing bed, no transport seat.',
+  };
+
+  const nights =
+    Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)));
+
+  return {
+    nights,
+    totalPax,
+    transportTotal,
+    transportPerPerson,
+    rates: {
+      perPerson,
+      perCouple,
+      perPersonWithExtraBed,
+      childWithMattress,
+      childWithoutMattress,
+      childBelow5WithSeat,
+      childBelow5WithoutSeat,
+    },
+  };
+}
+
+/**
  * Format currency for display (Indian Rupees)
  */
 export function formatCurrency(amount: number): string {

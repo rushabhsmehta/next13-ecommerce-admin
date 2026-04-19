@@ -243,6 +243,7 @@ model TourPackageQuery {
   inquiryId                        String?
   associatePartnerId               String?
   pricingSection                   Json?
+  pricingCalculationMethod         String?   // 'manual' | 'autoHotelTransport' | 'autoTourPackage'
   selectedTemplateId               String?
   selectedTemplateType             String?
   tourPackageTemplateName          String?

@@ -201,6 +201,7 @@ const formSchema = z.object({
   numChild0to5: z.string().optional(),
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
+  pricingCalculationMethod: z.string().optional(),
   pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
   customMarkup: z.string().optional(), // Added for custom markup percentage
   remarks: z.string().optional(),
@@ -538,6 +539,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
       termsconditions: parseJsonField(initialData.termsconditions),
       pricingSection: parsePricingSection(initialData.pricingSection),
+      pricingCalculationMethod: (initialData as any).pricingCalculationMethod || '',
     } : {
       inquiryId: '',
       tourPackageTemplate: '',
@@ -592,6 +594,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedTourPackageVariantName: '',
       numberOfRooms: 1,
       occupancySelections: [],
+      pricingCalculationMethod: '',
     }; const form = useForm<TourPackageQueryFormValues>({
       resolver: zodResolver(formSchema),
       defaultValues

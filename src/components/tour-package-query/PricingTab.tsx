@@ -79,12 +79,14 @@ const PricingTab: React.FC<PricingTabProps> = ({
   selectedTemplateType,
   selectedTourPackageVariantId
 }) => {
-  // State for selected calculation method
-  const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>(
-    selectedTemplateId && (selectedTemplateType === 'TourPackage' || selectedTemplateType === 'TourPackageVariant')
+  // State for selected calculation method — initialized from persisted form value, then falls back to template heuristic
+  const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>(() => {
+    const saved = form.getValues('pricingCalculationMethod') as CalculationMethod;
+    if (saved && ['manual', 'autoHotelTransport', 'autoTourPackage'].includes(saved)) return saved;
+    return selectedTemplateId && (selectedTemplateType === 'TourPackage' || selectedTemplateType === 'TourPackageVariant')
       ? 'autoTourPackage'
-      : 'manual'
-  );
+      : 'manual';
+  });
   const isTourPackageTemplate = selectedTemplateType === 'TourPackage' || selectedTemplateType === 'TourPackageVariant';
   // State for Tour Package Pricing selection criteria
   const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);  // State for number of rooms
@@ -702,7 +704,10 @@ const PricingTab: React.FC<PricingTabProps> = ({
           </div>
           <RadioGroup
             value={calculationMethod}
-            onValueChange={(value: CalculationMethod) => setCalculationMethod(value)}
+            onValueChange={(value: CalculationMethod) => {
+              setCalculationMethod(value);
+              form.setValue('pricingCalculationMethod', value, { shouldDirty: true });
+            }}
             className="space-y-3"
           >
             <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200">
@@ -1492,12 +1497,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
                           Calculation & Total
                         </FormLabel>
                         <FormControl>
-                          <Input
-                            {...field}
-                            disabled={loading} // Only disable when loading
-                            placeholder="e.g., 15000.00 × 3 occupancy × 3 rooms = Rs. 135000"
-                            className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
-                          />
+                          <div className="min-h-[2.5rem] w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-700 whitespace-pre-wrap break-words leading-relaxed">
+                            {field.value
+                              ? field.value
+                              : <span className="italic text-gray-400">No calculation yet — use Calculate Price or Calculate from Rooms</span>}
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

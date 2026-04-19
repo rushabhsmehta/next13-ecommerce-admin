@@ -182,6 +182,7 @@ const formSchema = z.object({
   numChild0to5: z.string().optional(),
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
+  pricingCalculationMethod: z.string().optional(),
   pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
   customMarkup: z.string().optional(), // Added for custom markup percentage
   remarks: z.string().optional(),
@@ -453,6 +454,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
       termsconditions: parseJsonField(initialData.termsconditions),
       pricingSection: parsePricingSection(initialData.pricingSection),
+      pricingCalculationMethod: (initialData as any).pricingCalculationMethod || '',
     }
     : {
       inquiryId: '',
@@ -492,6 +494,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       isFeatured: false,
       isArchived: false,
       pricingSection: DEFAULT_PRICING_SECTION,
+      pricingCalculationMethod: '',
     };
 
   const form = useForm<TourPackageQueryCreateCopyFormValues>({

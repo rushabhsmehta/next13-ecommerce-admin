@@ -350,7 +350,7 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
     // Step 4: Create room allocations with extra beds (if any)
     if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
       const validRoomAllocations = itinerary.roomAllocations.filter((ra: any) =>
-        ra.occupancyTypeId && (ra.roomTypeId || ra.customRoomType)
+        ra.occupancyTypeId
       );
 
       if (validRoomAllocations.length > 0) {
@@ -546,6 +546,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       pricePerChild0to5,
       totalPrice,
       pricingSection,
+      pricingCalculationMethod,
       remarks,
       images,
       flightDetails,
@@ -700,6 +701,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       pricePerChild0to5,
       totalPrice,
       pricingSection,
+      pricingCalculationMethod: pricingCalculationMethod || null,
       remarks,
       inclusions: processedInclusions,
       exclusions: processedExclusions,
@@ -812,23 +814,25 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
             }
           });
 
-          // Second update to replace variant JSON mappings with actual Database UUIDs
+          // Second update to replace variant JSON mappings with actual Database UUIDs.
+          // For fields not sent in the body, fall back to the pre-save DB value so that
+          // stale itinerary IDs (from the delete-recreate cycle) are always remapped.
           if (Object.keys(itineraryIdMap).length > 0) {
-            console.log("🛠️🛠️🛠️ REMAPPING DEBUG: itineraryIdMap is", itineraryIdMap);
-            console.log("🛠️🛠️🛠️ BEFORE variantRoomAllocations:", JSON.stringify(variantRoomAllocations, null, 2));
+            const orig = originalTourPackageQuery as any;
+            const effectiveOverrides = hasBodyKey('variantHotelOverrides') ? variantHotelOverrides : orig?.variantHotelOverrides;
+            const effectiveRooms = hasBodyKey('variantRoomAllocations') ? variantRoomAllocations : orig?.variantRoomAllocations;
+            const effectiveTransport = hasBodyKey('variantTransportDetails') ? variantTransportDetails : orig?.variantTransportDetails;
 
-            const remappedOverrides = variantHotelOverrides ? remapVariantDataKeys(variantHotelOverrides, itineraryIdMap) : undefined;
-            const remappedRooms = variantRoomAllocations ? remapVariantDataKeys(variantRoomAllocations, itineraryIdMap) : undefined;
-            const remappedTransport = variantTransportDetails ? remapVariantDataKeys(variantTransportDetails, itineraryIdMap) : undefined;
-
-            console.log("🛠️🛠️🛠️ AFTER variantRoomAllocations:", JSON.stringify(remappedRooms, null, 2));
+            const remappedOverrides = effectiveOverrides ? remapVariantDataKeys(effectiveOverrides, itineraryIdMap) : undefined;
+            const remappedRooms = effectiveRooms ? remapVariantDataKeys(effectiveRooms, itineraryIdMap) : undefined;
+            const remappedTransport = effectiveTransport ? remapVariantDataKeys(effectiveTransport, itineraryIdMap) : undefined;
 
             await tx.tourPackageQuery.update({
               where: { id: params.tourPackageQueryId },
               data: {
-                variantHotelOverrides: remappedOverrides,
-                variantRoomAllocations: remappedRooms,
-                variantTransportDetails: remappedTransport,
+                ...(remappedOverrides !== undefined ? { variantHotelOverrides: remappedOverrides } : {}),
+                ...(remappedRooms !== undefined ? { variantRoomAllocations: remappedRooms } : {}),
+                ...(remappedTransport !== undefined ? { variantTransportDetails: remappedTransport } : {}),
               }
             });
             console.log(`[TRANSACTION] Successfully remapped variant JSON keys for ${Object.keys(itineraryIdMap).length} itineraries`);

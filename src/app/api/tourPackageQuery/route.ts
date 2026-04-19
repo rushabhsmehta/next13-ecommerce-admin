@@ -262,6 +262,7 @@ export async function POST(
             pricePerChildwithSeatBelow5Years,
             totalPrice,
             pricingSection, // Add this line
+            pricingCalculationMethod,
             remarks,
             flightDetails,
             inclusions,
@@ -477,6 +478,7 @@ export async function POST(
                 pricePerChildwithSeatBelow5Years,
                 totalPrice,
                 pricingSection, // use exactly what client sends (no server fallback)
+                pricingCalculationMethod: pricingCalculationMethod || null,
                 remarks,
                 //  hotelDetails,                inclusions: processedInclusions,
                 exclusions: processedExclusions,

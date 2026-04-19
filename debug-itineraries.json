@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ecff2a61-bcf9-4804-aa98-6f137253d5a5",
+    "dayNumber": 1,
+    "title": "Srinagar Arrival – Welcome to Paradise (Airport to City | 30 min approx.)"
+  },
+  {
+    "id": "d084ec7a-67dd-4cb8-b3d7-52e3315a12fc",
+    "dayNumber": 2,
+    "title": "Srinagar to Gulmarg – Meadow of Flowers (52 km | 2 hrs approx.)"
+  },
+  {
+    "id": "422c0bc7-60db-4ab4-ad58-1fb43708aaba",
+    "dayNumber": 3,
+    "title": "Gulmarg to Pahalgam – Valley of Shepherds (140 km | 4–5 hrs approx.)"
+  },
+  {
+    "id": "07ff0256-2e2e-44d8-9b97-d17ebfad701c",
+    "dayNumber": 4,
+    "title": "Pahalgam – Explore the Valley (Local Sightseeing)"
+  },
+  {
+    "id": "e05e03f6-072f-49dc-86ce-9a264dadd92a",
+    "dayNumber": 5,
+    "title": "Pahalgam to Srinagar – Scenic Return with Enroute Highlights (90 km | 2–3 hrs approx.)"
+  },
+  {
+    "id": "3fce800c-6586-450c-b7f9-b1ed03f83975",
+    "dayNumber": 6,
+    "title": "Departure – Goodbye Kashmir (Hotel to Airport | 30 min approx.)"
+  }
+]

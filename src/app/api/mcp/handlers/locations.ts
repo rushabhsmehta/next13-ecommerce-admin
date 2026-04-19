@@ -27,6 +27,15 @@ const ListDestinationsSchema = z.object({
   limit: z.number().int().min(1).max(100).optional().default(50),
 });
 
+const GetHotelPricingSchema = z.object({
+  hotelId: z.string().min(1),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  roomTypeId: z.string().optional(),
+  occupancyTypeId: z.string().optional(),
+  mealPlanId: z.string().optional(),
+});
+
 const GetTourPackageSchema = z.object({
   tourPackageId: z.string().min(1),
 });
@@ -100,6 +109,41 @@ async function listDestinations(rawParams: unknown) {
   });
 }
 
+async function getHotelPricing(rawParams: unknown) {
+  const { hotelId, startDate, endDate, roomTypeId, occupancyTypeId, mealPlanId } =
+    GetHotelPricingSchema.parse(rawParams);
+
+  const hotel = await prismadb.hotel.findUnique({
+    where: { id: hotelId },
+    select: { id: true, name: true },
+  });
+  if (!hotel) throw new NotFoundError(`Hotel ${hotelId} not found`);
+
+  const pricings = await prismadb.hotelPricing.findMany({
+    where: {
+      hotelId,
+      isActive: true,
+      ...(roomTypeId && { roomTypeId }),
+      ...(occupancyTypeId && { occupancyTypeId }),
+      ...(mealPlanId && { mealPlanId }),
+      ...(startDate && { endDate: { gte: new Date(startDate) } }),
+      ...(endDate && { startDate: { lte: new Date(endDate) } }),
+    },
+    select: {
+      id: true,
+      startDate: true,
+      endDate: true,
+      price: true,
+      roomType: { select: { id: true, name: true } },
+      occupancyType: { select: { id: true, name: true, maxPersons: true } },
+      mealPlan: { select: { id: true, name: true, code: true } },
+    },
+    orderBy: [{ startDate: "asc" }, { roomTypeId: "asc" }],
+  });
+
+  return { hotel, pricings };
+}
+
 async function getTourPackage(rawParams: unknown) {
   const { tourPackageId } = GetTourPackageSchema.parse(rawParams);
   const pkg = await prismadb.tourPackage.findUnique({
@@ -151,4 +195,5 @@ export const locationHandlers: ToolHandlerMap = {
   get_tour_package: getTourPackage,
   list_hotels: listHotels,
   list_destinations: listDestinations,
+  get_hotel_pricing: getHotelPricing,
 };

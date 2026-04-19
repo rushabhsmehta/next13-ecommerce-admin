@@ -44,6 +44,58 @@ const GetTransportPricingSchema = z.object({
   endDate: z.string().optional(),
 });
 
+const CreateHotelPricingSchema = z.object({
+  hotelId: z.string().min(1),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  roomTypeId: z.string().min(1),
+  occupancyTypeId: z.string().min(1),
+  price: z.number().min(0),
+  mealPlanId: z.string().optional(),
+});
+
+const UpdateHotelPricingSchema = z.object({
+  hotelId: z.string().min(1),
+  pricingId: z.string().min(1),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  roomTypeId: z.string().optional(),
+  occupancyTypeId: z.string().optional(),
+  price: z.number().min(0).optional(),
+  mealPlanId: z.string().nullable().optional(),
+});
+
+const DeleteHotelPricingSchema = z.object({
+  hotelId: z.string().min(1),
+  pricingId: z.string().min(1),
+});
+
+const CreateTransportPricingSchema = z.object({
+  locationId: z.string().min(1),
+  vehicleTypeId: z.string().min(1),
+  price: z.number().min(0),
+  transportType: z.enum(["PerDay", "PerTrip"]),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  description: z.string().optional(),
+});
+
+const UpdateTransportPricingSchema = z.object({
+  pricingId: z.string().min(1),
+  locationId: z.string().optional(),
+  vehicleTypeId: z.string().optional(),
+  price: z.number().min(0).optional(),
+  transportType: z.enum(["PerDay", "PerTrip"]).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+const DeleteTransportPricingSchema = z.object({
+  pricingId: z.string().min(1),
+});
+
 const GetTourPackageSchema = z.object({
   tourPackageId: z.string().min(1),
 });
@@ -222,6 +274,146 @@ async function getTransportPricing(rawParams: unknown) {
   });
 }
 
+async function createHotelPricing(rawParams: unknown) {
+  const { hotelId, startDate, endDate, roomTypeId, occupancyTypeId, price, mealPlanId } =
+    CreateHotelPricingSchema.parse(rawParams);
+
+  const hotel = await prismadb.hotel.findUnique({ where: { id: hotelId }, select: { id: true } });
+  if (!hotel) throw new NotFoundError(`Hotel ${hotelId} not found`);
+
+  return prismadb.hotelPricing.create({
+    data: {
+      hotelId,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      roomTypeId,
+      occupancyTypeId,
+      price,
+      mealPlanId: mealPlanId ?? null,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      startDate: true,
+      endDate: true,
+      price: true,
+      roomType: { select: { id: true, name: true } },
+      occupancyType: { select: { id: true, name: true } },
+      mealPlan: { select: { id: true, name: true } },
+    },
+  });
+}
+
+async function updateHotelPricing(rawParams: unknown) {
+  const { hotelId, pricingId, startDate, endDate, roomTypeId, occupancyTypeId, price, mealPlanId } =
+    UpdateHotelPricingSchema.parse(rawParams);
+
+  const existing = await prismadb.hotelPricing.findUnique({ where: { id: pricingId }, select: { id: true, hotelId: true } });
+  if (!existing || existing.hotelId !== hotelId) throw new NotFoundError(`Hotel pricing ${pricingId} not found`);
+
+  return prismadb.hotelPricing.update({
+    where: { id: pricingId },
+    data: {
+      ...(startDate !== undefined && { startDate: new Date(startDate) }),
+      ...(endDate !== undefined && { endDate: new Date(endDate) }),
+      ...(roomTypeId !== undefined && { roomTypeId }),
+      ...(occupancyTypeId !== undefined && { occupancyTypeId }),
+      ...(price !== undefined && { price }),
+      ...(mealPlanId !== undefined && { mealPlanId }),
+    },
+    select: {
+      id: true,
+      startDate: true,
+      endDate: true,
+      price: true,
+      roomType: { select: { id: true, name: true } },
+      occupancyType: { select: { id: true, name: true } },
+      mealPlan: { select: { id: true, name: true } },
+    },
+  });
+}
+
+async function deleteHotelPricing(rawParams: unknown) {
+  const { hotelId, pricingId } = DeleteHotelPricingSchema.parse(rawParams);
+
+  const existing = await prismadb.hotelPricing.findUnique({ where: { id: pricingId }, select: { id: true, hotelId: true } });
+  if (!existing || existing.hotelId !== hotelId) throw new NotFoundError(`Hotel pricing ${pricingId} not found`);
+
+  await prismadb.hotelPricing.delete({ where: { id: pricingId } });
+  return { success: true };
+}
+
+async function createTransportPricing(rawParams: unknown) {
+  const { locationId, vehicleTypeId, price, transportType, startDate, endDate, description } =
+    CreateTransportPricingSchema.parse(rawParams);
+
+  return prismadb.transportPricing.create({
+    data: {
+      locationId,
+      vehicleTypeId,
+      price,
+      transportType,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      description: description ?? null,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      price: true,
+      transportType: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      location: { select: { id: true, label: true } },
+      vehicleType: { select: { id: true, name: true } },
+    },
+  });
+}
+
+async function updateTransportPricing(rawParams: unknown) {
+  const { pricingId, locationId, vehicleTypeId, price, transportType, startDate, endDate, description, isActive } =
+    UpdateTransportPricingSchema.parse(rawParams);
+
+  const existing = await prismadb.transportPricing.findUnique({ where: { id: pricingId }, select: { id: true } });
+  if (!existing) throw new NotFoundError(`Transport pricing ${pricingId} not found`);
+
+  return prismadb.transportPricing.update({
+    where: { id: pricingId },
+    data: {
+      ...(locationId !== undefined && { locationId }),
+      ...(vehicleTypeId !== undefined && { vehicleTypeId }),
+      ...(price !== undefined && { price }),
+      ...(transportType !== undefined && { transportType }),
+      ...(startDate !== undefined && { startDate: new Date(startDate) }),
+      ...(endDate !== undefined && { endDate: new Date(endDate) }),
+      ...(description !== undefined && { description }),
+      ...(isActive !== undefined && { isActive }),
+    },
+    select: {
+      id: true,
+      price: true,
+      transportType: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      isActive: true,
+      location: { select: { id: true, label: true } },
+      vehicleType: { select: { id: true, name: true } },
+    },
+  });
+}
+
+async function deleteTransportPricing(rawParams: unknown) {
+  const { pricingId } = DeleteTransportPricingSchema.parse(rawParams);
+
+  const existing = await prismadb.transportPricing.findUnique({ where: { id: pricingId }, select: { id: true } });
+  if (!existing) throw new NotFoundError(`Transport pricing ${pricingId} not found`);
+
+  await prismadb.transportPricing.delete({ where: { id: pricingId } });
+  return { success: true };
+}
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export const locationHandlers: ToolHandlerMap = {
@@ -231,5 +423,11 @@ export const locationHandlers: ToolHandlerMap = {
   list_hotels: listHotels,
   list_destinations: listDestinations,
   get_hotel_pricing: getHotelPricing,
+  create_hotel_pricing: createHotelPricing,
+  update_hotel_pricing: updateHotelPricing,
+  delete_hotel_pricing: deleteHotelPricing,
   get_transport_pricing: getTransportPricing,
+  create_transport_pricing: createTransportPricing,
+  update_transport_pricing: updateTransportPricing,
+  delete_transport_pricing: deleteTransportPricing,
 };

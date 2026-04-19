@@ -120,6 +120,31 @@ Use this to:
   );
 
   server.tool(
+    "get_transport_pricing",
+    `Get transport/vehicle pricing for a location. Returns active pricing with vehicle type, price, and whether it's charged per day or per trip.
+
+Use this to:
+- Look up transport costs for a destination when building tour packages
+- Compare vehicle options (sedan, SUV, tempo traveller, etc.) and their rates
+- Check pricing for a specific date range`,
+    {
+      locationId: z.string().optional().describe("Filter by location ID (from search_locations)"),
+      vehicleTypeId: z.string().optional().describe("Filter by vehicle type ID (from list_vehicle_types)"),
+      transportType: z.enum(["PerDay", "PerTrip"]).optional().describe("Filter by pricing type: PerDay or PerTrip"),
+      startDate: z.string().optional().describe("Filter: pricing valid on/after this date (ISO 8601, e.g. 2025-10-01)"),
+      endDate: z.string().optional().describe("Filter: pricing valid on/before this date (ISO 8601, e.g. 2025-10-31)"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("get_transport_pricing", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("get_transport_pricing", err);
+      }
+    }
+  );
+
+  server.tool(
     "list_destinations",
     "List tour destinations, optionally filtered by location.",
     {

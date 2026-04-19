@@ -94,6 +94,32 @@ The response includes:
   );
 
   server.tool(
+    "get_hotel_pricing",
+    `Get room tariffs/pricing for a specific hotel. Returns all active pricing periods with room type, occupancy type, meal plan, and price per night.
+
+Use this to:
+- Look up what a hotel charges per room type/occupancy combination
+- Check pricing for a specific date range
+- Get hotel tariffs when building tour package costs`,
+    {
+      hotelId: z.string().describe("Hotel ID (from list_hotels)"),
+      startDate: z.string().optional().describe("Filter: pricing valid on/after this date (ISO 8601, e.g. 2025-10-01)"),
+      endDate: z.string().optional().describe("Filter: pricing valid on/before this date (ISO 8601, e.g. 2025-10-31)"),
+      roomTypeId: z.string().optional().describe("Filter by room type ID (from list_room_types)"),
+      occupancyTypeId: z.string().optional().describe("Filter by occupancy type ID (from list_occupancy_types)"),
+      mealPlanId: z.string().optional().describe("Filter by meal plan ID (from list_meal_plans)"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("get_hotel_pricing", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("get_hotel_pricing", err);
+      }
+    }
+  );
+
+  server.tool(
     "list_destinations",
     "List tour destinations, optionally filtered by location.",
     {

@@ -36,6 +36,14 @@ const GetHotelPricingSchema = z.object({
   mealPlanId: z.string().optional(),
 });
 
+const GetTransportPricingSchema = z.object({
+  locationId: z.string().optional(),
+  vehicleTypeId: z.string().optional(),
+  transportType: z.enum(["PerDay", "PerTrip"]).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
 const GetTourPackageSchema = z.object({
   tourPackageId: z.string().min(1),
 });
@@ -187,6 +195,33 @@ async function getTourPackage(rawParams: unknown) {
   return pkg;
 }
 
+async function getTransportPricing(rawParams: unknown) {
+  const { locationId, vehicleTypeId, transportType, startDate, endDate } =
+    GetTransportPricingSchema.parse(rawParams);
+
+  return prismadb.transportPricing.findMany({
+    where: {
+      isActive: true,
+      ...(locationId && { locationId }),
+      ...(vehicleTypeId && { vehicleTypeId }),
+      ...(transportType && { transportType }),
+      ...(startDate && { endDate: { gte: new Date(startDate) } }),
+      ...(endDate && { startDate: { lte: new Date(endDate) } }),
+    },
+    select: {
+      id: true,
+      price: true,
+      transportType: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      location: { select: { id: true, label: true } },
+      vehicleType: { select: { id: true, name: true } },
+    },
+    orderBy: [{ locationId: "asc" }, { startDate: "asc" }],
+  });
+}
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export const locationHandlers: ToolHandlerMap = {
@@ -196,4 +231,5 @@ export const locationHandlers: ToolHandlerMap = {
   list_hotels: listHotels,
   list_destinations: listDestinations,
   get_hotel_pricing: getHotelPricing,
+  get_transport_pricing: getTransportPricing,
 };

@@ -120,6 +120,68 @@ Use this to:
   );
 
   server.tool(
+    "create_hotel_pricing",
+    "Add a new pricing period for a hotel. Specify the hotel, room type, occupancy type, date range, and price per night.",
+    {
+      hotelId: z.string().describe("Hotel ID (from list_hotels)"),
+      startDate: z.string().describe("Start of pricing period (ISO 8601, e.g. 2025-10-01)"),
+      endDate: z.string().describe("End of pricing period (ISO 8601, e.g. 2025-12-31)"),
+      roomTypeId: z.string().describe("Room type ID (from list_room_types)"),
+      occupancyTypeId: z.string().describe("Occupancy type ID (from list_occupancy_types)"),
+      price: z.number().min(0).describe("Price per night in INR"),
+      mealPlanId: z.string().optional().describe("Meal plan ID (from list_meal_plans), optional"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("create_hotel_pricing", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("create_hotel_pricing", err);
+      }
+    }
+  );
+
+  server.tool(
+    "update_hotel_pricing",
+    "Update an existing hotel pricing period. Only the fields you provide will be changed.",
+    {
+      hotelId: z.string().describe("Hotel ID the pricing belongs to"),
+      pricingId: z.string().describe("Pricing record ID (from get_hotel_pricing)"),
+      startDate: z.string().optional().describe("New start date (ISO 8601)"),
+      endDate: z.string().optional().describe("New end date (ISO 8601)"),
+      roomTypeId: z.string().optional().describe("New room type ID"),
+      occupancyTypeId: z.string().optional().describe("New occupancy type ID"),
+      price: z.number().min(0).optional().describe("New price per night in INR"),
+      mealPlanId: z.string().nullable().optional().describe("New meal plan ID, or null to clear"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("update_hotel_pricing", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("update_hotel_pricing", err);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_hotel_pricing",
+    "Delete a hotel pricing period permanently.",
+    {
+      hotelId: z.string().describe("Hotel ID the pricing belongs to"),
+      pricingId: z.string().describe("Pricing record ID (from get_hotel_pricing)"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("delete_hotel_pricing", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("delete_hotel_pricing", err);
+      }
+    }
+  );
+
+  server.tool(
     "get_transport_pricing",
     `Get transport/vehicle pricing for a location. Returns active pricing with vehicle type, price, and whether it's charged per day or per trip.
 
@@ -140,6 +202,68 @@ Use this to:
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err) {
         return toolError("get_transport_pricing", err);
+      }
+    }
+  );
+
+  server.tool(
+    "create_transport_pricing",
+    "Add a new transport/vehicle pricing record for a location.",
+    {
+      locationId: z.string().describe("Location ID (from search_locations)"),
+      vehicleTypeId: z.string().describe("Vehicle type ID (from list_vehicle_types)"),
+      price: z.number().min(0).describe("Price in INR"),
+      transportType: z.enum(["PerDay", "PerTrip"]).describe("Whether price is per day or per trip"),
+      startDate: z.string().describe("Start of pricing period (ISO 8601, e.g. 2025-10-01)"),
+      endDate: z.string().describe("End of pricing period (ISO 8601, e.g. 2025-12-31)"),
+      description: z.string().optional().describe("Optional description or notes"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("create_transport_pricing", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("create_transport_pricing", err);
+      }
+    }
+  );
+
+  server.tool(
+    "update_transport_pricing",
+    "Update an existing transport pricing record. Only the fields you provide will be changed.",
+    {
+      pricingId: z.string().describe("Transport pricing record ID (from get_transport_pricing)"),
+      locationId: z.string().optional().describe("New location ID"),
+      vehicleTypeId: z.string().optional().describe("New vehicle type ID"),
+      price: z.number().min(0).optional().describe("New price in INR"),
+      transportType: z.enum(["PerDay", "PerTrip"]).optional().describe("New pricing type"),
+      startDate: z.string().optional().describe("New start date (ISO 8601)"),
+      endDate: z.string().optional().describe("New end date (ISO 8601)"),
+      description: z.string().optional().describe("New description"),
+      isActive: z.boolean().optional().describe("Set false to deactivate without deleting"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("update_transport_pricing", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("update_transport_pricing", err);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_transport_pricing",
+    "Delete a transport pricing record permanently.",
+    {
+      pricingId: z.string().describe("Transport pricing record ID (from get_transport_pricing)"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("delete_transport_pricing", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("delete_transport_pricing", err);
       }
     }
   );

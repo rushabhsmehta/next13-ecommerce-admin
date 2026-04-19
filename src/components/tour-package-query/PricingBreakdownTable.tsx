@@ -114,12 +114,16 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
                         const quantity = allocation.quantity || 1;
                         
                         const roomBreakdown = priceCalculationResult?.itineraryBreakdown?.find((ib: any) => ib.day === day)?.roomBreakdown;
-                        const roomCost = roomBreakdown?.find((rb: any) =>
-                          rb.roomTypeId === allocation.roomTypeId &&
-                          rb.occupancyTypeId === allocation.occupancyTypeId &&
-                          rb.mealPlanId === allocation.mealPlanId
-                        );
-                        
+                        // Use positional index first — the calculator processes allocations in form order.
+                        // Fall back to find() only when the index entry doesn't match (e.g. filtered/skipped rows).
+                        const roomCostByIndex = roomBreakdown?.[allocIdx];
+                        const roomCost = (roomCostByIndex?.occupancyTypeId === allocation.occupancyTypeId)
+                          ? roomCostByIndex
+                          : roomBreakdown?.find((rb: any) =>
+                              rb.roomTypeId === allocation.roomTypeId &&
+                              rb.occupancyTypeId === allocation.occupancyTypeId &&
+                              rb.mealPlanId === allocation.mealPlanId
+                            );
                         const allocationTotalCost = roomCost ? roomCost.totalCost : 0;
                         const pricePerNight = roomCost ? roomCost.pricePerNight : 0;
 
@@ -140,23 +144,41 @@ export const PricingBreakdownTable: React.FC<PricingBreakdownTableProps> = ({
                                     : '₹0.00'}
                               </span>
                             </div>
-                            {/* Extra beds */}
-                            {roomCost?.extraBedCosts && roomCost.extraBedCosts.length > 0 && (
-                              <div className="mt-1 space-y-0.5 pl-2 border-l border-amber-200">
-                                {roomCost.extraBedCosts.map((eb: any, ebIdx: number) => (
-                                  <div key={ebIdx} className="flex flex-wrap items-center gap-1 text-amber-800">
-                                    <span className="text-[10px]">+ Extra Bed: {eb.occupancyTypeName || occupancyTypes.find((ot: any) => ot.id === eb.occupancyTypeId)?.name || 'N/A'}</span>
-                                    <span className={`text-[10px] font-medium ${variant ? 'text-green-700' : 'text-blue-700'}`}>
-                                      {eb.totalCost > 0 && eb.pricePerNight > 0 && eb.quantity > 1
-                                        ? `₹${eb.pricePerNight.toFixed(2)} × ${eb.quantity} = ₹${eb.totalCost.toFixed(2)}`
-                                        : eb.totalCost > 0
-                                          ? `₹${eb.totalCost.toFixed(2)}`
-                                          : '₹0.00'}
-                                    </span>
+                            {/* Extra beds — show API-priced data when available, fall back to form allocation */}
+                            {(() => {
+                              const apiExtraBeds: any[] = roomCost?.extraBedCosts ?? [];
+                              const formExtraBeds: any[] = (allocation.extraBeds ?? []).filter((eb: any) => eb.occupancyTypeId);
+                              if (apiExtraBeds.length > 0) {
+                                return (
+                                  <div className="mt-1 space-y-0.5 pl-2 border-l border-amber-200">
+                                    {apiExtraBeds.map((eb: any, ebIdx: number) => (
+                                      <div key={ebIdx} className="flex flex-wrap items-center gap-1 text-amber-800">
+                                        <span className="text-[10px]">+ Extra Bed: {eb.occupancyTypeName || occupancyTypes.find((ot: any) => ot.id === eb.occupancyTypeId)?.name || 'N/A'}</span>
+                                        <span className={`text-[10px] font-medium ${variant ? 'text-green-700' : 'text-blue-700'}`}>
+                                          {eb.totalCost > 0 && eb.pricePerNight > 0 && eb.quantity > 1
+                                            ? `₹${eb.pricePerNight.toFixed(2)} × ${eb.quantity} = ₹${eb.totalCost.toFixed(2)}`
+                                            : eb.totalCost > 0
+                                              ? `₹${eb.totalCost.toFixed(2)}`
+                                              : '₹0.00'}
+                                        </span>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
-                              </div>
-                            )}
+                                );
+                              } else if (formExtraBeds.length > 0) {
+                                return (
+                                  <div className="mt-1 space-y-0.5 pl-2 border-l border-amber-200">
+                                    {formExtraBeds.map((eb: any, ebIdx: number) => (
+                                      <div key={ebIdx} className="flex flex-wrap items-center gap-1 text-amber-700">
+                                        <span className="text-[10px]">+ Extra Bed: {occupancyTypes.find((ot: any) => ot.id === eb.occupancyTypeId)?.name || 'N/A'}</span>
+                                        <span className="text-[10px] text-gray-400">(no pricing found — add hotel pricing row)</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         );
                       })}

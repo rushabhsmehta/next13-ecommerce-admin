@@ -77,12 +77,18 @@ export async function POST(req: Request) {
         roomAllocations: it.roomAllocations || [],
         transportDetails: it.transportDetails || [],
       }));
-      perPersonRates = await derivePerPersonRates({
-        calculationResult: result,
-        itineraries: pricingItineraries,
-        tourStartsFrom,
-        tourEndsOn,
-      });
+      try {
+        perPersonRates = await derivePerPersonRates({
+          calculationResult: result,
+          itineraries: pricingItineraries,
+          tourStartsFrom,
+          tourEndsOn,
+        });
+      } catch (derivationError: any) {
+        console.error('❌ [DERIVE-RATES-ERROR] derivePerPersonRates failed:', derivationError?.message);
+        console.error('❌ [DERIVE-RATES-ERROR] stack:', derivationError?.stack);
+        // Non-fatal — return pricing result without per-person rates
+      }
     }
 
     return NextResponse.json({ ...result, perPersonRates });

@@ -16,6 +16,7 @@ import {
   syncPendingTourPackages,
   ensureCatalogReady,
   listTourPackages,
+  syncFromTourPackage,
   type TourPackageInput,
   type TourPackageVariantInput,
 } from "@/lib/whatsapp-catalog";
@@ -2149,6 +2150,123 @@ async function getWhatsAppDatabaseHealth() {
   }
 }
 
+// ── sync_tour_package_to_catalogue ──────────────────────────────────────────
+
+const SyncTourPackageToCatalogueSchema = z.object({
+  tourPackageId: z.string().min(1),
+});
+
+async function syncTourPackageToCatalogue(rawParams: unknown) {
+  const { tourPackageId } = SyncTourPackageToCatalogueSchema.parse(rawParams);
+  const { synced } = await syncFromTourPackage(tourPackageId);
+  const created = synced.filter((r) => r.action === 'created').length;
+  const updated = synced.filter((r) => r.action === 'updated').length;
+  const archived = synced.filter((r) => r.action === 'archived').length;
+  return { success: true, summary: { created, updated, archived }, results: synced };
+}
+
+// ── list_catalogue_packages_by_location ─────────────────────────────────────
+
+const ListByLocationSchema = z.object({
+  location: z.string().min(1),
+  status: z.enum(['draft', 'active', 'inactive', 'archived']).optional(),
+  syncStatus: z.enum(['pending', 'in_progress', 'synced', 'failed']).optional(),
+  limit: z.number().int().min(1).max(100).optional().default(50),
+});
+
+async function listCataloguePackagesByLocation(rawParams: unknown) {
+  const { location, status, syncStatus, limit } = ListByLocationSchema.parse(rawParams);
+  const packages = await whatsappPrisma.whatsAppTourPackage.findMany({
+    where: {
+      location: { equals: location, mode: 'insensitive' },
+      ...(status ? { status } : {}),
+      ...(syncStatus ? { syncStatus } : {}),
+    },
+    include: { product: { select: { sku: true, price: true, availability: true } } },
+    orderBy: { title: 'asc' },
+    take: limit,
+  });
+  return {
+    location,
+    total: packages.length,
+    packages: packages.map((p) => ({
+      id: p.id,
+      title: p.title,
+      sku: p.retailerId,
+      status: p.status,
+      syncStatus: p.syncStatus,
+      basePrice: p.basePrice,
+      tourPackageId: p.tourPackageId,
+      packageVariantId: p.packageVariantId,
+      lastSyncAt: p.lastSyncAt,
+      lastSyncError: p.lastSyncError,
+    })),
+  };
+}
+
+// ── send_whatsapp_packages_by_location ──────────────────────────────────────
+
+const SendByLocationSchema = z.object({
+  location: z.string().min(1),
+  phoneNumber: z.string().min(1),
+  body: z.string().min(1),
+  footer: z.string().optional(),
+});
+
+async function sendWhatsAppPackagesByLocation(rawParams: unknown) {
+  const { location, phoneNumber, body, footer } = SendByLocationSchema.parse(rawParams);
+
+  const packages = await whatsappPrisma.whatsAppTourPackage.findMany({
+    where: {
+      location: { equals: location, mode: 'insensitive' },
+      status: 'active',
+      syncStatus: 'synced',
+    },
+    include: { product: { include: { catalog: true } } },
+    orderBy: { title: 'asc' },
+  });
+
+  if (!packages.length) {
+    throw new McpError(
+      `No active+synced catalogue products found for location "${location}". Sync packages first.`,
+      'NOT_FOUND',
+      404,
+    );
+  }
+
+  const ready = packages.filter((p) => p.retailerId);
+  if (!ready.length) {
+    throw new McpError(
+      `Found ${packages.length} packages for "${location}" but none have a retailer ID. Ensure they are synced.`,
+      'VALIDATION_ERROR',
+      422,
+    );
+  }
+
+  const catalogId = ready[0].product.catalog.metaCatalogId ?? process.env.WHATSAPP_CATALOG_ID;
+  if (!catalogId) throw new McpError('No Meta catalog ID configured', 'VALIDATION_ERROR', 422);
+
+  const result = await sendInteractiveMessage({
+    to: phoneNumber,
+    interactive: {
+      type: 'product_list',
+      body,
+      footer,
+      header: { type: 'text', text: location },
+      catalogId,
+      sections: [
+        {
+          title: location,
+          productItems: ready.map((p) => ({ productRetailerId: p.retailerId! })),
+        },
+      ],
+    },
+    saveToDb: true,
+  });
+
+  return { success: true, location, packagesSent: ready.length, result };
+}
+
 // ── Handler map ─────────────────────────────────────────────────────────────
 
 export const whatsappHandlers: ToolHandlerMap = {
@@ -2190,4 +2308,8 @@ export const whatsappHandlers: ToolHandlerMap = {
   delete_whatsapp_catalog_package: deleteWhatsAppCatalogPackage,
   sync_whatsapp_catalog_package: syncWhatsAppCatalogPackage,
   sync_whatsapp_catalog: syncWhatsAppCatalog,
+  // Tour package → catalogue sync
+  sync_tour_package_to_catalogue: syncTourPackageToCatalogue,
+  list_catalogue_packages_by_location: listCataloguePackagesByLocation,
+  send_whatsapp_packages_by_location: sendWhatsAppPackagesByLocation,
 };

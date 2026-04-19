@@ -505,7 +505,8 @@ model WhatsAppTourPackage {
   lastSyncError    String?
 
   // External references (store as strings since in different database)
-  tourPackageId String? // Reference to main TourPackage in MySQL
+  tourPackageId    String? // Reference to main TourPackage in MySQL
+  packageVariantId String? // Reference to PackageVariant.id in MySQL
 
   // Audit
   createdAt DateTime @default(now())
@@ -521,6 +522,7 @@ model WhatsAppTourPackage {
   @@index([catalogProductId])
   @@index([retailerId])
   @@index([tourPackageId])
+  @@index([tourPackageId, packageVariantId])
 }
 
 model WhatsAppTourPackageVariant {

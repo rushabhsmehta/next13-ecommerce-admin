@@ -1269,4 +1269,63 @@ export function registerWhatsappTools(server: McpServer) {
       }
     }
   );
+
+  // ── Tour package → catalogue sync tools ────────────────────────────────────
+
+  server.tool(
+    "sync_tour_package_to_catalogue",
+    "Sync a tour package from the main database to the WhatsApp catalogue. Creates one WhatsApp product per PackageVariant (or one product if no variants). Auto-populates title, description (activity highlights, inclusions, exclusions), images, and location from the tour package. Orphaned WhatsApp products (variants removed from the tour package) are archived. Price is NOT synced — set it manually with update_whatsapp_catalog_package after syncing.",
+    {
+      tourPackageId: z.string().min(1).describe("The MySQL TourPackage ID to sync into the WhatsApp catalogue"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("sync_tour_package_to_catalogue", params);
+        const d = data as any;
+        const summary = `Synced tour package to catalogue: ${d?.summary?.created ?? 0} created, ${d?.summary?.updated ?? 0} updated, ${d?.summary?.archived ?? 0} archived`;
+        return { content: [{ type: "text", text: `${summary}\n\n${JSON.stringify(data, null, 2)}` }] };
+      } catch (err) {
+        return toolError("sync_tour_package_to_catalogue", err);
+      }
+    }
+  );
+
+  server.tool(
+    "list_catalogue_packages_by_location",
+    "List WhatsApp catalogue products filtered by destination/location name (e.g. 'Kashmir', 'Goa'). Useful for browsing what's in the catalogue for a specific destination before sending to customers.",
+    {
+      location: z.string().min(1).describe("Destination/location name to filter by (case-insensitive, e.g. 'Kashmir')"),
+      status: z.enum(["draft", "active", "inactive", "archived"]).optional().describe("Filter by package status"),
+      syncStatus: z.enum(["pending", "in_progress", "synced", "failed"]).optional().describe("Filter by Meta sync status"),
+      limit: z.number().int().min(1).max(100).optional().default(50).describe("Max results to return"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("list_catalogue_packages_by_location", params);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (err) {
+        return toolError("list_catalogue_packages_by_location", err);
+      }
+    }
+  );
+
+  server.tool(
+    "send_whatsapp_packages_by_location",
+    "Send all active+synced WhatsApp catalogue products for a given destination to a customer as a grouped product list. Products are grouped in a section titled with the destination name. Packages that are not yet synced to Meta are automatically skipped.",
+    {
+      location: z.string().min(1).describe("Destination name whose packages to send (e.g. 'Kashmir')"),
+      phoneNumber: z.string().min(1).describe("Recipient phone number with country code (e.g. '919876543210')"),
+      body: z.string().min(1).describe("Message body text shown above the product list"),
+      footer: z.string().optional().describe("Optional footer text"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("send_whatsapp_packages_by_location", params);
+        const d = data as any;
+        return { content: [{ type: "text", text: `Sent ${d?.packagesSent ?? 0} packages for "${(params as any).location}"\n\n${JSON.stringify(data, null, 2)}` }] };
+      } catch (err) {
+        return toolError("send_whatsapp_packages_by_location", err);
+      }
+    }
+  );
 }

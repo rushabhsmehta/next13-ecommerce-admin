@@ -9,6 +9,7 @@ import {
   WhatsAppTourPackageVariant,
 } from '@prisma/whatsapp-client';
 import whatsappPrisma from './whatsapp-prismadb';
+import prismadb from './prismadb';
 import { GraphApiError } from './whatsapp';
 
 const DEFAULT_CATALOG_ID = process.env.WHATSAPP_CATALOG_ID || '669842452858464';
@@ -220,6 +221,8 @@ export type TourPackageInput = {
   durationNights?: number | null;
   status?: WhatsAppTourPackageStatus;
   variants?: TourPackageVariantInput[];
+  tourPackageId?: string;
+  packageVariantId?: string;
 };
 
 type TourPackageWithRelations = WhatsAppTourPackage & {
@@ -514,6 +517,8 @@ export async function createTourPackage(input: TourPackageInput): Promise<TourPa
         status,
         syncStatus: WhatsAppCatalogSyncStatus.pending,
         retailerId: sku.toUpperCase(),
+        tourPackageId: input.tourPackageId ?? null,
+        packageVariantId: input.packageVariantId ?? null,
       },
     });
 
@@ -889,6 +894,117 @@ export async function listTourPackages() {
   });
 
   return packages;
+}
+
+type SyncResult = {
+  action: 'created' | 'updated' | 'archived';
+  id: string;
+  variantId: string | null;
+  title: string;
+};
+
+export async function syncFromTourPackage(mysqlPackageId: string): Promise<{ synced: SyncResult[] }> {
+  const pkg = await prismadb.tourPackage.findUnique({
+    where: { id: mysqlPackageId },
+    include: {
+      images: true,
+      location: true,
+      itineraries: {
+        include: {
+          activities: { orderBy: { id: 'asc' } },
+        },
+        orderBy: { dayNumber: 'asc' },
+      },
+      packageVariants: { orderBy: { sortOrder: 'asc' } },
+    },
+  });
+
+  if (!pkg) throw new Error(`Tour package ${mysqlPackageId} not found in main database.`);
+
+  // Highlights from activity titles across all itinerary days (in day order)
+  const highlights = pkg.itineraries
+    .flatMap((itin) => itin.activities.map((act) => act.activityTitle))
+    .filter((t): t is string => Boolean(t));
+
+  // Itinerary summary from day titles
+  const itinerarySummary = pkg.itineraries
+    .map((itin) => itin.itineraryTitle)
+    .filter(Boolean)
+    .join('\n') || null;
+
+  const inclusions = extractStringArray(pkg.inclusions);
+  const exclusions = extractStringArray(pkg.exclusions);
+
+  const images = pkg.images.map((img) => img.url);
+  const heroImageUrl = images[0] ?? null;
+  const gallery = images.slice(1);
+
+  const location = pkg.location?.label ?? '';
+
+  // Parse "5N-6D" → durationNights=5, durationDays=6
+  const durationMatch = (pkg.numDaysNight ?? '').match(/^(\d+)N-?(\d+)D$/i);
+  const durationNights = durationMatch ? parseInt(durationMatch[1], 10) : undefined;
+  const durationDays = durationMatch ? parseInt(durationMatch[2], 10) : undefined;
+
+  // Fetch existing WhatsApp products linked to this MySQL package
+  const existing = await whatsappPrisma.whatsAppTourPackage.findMany({
+    where: { tourPackageId: mysqlPackageId },
+    include: { product: true },
+  });
+
+  // One product per variant, or one base product if no variants
+  const variants = pkg.packageVariants.length > 0 ? pkg.packageVariants : [null];
+  const currentVariantIds = new Set(variants.map((v) => v?.id ?? null));
+  const results: SyncResult[] = [];
+
+  for (const variant of variants) {
+    const title = variant
+      ? `${pkg.tourPackageName ?? ''} | ${variant.name}`
+      : (pkg.tourPackageName ?? '');
+    const packageVariantId = variant?.id ?? null;
+
+    const existingRecord = existing.find(
+      (e) => (e.packageVariantId ?? null) === packageVariantId,
+    );
+
+    const sharedInput: Partial<TourPackageInput> & { title: string } = {
+      title,
+      heroImageUrl: heroImageUrl ?? undefined,
+      gallery,
+      location,
+      itinerarySummary: itinerarySummary ?? undefined,
+      highlights,
+      inclusions,
+      exclusions,
+      durationDays,
+      durationNights,
+      tourPackageId: mysqlPackageId,
+      packageVariantId: packageVariantId ?? undefined,
+    };
+
+    if (existingRecord) {
+      await updateTourPackage(existingRecord.id, sharedInput);
+      results.push({ action: 'updated', id: existingRecord.id, variantId: packageVariantId, title });
+    } else {
+      const created = await createTourPackage({
+        ...sharedInput,
+        basePrice: 0,
+        status: WhatsAppTourPackageStatus.active,
+      });
+      results.push({ action: 'created', id: created.id, variantId: packageVariantId, title });
+    }
+  }
+
+  // Archive stale WhatsApp products whose variant no longer exists in MySQL
+  for (const stale of existing) {
+    const staleVariantId = stale.packageVariantId ?? null;
+    if (!currentVariantIds.has(staleVariantId)) {
+      await updateTourPackage(stale.id, { status: WhatsAppTourPackageStatus.archived });
+      results.push({ action: 'archived', id: stale.id, variantId: staleVariantId, title: stale.title });
+    }
+  }
+
+  return { synced: results };
 }
 
 

@@ -16,6 +16,7 @@ import { dateToUtc } from '@/lib/timezone-utils';
  */
 export interface ExtraBedAllocation {
   occupancyTypeId: string;
+  quantity?: number; // independent count for this occupancy type; defaults to 1
   occupancyTypeName?: string; // populated when includeNames=true
 }
 
@@ -267,11 +268,12 @@ export async function calculatePricing(
               });
 
               if (ebPricing) {
-                const ebCost = ebPricing.price * quantity;
+                const ebQuantity = eb.quantity && eb.quantity > 0 ? eb.quantity : 1;
+                const ebCost = ebPricing.price * ebQuantity;
                 const ebDetail: ExtraBedCostDetail = {
                   occupancyTypeId: eb.occupancyTypeId,
                   pricePerNight: ebPricing.price,
-                  quantity,
+                  quantity: ebQuantity,
                   totalCost: ebCost
                 };
 
@@ -533,10 +535,11 @@ export async function derivePerPersonRates(params: {
       const qty = room.quantity || 0;
       dayMainPax += qty * perRoom;
       for (const eb of room.extraBeds || []) {
+        const ebQty = eb.quantity && eb.quantity > 0 ? eb.quantity : 1;
         if (cnbOccIds.has(eb.occupancyTypeId)) {
-          dayCnbPax += qty;
+          dayCnbPax += ebQty;
         } else {
-          dayExtraBedPax += qty;
+          dayExtraBedPax += ebQty;
         }
       }
     }
@@ -554,19 +557,31 @@ export async function derivePerPersonRates(params: {
   const transportTotal = calculationResult.breakdown.transport || 0;
   const transportPerPerson = transportTotal / totalPax;
 
-  // Aggregate per-occupancy nightly totals already priced in the breakdown
+  // Aggregate per-occupancy TOTAL costs already priced in the breakdown (totalCost = pricePerNight × qty)
   const priced: Record<string, number> = {};
   for (const day of calculationResult.itineraryBreakdown) {
     for (const room of day.roomBreakdown) {
-      priced[room.occupancyTypeId] = (priced[room.occupancyTypeId] || 0) + room.pricePerNight;
+      priced[room.occupancyTypeId] = (priced[room.occupancyTypeId] || 0) + room.totalCost;
       for (const eb of room.extraBedCosts || []) {
-        priced[eb.occupancyTypeId] = (priced[eb.occupancyTypeId] || 0) + eb.pricePerNight;
+        priced[eb.occupancyTypeId] = (priced[eb.occupancyTypeId] || 0) + eb.totalCost;
       }
     }
   }
 
   // Sum CNB room costs across all CNB occupancy type IDs
   const cnbTotal = Array.from(cnbOccIds).reduce((sum, id) => sum + (priced[id] || 0), 0);
+
+  // Sum non-CNB extra bed accommodation costs from actual allocation (using same pricePerNight basis as priced dict)
+  // mainOccIds: occupancy types used as the primary room allocation (not extra beds)
+  const mainOccIds = new Set(
+    itineraries.flatMap(it => (it.roomAllocations || []).map(ra => ra.occupancyTypeId).filter(Boolean))
+  );
+  const nonCnbExtraBedAccomTotal = Object.entries(priced)
+    .filter(([id]) => !mainOccIds.has(id) && !cnbOccIds.has(id))
+    .reduce((sum, [, cost]) => sum + cost, 0);
+  // Total extra accommodation = CNB + any non-CNB extra beds in allocation
+  const totalExtraAccom = cnbTotal + nonCnbExtraBedAccomTotal;
+  const totalExtraPax = cnbPax + extraBedPax;
 
   // For days where we need a rate not in the allocation, fall back to HotelPricing
   const dayContexts = itineraries.map((it) => ({
@@ -631,8 +646,8 @@ export async function derivePerPersonRates(params: {
   const markupLine = (base: number) =>
     markupPct > 0 ? `Markup (${markupPct}%):  Rs.${formatINR(base)} × ${markupFactor.toFixed(2)}  =  Rs.${formatINR(Math.round(base * markupFactor))}` : '';
 
-  // CNB room cost is absorbed into adult rate (CNB children don't pay separately for room)
-  const adultRoomTotal = (doubleTotal ?? 0) + cnbTotal;
+  // Adults split only the main room cost — extra occupancy costs are priced separately
+  const adultRoomTotal = doubleTotal ?? 0;
 
   const perPerson: PerGuestRate =
     doubleTotal === null
@@ -642,55 +657,47 @@ export async function derivePerPersonRates(params: {
           const base = share + transportPerPerson;
           const price = base * markupFactor;
           const ml = markupLine(base);
-          const cnbNote = cnbTotal > 0 ? ` + Rs.${formatINR(cnbTotal)} CNB` : '';
           return {
             price: Math.round(price),
             description:
-              `Room:       Rs.${formatINR(doubleTotal)}${cnbNote} ÷ ${mainPax} adults  =  Rs.${formatINR(share)}\n` +
+              `Room:       Rs.${formatINR(doubleTotal)} ÷ ${mainPax} adults  =  Rs.${formatINR(share)}\n` +
               `${transportLine}\n` +
               (ml ? `${ml}\n` : '') +
               `Per Person  =  Rs.${formatINR(Math.round(price))}`,
           };
         })();
 
+  // Per couple = per person × 2 (same adults share 1 room; transport for 2)
   const perCouple: PerGuestRate =
-    doubleTotal === null
+    perPerson.price === null
       ? missingRate('Double/Twin')
       : (() => {
-          const roomPerCouple = adultRoomTotal / (mainPax / 2);
-          const base = roomPerCouple + 2 * transportPerPerson;
-          const price = base * markupFactor;
-          const ml = markupLine(base);
-          const cnbNote = cnbTotal > 0 ? ` + Rs.${formatINR(cnbTotal)} CNB` : '';
+          const price = perPerson.price * 2;
           return {
-            price: Math.round(price),
+            price,
             description:
-              `Room:       Rs.${formatINR(doubleTotal)}${cnbNote} ÷ ${numRooms} couples  =  Rs.${formatINR(roomPerCouple)}\n` +
-              `Transport:  Rs.${formatINR(transportPerPerson)} × 2 persons  =  Rs.${formatINR(2 * transportPerPerson)}\n` +
-              (ml ? `${ml}\n` : '') +
-              `Per Couple  =  Rs.${formatINR(Math.round(price))}`,
+              `Per Person:  Rs.${formatINR(perPerson.price)}\n` +
+              `Per Couple  =  Rs.${formatINR(perPerson.price)} × 2  =  Rs.${formatINR(price)}`,
           };
         })();
 
+  // Per extra-occupancy person = total extra accommodation (CNB + non-CNB extra beds) ÷ extra pax, with markup
+  // Transport is NOT included here — the child's transport is shown in "Child below 5 With Seat"
   const perPersonWithExtraBed: PerGuestRate =
-    extraBedTotal === null
-      ? missingRate('Extra Bed / Extra Mattress')
-      : (() => {
-          const extraBedPerPax = extraBedPax > 0 ? extraBedTotal / extraBedPax : extraBedTotal;
-          const base = extraBedPerPax + transportPerPerson;
-          const price = base * markupFactor;
-          const ml = markupLine(base);
+    totalExtraPax > 0 && totalExtraAccom > 0
+      ? (() => {
+          const perPaxAccom = totalExtraAccom / totalExtraPax;
+          const price = perPaxAccom * markupFactor;
+          const ml = markupLine(perPaxAccom);
           return {
             price: Math.round(price),
             description:
-              (extraBedPax > 0
-                ? `Extra Bed:  Rs.${formatINR(extraBedTotal)} (${extraBedPax} beds) ÷ ${extraBedPax}  =  Rs.${formatINR(extraBedPerPax)}/bed\n`
-                : `Extra Bed:  Rs.${formatINR(extraBedTotal)} (hotel rate)\n`) +
-              `${transportLine}\n` +
+              `Extra Occ:  Rs.${formatINR(totalExtraAccom)} (${totalExtraPax} extra person${totalExtraPax > 1 ? 's' : ''}) ÷ ${totalExtraPax}  =  Rs.${formatINR(perPaxAccom)}/person\n` +
               (ml ? `${ml}\n` : '') +
-              `Per Extra Bed Person  =  Rs.${formatINR(Math.round(price))}`,
+              `Per Extra Person (room only)  =  Rs.${formatINR(Math.round(price))}`,
           };
-        })();
+        })()
+      : missingRate('Extra Bed / Extra Mattress');
 
   const childWithMattress: PerGuestRate =
     childMatTotal === null
@@ -726,7 +733,7 @@ export async function derivePerPersonRates(params: {
           };
         })();
 
-  // "Child below 5 With Seat" = CNB child: takes transport seat, room absorbed into adult rate.
+  // "Child below 5 With Seat" = CNB child: takes transport seat; room is charged separately via "Extra Occupancy".
   // Only populated when CNB children exist in the allocation — no hypothetical rates.
   const childBelow5WithSeat: PerGuestRate = cnbPax > 0
     ? (() => {
@@ -736,7 +743,7 @@ export async function derivePerPersonRates(params: {
         return {
           price: Math.round(price),
           description:
-            `Room: absorbed into adult rate (CNB shares parents' bed)\n` +
+            `Transport seat (CNB shares parents' bed; room charged separately as Extra Occupancy)\n` +
             `${transportLine}\n` +
             (ml ? `${ml}\n` : '') +
             `Child below 5 (with seat)  =  Rs.${formatINR(Math.round(price))}`,

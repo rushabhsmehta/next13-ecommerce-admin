@@ -74,6 +74,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
                   data: validExtraBeds.map((eb: any) => ({
                     roomAllocationId: createdRoom.id,
                     occupancyTypeId: eb.occupancyTypeId,
+                    quantity: typeof eb.quantity === 'number' && eb.quantity > 0 ? eb.quantity : 1,
                   })),
                 });
               }

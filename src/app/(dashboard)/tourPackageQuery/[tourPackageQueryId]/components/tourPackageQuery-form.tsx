@@ -116,9 +116,10 @@ const roomAllocationSchema = z.object({
   voucherNumber: z.string().optional().nullable(),
   customRoomType: z.string().optional().nullable(),
   useCustomRoomType: z.boolean().optional().default(false),
-  // Extra beds: each entry is a separate extra bed slot with its own occupancy type
+  // Extra beds: each entry is an additional occupancy type with its own independent quantity
   extraBeds: z.array(z.object({
-    occupancyTypeId: z.string()
+    occupancyTypeId: z.string(),
+    quantity: z.union([z.string().transform(Number), z.number()]).optional().default(1)
   })).optional().default([])
 });
 

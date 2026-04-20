@@ -167,6 +167,7 @@ async function createItineraryAndActivities(itinerary: {
                                 data: validExtraBeds.map((eb: any) => ({
                                     roomAllocationId: createdRoomAllocation.id,
                                     occupancyTypeId: eb.occupancyTypeId,
+                                    quantity: typeof eb.quantity === 'number' && eb.quantity > 0 ? eb.quantity : 1,
                                 }))
                             });
                         }
@@ -815,6 +816,7 @@ export async function GET(
                                     select: {
                                         id: true,
                                         occupancyTypeId: true,
+                                        quantity: true,
                                     }
                                 },
                             }

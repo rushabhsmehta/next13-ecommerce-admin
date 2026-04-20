@@ -1,32 +1,37 @@
 [
   {
-    "id": "ecff2a61-bcf9-4804-aa98-6f137253d5a5",
+    "id": "807b139a-ff66-4541-a68f-f10ea68d38a3",
     "dayNumber": 1,
-    "title": "Srinagar Arrival – Welcome to Paradise (Airport to City | 30 min approx.)"
+    "title": "<p>Srinagar Arrival ✨ Shikara Serenity</p>"
   },
   {
-    "id": "d084ec7a-67dd-4cb8-b3d7-52e3315a12fc",
+    "id": "79573a94-c96b-4b59-a598-5809ffd04f16",
     "dayNumber": 2,
-    "title": "Srinagar to Gulmarg – Meadow of Flowers (52 km | 2 hrs approx.)"
+    "title": "<p>SRINAGAR → SONMARG ❄️ THAJIWAS GLACIER &amp; OPTIONAL ZERO POINT (APPROX. 3 HRS)</p>"
   },
   {
-    "id": "422c0bc7-60db-4ab4-ad58-1fb43708aaba",
+    "id": "e153c9fd-417d-4e20-8888-72d36a9cb202",
     "dayNumber": 3,
-    "title": "Gulmarg to Pahalgam – Valley of Shepherds (140 km | 4–5 hrs approx.)"
+    "title": "<p> SONMARG → GULMARG 🎢 MEADOWS &amp; MOUNTAINS (APPROX. 5 HRS)</p>"
   },
   {
-    "id": "07ff0256-2e2e-44d8-9b97-d17ebfad701c",
+    "id": "32df7c51-f97b-4b41-9e1f-08f9d72a1748",
     "dayNumber": 4,
-    "title": "Pahalgam – Explore the Valley (Local Sightseeing)"
+    "title": "<p>GULMARG GONDOLA RIDE 🎡 &amp; TRANSFER TO PAHALGAM (APPROX. 6 HRS)</p>"
   },
   {
-    "id": "e05e03f6-072f-49dc-86ce-9a264dadd92a",
+    "id": "eeba382b-06e9-480a-943b-f0198711f6af",
     "dayNumber": 5,
-    "title": "Pahalgam to Srinagar – Scenic Return with Enroute Highlights (90 km | 2–3 hrs approx.)"
+    "title": "<p>PAHALGAM LOCAL SIGHTSEEING 🏞 VALLEY EXPLORATION</p>"
   },
   {
-    "id": "3fce800c-6586-450c-b7f9-b1ed03f83975",
+    "id": "7465ef6e-2bc2-48ba-a2ae-9c4bf93241a1",
     "dayNumber": 6,
-    "title": "Departure – Goodbye Kashmir (Hotel to Airport | 30 min approx.)"
+    "title": "<p>PAHALGAM → SRINAGAR 🌸 MUGHAL CHARM (APPROX. 4 HRS)</p>"
+  },
+  {
+    "id": "9a44e7fe-71d8-42d7-9545-f5dc819697fc",
+    "dayNumber": 7,
+    "title": "<p>Srinagar Drop</p>"
   }
 ]

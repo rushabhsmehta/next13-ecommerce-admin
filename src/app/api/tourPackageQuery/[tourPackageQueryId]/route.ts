@@ -241,6 +241,7 @@ async function createItineraryAndActivities(itinerary: {
             data: validExtraBeds.map((eb: any) => ({
               roomAllocationId: createdRoomAllocation.id,
               occupancyTypeId: eb.occupancyTypeId,
+              quantity: typeof eb.quantity === 'number' && eb.quantity > 0 ? eb.quantity : 1,
             }))
           });
         }
@@ -374,6 +375,7 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
                 data: validExtraBeds.map((eb: any) => ({
                   roomAllocationId: createdRA.id,
                   occupancyTypeId: eb.occupancyTypeId,
+                  quantity: typeof eb.quantity === 'number' && eb.quantity > 0 ? eb.quantity : 1,
                 }))
               });
             }

@@ -75,7 +75,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
     const targetItinerary = currentItineraries[itineraryIndex];
     const newAllocations = [
       ...(targetItinerary.roomAllocations || []),
-      { roomTypeId: '', occupancyTypeId: '', mealPlanId: '', quantity: 1, useCustomRoomType: false, customRoomType: '', voucherNumber: '', extraBeds: [] }
+      { roomTypeId: '', occupancyTypeId: '', mealPlanId: '', quantity: 1, useCustomRoomType: false, customRoomType: '', voucherNumber: '', guestNames: '', extraBeds: [] }
     ];
     form.setValue(`itineraries.${itineraryIndex}.roomAllocations`, newAllocations);
   };
@@ -83,10 +83,9 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
   const addExtraBed = (itineraryIndex: number, allocationIndex: number) => {
     const currentItineraries = form.getValues('itineraries');
     const currentBeds = currentItineraries[itineraryIndex].roomAllocations[allocationIndex].extraBeds || [];
-    if (currentBeds.length >= 3) return; // max 3 extra beds
     form.setValue(
       `itineraries.${itineraryIndex}.roomAllocations.${allocationIndex}.extraBeds`,
-      [...currentBeds, { occupancyTypeId: '' }]
+      [...currentBeds, { occupancyTypeId: '', quantity: 1 }]
     );
   };
 
@@ -184,13 +183,13 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                     alert('No room allocations or transport details found on Day 1');
                     return;
                   }
-                  const roomsCloned = roomsSource.map((r: any) => ({ ...r, extraBeds: (r.extraBeds || []).map((eb: any) => ({ ...eb })) }));
+                  const roomsCloned = roomsSource.map((r: any) => ({ ...r, extraBeds: (r.extraBeds || []).map((eb: any) => ({ ...eb, quantity: eb.quantity ?? 1 })) }));
                   const transportCloned = transportSource.map((t: any) => ({ ...t }));
                   const updated = itineraries.map((it: any, idx: number) => {
                     if (idx === 0) return it;
                     const next: any = { ...it };
                     if (roomsCloned.length) {
-                      next.roomAllocations = roomsCloned.map((r: any) => ({ ...r, extraBeds: (r.extraBeds || []).map((eb: any) => ({ ...eb })) }));
+                      next.roomAllocations = roomsCloned.map((r: any) => ({ ...r, extraBeds: (r.extraBeds || []).map((eb: any) => ({ ...eb, quantity: eb.quantity ?? 1 })) }));
                     }
                     if (transportCloned.length) {
                       next.transportDetails = transportCloned.map((t: any) => ({ ...t }));
@@ -367,28 +366,23 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                       checked={field.value || false}
                                       onCheckedChange={(checked) => {
                                         field.onChange(checked);
-                                        // Clear the opposite field when toggling
                                         if (checked) {
-                                          // Switching to custom - clear roomTypeId
                                           form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId`, "");
                                         } else {
-                                          // Switching to dropdown - clear customRoomType
                                           form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.customRoomType`, "");
                                         }
                                       }}
                                       disabled={isDisabled}
                                     />
                                   </FormControl>
-                                  <FormLabel className="text-xs font-medium text-gray-700 cursor-pointer">
-                                    Custom Room Type
-                                  </FormLabel>
+                                  <FormLabel className="text-xs font-medium text-gray-700 cursor-pointer">Custom Room Type</FormLabel>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
 
-                            {/* Main Fields Grid */}
-                            <div className="grid gap-3 md:grid-cols-4">
+                            {/* Row 1: Room Type | Occupancy | Qty */}
+                            <div className="grid gap-3 grid-cols-3">
                               {/* Room Type - Conditional */}
                               {(() => {
                                 const useCustom = form.watch(`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType`);
@@ -397,14 +391,9 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                     <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.customRoomType` as any}
                                       render={({ field }) => (
                                         <FormItem>
-                                          <FormLabel className="text-[10px] uppercase tracking-wide">Custom Room Type</FormLabel>
+                                          <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
                                           <FormControl>
-                                            <Input
-                                              placeholder="Enter room type"
-                                              className="h-8 text-xs"
-                                              {...field}
-                                              disabled={isDisabled}
-                                            />
+                                            <Input placeholder="Custom room type" className="h-8 text-xs" {...field} disabled={isDisabled} />
                                           </FormControl>
                                           <FormMessage />
                                         </FormItem>
@@ -467,71 +456,43 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                   </FormItem>
                                 )}
                               />
-                              <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.mealPlanId` as any}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-[10px] uppercase tracking-wide">Meal Plan</FormLabel>
-                                    <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
-                                      <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal" /></SelectTrigger></FormControl>
-                                      <SelectContent>{mealPlans?.map(mp => <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+
                               <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.quantity` as any}
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e => field.onChange(parseInt(e.target.value) || 0)} disabled={isDisabled} />
-                                    </FormControl>
+                                    <div className="flex items-center gap-1">
+                                      <Button type="button" variant="outline" size="sm" className="h-8 w-7 p-0 text-xs" disabled={isDisabled || (field.value as number) <= 1} onClick={() => field.onChange(Math.max(1, (field.value as number || 1) - 1))}>−</Button>
+                                      <FormControl>
+                                        <Input type="number" min={1} className="h-8 text-xs text-center w-10 px-1" value={field.value as any || 1} onChange={e => field.onChange(parseInt(e.target.value) || 1)} disabled={isDisabled} />
+                                      </FormControl>
+                                      <Button type="button" variant="outline" size="sm" className="h-8 w-7 p-0 text-xs" disabled={isDisabled} onClick={() => field.onChange((field.value as number || 1) + 1)}>+</Button>
+                                    </div>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
                             </div>
 
-                            {/* Voucher Number Field */}
-                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.voucherNumber` as any}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-[10px] uppercase tracking-wide flex items-center gap-1">
-                                    <Receipt className="h-3 w-3" />
-                                    Hotel Voucher Number
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Enter hotel booking voucher number"
-                                      className="h-8 text-xs"
-                                      {...field}
-                                      disabled={isDisabled}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            {/* Extra Beds Section */}
-                            <div className="space-y-2 border-t pt-3">
+                            {/* Additional Occupancies Section */}
+                            <div className="space-y-2 border border-amber-200 rounded-md p-2 bg-amber-50/30">
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] uppercase tracking-wide font-medium text-amber-700 flex items-center gap-1">
-                                  <BedDouble className="h-3 w-3" /> Extra Beds
+                                <span className="text-[10px] uppercase tracking-wide font-semibold text-amber-800 flex items-center gap-1">
+                                  <BedDouble className="h-3 w-3" /> Additional Occupancies
                                 </span>
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="h-6 px-2 text-[10px] border-amber-300 hover:bg-amber-50 text-amber-700"
-                                  disabled={isDisabled || (room.extraBeds || []).length >= 3}
+                                  className="h-6 px-2 text-[10px] border-amber-300 hover:bg-amber-100 text-amber-800"
+                                  disabled={isDisabled}
                                   onClick={() => addExtraBed(index, rIndex)}
                                 >
-                                  <Plus className="h-3 w-3 mr-0.5" /> Add Extra Bed
+                                  <Plus className="h-3 w-3 mr-0.5" /> Add Occupancy
                                 </Button>
                               </div>
                               {(room.extraBeds || []).length === 0 && (
-                                <p className="text-[10px] text-muted-foreground italic">No extra beds. Click &quot;Add Extra Bed&quot; to add child with bed, etc.</p>
+                                <p className="text-[10px] text-amber-700/70 italic">e.g. Child with Extra Bed, CNB (Child No Bed), Extra Mattress…</p>
                               )}
                               {(room.extraBeds || []).map((bed: any, bedIndex: number) => (
                                 <div key={bedIndex} className="flex items-center gap-2">
@@ -542,8 +503,8 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                       <FormItem className="flex-1">
                                         <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value || ''}>
                                           <FormControl>
-                                            <SelectTrigger className="h-8 text-xs border-amber-200 bg-amber-50/40">
-                                              <SelectValue placeholder="Select extra bed type" />
+                                            <SelectTrigger className="h-8 text-xs border-amber-200 bg-white">
+                                              <SelectValue placeholder="Select occupancy type" />
                                             </SelectTrigger>
                                           </FormControl>
                                           <SelectContent>
@@ -552,6 +513,22 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                             ))}
                                           </SelectContent>
                                         </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={control as any}
+                                    name={`itineraries.${index}.roomAllocations.${rIndex}.extraBeds.${bedIndex}.quantity` as any}
+                                    render={({ field }) => (
+                                      <FormItem className="shrink-0">
+                                        <div className="flex items-center gap-1">
+                                          <Button type="button" variant="outline" size="sm" className="h-8 w-7 p-0 text-xs border-amber-300" disabled={isDisabled || (field.value as number) <= 1} onClick={() => field.onChange(Math.max(1, (field.value as number || 1) - 1))}>−</Button>
+                                          <FormControl>
+                                            <Input type="number" min={1} className="h-8 text-xs text-center w-10 px-1 border-amber-200" value={field.value as any || 1} onChange={e => field.onChange(parseInt(e.target.value) || 1)} disabled={isDisabled} />
+                                          </FormControl>
+                                          <Button type="button" variant="outline" size="sm" className="h-8 w-7 p-0 text-xs border-amber-300" disabled={isDisabled} onClick={() => field.onChange((field.value as number || 1) + 1)}>+</Button>
+                                        </div>
                                         <FormMessage />
                                       </FormItem>
                                     )}
@@ -569,6 +546,48 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 </div>
                               ))}
                             </div>
+
+                            {/* Meal Plan */}
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.mealPlanId` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Meal Plan</FormLabel>
+                                  <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select meal plan" /></SelectTrigger></FormControl>
+                                    <SelectContent>{mealPlans?.map(mp => <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {/* Guest Names */}
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.guestNames` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Guest Names (optional)</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="e.g. John Smith, Jane Smith" className="h-8 text-xs" {...field} value={field.value || ''} disabled={isDisabled} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {/* Voucher Number */}
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.voucherNumber` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide flex items-center gap-1">
+                                    <Receipt className="h-3 w-3" /> Voucher Number (optional)
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Hotel booking confirmation number" className="h-8 text-xs" {...field} value={field.value || ''} disabled={isDisabled} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </CardContent>
                         </Card>
                       ))}

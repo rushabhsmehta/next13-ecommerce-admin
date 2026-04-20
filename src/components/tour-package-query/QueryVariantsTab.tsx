@@ -1510,25 +1510,26 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               <div className="space-y-2">
                                 {variantRooms.map((room: any, roomIdx: number) => (
                                   <Card key={roomIdx} className="border-violet-200/60 bg-violet-50/20">
-                                    <CardContent className="pt-3 pb-3">
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                                    <CardContent className="pt-3 pb-3 space-y-2">
+                                      {/* Custom Room Type Toggle */}
+                                      <label className="flex items-center gap-1.5 text-[10px] text-slate-500 cursor-pointer select-none">
+                                        <Checkbox
+                                          checked={!!room.useCustomRoomType}
+                                          onCheckedChange={(checked) => {
+                                            updateRoomAllocationFields(cVariant.id, itinerary.id, roomIdx, {
+                                              useCustomRoomType: !!checked,
+                                              ...(!checked ? { customRoomType: '' } : {})
+                                            });
+                                          }}
+                                          className="h-3 w-3"
+                                        />
+                                        Custom Room Type
+                                      </label>
+
+                                      {/* Row 1: Room Type | Occupancy | Qty */}
+                                      <div className="grid grid-cols-3 gap-2">
                                         <div className="space-y-1">
-                                          <div className="flex items-center justify-between">
-                                            <label className="text-[10px] font-medium text-slate-600">Room Type</label>
-                                            <label className="flex items-center gap-1 text-[10px] text-slate-500 cursor-pointer select-none">
-                                              <Checkbox
-                                                checked={!!room.useCustomRoomType}
-                                                onCheckedChange={(checked) => {
-                                                  updateRoomAllocationFields(cVariant.id, itinerary.id, roomIdx, {
-                                                    useCustomRoomType: !!checked,
-                                                    ...(!checked ? { customRoomType: '' } : {})
-                                                  });
-                                                }}
-                                                className="h-3 w-3"
-                                              />
-                                              Custom
-                                            </label>
-                                          </div>
+                                          <label className="text-[10px] font-medium text-slate-600">Room Type</label>
                                           {room.useCustomRoomType ? (
                                             <Input value={room.customRoomType || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'customRoomType', e.target.value)} placeholder="Custom room type..." className="h-8 text-xs" />
                                           ) : (
@@ -1566,50 +1567,39 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                           </Select>
                                         </div>
                                         <div className="space-y-1">
-                                          <label className="text-[10px] font-medium text-slate-600">Meal Plan</label>
-                                          <Select value={room.mealPlanId} onValueChange={(v) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'mealPlanId', v)}>
-                                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal plan" /></SelectTrigger>
-                                            <SelectContent>{mealPlans.map((mp: any) => <SelectItem key={mp.id} value={mp.id} className="text-xs">{mp.name}</SelectItem>)}</SelectContent>
-                                          </Select>
-                                        </div>
-                                        <div className="space-y-1">
                                           <label className="text-[10px] font-medium text-slate-600">Qty</label>
-                                          <Input type="number" min={1} value={room.quantity || 1} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-xs" />
-                                        </div>
-                                        <div className="space-y-1 sm:col-span-2">
-                                          <label className="text-[10px] font-medium text-slate-600">Guest Names</label>
-                                          <Input value={room.guestNames || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'guestNames', e.target.value)} placeholder="Guest names..." className="h-8 text-xs" />
-                                        </div>
-                                        <div className="space-y-1 sm:col-span-2">
-                                          <label className="text-[10px] font-medium text-slate-600">Voucher Number</label>
-                                          <Input value={room.voucherNumber || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'voucherNumber', e.target.value)} placeholder="Voucher number..." className="h-8 text-xs" />
+                                          <div className="flex items-center gap-1">
+                                            <Button type="button" variant="outline" size="sm" className="h-8 w-7 p-0 text-xs" disabled={loading || (room.quantity || 1) <= 1} onClick={() => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'quantity', Math.max(1, (room.quantity || 1) - 1))}>−</Button>
+                                            <Input type="number" min={1} value={room.quantity || 1} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-xs text-center w-10 px-1" />
+                                            <Button type="button" variant="outline" size="sm" className="h-8 w-7 p-0 text-xs" disabled={loading} onClick={() => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'quantity', (room.quantity || 1) + 1)}>+</Button>
+                                          </div>
                                         </div>
                                       </div>
 
-                                      {/* Extra Beds */}
-                                      <div className="border-t pt-2 space-y-1.5">
+                                      {/* Additional Occupancies */}
+                                      <div className="border border-amber-200 rounded-md p-2 bg-amber-50/30 space-y-1.5">
                                         <div className="flex items-center justify-between">
-                                          <span className="text-[10px] font-medium text-amber-700">Extra Beds</span>
+                                          <span className="text-[10px] font-semibold text-amber-800">Additional Occupancies</span>
                                           <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            disabled={loading || (room.extraBeds || []).length >= 3}
+                                            disabled={loading}
                                             onClick={() => {
                                               const current = variantRoomAllocations || {};
                                               const varData = current[cVariant.id] || {};
                                               const allocations = [...(varData[itinerary.id] || [])];
-                                              const updatedRoom = { ...allocations[roomIdx], extraBeds: [...(allocations[roomIdx].extraBeds || []), { occupancyTypeId: '' }] };
+                                              const updatedRoom = { ...allocations[roomIdx], extraBeds: [...(allocations[roomIdx].extraBeds || []), { occupancyTypeId: '', quantity: 1 }] };
                                               allocations[roomIdx] = updatedRoom;
                                               form.setValue('variantRoomAllocations', { ...current, [cVariant.id]: { ...varData, [itinerary.id]: allocations } }, { shouldDirty: true });
                                             }}
-                                            className="h-5 px-1.5 text-[9px] border-amber-300 hover:bg-amber-50 text-amber-700"
+                                            className="h-5 px-1.5 text-[9px] border-amber-300 hover:bg-amber-100 text-amber-800"
                                           >
-                                            + Add Extra Bed
+                                            + Add Occupancy
                                           </Button>
                                         </div>
                                         {(room.extraBeds || []).length === 0 && (
-                                          <p className="text-[10px] text-muted-foreground italic">No extra beds.</p>
+                                          <p className="text-[10px] text-amber-700/70 italic">e.g. Child with Extra Bed, CNB, Extra Mattress…</p>
                                         )}
                                         {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
                                           <div key={ebIdx} className="flex items-center gap-1.5">
@@ -1620,14 +1610,44 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                                 const varData = current[cVariant.id] || {};
                                                 const allocations = [...(varData[itinerary.id] || [])];
                                                 const updatedBeds = [...(allocations[roomIdx].extraBeds || [])];
-                                                updatedBeds[ebIdx] = { occupancyTypeId: v };
+                                                updatedBeds[ebIdx] = { ...updatedBeds[ebIdx], occupancyTypeId: v };
                                                 allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
                                                 form.setValue('variantRoomAllocations', { ...current, [cVariant.id]: { ...varData, [itinerary.id]: allocations } }, { shouldDirty: true });
                                               }}
                                             >
-                                              <SelectTrigger className="h-7 text-[10px] flex-1 border-amber-200 bg-amber-50/30"><SelectValue placeholder="Extra bed type" /></SelectTrigger>
+                                              <SelectTrigger className="h-7 text-[10px] flex-1 border-amber-200 bg-white"><SelectValue placeholder="Select occupancy type" /></SelectTrigger>
                                               <SelectContent>{occupancyTypes.map((ot: any) => <SelectItem key={ot.id} value={ot.id} className="text-xs">{ot.name}</SelectItem>)}</SelectContent>
                                             </Select>
+                                            {/* Qty stepper for this extra occupancy */}
+                                            <div className="flex items-center gap-0.5 shrink-0">
+                                              <Button type="button" variant="outline" size="sm" className="h-7 w-6 p-0 text-xs border-amber-300" disabled={loading || (eb.quantity || 1) <= 1} onClick={() => {
+                                                const current = variantRoomAllocations || {};
+                                                const varData = current[cVariant.id] || {};
+                                                const allocations = [...(varData[itinerary.id] || [])];
+                                                const updatedBeds = [...(allocations[roomIdx].extraBeds || [])];
+                                                updatedBeds[ebIdx] = { ...updatedBeds[ebIdx], quantity: Math.max(1, (eb.quantity || 1) - 1) };
+                                                allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
+                                                form.setValue('variantRoomAllocations', { ...current, [cVariant.id]: { ...varData, [itinerary.id]: allocations } }, { shouldDirty: true });
+                                              }}>−</Button>
+                                              <Input type="number" min={1} value={eb.quantity || 1} onChange={(e) => {
+                                                const current = variantRoomAllocations || {};
+                                                const varData = current[cVariant.id] || {};
+                                                const allocations = [...(varData[itinerary.id] || [])];
+                                                const updatedBeds = [...(allocations[roomIdx].extraBeds || [])];
+                                                updatedBeds[ebIdx] = { ...updatedBeds[ebIdx], quantity: parseInt(e.target.value) || 1 };
+                                                allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
+                                                form.setValue('variantRoomAllocations', { ...current, [cVariant.id]: { ...varData, [itinerary.id]: allocations } }, { shouldDirty: true });
+                                              }} className="h-7 text-[10px] text-center w-9 border-amber-200 px-0.5" />
+                                              <Button type="button" variant="outline" size="sm" className="h-7 w-6 p-0 text-xs border-amber-300" disabled={loading} onClick={() => {
+                                                const current = variantRoomAllocations || {};
+                                                const varData = current[cVariant.id] || {};
+                                                const allocations = [...(varData[itinerary.id] || [])];
+                                                const updatedBeds = [...(allocations[roomIdx].extraBeds || [])];
+                                                updatedBeds[ebIdx] = { ...updatedBeds[ebIdx], quantity: (eb.quantity || 1) + 1 };
+                                                allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
+                                                form.setValue('variantRoomAllocations', { ...current, [cVariant.id]: { ...varData, [itinerary.id]: allocations } }, { shouldDirty: true });
+                                              }}>+</Button>
+                                            </div>
                                             <Button
                                               type="button"
                                               variant="ghost"
@@ -1646,6 +1666,27 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                             </Button>
                                           </div>
                                         ))}
+                                      </div>
+
+                                      {/* Meal Plan */}
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-medium text-slate-600">Meal Plan</label>
+                                        <Select value={room.mealPlanId} onValueChange={(v) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'mealPlanId', v)}>
+                                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal plan" /></SelectTrigger>
+                                          <SelectContent>{mealPlans.map((mp: any) => <SelectItem key={mp.id} value={mp.id} className="text-xs">{mp.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      {/* Guest Names */}
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-medium text-slate-600">Guest Names (optional)</label>
+                                        <Input value={room.guestNames || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'guestNames', e.target.value)} placeholder="e.g. John Smith, Jane Smith" className="h-8 text-xs" />
+                                      </div>
+
+                                      {/* Voucher Number */}
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-medium text-slate-600">Voucher Number (optional)</label>
+                                        <Input value={room.voucherNumber || ''} onChange={(e) => updateRoomAllocation(cVariant.id, itinerary.id, roomIdx, 'voucherNumber', e.target.value)} placeholder="Hotel booking confirmation number" className="h-8 text-xs" />
                                       </div>
 
                                       <div className="flex justify-end">
@@ -2296,41 +2337,23 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                       <div key={roomIdx} className="p-3 border rounded-md space-y-2 bg-gradient-to-r from-blue-50/50 to-transparent">
                                         <div className="flex items-center justify-between">
                                           <span className="text-xs font-medium text-slate-600">Room {roomIdx + 1}</span>
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => removeRoomAllocation(variant.id, itinerary.id, roomIdx)}
-                                            className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-                                          >
+                                          <Button type="button" size="sm" variant="ghost" onClick={() => removeRoomAllocation(variant.id, itinerary.id, roomIdx)} className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600">
                                             <Trash className="h-3 w-3" />
                                           </Button>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2">
+
+                                        {/* Custom Room Type toggle */}
+                                        <label className="flex items-center gap-1.5 text-[10px] text-slate-400 cursor-pointer select-none">
+                                          <Checkbox checked={!!room.useCustomRoomType} onCheckedChange={(checked) => { updateRoomAllocationFields(variant.id, itinerary.id, roomIdx, { useCustomRoomType: !!checked, ...(!checked ? { customRoomType: '' } : {}) }); }} className="h-3 w-3" />
+                                          Custom Room Type
+                                        </label>
+
+                                        {/* Row: Room Type | Occupancy | Qty */}
+                                        <div className="grid grid-cols-3 gap-2">
                                           <div className="space-y-1">
-                                            <div className="flex items-center justify-between">
-                                              <label className="text-[10px] font-medium text-slate-600">Room Type</label>
-                                              <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer select-none">
-                                                <Checkbox
-                                                  checked={!!room.useCustomRoomType}
-                                                  onCheckedChange={(checked) => {
-                                                    updateRoomAllocationFields(variant.id, itinerary.id, roomIdx, {
-                                                      useCustomRoomType: !!checked,
-                                                      ...(!checked ? { customRoomType: '' } : {})
-                                                    });
-                                                  }}
-                                                  className="h-3 w-3"
-                                                />
-                                                Custom
-                                              </label>
-                                            </div>
+                                            <label className="text-[10px] font-medium text-slate-600">Room Type</label>
                                             {room.useCustomRoomType ? (
-                                              <Input
-                                                value={room.customRoomType || ''}
-                                                onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'customRoomType', e.target.value)}
-                                                placeholder="Enter custom room type..."
-                                                className="h-8 text-xs"
-                                              />
+                                              <Input value={room.customRoomType || ''} onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'customRoomType', e.target.value)} placeholder="Custom room type..." className="h-8 text-xs" />
                                             ) : (
                                               <Popover open={openRoomTypeKey === `v-${variant.id}-${itinerary.id}-${roomIdx}`} onOpenChange={(o) => setOpenRoomTypeKey(o ? `v-${variant.id}-${itinerary.id}-${roomIdx}` : null)}>
                                                 <PopoverTrigger asChild>
@@ -2360,95 +2383,46 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                           </div>
                                           <div className="space-y-1">
                                             <label className="text-[10px] font-medium text-slate-600">Occupancy</label>
-                                            <Select
-                                              value={room.occupancyTypeId}
-                                              onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'occupancyTypeId', value)}
-                                            >
-                                              <SelectTrigger className="h-8 text-xs">
-                                                <SelectValue placeholder="Select occupancy" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {occupancyTypes.map((ot: any) => (
-                                                  <SelectItem key={ot.id} value={ot.id} className="text-xs">
-                                                    {ot.name}
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
+                                            <Select value={room.occupancyTypeId} onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'occupancyTypeId', value)}>
+                                              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select occupancy" /></SelectTrigger>
+                                              <SelectContent>{occupancyTypes.map((ot: any) => <SelectItem key={ot.id} value={ot.id} className="text-xs">{ot.name}</SelectItem>)}</SelectContent>
                                             </Select>
                                           </div>
                                           <div className="space-y-1">
-                                            <label className="text-[10px] font-medium text-slate-600">Meal Plan</label>
-                                            <Select
-                                              value={room.mealPlanId}
-                                              onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'mealPlanId', value)}
-                                            >
-                                              <SelectTrigger className="h-8 text-xs">
-                                                <SelectValue placeholder="Select meal plan" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {mealPlans.map((mp: any) => (
-                                                  <SelectItem key={mp.id} value={mp.id} className="text-xs">
-                                                    {mp.name}
-                                                  </SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                          <div className="space-y-1">
-                                            <label className="text-[10px] font-medium text-slate-600">Quantity</label>
-                                            <Input
-                                              type="number"
-                                              min={1}
-                                              value={room.quantity || 1}
-                                              onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'quantity', parseInt(e.target.value) || 1)}
-                                              className="h-8 text-xs"
-                                            />
-                                          </div>
-                                          <div className="space-y-1 col-span-2">
-                                            <label className="text-[10px] font-medium text-slate-600">Guest Names</label>
-                                            <Input
-                                              value={room.guestNames || ''}
-                                              onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'guestNames', e.target.value)}
-                                              placeholder="Guest names (optional)"
-                                              className="h-8 text-xs"
-                                            />
-                                          </div>
-                                          <div className="space-y-1 col-span-2">
-                                            <label className="text-[10px] font-medium text-slate-600">Voucher Number</label>
-                                            <Input
-                                              value={room.voucherNumber || ''}
-                                              onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'voucherNumber', e.target.value)}
-                                              placeholder="Voucher number (optional)"
-                                              className="h-8 text-xs"
-                                            />
+                                            <label className="text-[10px] font-medium text-slate-600">Qty</label>
+                                            <div className="flex items-center gap-1">
+                                              <Button type="button" variant="outline" size="sm" className="h-8 w-7 p-0 text-xs" disabled={loading || (room.quantity || 1) <= 1} onClick={() => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'quantity', Math.max(1, (room.quantity || 1) - 1))}>−</Button>
+                                              <Input type="number" min={1} value={room.quantity || 1} onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-xs text-center w-10 px-1" />
+                                              <Button type="button" variant="outline" size="sm" className="h-8 w-7 p-0 text-xs" disabled={loading} onClick={() => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'quantity', (room.quantity || 1) + 1)}>+</Button>
+                                            </div>
                                           </div>
                                         </div>
 
-                                        {/* Extra Beds */}
-                                        <div className="border-t pt-2 space-y-1.5">
+                                        {/* Additional Occupancies */}
+                                        <div className="border border-amber-200 rounded-md p-2 bg-amber-50/30 space-y-1.5">
                                           <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-medium text-amber-700">Extra Beds</span>
+                                            <span className="text-[10px] font-semibold text-amber-800">Additional Occupancies</span>
                                             <Button
                                               type="button"
                                               variant="outline"
                                               size="sm"
-                                              disabled={loading || (room.extraBeds || []).length >= 3}
+                                              disabled={loading}
                                               onClick={() => {
                                                 const current = variantRoomAllocations || {};
                                                 const itKey = itinerary.id || itineraryKey;
                                                 const varData = current[variant.id] || {};
                                                 const allocations = [...(varData[itKey] || [])];
-                                                const updatedRoom = { ...allocations[roomIdx], extraBeds: [...(allocations[roomIdx].extraBeds || []), { occupancyTypeId: '' }] };
+                                                const updatedRoom = { ...allocations[roomIdx], extraBeds: [...(allocations[roomIdx].extraBeds || []), { occupancyTypeId: '', quantity: 1 }] };
                                                 allocations[roomIdx] = updatedRoom;
                                                 form.setValue('variantRoomAllocations', { ...current, [variant.id]: { ...varData, [itKey]: allocations } }, { shouldDirty: true });
                                               }}
-                                              className="h-5 px-1.5 text-[9px] border-amber-300 hover:bg-amber-50 text-amber-700"
+                                              className="h-5 px-1.5 text-[9px] border-amber-300 hover:bg-amber-100 text-amber-800"
                                             >
-                                              + Add Extra Bed
+                                              + Add Occupancy
                                             </Button>
                                           </div>
                                           {(room.extraBeds || []).length === 0 && (
-                                            <p className="text-[10px] text-muted-foreground italic">No extra beds.</p>
+                                            <p className="text-[10px] text-amber-700/70 italic">e.g. Child with Extra Bed, CNB, Extra Mattress…</p>
                                           )}
                                           {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
                                             <div key={ebIdx} className="flex items-center gap-1.5">
@@ -2460,33 +2434,80 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                                   const varData = current[variant.id] || {};
                                                   const allocations = [...(varData[itKey] || [])];
                                                   const updatedBeds = [...(allocations[roomIdx].extraBeds || [])];
-                                                  updatedBeds[ebIdx] = { occupancyTypeId: v };
+                                                  updatedBeds[ebIdx] = { ...updatedBeds[ebIdx], occupancyTypeId: v };
                                                   allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
                                                   form.setValue('variantRoomAllocations', { ...current, [variant.id]: { ...varData, [itKey]: allocations } }, { shouldDirty: true });
                                                 }}
                                               >
-                                                <SelectTrigger className="h-7 text-[10px] flex-1 border-amber-200 bg-amber-50/30"><SelectValue placeholder="Extra bed type" /></SelectTrigger>
+                                                <SelectTrigger className="h-7 text-[10px] flex-1 border-amber-200 bg-white"><SelectValue placeholder="Select occupancy type" /></SelectTrigger>
                                                 <SelectContent>{occupancyTypes.map((ot: any) => <SelectItem key={ot.id} value={ot.id} className="text-xs">{ot.name}</SelectItem>)}</SelectContent>
                                               </Select>
-                                              <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 hover:text-red-600 shrink-0"
-                                                onClick={() => {
+                                              <div className="flex items-center gap-0.5 shrink-0">
+                                                <Button type="button" variant="outline" size="sm" className="h-7 w-6 p-0 text-xs border-amber-300" disabled={loading || (eb.quantity || 1) <= 1} onClick={() => {
                                                   const current = variantRoomAllocations || {};
                                                   const itKey = itinerary.id || itineraryKey;
                                                   const varData = current[variant.id] || {};
                                                   const allocations = [...(varData[itKey] || [])];
-                                                  const updatedBeds = (allocations[roomIdx].extraBeds || []).filter((_: any, i: number) => i !== ebIdx);
+                                                  const updatedBeds = [...(allocations[roomIdx].extraBeds || [])];
+                                                  updatedBeds[ebIdx] = { ...updatedBeds[ebIdx], quantity: Math.max(1, (eb.quantity || 1) - 1) };
                                                   allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
                                                   form.setValue('variantRoomAllocations', { ...current, [variant.id]: { ...varData, [itKey]: allocations } }, { shouldDirty: true });
-                                                }}
-                                              >
+                                                }}>−</Button>
+                                                <Input type="number" min={1} value={eb.quantity || 1} onChange={(e) => {
+                                                  const current = variantRoomAllocations || {};
+                                                  const itKey = itinerary.id || itineraryKey;
+                                                  const varData = current[variant.id] || {};
+                                                  const allocations = [...(varData[itKey] || [])];
+                                                  const updatedBeds = [...(allocations[roomIdx].extraBeds || [])];
+                                                  updatedBeds[ebIdx] = { ...updatedBeds[ebIdx], quantity: parseInt(e.target.value) || 1 };
+                                                  allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
+                                                  form.setValue('variantRoomAllocations', { ...current, [variant.id]: { ...varData, [itKey]: allocations } }, { shouldDirty: true });
+                                                }} className="h-7 text-[10px] text-center w-9 border-amber-200 px-0.5" />
+                                                <Button type="button" variant="outline" size="sm" className="h-7 w-6 p-0 text-xs border-amber-300" disabled={loading} onClick={() => {
+                                                  const current = variantRoomAllocations || {};
+                                                  const itKey = itinerary.id || itineraryKey;
+                                                  const varData = current[variant.id] || {};
+                                                  const allocations = [...(varData[itKey] || [])];
+                                                  const updatedBeds = [...(allocations[roomIdx].extraBeds || [])];
+                                                  updatedBeds[ebIdx] = { ...updatedBeds[ebIdx], quantity: (eb.quantity || 1) + 1 };
+                                                  allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
+                                                  form.setValue('variantRoomAllocations', { ...current, [variant.id]: { ...varData, [itKey]: allocations } }, { shouldDirty: true });
+                                                }}>+</Button>
+                                              </div>
+                                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 hover:text-red-600 shrink-0" onClick={() => {
+                                                const current = variantRoomAllocations || {};
+                                                const itKey = itinerary.id || itineraryKey;
+                                                const varData = current[variant.id] || {};
+                                                const allocations = [...(varData[itKey] || [])];
+                                                const updatedBeds = (allocations[roomIdx].extraBeds || []).filter((_: any, i: number) => i !== ebIdx);
+                                                allocations[roomIdx] = { ...allocations[roomIdx], extraBeds: updatedBeds };
+                                                form.setValue('variantRoomAllocations', { ...current, [variant.id]: { ...varData, [itKey]: allocations } }, { shouldDirty: true });
+                                              }}>
                                                 <Trash className="h-3 w-3" />
                                               </Button>
                                             </div>
                                           ))}
+                                        </div>
+
+                                        {/* Meal Plan */}
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Meal Plan</label>
+                                          <Select value={room.mealPlanId} onValueChange={(value) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'mealPlanId', value)}>
+                                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select meal plan" /></SelectTrigger>
+                                            <SelectContent>{mealPlans.map((mp: any) => <SelectItem key={mp.id} value={mp.id} className="text-xs">{mp.name}</SelectItem>)}</SelectContent>
+                                          </Select>
+                                        </div>
+
+                                        {/* Guest Names */}
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Guest Names (optional)</label>
+                                          <Input value={room.guestNames || ''} onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'guestNames', e.target.value)} placeholder="e.g. John Smith, Jane Smith" className="h-8 text-xs" />
+                                        </div>
+
+                                        {/* Voucher Number */}
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-slate-600">Voucher Number (optional)</label>
+                                          <Input value={room.voucherNumber || ''} onChange={(e) => updateRoomAllocation(variant.id, itinerary.id, roomIdx, 'voucherNumber', e.target.value)} placeholder="Hotel booking confirmation number" className="h-8 text-xs" />
                                         </div>
                                       </div>
                                     ))

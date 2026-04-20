@@ -137,15 +137,14 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Room Type Selection Toggle */}
               <FormField
                 control={control}
                 name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.useCustomRoomType`}
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium text-gray-700">Room Type Mode</FormLabel>
-                    <div className="flex items-center space-x-2 h-11">
+                  <FormItem className="sm:col-span-3">
+                    <div className="flex items-center space-x-2">
                       <Checkbox
                         id={`useCustomRoomType-${roomIndex}`}
                         checked={field.value}
@@ -154,7 +153,7 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                       />
                       <label
                         htmlFor={`useCustomRoomType-${roomIndex}`}
-                        className="text-sm font-medium text-gray-700 cursor-pointer"
+                        className="text-xs font-medium text-gray-700 cursor-pointer"
                       >
                         Custom Room Type
                       </label>
@@ -217,12 +216,7 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs font-medium text-gray-700">Occupancy</FormLabel>
-                    <Select
-                      disabled={loading}
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      defaultValue={field.value}
-                    >
+                    <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                           <SelectValue placeholder="Select occupancy" />
@@ -230,9 +224,7 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                       </FormControl>
                       <SelectContent>
                         {occupancyTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
+                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -241,77 +233,21 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                 )}
               />
 
-              {/* Meal Plan */}
-              <FormField
-                control={control}
-                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.mealPlanId`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium text-gray-700">Meal Plan</FormLabel>
-                    <Select
-                      disabled={loading}
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                          <SelectValue placeholder="Select meal plan" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {mealPlans.map((plan) => (
-                          <SelectItem key={plan.id} value={plan.id}>
-                            {plan.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Second row with Quantity and Voucher Number */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              {/* Quantity */}
+              {/* Quantity stepper */}
               <FormField
                 control={control}
                 name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.quantity`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-medium text-gray-700">Quantity</FormLabel>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={loading || (field.value as number) <= 1}
-                        onClick={() => field.onChange(Math.max(1, (field.value as number || 1) - 1))}
-                        className="h-11 w-11 p-0 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-                      >
+                    <FormLabel className="text-xs font-medium text-gray-700">Qty</FormLabel>
+                    <div className="flex items-center space-x-1">
+                      <Button type="button" variant="outline" size="sm" disabled={loading || (field.value as number) <= 1} onClick={() => field.onChange(Math.max(1, (field.value as number || 1) - 1))} className="h-11 w-11 p-0 border-blue-200 hover:border-blue-400 hover:bg-blue-50">
                         <Minus className="h-4 w-4" />
                       </Button>
                       <FormControl>
-                        <Input
-                          type="number"
-                          disabled={loading}
-                          placeholder="1"
-                          {...field}
-                          className="h-11 text-center border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                          min="1"
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                        />
+                        <Input type="number" disabled={loading} placeholder="1" {...field} className="h-11 text-center border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" min="1" onChange={(e) => field.onChange(parseInt(e.target.value) || 1)} />
                       </FormControl>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={loading}
-                        onClick={() => field.onChange((field.value as number || 1) + 1)}
-                        className="h-11 w-11 p-0 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
-                      >
+                      <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => field.onChange((field.value as number || 1) + 1)} className="h-11 w-11 p-0 border-blue-200 hover:border-blue-400 hover:bg-blue-50">
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
@@ -319,60 +255,9 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                   </FormItem>
                 )}
               />
-
-              {/* Voucher Number */}
-              <FormField
-                control={control}
-                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.voucherNumber`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                      <Receipt className="h-3 w-3" />
-                      Voucher Number
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Enter hotel voucher number"
-                        {...field}
-                        className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs text-gray-500">
-                      Hotel booking voucher/confirmation number
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
-            {/* Guest Names Field */}
-            <div className="mt-4">
-              <FormField
-                control={control}
-                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.guestNames`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-medium text-gray-700">Guest Names (Optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Enter guest names (comma separated)"
-                        {...field}
-                        className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs text-gray-500">
-                      Optional: List guest names for this room allocation
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Extra Beds Section */}
+            {/* Additional Occupancies Section */}
             <ExtraBedsSection
               control={control}
               itineraryIndex={itineraryIndex}
@@ -381,6 +266,68 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
               loading={loading}
               field={field}
             />
+
+            {/* Meal Plan */}
+            <div className="mt-4">
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.mealPlanId`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Meal Plan</FormLabel>
+                    <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                          <SelectValue placeholder="Select meal plan" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {mealPlans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Guest Names */}
+            <div className="mt-4">
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.guestNames`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Guest Names (Optional)</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Enter guest names (comma separated)" {...field} className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Voucher Number */}
+            <div className="mt-4">
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.voucherNumber`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                      <Receipt className="h-3 w-3" /> Voucher Number (Optional)
+                    </FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Hotel booking voucher/confirmation number" {...field} className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
               );
             });
@@ -418,7 +365,7 @@ interface ExtraBedsSectionProps {
   roomIndex: number;
   occupancyTypes: OccupancyType[];
   loading: boolean;
-  field: any; // field from parent useFieldArray
+  field?: any; // unused, kept for backward compat
 }
 
 const ExtraBedsSection: React.FC<ExtraBedsSectionProps> = ({
@@ -427,7 +374,6 @@ const ExtraBedsSection: React.FC<ExtraBedsSectionProps> = ({
   roomIndex,
   occupancyTypes,
   loading,
-  field,
 }) => {
   const { fields: extraBedFields, append: appendBed, remove: removeBed } = useFieldArray({
     control,
@@ -435,25 +381,25 @@ const ExtraBedsSection: React.FC<ExtraBedsSectionProps> = ({
   });
 
   return (
-    <div className="mt-4 border-t pt-4 space-y-3">
+    <div className="mt-4 border border-amber-200 rounded-md p-3 bg-amber-50/30 space-y-2">
       <div className="flex items-center justify-between">
         <h5 className="text-xs font-semibold text-amber-800 flex items-center gap-1">
-          <BedDouble className="h-3.5 w-3.5" /> Extra Beds
+          <BedDouble className="h-3.5 w-3.5" /> Additional Occupancies
         </h5>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          disabled={loading || extraBedFields.length >= 3}
-          onClick={() => appendBed({ occupancyTypeId: '' })}
-          className="h-7 px-2 text-[11px] border-amber-300 hover:bg-amber-50 text-amber-800"
+          disabled={loading}
+          onClick={() => appendBed({ occupancyTypeId: '', quantity: 1 })}
+          className="h-7 px-2 text-[11px] border-amber-300 hover:bg-amber-100 text-amber-800"
         >
-          <Plus className="h-3 w-3 mr-0.5" /> Add Extra Bed
+          <Plus className="h-3 w-3 mr-0.5" /> Add Occupancy
         </Button>
       </div>
       {extraBedFields.length === 0 && (
-        <p className="text-xs text-muted-foreground italic">
-          No extra beds. Click &quot;Add Extra Bed&quot; to add child with bed, child without bed, etc.
+        <p className="text-xs text-amber-700/70 italic">
+          e.g. Child with Extra Bed, CNB (Child No Bed), Extra Mattress…
         </p>
       )}
       {extraBedFields.map((bedField, bedIndex) => (
@@ -465,8 +411,8 @@ const ExtraBedsSection: React.FC<ExtraBedsSectionProps> = ({
               <FormItem className="flex-1">
                 <Select disabled={loading} onValueChange={bedOccField.onChange} value={bedOccField.value || ''}>
                   <FormControl>
-                    <SelectTrigger className="h-9 text-xs border-amber-200 bg-amber-50/40 hover:border-amber-400">
-                      <SelectValue placeholder="Select extra bed type (e.g. Child with Bed)" />
+                    <SelectTrigger className="h-9 text-xs border-amber-200 bg-white hover:border-amber-400">
+                      <SelectValue placeholder="Select occupancy type" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -475,6 +421,26 @@ const ExtraBedsSection: React.FC<ExtraBedsSectionProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.extraBeds.${bedIndex}.quantity`}
+            render={({ field: bedQtyField }) => (
+              <FormItem className="shrink-0">
+                <div className="flex items-center gap-1">
+                  <Button type="button" variant="outline" size="sm" disabled={loading || (bedQtyField.value as number) <= 1} onClick={() => bedQtyField.onChange(Math.max(1, (bedQtyField.value as number || 1) - 1))} className="h-9 w-8 p-0 text-xs border-amber-300 hover:bg-amber-100">
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <FormControl>
+                    <Input type="number" min={1} disabled={loading} className="h-9 text-xs text-center w-12 border-amber-200 px-1" value={bedQtyField.value as any || 1} onChange={(e) => bedQtyField.onChange(parseInt(e.target.value) || 1)} />
+                  </FormControl>
+                  <Button type="button" variant="outline" size="sm" disabled={loading} onClick={() => bedQtyField.onChange((bedQtyField.value as number || 1) + 1)} className="h-9 w-8 p-0 text-xs border-amber-300 hover:bg-amber-100">
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}

@@ -617,8 +617,6 @@ export async function derivePerPersonRates(params: {
     return anyFound ? total : null;
   }
 
-  const doubleOcc = matchOccupancyByKeywords(occupancyTypes, [['double'], ['twin']]);
-  const extraBedOcc = matchOccupancyByKeywords(occupancyTypes, [['extra', 'bed'], ['extra', 'mattress']]);
   const childWithMatOcc = matchOccupancyByKeywords(occupancyTypes, [['child', 'with', 'mattress']]);
   const childNoMatOcc = matchOccupancyByKeywords(occupancyTypes, [
     ['child', 'without', 'mattress'],
@@ -626,9 +624,7 @@ export async function derivePerPersonRates(params: {
     ['child', 'no', 'mattress'],
   ]);
 
-  const [doubleTotal, extraBedTotal, childMatTotal, childNoMatTotal] = await Promise.all([
-    nightlyTotalFor(doubleOcc?.id),
-    nightlyTotalFor(extraBedOcc?.id),
+  const [childMatTotal, childNoMatTotal] = await Promise.all([
     nightlyTotalFor(childWithMatOcc?.id),
     nightlyTotalFor(childNoMatOcc?.id),
   ]);
@@ -642,16 +638,15 @@ export async function derivePerPersonRates(params: {
     description: `No ${name} rate on file for this hotel / meal plan / date range.\nAdd a HotelPricing row or enter the rate manually.`,
   });
 
-  const numRooms = mainPax / 2; // assuming double rooms (2 persons each)
   const markupLine = (base: number) =>
     markupPct > 0 ? `Markup (${markupPct}%):  Rs.${formatINR(base)} × ${markupFactor.toFixed(2)}  =  Rs.${formatINR(Math.round(base * markupFactor))}` : '';
 
-  // Adults split only the main room cost — extra occupancy costs are priced separately
-  const adultRoomTotal = doubleTotal ?? 0;
+  // Sum actual main room costs directly from the allocation (works for Double, Triple, or any occupancy type)
+  const adultRoomTotal = Array.from(mainOccIds).reduce((sum, id) => sum + (priced[id] || 0), 0);
 
   const perPerson: PerGuestRate =
-    doubleTotal === null
-      ? missingRate('Double/Twin')
+    adultRoomTotal === 0
+      ? missingRate('Main Room')
       : (() => {
           const share = adultRoomTotal / mainPax;
           const base = share + transportPerPerson;
@@ -660,7 +655,7 @@ export async function derivePerPersonRates(params: {
           return {
             price: Math.round(price),
             description:
-              `Room:       Rs.${formatINR(doubleTotal)} ÷ ${mainPax} adults  =  Rs.${formatINR(share)}\n` +
+              `Room:       Rs.${formatINR(adultRoomTotal)} ÷ ${mainPax} adults  =  Rs.${formatINR(share)}\n` +
               `${transportLine}\n` +
               (ml ? `${ml}\n` : '') +
               `Per Person  =  Rs.${formatINR(Math.round(price))}`,
@@ -670,7 +665,7 @@ export async function derivePerPersonRates(params: {
   // Per couple = per person × 2 (same adults share 1 room; transport for 2)
   const perCouple: PerGuestRate =
     perPerson.price === null
-      ? missingRate('Double/Twin')
+      ? missingRate('Main Room')
       : (() => {
           const price = perPerson.price * 2;
           return {

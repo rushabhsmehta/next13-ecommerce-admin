@@ -681,20 +681,21 @@ export async function derivePerPersonRates(params: {
           };
         })();
 
-  // Per extra-occupancy person = total extra accommodation (CNB + non-CNB extra beds) ÷ extra pax, with markup
-  // Transport is NOT included here — the child's transport is shown in "Child below 5 With Seat"
+  // Per extra bed = extra bed room cost (CNB excluded) ÷ extraBedPax + transport per person
   const perPersonWithExtraBed: PerGuestRate =
-    totalExtraPax > 0 && totalExtraAccom > 0
+    extraBedPax > 0 && nonCnbExtraBedAccomTotal > 0
       ? (() => {
-          const perPaxAccom = totalExtraAccom / totalExtraPax;
-          const price = perPaxAccom * markupFactor;
-          const ml = markupLine(perPaxAccom);
+          const perPaxAccom = nonCnbExtraBedAccomTotal / extraBedPax;
+          const base = perPaxAccom + transportPerPerson;
+          const price = base * markupFactor;
+          const ml = markupLine(base);
           return {
             price: Math.round(price),
             description:
-              `Extra Occ:  Rs.${formatINR(totalExtraAccom)} (${totalExtraPax} extra person${totalExtraPax > 1 ? 's' : ''}) ÷ ${totalExtraPax}  =  Rs.${formatINR(perPaxAccom)}/person\n` +
+              `Room:       Rs.${formatINR(nonCnbExtraBedAccomTotal)} ÷ ${extraBedPax} extra bed${extraBedPax > 1 ? 's' : ''}  =  Rs.${formatINR(perPaxAccom)}/person\n` +
+              `${transportLine}\n` +
               (ml ? `${ml}\n` : '') +
-              `Per Extra Person (room only)  =  Rs.${formatINR(Math.round(price))}`,
+              `Per Extra Bed  =  Rs.${formatINR(Math.round(price))}`,
           };
         })()
       : missingRate('Extra Bed / Extra Mattress');
@@ -733,7 +734,7 @@ export async function derivePerPersonRates(params: {
           };
         })();
 
-  // "Child below 5 With Seat" = CNB child: takes transport seat; room is charged separately via "Extra Occupancy".
+  // "Child below 5 With Seat" = CNB child: takes transport seat, no room charge (shares parents' bed).
   // Only populated when CNB children exist in the allocation — no hypothetical rates.
   const childBelow5WithSeat: PerGuestRate = cnbPax > 0
     ? (() => {
@@ -743,7 +744,7 @@ export async function derivePerPersonRates(params: {
         return {
           price: Math.round(price),
           description:
-            `Transport seat (CNB shares parents' bed; room charged separately as Extra Occupancy)\n` +
+            `Room:       no charge (CNB shares parents' bed)\n` +
             `${transportLine}\n` +
             (ml ? `${ml}\n` : '') +
             `Child below 5 (with seat)  =  Rs.${formatINR(Math.round(price))}`,

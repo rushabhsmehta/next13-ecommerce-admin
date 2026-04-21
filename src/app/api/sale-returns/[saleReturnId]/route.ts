@@ -22,7 +22,8 @@ export async function GET(req: Request, props: { params: Promise<{ saleReturnId:
       include: {
         saleDetail: {
           include: {
-            customer: true
+            customer: true,
+            receiptAllocations: { select: { allocatedAmount: true } }
           }
         },        items: {
           include: {

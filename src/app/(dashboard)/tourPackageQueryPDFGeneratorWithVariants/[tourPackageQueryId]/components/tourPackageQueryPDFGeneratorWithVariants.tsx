@@ -564,7 +564,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                           ${(room.extraBeds || []).length > 0 ? `
                           <div style="border-top: 1px solid #fde68a; margin-top: 2px; padding-top: 2px;">
                             ${(room.extraBeds || []).map((eb: any) => `
-                            <div style="font-size: 9px; color: #92400e; line-height: 1.3;">+ ${eb.occupancyType?.name || getName(occupancyTypes.find((ot: any) => ot.id === eb?.occupancyTypeId)) || '-'}</div>
+                            <div style="font-size: 9px; color: #92400e; line-height: 1.3;">+ ${eb.occupancyType?.name || getName(occupancyTypes.find((ot: any) => ot.id === eb?.occupancyTypeId)) || '-'}${(eb.quantity || 1) > 1 ? ` ×${eb.quantity}` : ''}</div>
                             `).join('')}
                           </div>` : ''}
                         </div>

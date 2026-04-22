@@ -974,7 +974,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                                 + ${eb.occupancyType?.name || eb.occupancyTypeId || '-'}
                               </td>
                               <td style="${tableCellStyle}; color: #92400e; font-size: 11px; font-style: italic;">Extra Bed</td>
-                              <td style="${tableCellStyle}"></td>
+                              <td style="${tableCellStyle}; text-align: center;">
+                                <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 99px; font-weight: 600; font-size: 12px;">
+                                  ${eb.quantity || 1}
+                                </span>
+                              </td>
                               <td style="${tableCellStyle}"></td>
                             </tr>
                             `).join('')}

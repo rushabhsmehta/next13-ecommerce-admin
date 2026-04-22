@@ -547,7 +547,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                                         <td className="px-3 py-1 pl-6 text-xs text-amber-700 font-medium">
                                           + {eb.occupancyType?.name || '-'}
                                         </td>
-                                        <td colSpan={5} className="px-3 py-1 text-xs text-amber-600 italic">Extra Bed</td>
+                                        <td className="px-3 py-1 text-xs text-amber-600 italic">Extra Bed</td>
+                                        <td className="px-3 py-1 text-xs text-amber-700">{eb.quantity || 1}</td>
+                                        <td colSpan={3} />
                                       </tr>
                                     ))}
                                   </React.Fragment>
@@ -592,7 +594,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                                       <dt className="font-medium text-amber-700">Extra Beds</dt>
                                       <dd className="text-amber-700 text-xs space-y-0.5">
                                         {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
-                                          <div key={ebIdx}>+ {eb.occupancyType?.name || '-'}</div>
+                                          <div key={ebIdx}>+ {eb.occupancyType?.name || '-'}{(eb.quantity || 1) > 1 ? ` ×${eb.quantity}` : ''}</div>
                                         ))}
                                       </dd>
                                     </div>

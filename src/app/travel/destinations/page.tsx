@@ -2,6 +2,11 @@ import prismadb from "@/lib/prismadb";
 import { DestinationCard } from "../components/destination-card";
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "Destinations | Aagam Holidays",
+  description:
+    "Browse handpicked travel destinations with curated package availability from Aagam Holidays.",
+};
 
 export default async function DestinationsPage() {
   const destinations = await prismadb.location.findMany({

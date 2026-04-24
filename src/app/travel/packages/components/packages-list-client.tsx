@@ -27,6 +27,17 @@ interface PackagesListClientProps {
   initialLocation?: string;
 }
 
+type SortOption = "featured" | "name-asc" | "price-low" | "price-high";
+
+function formatPrice(value: string | null) {
+  if (!value) return null;
+
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  return amount;
+}
+
 export function PackagesListClient({
   packages,
   locations,
@@ -38,40 +49,93 @@ export function PackagesListClient({
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState(initialCategory || "all");
   const [searchQuery, setSearchQuery] = useState(initialSearch || "");
+  const [activeLocation, setActiveLocation] = useState(initialLocation || "all");
+  const [activeSort, setActiveSort] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
+
+  const pushFilters = (next: {
+    category?: string;
+    search?: string;
+    location?: string;
+  }) => {
+    const params = new URLSearchParams();
+    const category = next.category ?? activeCategory;
+    const search = next.search ?? searchQuery;
+    const location = next.location ?? activeLocation;
+
+    if (category !== "all") params.set("category", category);
+    if (search.trim()) params.set("search", search.trim());
+    if (location !== "all") params.set("location", location);
+
+    const query = params.toString();
+    router.push(query ? `/travel/packages?${query}` : "/travel/packages");
+  };
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
-    const params = new URLSearchParams();
-    if (category !== "all") params.set("category", category);
-    if (searchQuery) params.set("search", searchQuery);
-    if (initialLocation) params.set("location", initialLocation);
-    router.push(`/travel/packages?${params.toString()}`);
+    pushFilters({ category });
+  };
+
+  const handleLocationChange = (location: string) => {
+    setActiveLocation(location);
+    pushFilters({ location });
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (activeCategory !== "all") params.set("category", activeCategory);
-    if (searchQuery) params.set("search", searchQuery);
-    if (initialLocation) params.set("location", initialLocation);
-    router.push(`/travel/packages?${params.toString()}`);
+    pushFilters({ search: searchQuery });
   };
+
+  const clearFilters = () => {
+    setActiveCategory("all");
+    setSearchQuery("");
+    setActiveLocation("all");
+    setActiveSort("featured");
+    router.push("/travel/packages");
+  };
+
+  const sortedPackages = [...packages].sort((left, right) => {
+    const leftPrice = formatPrice(left.pricePerAdult) ?? formatPrice(left.price);
+    const rightPrice = formatPrice(right.pricePerAdult) ?? formatPrice(right.price);
+
+    switch (activeSort) {
+      case "name-asc":
+        return (left.tourPackageName || "").localeCompare(right.tourPackageName || "");
+      case "price-low":
+        if (leftPrice === null && rightPrice === null) return 0;
+        if (leftPrice === null) return 1;
+        if (rightPrice === null) return -1;
+        return leftPrice - rightPrice;
+      case "price-high":
+        if (leftPrice === null && rightPrice === null) return 0;
+        if (leftPrice === null) return 1;
+        if (rightPrice === null) return -1;
+        return rightPrice - leftPrice;
+      case "featured":
+      default:
+        return 0;
+    }
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      {/* Page Header */}
       <div className="mb-8 sm:mb-10">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
-          Tour Packages
-        </h1>
-        <p className="text-gray-500 mt-2 text-sm sm:text-base">
-          Explore our curated collection of {packages.length} tour packages
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
+              Tour Packages
+            </h1>
+            <p className="text-gray-500 mt-2 text-sm sm:text-base">
+              Explore our curated collection of {packages.length} tour packages
+            </p>
+          </div>
+          <div className="text-sm text-gray-500">
+            Showing {sortedPackages.length} results
+          </div>
+        </div>
       </div>
 
-      {/* Search and Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 mb-4 sm:mb-6">
         <form onSubmit={handleSearch} className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
           <input
@@ -79,21 +143,38 @@ export function PackagesListClient({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search packages by name or destination..."
-            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-300 shadow-sm transition-all text-sm sm:text-base"
+            className="w-full pl-12 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-300 shadow-sm transition-all text-sm sm:text-base"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => {
                 setSearchQuery("");
-                router.push("/travel/packages");
+                pushFilters({ search: "" });
               }}
               className="absolute right-4 top-1/2 -translate-y-1/2"
+              aria-label="Clear search"
             >
               <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
             </button>
           )}
         </form>
+
+        <label className="flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+          <SlidersHorizontal className="w-5 h-5 text-orange-500" />
+          <select
+            value={activeSort}
+            onChange={(e) => setActiveSort(e.target.value as SortOption)}
+            className="bg-transparent text-sm sm:text-base text-gray-700 focus:outline-none"
+            aria-label="Sort packages"
+          >
+            <option value="featured">Sort: Featured</option>
+            <option value="name-asc">Sort: Name A-Z</option>
+            <option value="price-low">Sort: Price Low to High</option>
+            <option value="price-high">Sort: Price High to Low</option>
+          </select>
+        </label>
+
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="sm:hidden flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 shadow-sm active:scale-[0.98] transition-transform"
@@ -102,7 +183,42 @@ export function PackagesListClient({
         </button>
       </div>
 
-      {/* Category Tabs */}
+      <div className={`${showFilters ? "block" : "hidden"} sm:block mb-4 sm:mb-6`}>
+        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 min-w-[220px]">
+            Destination
+            <select
+              value={activeLocation}
+              onChange={(e) => handleLocationChange(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+            >
+              <option value="all">All Destinations</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-500">
+              {activeCategory === "all" ? "All categories" : activeCategory}
+            </span>
+            {(activeCategory !== "all" || searchQuery || activeLocation !== "all") && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <X className="w-4 h-4" />
+                Clear filters
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-nowrap gap-2 mb-8 sm:mb-10 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
         <button
           onClick={() => handleCategoryChange("all")}
@@ -129,7 +245,6 @@ export function PackagesListClient({
         ))}
       </div>
 
-      {/* Results Grid */}
       {packages.length === 0 ? (
         <div className="text-center py-16 sm:py-20">
           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -144,7 +259,7 @@ export function PackagesListClient({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-          {packages.map((pkg) => (
+          {sortedPackages.map((pkg) => (
             <PackageCard
               key={pkg.id}
               id={pkg.id}

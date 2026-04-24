@@ -15,13 +15,23 @@ interface DealPackage {
   _count: { itineraries: number };
 }
 
+function formatPrice(value: string | null) {
+  if (!value) return null;
+
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  return new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
   if (deals.length === 0) return null;
 
   return (
     <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-amber-50/40 to-white">
       <div className="max-w-7xl mx-auto">
-        {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 sm:mb-12">
           <div>
             <span className="text-amber-600 font-semibold text-sm uppercase tracking-wider flex items-center gap-1.5">
@@ -31,7 +41,7 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
               Special Deals & Offers
             </h2>
             <p className="text-gray-500 mt-3 max-w-lg text-sm sm:text-base">
-              Handpicked packages offering the best value — great experiences at
+              Handpicked packages offering the best value - great experiences at
               unbeatable prices.
             </p>
           </div>
@@ -43,34 +53,35 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
           </Link>
         </div>
 
-        {/* Deals Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
           {deals.map((pkg) => {
-            const displayPrice = pkg.pricePerAdult || pkg.price;
+            const displayPrice = formatPrice(pkg.pricePerAdult) || formatPrice(pkg.price);
             const href = pkg.slug
               ? `/travel/packages/${pkg.slug}`
               : `/travel/packages/${pkg.id}`;
+            const hasImage = Boolean(pkg.images[0]?.url);
 
             return (
               <Link key={pkg.id} href={href} className="group block">
                 <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 group-hover:-translate-y-1 border border-gray-100/80">
-                  {/* Image */}
                   <div className="relative h-48 overflow-hidden">
-                    <Image
-                      src={pkg.images[0]?.url || "/placeholder-travel.jpg"}
-                      alt={pkg.tourPackageName || "Tour Package"}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                    />
+                    {hasImage ? (
+                      <Image
+                        src={pkg.images[0].url}
+                        alt={pkg.tourPackageName || "Tour Package"}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-orange-500 to-red-500" />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-                    {/* Best Value Badge */}
                     <span className="absolute top-3 left-3 px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg shadow-lg">
                       Best Value
                     </span>
 
-                    {/* Duration */}
                     {pkg.numDaysNight && (
                       <span className="absolute top-3 right-3 px-2.5 py-1 bg-black/30 backdrop-blur-sm text-white text-xs font-medium rounded-lg flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -78,7 +89,6 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
                       </span>
                     )}
 
-                    {/* Location */}
                     <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white">
                       <MapPin className="w-3.5 h-3.5" />
                       <span className="text-sm font-medium drop-shadow-sm">
@@ -87,7 +97,6 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="p-4">
                     <h3 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-2 mb-3 leading-snug">
                       {pkg.tourPackageName || "Tour Package"}
@@ -100,7 +109,8 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
                             Starting from
                           </span>
                           <p className="text-base font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                            ₹{Number(displayPrice).toLocaleString("en-IN")}
+                            {"\u20B9"}
+                            {displayPrice}
                             <span className="text-xs text-gray-400 font-normal ml-0.5">
                               /person
                             </span>

@@ -13,6 +13,11 @@ import { InquiryCta } from "./components/inquiry-cta";
 import { WhyChooseUs } from "./components/why-choose-us";
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "Travel Home | Aagam Holidays",
+  description:
+    "Discover handcrafted tour packages, featured destinations, and premium travel experiences from Aagam Holidays.",
+};
 
 export default async function TravelHomePage() {
   const [

@@ -4,11 +4,9 @@ import { Inter } from 'next/font/google'
 import { ModalProvider } from '@/providers/modal-provider'
 import { ToastProvider } from '@/providers/toast-provider'
 import { ThemeProvider } from '@/providers/theme-provider'
+import { AppShell } from '@/components/app-shell'
 
 import './globals.css'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/app-sidebar'
-import { DebugLogPanel } from '@/components/DebugLogPanel'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -37,17 +35,7 @@ export default async function RootLayout({
           >
             <ToastProvider />
             <ModalProvider />
-            <DebugLogPanel />
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset className="overflow-auto">
-                {/* Sticky top bar — shows sidebar trigger on all sizes */}
-                <div className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 backdrop-blur px-4 md:px-6">
-                  <SidebarTrigger className="-ml-1" />
-                </div>
-                {children}
-              </SidebarInset>
-            </SidebarProvider>
+            <AppShell>{children}</AppShell>
           </ThemeProvider>
         </body>
       </html>

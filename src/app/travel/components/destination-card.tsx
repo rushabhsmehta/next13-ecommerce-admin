@@ -17,16 +17,22 @@ export function DestinationCard({
   packageCount,
   slug,
 }: DestinationCardProps) {
+  const hasImage = Boolean(imageUrl);
+
   return (
     <Link href={`/travel/destinations/${id}`} className="group block">
       <div className="relative h-72 sm:h-80 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-300 group-hover:-translate-y-1">
-        <Image
-          src={imageUrl || "/placeholder-destination.jpg"}
-          alt={name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
+        {hasImage ? (
+          <Image
+            src={imageUrl}
+            alt={name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-700" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
         <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">

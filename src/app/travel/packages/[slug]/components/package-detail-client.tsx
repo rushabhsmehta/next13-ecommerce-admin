@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import DOMPurify from "isomorphic-dompurify";
 import Image from "next/image";
@@ -72,6 +72,17 @@ function parseJsonContent(content: any): string[] {
   return [];
 }
 
+function formatPrice(value: string | null | undefined) {
+  if (!value) return null;
+
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  return new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export function PackageDetailClient({
   tourPackage,
   relatedPackages,
@@ -88,7 +99,7 @@ export function PackageDetailClient({
   const cancellationPolicy = parseJsonContent(tourPackage.cancellationPolicy);
   const paymentPolicy = parseJsonContent(tourPackage.paymentPolicy);
 
-  const displayPrice = tourPackage.pricePerAdult || tourPackage.price;
+  const displayPrice = formatPrice(tourPackage.pricePerAdult) || formatPrice(tourPackage.price);
 
   const toggleDay = (index: string) => {
     const next = new Set(expandedDays);
@@ -431,7 +442,7 @@ export function PackageDetailClient({
                     <>
                       <span className="text-xs text-gray-400 uppercase tracking-wider">Starting from</span>
                       <p className="text-3xl font-bold text-orange-700">
-                        ₹{Number(displayPrice).toLocaleString("en-IN")}
+                        {"\u20B9"}{displayPrice}
                       </p>
                       <span className="text-sm text-gray-500">per person</span>
                     </>
@@ -475,19 +486,19 @@ export function PackageDetailClient({
                     {tourPackage.pricePerAdult && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Per Adult</span>
-                        <span className="font-medium">₹{Number(tourPackage.pricePerAdult).toLocaleString("en-IN")}</span>
+                        <span className="font-medium">{"\u20B9"}{formatPrice(tourPackage.pricePerAdult)}</span>
                       </div>
                     )}
                     {tourPackage.pricePerChildOrExtraBed && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Child / Extra Bed</span>
-                        <span className="font-medium">₹{Number(tourPackage.pricePerChildOrExtraBed).toLocaleString("en-IN")}</span>
+                        <span className="font-medium">{"\u20B9"}{formatPrice(tourPackage.pricePerChildOrExtraBed)}</span>
                       </div>
                     )}
                     {tourPackage.pricePerChild5to12YearsNoBed && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Child (5-12, No Bed)</span>
-                        <span className="font-medium">₹{Number(tourPackage.pricePerChild5to12YearsNoBed).toLocaleString("en-IN")}</span>
+                        <span className="font-medium">{"\u20B9"}{formatPrice(tourPackage.pricePerChild5to12YearsNoBed)}</span>
                       </div>
                     )}
                   </div>
@@ -539,3 +550,4 @@ export function PackageDetailClient({
     </div>
   );
 }
+

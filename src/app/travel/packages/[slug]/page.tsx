@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { PackageDetailClient } from "./components/package-detail-client";
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "Tour Package Details | Aagam Holidays",
+  description:
+    "View itinerary details, inclusions, pricing, and related packages for a selected Aagam Holidays tour.",
+};
 
 export default async function PackageDetailPage(
   props: {

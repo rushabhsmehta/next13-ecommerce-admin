@@ -2,6 +2,11 @@ import prismadb from "@/lib/prismadb";
 import { PackagesListClient } from "./components/packages-list-client";
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "Tour Packages | Aagam Holidays",
+  description:
+    "Search, filter, and compare curated tour packages from Aagam Holidays.",
+};
 
 export default async function PackagesPage(
   props: {

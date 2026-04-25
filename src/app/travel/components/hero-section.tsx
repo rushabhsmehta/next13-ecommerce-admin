@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, MapPin, Calendar, Users, Plane } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,96 +17,56 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative min-h-[84vh] sm:min-h-[85vh] flex items-center justify-center overflow-hidden">
-      {/* Background - logo-inspired gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-red-700 to-purple-900" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,146,60,0.3)_0%,_transparent_50%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(147,51,234,0.2)_0%,_transparent_50%)]" />
-
-      {/* Decorative floating elements */}
-      <div className="absolute top-24 left-8 w-64 h-64 bg-orange-400/15 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-24 right-8 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1.5s" }} />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-500/5 rounded-full blur-3xl" />
-
-      {/* Airplane decorative element */}
-      <div className="absolute top-32 right-[15%] opacity-10 hidden md:block">
-        <Plane className="w-24 h-24 text-white transform rotate-45" />
-      </div>
-
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-16 sm:pt-20 pb-8">
-        {/* Logo badge */}
-        <div className="inline-flex items-center px-4 sm:px-5 py-2.5 bg-white/10 backdrop-blur-xl rounded-full text-orange-200 text-xs sm:text-sm font-medium mb-6 sm:mb-8 border border-white/15 shadow-lg shadow-black/5 max-w-[92vw]">
-          <div className="relative w-5 h-5 mr-2.5">
-            <Image
-              src="/aagamholidays.png"
-              alt="Aagam Holidays logo"
-              fill
-              className="object-contain"
-              sizes="20px"
-            />
+    <section className="relative overflow-hidden bg-gradient-to-b from-orange-50 via-white to-white pt-20 sm:pt-24 pb-6 sm:pb-8">
+      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-br from-orange-500/10 via-red-500/10 to-purple-500/10 blur-3xl" />
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-orange-100 bg-white/95 backdrop-blur-xl shadow-lg shadow-orange-500/5 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="relative h-9 w-9 overflow-hidden rounded-2xl border border-orange-100 bg-white">
+                <Image
+                  src="/aagamholidays.png"
+                  alt="Aagam Holidays logo"
+                  fill
+                  className="object-contain p-1"
+                  sizes="36px"
+                />
+              </div>
+              <div>
+                <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Search travel packages
+                </p>
+              </div>
+            </div>
+            <p className="max-w-lg text-xs sm:text-sm leading-5 text-gray-500">
+              Search destinations, package names, or experiences directly from
+              the top of the page.
+            </p>
           </div>
-          Trusted by 10,000+ Happy Travelers
-        </div>
 
-        {/* Main Heading */}
-        <h1 className="text-[2.35rem] leading-[1.03] sm:text-5xl md:text-7xl font-extrabold text-white mb-5 sm:mb-6 tracking-tight max-w-[92vw] mx-auto">
-          Discover Your Next{" "}
-          <span className="bg-gradient-to-r from-orange-300 via-amber-200 to-yellow-200 bg-clip-text text-transparent">
-            Adventure
-          </span>
-        </h1>
-
-        <p className="text-sm sm:text-lg md:text-xl text-white/75 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed font-light px-1 sm:px-0">
-          Handcrafted tour packages to the world&apos;s most stunning destinations.
-          Experience travel like never before.
-        </p>
-
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-1.5 sm:p-2 border border-white/15 shadow-2xl shadow-black/10">
-            <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2">
-              <div className="flex-1 flex items-center bg-white rounded-xl px-4 py-3.5">
-                <Search className="w-5 h-5 text-orange-400 mr-3 flex-shrink-0" />
+          <form onSubmit={handleSearch}>
+            <div className="flex flex-col gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-2 sm:flex-row">
+              <div className="flex flex-1 items-center rounded-xl bg-white px-4 py-2.5 shadow-sm">
+                <Search className="mr-3 h-4 w-4 flex-shrink-0 text-orange-400 sm:h-5 sm:w-5" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Where do you want to go?"
-                  className="w-full bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none text-sm sm:text-base"
+                  className="w-full bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none sm:text-base"
                 />
               </div>
               <button
                 type="submit"
-                className="px-8 py-3.5 bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-orange-500/30 transition-all duration-300 active:scale-[0.98] text-sm sm:text-base"
+                className="rounded-xl bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 px-6 py-3 text-sm font-semibold text-white transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/30 active:scale-[0.98] sm:px-8 sm:py-3.5"
               >
-                Explore
+                Search
               </button>
             </div>
-          </div>
-        </form>
-
-        {/* Quick Stats */}
-        <div className="flex flex-wrap justify-center gap-4 sm:gap-10 mt-10 sm:mt-14">
-          {[
-            { icon: MapPin, label: "Destinations", value: "50+" },
-            { icon: Calendar, label: "Tour Packages", value: "200+" },
-            { icon: Users, label: "Happy Travelers", value: "10K+" },
-          ].map((stat) => (
-            <div key={stat.label} className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
-                <stat.icon className="w-5 h-5 text-orange-300" />
-              </div>
-              <div className="text-left">
-                <p className="text-xl sm:text-2xl font-bold text-white">{stat.value}</p>
-                <p className="text-[11px] sm:text-xs text-white/50 uppercase tracking-wider">{stat.label}</p>
-              </div>
-            </div>
-          ))}
+          </form>
         </div>
       </div>
-
-      {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent" />
     </section>
   );
 }

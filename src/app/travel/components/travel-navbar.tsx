@@ -4,10 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { CircleUserRound, Home } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CircleUserRound, Home, Search, X } from "lucide-react";
 
 export function TravelNavbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -19,6 +23,14 @@ export function TravelNavbar() {
   const isActive = (href: string) =>
     pathname === href || (href !== "/travel" && pathname?.startsWith(href));
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+    router.push(`/travel/packages?search=${encodeURIComponent(query)}`);
+    setSearchOpen(false);
+  };
+
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -27,22 +39,96 @@ export function TravelNavbar() {
           : "bg-white/80 backdrop-blur-md border-b border-gray-100/50"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-18">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-3.5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Logo */}
-          <Link href="/travel" className="flex items-center group">
-            <div className="relative w-24 h-8 sm:w-32 sm:h-11 transition-transform duration-300 group-hover:scale-[1.02]">
-              <Image
-                src="/aagamholidays.png"
-                alt="Aagam Holidays"
-                fill
-                className="object-contain"
-                sizes="(max-width: 640px) 96px, 128px"
-              />
-            </div>
-          </Link>
+          <div className="flex items-center justify-between gap-3 sm:justify-start sm:flex-shrink-0">
+            <Link href="/travel" className="flex items-center group">
+              <div className="relative w-24 h-8 sm:w-32 sm:h-11 transition-transform duration-300 group-hover:scale-[1.02]">
+                <Image
+                  src="/aagamholidays.png"
+                  alt="Aagam Holidays"
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 640px) 96px, 128px"
+                />
+              </div>
+            </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:hidden">
+              <button
+                type="button"
+                onClick={() => setSearchOpen((value) => !value)}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-200 ${
+                  searchOpen
+                    ? "border-orange-200 bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-orange-200 hover:text-orange-600"
+                }`}
+                aria-label="Search"
+                aria-expanded={searchOpen}
+              >
+                {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+              </button>
+              {[{ href: "/travel", label: "Home", icon: Home }, { href: "/travel/account", label: "Account", icon: CircleUserRound }].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`relative flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                    isActive(item.href)
+                      ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                      : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSearch} className="hidden sm:block sm:flex-1 sm:max-w-xl">
+            <div className="flex items-center gap-2 rounded-full border border-orange-100 bg-white/95 px-3 py-2 shadow-sm">
+              <Search className="h-4 w-4 flex-shrink-0 text-orange-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search packages, destinations..."
+                className="w-full bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none"
+                aria-label="Search travel packages"
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:shadow-md hover:shadow-orange-500/20"
+              >
+                Search
+              </button>
+            </div>
+          </form>
+
+          {searchOpen ? (
+            <form onSubmit={handleSearch} className="sm:hidden">
+              <div className="flex items-center gap-2 rounded-full border border-orange-100 bg-white/95 px-3 py-2 shadow-sm">
+                <Search className="h-4 w-4 flex-shrink-0 text-orange-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search packages, destinations..."
+                  className="w-full bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none"
+                  autoFocus
+                  aria-label="Search travel packages"
+                />
+                <button
+                  type="submit"
+                  className="rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:shadow-md hover:shadow-orange-500/20"
+                >
+                  Go
+                </button>
+              </div>
+            </form>
+          ) : null}
+
+          <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
             {[
               { href: "/travel", label: "Home", icon: Home },
               { href: "/travel/account", label: "Account", icon: CircleUserRound },

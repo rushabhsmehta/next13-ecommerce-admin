@@ -894,7 +894,36 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </div>
     `;
 
-    // 2. Tour Information
+    // 2. Client / Associate Partner / Assigned-To section
+    const clientInfoSection = selectedOption !== "SupplierA" && selectedOption !== "SupplierB" ? `
+      <div style="${cardStyle}">
+        <div style="padding: 16px 20px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr ${initialData.assignedTo ? '1fr' : ''}; gap: 16px;">
+            ${initialData.customerName ? `
+              <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Customer</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${initialData.customerName}</div>
+                <div style="font-size: 12px; color: #4b5563; margin-top: 2px;">${initialData.customerNumber || ''}</div>
+              </div>
+            ` : ''}
+            <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
+              <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Associate Partner</div>
+              <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${initialData.associatePartner?.name || 'N/A'}</div>
+              <div style="font-size: 12px; color: #4b5563; margin-top: 2px;">${initialData.associatePartner?.mobileNumber || ''}</div>
+            </div>
+            ${initialData.assignedTo ? `
+              <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Assigned To</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${initialData.assignedTo}</div>
+                <div style="font-size: 12px; color: #4b5563; margin-top: 2px;">${initialData.assignedToMobileNumber || ''}</div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    ` : '';
+
+    // 3. Tour Information
     const tourInfoSection = `
       <div style="${cardStyle}">
         <div style="${headerStyleAlt}">
@@ -1250,6 +1279,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         <body>
           <div style="${containerStyle}">
             ${headerSection}
+            ${clientInfoSection}
             ${tourInfoSection}
             ${hotelComparisonSection}
             ${priceComparisonSection}
@@ -1260,7 +1290,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, buildHotelComparisonSection, buildPriceComparisonSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection]);
+  }, [initialData, currentCompany, locations, selectedOption, buildHotelComparisonSection, buildPriceComparisonSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

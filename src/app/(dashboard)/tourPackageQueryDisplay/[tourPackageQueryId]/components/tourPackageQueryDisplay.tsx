@@ -315,9 +315,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <div className="mb-3">
                   <span className="font-bold">Customer:</span> {initialData.customerName} | {initialData.customerNumber}
                 </div>
-                <div>
+                <div className="mb-3">
                   <span className="font-bold">Associate Partner :</span> {initialData.associatePartner?.name} | {initialData.associatePartner?.mobileNumber} | {initialData.associatePartner?.email}
                 </div>
+                {initialData.assignedTo && (
+                  <div>
+                    <span className="font-bold">Assigned To:</span> {initialData.assignedTo}
+                    {initialData.assignedToMobileNumber && <span> | {initialData.assignedToMobileNumber}</span>}
+                    {initialData.assignedToEmail && <span> | {initialData.assignedToEmail}</span>}
+                  </div>
+                )}
               </CardDescription>
             )}
             <CardDescription className="text-lg">
@@ -331,6 +338,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       <div>Mobile: {initialData.associatePartner?.mobileNumber}</div>
                       <div>Email: {initialData.associatePartner?.email}</div>
                     </>
+                  )}
+                  {initialData.assignedTo && (
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <div className="font-bold">Assigned To: {initialData.assignedTo}</div>
+                      {initialData.assignedToMobileNumber && <div>Mobile: {initialData.assignedToMobileNumber}</div>}
+                      {initialData.assignedToEmail && <div>Email: {initialData.assignedToEmail}</div>}
+                    </div>
                   )}
                 </div>
               )}

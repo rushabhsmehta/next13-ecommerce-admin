@@ -484,7 +484,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
 
           ${selectedOption !== "SupplierA" && selectedOption !== "SupplierB" ? `
-            <div style="border-top: 1px solid ${brandColors.border}; margin-top: 16px; padding-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div style="border-top: 1px solid ${brandColors.border}; margin-top: 16px; padding-top: 16px; display: grid; grid-template-columns: 1fr 1fr ${initialData.assignedTo ? '1fr' : ''}; gap: 16px;">
               <!-- Customer -->
               <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Customer</div>
@@ -499,6 +499,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   ${initialData.associatePartner?.mobileNumber || 'N/A'}
                 </div>
               </div>
+              <!-- Assigned To -->
+              ${initialData.assignedTo ? `
+                <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
+                  <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Assigned To</div>
+                  <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${initialData.assignedTo}</div>
+                  <div style="font-size: 12px; color: #4b5563; margin-top: 2px;">${initialData.assignedToMobileNumber || ''}</div>
+                </div>
+              ` : ''}
             </div>
           ` : ''}
         </div>

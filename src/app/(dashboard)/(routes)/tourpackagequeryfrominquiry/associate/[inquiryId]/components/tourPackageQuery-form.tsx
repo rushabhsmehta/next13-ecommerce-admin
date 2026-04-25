@@ -352,6 +352,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sharedControl = form.control as any;
 
+  // Ensure inquiry's associate partner is reflected in the Combobox after mount
+  useEffect(() => {
+    if (inquiry?.associatePartnerId) {
+      form.setValue('associatePartnerId', inquiry.associatePartnerId);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // --- ADDED useEffect TO FETCH LOOKUP DATA ---
   useEffect(() => {
     const fetchLookupData = async () => {

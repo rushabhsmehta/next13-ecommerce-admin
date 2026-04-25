@@ -3,7 +3,7 @@ import { TravelNavbar } from "./components/travel-navbar";
 import { TravelFooter } from "./components/travel-footer";
 
 export const metadata: Metadata = {
-  title: "Aagam Holidays - Discover Amazing Tour Packages",
+  title: "Travel | Aagam Holidays - Discover Amazing Tour Packages",
   description:
     "Explore handcrafted tour packages to the most beautiful destinations. Book your dream vacation with Aagam Holidays.",
 };

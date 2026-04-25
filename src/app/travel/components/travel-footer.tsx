@@ -9,23 +9,15 @@ export function TravelFooter() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-12">
           {/* Brand */}
           <div className="space-y-4 sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center space-x-2.5">
-              <div className="relative w-9 h-9">
+            <div className="flex items-center">
+              <div className="relative w-32 h-11">
                 <Image
                   src="/aagamholidays.png"
                   alt="Aagam Holidays"
                   fill
                   className="object-contain"
-                  sizes="36px"
+                  sizes="128px"
                 />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-orange-400 via-red-400 to-purple-400 bg-clip-text text-transparent leading-tight">
-                  AAGAM
-                </span>
-                <span className="text-xs font-semibold tracking-[0.2em] text-purple-400/60 -mt-0.5 uppercase">
-                  Holidays
-                </span>
               </div>
             </div>
             <p className="text-sm leading-relaxed text-gray-500">

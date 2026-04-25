@@ -36,23 +36,15 @@ export function TravelNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/travel" className="flex items-center space-x-2.5 group">
-            <div className="relative w-9 h-9 transition-transform duration-300 group-hover:scale-105">
+          <Link href="/travel" className="flex items-center group">
+            <div className="relative w-28 h-10 sm:w-32 sm:h-11 transition-transform duration-300 group-hover:scale-[1.02]">
               <Image
                 src="/aagamholidays.png"
                 alt="Aagam Holidays"
                 fill
                 className="object-contain"
-                sizes="36px"
+                sizes="(max-width: 640px) 112px, 128px"
               />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-orange-500 via-red-500 to-purple-700 bg-clip-text text-transparent leading-tight">
-                AAGAM
-              </span>
-              <span className="text-xs font-semibold tracking-[0.2em] text-purple-700/70 -mt-0.5 uppercase">
-                Holidays
-              </span>
             </div>
           </Link>
 

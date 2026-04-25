@@ -1093,6 +1093,45 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
           }
         );
       }
+    } else if (variantFieldsTouched) {
+      // Variant override fields were updated but selectedVariantIds was not sent
+      // (e.g. Hotels tab saved variantHotelOverrides only). Apply overrides directly
+      // to existing snapshots without a full template rebuild.
+      const freshQuery = await prismadb.tourPackageQuery.findUnique({
+        where: { id: params.tourPackageQueryId },
+        select: {
+          variantHotelOverrides: true,
+          variantPricingData: true,
+          tourStartsFrom: true,
+          tourEndsOn: true,
+          itineraries: { select: { id: true, dayNumber: true } },
+        },
+      });
+
+      if (hasBodyKey('variantHotelOverrides')) {
+        const savedOverrides = freshQuery?.variantHotelOverrides as Record<string, Record<string, string>> | null;
+        if (savedOverrides && Object.keys(savedOverrides).length > 0 && freshQuery?.itineraries) {
+          await applyVariantHotelOverrides(
+            params.tourPackageQueryId,
+            savedOverrides,
+            freshQuery.itineraries.map((i: any) => ({ id: i.id, dayNumber: i.dayNumber }))
+          );
+        }
+      }
+
+      if (hasBodyKey('variantPricingData')) {
+        const savedPricing = freshQuery?.variantPricingData as Record<string, any> | null;
+        if (savedPricing && Object.keys(savedPricing).length > 0) {
+          await applyVariantPricingOverrides(
+            params.tourPackageQueryId,
+            savedPricing,
+            {
+              startDate: freshQuery?.tourStartsFrom ?? null,
+              endDate: freshQuery?.tourEndsOn ?? null,
+            }
+          );
+        }
+      }
     }
 
     // Log audit entry for update (best-effort)

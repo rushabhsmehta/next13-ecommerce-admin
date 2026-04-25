@@ -1,11 +1,10 @@
 import prismadb from "@/lib/prismadb";
 import { HeroSection } from "./components/hero-section";
+import { DestinationCarousel } from "./components/destination-carousel";
 import { TourCategories } from "./components/tour-categories";
-import { FeaturedDestinations } from "./components/featured-destinations";
 import { FeaturedPackages } from "./components/featured-packages";
 import { SpecialDeals } from "./components/special-deals";
 import { PopularActivities } from "./components/popular-activities";
-import { FeaturedHotels } from "./components/featured-hotels";
 import { HowItWorks } from "./components/how-it-works";
 import { StatsSection } from "./components/stats-section";
 import { Testimonials } from "./components/testimonials";
@@ -26,10 +25,8 @@ export default async function TravelHomePage() {
     categories,
     deals,
     activities,
-    hotels,
     [destinationCount, packageCount],
   ] = await Promise.all([
-    // Existing queries
     prismadb.location.findMany({
       where: { isActive: true },
       select: {
@@ -107,20 +104,6 @@ export default async function TravelHomePage() {
       },
       take: 8,
     }),
-
-    // New: Featured hotels with images
-    prismadb.hotel.findMany({
-      where: { images: { some: {} } },
-      select: {
-        id: true,
-        name: true,
-        images: { select: { url: true }, take: 1 },
-        location: { select: { label: true, slug: true } },
-      },
-      take: 6,
-    }),
-
-    // New: Stats counts
     Promise.all([
       prismadb.location.count({ where: { isActive: true } }),
       prismadb.tourPackage.count({ where: { isArchived: false } }),
@@ -137,14 +120,13 @@ export default async function TravelHomePage() {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       <HeroSection />
+      <DestinationCarousel destinations={activeDestinations} />
       <TourCategories categories={categories} />
-      <FeaturedDestinations destinations={activeDestinations} />
       <FeaturedPackages packages={featuredPackages} />
       <SpecialDeals deals={deals} />
       <PopularActivities activities={filteredActivities} />
-      <FeaturedHotels hotels={hotels} />
       <HowItWorks />
       <StatsSection
         destinationCount={destinationCount}

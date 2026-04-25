@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Clock, MapPin, Tag } from "lucide-react";
+import { stripHtml } from "@/lib/html-utils";
 
 interface DealPackage {
   id: string;
@@ -56,6 +57,7 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
           {deals.map((pkg) => {
             const displayPrice = formatPrice(pkg.pricePerAdult) || formatPrice(pkg.price);
+            const displayName = stripHtml(pkg.tourPackageName || "") || "Tour Package";
             const href = pkg.slug
               ? `/travel/packages/${pkg.slug}`
               : `/travel/packages/${pkg.id}`;
@@ -68,7 +70,7 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
                     {hasImage ? (
                       <Image
                         src={pkg.images[0].url}
-                        alt={pkg.tourPackageName || "Tour Package"}
+                        alt={displayName}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -99,7 +101,7 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
 
                   <div className="p-4">
                     <h3 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-2 mb-3 leading-snug">
-                      {pkg.tourPackageName || "Tour Package"}
+                      {displayName}
                     </h3>
 
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">

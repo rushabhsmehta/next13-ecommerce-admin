@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Zap } from "lucide-react";
+import { stripHtml } from "@/lib/html-utils";
 
 interface ActivityData {
   id: string;
@@ -46,6 +47,7 @@ export function PopularActivities({
           {activities.map((activity) => {
             const imageUrl = activity.activityMasterImages[0]?.url || "";
             const locationSlug = activity.location?.slug;
+            const displayTitle = stripHtml(activity.activityMasterTitle) || "Activity";
             const href = locationSlug
               ? `/travel/destinations/${locationSlug}`
               : "/travel/packages";
@@ -58,7 +60,7 @@ export function PopularActivities({
                     {imageUrl ? (
                       <Image
                         src={imageUrl}
-                        alt={activity.activityMasterTitle}
+                        alt={displayTitle}
                         fill
                         className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                         sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
@@ -84,7 +86,7 @@ export function PopularActivities({
                   {/* Title */}
                   <div className="p-3 sm:p-4">
                     <h3 className="text-sm font-semibold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug">
-                      {activity.activityMasterTitle}
+                      {displayTitle}
                     </h3>
                   </div>
                 </div>

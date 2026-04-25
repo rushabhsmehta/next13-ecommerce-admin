@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin, Star, ArrowRight } from "lucide-react";
+import { stripHtml } from "@/lib/html-utils";
 
 interface PackageCardProps {
   id: string;
@@ -41,6 +42,7 @@ export function PackageCard({
   const displayPrice = formatPrice(pricePerAdult) || formatPrice(price);
   const href = slug ? `/travel/packages/${slug}` : `/travel/packages/${id}`;
   const hasImage = Boolean(imageUrl);
+  const displayName = stripHtml(name) || "Tour Package";
 
   return (
     <Link href={href} className="group block">
@@ -49,7 +51,7 @@ export function PackageCard({
           {hasImage ? (
             <Image
               src={imageUrl}
-              alt={name || "Tour Package"}
+              alt={displayName}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -82,7 +84,7 @@ export function PackageCard({
 
         <div className="p-4 sm:p-5">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2 mb-2 leading-snug">
-            {name || "Tour Package"}
+            {displayName}
           </h3>
 
           <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">

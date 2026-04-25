@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import DOMPurify from "isomorphic-dompurify";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -21,6 +20,7 @@ import {
   Camera,
 } from "lucide-react";
 import { PackageCard } from "../../../components/package-card";
+import { RichHtml } from "@/components/ui/rich-html";
 
 interface PackageDetailClientProps {
   tourPackage: any;
@@ -155,9 +155,11 @@ export function PackageDetailClient({
                   {tourPackage.tourCategory}
                 </span>
               )}
-              <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-white mb-2 leading-tight">
-                {tourPackage.tourPackageName || "Tour Package"}
-              </h1>
+              <RichHtml
+                as="h1"
+                html={tourPackage.tourPackageName || "Tour Package"}
+                className="text-xl sm:text-2xl lg:text-4xl font-bold text-white mb-2 leading-tight"
+              />
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-white/90 text-sm">
                 <span className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" /> {tourPackage.location?.label}
@@ -250,11 +252,10 @@ export function PackageDetailClient({
                               D{day.dayNumber || index + 1}
                             </div>
                             <div className="text-left">
-                              <h3
+                              <RichHtml
+                                as="h3"
+                                html={day.itineraryTitle || `Day ${day.dayNumber || index + 1}`}
                                 className="font-semibold text-gray-900 text-sm sm:text-base"
-                                dangerouslySetInnerHTML={{
-                                  __html: DOMPurify.sanitize(day.itineraryTitle || `Day ${day.dayNumber || index + 1}`)
-                                }}
                               />
                               {day.hotel && (
                                 <span className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
@@ -287,14 +288,10 @@ export function PackageDetailClient({
                             )}
 
                             {day.itineraryDescription && (
-                              <div
+                              <RichHtml
+                                as="div"
+                                html={day.itineraryDescription}
                                 className="text-gray-600 text-sm leading-relaxed mb-4 prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{
-                                __html: DOMPurify.sanitize(day.itineraryDescription, {
-                                  ALLOWED_TAGS: ['p','br','b','strong','i','em','u','ul','ol','li','h1','h2','h3','h4','span','div','a'],
-                                  ALLOWED_ATTR: ['href','target','rel','class','style']
-                                })
-                              }}
                               />
                             )}
 
@@ -310,15 +307,17 @@ export function PackageDetailClient({
                                     className="bg-orange-50/60 rounded-xl p-3"
                                   >
                                     {activity.activityTitle && (
-                                      <p
+                                      <RichHtml
+                                        as="p"
+                                        html={activity.activityTitle}
                                         className="text-sm font-medium text-orange-800"
-                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activity.activityTitle) }}
                                       />
                                     )}
                                     {activity.activityDescription && (
-                                      <p
+                                      <RichHtml
+                                        as="p"
+                                        html={activity.activityDescription}
                                         className="text-xs text-orange-700/70 mt-1"
-                                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(activity.activityDescription) }}
                                       />
                                     )}
                                     {activity.activityImages?.length > 0 && (

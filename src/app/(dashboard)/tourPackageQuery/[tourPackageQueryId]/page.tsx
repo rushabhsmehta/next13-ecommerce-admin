@@ -163,7 +163,7 @@ const tourPackageQueryPage = async (
           select: IMAGE_SELECT,
         },
       },
-      take: 100,
+      orderBy: { hotelName: 'asc' },
     }),
     prismadb.activityMaster.findMany({
       where: locationFilter,

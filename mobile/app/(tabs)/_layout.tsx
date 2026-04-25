@@ -9,7 +9,6 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { isLoggedIn, userType } = useAuth();
   const isAssociate = userType === "associate";
-  // Tourists: explicitly set as tourist, or logged in without a type (legacy tourist token)
   const isTourist = isLoggedIn && !isAssociate;
 
   return (
@@ -57,29 +56,20 @@ export default function TabLayout() {
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={22}
+                color={color}
+              />
             </View>
           ),
         }}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: "Explore",
-          headerTitle: "Explore",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
-            </View>
-          ),
-        }}
-      />
-      {/* Always hidden — destinations merged into Explore */}
-      <Tabs.Screen
-        name="destinations"
-        options={{ href: null }}
-      />
-      {/* Trip Chat — tourists only */}
+
+      <Tabs.Screen name="explore" options={{ href: null }} />
+
+      <Tabs.Screen name="destinations" options={{ href: null }} />
+
       <Tabs.Screen
         name="chat"
         options={{
@@ -88,12 +78,16 @@ export default function TabLayout() {
           headerTitle: "Trip Chat",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={22} color={color} />
+              <Ionicons
+                name={focused ? "chatbubbles" : "chatbubbles-outline"}
+                size={22}
+                color={color}
+              />
             </View>
           ),
         }}
       />
-      {/* Inquiries — associates only */}
+
       <Tabs.Screen
         name="inquiries"
         options={{
@@ -102,11 +96,16 @@ export default function TabLayout() {
           headerTitle: "My Inquiries",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons name={focused ? "document-text" : "document-text-outline"} size={22} color={color} />
+              <Ionicons
+                name={focused ? "document-text" : "document-text-outline"}
+                size={22}
+                color={color}
+              />
             </View>
           ),
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{
@@ -114,7 +113,11 @@ export default function TabLayout() {
           headerTitle: isLoggedIn ? "My Profile" : "Account",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+              <Ionicons
+                name={focused ? "person" : "person-outline"}
+                size={22}
+                color={color}
+              />
             </View>
           ),
         }}

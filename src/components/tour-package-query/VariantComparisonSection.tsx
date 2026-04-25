@@ -126,29 +126,40 @@ export function VariantComparisonSection({
     new Set(variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber)))
   ).sort((a, b) => a - b);
 
-  // Get all unique pricing components that have at least one non-zero value
-  const allPricingComponents = Array.from(
-    new Set([
-      ...variants.flatMap(v =>
-        v.pricingSnapshots.flatMap(p =>
-          p.pricingComponentSnapshots.map(c => c.attributeName)
-        )
-      ),
-      ...variants.flatMap(v =>
-        (getVpd(v)?.components || []).map(c => c.name).filter(Boolean)
-      ),
-    ])
-  ).filter(compName =>
-    variants.some(v => {
-      const vpd = getVpd(v);
-      const vpdComp = (vpd?.components || []).find(c => c.name === compName);
-      if (vpdComp) return parseFloat(String(vpdComp.price || 0)) > 0;
-      const snap = v.pricingSnapshots[0]?.pricingComponentSnapshots.find(c => c.attributeName === compName);
-      return snap ? parseFloat(String(snap.price || 0)) > 0 : false;
-    })
-  );
+  // Flat list of all pricing component snapshots for a variant (across all pricing snapshots in order)
+  const getComponentsFlat = (v: VariantSnapshot) =>
+    v.pricingSnapshots.flatMap(ps => ps.pricingComponentSnapshots);
 
-  // Calculate totals for "Best Value" badge
+  // Build index-keyed row labels: one row per component position.
+  // Using index instead of name avoids de-duplication when two components share the same name.
+  const maxSnapshotRows = Math.max(...variants.map(v => getComponentsFlat(v).length), 0);
+  const maxVpdRows = Math.max(...variants.map(v => (getVpd(v)?.components || []).length), 0);
+  const totalRows = Math.max(maxSnapshotRows, maxVpdRows);
+
+  const rowLabels = Array.from({ length: totalRows }, (_, i) => {
+    for (const v of variants) {
+      const vpd = getVpd(v);
+      if (vpd?.components?.[i]?.name) return vpd.components[i].name;
+      const comps = getComponentsFlat(v);
+      if (comps[i]?.attributeName) return comps[i].attributeName;
+    }
+    return `Item ${i + 1}`;
+  });
+
+  // Only keep rows that have at least one non-zero value
+  const pricingRows = rowLabels
+    .map((label, i) => ({ label, i }))
+    .filter(({ i }) =>
+      variants.some(v => {
+        const vpd = getVpd(v);
+        const vpdComp = vpd?.components?.[i];
+        if (vpdComp) return parseFloat(String(vpdComp.price || 0)) > 0;
+        const comp = getComponentsFlat(v)[i];
+        return comp ? parseFloat(String(comp.price || 0)) > 0 : false;
+      })
+    );
+
+  // Calculate totals for "Best Value" badge — sum across ALL pricing snapshots
   const variantTotals = variants.map(v => {
     const vpd = getVpd(v);
     if (vpd?.totalCost) {
@@ -156,11 +167,11 @@ export function VariantComparisonSection({
       if (!isNaN(n) && n > 0) return n;
     }
     try {
-      const ps = v.pricingSnapshots[0];
-      if (ps?.totalPrice) {
-        const n = parseFloat(String(ps.totalPrice));
-        if (!isNaN(n) && n > 0) return n;
-      }
+      const total = v.pricingSnapshots.reduce((sum, ps) => {
+        const n = parseFloat(String(ps.totalPrice ?? 0));
+        return sum + (isNaN(n) ? 0 : n);
+      }, 0);
+      if (total > 0) return total;
     } catch { /* fall through */ }
     return Infinity;
   });
@@ -355,7 +366,7 @@ export function VariantComparisonSection({
       )}
 
       {/* Pricing Comparison Table */}
-      {(hasPricing || allPricingComponents.length > 0) && (
+      {(hasPricing || pricingRows.length > 0) && (
         <div className="rounded-xl border border-orange-200 bg-white shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-orange-50 to-red-50 px-5 py-4 border-b border-orange-200 flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -379,12 +390,12 @@ export function VariantComparisonSection({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {allPricingComponents.map((compName, idx) => (
-                  <tr key={compName} className={`divide-x divide-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-orange-50/30'}`}>
-                    <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">{compName}</td>
+                {pricingRows.map(({ label, i }, idx) => (
+                  <tr key={i} className={`divide-x divide-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-orange-50/30'}`}>
+                    <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">{label}</td>
                     {variants.map(variant => {
                       const vpd = getVpd(variant);
-                      const vpdComp = (vpd?.components || []).find(c => c.name === compName);
+                      const vpdComp = vpd?.components?.[i];
                       if (vpdComp) {
                         return (
                           <td key={variant.id} className="px-4 py-3 text-right">
@@ -392,7 +403,7 @@ export function VariantComparisonSection({
                           </td>
                         );
                       }
-                      const comp = variant.pricingSnapshots[0]?.pricingComponentSnapshots.find(c => c.attributeName === compName);
+                      const comp = getComponentsFlat(variant)[i];
                       return (
                         <td key={variant.id} className="px-4 py-3 text-right">
                           {comp ? (
@@ -421,11 +432,11 @@ export function VariantComparisonSection({
                       const n = parseFloat(String(vpd.totalCost));
                       if (!isNaN(n) && n > 0) totalStr = `₹ ${formatINR(n.toString())}`;
                     } else {
-                      const ps = variant.pricingSnapshots[0];
-                      if (ps?.totalPrice) {
-                        const n = parseFloat(String(ps.totalPrice));
-                        if (!isNaN(n) && n > 0) totalStr = `₹ ${formatINR(String(ps.totalPrice))}`;
-                      }
+                      const total = variant.pricingSnapshots.reduce((sum, ps) => {
+                        const n = parseFloat(String(ps.totalPrice ?? 0));
+                        return sum + (isNaN(n) ? 0 : n);
+                      }, 0);
+                      if (total > 0) totalStr = `₹ ${formatINR(String(total))}`;
                     }
                     const isBest = variantTotals[idx] === minPrice && minPrice !== Infinity;
                     return (

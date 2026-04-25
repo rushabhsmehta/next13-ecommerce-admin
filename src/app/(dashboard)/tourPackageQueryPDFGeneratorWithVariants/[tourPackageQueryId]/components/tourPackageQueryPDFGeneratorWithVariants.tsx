@@ -289,14 +289,26 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
     )).sort((a, b) => a - b);
 
-    const allComponents = Array.from(new Set([
-      ...variants.flatMap(v =>
-        v.pricingSnapshots.flatMap(p =>
-          p.pricingComponentSnapshots.map(c => c.attributeName)
-        )
-      ),
-      ...variants.flatMap(v => (getVpd(v)?.components || []).map((c: any) => c.name as string).filter(Boolean)),
-    ]));
+    // Flat list of all pricing component snapshots for a variant (across all pricing snapshots in order)
+    const getCompsFlatGlance = (v: typeof variants[0]) =>
+      v.pricingSnapshots.flatMap(ps => ps.pricingComponentSnapshots);
+
+    // Index-keyed rows to avoid de-duplicating same-named components
+    const glanceMaxSnapshot = Math.max(...variants.map(v => getCompsFlatGlance(v).length), 0);
+    const glanceMaxVpd = Math.max(...variants.map(v => (getVpd(v)?.components || []).length), 0);
+    const glanceTotalRows = Math.max(glanceMaxSnapshot, glanceMaxVpd);
+
+    const glanceRowLabels = Array.from({ length: glanceTotalRows }, (_, i) => {
+      for (const v of variants) {
+        const vpd = getVpd(v);
+        if ((vpd?.components as any)?.[i]?.name) return (vpd!.components as any)[i].name as string;
+        const comps = getCompsFlatGlance(v);
+        if (comps[i]?.attributeName) return comps[i].attributeName;
+      }
+      return `Item ${i + 1}`;
+    });
+
+    const glancePricingRows = glanceRowLabels.map((label, i) => ({ label, i }));
 
     const variantCount = variants.length;
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1)));
@@ -355,22 +367,21 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       return `<tr><td style="${tdLabel}">${label}</td>${cells}</tr>`;
     }).join('');
 
-    const compRows = allComponents.map((compName, i) => {
+    const compRows = glancePricingRows.map(({ label, i }, rowIdx) => {
       const cells = variants.map(v => {
-        const bg = (i + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel;
+        const bg = (rowIdx + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel;
         const vpd = getVpd(v);
-        const vpdComp = (vpd?.components || []).find((c: any) => c.name === compName);
+        const vpdComp = (vpd?.components as any)?.[i];
         if (vpdComp) {
           return `<td style="${tdBase} background: ${bg};">₹ ${formatINR(String(vpdComp.price || 0))}</td>`;
         }
-        const ps = v.pricingSnapshots[0];
-        const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
+        const comp = getCompsFlatGlance(v)[i];
         if (comp) {
           return `<td style="${tdBase} background: ${bg};">₹ ${formatINR(comp.price.toString())}</td>`;
         }
         return `<td style="${tdBase} background: ${bg};">—</td>`;
       }).join('');
-      return `<tr><td style="${tdLabel}">${compName}</td>${cells}</tr>`;
+      return `<tr><td style="${tdLabel}">${label}</td>${cells}</tr>`;
     }).join('');
 
     const totalRow = (() => {
@@ -381,16 +392,13 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
           const n = parseFloat(String(vpd.totalCost));
           if (!isNaN(n) && n > 0) totalStr = `₹ ${formatINR(n.toString())}`;
         } else {
-          const ps = v.pricingSnapshots[0];
-          if (ps) {
-            try {
-              const val = ps.totalPrice?.toString();
-              if (val) {
-                const n = parseFloat(val);
-                if (!isNaN(n) && n > 0) totalStr = `₹ ${formatINR(val)}`;
-              }
-            } catch { /* fall through */ }
-          }
+          try {
+            const total = v.pricingSnapshots.reduce((sum, ps) => {
+              const n = parseFloat(String(ps.totalPrice ?? 0));
+              return sum + (isNaN(n) ? 0 : n);
+            }, 0);
+            if (total > 0) totalStr = `₹ ${formatINR(total.toString())}`;
+          } catch { /* fall through */ }
         }
         return `<td style="${tdBase} background: ${brandColors.light}; font-weight: 700; font-size: 15px; color: ${brandColors.primary};">
           ${totalStr}
@@ -677,23 +685,37 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     // Show section whenever we have variant data; show '—' if pricing not configured
     const hasPricing = variants.some(v => v.pricingSnapshots.length > 0 || !!getVpd(v)?.totalCost);
 
-    // Collect component names that have at least one non-zero value across variants
-    const allComponents = Array.from(new Set([
-      ...variants.flatMap(v =>
-        v.pricingSnapshots.flatMap(p =>
-          p.pricingComponentSnapshots.map(c => c.attributeName)
-        )
-      ),
-      ...variants.flatMap(v => (getVpd(v)?.components || []).map((c: any) => c.name as string).filter(Boolean)),
-    ])).filter(compName =>
-      variants.some(v => {
+    // Flat list of all pricing component snapshots for a variant (across all pricing snapshots in order)
+    const getComponentsFlat = (v: typeof variants[0]) =>
+      v.pricingSnapshots.flatMap(ps => ps.pricingComponentSnapshots);
+
+    // Build index-keyed row list to avoid de-duplicating components with the same name
+    const maxSnapshotRows = Math.max(...variants.map(v => getComponentsFlat(v).length), 0);
+    const maxVpdRows = Math.max(...variants.map(v => (getVpd(v)?.components || []).length), 0);
+    const totalRows = Math.max(maxSnapshotRows, maxVpdRows);
+
+    const rowLabels = Array.from({ length: totalRows }, (_, i) => {
+      for (const v of variants) {
         const vpd = getVpd(v);
-        const vpdComp = (vpd?.components || []).find((c: any) => c.name === compName);
-        if (vpdComp) return parseFloat(String(vpdComp.price || 0)) > 0;
-        const snap = v.pricingSnapshots[0]?.pricingComponentSnapshots.find(c => c.attributeName === compName);
-        return snap ? parseFloat(String(snap.price || 0)) > 0 : false;
-      })
-    );
+        if ((vpd?.components as any)?.[i]?.name) return (vpd!.components as any)[i].name as string;
+        const comps = getComponentsFlat(v);
+        if (comps[i]?.attributeName) return comps[i].attributeName;
+      }
+      return `Item ${i + 1}`;
+    });
+
+    // Only keep rows that have at least one non-zero value
+    const pricingRows = rowLabels
+      .map((label, i) => ({ label, i }))
+      .filter(({ i }) =>
+        variants.some(v => {
+          const vpd = getVpd(v);
+          const vpdComp = (vpd?.components as any)?.[i];
+          if (vpdComp) return parseFloat(String(vpdComp.price || 0)) > 0;
+          const comp = getComponentsFlat(v)[i];
+          return comp ? parseFloat(String(comp.price || 0)) > 0 : false;
+        })
+      );
 
     const variantCount = variants.length;
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1.6)));
@@ -712,27 +734,24 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </th>
     `).join('');
 
-    // Safely parse total price — prefers variantPricingData, falls back to pricingSnapshot
+    // Safely parse total price — prefers variantPricingData, sums across ALL pricingSnapshots
     const safeTotal = (v: typeof variants[0]): string => {
       const vpd = getVpd(v);
       if (vpd?.totalCost) {
         const n = parseFloat(String(vpd.totalCost));
         if (!isNaN(n) && n > 0) return `₹ ${formatINR(n.toString())}`;
       }
-      const ps = v.pricingSnapshots[0];
-      if (ps) {
-        try {
-          const val = ps.totalPrice?.toString();
-          if (val) {
-            const n = parseFloat(val);
-            if (!isNaN(n) && n > 0) return `₹ ${formatINR(val)}`;
-          }
-        } catch { /* fall through */ }
-      }
+      try {
+        const total = v.pricingSnapshots.reduce((sum, ps) => {
+          const n = parseFloat(String(ps.totalPrice ?? 0));
+          return sum + (isNaN(n) ? 0 : n);
+        }, 0);
+        if (total > 0) return `₹ ${formatINR(total.toString())}`;
+      } catch { /* fall through */ }
       return '—';
     };
 
-    // Identify cheapest variant for "Best Value" badge
+    // Identify cheapest variant for "Best Value" badge — sum across ALL pricing snapshots
     const variantTotals = variants.map(v => {
       const vpd = getVpd(v);
       if (vpd?.totalCost) {
@@ -740,34 +759,31 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         if (!isNaN(n) && n > 0) return n;
       }
       try {
-        const ps = v.pricingSnapshots[0];
-        if (ps?.totalPrice) {
-          const n = parseFloat(ps.totalPrice.toString());
-          if (!isNaN(n) && n > 0) return n;
-        }
+        const total = v.pricingSnapshots.reduce((sum, ps) => {
+          const n = parseFloat(String(ps.totalPrice ?? 0));
+          return sum + (isNaN(n) ? 0 : n);
+        }, 0);
+        if (total > 0) return total;
       } catch { /* fall through */ }
       return Infinity;
     });
     const minPrice = Math.min(...variantTotals.filter(t => t !== Infinity));
 
-
-
-    const compRows = allComponents.map((compName, i) => {
+    const compRows = pricingRows.map(({ label, i }, rowIdx) => {
       const cells = variants.map(v => {
-        const bg = (i + 2) % 2 === 0 ? brandColors.white : '#FAFAFA';
+        const bg = (rowIdx + 2) % 2 === 0 ? brandColors.white : '#FAFAFA';
 
-        // Prefer variantPricingData components
+        // Prefer variantPricingData components (by index)
         const vpd = getVpd(v);
-        const vpdComp = (vpd?.components || []).find((c: any) => c.name === compName);
+        const vpdComp = (vpd?.components as any)?.[i];
         if (vpdComp) {
           return `<td style="${tdBase} background: ${bg}; text-align: right;">
             <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(String(vpdComp.price || 0))}</span>
           </td>`;
         }
 
-        // Fallback to pricingSnapshots
-        const ps = v.pricingSnapshots[0];
-        const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
+        // Fallback to pricingSnapshots (by index across all snapshots)
+        const comp = getComponentsFlat(v)[i];
         if (comp) {
           return `<td style="${tdBase} background: ${bg}; text-align: right;">
             <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(comp.price.toString())}</span>
@@ -777,7 +793,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
         return `<td style="${tdBase} background: ${bg}; text-align: center;"><span style="color: #D1D5DB;">—</span></td>`;
       }).join('');
-      return `<tr style="page-break-inside: avoid; break-inside: avoid;"><td style="${tdLabel}">${compName}</td>${cells}</tr>`;
+      return `<tr style="page-break-inside: avoid; break-inside: avoid;"><td style="${tdLabel}">${label}</td>${cells}</tr>`;
     }).join('');
 
     const totalRow = (() => {

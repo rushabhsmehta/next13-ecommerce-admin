@@ -1055,26 +1055,41 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       });
       console.log('✅ Variant snapshots updated successfully');
 
+      // Re-fetch post-transaction state. The main transaction may have remapped
+      // itinerary IDs (delete-recreate) and written new variantHotelOverrides /
+      // variantPricingData to the DB. Using the pre-transaction `tourPackageQuery`
+      // here would apply stale overrides (old hotel, old itinerary IDs).
+      const freshQuery = await prismadb.tourPackageQuery.findUnique({
+        where: { id: params.tourPackageQueryId },
+        select: {
+          variantHotelOverrides: true,
+          variantPricingData: true,
+          tourStartsFrom: true,
+          tourEndsOn: true,
+          itineraries: { select: { id: true, dayNumber: true } },
+        },
+      });
+
       // Apply query-level hotel overrides on top of the package-default hotel snapshots
-      const savedOverrides = (tourPackageQuery as any)?.variantHotelOverrides as Record<string, Record<string, string>> | null;
-      if (savedOverrides && Object.keys(savedOverrides).length > 0 && tourPackageQuery?.itineraries) {
+      const savedOverrides = freshQuery?.variantHotelOverrides as Record<string, Record<string, string>> | null;
+      if (savedOverrides && Object.keys(savedOverrides).length > 0 && freshQuery?.itineraries) {
         await applyVariantHotelOverrides(
           params.tourPackageQueryId,
           savedOverrides,
-          tourPackageQuery.itineraries.map((i: any) => ({ id: i.id, dayNumber: i.dayNumber }))
+          freshQuery.itineraries.map((i: any) => ({ id: i.id, dayNumber: i.dayNumber }))
         );
       }
 
       // Apply query-level pricing overrides so user-edited pricing doesn't
       // get clobbered by the master PackageVariant pricing on every save.
-      const savedPricing = (tourPackageQuery as any)?.variantPricingData as Record<string, any> | null;
+      const savedPricing = freshQuery?.variantPricingData as Record<string, any> | null;
       if (savedPricing && Object.keys(savedPricing).length > 0) {
         await applyVariantPricingOverrides(
           params.tourPackageQueryId,
           savedPricing,
           {
-            startDate: (tourPackageQuery as any)?.tourStartsFrom ?? null,
-            endDate: (tourPackageQuery as any)?.tourEndsOn ?? null,
+            startDate: freshQuery?.tourStartsFrom ?? null,
+            endDate: freshQuery?.tourEndsOn ?? null,
           }
         );
       }

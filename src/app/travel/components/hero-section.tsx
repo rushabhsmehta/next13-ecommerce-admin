@@ -17,7 +17,7 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative min-h-[90vh] sm:min-h-[85vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[84vh] sm:min-h-[85vh] flex items-center justify-center overflow-hidden">
       {/* Background - logo-inspired gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-red-700 to-purple-900" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,146,60,0.3)_0%,_transparent_50%)]" />
@@ -33,9 +33,9 @@ export function HeroSection() {
         <Plane className="w-24 h-24 text-white transform rotate-45" />
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20 pb-8">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-16 sm:pt-20 pb-8">
         {/* Logo badge */}
-        <div className="inline-flex items-center px-5 py-2.5 bg-white/10 backdrop-blur-xl rounded-full text-orange-200 text-sm font-medium mb-8 border border-white/15 shadow-lg shadow-black/5">
+        <div className="inline-flex items-center px-4 sm:px-5 py-2.5 bg-white/10 backdrop-blur-xl rounded-full text-orange-200 text-xs sm:text-sm font-medium mb-6 sm:mb-8 border border-white/15 shadow-lg shadow-black/5 max-w-[92vw]">
           <div className="relative w-5 h-5 mr-2.5">
             <Image
               src="/aagamholidays.png"
@@ -49,14 +49,14 @@ export function HeroSection() {
         </div>
 
         {/* Main Heading */}
-        <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white mb-6 leading-[1.1] tracking-tight">
+        <h1 className="text-[2.35rem] leading-[1.03] sm:text-5xl md:text-7xl font-extrabold text-white mb-5 sm:mb-6 tracking-tight max-w-[92vw] mx-auto">
           Discover Your Next{" "}
           <span className="bg-gradient-to-r from-orange-300 via-amber-200 to-yellow-200 bg-clip-text text-transparent">
             Adventure
           </span>
         </h1>
 
-        <p className="text-base sm:text-lg md:text-xl text-white/75 mb-10 max-w-2xl mx-auto leading-relaxed font-light">
+        <p className="text-sm sm:text-lg md:text-xl text-white/75 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed font-light px-1 sm:px-0">
           Handcrafted tour packages to the world&apos;s most stunning destinations.
           Experience travel like never before.
         </p>
@@ -86,14 +86,14 @@ export function HeroSection() {
         </form>
 
         {/* Quick Stats */}
-        <div className="flex flex-wrap justify-center gap-6 sm:gap-10 mt-14">
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-10 mt-10 sm:mt-14">
           {[
             { icon: MapPin, label: "Destinations", value: "50+" },
             { icon: Calendar, label: "Tour Packages", value: "200+" },
             { icon: Users, label: "Happy Travelers", value: "10K+" },
           ].map((stat) => (
-            <div key={stat.label} className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
+            <div key={stat.label} className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
                 <stat.icon className="w-5 h-5 text-orange-300" />
               </div>
               <div className="text-left">

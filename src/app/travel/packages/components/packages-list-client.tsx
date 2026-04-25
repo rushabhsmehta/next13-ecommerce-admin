@@ -118,8 +118,8 @@ export function PackagesListClient({
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <div className="mb-8 sm:mb-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
+      <div className="mb-6 sm:mb-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
@@ -135,7 +135,7 @@ export function PackagesListClient({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 mb-4 sm:mb-6">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4 mb-3 sm:mb-6">
         <form onSubmit={handleSearch} className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-400" />
           <input
@@ -143,7 +143,7 @@ export function PackagesListClient({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search packages by name or destination..."
-            className="w-full pl-12 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-300 shadow-sm transition-all text-sm sm:text-base"
+            className="w-full pl-12 pr-10 py-2.5 sm:py-3 bg-white border border-gray-200 rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-300 shadow-sm transition-all text-sm sm:text-base"
           />
           {searchQuery && (
             <button
@@ -160,7 +160,7 @@ export function PackagesListClient({
           )}
         </form>
 
-        <label className="flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+        <label className="flex items-center gap-2 px-4 py-2.5 sm:py-3 bg-white border border-gray-200 rounded-xl shadow-sm">
           <SlidersHorizontal className="w-5 h-5 text-orange-500" />
           <select
             value={activeSort}
@@ -177,14 +177,14 @@ export function PackagesListClient({
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="sm:hidden flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 shadow-sm active:scale-[0.98] transition-transform"
+          className="sm:hidden flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-700 shadow-sm active:scale-[0.98] transition-transform"
         >
           <SlidersHorizontal className="w-5 h-5" /> Filters
         </button>
       </div>
 
-      <div className={`${showFilters ? "block" : "hidden"} sm:block mb-4 sm:mb-6`}>
-        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className={`${showFilters ? "block" : "hidden"} sm:block mb-3 sm:mb-6`}>
+        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-3.5 sm:p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 min-w-[220px]">
             Destination
             <select
@@ -219,7 +219,7 @@ export function PackagesListClient({
         </div>
       </div>
 
-      <div className="flex flex-nowrap gap-2 mb-8 sm:mb-10 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+      <div className="flex flex-nowrap gap-2 mb-6 sm:mb-10 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
         <button
           onClick={() => handleCategoryChange("all")}
           className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${

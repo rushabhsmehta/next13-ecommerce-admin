@@ -37,13 +37,13 @@ export function TravelNavbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/travel" className="flex items-center group">
-            <div className="relative w-28 h-10 sm:w-32 sm:h-11 transition-transform duration-300 group-hover:scale-[1.02]">
+            <div className="relative w-24 h-8 sm:w-32 sm:h-11 transition-transform duration-300 group-hover:scale-[1.02]">
               <Image
                 src="/aagamholidays.png"
                 alt="Aagam Holidays"
                 fill
                 className="object-contain"
-                sizes="(max-width: 640px) 112px, 128px"
+                sizes="(max-width: 640px) 96px, 128px"
               />
             </div>
           </Link>
@@ -72,7 +72,7 @@ export function TravelNavbar() {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2.5 rounded-xl hover:bg-orange-50 transition-all duration-200 group"
+              className="hidden sm:inline-flex p-2.5 rounded-xl hover:bg-orange-50 transition-all duration-200 group"
               aria-label="Search"
             >
               <Search className="w-[18px] h-[18px] text-gray-500 group-hover:text-orange-600 transition-colors" />

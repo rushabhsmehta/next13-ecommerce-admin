@@ -153,7 +153,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   </FormControl>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0">
-                  <Command>
+                  <Command onKeyDownCapture={e => e.stopPropagation()}>
                     <CommandInput placeholder="Search tour package..." />
                     <CommandList>
                       <CommandEmpty>No tour package found.</CommandEmpty>
@@ -243,7 +243,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent className="w-[450px] p-0">
-                    <Command>
+                    <Command onKeyDownCapture={e => e.stopPropagation()}>
                       <CommandInput placeholder="Search variants..." />
                       <CommandList>
                         <CommandEmpty>No variant found.</CommandEmpty>
@@ -350,7 +350,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   </FormControl>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0">
-                  <Command>
+                  <Command onKeyDownCapture={e => e.stopPropagation()}>
                     <CommandInput placeholder="Search tour package query..." />
                     <CommandList>
                       <CommandEmpty>No tour package query found.</CommandEmpty>
@@ -415,7 +415,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent className="w-[400px] p-0">
-                    <Command>
+                    <Command onKeyDownCapture={e => e.stopPropagation()}>
                       <CommandInput placeholder="Search associate partner..." />
                       <CommandList>
                         <CommandEmpty>No associate partner found.</CommandEmpty>

@@ -152,7 +152,7 @@ const LocationTab: React.FC<LocationTabProps> = ({
                   </FormControl>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0">
-                  <Command>
+                  <Command onKeyDownCapture={e => e.stopPropagation()}>
                     <CommandInput placeholder="Search location..." />
                     <CommandList>
                       <CommandEmpty>No location found.</CommandEmpty>

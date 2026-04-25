@@ -1251,7 +1251,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[360px] p-0" align="start" side="bottom" sideOffset={5}>
-                          <Command>
+                          <Command onKeyDownCapture={e => e.stopPropagation()}>
                             <CommandInput placeholder="Search tour package..." className="text-xs" />
                             <CommandList className="max-h-60 overflow-auto">
                               <CommandEmpty>No tour packages found.</CommandEmpty>
@@ -1416,7 +1416,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[320px] p-0" align="start" side="bottom" sideOffset={5}>
-                              <Command>
+                              <Command onKeyDownCapture={e => e.stopPropagation()}>
                                 <CommandInput placeholder="Search hotel..." className="text-xs" />
                                 <CommandList className="max-h-60 overflow-auto">
                                   <CommandEmpty>No hotel found.</CommandEmpty>

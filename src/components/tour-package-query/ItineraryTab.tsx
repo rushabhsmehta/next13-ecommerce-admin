@@ -507,7 +507,7 @@ function ItineraryTab({
                                       </FormControl>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[240px] p-0 max-h-[240px] overflow-auto">
-                                      <Command>
+                                      <Command onKeyDownCapture={e => e.stopPropagation()}>
                                         <CommandInput
                                           placeholder="Search itinerary master..."
                                           className="h-9"

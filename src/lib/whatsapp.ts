@@ -1522,6 +1522,10 @@ export async function sendWhatsAppMessage(
     return {
       success: false,
       error: error?.message || 'Unknown error',
+      errorCode: error instanceof GraphApiError ? (error.response?.error?.code ?? null) : null,
+      errorSubcode: error instanceof GraphApiError ? (error.response?.error?.error_subcode ?? null) : null,
+      errorDetails: error instanceof GraphApiError ? (error.response?.error?.error_data?.details ?? null) : null,
+      metaErrorResponse: error instanceof GraphApiError ? (error.response?.error ?? null) : null,
       provider: 'meta',
       dbRecord,
     };
@@ -2466,6 +2470,10 @@ export async function sendWhatsAppTemplate(
     return {
       success: false,
       error: error?.message || 'Unknown error',
+      errorCode: error instanceof GraphApiError ? (error.response?.error?.code ?? null) : null,
+      errorSubcode: error instanceof GraphApiError ? (error.response?.error?.error_subcode ?? null) : null,
+      errorDetails: error instanceof GraphApiError ? (error.response?.error?.error_data?.details ?? null) : null,
+      metaErrorResponse: error instanceof GraphApiError ? (error.response?.error ?? null) : null,
       provider: 'meta',
       dbRecord,
     };

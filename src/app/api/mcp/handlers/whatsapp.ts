@@ -750,7 +750,7 @@ async function sendWhatsAppMessage(rawParams: unknown) {
     }
   }
 
-  return sendWhatsAppMessageViaLib({
+  const result = await sendWhatsAppMessageViaLib({
     to: phoneNumber,
     ...(message && message.trim() ? { message: message.trim() } : {}),
     ...(media
@@ -766,6 +766,23 @@ async function sendWhatsAppMessage(rawParams: unknown) {
       : {}),
     saveToDb: true,
   });
+
+  if (!result.success) {
+    const r = result as any;
+    throw new McpError(
+      r.error || "Failed to send WhatsApp message",
+      "WHATSAPP_SEND_FAILED",
+      500,
+      {
+        errorCode: r.errorCode,
+        errorSubcode: r.errorSubcode,
+        errorDetails: r.errorDetails,
+        metaErrorResponse: r.metaErrorResponse,
+      }
+    );
+  }
+
+  return result;
 }
 
 async function sendWhatsAppMedia(rawParams: unknown) {
@@ -788,7 +805,7 @@ async function sendWhatsAppMedia(rawParams: unknown) {
     }
   }
 
-  return sendWhatsAppMessageViaLib({
+  const mediaResult = await sendWhatsAppMessageViaLib({
     to: phoneNumber,
     media: {
       id: mediaId,
@@ -798,13 +815,30 @@ async function sendWhatsAppMedia(rawParams: unknown) {
     },
     saveToDb: true,
   });
+
+  if (!mediaResult.success) {
+    const r = mediaResult as any;
+    throw new McpError(
+      r.error || "Failed to send WhatsApp media message",
+      "WHATSAPP_SEND_FAILED",
+      500,
+      {
+        errorCode: r.errorCode,
+        errorSubcode: r.errorSubcode,
+        errorDetails: r.errorDetails,
+        metaErrorResponse: r.metaErrorResponse,
+      }
+    );
+  }
+
+  return mediaResult;
 }
 
 async function sendWhatsAppTemplate(rawParams: unknown) {
   const { phoneNumber, templateName, languageCode, parameters, headerParams } =
     SendWhatsAppTemplateSchema.parse(rawParams);
 
-  return sendWhatsAppTemplateViaLib({
+  const templateResult = await sendWhatsAppTemplateViaLib({
     to: phoneNumber,
     templateName,
     languageCode,
@@ -812,6 +846,24 @@ async function sendWhatsAppTemplate(rawParams: unknown) {
     headerParams: headerParams as any,
     saveToDb: true,
   });
+
+  if (!templateResult.success) {
+    const r = templateResult as any;
+    throw new McpError(
+      r.error || "Failed to send WhatsApp template message",
+      "WHATSAPP_SEND_FAILED",
+      500,
+      {
+        errorCode: r.errorCode,
+        errorSubcode: r.errorSubcode,
+        errorDetails: r.errorDetails,
+        metaErrorResponse: r.metaErrorResponse,
+        templateName,
+      }
+    );
+  }
+
+  return templateResult;
 }
 
 async function uploadWhatsAppMediaHandler(rawParams: unknown) {

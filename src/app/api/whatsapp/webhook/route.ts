@@ -91,6 +91,12 @@ const compactIncomingMessageForStorage = (message: any) =>
           flow_response: message.flow.flow_response || message.flow.response,
         })
       : undefined,
+    button: message?.button
+      ? removeUndefined({
+          text: message.button.text,
+          payload: message.button.payload,
+        })
+      : undefined,
     reaction: message?.reaction,
   });
 
@@ -299,6 +305,14 @@ const buildIncomingMetadata = async (value: any, message: any) => {
       messageBody = Array.isArray(message.contacts) && message.contacts.length > 1
         ? `Shared ${message.contacts.length} contacts`
         : 'Shared contact';
+      break;
+    case 'button':
+      metadata.buttonReply = {
+        text: message.button?.text,
+        payload: message.button?.payload,
+      };
+      metadata.textPreview = message.button?.text;
+      messageBody = message.button?.text || 'Button clicked';
       break;
     case 'interactive': {
       const interactiveType = message.interactive?.type;

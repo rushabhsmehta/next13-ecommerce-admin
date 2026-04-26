@@ -1054,6 +1054,10 @@ export interface WhatsAppMessageResponse {
   success: boolean;
   messageSid?: string;
   error?: string;
+  errorCode?: number | null;
+  errorSubcode?: number | null;
+  errorDetails?: string | null;
+  metaErrorResponse?: any;
   dbRecord?: any;
   provider?: 'meta';
   rawResponse?: any;

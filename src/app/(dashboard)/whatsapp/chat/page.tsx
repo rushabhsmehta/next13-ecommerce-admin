@@ -1375,7 +1375,9 @@ export default function WhatsAppSettingsPage() {
       const looksLikePlaceholder = typeof textContent === 'string'
         ? /^\s*\[[^\]]+\]\s*$/.test(textContent)
         : false;
-      const shouldHidePlaceholder = looksLikePlaceholder && whatsappType && whatsappType !== 'text';
+      const shouldHidePlaceholder =
+        (looksLikePlaceholder && whatsappType && whatsappType !== 'text') ||
+        whatsappType === 'button';
 
       if (textContent && !shouldHidePlaceholder) {
         segments.push(

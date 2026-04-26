@@ -14,6 +14,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Colors,
   Spacing,
@@ -120,6 +121,7 @@ type Package = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -245,41 +247,41 @@ export default function HomeScreen() {
           colors={[Colors.gradient1, Colors.gradient2]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.brandCard}
+          style={[styles.brandCard, { paddingTop: insets.top + 20 }]}
         >
           <View style={styles.brandRow}>
             <View style={styles.brandIcon}>
-              <Ionicons name="airplane" size={18} color="#fff" />
+              <Ionicons name="airplane" size={22} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.brandLabel}>Aagam Holidays</Text>
-              <Text style={styles.brandTitle}>Discover your next trip</Text>
+              <Text style={styles.brandTitle}>Discover your{"\n"}next trip</Text>
+              <Text style={styles.brandSubtitle}>Plan your perfect getaway</Text>
             </View>
           </View>
 
-          <View style={styles.searchWrap}>
-            <View style={styles.searchBar}>
-              <Ionicons name="search" size={16} color={Colors.textTertiary} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search packages or destinations"
-                placeholderTextColor={Colors.textTertiary}
-                value={searchText}
-                onChangeText={setSearchText}
-                onSubmitEditing={handleSearch}
-                returnKeyType="search"
-              />
-              {searchText ? (
-                <Pressable onPress={() => setSearchText("")}>
-                  <Ionicons
-                    name="close-circle"
-                    size={18}
-                    color={Colors.textTertiary}
-                  />
-                </Pressable>
-              ) : null}
-            </View>
-            <Pressable style={styles.searchButton} onPress={handleSearch}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={16} color={Colors.textTertiary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search packages or destinations"
+              placeholderTextColor={Colors.textTertiary}
+              value={searchText}
+              onChangeText={setSearchText}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            {searchText ? (
+              <Pressable onPress={() => setSearchText("")}>
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={Colors.textTertiary}
+                />
+              </Pressable>
+            ) : null}
+            <View style={styles.searchDivider} />
+            <Pressable onPress={handleSearch}>
               <Text style={styles.searchButtonText}>Search</Text>
             </Pressable>
           </View>
@@ -453,7 +455,7 @@ export default function HomeScreen() {
             <Text style={styles.filterText} numberOfLines={1}>
               {[selectedDestinationLabel, activeCategory !== "all" ? activeCategory : null, appliedSearch ? `Search: ${appliedSearch}` : null]
                 .filter(Boolean)
-                .join(" • ")}
+                .join(" ï¿½ ")}
             </Text>
           </View>
           <Pressable style={styles.clearButton} onPress={handleClear}>
@@ -589,7 +591,7 @@ export default function HomeScreen() {
         </LinearGradient>
       </View>
 
-      <View style={{ height: 110 }} />
+      <View style={{ height: 16 }} />
     </ScrollView>
   );
 }
@@ -609,72 +611,75 @@ const styles = StyleSheet.create({
   },
 
   topHero: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   brandCard: {
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
-    ...Shadows.medium,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: BorderRadius.xl,
+    borderBottomRightRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   brandIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
   },
   brandLabel: {
-    fontSize: 10,
-    color: "rgba(255,255,255,0.78)",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.90)",
     textTransform: "uppercase",
     letterSpacing: 1.4,
     fontWeight: "700",
   },
   brandTitle: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize.xxxl,
     color: "#fff",
     fontWeight: "800",
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: 32,
   },
-  searchWrap: {
-    flexDirection: "row",
-    gap: Spacing.sm,
+  brandSubtitle: {
+    fontSize: FontSize.sm,
+    color: "rgba(255,255,255,0.75)",
+    marginTop: 5,
+    fontWeight: "500",
   },
   searchBar: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
     backgroundColor: "rgba(255,255,255,0.97)",
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
+    paddingVertical: 11,
   },
   searchInput: {
     flex: 1,
     fontSize: FontSize.md,
     color: Colors.text,
   },
-  searchButton: {
-    backgroundColor: "#fff",
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    justifyContent: "center",
-    alignItems: "center",
+  searchDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: Colors.border,
+    marginHorizontal: 2,
   },
   searchButtonText: {
     fontSize: FontSize.sm,
     fontWeight: "800",
     color: Colors.primary,
+    paddingHorizontal: 4,
   },
 
   section: {

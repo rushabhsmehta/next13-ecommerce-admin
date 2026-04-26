@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors, Shadows } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 
 export default function TabLayout() {
@@ -17,17 +17,12 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textTertiary,
         tabBarStyle: {
-          position: "absolute",
-          bottom: Math.max(insets.bottom, 8) + 4,
-          left: 16,
-          right: 16,
-          backgroundColor: "rgba(255,255,255,0.97)",
-          borderTopWidth: 0,
-          borderRadius: 24,
-          height: 64,
-          paddingBottom: 8,
+          backgroundColor: Colors.background,
+          borderTopWidth: 1,
+          borderTopColor: Colors.border,
+          paddingBottom: Math.max(insets.bottom, 6),
           paddingTop: 8,
-          ...Shadows.heavy,
+          elevation: 4,
         },
         tabBarLabelStyle: {
           fontSize: 10,

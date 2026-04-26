@@ -256,6 +256,7 @@ export default function WhatsAppSettingsPage() {
       flowResponse?: any;
       nfmReply?: any;
     };
+    buttonReply?: { text?: string; payload?: string };
     sharedContacts?: Array<any>;
     reaction?: any;
     rawMessage?: any;
@@ -855,6 +856,10 @@ export default function WhatsAppSettingsPage() {
             const count = metadata?.sharedContacts?.length || 1;
             return count > 1 ? `Contacts • ${count} shared` : 'Contact shared';
           }
+        case 'button':
+          return metadata?.buttonReply?.text
+            ? `↩️ ${metadata.buttonReply.text}`
+            : '↩️ Button reply';
         case 'interactive':
           if (metadata.interactive?.buttonReply?.title) {
             return `Button reply • ${metadata.interactive.buttonReply.title}`;
@@ -1274,6 +1279,24 @@ export default function WhatsAppSettingsPage() {
             </div>
           );
         }
+      } else if (whatsappType === 'button') {
+        segments.push(
+          <div
+            key="button-reply"
+            className={cn(
+              'rounded-xl border p-3 text-sm',
+              msg.direction === 'out'
+                ? 'border-white/10 bg-white/5 text-white'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+            )}
+          >
+            <div className="text-xs uppercase opacity-70 mb-1">Quick reply</div>
+            <div>{metadata.buttonReply?.text || msg.text}</div>
+            {metadata.buttonReply?.payload && metadata.buttonReply.payload !== metadata.buttonReply.text && (
+              <div className="mt-1 text-xs opacity-80">Payload: {metadata.buttonReply.payload}</div>
+            )}
+          </div>
+        );
       } else if (whatsappType === 'sticker' && media?.id) {
         const src = buildMediaSrc(media.id);
         segments.push(
@@ -2223,6 +2246,13 @@ export default function WhatsAppSettingsPage() {
                 const contactCount = baseMetadata.sharedContacts?.length || 1;
                 messageText = contactCount > 1 ? `👥 Shared ${contactCount} contacts` : '👤 Shared contact';
               }
+              break;
+            case 'button':
+              messageText = baseMetadata.buttonReply?.text
+                ? `↩️ ${baseMetadata.buttonReply.text}`
+                : msg.message && !msg.message.startsWith('[')
+                ? `↩️ ${msg.message}`
+                : '↩️ Button reply';
               break;
             case 'interactive':
               if (baseMetadata.catalog?.type === 'product') {

@@ -532,8 +532,8 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                                                 <span className="font-semibold">Final Tour Package Cost</span>
                                             </div>
                                             <div className="block mt-2">
-                                                <div className="text-sm text-orange-600 bg-orange-100 px-4 py-2 rounded-lg inline-block border border-orange-200">
-                                                    <span className="font-semibold">including GST </span>
+                                                <div className="text-sm text-white bg-orange-500 px-4 py-2 rounded-lg inline-block border border-orange-600 shadow-sm">
+                                                    <span className="font-bold tracking-wide uppercase">✓ Including GST</span>
                                                 </div>
                                             </div>
                                         </div>

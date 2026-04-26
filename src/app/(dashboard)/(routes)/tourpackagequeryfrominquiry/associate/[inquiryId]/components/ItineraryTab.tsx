@@ -1,11 +1,25 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\ItineraryTab.tsx
-import { useState, useRef } from "react";
+import { useState, useRef, memo } from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
 import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, BuildingIcon, CarIcon, MapPinIcon, BedIcon, Check as CheckIcon, GripVertical, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse rounded-md bg-muted" /> });
+
+// Memoized Jodit wrapper — only re-renders when `value` or `readonly` actually changes.
+const StableJoditEditor = memo(
+  ({ value, onBlurRef, readonly }: { value: string; onBlurRef: { current: (content: string) => void }; readonly?: boolean }) => (
+    <JoditEditor
+      value={value}
+      onBlur={(content) => onBlurRef.current(content)}
+      onChange={() => {}}
+      config={{ readonly: readonly ?? false, toolbar: true, theme: 'default' }}
+    />
+  ),
+  (prev, next) => prev.value === next.value && prev.readonly === next.readonly
+);
+
 // Import types we need
 import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType, Inquiry } from "@prisma/client"; // Added lookup types
 
@@ -198,8 +212,11 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
   inquiry,
   // --- END DESTRUCTURE ---
 }) => {
-  // Create a refs object to store multiple editor references instead of a single ref
-  const editorsRef = useRef<{[key: string]: any}>({});
+  const joditRefsMap = useRef<Record<string, { current: (content: string) => void }>>({});
+  const getJoditRef = (key: string) => {
+    if (!joditRefsMap.current[key]) joditRefsMap.current[key] = { current: () => {} };
+    return joditRefsMap.current[key];
+  };
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -218,7 +235,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
   };
 
   // Track accordion open state to prevent unwanted closing when interacting with calendar
-  const [openMap, setOpenMap] = useState<Record<number, boolean>>({ 0: true });
+  const [openMap, setOpenMap] = useState<Record<number, boolean>>({});
 
   // Handle drag end to reorder itineraries and renumber dayNumber
   const handleDragEnd = (event: any, itineraries: any[], onChange: (val: any) => void) => {
@@ -529,21 +546,15 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                       <span>Title</span>
                                     </FormLabel>
                                     <FormControl>
-                                      <JoditEditor
-                                        ref={(node) => { editorsRef.current[`title-${index}`] = node; }}
-                                        value={itinerary.itineraryTitle || ''}
-                                        config={{
-                                          readonly: loading,
-                                          toolbar: true,
-                                          theme: 'default',
-                                        }}
-                                        onBlur={(newContent) => {
-                                          const newItineraries = [...value]
-                                          newItineraries[index] = { ...itinerary, itineraryTitle: newContent }
-                                          onChange(newItineraries)
-                                        }}
-                                        onChange={() => {}} // Empty onChange to prevent focus loss
-                                      />
+                                      {(() => {
+                                        const ref = getJoditRef(`title-${index}`);
+                                        ref.current = (newContent) => {
+                                          const newItineraries = [...value];
+                                          newItineraries[index] = { ...itinerary, itineraryTitle: newContent };
+                                          onChange(newItineraries);
+                                        };
+                                        return <StableJoditEditor value={itinerary.itineraryTitle || ''} onBlurRef={ref} readonly={loading} />;
+                                      })()}
                                     </FormControl>
                                   </FormItem>                            <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
                                     <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
@@ -551,21 +562,15 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                       <span>Description</span>
                                     </FormLabel>
                                     <FormControl>
-                                      <JoditEditor
-                                        ref={(node) => { editorsRef.current[`description-${index}`] = node; }}
-                                        value={itinerary.itineraryDescription || ''}
-                                        config={{
-                                          readonly: loading,
-                                          toolbar: true,
-                                          theme: 'default',
-                                        }}
-                                        onBlur={(newContent) => {
-                                          const newItineraries = [...value]
-                                          newItineraries[index] = { ...itinerary, itineraryDescription: newContent }
-                                          onChange(newItineraries)
-                                        }}
-                                        onChange={() => {}} // Empty onChange to prevent focus loss
-                                      />
+                                      {(() => {
+                                        const ref = getJoditRef(`desc-${index}`);
+                                        ref.current = (newContent) => {
+                                          const newItineraries = [...value];
+                                          newItineraries[index] = { ...itinerary, itineraryDescription: newContent };
+                                          onChange(newItineraries);
+                                        };
+                                        return <StableJoditEditor value={itinerary.itineraryDescription || ''} onBlurRef={ref} readonly={loading} />;
+                                      })()}
                                     </FormControl>
                                   </FormItem>
                                 </div>

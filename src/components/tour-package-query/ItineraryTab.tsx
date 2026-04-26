@@ -1,5 +1,5 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\ItineraryTab.tsx
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
@@ -7,6 +7,19 @@ import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignL
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse rounded-md bg-muted" /> });
+
+// Memoized Jodit wrapper — only re-renders when `value` actually changes.
+// Uses a callback-ref pattern so `onBlur` is always fresh without triggering re-renders.
+const StableJoditEditor = memo(
+  ({ value, onBlurRef }: { value: string; onBlurRef: { current: (content: string) => void } }) => (
+    <JoditEditor
+      value={value}
+      onBlur={(content) => onBlurRef.current(content)}
+      onChange={() => {}}
+    />
+  ),
+  (prev, next) => prev.value === next.value
+);
 import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Added lookup types
 import { addDays, isValid, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -40,7 +53,8 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
+import * as AccordionPrimitive from "@radix-ui/react-accordion";
 // Removed RoomAllocationComponent & TransportDetailsComponent (moved to Hotels tab)
 import ImageUpload from "@/components/ui/image-upload";
 // Removed hotel image preview (now managed in Hotels tab)
@@ -195,10 +209,15 @@ function ItineraryTab({
   vehicleTypes = [],
   // --- END DESTRUCTURE ---
 }: ItineraryTabProps) {
-  // Single shared ref for all Jodit editors (like tour package implementation)
-  const editor = useRef(null);
+  // Stable callback refs for Jodit editors keyed by "title-N", "desc-N", "act-title-N-M", "act-desc-N-M".
+  // Using a map of ref objects prevents re-renders while keeping onBlur closures fresh.
+  const joditRefsMap = useRef<Record<string, { current: (content: string) => void }>>({});
+  const getJoditRef = (key: string) => {
+    if (!joditRefsMap.current[key]) joditRefsMap.current[key] = { current: () => {} };
+    return joditRefsMap.current[key];
+  };
   // Track open state for each itinerary accordion to avoid it collapsing on re-render
-  const [openMap, setOpenMap] = useState<Record<number, boolean>>({ 0: true });
+  const [openMap, setOpenMap] = useState<Record<number, boolean>>({});
   // Track open state for each itinerary template popover
   const [openTemplateMap, setOpenTemplateMap] = useState<Record<number, boolean>>({});
   // Handle saving to master itinerary
@@ -435,38 +454,38 @@ function ItineraryTab({
                             className="w-full border rounded-lg shadow-sm hover:shadow-md transition-all"
                           >
                             <AccordionItem value={`item-${index}`} className="border-0">
-                              <AccordionTrigger className="bg-gradient-to-r from-white to-slate-50 px-4 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 rounded-t-lg">
-                                <div className="flex items-center justify-between w-full">
-                                  <div className="flex items-center gap-3">
-                                    <button
-                                      type="button"
-                                      aria-label="Drag to reorder"
-                                      className="p-1 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing"
-                                      {...attributes}
-                                      {...listeners}
-                                      onClick={(e) => e.preventDefault()}
-                                    >
-                                      <GripVertical className="h-4 w-4" />
-                                    </button>
-                                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-white font-bold text-sm">
+                              <AccordionPrimitive.Header className="flex items-center bg-gradient-to-r from-white to-slate-50 hover:from-slate-50 hover:to-slate-100 rounded-t-lg m-0">
+                                <button
+                                  type="button"
+                                  aria-label="Drag to reorder"
+                                  className="p-1 ml-4 text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing shrink-0"
+                                  {...attributes}
+                                  {...listeners}
+                                  onClick={(e) => e.preventDefault()}
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                </button>
+                                <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between px-4 py-3 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-white font-bold text-sm shrink-0">
                                       {index + 1}
                                     </div>
-                                    <div className="font-bold" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
+                                    <div className="font-bold truncate" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
                                   </div>
-                                  <button
-                                    type="button"
-                                    aria-label="Copy day details"
-                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors mr-2"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      copyDayToClipboard(itinerary);
-                                    }}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </AccordionTrigger>
+                                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 ml-2" />
+                                </AccordionPrimitive.Trigger>
+                                <button
+                                  type="button"
+                                  aria-label="Copy day details"
+                                  className="p-2 mr-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyDayToClipboard(itinerary);
+                                  }}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </button>
+                              </AccordionPrimitive.Header>
                               <AccordionContent className="pt-4 px-4 pb-6">
                                 <div className="flex justify-end mb-4">
                                   <Button
@@ -560,16 +579,15 @@ function ItineraryTab({
                                       <span>Title</span>
                                     </FormLabel>
                                     <FormControl>
-                                      <JoditEditor
-                                        ref={editor}
-                                        value={itinerary.itineraryTitle || ''}
-                                        onBlur={(newContent) => {
-                                          const newItineraries = [...value]
-                                          newItineraries[index] = { ...itinerary, itineraryTitle: newContent }
-                                          onChange(newItineraries)
-                                        }}
-                                        onChange={() => { }}
-                                      />
+                                      {(() => {
+                                        const ref = getJoditRef(`title-${index}`);
+                                        ref.current = (newContent) => {
+                                          const newItineraries = [...value];
+                                          newItineraries[index] = { ...itinerary, itineraryTitle: newContent };
+                                          onChange(newItineraries);
+                                        };
+                                        return <StableJoditEditor value={itinerary.itineraryTitle || ''} onBlurRef={ref} />;
+                                      })()}
                                     </FormControl>
                                   </FormItem>                            <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
                                       <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
@@ -577,16 +595,15 @@ function ItineraryTab({
                                         <span>Description</span>
                                       </FormLabel>
                                       <FormControl>
-                                        <JoditEditor
-                                          ref={editor}
-                                          value={itinerary.itineraryDescription || ''}
-                                          onBlur={(newContent) => {
-                                            const newItineraries = [...value]
-                                            newItineraries[index] = { ...itinerary, itineraryDescription: newContent }
-                                            onChange(newItineraries)
-                                          }}
-                                          onChange={() => { }}
-                                        />
+                                        {(() => {
+                                          const ref = getJoditRef(`desc-${index}`);
+                                          ref.current = (newContent) => {
+                                            const newItineraries = [...value];
+                                            newItineraries[index] = { ...itinerary, itineraryDescription: newContent };
+                                            onChange(newItineraries);
+                                          };
+                                          return <StableJoditEditor value={itinerary.itineraryDescription || ''} onBlurRef={ref} />;
+                                        })()}
                                       </FormControl>
                                     </FormItem>
                                   </div>
@@ -776,19 +793,18 @@ function ItineraryTab({
                                             <FormItem>
                                               <FormLabel>Activity Title</FormLabel>
                                               <FormControl>
-                                                <JoditEditor
-                                                  ref={editor}
-                                                  value={activity.activityTitle || ''}
-                                                  onBlur={(newContent) => {
+                                                {(() => {
+                                                  const ref = getJoditRef(`act-title-${index}-${activityIndex}`);
+                                                  ref.current = (newContent) => {
                                                     const updatedItineraries = [...value];
                                                     updatedItineraries[index].activities[activityIndex] = {
                                                       ...updatedItineraries[index].activities[activityIndex],
                                                       activityTitle: newContent,
                                                     };
                                                     onChange(updatedItineraries);
-                                                  }}
-                                                  onChange={() => { }}
-                                                />
+                                                  };
+                                                  return <StableJoditEditor value={activity.activityTitle || ''} onBlurRef={ref} />;
+                                                })()}
                                               </FormControl>
                                             </FormItem>
 
@@ -796,19 +812,18 @@ function ItineraryTab({
                                             <FormItem>
                                               <FormLabel>Description</FormLabel>
                                               <FormControl>
-                                                <JoditEditor
-                                                  ref={editor}
-                                                  value={activity.activityDescription || ''}
-                                                  onBlur={(newContent) => {
+                                                {(() => {
+                                                  const ref = getJoditRef(`act-desc-${index}-${activityIndex}`);
+                                                  ref.current = (newContent) => {
                                                     const updatedItineraries = [...value];
                                                     updatedItineraries[index].activities[activityIndex] = {
                                                       ...updatedItineraries[index].activities[activityIndex],
                                                       activityDescription: newContent,
                                                     };
                                                     onChange(updatedItineraries);
-                                                  }}
-                                                  onChange={() => { }}
-                                                />
+                                                  };
+                                                  return <StableJoditEditor value={activity.activityDescription || ''} onBlurRef={ref} />;
+                                                })()}
                                               </FormControl>
                                             </FormItem>
 

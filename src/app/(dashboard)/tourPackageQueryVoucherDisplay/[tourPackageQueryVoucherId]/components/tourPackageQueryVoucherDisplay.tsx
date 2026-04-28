@@ -1,9 +1,6 @@
 'use client'
 import React from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { VoucherActions } from "@/components/voucher-actions";
 import type { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, RoomAllocation, TransportDetail, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
@@ -38,7 +35,6 @@ interface TourPackageQueryVoucherDisplayProps {
   selectedOption?: string;
 };
 
-// Define a type for the company information
 type CompanyInfo = {
   [key: string]: {
     logo: string;
@@ -50,7 +46,6 @@ type CompanyInfo = {
   };
 };
 
-// Define the company data using the CompanyInfo type
 const companyInfo: CompanyInfo = {
   Empty: { logo: '', name: '', address: '', phone: '', email: '', website: '' },
   AH: {
@@ -58,22 +53,17 @@ const companyInfo: CompanyInfo = {
     name: 'Aagam Holidays',
     address: 'B - 1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India',
     phone: '+91-97244 44701',
-    email: 'info@aagamholidays.com', // Add the missing fields
+    email: 'info@aagamholidays.com',
     website: 'https://aagamholidays.com',
   },
 };
 
-// Add this helper function to parse pricing section from JSON
 const parsePricingSection = (pricingData: any): Array<{ name: string, price?: string, description?: string }> => {
   if (!pricingData) return [];
-
   try {
-    if (typeof pricingData === 'string') {
-      return JSON.parse(pricingData);
-    }
+    if (typeof pricingData === 'string') return JSON.parse(pricingData);
     return Array.isArray(pricingData) ? pricingData : [];
   } catch (e) {
-    console.error("Error parsing pricing section:", e);
     return [];
   }
 };
@@ -81,50 +71,32 @@ const parsePricingSection = (pricingData: any): Array<{ name: string, price?: st
 const parsePolicyField = (field: any): string[] => {
   if (!field) return [];
   try {
-    if (typeof field === 'string') {
-      return JSON.parse(field);
-    } else if (Array.isArray(field)) {
-      return field.map(item => String(item));
-    } else {
-      return [String(field)];
-    }
-  } catch (e) {
+    if (typeof field === 'string') return JSON.parse(field);
+    if (Array.isArray(field)) return field.map(item => String(item));
+    return [String(field)];
+  } catch {
     return [String(field)];
   }
 };
 
-const PolicySection = ({ title, items }: { title: string; items: string[] }) => {
-  if (!items || items.length === 0) return null;
+const stripHtml = (input: string): string => {
+  if (!input) return '';
+  return input
+    .replace(/<\/?(p|div)[^>]*>/gi, ' ')
+    .replace(/<br\s*\/?\s*>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
 
-  // Determine the icon based on the title
-  const getIcon = () => {
-    switch (title) {
-      case "Inclusions": return <CheckCircleIcon className="h-7 w-7" />;
-      case "Exclusions": return <XCircleIcon className="h-7 w-7" />;
-      case "Important Notes": return <InfoIcon className="h-7 w-7" />;
-      case "Payment Policy": return <CreditCardIcon className="h-7 w-7" />;
-      case "Kitchen Group Policy": return <ChefHatIcon className="h-7 w-7" />;
-      case "Useful Tips": return <InfoIcon className="h-7 w-7" />;
-      case "Cancellation Policy": return <XCircleIcon className="h-7 w-7" />;
-      case "Airline Cancellation Policy": return <PlaneIcon className="h-7 w-7" />;
-      case "Terms and Conditions": return <Shield className="h-7 w-7" />;
-      default: return <InfoIcon className="h-7 w-7" />;
-    }
-  };
-
-  return (
-    <div className="rounded-xl border border-orange-100 bg-white/90 p-4 shadow-sm sm:p-5">
-      <div className="mb-3 flex items-center gap-3 text-gray-800">
-        {getIcon()}
-        <h3 className="text-base font-semibold sm:text-lg">{title}</h3>
-      </div>
-      <ul className="list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-gray-700 sm:pl-6">
-        {items.map((item, index) => (
-          <li key={index} className="leading-relaxed">{item}</li>
-        ))}
-      </ul>
-    </div>
-  );
+const formatPriceINR = (raw: any): string => {
+  if (raw === null || raw === undefined) return '';
+  const cleaned = String(raw).trim();
+  if (!cleaned) return '';
+  const parsed = Number(cleaned.replace(/[^0-9.-]/g, ''));
+  if (Number.isNaN(parsed)) return cleaned;
+  return `₹ ${parsed.toLocaleString('en-IN')}`;
 };
 
 export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDisplayProps> = ({
@@ -135,14 +107,10 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   occupancyTypes = [],
   mealPlans = [],
 }) => {
-
   const searchParams = useSearchParams();
-  const selectedOption = searchParams?.get('search') || 'Empty'; // 'option' is the name of your query parameter
-
-  // Now you can use selectedOption to get data from your companyInfo object
+  const selectedOption = searchParams?.get('search') || 'Empty';
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
-  // Confirmed variant room allocations (Issue 6)
   const confirmedVariantId = (initialData as any)?.confirmedVariantId as string | null | undefined;
   const variantRoomAllocationsRaw = (initialData as any)?.variantRoomAllocations;
   const variantRoomAllocations: Record<string, Record<string, any[]>> = (() => {
@@ -153,518 +121,441 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         : variantRoomAllocationsRaw;
     } catch { return {}; }
   })();
-  // When a variant is confirmed, use its room allocations for the voucher
   const confirmedAllocations = confirmedVariantId ? variantRoomAllocations[confirmedVariantId] : null;
 
   const supplierView = selectedOption === 'SupplierA' || selectedOption === 'SupplierB';
-  const customerSummary = [initialData?.customerName, initialData?.customerNumber].filter(Boolean).join(' | ') || 'Details unavailable';
-  const assignedSummary = [initialData?.assignedTo, initialData?.assignedToMobileNumber, initialData?.assignedToEmail].filter(Boolean).join(' | ') || 'Not assigned';
-  const totalPriceClean = initialData?.totalPrice ? String(initialData.totalPrice).trim() : '';
-  const totalPriceParsed = totalPriceClean ? Number(totalPriceClean.replace(/[^0-9.-]/g, '')) : NaN;
-  const formattedTotalPrice = totalPriceClean
-    ? (Number.isNaN(totalPriceParsed) ? totalPriceClean : `₹ ${totalPriceParsed.toLocaleString('en-IN')}`)
-    : '';
+  const formattedTotalPrice = !supplierView && selectedOption !== 'Empty' ? formatPriceINR(initialData?.totalPrice) : '';
   const pricingItems = parsePricingSection(initialData?.pricingSection);
   const hasPricing = !supplierView && selectedOption !== 'Empty' && pricingItems.length > 0;
 
+  const locationLabel = locations.find(l => l.id === initialData?.locationId)?.label || '';
+  const periodLabel = [
+    initialData?.tourStartsFrom ? formatLocalDate(initialData.tourStartsFrom, 'dd MMM yyyy') : '',
+    initialData?.tourEndsOn ? formatLocalDate(initialData.tourEndsOn, 'dd MMM yyyy') : '',
+  ].filter(Boolean).join(' — ');
+
+  const heroImage = initialData?.images?.[0]?.url;
+
   const footerLabel = [currentCompany.name || initialData?.tourPackageQueryName, 'Booking Voucher']
-    .filter(Boolean)
-    .join(' • ');
+    .filter(Boolean).join(' • ');
   const footerPrimaryLine = currentCompany.name
     ? [currentCompany.name, currentCompany.address].filter(Boolean).join(' • ')
     : initialData?.tourPackageQueryName || '';
   const footerSecondaryLine = [
     currentCompany.phone ? `Phone: ${currentCompany.phone}` : null,
     currentCompany.email ? `Email: ${currentCompany.email}` : null,
-  ]
-    .filter(Boolean)
-    .join(' • ');
-  const footerWebsite = currentCompany.website || '';
-  const footerLogo = currentCompany.logo || '';
-  const footerTagline = selectedOption === 'AH' ? 'Your Trusted Travel Partner' : '';
-
-  const sectionTitleGradient = "bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback";
-
-  // Update the PolicySection component with larger font sizes
-
+  ].filter(Boolean).join(' • ');
 
   if (!initialData || !initialData.isFeatured) return <div>No data available</div>;
 
+  const policies: { title: string; items: string[] }[] = [
+    { title: 'Inclusions', items: parsePolicyField(initialData.inclusions) },
+    { title: 'Exclusions', items: parsePolicyField(initialData.exclusions) },
+    { title: 'Important Notes', items: parsePolicyField(initialData.importantNotes) },
+    { title: 'Payment Policy', items: parsePolicyField(initialData.paymentPolicy) },
+    { title: 'Kitchen Group Policy', items: parsePolicyField(initialData.kitchenGroupPolicy) },
+    { title: 'Useful Tips', items: parsePolicyField(initialData.usefulTip) },
+    { title: 'Cancellation Policy', items: parsePolicyField(initialData.cancellationPolicy) },
+    { title: 'Airline Cancellation Policy', items: parsePolicyField(initialData.airlineCancellationPolicy) },
+    { title: 'Terms and Conditions', items: parsePolicyField(initialData.termsconditions) },
+  ].filter(p => p.items.length > 0);
+
   return (
-    <div className="space-y-4 px-3 sm:px-4 md:px-6 lg:px-10 xl:px-16">
-      <div className="flex justify-center print:hidden sm:justify-end">
-        <VoucherActions id={initialData.id} type="tour-package-query" />
-      </div>
+    <>
+      <style>{`
+        .vchr {
+          --vchr-ink: #111827;
+          --vchr-mute: #6B7280;
+          --vchr-faint: #9CA3AF;
+          --vchr-line: #E5E7EB;
+          --vchr-cream: #FAF7F2;
+          --vchr-accent: #C2410C;
+          color: var(--vchr-ink);
+          font-family: var(--font-sans), 'Inter', system-ui, sans-serif;
+          font-size: 11.5px;
+          line-height: 1.55;
+          background: #ffffff;
+        }
+        .vchr-serif { font-family: var(--font-serif), 'Cormorant Garamond', Georgia, serif; font-weight: 500; letter-spacing: 0.005em; }
+        .vchr-eyebrow { font-size: 9.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vchr-mute); }
+        .vchr-section { padding: 22px 0 18px; }
+        .vchr-section + .vchr-section { border-top: 1px solid var(--vchr-line); }
+        .vchr-section-title { font-size: 18px; font-weight: 500; margin: 0 0 4px; }
+        .vchr-section-rule { width: 28px; height: 1px; background: var(--vchr-accent); margin: 0 0 14px; }
+        .vchr-cover { background: var(--vchr-cream); padding: 36px 38px 32px; }
+        .vchr-cover-wordmark { font-size: 10px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase; color: var(--vchr-accent); }
+        .vchr-cover-title { font-size: 30px; line-height: 1.15; margin: 14px 0 8px; }
+        .vchr-cover-meta { display: flex; gap: 18px; flex-wrap: wrap; font-size: 10.5px; color: var(--vchr-mute); margin-top: 10px; }
+        .vchr-cover-meta span strong { color: var(--vchr-ink); font-weight: 600; }
+        .vchr-cover-rule { width: 36px; height: 1px; background: var(--vchr-accent); margin: 18px 0; }
+        .vchr-hero { width: 100%; height: 280px; overflow: hidden; margin-top: 10px; }
+        .vchr-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .vchr-cover-total { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(17,24,39,0.12); }
+        .vchr-cover-total-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--vchr-mute); }
+        .vchr-cover-total-amount { font-size: 24px; }
+        .vchr-grid-2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; row-gap: 14px; }
+        .vchr-field-label { font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vchr-faint); margin-bottom: 3px; }
+        .vchr-field-value { font-size: 12px; color: var(--vchr-ink); }
+        .vchr-day-row { display: grid; grid-template-columns: 64px 1fr; gap: 18px; padding: 12px 0; border-top: 1px solid var(--vchr-line); }
+        .vchr-day-row:first-child { border-top: none; }
+        .vchr-day-num { font-size: 22px; color: var(--vchr-accent); line-height: 1; }
+        .vchr-day-num-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vchr-mute); margin-top: 2px; }
+        .vchr-day-text { font-size: 12px; color: var(--vchr-ink); line-height: 1.5; }
+        .vchr-day-text strong { font-weight: 600; }
+        .vchr-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .vchr-table th { text-align: left; font-weight: 600; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vchr-mute); padding: 8px 10px 8px 0; border-bottom: 1px solid var(--vchr-line); }
+        .vchr-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--vchr-line); vertical-align: top; color: var(--vchr-ink); }
+        .vchr-table tr:last-child td { border-bottom: none; }
+        .vchr-table .num { text-align: right; padding-right: 0; }
+        .vchr-stay { margin-bottom: 18px; }
+        .vchr-stay-title { font-size: 14px; margin: 0 0 4px; }
+        .vchr-stay-meta { font-size: 10px; color: var(--vchr-mute); margin-bottom: 6px; letter-spacing: 0.04em; }
+        .vchr-extra-bed { color: var(--vchr-mute); font-style: italic; }
+        .vchr-empty { font-size: 10.5px; color: var(--vchr-mute); padding: 8px 0; font-style: italic; }
+        .vchr-policy-grid { column-count: 2; column-gap: 32px; column-rule: 1px solid var(--vchr-line); }
+        .vchr-policy-block { break-inside: avoid; page-break-inside: avoid; margin: 0 0 18px; }
+        .vchr-policy-title { font-size: 13px; margin: 0 0 6px; }
+        .vchr-policy-list { margin: 0; padding-left: 14px; font-size: 10.5px; color: var(--vchr-ink); line-height: 1.6; }
+        .vchr-policy-list li { margin-bottom: 3px; }
+        .vchr-pricing-table th, .vchr-pricing-table td { padding: 8px 10px 8px 0; }
+        .vchr-pricing-table .price { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 0; }
+        .vchr-remarks { margin-top: 14px; font-size: 11px; color: var(--vchr-ink); line-height: 1.6; }
+        .vchr-remarks-label { font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vchr-faint); margin-bottom: 4px; }
+        .vchr-signoff { padding: 18px 0 8px; text-align: center; }
+        .vchr-signoff-mark { font-size: 9.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--vchr-accent); }
+        .vchr-signoff-line { font-size: 11px; color: var(--vchr-mute); margin-top: 6px; }
+        @media print { .vchr-screen-only { display: none; } }
+      `}</style>
 
-      <div
-        id="voucher-content"
-        data-pdf-footer-label={footerLabel}
-        data-pdf-footer-primary={footerPrimaryLine}
-        data-pdf-footer-secondary={footerSecondaryLine}
-        data-pdf-footer-website={footerWebsite}
-        data-pdf-footer-logo={footerLogo}
-        data-pdf-footer-tagline={footerTagline}
-        className="mx-auto flex w-full max-w-3xl flex-col space-y-3 rounded-2xl border border-orange-100 bg-white/95 p-4 shadow-lg sm:space-y-4 sm:p-6"
-      >
-        <Card data-pdf-section="true" className="break-inside-avoid font-bold avoid-break-inside">
-          <CardHeader className="bg-gray-50 rounded-t-lg flex flex-col gap-4 p-6">
-            <div className="flex flex-col items-center gap-3 text-center">
-              {selectedOption !== 'Empty' && currentCompany.logo ? (
-                <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-orange-200 bg-white shadow-sm">
-                  <Image src={currentCompany.logo} alt={`${currentCompany.name || 'Company'} Logo`} width={56} height={56} className="max-h-12 max-w-12 object-contain" />
-                </div>
-              ) : null}
-              <div className="flex flex-col items-center gap-1">
-                {currentCompany.name ? (
-                  <span className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-500">
-                    {currentCompany.name}
-                  </span>
-                ) : null}
-                <CardTitle className={`text-2xl font-bold ${sectionTitleGradient} text-center leading-snug`}>
-                  {initialData.tourPackageQueryName}
-                </CardTitle>
-                <CardDescription className="text-sm font-medium text-gray-500">
-                  Voucher Reference: {initialData.tourPackageQueryNumber}
-                </CardDescription>
-                <span className="mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-pink-500" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-orange-700">
-                  Booking Voucher
-                </span>
-                <span className="text-sm font-semibold text-gray-600">
-                  {initialData.tourPackageQueryType} Package
-                </span>
-              </div>
-            </div>
-          </CardHeader>
-          {initialData.images.map((image, index) => (
-            <div key={index} className="h-[220px] w-full overflow-hidden rounded-b-2xl sm:h-[300px] md:h-[380px]">
-              <Image
-                src={image.url}
-                alt={`${initialData.tourPackageQueryName || 'Tour'} Image ${index + 1}`}
-                width={1200}
-                height={400}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ))}
-        </Card>
+      <div className="space-y-4 px-3 sm:px-4 md:px-6 lg:px-10 xl:px-16">
+        <div className="vchr-screen-only flex justify-center print:hidden sm:justify-end">
+          <VoucherActions id={initialData.id} type="tour-package-query" />
+        </div>
 
-        <Card data-pdf-section="true" data-pdf-break-before="true" className="rounded-xl border border-orange-200 shadow-sm">
-          <CardHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-orange-50 px-5 py-5">
-            <div className="flex flex-col gap-1">
-              <h2 className={`text-lg font-semibold ${sectionTitleGradient}`}>Guest & Assignment Details</h2>
-              <CardDescription className="text-sm text-gray-500">
-                Matches the styling used in the Tour Package Query download PDF.
-              </CardDescription>
+        <div
+          id="voucher-content"
+          data-pdf-footer-label={footerLabel}
+          data-pdf-footer-primary={footerPrimaryLine}
+          data-pdf-footer-secondary={footerSecondaryLine}
+          data-pdf-footer-website={currentCompany.website || ''}
+          data-pdf-footer-logo={currentCompany.logo || ''}
+          data-pdf-footer-tagline={selectedOption === 'AH' ? 'Crafted journeys, delivered with care.' : ''}
+          className="vchr"
+          style={{ maxWidth: 780, margin: '0 auto' }}
+        >
+          {/* ── Cover ── */}
+          <section data-pdf-section="true" className="vchr-cover">
+            <div className="vchr-cover-wordmark">
+              {currentCompany.name || 'Booking Voucher'}
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 px-5 py-5 text-[15px] text-gray-700 md:text-sm">
-            {!supplierView && (
-              <>
-                <div className="space-y-1">
-                  <span className="font-semibold text-gray-600">Customer</span>
-                  <span className="font-medium text-gray-900">{customerSummary}</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-semibold text-gray-600">Assigned To</span>
-                  <span className="font-medium text-gray-900">{assignedSummary}</span>
-                </div>
-              </>
+            <h1 className="vchr-serif vchr-cover-title">
+              {initialData.tourPackageQueryName}
+            </h1>
+            <div className="vchr-eyebrow" style={{ color: 'var(--vchr-mute)' }}>
+              Booking Voucher · Ref {initialData.tourPackageQueryNumber}
+            </div>
+            <div className="vchr-cover-rule" />
+            <div className="vchr-cover-meta">
+              {locationLabel && <span><strong>{locationLabel}</strong></span>}
+              {initialData.numDaysNight && <span>{initialData.numDaysNight}</span>}
+              {periodLabel && <span>{periodLabel}</span>}
+              {initialData.tourPackageQueryType && <span>{initialData.tourPackageQueryType} Package</span>}
+            </div>
+
+            {heroImage && (
+              <div className="vchr-hero" style={{ marginTop: 24 }}>
+                <Image
+                  src={heroImage}
+                  alt={initialData.tourPackageQueryName || 'Tour'}
+                  width={1400}
+                  height={560}
+                  priority
+                />
+              </div>
             )}
-          </CardContent>
-        </Card>
-        {/* Tour Package Details */}
-        <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-md rounded-xl">
-          <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className={`text-2xl font-bold ${sectionTitleGradient}`}>Tour Information</h2>
-              <span className="hidden rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-orange-700 sm:inline-flex">
-                Overview
-              </span>
-            </div>
-          </CardHeader>
 
-          <CardContent className="px-5 py-5">
-            <div className="grid gap-x-6 gap-y-4 text-[15px] leading-relaxed sm:grid-cols-2 md:text-sm lg:grid-cols-3">
-              <div>
-                <span className="font-semibold text-gray-600">Location:</span> <span className="font-medium text-gray-900">{locations.find(location => location.id === initialData.locationId)?.label}</span>
+            {formattedTotalPrice && (
+              <div className="vchr-cover-total">
+                <span className="vchr-cover-total-label">Total Package</span>
+                <span className="vchr-serif vchr-cover-total-amount">{formattedTotalPrice}</span>
               </div>
-              {initialData.numDaysNight && (
+            )}
+          </section>
+
+          {/* ── Trip Overview ── */}
+          <section data-pdf-section="true" className="vchr-section">
+            <h2 className="vchr-serif vchr-section-title">Trip Overview</h2>
+            <div className="vchr-section-rule" />
+            <div className="vchr-grid-2">
+              {!supplierView && initialData.customerName && (
                 <div>
-                  <span className="font-semibold text-gray-600">Duration:</span> <span className="font-medium text-gray-900">{initialData.numDaysNight}</span>
+                  <div className="vchr-field-label">Guest</div>
+                  <div className="vchr-field-value">
+                    {initialData.customerName}
+                    {initialData.customerNumber ? ` · ${initialData.customerNumber}` : ''}
+                  </div>
                 </div>
               )}
-              {(initialData.tourStartsFrom || initialData.tourEndsOn) && (
-                <div className="col-span-full lg:col-span-1">
-                  <span className="font-semibold text-gray-600">Period:</span> <span className="font-medium text-gray-900">{initialData.tourStartsFrom ? formatLocalDate(initialData.tourStartsFrom, 'dd-MM-yyyy') : ''}{initialData.tourStartsFrom && initialData.tourEndsOn && ' → '}{initialData.tourEndsOn ? formatLocalDate(initialData.tourEndsOn, 'dd-MM-yyyy') : ''}</span>
+              {!supplierView && initialData.assignedTo && (
+                <div>
+                  <div className="vchr-field-label">Assigned To</div>
+                  <div className="vchr-field-value">
+                    {initialData.assignedTo}
+                    {initialData.assignedToMobileNumber ? ` · ${initialData.assignedToMobileNumber}` : ''}
+                  </div>
+                </div>
+              )}
+              {locationLabel && (
+                <div>
+                  <div className="vchr-field-label">Destination</div>
+                  <div className="vchr-field-value">{locationLabel}</div>
+                </div>
+              )}
+              {initialData.numDaysNight && (
+                <div>
+                  <div className="vchr-field-label">Duration</div>
+                  <div className="vchr-field-value">{initialData.numDaysNight}</div>
+                </div>
+              )}
+              {periodLabel && (
+                <div>
+                  <div className="vchr-field-label">Travel Period</div>
+                  <div className="vchr-field-value">{periodLabel}</div>
+                </div>
+              )}
+              {(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) && (
+                <div>
+                  <div className="vchr-field-label">Travellers</div>
+                  <div className="vchr-field-value">
+                    {[
+                      initialData.numAdults ? `${initialData.numAdults} Adults` : '',
+                      initialData.numChild5to12 ? `${initialData.numChild5to12} Child (5–12)` : '',
+                      initialData.numChild0to5 ? `${initialData.numChild0to5} Child (0–5)` : '',
+                    ].filter(Boolean).join(' · ')}
+                  </div>
                 </div>
               )}
               {initialData.transport && (
                 <div>
-                  <span className="font-semibold text-gray-600">Transport:</span> <span className="font-medium text-gray-900">{initialData.transport}</span>
+                  <div className="vchr-field-label">Transport</div>
+                  <div className="vchr-field-value">{initialData.transport}</div>
                 </div>
               )}
               {initialData.pickup_location && (
                 <div>
-                  <span className="font-semibold text-gray-600">Pickup:</span> <span className="font-medium text-gray-900">{initialData.pickup_location}</span>
+                  <div className="vchr-field-label">Pickup</div>
+                  <div className="vchr-field-value">{initialData.pickup_location}</div>
                 </div>
               )}
               {initialData.drop_location && (
                 <div>
-                  <span className="font-semibold text-gray-600">Drop:</span> <span className="font-medium text-gray-900">{initialData.drop_location}</span>
-                </div>
-              )}
-              {(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) && (
-                <div className="col-span-full lg:col-span-2 flex flex-wrap gap-x-8 gap-y-1">
-                  {initialData.numAdults && <span><span className="font-semibold text-gray-600">Adults:</span> <span className="font-medium text-gray-900">{initialData.numAdults}</span></span>}
-                  {initialData.numChild5to12 && <span><span className="font-semibold text-gray-600">Children 5-12:</span> <span className="font-medium text-gray-900">{initialData.numChild5to12}</span></span>}
-                  {initialData.numChild0to5 && <span><span className="font-semibold text-gray-600">Children 0-5:</span> <span className="font-medium text-gray-900">{initialData.numChild0to5}</span></span>}
+                  <div className="vchr-field-label">Drop</div>
+                  <div className="vchr-field-value">{initialData.drop_location}</div>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+            {initialData.remarks && stripHtml(initialData.remarks) && (
+              <div className="vchr-remarks">
+                <div className="vchr-remarks-label">Remarks</div>
+                <div dangerouslySetInnerHTML={{ __html: initialData.remarks }} />
+              </div>
+            )}
+          </section>
 
-
-        {hasPricing && (
-          <div data-pdf-section="true" className="mt-4 overflow-hidden rounded-xl border border-orange-200 shadow-sm">
-            <div className="flex items-center justify-between border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-orange-50 px-4 py-3">
-              <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 sm:text-xl">
-                <span className="text-base">💰</span>
-                <span className={sectionTitleGradient}>Pricing Options</span>
-              </h3>
-              <span className="text-xs uppercase tracking-wide text-gray-500">INR</span>
-            </div>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full bg-white text-sm">
-                <colgroup>
-                  <col style={{ width: '55%' }} />
-                  <col style={{ width: '20%' }} />
-                  <col style={{ width: '25%' }} />
-                </colgroup>
-                <thead className="bg-gray-50 text-[11px] uppercase text-gray-600">
-                  <tr className="divide-x divide-gray-200">
-                    <th className="px-3 py-2 text-left font-semibold">Item</th>
-                    <th className="px-3 py-2 text-center font-semibold">Base</th>
-                    <th className="px-3 py-2 text-left font-semibold">Notes</th>
+          {/* ── Pricing Options ── */}
+          {hasPricing && (
+            <section data-pdf-section="true" className="vchr-section">
+              <h2 className="vchr-serif vchr-section-title">Pricing Options</h2>
+              <div className="vchr-section-rule" />
+              <table className="vchr-table vchr-pricing-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '50%' }}>Item</th>
+                    <th>Notes</th>
+                    <th className="price">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {pricingItems.map((item, index) => {
-                    const normalizedPrice = item.price?.toString().replace(/[^0-9.-]/g, '') ?? '';
-                    const parsed = normalizedPrice ? Number(normalizedPrice) : NaN;
-                    const formattedPrice = Number.isNaN(parsed) ? item.price || '-' : `₹ ${parsed.toLocaleString('en-IN')}`;
-
-                    return (
-                      <tr key={index} className="hover:bg-orange-50/60">
-                        <td className="max-w-[220px] truncate px-3 py-2 font-medium text-gray-900">{item.name}</td>
-                        <td className="whitespace-nowrap px-3 py-2 text-center font-semibold text-green-600">{formattedPrice}</td>
-                        <td className="px-3 py-2 text-gray-700 leading-snug">{item.description || '-'}</td>
-                      </tr>
-                    );
-                  })}
+                <tbody>
+                  {pricingItems.map((item, index) => (
+                    <tr key={index}>
+                      <td style={{ fontWeight: 500 }}>{item.name}</td>
+                      <td style={{ color: 'var(--vchr-mute)' }}>{item.description || '—'}</td>
+                      <td className="price">{formatPriceINR(item.price) || '—'}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
-            </div>
-            <div className="flex flex-col gap-3 bg-white px-4 py-4 md:hidden">
-              {pricingItems.map((item, index) => {
-                const normalizedPrice = item.price?.toString().replace(/[^0-9.-]/g, '') ?? '';
-                const parsed = normalizedPrice ? Number(normalizedPrice) : NaN;
-                const formattedPrice = Number.isNaN(parsed) ? item.price || '-' : `₹ ${parsed.toLocaleString('en-IN')}`;
+            </section>
+          )}
 
-                return (
-                  <div key={index} className="rounded-lg border border-orange-100 bg-white/90 p-4 shadow-sm">
-                    <div className="text-base font-semibold text-gray-900">{item.name}</div>
-                    <div className="mt-2 flex items-center justify-between text-sm text-gray-600">
-                      <span className="font-medium text-gray-700">Base Price</span>
-                      <span className="text-lg font-semibold text-green-600">{formattedPrice}</span>
-                    </div>
-                    {item.description && (
-                      <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{item.description}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-between border-t border-orange-100 bg-gray-50 px-4 py-2 text-xs text-gray-500">
-              <span>Prices are indicative until confirmed.</span>
-              <span className="font-medium text-orange-600">{initialData.isFeatured ? 'Confirmed' : 'Indicative'}</span>
-            </div>
-          </div>
-        )}
-
-        {(() => {
-          const isPriceVisible = formattedTotalPrice && !supplierView && selectedOption !== 'Empty';
-
-          return (
-            <>
-              {isPriceVisible && (
-                <Card data-pdf-section="true" className="border border-orange-200 shadow-sm rounded-xl">
-                  <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-                    <CardTitle className={`text-lg font-semibold ${sectionTitleGradient}`}>Total Package Price</CardTitle>
-                    <CardDescription className="text-sm text-gray-500">Quoted value in INR</CardDescription>
-                  </CardHeader>
-                  <CardContent className="px-5 py-5">
-                    <div className="text-2xl font-semibold text-orange-600">{formattedTotalPrice}</div>
-
-                    {initialData.remarks && initialData.remarks !== '' && (
-                      <div className="mt-6 pt-5 border-t border-orange-100">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <InfoIcon className="w-4 h-4 text-orange-500" />
-                          Remarks
-                        </h4>
-                        <div className="text-[15px] leading-relaxed text-gray-700 bg-orange-50/50 p-4 rounded-lg border border-orange-100">
-                          <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }} />
-                        </div>
+          {/* ── Day-by-Day ── */}
+          {initialData.itineraries && initialData.itineraries.length > 0 && (
+            <section data-pdf-section="true" className="vchr-section">
+              <h2 className="vchr-serif vchr-section-title">Day-by-Day</h2>
+              <div className="vchr-section-rule" />
+              <div>
+                {initialData.itineraries.map((itinerary, index) => {
+                  const cleanedTitle = stripHtml(itinerary.itineraryTitle || '');
+                  return (
+                    <div key={index} className="vchr-day-row">
+                      <div>
+                        <div className="vchr-serif vchr-day-num">{String(itinerary.dayNumber).padStart(2, '0')}</div>
+                        <div className="vchr-day-num-label">{itinerary.days || 'Day'}</div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {!isPriceVisible && initialData.remarks !== '' && (
-                <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
-                  <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-                    <CardTitle className={`text-lg font-semibold ${sectionTitleGradient}`}>Additional Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-5 py-5 text-base leading-relaxed text-gray-700">
-                    <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }} />
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          );
-        })()}
-
-
-        {/* Itineraries */}
-        <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
-          <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-            <h2 className={`text-2xl font-semibold ${sectionTitleGradient}`}>Short Itinerary</h2>
-          </CardHeader>
-
-          {initialData.itineraries?.map((itinerary, index) => {
-            const cleanedTitle = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
-            return (
-              <div key={index} className="border-b border-orange-100 px-5 py-3 text-[15px] font-medium text-gray-700 last:border-b-0 md:text-sm">
-                <div dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
+                      <div className="vchr-day-text">
+                        <strong>{cleanedTitle || '—'}</strong>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </Card>
+            </section>
+          )}
 
-        {/* Flight Details */}
-        {initialData.flightDetails && !supplierView && initialData.flightDetails.length > 0 && (
-          <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
-            <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-              <CardTitle className={`text-2xl font-semibold ${sectionTitleGradient}`}>Flight Details</CardTitle>
-            </CardHeader>
-            <CardContent className="px-5 py-5 space-y-4">
-              {initialData.flightDetails.map((flight: FlightDetails, index: number) => (
-                <div key={index} className="rounded-lg border border-orange-100 bg-white px-4 py-3 shadow-sm">
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-orange-100 pb-2">
-                    <span className="text-[15px] font-semibold text-gray-900 md:text-sm">{flight.date}</span>
-                    <div className="text-[15px] font-medium text-gray-700 md:text-sm">
-                      <span>{flight.flightName}</span>
-                      {flight.flightNumber && <span className="ml-2 text-gray-500">({flight.flightNumber})</span>}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-4 text-[15px] text-gray-700 md:text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{flight.from}</span>
-                      <span className="text-gray-500">{flight.departureTime}</span>
-                    </div>
-                    <div className="flex flex-col items-center text-gray-500">
-                      <PlaneTakeoffIcon className="h-4 w-4" />
-                      <span className="text-xs">{flight.flightDuration}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{flight.to}</span>
-                      <span className="text-gray-500">{flight.arrivalTime}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-        {/* Itineraries and Hotel Details */}
-        {initialData.itineraries && initialData.itineraries.length > 0 && (
-          <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
-            <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-              <h2 className={`text-2xl font-semibold ${sectionTitleGradient}`}>Accommodation Details</h2>
-            </CardHeader>
-            <CardContent className="px-5 py-5 space-y-6">
-              {initialData.itineraries.map((itinerary: Itinerary & { roomAllocations: (RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; })[] }, itineraryIdx: number) => {
-                const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
+          {/* ── Flights ── */}
+          {!supplierView && initialData.flightDetails && initialData.flightDetails.length > 0 && (
+            <section data-pdf-section="true" className="vchr-section">
+              <h2 className="vchr-serif vchr-section-title">Flights</h2>
+              <div className="vchr-section-rule" />
+              <table className="vchr-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Carrier</th>
+                    <th>Route</th>
+                    <th>Times</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {initialData.flightDetails.map((flight, idx) => (
+                    <tr key={idx}>
+                      <td>{flight.date}</td>
+                      <td>
+                        {flight.flightName}
+                        {flight.flightNumber ? <span style={{ color: 'var(--vchr-mute)' }}> · {flight.flightNumber}</span> : null}
+                      </td>
+                      <td>
+                        <strong>{flight.from}</strong>
+                        <span style={{ color: 'var(--vchr-mute)' }}> → </span>
+                        <strong>{flight.to}</strong>
+                      </td>
+                      <td>
+                        {flight.departureTime}
+                        <span style={{ color: 'var(--vchr-mute)' }}> – </span>
+                        {flight.arrivalTime}
+                      </td>
+                      <td>{flight.flightDuration}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
 
-                // Use confirmed variant room allocations if available, otherwise fall back to standard allocations
+          {/* ── Accommodation ── */}
+          {initialData.itineraries && initialData.itineraries.length > 0 && (
+            <section data-pdf-section="true" className="vchr-section">
+              <h2 className="vchr-serif vchr-section-title">Accommodation</h2>
+              <div className="vchr-section-rule" />
+              {initialData.itineraries.map((itinerary, itineraryIdx) => {
+                const hotelDetails = hotels.find(h => h.id === itinerary.hotelId);
                 const effectiveRoomAllocations: any[] = confirmedAllocations
                   ? (confirmedAllocations[itinerary.id] || [])
                   : itinerary.roomAllocations;
 
-                return (
-                  <div key={itineraryIdx} data-pdf-section="true" className="space-y-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Day {itinerary.dayNumber}: {itinerary.days} - {hotelDetails?.name || 'Hotel'}
-                    </h3>
+                if (!hotelDetails && effectiveRoomAllocations.length === 0) return null;
 
+                return (
+                  <div key={itineraryIdx} className="vchr-stay" data-pdf-section="true">
+                    <h3 className="vchr-serif vchr-stay-title">{hotelDetails?.name || 'Hotel'}</h3>
+                    <div className="vchr-stay-meta">
+                      Day {itinerary.dayNumber} · {itinerary.days}
+                    </div>
                     {effectiveRoomAllocations.length > 0 ? (
-                      <>
-                        <div className="hidden overflow-x-auto md:block">
-                          <table className="min-w-full divide-y divide-orange-100 overflow-hidden rounded-lg border border-orange-100">
-                            <thead className="bg-gray-50 text-xs uppercase text-gray-600">
-                              <tr>
-                                <th scope="col" className="px-3 py-2 text-left font-semibold">Room Type</th>
-                                <th scope="col" className="px-3 py-2 text-left font-semibold">Occupancy</th>
-                                <th scope="col" className="px-3 py-2 text-left font-semibold">Meal Plan</th>
-                                <th scope="col" className="px-3 py-2 text-left font-semibold">Quantity</th>
-                                <th scope="col" className="px-3 py-2 text-left font-semibold">Guests</th>
-                                <th scope="col" className="px-3 py-2 text-left font-semibold">Voucher No.</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-orange-100 text-sm text-gray-700">
-                              {effectiveRoomAllocations.map((room: any, roomIdx: number) => {
-                                const customText = typeof room?.customRoomType === 'string' ? (room.customRoomType as string).trim() : '';
-                                const useCustom = room?.useCustomRoomType || customText.length > 0;
-                                const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '-');
-                                const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '-';
-                                const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '-';
-                                return (
-                                  <React.Fragment key={roomIdx}>
-                                    <tr className="bg-white transition-colors hover:bg-orange-50/60">
-                                      <td className="px-3 py-2 font-medium text-gray-900">{roomTypeName}</td>
-                                      <td className="px-3 py-2">{occupancyName}</td>
-                                      <td className="px-3 py-2">{mealPlanName}</td>
-                                      <td className="px-3 py-2">{room.quantity || '-'}</td>
-                                      <td className="px-3 py-2 text-gray-600">{room.guestNames || '-'}</td>
-                                      <td className="px-3 py-2 text-gray-600">{room.voucherNumber || '-'}</td>
-                                    </tr>
-                                    {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
-                                      <tr key={`eb-${ebIdx}`} className="bg-amber-50/40">
-                                        <td className="px-3 py-1 pl-6 text-xs text-amber-700 font-medium">
-                                          + {eb.occupancyType?.name || '-'}
-                                        </td>
-                                        <td className="px-3 py-1 text-xs text-amber-600 italic">Extra Bed</td>
-                                        <td className="px-3 py-1 text-xs text-amber-700">{eb.quantity || 1}</td>
-                                        <td colSpan={3} />
-                                      </tr>
-                                    ))}
-                                  </React.Fragment>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                        <div className="flex flex-col gap-3 md:hidden">
+                      <table className="vchr-table">
+                        <thead>
+                          <tr>
+                            <th>Room</th>
+                            <th>Occupancy</th>
+                            <th>Meal</th>
+                            <th>Qty</th>
+                            <th>Guests</th>
+                            <th>Voucher</th>
+                          </tr>
+                        </thead>
+                        <tbody>
                           {effectiveRoomAllocations.map((room: any, roomIdx: number) => {
-                            const customText = typeof room?.customRoomType === 'string' ? (room.customRoomType as string).trim() : '';
+                            const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
                             const useCustom = room?.useCustomRoomType || customText.length > 0;
-                            const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '-');
-                            const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '-';
-                            const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '-';
+                            const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '—');
+                            const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '—';
+                            const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '—';
                             return (
-                              <div key={roomIdx} className="rounded-lg border border-orange-100 bg-white/90 p-4 shadow-sm">
-                                <div className="text-base font-semibold text-gray-900">{roomTypeName}</div>
-                                <dl className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-600">
-                                  <div>
-                                    <dt className="font-medium text-gray-700">Occupancy</dt>
-                                    <dd>{occupancyName}</dd>
-                                  </div>
-                                  <div>
-                                    <dt className="font-medium text-gray-700">Meal Plan</dt>
-                                    <dd>{mealPlanName}</dd>
-                                  </div>
-                                  <div>
-                                    <dt className="font-medium text-gray-700">Quantity</dt>
-                                    <dd>{room.quantity || '-'}</dd>
-                                  </div>
-                                  <div>
-                                    <dt className="font-medium text-gray-700">Guests</dt>
-                                    <dd>{room.guestNames || '-'}</dd>
-                                  </div>
-                                  <div>
-                                    <dt className="font-medium text-gray-700">Voucher No.</dt>
-                                    <dd>{room.voucherNumber || '-'}</dd>
-                                  </div>
-                                  {(room.extraBeds || []).length > 0 && (
-                                    <div className="col-span-2">
-                                      <dt className="font-medium text-amber-700">Extra Beds</dt>
-                                      <dd className="text-amber-700 text-xs space-y-0.5">
-                                        {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
-                                          <div key={ebIdx}>+ {eb.occupancyType?.name || '-'}{(eb.quantity || 1) > 1 ? ` ×${eb.quantity}` : ''}</div>
-                                        ))}
-                                      </dd>
-                                    </div>
-                                  )}
-                                </dl>
-                              </div>
+                              <React.Fragment key={roomIdx}>
+                                <tr>
+                                  <td style={{ fontWeight: 500 }}>{roomTypeName}</td>
+                                  <td>{occupancyName}</td>
+                                  <td>{mealPlanName}</td>
+                                  <td>{room.quantity || '—'}</td>
+                                  <td style={{ color: 'var(--vchr-mute)' }}>{room.guestNames || '—'}</td>
+                                  <td style={{ color: 'var(--vchr-mute)' }}>{room.voucherNumber || '—'}</td>
+                                </tr>
+                                {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
+                                  <tr key={`eb-${ebIdx}`}>
+                                    <td className="vchr-extra-bed" style={{ paddingLeft: 16 }}>
+                                      + Extra bed · {eb.occupancyType?.name || '—'}
+                                    </td>
+                                    <td colSpan={5} className="vchr-extra-bed">
+                                      Qty {eb.quantity || 1}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </React.Fragment>
                             );
                           })}
-                        </div>
-                      </>
+                        </tbody>
+                      </table>
                     ) : (
-                      <div className="rounded-lg border border-dashed border-orange-200 bg-gray-50 py-4 text-center text-sm text-gray-500">
-                        No room allocation details available
-                      </div>
+                      <div className="vchr-empty">No room allocation recorded.</div>
                     )}
                   </div>
                 );
               })}
-            </CardContent>
-          </Card>
-        )}
-        {/* Replace individual policy sections with a single organized section */}
-        <Card data-pdf-section="true" data-pdf-break-before="true" className="break-before-all border border-orange-200 shadow-sm rounded-xl overflow-hidden mb-8">
-          <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100 text-center">
-            <CardTitle className={`text-3xl font-semibold ${sectionTitleGradient}`}>Policies & Terms</CardTitle>
-            <CardDescription className="text-sm text-gray-500 mt-1">Key inclusions, exclusions, and travel guidelines for this voucher.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <PolicySection title="Inclusions" items={parsePolicyField(initialData.inclusions)} />
-            <PolicySection title="Exclusions" items={parsePolicyField(initialData.exclusions)} />
-            <PolicySection title="Important Notes" items={parsePolicyField(initialData.importantNotes)} />
-            <PolicySection title="Payment Policy" items={parsePolicyField(initialData.paymentPolicy)} />
-            <PolicySection title="Kitchen Group Policy" items={parsePolicyField(initialData.kitchenGroupPolicy)} />
-            <PolicySection title="Useful Tips" items={parsePolicyField(initialData.usefulTip)} />
-            <PolicySection title="Cancellation Policy" items={parsePolicyField(initialData.cancellationPolicy)} />
-            <PolicySection title="Airline Cancellation Policy" items={parsePolicyField(initialData.airlineCancellationPolicy)} />
-            <PolicySection title="Terms and Conditions" items={parsePolicyField(initialData.termsconditions)} />
-          </CardContent>
-        </Card>
+            </section>
+          )}
 
-        {selectedOption !== 'Empty' && (
-          <Card data-pdf-section="true" data-pdf-break-before="true" className="border border-orange-200 shadow-sm rounded-xl overflow-hidden">
-            <CardContent className="flex flex-col gap-6 bg-gradient-to-r from-orange-50 via-white to-orange-50 px-6 py-6 md:flex-row md:items-center md:justify-between">
-              <div className="relative mx-auto h-32 w-32 md:mx-0 md:h-40 md:w-40">
-                <Image src={currentCompany.logo || '/aagamholidays.png'} alt={`${currentCompany.name || 'Company'} Logo`} fill className="object-contain" />
+          {/* ── Policies & Terms ── */}
+          {policies.length > 0 && (
+            <section data-pdf-section="true" data-pdf-break-before="true" className="vchr-section">
+              <h2 className="vchr-serif vchr-section-title">Policies &amp; Terms</h2>
+              <div className="vchr-section-rule" />
+              <div className="vchr-policy-grid">
+                {policies.map((policy, idx) => (
+                  <div key={idx} className="vchr-policy-block">
+                    <h3 className="vchr-serif vchr-policy-title">{policy.title}</h3>
+                    <ul className="vchr-policy-list">
+                      {policy.items.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
-              <ul className="space-y-1 text-center text-[15px] font-medium text-gray-700 md:text-left md:text-sm">
-                {currentCompany.name && (
-                  <li className="text-lg font-semibold text-gray-900">{currentCompany.name}</li>
-                )}
-                {currentCompany.address && <li>{currentCompany.address}</li>}
-                {currentCompany.phone && <li>Phone: {currentCompany.phone}</li>}
-                {currentCompany.email && (
-                  <li>
-                    Email: <Link href={`mailto:${currentCompany.email}`} className="text-orange-600 hover:text-orange-700">{currentCompany.email}</Link>
-                  </li>
-                )}
-                {currentCompany.website && (
-                  <li>
-                    Website: <Link href={currentCompany.website} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700">{currentCompany.website}</Link>
-                  </li>
-                )}
-              </ul>
-            </CardContent>
-            <div className="bg-white px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-orange-600">
-              Thank you for choosing {currentCompany.name || 'our services'} – wishing you a memorable journey!
-            </div>
-          </Card>
-        )}
+            </section>
+          )}
+
+          {/* ── Sign-off ── */}
+          {selectedOption !== 'Empty' && currentCompany.name && (
+            <section data-pdf-section="true" className="vchr-signoff">
+              <div className="vchr-signoff-mark">— {currentCompany.name} —</div>
+              <div className="vchr-signoff-line">
+                Thank you for travelling with us. Wishing you a memorable journey.
+              </div>
+            </section>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };

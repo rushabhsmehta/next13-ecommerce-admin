@@ -110,9 +110,9 @@ const buildVoucherHtml = (element: HTMLElement): string => {
     <style>
       :root { color-scheme: light; }
       @page { size: A4; }
-      html, body { margin: 0; padding: 0; background: #f8fafc; }
+      html, body { margin: 0; padding: 0; background: #ffffff; }
       body { font-family: 'Inter', 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
-  .pdf-wrapper { background: #f8fafc; padding: 10px 32px 10px 32px; box-sizing: border-box; }
+  .pdf-wrapper { background: #ffffff; padding: 0 24px; box-sizing: border-box; }
   #voucher-content { max-width: 780px; margin: 0 auto; }
       [data-pdf-section] { break-inside: avoid; page-break-inside: avoid; }
       [data-pdf-break-before="true"] { break-before: page; page-break-before: always; }
@@ -138,10 +138,10 @@ const buildVoucherHtml = (element: HTMLElement): string => {
 };
 
 const buildHeaderHtml = (): string => `
-  <header style="font-family: 'Inter','Segoe UI',sans-serif; width: 100%; box-sizing: border-box; padding: 12px 24px 8px; background: rgba(255, 247, 237, 0.58); border-bottom: 1px solid #fed7aa;">
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
-      <div style="flex: 1; height: 3px; background: linear-gradient(90deg,#fb923c,#f97316); border-radius: 999px;"></div>
-      <div style="font-size: 9px; font-weight: 600; color: #ea580c; letter-spacing: 0.06em;">Page <span class="pageNumber"></span></div>
+  <header style="font-family: 'Inter','Segoe UI',sans-serif; width: 100%; box-sizing: border-box; padding: 14px 28px 10px; color: #6B7280;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;">
+      <div style="font-size: 8.5px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: #9CA3AF;">Booking Voucher</div>
+      <div style="font-size: 8.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #C2410C;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></div>
     </div>
   </header>
 `;
@@ -166,28 +166,20 @@ const buildFooterHtml = (
     : "";
 
   return `
-    <footer style="font-family: 'Inter','Segoe UI',sans-serif; width: 100%; box-sizing: border-box; padding: 14px 26px 12px; background: linear-gradient(135deg,#fefaf6 0%,#fff5eb 100%); border-top: 2px solid #fb923c; color: #7c2d12;">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+    <footer style="font-family: 'Inter','Segoe UI',sans-serif; width: 100%; box-sizing: border-box; padding: 10px 28px 12px; color: #6B7280;">
+      <div style="border-top: 1px solid #E5E7EB; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
         <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-          ${safeLogo ? `<img src="${safeLogo}" alt="${safeLabel || "Company"} logo" style="height: 22px; width: auto; object-fit: contain;" />` : ""}
-          <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
-            ${safeLabel ? `<span style="font-size: 13px; font-weight: 700; color: #dc2626; line-height: 1.1;">${safeLabel}</span>` : ""}
-            ${safeTagline ? `<span style="font-size: 9px; font-weight: 500; color: #9a3412;">${safeTagline}</span>` : ""}
+          ${safeLogo ? `<img src="${safeLogo}" alt="${safeLabel || "Company"} logo" style="height: 18px; width: auto; object-fit: contain; opacity: 0.9;" />` : ""}
+          <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+            ${safeLabel ? `<span style="font-size: 9.5px; font-weight: 600; color: #111827; letter-spacing: 0.04em; line-height: 1.2;">${safeLabel}</span>` : ""}
+            ${safeTagline ? `<span style="font-size: 8px; font-style: italic; color: #9CA3AF;">${safeTagline}</span>` : ""}
           </div>
         </div>
-        <div style="background: #fff; padding: 4px 10px; border-radius: 999px; border: 1px solid #fed7aa; font-size: 9px; font-weight: 600; color: #9a3412;">
-          Page <span class="pageNumber"></span> / <span class="totalPages"></span>
+        <div style="text-align: right; font-size: 8.5px; color: #6B7280; line-height: 1.4;">
+          ${safePrimary ? `<div>${safePrimary}</div>` : ""}
+          ${safeSecondary ? `<div style="color: #9CA3AF;">${safeSecondary}</div>` : ""}
+          ${websiteLabel ? `<div style="color: #C2410C; font-weight: 600; letter-spacing: 0.06em;">${websiteLabel}</div>` : ""}
         </div>
-      </div>
-      <div style="margin-top: 10px; background: #ffffff; border: 1px solid #fed7aa; border-radius: 8px; padding: 10px 14px; box-shadow: 0 1px 3px rgba(15,23,42,0.08);">
-        <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: center; text-align: center;">
-          ${safePrimary ? `<div style="font-size: 9px; font-weight: 600; color: #7c2d12;">${safePrimary}</div>` : ""}
-          ${safeSecondary ? `<div style="font-size: 9px; font-weight: 500; color: #9a3412;">${safeSecondary}</div>` : ""}
-        </div>
-      </div>
-      <div style="margin-top: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-        ${websiteLabel ? `<a href="${safeWebsiteUrl}" target="_blank" style="font-size: 9px; font-weight: 600; color: #b45309; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; background: #fff7ed; padding: 4px 8px; border-radius: 6px; border: 1px solid #fed7aa;">Website: ${websiteLabel}</a>` : ""}
-        <span style="font-size: 8px; font-style: italic; font-weight: 500; color: #9a3412; margin-left: auto;">Crafting journeys with care and expertise.</span>
       </div>
     </footer>
   `;

@@ -254,12 +254,12 @@ export const VoucherActions: React.FC<VoucherActionsProps> = ({ id, type }) => {
           headerHtml,
           footerHtml,
           margin: {
-            top: "50px",
-            right: "24px",
-            bottom: "110px",
-            left: "24px",
+            top: "55px",
+            right: "20px",
+            bottom: "100px",
+            left: "20px",
           },
-          scale: 0.88,
+          scale: 0.9,
         }),
       });
 

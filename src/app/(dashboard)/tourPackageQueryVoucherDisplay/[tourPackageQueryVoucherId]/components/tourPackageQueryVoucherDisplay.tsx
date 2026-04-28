@@ -204,7 +204,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         data-pdf-footer-website={footerWebsite}
         data-pdf-footer-logo={footerLogo}
         data-pdf-footer-tagline={footerTagline}
-        className="mx-auto flex w-full max-w-3xl flex-col space-y-3 rounded-2xl border border-orange-100 bg-white/95 p-4 pb-28 shadow-lg sm:space-y-4 sm:p-6 sm:pb-32"
+        className="mx-auto flex w-full max-w-3xl flex-col space-y-3 rounded-2xl border border-orange-100 bg-white/95 p-4 shadow-lg sm:space-y-4 sm:p-6"
       >
         <Card data-pdf-section="true" className="break-inside-avoid font-bold avoid-break-inside">
           <CardHeader className="bg-gray-50 rounded-t-lg flex flex-col gap-4 p-6">

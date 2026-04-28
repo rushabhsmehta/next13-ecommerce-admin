@@ -179,16 +179,16 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
 
     // Clamp bottom margin to avoid footer overlap when a footer is present
     if (options?.footerHtml) {
-      const minBottomPx = 200; // generous space to prevent footer overlap with tall sections
+      const minBottomPx = 100;
       const currentBottomPx = pxToNumber(composed.bottom) ?? minBottomPx;
       if (currentBottomPx < minBottomPx) {
         composed.bottom = `${minBottomPx}px`;
       }
     }
 
-    // Slightly protect top margin if a header is present
+    // Protect top margin if a header is present
     if (options?.headerHtml) {
-      const minTopPx = 120;
+      const minTopPx = 55;
       const currentTopPx = pxToNumber(composed.top) ?? minTopPx;
       if (currentTopPx < minTopPx) {
         composed.top = `${minTopPx}px`;

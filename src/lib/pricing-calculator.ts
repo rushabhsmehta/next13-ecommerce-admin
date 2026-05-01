@@ -444,8 +444,9 @@ export interface PerPersonRatesResult {
   nights: number;
   totalPax: number;
   mainPax: number;      // Adults in main beds (double/twin rooms)
-  extraBedPax: number;  // Extra bed pax count (actual beds, excludes CNB)
-  cnbPax: number;       // CNB (Child No Bed) — complimentary, no transport seat
+  extraBedPax: number;  // Extra bed pax count (actual beds, excludes CNB and Infant)
+  cnbPax: number;       // CNB (Child No Bed) — room pricing from HotelPricing, pays transport
+  infantPax: number;    // Infant below 5 — room complimentary, pays transport
   transportTotal: number;
   transportPerPerson: number;
   rates: {
@@ -511,7 +512,7 @@ export async function derivePerPersonRates(params: {
     select: { id: true, name: true, maxPersons: true },
   });
 
-  // Identify CNB (Child No Bed) occupancy types — complimentary, no transport seat
+  // Identify CNB (Child No Bed) occupancy types — pays transport, may have room pricing
   const cnbOccIds = new Set(
     occupancyTypes
       .filter((o) => {
@@ -521,14 +522,23 @@ export async function derivePerPersonRates(params: {
       .map((o) => o.id)
   );
 
-  // Count mainPax (adults in main beds), extraBedPax (actual extra beds), cnbPax (complimentary no-bed)
+  // Identify Infant occupancy types — pays transport, room always complimentary
+  const infantOccIds = new Set(
+    occupancyTypes
+      .filter((o) => (o.name || '').toLowerCase().includes('infant'))
+      .map((o) => o.id)
+  );
+
+  // Count mainPax (adults in main beds), extraBedPax (actual extra beds), cnbPax, infantPax
   let mainPax = 0;
   let extraBedPax = 0;
   let cnbPax = 0;
+  let infantPax = 0;
   for (const it of itineraries) {
     let dayMainPax = 0;
     let dayExtraBedPax = 0;
     let dayCnbPax = 0;
+    let dayInfantPax = 0;
     for (const room of it.roomAllocations || []) {
       const occ = occupancyTypes.find((o) => o.id === room.occupancyTypeId);
       const perRoom = occ?.maxPersons || 1;
@@ -538,6 +548,8 @@ export async function derivePerPersonRates(params: {
         const ebQty = eb.quantity && eb.quantity > 0 ? eb.quantity : 1;
         if (cnbOccIds.has(eb.occupancyTypeId)) {
           dayCnbPax += ebQty;
+        } else if (infantOccIds.has(eb.occupancyTypeId)) {
+          dayInfantPax += ebQty;
         } else {
           dayExtraBedPax += ebQty;
         }
@@ -546,10 +558,11 @@ export async function derivePerPersonRates(params: {
     if (dayMainPax > mainPax) mainPax = dayMainPax;
     if (dayExtraBedPax > extraBedPax) extraBedPax = dayExtraBedPax;
     if (dayCnbPax > cnbPax) cnbPax = dayCnbPax;
+    if (dayInfantPax > infantPax) infantPax = dayInfantPax;
   }
   mainPax = Math.max(mainPax, 1);
-  // CNB children take transport seats but no separate room charge — absorbed into adult rate
-  const totalPax = Math.max(mainPax + extraBedPax + cnbPax, mainPax);
+  // CNB and Infant both take transport seats; infant room is always complimentary
+  const totalPax = Math.max(mainPax + extraBedPax + cnbPax + infantPax, mainPax);
 
   const markupPct = calculationResult.appliedMarkup?.percentage ?? 0;
   const markupFactor = 1 + markupPct / 100;
@@ -577,7 +590,7 @@ export async function derivePerPersonRates(params: {
     itineraries.flatMap(it => (it.roomAllocations || []).map(ra => ra.occupancyTypeId).filter(Boolean))
   );
   const nonCnbExtraBedAccomTotal = Object.entries(priced)
-    .filter(([id]) => !mainOccIds.has(id) && !cnbOccIds.has(id))
+    .filter(([id]) => !mainOccIds.has(id) && !cnbOccIds.has(id) && !infantOccIds.has(id))
     .reduce((sum, [, cost]) => sum + cost, 0);
   // Total extra accommodation = CNB + any non-CNB extra beds in allocation
   const totalExtraAccom = cnbTotal + nonCnbExtraBedAccomTotal;
@@ -729,9 +742,29 @@ export async function derivePerPersonRates(params: {
           };
         })();
 
-  // "Child below 5 With Seat" = CNB child: takes transport seat, no room charge (shares parents' bed).
+  // "Child below 5 With Seat" = CNB child: takes transport seat, may have hotel room pricing.
   // Only populated when CNB children exist in the allocation — no hypothetical rates.
   const childBelow5WithSeat: PerGuestRate = cnbPax > 0
+    ? (() => {
+        const cnbRoomPerPax = cnbTotal > 0 ? cnbTotal / cnbPax : 0;
+        const base = cnbRoomPerPax + transportPerPerson;
+        const price = base * markupFactor;
+        const ml = markupLine(base);
+        return {
+          price: Math.round(price),
+          description:
+            (cnbRoomPerPax > 0
+              ? `Room:       Rs.${formatINR(cnbTotal)} ÷ ${cnbPax} CNB  =  Rs.${formatINR(cnbRoomPerPax)}\n`
+              : `Room:       no charge (CNB shares parents' bed)\n`) +
+            `${transportLine}\n` +
+            (ml ? `${ml}\n` : '') +
+            `Child No Bed (with seat)  =  Rs.${formatINR(Math.round(price))}`,
+        };
+      })()
+    : { price: null, description: '' };
+
+  // "Infant below 5" = room always complimentary, but pays transport (has own seat).
+  const childBelow5WithoutSeat: PerGuestRate = infantPax > 0
     ? (() => {
         const base = transportPerPerson;
         const price = base * markupFactor;
@@ -739,19 +772,13 @@ export async function derivePerPersonRates(params: {
         return {
           price: Math.round(price),
           description:
-            `Room:       no charge (CNB shares parents' bed)\n` +
+            `Room:       no charge (complimentary room for infant)\n` +
             `${transportLine}\n` +
             (ml ? `${ml}\n` : '') +
-            `Child below 5 (with seat)  =  Rs.${formatINR(Math.round(price))}`,
+            `Infant below 5 (with seat)  =  Rs.${formatINR(Math.round(price))}`,
         };
       })()
-    : { price: null, description: '' };
-
-  // "Child below 5 Without Seat" = truly complimentary: no transport seat, no room charge.
-  const childBelow5WithoutSeat: PerGuestRate = {
-    price: 0,
-    description: 'Complimentary — no transport seat, no room charge.',
-  };
+    : { price: 0, description: 'Complimentary — no infant in this allocation.' };
 
   const nights =
     Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)));
@@ -762,6 +789,7 @@ export async function derivePerPersonRates(params: {
     mainPax,
     extraBedPax,
     cnbPax,
+    infantPax,
     transportTotal,
     transportPerPerson,
     rates: {

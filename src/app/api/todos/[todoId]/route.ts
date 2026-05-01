@@ -9,6 +9,7 @@ const updateSchema = z.object({
   status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
   dueDate: z.string().nullable().optional(),
+  assignedToStaffId: z.string().nullable().optional(),
 });
 
 export async function PATCH(
@@ -33,7 +34,7 @@ export async function PATCH(
       return new NextResponse(parsed.error.errors[0].message, { status: 400 });
     }
 
-    const { title, description, status, priority, dueDate } = parsed.data;
+    const { title, description, status, priority, dueDate, assignedToStaffId } = parsed.data;
 
     const updated = await prismadb.todoItem.update({
       where: { id: todoId },
@@ -45,8 +46,31 @@ export async function PATCH(
         ...(dueDate !== undefined && {
           dueDate: dueDate ? new Date(dueDate) : null,
         }),
+        ...(assignedToStaffId !== undefined && {
+          assignedToStaffId: assignedToStaffId || null,
+        }),
       },
     });
+
+    // Fire notification when assignment is newly set (was null, now has value)
+    const wasUnassigned = !todo.assignedToStaffId;
+    const isNowAssigned = !!assignedToStaffId;
+    if (wasUnassigned && isNowAssigned) {
+      const staff = await prismadb.operationalStaff.findUnique({
+        where: { id: assignedToStaffId! },
+        select: { name: true },
+      });
+      if (staff) {
+        await prismadb.notification.create({
+          data: {
+            type: "TODO_ASSIGNED",
+            title: "Task Assigned",
+            message: `"${updated.title}" has been assigned to ${staff.name}.`,
+            data: { todoId, staffId: assignedToStaffId, staffName: staff.name },
+          },
+        });
+      }
+    }
 
     return NextResponse.json(updated);
   } catch (error) {

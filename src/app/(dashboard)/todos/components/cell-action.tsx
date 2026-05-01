@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { useState } from "react";
-import { Edit, MoreHorizontal, Trash } from "lucide-react";
+import { CheckSquare, Edit, MoreHorizontal, Trash } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AlertModal } from "@/components/modals/alert-modal";
@@ -23,10 +24,23 @@ interface CellActionProps {
 
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const onConfirm = async () => {
+  const onComplete = async () => {
+    try {
+      setLoading(true);
+      await axios.post(`/api/todos/${data.id}/complete`);
+      toast.success("Task marked as complete!");
+      router.refresh();
+    } catch {
+      toast.error("Unable to mark task complete.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onDelete = async () => {
     try {
       setLoading(true);
       await axios.delete(`/api/todos/${data.id}`);
@@ -35,7 +49,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     } catch {
       toast.error("Unable to delete todo.");
     } finally {
-      setOpen(false);
+      setDeleteOpen(false);
       setLoading(false);
     }
   };
@@ -43,9 +57,9 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   return (
     <>
       <AlertModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onConfirm={onConfirm}
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={onDelete}
         loading={loading}
       />
       <DropdownMenu>
@@ -57,10 +71,23 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          {data.status !== "DONE" && (
+            <DropdownMenuItem
+              onClick={onComplete}
+              disabled={loading}
+              className="text-green-600 focus:text-green-600"
+            >
+              <CheckSquare className="mr-2 h-4 w-4" /> Mark Complete
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => router.push(`/todos/${data.id}`)}>
             <Edit className="mr-2 h-4 w-4" /> Edit
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setOpen(true)}>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => setDeleteOpen(true)}
+            className="text-destructive focus:text-destructive"
+          >
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

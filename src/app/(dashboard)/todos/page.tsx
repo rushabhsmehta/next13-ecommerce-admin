@@ -10,6 +10,7 @@ export default async function TodosPage() {
 
   const todos = await prismadb.todoItem.findMany({
     where: { userId },
+    include: { assignedStaff: { select: { name: true } } },
     orderBy: [
       { priority: "desc" },
       { dueDate: "asc" },
@@ -27,6 +28,9 @@ export default async function TodosPage() {
     priority: t.priority as TodoColumn["priority"],
     dueDate: t.dueDate ? t.dueDate.toISOString() : null,
     isOverdue: t.dueDate ? t.dueDate < now && t.status !== "DONE" : false,
+    assignedToStaffName: t.assignedStaff?.name ?? null,
+    completedAt: t.completedAt ? t.completedAt.toISOString() : null,
+    completedByName: t.completedByName ?? null,
     createdAt: t.createdAt.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",

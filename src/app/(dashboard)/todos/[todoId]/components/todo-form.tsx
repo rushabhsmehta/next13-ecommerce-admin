@@ -6,7 +6,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Trash } from "lucide-react";
+import { CheckCircle2, Trash } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ const formSchema = z.object({
   status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   dueDate: z.string().optional(),
+  assignedToStaffId: z.string().optional(),
 });
 
 type TodoFormValues = z.infer<typeof formSchema>;
@@ -49,10 +50,14 @@ interface TodoFormProps {
     status: string;
     priority: string;
     dueDate: Date | null;
+    assignedToStaffId: string | null;
+    completedAt: Date | null;
+    completedByName: string | null;
   } | null;
+  staffList: { id: string; name: string }[];
 }
 
-export const TodoForm: React.FC<TodoFormProps> = ({ initialData }) => {
+export const TodoForm: React.FC<TodoFormProps> = ({ initialData, staffList }) => {
   const params = useParams();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -75,6 +80,7 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData }) => {
           dueDate: initialData.dueDate
             ? initialData.dueDate.toISOString().split("T")[0]
             : "",
+          assignedToStaffId: initialData.assignedToStaffId ?? "",
         }
       : {
           title: "",
@@ -82,6 +88,7 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData }) => {
           status: "TODO",
           priority: "MEDIUM",
           dueDate: "",
+          assignedToStaffId: "",
         },
   });
 
@@ -91,6 +98,7 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData }) => {
       const payload = {
         ...data,
         dueDate: data.dueDate || null,
+        assignedToStaffId: data.assignedToStaffId || null,
       };
       if (isEdit) {
         await axios.patch(`/api/todos/${params?.todoId}`, payload);
@@ -145,6 +153,21 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData }) => {
         )}
       </div>
       <Separator className="mb-8" />
+
+      {/* Completion banner */}
+      {initialData?.completedAt && (
+        <div className="mb-6 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>
+            Completed by <strong>{initialData.completedByName}</strong> on{" "}
+            {initialData.completedAt.toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+        </div>
+      )}
 
       <div className="max-w-2xl">
         <Form {...form}>
@@ -250,17 +273,44 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData }) => {
                   <FormItem>
                     <FormLabel>Due Date</FormLabel>
                     <FormControl>
-                      <Input
-                        disabled={loading}
-                        type="date"
-                        {...field}
-                      />
+                      <Input disabled={loading} type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="assignedToStaffId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assign To (optional)</FormLabel>
+                  <Select
+                    disabled={loading}
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Unassigned" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Unassigned</SelectItem>
+                      {staffList.map((staff) => (
+                        <SelectItem key={staff.id} value={staff.id}>
+                          {staff.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex items-center gap-4 pt-4">
               <Button disabled={loading} type="submit">

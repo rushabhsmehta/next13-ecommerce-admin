@@ -1032,6 +1032,7 @@ model OperationalStaff {
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @default(now())
   assignedInquiries Inquiry[]            @relation("AssignedOperationalStaffToInquiry")
+  assignedTodos     TodoItem[]           @relation("AssignedStaffToTodo")
 
   @@index([email])
 }
@@ -1855,16 +1856,21 @@ enum TodoPriority {
 }
 
 model TodoItem {
-  id          String       @id @default(cuid())
-  title       String
-  description String?      @db.Text
-  status      TodoStatus   @default(TODO)
-  priority    TodoPriority @default(MEDIUM)
-  dueDate     DateTime?
-  userId      String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                String            @id @default(cuid())
+  title             String
+  description       String?           @db.Text
+  status            TodoStatus        @default(TODO)
+  priority          TodoPriority      @default(MEDIUM)
+  dueDate           DateTime?
+  userId            String
+  assignedToStaffId String?
+  assignedStaff     OperationalStaff? @relation("AssignedStaffToTodo", fields: [assignedToStaffId], references: [id])
+  completedAt       DateTime?
+  completedByName   String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([userId])
   @@index([userId, status])
+  @@index([assignedToStaffId])
 }

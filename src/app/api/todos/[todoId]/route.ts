@@ -13,14 +13,16 @@ const updateSchema = z.object({
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { todoId: string } }
+  props: { params: Promise<{ todoId: string }> }
 ) {
   try {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
 
+    const { todoId } = await props.params;
+
     const todo = await prismadb.todoItem.findUnique({
-      where: { id: params.todoId },
+      where: { id: todoId },
     });
     if (!todo) return new NextResponse("Not found", { status: 404 });
     if (todo.userId !== userId) return new NextResponse("Forbidden", { status: 403 });
@@ -34,7 +36,7 @@ export async function PATCH(
     const { title, description, status, priority, dueDate } = parsed.data;
 
     const updated = await prismadb.todoItem.update({
-      where: { id: params.todoId },
+      where: { id: todoId },
       data: {
         ...(title !== undefined && { title }),
         ...(description !== undefined && { description }),
@@ -55,20 +57,22 @@ export async function PATCH(
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { todoId: string } }
+  props: { params: Promise<{ todoId: string }> }
 ) {
   try {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
 
+    const { todoId } = await props.params;
+
     const todo = await prismadb.todoItem.findUnique({
-      where: { id: params.todoId },
+      where: { id: todoId },
     });
     if (!todo) return new NextResponse("Not found", { status: 404 });
     if (todo.userId !== userId) return new NextResponse("Forbidden", { status: 403 });
 
     const deleted = await prismadb.todoItem.delete({
-      where: { id: params.todoId },
+      where: { id: todoId },
     });
 
     return NextResponse.json(deleted);

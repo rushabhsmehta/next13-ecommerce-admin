@@ -55,10 +55,28 @@ const tourPackageQueryVoucherPage = async (
         orderBy: {
           dayNumber : 'asc',
         }
-      }
+      },
+      queryVariantSnapshots: {
+        include: {
+          hotelSnapshots: {
+            orderBy: { dayNumber: 'asc' },
+          },
+        },
+        orderBy: { sortOrder: 'asc' },
+      },
     }
   });
-  console.log("Fetched tourPackage Query Voucher:", tourPackageQueryVoucher);
+
+  // Build a dayNumber → hotelId map for the confirmed variant
+  const confirmedVariantId = tourPackageQueryVoucher?.confirmedVariantId;
+  const confirmedSnapshot = confirmedVariantId
+    ? tourPackageQueryVoucher?.queryVariantSnapshots?.find(s => s.variantId === confirmedVariantId)
+    : null;
+  const confirmedVariantHotelsByDay: Record<number, string> = {};
+  confirmedSnapshot?.hotelSnapshots?.forEach(hs => {
+    confirmedVariantHotelsByDay[hs.dayNumber] = hs.hotelId;
+  });
+  const confirmedVariantName = confirmedSnapshot?.variantName ?? null;
 
   const locations = await prismadb.location.findMany({});
 
@@ -74,17 +92,8 @@ const tourPackageQueryVoucherPage = async (
 
   return (
     <>
-    
+
       <div className="flex-col">
-      {/*  <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
-        <TourPackageQueryForm
-          initialData={tourPackageQuery}
-          locations={locations}
-          hotels={hotels}
-        //    itineraries={[]}
-        />
-      </div>
- */}
       <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
         <TourPackageQueryVoucherDisplay
           initialData={tourPackageQueryVoucher}
@@ -93,6 +102,8 @@ const tourPackageQueryVoucherPage = async (
           roomTypes={roomTypes}
           occupancyTypes={occupancyTypes}
           mealPlans={mealPlans}
+          confirmedVariantHotelsByDay={confirmedVariantHotelsByDay}
+          confirmedVariantName={confirmedVariantName}
         />
       </div>
     </div>

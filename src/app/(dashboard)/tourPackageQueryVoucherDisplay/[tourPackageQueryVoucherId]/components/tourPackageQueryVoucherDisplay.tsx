@@ -33,6 +33,8 @@ interface TourPackageQueryVoucherDisplayProps {
   occupancyTypes?: { id: string; name: string }[];
   mealPlans?: { id: string; name: string }[];
   selectedOption?: string;
+  confirmedVariantHotelsByDay?: Record<number, string>;
+  confirmedVariantName?: string | null;
 };
 
 type CompanyInfo = {
@@ -87,12 +89,15 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   roomTypes = [],
   occupancyTypes = [],
   mealPlans = [],
+  confirmedVariantHotelsByDay = {},
+  confirmedVariantName,
 }) => {
   const searchParams = useSearchParams();
   const selectedOption = searchParams?.get('search') || 'Empty';
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
   const confirmedVariantId = (initialData as any)?.confirmedVariantId as string | null | undefined;
+
   const variantRoomAllocationsRaw = (initialData as any)?.variantRoomAllocations;
   const variantRoomAllocations: Record<string, Record<string, any[]>> = (() => {
     if (!variantRoomAllocationsRaw) return {};
@@ -103,6 +108,20 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
     } catch { return {}; }
   })();
   const confirmedAllocations = confirmedVariantId ? variantRoomAllocations[confirmedVariantId] : null;
+
+  // Parse query-level hotel overrides as fallback when snapshot hotels are unavailable
+  const variantHotelOverridesRaw = (initialData as any)?.variantHotelOverrides;
+  const variantHotelOverrides: Record<string, Record<string, string>> = (() => {
+    if (!variantHotelOverridesRaw) return {};
+    try {
+      return typeof variantHotelOverridesRaw === 'string'
+        ? JSON.parse(variantHotelOverridesRaw)
+        : variantHotelOverridesRaw;
+    } catch { return {}; }
+  })();
+  const confirmedHotelOverrides: Record<string, string> = confirmedVariantId
+    ? (variantHotelOverrides[confirmedVariantId] ?? {})
+    : {};
 
   const supplierView = selectedOption === 'SupplierA' || selectedOption === 'SupplierB';
 
@@ -227,6 +246,11 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <div className="vchr-eyebrow" style={{ color: 'var(--vchr-mute)' }}>
               Booking Voucher · Ref {initialData.tourPackageQueryNumber}
             </div>
+            {confirmedVariantName && (
+              <div className="vchr-eyebrow" style={{ color: 'var(--vchr-accent)', marginTop: 4 }}>
+                Package: {confirmedVariantName}
+              </div>
+            )}
             <div className="vchr-cover-rule" />
             <div className="vchr-cover-meta">
               {locationLabel && <span><strong>{locationLabel}</strong></span>}
@@ -400,7 +424,12 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               <h2 className="vchr-serif vchr-section-title">Accommodation</h2>
               <div className="vchr-section-rule" />
               {initialData.itineraries.map((itinerary, itineraryIdx) => {
-                const hotelDetails = hotels.find(h => h.id === itinerary.hotelId);
+                // Resolve hotel: snapshot hotel → query override → itinerary default
+                const effectiveHotelId =
+                  confirmedVariantHotelsByDay[itinerary.dayNumber as number] ??
+                  confirmedHotelOverrides[itinerary.id] ??
+                  itinerary.hotelId;
+                const hotelDetails = hotels.find(h => h.id === effectiveHotelId);
                 const effectiveRoomAllocations: any[] = confirmedAllocations
                   ? (confirmedAllocations[itinerary.id] || [])
                   : itinerary.roomAllocations;

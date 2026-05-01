@@ -1841,3 +1841,30 @@ model PushSubscription {
   @@index([travelAppUserId])
   @@index([isActive])
 }
+
+enum TodoStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TodoPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model TodoItem {
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  status      TodoStatus   @default(TODO)
+  priority    TodoPriority @default(MEDIUM)
+  dueDate     DateTime?
+  userId      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+}

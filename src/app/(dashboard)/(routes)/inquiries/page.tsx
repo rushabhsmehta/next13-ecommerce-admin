@@ -40,7 +40,8 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
   const user = await currentUser();
   const userEmail = user?.emailAddresses[0]?.emailAddress || '';
 
-  // Fetch organization data
+  // Keep the initial reads sequential so local dev opens a single stable
+  // connection through Railway's public MySQL proxy before heavier queries run.
   const organization = await prismadb.organization.findFirst({
     orderBy: {
       createdAt: 'asc'
@@ -219,39 +220,64 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
   const pageSize = parseInt(searchParams?.pageSize || '25');
   const skip = (page - 1) * pageSize;
 
-  // Get total count for pagination
-  const totalCount = await prismadb.inquiry.count({ where });
-
-  const inquiries = await prismadb.inquiry.findMany({
-    where,
-    include: {
-      location: true,
-      associatePartner: true,
-      assignedStaff: true,
-      tourPackageQueries: true,
-      actions: {
-        orderBy: {
-          createdAt: 'desc'
+  const [totalCount, inquiries] = await Promise.all([
+    prismadb.inquiry.count({ where }),
+    prismadb.inquiry.findMany({
+      where,
+      select: {
+        id: true,
+        customerName: true,
+        customerMobileNumber: true,
+        status: true,
+        journeyDate: true,
+        createdAt: true,
+        assignedToStaffId: true,
+        assignedStaffAt: true,
+        nextFollowUpDate: true,
+        location: {
+          select: {
+            label: true
+          }
+        },
+        associatePartner: {
+          select: {
+            name: true
+          }
+        },
+        assignedStaff: {
+          select: {
+            name: true
+          }
+        },
+        tourPackageQueries: {
+          select: {
+            id: true,
+            inquiryId: true,
+            tourPackageQueryName: true,
+            tourPackageQueryNumber: true,
+            tourPackageQueryType: true,
+            isFeatured: true,
+            updatedAt: true
+          }
+        },
+        actions: {
+          select: {
+            actionType: true,
+            remarks: true,
+            actionDate: true,
+            createdAt: true
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
         }
-      }
-    },
-    orderBy: followUpsOnly ? { nextFollowUpDate: 'asc' } : { updatedAt: 'desc' },
-    skip,
-    take: pageSize
-  });
+      },
+      orderBy: followUpsOnly ? { nextFollowUpDate: 'asc' } : { updatedAt: 'desc' },
+      skip,
+      take: pageSize
+    })
+  ]);
   const formattedInquiries: InquiryColumn[] = inquiries.map((item) => {
-    console.log('📋 INQUIRY LIST PAGE - FORMATTING JOURNEY DATE:');
-    console.log(`Inquiry ${item.id} - Raw journeyDate from server:`, item.journeyDate);
-    if (item.journeyDate) {
-      console.log(`  - toString():`, item.journeyDate.toString());
-      console.log(`  - getDate():`, item.journeyDate.getDate());
-      console.log(`  - getMonth():`, item.journeyDate.getMonth());
-      console.log(`  - getFullYear():`, item.journeyDate.getFullYear());
-
-      const formattedDate = formatLocalDate(item.journeyDate, 'dd MMM yyyy');
-      console.log(`  - Formatted date:`, formattedDate);
-    }
-
     return {
       id: item.id,
       customerName: item.customerName,

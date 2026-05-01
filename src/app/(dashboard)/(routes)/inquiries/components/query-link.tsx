@@ -20,8 +20,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { AlertModal } from '@/components/modals/alert-modal';
 
+type QueryLinkTourPackageQuery = Pick<
+  TourPackageQuery,
+  | "id"
+  | "inquiryId"
+  | "tourPackageQueryName"
+  | "tourPackageQueryNumber"
+  | "tourPackageQueryType"
+  | "isFeatured"
+  | "updatedAt"
+>;
+
 export interface QueryLinkProps {
-  query: TourPackageQuery;
+  query: QueryLinkTourPackageQuery;
   url?: string; // Make url prop optional for backward compatibility
 }
 

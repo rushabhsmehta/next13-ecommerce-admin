@@ -1,7 +1,7 @@
 "use client";
 
 import { InquiryColumn } from "./columns";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { NotificationBell } from "@/components/notifications/notification-bell";
-import { useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { CompactStaffAssignment } from "@/components/compact-staff-assignment";
-import { useAssociatePartner } from "@/hooks/use-associate-partner";
 
 import { INQUIRY_STATUS_OPTIONS } from "@/lib/inquiry-statuses";
 const statusOptions = INQUIRY_STATUS_OPTIONS;
@@ -50,15 +47,9 @@ interface MobileInquiryCardProps {
 
 export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data, isAssociateUser = false }) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const { user } = useUser();
-  const { associatePartner } = useAssociatePartner();
   const [addingId, setAddingId] = useState<string | null>(null);
   const [actionTypeMap, setActionTypeMap] = useState<Record<string, string>>({});
   const [remarksMap, setRemarksMap] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    // nothing heavy here; kept for parity with older behavior
-  }, [associatePartner]);
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
@@ -91,17 +82,16 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data, isAs
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Avatar className="h-7 w-7">
-                <AvatarImage src={user?.imageUrl} />
-                <AvatarFallback>{user?.firstName?.charAt(0) ?? 'U'}</AvatarFallback>
+                <AvatarImage src={undefined} />
+                <AvatarFallback>A</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex flex-col">
-                  <span className="font-medium text-xs">{associatePartner?.name ?? `${user?.firstName ?? 'User'} ${user?.lastName ?? ''}`}</span>
+                  <span className="font-medium text-xs">Aagam Holidays</span>
                   <span className="text-xs text-muted-foreground">{isAssociateUser ? 'Associate Portal' : 'Admin Dashboard'}</span>
                 </div>
               </div>
             </div>
-            {!isAssociateUser && <NotificationBell />}
           </div>
         </CardContent>
       </Card>

@@ -25,6 +25,17 @@ import { INQUIRY_STATUS_OPTIONS } from "@/lib/inquiry-statuses"
 
 const statusOptions = INQUIRY_STATUS_OPTIONS;
 
+type InquiryListTourPackageQuery = Pick<
+  TourPackageQuery,
+  | "id"
+  | "inquiryId"
+  | "tourPackageQueryName"
+  | "tourPackageQueryNumber"
+  | "tourPackageQueryType"
+  | "isFeatured"
+  | "updatedAt"
+>;
+
 const StatusCell = ({ row }: { row: any }) => {
   const [loading, setLoading] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(row.original.status);
@@ -289,7 +300,7 @@ export type InquiryColumn = {
   assignedToStaffId: string | null
   assignedStaffName: string | null
   assignedStaffAt: string | null
-  tourPackageQueries: TourPackageQuery[]
+  tourPackageQueries: InquiryListTourPackageQuery[]
   nextFollowUpDate?: string | null
   // Raw ISO value for precise updates/sorting
   nextFollowUpDateIso?: string | null

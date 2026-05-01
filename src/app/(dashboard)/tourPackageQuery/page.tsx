@@ -17,16 +17,12 @@ const tourPackageQueryPage = async (
   const pageSize = parseInt(searchParams?.pageSize || '25');
   const skip = (page - 1) * pageSize;
 
-  // Fetch total count for pagination
   const totalCount = await prismadb.tourPackageQuery.count({
     where: {
       isArchived: false,
     }
   });
 
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  // Optimized query: only fetch necessary fields, with pagination
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
     skip,
     take: pageSize,
@@ -64,6 +60,8 @@ const tourPackageQueryPage = async (
       updatedAt: 'desc'
     }
   });
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const formattedtourPackageQuery: TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
     id: item.id,

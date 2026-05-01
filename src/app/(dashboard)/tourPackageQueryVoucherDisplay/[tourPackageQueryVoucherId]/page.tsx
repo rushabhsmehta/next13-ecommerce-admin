@@ -70,13 +70,13 @@ const tourPackageQueryVoucherPage = async (
   // Build a dayNumber → hotelId map for the confirmed variant
   const confirmedVariantId = tourPackageQueryVoucher?.confirmedVariantId;
   const confirmedSnapshot = confirmedVariantId
-    ? tourPackageQueryVoucher?.queryVariantSnapshots?.find(s => s.variantId === confirmedVariantId)
+    ? tourPackageQueryVoucher?.queryVariantSnapshots?.find(s => s.sourceVariantId === confirmedVariantId)
     : null;
   const confirmedVariantHotelsByDay: Record<number, string> = {};
   confirmedSnapshot?.hotelSnapshots?.forEach(hs => {
     confirmedVariantHotelsByDay[hs.dayNumber] = hs.hotelId;
   });
-  const confirmedVariantName = confirmedSnapshot?.variantName ?? null;
+  const confirmedVariantName = confirmedSnapshot?.name ?? null;
 
   const locations = await prismadb.location.findMany({});
 

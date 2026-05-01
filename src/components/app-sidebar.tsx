@@ -41,6 +41,7 @@ const NAV_ITEMS = [
     items: [
       { title: "Inquiries", url: "/inquiries" },
       { title: "Tour Package Query", url: "/tourPackageQuery" },
+      { title: "Todos", url: "/todos" },
     ],
   },
   {

@@ -58,16 +58,6 @@ const companyInfo: CompanyInfo = {
   },
 };
 
-const parsePricingSection = (pricingData: any): Array<{ name: string, price?: string, description?: string }> => {
-  if (!pricingData) return [];
-  try {
-    if (typeof pricingData === 'string') return JSON.parse(pricingData);
-    return Array.isArray(pricingData) ? pricingData : [];
-  } catch (e) {
-    return [];
-  }
-};
-
 const parsePolicyField = (field: any): string[] => {
   if (!field) return [];
   try {
@@ -88,15 +78,6 @@ const stripHtml = (input: string): string => {
     .replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-};
-
-const formatPriceINR = (raw: any): string => {
-  if (raw === null || raw === undefined) return '';
-  const cleaned = String(raw).trim();
-  if (!cleaned) return '';
-  const parsed = Number(cleaned.replace(/[^0-9.-]/g, ''));
-  if (Number.isNaN(parsed)) return cleaned;
-  return `₹ ${parsed.toLocaleString('en-IN')}`;
 };
 
 export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDisplayProps> = ({
@@ -124,9 +105,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   const confirmedAllocations = confirmedVariantId ? variantRoomAllocations[confirmedVariantId] : null;
 
   const supplierView = selectedOption === 'SupplierA' || selectedOption === 'SupplierB';
-  const formattedTotalPrice = !supplierView && selectedOption !== 'Empty' ? formatPriceINR(initialData?.totalPrice) : '';
-  const pricingItems = parsePricingSection(initialData?.pricingSection);
-  const hasPricing = !supplierView && selectedOption !== 'Empty' && pricingItems.length > 0;
 
   const locationLabel = locations.find(l => l.id === initialData?.locationId)?.label || '';
   const periodLabel = [
@@ -190,9 +168,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         .vchr-cover-rule { width: 36px; height: 1px; background: var(--vchr-accent); margin: 18px 0; }
         .vchr-hero { width: 100%; height: 280px; overflow: hidden; margin-top: 10px; }
         .vchr-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .vchr-cover-total { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(17,24,39,0.12); }
-        .vchr-cover-total-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--vchr-mute); }
-        .vchr-cover-total-amount { font-size: 24px; }
         .vchr-grid-2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; row-gap: 14px; }
         .vchr-field-label { font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vchr-faint); margin-bottom: 3px; }
         .vchr-field-value { font-size: 12px; color: var(--vchr-ink); }
@@ -217,8 +192,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         .vchr-policy-title { font-size: 13px; margin: 0 0 6px; }
         .vchr-policy-list { margin: 0; padding-left: 14px; font-size: 10.5px; color: var(--vchr-ink); line-height: 1.6; }
         .vchr-policy-list li { margin-bottom: 3px; }
-        .vchr-pricing-table th, .vchr-pricing-table td { padding: 8px 10px 8px 0; }
-        .vchr-pricing-table .price { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 0; }
         .vchr-remarks { margin-top: 14px; font-size: 11px; color: var(--vchr-ink); line-height: 1.6; }
         .vchr-remarks-label { font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vchr-faint); margin-bottom: 4px; }
         .vchr-signoff { padding: 18px 0 8px; text-align: center; }
@@ -274,12 +247,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               </div>
             )}
 
-            {formattedTotalPrice && (
-              <div className="vchr-cover-total">
-                <span className="vchr-cover-total-label">Total Package</span>
-                <span className="vchr-serif vchr-cover-total-amount">{formattedTotalPrice}</span>
-              </div>
-            )}
           </section>
 
           {/* ── Trip Overview ── */}
@@ -361,32 +328,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               </div>
             )}
           </section>
-
-          {/* ── Pricing Options ── */}
-          {hasPricing && (
-            <section data-pdf-section="true" className="vchr-section">
-              <h2 className="vchr-serif vchr-section-title">Pricing Options</h2>
-              <div className="vchr-section-rule" />
-              <table className="vchr-table vchr-pricing-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '50%' }}>Item</th>
-                    <th>Notes</th>
-                    <th className="price">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pricingItems.map((item, index) => (
-                    <tr key={index}>
-                      <td style={{ fontWeight: 500 }}>{item.name}</td>
-                      <td style={{ color: 'var(--vchr-mute)' }}>{item.description || '—'}</td>
-                      <td className="price">{formatPriceINR(item.price) || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
-          )}
 
           {/* ── Day-by-Day ── */}
           {initialData.itineraries && initialData.itineraries.length > 0 && (

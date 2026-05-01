@@ -177,7 +177,9 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
             if (response.ok) {
                 const data = await response.json();
                 const packages: TourPackageSummary[] = data.map((pkg: any) => {
-                    const name = mode === "tourPackageQuery" ? pkg.tourPackageQueryName : pkg.tourPackageName;
+                    // API remaps tourPackageQueryName → tourPackageName for both modes.
+                    // For queries, fall back to customerName when tourPackageName is null.
+                    const name = pkg.tourPackageName || (mode === "tourPackageQuery" ? pkg.customerName : null);
                     return {
                         id: pkg.id,
                         tourPackageName: name || "Untitled",

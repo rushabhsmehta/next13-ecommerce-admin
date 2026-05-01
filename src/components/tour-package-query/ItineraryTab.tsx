@@ -413,6 +413,29 @@ function ItineraryTab({
               variant="outline"
               size="sm"
               onClick={() => {
+                const items = form.getValues('itineraries') || [];
+                const allOpen: Record<number, boolean> = {};
+                items.forEach((_: any, i: number) => { allOpen[i] = true; });
+                setOpenMap(allOpen);
+              }}
+              className="h-8"
+            >
+              Expand All
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setOpenMap({})}
+              className="h-8"
+            >
+              Collapse All
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
                 try {
                   const start = form.getValues('tourStartsFrom');
                   const items = form.getValues('itineraries') || [];

@@ -136,6 +136,7 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
     // Refinement State
     const [refinementInput, setRefinementInput] = useState("");
     const [isRefining, setIsRefining] = useState(false);
+    const [generationError, setGenerationError] = useState<string | null>(null);
 
     const form = useForm<WizardFormValues>({
         resolver: zodResolver(wizardFormSchema),
@@ -224,8 +225,8 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
     const handleGenerate = async (values: WizardFormValues) => {
         setIsGenerating(true);
         setProgress(0);
+        setGenerationError(null);
 
-        // Simulate progress
         const progressInterval = setInterval(() => {
             setProgress((prev) => Math.min(prev + 10, 90));
         }, 500);
@@ -251,8 +252,11 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
             clearInterval(progressInterval);
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || "Failed to generate itinerary");
+                const errorData = await response.json().catch(() => ({}));
+                const message = response.status === 429
+                    ? "AI generation limit reached. Please wait a minute and try again."
+                    : errorData.error || "Failed to generate itinerary";
+                throw new Error(message);
             }
 
             const result = await response.json();
@@ -263,7 +267,6 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
             });
             setProgress(100);
 
-            // Move to preview step after short delay
             setTimeout(() => {
                 setStep(3);
             }, 500);
@@ -271,11 +274,13 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
         } catch (error) {
             clearInterval(progressInterval);
             setProgress(0);
+            const message = error instanceof Error ? error.message : "Please try again";
+            setGenerationError(message);
             console.error("[AI_WIZARD] Generation failed:", error);
             toast({
                 variant: "destructive",
                 title: "Generation Failed",
-                description: error instanceof Error ? error.message : "Please try again",
+                description: message,
             });
         } finally {
             setIsGenerating(false);
@@ -749,28 +754,49 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
     const renderStep2 = () => (
         <Card className="border-2">
             <CardHeader className="text-center">
-                <div className="mx-auto mb-4 p-3 rounded-full bg-primary/10 w-fit animate-pulse">
-                    <Sparkles className="h-8 w-8 text-primary" />
+                <div className={cn(
+                    "mx-auto mb-4 p-3 rounded-full w-fit",
+                    generationError ? "bg-destructive/10" : "bg-primary/10 animate-pulse"
+                )}>
+                    <Sparkles className={cn("h-8 w-8", generationError ? "text-destructive" : "text-primary")} />
                 </div>
-                <CardTitle className="text-2xl">Creating Your Itinerary</CardTitle>
+                <CardTitle className="text-2xl">
+                    {generationError ? "Generation Failed" : "Creating Your Itinerary"}
+                </CardTitle>
                 <CardDescription>
-                    Our AI is crafting a personalized travel experience just for you
+                    {generationError
+                        ? generationError
+                        : "Our AI is crafting a personalized travel experience just for you"}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <Progress value={progress} className="h-3" />
-                <div className="text-center">
-                    <p className="text-lg font-medium">{progress}%</p>
-                    <p className="text-sm text-muted-foreground">
-                        {progress < 30 && "Analyzing destination..."}
-                        {progress >= 30 && progress < 60 && "Planning activities..."}
-                        {progress >= 60 && progress < 90 && "Crafting descriptions..."}
-                        {progress >= 90 && "Finalizing itinerary..."}
-                    </p>
-                </div>
-                <div className="flex justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
+                {!generationError && (
+                    <>
+                        <Progress value={progress} className="h-3" />
+                        <div className="text-center">
+                            <p className="text-lg font-medium">{progress}%</p>
+                            <p className="text-sm text-muted-foreground">
+                                {progress < 30 && "Analyzing destination..."}
+                                {progress >= 30 && progress < 60 && "Planning activities..."}
+                                {progress >= 60 && progress < 90 && "Crafting descriptions..."}
+                                {progress >= 90 && "Finalizing itinerary..."}
+                            </p>
+                        </div>
+                        <div className="flex justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    </>
+                )}
+                {generationError && (
+                    <div className="flex flex-col gap-3">
+                        <Button onClick={() => { setGenerationError(null); form.handleSubmit(handleGenerate)(); }} className="w-full gap-2">
+                            <RotateCcw className="h-4 w-4" /> Try Again
+                        </Button>
+                        <Button variant="outline" onClick={() => { setGenerationError(null); setStep(1); }} className="w-full gap-2">
+                            <ArrowLeft className="h-4 w-4" /> Back to Details
+                        </Button>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

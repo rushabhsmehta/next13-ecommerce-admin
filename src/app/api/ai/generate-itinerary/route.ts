@@ -153,6 +153,10 @@ export async function POST(req: Request) {
 
         } catch (error: any) {
             console.error("[AI_GENERATE] Gemini API Error:", error);
+            const isRateLimit = error?.status === 429 || error?.message?.includes("429") || error?.message?.toLowerCase().includes("quota") || error?.message?.toLowerCase().includes("rate");
+            if (isRateLimit) {
+                return jsonError("Gemini API rate limit reached. Please wait a moment and try again.", 429, "RATE_LIMITED");
+            }
             return jsonError(`AI Generation failed: ${error.message}`, 500, "AI_ERROR");
         }
     });

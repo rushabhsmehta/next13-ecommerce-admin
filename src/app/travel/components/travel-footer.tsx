@@ -49,7 +49,6 @@ export function TravelFooter() {
               {[
                 { href: "/travel/packages", label: "Tour Packages" },
                 { href: "/travel/destinations", label: "Destinations" },
-                { href: "/travel/chat", label: "Trip Chat" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link

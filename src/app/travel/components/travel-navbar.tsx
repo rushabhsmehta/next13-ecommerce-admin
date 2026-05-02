@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { CircleUserRound, Home, Search, X } from "lucide-react";
+import { Home, Search, X } from "lucide-react";
 
 export function TravelNavbar() {
   const pathname = usePathname();
@@ -69,19 +69,16 @@ export function TravelNavbar() {
               >
                 {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
               </button>
-              {[{ href: "/travel", label: "Home", icon: Home }, { href: "/travel/account", label: "Account", icon: CircleUserRound }].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`relative flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                    isActive(item.href)
-                      ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
-                      : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-                  }`}
-                >
-                  <item.icon className="w-4 h-4" />
-                </Link>
-              ))}
+              <Link
+                href="/travel"
+                className={`relative flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                  isActive("/travel")
+                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                    : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+                }`}
+              >
+                <Home className="w-4 h-4" />
+              </Link>
             </div>
           </div>
 
@@ -129,23 +126,17 @@ export function TravelNavbar() {
           ) : null}
 
           <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-            {[
-              { href: "/travel", label: "Home", icon: Home },
-              { href: "/travel/account", label: "Account", icon: CircleUserRound },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                  isActive(item.href)
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
-                    : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            ))}
+            <Link
+              href="/travel"
+              className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                isActive("/travel")
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                  : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              Home
+            </Link>
           </div>
         </div>
       </div>

@@ -142,6 +142,7 @@ const NAV_ITEMS = [
       { title: "Units of Measure", url: "/settings/units" },
       { title: "Tax Slabs", url: "/settings/tax-slabs" },
       { title: "Invoice Settings", url: "/settings/invoice" },
+      { title: "Mobile Access", url: "/settings/mobile-access" },
     ],
   },
   {

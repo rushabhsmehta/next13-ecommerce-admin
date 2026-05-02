@@ -1,15 +1,39 @@
+import { useEffect, useState } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
+import { whatsappApi } from "@/lib/whatsapp-api";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const { isLoggedIn, userType } = useAuth();
+  const { isLoggedIn, userType, token } = useAuth();
   const isAssociate = userType === "associate";
-  const isTourist = isLoggedIn && !isAssociate;
+  const isAdmin = userType === "admin";
+  const isTourist = isLoggedIn && !isAssociate && !isAdmin;
+
+  const [waUnread, setWaUnread] = useState(0);
+
+  // Poll total unread WhatsApp count every 30s for admin badge
+  useEffect(() => {
+    if (!isAdmin || !token) return;
+
+    const fetchUnread = async () => {
+      try {
+        const conversations = await whatsappApi.getConversations();
+        const total = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+        setWaUnread(total);
+      } catch {
+        // silent
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin, token]);
 
   return (
     <Tabs
@@ -77,6 +101,26 @@ export default function TabLayout() {
                 name={focused ? "chatbubbles" : "chatbubbles-outline"}
                 size={22}
                 color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="whatsapp"
+        options={{
+          href: isAdmin ? undefined : null,
+          title: "WhatsApp",
+          headerTitle: "WhatsApp",
+          tabBarBadge: waUnread > 0 ? waUnread : undefined,
+          tabBarBadgeStyle: { backgroundColor: "#25D366", color: "#fff" },
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons
+                name={focused ? "logo-whatsapp" : "logo-whatsapp"}
+                size={22}
+                color={focused ? "#25D366" : color}
               />
             </View>
           ),

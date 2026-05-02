@@ -1874,3 +1874,17 @@ model TodoItem {
   @@index([userId, status])
   @@index([assignedToStaffId])
 }
+
+model AdminMobileToken {
+  id          String    @id @default(uuid())
+  tokenHash   String    @unique
+  label       String?
+  userId      String
+  userName    String?
+  pushToken   String?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
-import { dateToUtc, getUserTimezone, formatLocalDate } from "@/lib/timezone-utils";
+import { dateToUtc, formatLocalDate } from "@/lib/timezone-utils";
 import {
   startOfDay,
   endOfDay,
@@ -11,11 +11,10 @@ import {
   startOfMonth,
   endOfMonth,
   subMonths,
-  parseISO,
-  format
 } from "date-fns";
 import { createAuditLog } from "@/lib/utils/audit-logger";
 import { normalizeWhatsAppPhone } from "@/lib/whatsapp-customers";
+import { sendWhatsAppTemplate } from "@/lib/whatsapp";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
 
@@ -79,7 +78,8 @@ export async function POST(req: Request) {
       transportDetails,
       fbclid,
       fbp,
-      fbc
+      fbc,
+      sendWhatsAppAck = true
     } = body;
 
     if (!userId) {
@@ -268,6 +268,24 @@ export async function POST(req: Request) {
     } catch (notificationError) {
       // Log the error but don't fail the inquiry creation
       console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
+    }
+
+    // Send WhatsApp acknowledgment to customer (only when caller opts in)
+    if (sendWhatsAppAck) try {
+      const normalizedPhone = normalizeWhatsAppPhone(customerMobileNumber);
+      await sendWhatsAppTemplate({
+        to: normalizedPhone,
+        templateName: "inquiry_ack_v2",
+        languageCode: "en_US",
+        bodyParams: [
+          inquiry.customerName,
+          inquiry.location?.label ?? "your destination",
+        ],
+        metadata: { inquiryId: inquiry.id },
+        saveToDb: true,
+      });
+    } catch (waError) {
+      console.log("[INQUIRIES_POST] WhatsApp acknowledgment error", waError);
     }
 
     // Create audit log for the new inquiry

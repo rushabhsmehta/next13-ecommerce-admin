@@ -48,6 +48,16 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { WhatsAppSupplierButton } from "@/components/whatsapp-supplier-button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const roomAllocationSchema = z.object({
   id: z.string().optional(),
@@ -159,6 +169,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
     requirementDate?: Date | null;
     notes?: string | null;
   }>>({});
+  const [showWADialog, setShowWADialog] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<Record<string, unknown> | null>(null);
 
   const title = initialData ? "Edit inquiry" : "Create inquiry";
   const description = initialData ? "Edit an inquiry" : "Add a new inquiry";
@@ -414,30 +426,41 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         } else {
           console.error("PATCH request failed:", await response.text());
         }
+
+        console.log("===============================================");
+        router.refresh();
+        router.push(`/inquiries`);
+        toast.success(toastMessage);
       } else {
-        console.log("8. Sending POST request to: /api/inquiries");
-        const response = await fetch(`/api/inquiries`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formattedData),
-        });
-        console.log("9. POST Response status:", response.status);
-
-        if (response.ok) {
-          const responseData = await response.json();
-          console.log("10. POST Response data:", responseData);
-          if (responseData.journeyDate) {
-            console.log("11. Server returned journeyDate:", responseData.journeyDate);
-            console.log("12. Server journeyDate parsed:", new Date(responseData.journeyDate));
-          }
-        } else {
-          console.error("POST request failed:", await response.text());
-        }
+        // For new inquiries, pause and ask whether to send WhatsApp
+        setPendingFormData(formattedData as Record<string, unknown>);
+        setLoading(false);
+        setShowWADialog(true);
+        return;
       }
-      console.log("===============================================");
+    } catch (error) {
+      console.error("❌ Form submission error:", error);
+      toast.error("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleSubmitWithWA = async (sendWhatsAppAck: boolean) => {
+    if (!pendingFormData) return;
+    setShowWADialog(false);
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/inquiries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...pendingFormData, sendWhatsAppAck }),
+      });
+      if (!response.ok) {
+        console.error("POST request failed:", await response.text());
+        toast.error("Something went wrong.");
+        return;
+      }
       router.refresh();
       router.push(`/inquiries`);
       toast.success(toastMessage);
@@ -446,6 +469,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       toast.error("Something went wrong.");
     } finally {
       setLoading(false);
+      setPendingFormData(null);
     }
   };
 
@@ -1442,6 +1466,26 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
           </div>
         </form>
       </Form >
+
+      <AlertDialog open={showWADialog} onOpenChange={setShowWADialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send WhatsApp Acknowledgment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Send a WhatsApp message to <strong>{pendingFormData?.customerName as string}</strong> at{" "}
+              <strong>{pendingFormData?.customerMobileNumber as string}</strong> confirming their inquiry?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleSubmitWithWA(false)}>
+              Skip
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleSubmitWithWA(true)}>
+              Yes, Send WhatsApp
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

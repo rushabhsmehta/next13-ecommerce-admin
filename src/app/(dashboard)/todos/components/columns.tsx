@@ -23,10 +23,10 @@ export type TodoColumn = {
   createdAt: string;
 };
 
-// Cycles only between TODO and IN_PROGRESS — DONE is set via Mark Complete button
-const STATUS_CYCLE: Record<"TODO" | "IN_PROGRESS", "TODO" | "IN_PROGRESS"> = {
+const STATUS_CYCLE: Record<TodoColumn["status"], TodoColumn["status"]> = {
   TODO: "IN_PROGRESS",
-  IN_PROGRESS: "TODO",
+  IN_PROGRESS: "DONE",
+  DONE: "TODO",
 };
 
 const StatusCell = ({ row }: { row: { original: TodoColumn } }) => {
@@ -34,33 +34,33 @@ const StatusCell = ({ row }: { row: { original: TodoColumn } }) => {
   const [status, setStatus] = useState(row.original.status);
   const [loading, setLoading] = useState(false);
 
-  if (status === "DONE") {
-    return (
-      <span title="Completed">
-        <CheckCircle2 className="h-5 w-5 text-green-500" />
-      </span>
-    );
-  }
-
   const handleClick = async () => {
     if (loading) return;
-    const next = STATUS_CYCLE[status as "TODO" | "IN_PROGRESS"];
+    const next = STATUS_CYCLE[status];
     setStatus(next);
     setLoading(true);
     try {
       await axios.patch(`/api/todos/${row.original.id}`, { status: next });
       router.refresh();
     } catch {
-      setStatus(status as "TODO" | "IN_PROGRESS");
+      setStatus(status);
       toast.error("Failed to update status.");
     } finally {
       setLoading(false);
     }
   };
 
+  if (status === "DONE") {
+    return (
+      <button onClick={handleClick} title="Done — click to reset to To Do" className="text-green-500 hover:opacity-70 transition-opacity">
+        <CheckCircle2 className="h-5 w-5" />
+      </button>
+    );
+  }
+
   if (status === "IN_PROGRESS") {
     return (
-      <button onClick={handleClick} title="In Progress — click to reset to To Do" className="text-amber-500 hover:opacity-70 transition-opacity">
+      <button onClick={handleClick} title="In Progress — click to mark Done" className="text-amber-500 hover:opacity-70 transition-opacity">
         <Clock className="h-5 w-5" />
       </button>
     );

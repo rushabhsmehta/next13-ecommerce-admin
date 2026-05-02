@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       const result = await sendWhatsAppTemplate({
         to,
         templateName,
-        language: "en_US",
+        languageCode: "en_US",
         bodyParams: parameters ?? [],
       });
       return NextResponse.json(result);
@@ -39,9 +39,11 @@ export async function POST(req: Request) {
       if (!mediaUrl) return new NextResponse("mediaUrl required", { status: 400 });
       const result = await sendWhatsAppMessage({
         to,
-        message: caption ?? "",
-        mediaUrl,
-        mediaType: mediaType ?? type,
+        media: {
+          url: mediaUrl,
+          type: (mediaType ?? type) as "image" | "video" | "audio" | "document",
+          caption: caption ?? undefined,
+        },
       });
       return NextResponse.json(result);
     }

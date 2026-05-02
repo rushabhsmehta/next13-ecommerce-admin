@@ -80,7 +80,7 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData, staffList }) =>
           dueDate: initialData.dueDate
             ? initialData.dueDate.toISOString().split("T")[0]
             : "",
-          assignedToStaffId: initialData.assignedToStaffId ?? "",
+          assignedToStaffId: initialData.assignedToStaffId ?? "none",
         }
       : {
           title: "",
@@ -88,7 +88,7 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData, staffList }) =>
           status: "TODO",
           priority: "MEDIUM",
           dueDate: "",
-          assignedToStaffId: "",
+          assignedToStaffId: "none",
         },
   });
 
@@ -98,7 +98,7 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData, staffList }) =>
       const payload = {
         ...data,
         dueDate: data.dueDate || null,
-        assignedToStaffId: data.assignedToStaffId || null,
+        assignedToStaffId: data.assignedToStaffId === "none" ? null : (data.assignedToStaffId || null),
       };
       if (isEdit) {
         await axios.patch(`/api/todos/${params?.todoId}`, payload);
@@ -299,7 +299,7 @@ export const TodoForm: React.FC<TodoFormProps> = ({ initialData, staffList }) =>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="none">Unassigned</SelectItem>
                       {staffList.map((staff) => (
                         <SelectItem key={staff.id} value={staff.id}>
                           {staff.name}

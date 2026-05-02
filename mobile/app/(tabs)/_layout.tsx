@@ -16,7 +16,7 @@ export default function TabLayout() {
           backgroundColor: Colors.background,
           borderTopWidth: 1,
           borderTopColor: Colors.border,
-          paddingBottom: Math.max(insets.bottom, 6),
+          paddingBottom: Math.max(insets.bottom, 10),
           paddingTop: 8,
           elevation: 4,
         },
@@ -26,7 +26,7 @@ export default function TabLayout() {
           letterSpacing: 0.2,
         },
         tabBarIconStyle: {
-          marginBottom: -2,
+          marginBottom: 0,
         },
         headerStyle: {
           backgroundColor: Colors.background,

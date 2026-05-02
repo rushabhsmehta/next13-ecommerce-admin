@@ -491,11 +491,6 @@ export default function HomeScreen() {
                   style={styles.pkgImage}
                 />
               )}
-              <LinearGradient
-                colors={["transparent", "rgba(0,0,0,0.18)", "rgba(0,0,0,0.84)"]}
-                locations={[0, 0.3, 1]}
-                style={styles.pkgOverlay}
-              />
               <View style={styles.pkgTop}>
                 {pkg.numDaysNight ? (
                   <View style={styles.pill}>
@@ -510,23 +505,12 @@ export default function HomeScreen() {
                 ) : null}
               </View>
               <View style={styles.pkgBottom}>
-                <View style={styles.pkgLeft}>
-                  <Text style={styles.pkgLocation} numberOfLines={1}>
-                    {pkg.location?.label || ""}
-                  </Text>
-                  <Text style={styles.pkgTitle} numberOfLines={2}>
-                    {pkg.tourPackageName || "Tour Package"}
-                  </Text>
-                  <Text style={styles.pkgSub}>
-                    {pkg._count?.itineraries || 0} day itinerary
-                  </Text>
-                </View>
                 <View style={styles.pkgRight}>
                   <View style={styles.priceBadge}>
                     <Text style={styles.priceFrom}>from</Text>
                     <Text style={styles.priceValue}>
                       {pkg.pricePerAdult
-                        ? `?${Number(pkg.pricePerAdult).toLocaleString("en-IN")}`
+                        ? `₹${Number(pkg.pricePerAdult).toLocaleString("en-IN")}`
                         : "Get Quote"}
                     </Text>
                   </View>
@@ -825,13 +809,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  pkgOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: "75%",
-  },
   pkgTop: {
     position: "absolute",
     top: Spacing.md,
@@ -860,29 +837,12 @@ const styles = StyleSheet.create({
   pkgBottom: {
     position: "absolute",
     bottom: 0,
-    left: 0,
     right: 0,
     flexDirection: "row",
     alignItems: "flex-end",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     padding: Spacing.md,
-    paddingBottom: Spacing.md,
   },
-  pkgLeft: { flex: 1, marginRight: Spacing.sm },
-  pkgLocation: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.8)",
-    fontWeight: "500",
-    marginBottom: 3,
-  },
-  pkgTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: "800",
-    color: "#fff",
-    lineHeight: 22,
-    marginBottom: 4,
-  },
-  pkgSub: { fontSize: 11, color: "rgba(255,255,255,0.7)" },
   pkgRight: { alignItems: "flex-end", gap: Spacing.xs },
   priceBadge: {
     backgroundColor: "rgba(255,255,255,0.15)",

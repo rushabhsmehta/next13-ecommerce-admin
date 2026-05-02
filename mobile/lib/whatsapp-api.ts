@@ -1,8 +1,8 @@
 import { API_BASE_URL } from "@/constants/api";
-import { getToken } from "@/lib/auth";
+import { getAdminApiToken } from "@/lib/clerk-token-provider";
 
 async function authHeaders() {
-  const token = await getToken();
+  const token = await getAdminApiToken();
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
@@ -120,7 +120,7 @@ export const whatsappApi = {
     filename: string,
     mimeType: string
   ): Promise<{ url: string; publicId: string; type: string }> => {
-    const token = await getToken();
+    const token = await getAdminApiToken();
     const formData = new FormData();
     formData.append("file", {
       uri: fileUri,

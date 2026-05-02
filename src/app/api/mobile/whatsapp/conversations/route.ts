@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
-import { validateAdminToken } from "@/app/api/mobile/lib/auth";
+import { validateClerkAdmin } from "@/app/api/mobile/lib/auth";
 
 function extractPhone(value: string | null | undefined): string {
   if (!value) return "";
@@ -9,7 +9,7 @@ function extractPhone(value: string | null | undefined): string {
 
 export async function GET(req: Request) {
   try {
-    const admin = await validateAdminToken(req);
+    const admin = await validateClerkAdmin(req);
     if (!admin) return new NextResponse("Unauthorized", { status: 401 });
 
     // Fetch recent messages (last 2000 to build conversation list)

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { checkWhatsAppMessagingWindow } from "@/lib/whatsapp";
-import { validateAdminToken } from "@/app/api/mobile/lib/auth";
+import { validateClerkAdmin } from "@/app/api/mobile/lib/auth";
 
 export async function GET(req: Request) {
   try {
-    const admin = await validateAdminToken(req);
+    const admin = await validateClerkAdmin(req);
     if (!admin) return new NextResponse("Unauthorized", { status: 401 });
 
     const { searchParams } = new URL(req.url);

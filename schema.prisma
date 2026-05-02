@@ -1876,15 +1876,12 @@ model TodoItem {
 }
 
 model AdminMobileToken {
-  id          String    @id @default(uuid())
-  tokenHash   String    @unique
-  label       String?
-  userId      String
-  userName    String?
-  pushToken   String?
-  lastUsedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  userName  String?
+  pushToken String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
 }

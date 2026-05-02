@@ -1,21 +1,27 @@
-import crypto from "crypto";
+import { verifyToken } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 
-export async function validateAdminToken(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (!token) return null;
+export async function validateClerkAdmin(
+  req: Request
+): Promise<{ userId: string; role: string } | null> {
+  const header = req.headers.get("Authorization");
+  const jwt = header?.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!jwt) return null;
 
-  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-  const record = await prismadb.adminMobileToken.findUnique({
-    where: { tokenHash },
+  let payload: any;
+  try {
+    payload = await verifyToken(jwt, { secretKey: process.env.CLERK_SECRET_KEY! });
+  } catch {
+    return null;
+  }
+
+  const userId = payload?.sub as string | undefined;
+  if (!userId) return null;
+
+  const membership = await (prismadb as any).organizationMember.findFirst({
+    where: { userId, isActive: true, role: { in: ["ADMIN", "OWNER"] } },
   });
-  if (!record) return null;
+  if (!membership) return null;
 
-  await prismadb.adminMobileToken.update({
-    where: { id: record.id },
-    data: { lastUsedAt: new Date() },
-  });
-
-  return record;
+  return { userId, role: membership.role as string };
 }

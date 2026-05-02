@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { uploadR2Object } from "@/lib/r2-client";
-import { validateAdminToken } from "@/app/api/mobile/lib/auth";
+import { validateClerkAdmin } from "@/app/api/mobile/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -23,7 +23,7 @@ const ALLOWED_TYPES: Record<string, string> = {
 
 export async function POST(req: Request) {
   try {
-    const admin = await validateAdminToken(req);
+    const admin = await validateClerkAdmin(req);
     if (!admin) return new NextResponse("Unauthorized", { status: 401 });
 
     const formData = await req.formData();
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       contentType: mimeType,
       prefix: "mobile/whatsapp",
       segments: [mediaType],
-      metadata: { source: "mobile-admin-upload", adminId: admin.id },
+      metadata: { source: "mobile-admin-upload", adminId: admin.userId },
     });
 
     return NextResponse.json({

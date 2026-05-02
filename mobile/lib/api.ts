@@ -190,17 +190,6 @@ export const associateApi = {
 // ========== Admin APIs ==========
 
 export const adminApi = {
-  // Authenticate with mobile number + admin access token from CRM Settings
-  auth: (mobileNumber: string, accessToken: string) =>
-    request("/api/mobile/auth", {
-      method: "POST",
-      body: { mobileNumber, accessToken },
-    }),
-
-  // Verify stored admin token is still valid
-  me: (token: string) =>
-    request("/api/mobile/auth", { token }),
-
   // Register Expo push token for this admin device
   registerPushToken: (expoPushToken: string, token: string) =>
     request("/api/mobile/push/subscribe", {

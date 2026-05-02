@@ -4,8 +4,10 @@ import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Updates from "expo-updates";
 import * as Notifications from "expo-notifications";
+import { ClerkProvider } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { tokenCache } from "@/lib/clerk-token-cache";
 import { registerAdminPushToken, addNotificationResponseListener } from "@/lib/notifications";
 
 async function checkForOTAUpdate() {
@@ -34,7 +36,7 @@ async function checkForOTAUpdate() {
 
 function AppWithAuth() {
   const router = useRouter();
-  const { userType, token } = useAuth();
+  const { userType } = useAuth();
   const checked = useRef(false);
 
   useEffect(() => {
@@ -44,12 +46,12 @@ function AppWithAuth() {
     }
   }, []);
 
-  // Register admin push token when admin logs in
+  // Register admin push token when admin logs in (no arg — fetches JWT internally)
   useEffect(() => {
-    if (userType === "admin" && token) {
-      registerAdminPushToken(token);
+    if (userType === "admin") {
+      registerAdminPushToken();
     }
-  }, [userType, token]);
+  }, [userType]);
 
   // Handle notification taps — navigate to WhatsApp chat if applicable
   useEffect(() => {
@@ -98,6 +100,14 @@ function AppWithAuth() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="auth/admin-login"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="auth/sso-callback"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name="inquiries/new"
         options={{ headerTitle: "New Inquiry", headerShown: true }}
       />
@@ -107,9 +117,14 @@ function AppWithAuth() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="light" />
-      <AppWithAuth />
-    </AuthProvider>
+    <ClerkProvider
+      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      tokenCache={tokenCache}
+    >
+      <AuthProvider>
+        <StatusBar style="light" />
+        <AppWithAuth />
+      </AuthProvider>
+    </ClerkProvider>
   );
 }

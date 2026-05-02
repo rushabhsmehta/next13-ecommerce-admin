@@ -20,7 +20,8 @@
       "channel": "preview",
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://admin.aagamholidays.com",
-        "EXPO_PUBLIC_WEBSITE_URL": "https://aagamholidays.com"
+        "EXPO_PUBLIC_WEBSITE_URL": "https://aagamholidays.com",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_bW92aW5nLXNjdWxwaW4tNzguY2xlcmsuYWNjb3VudHMuZGV2JA"
       }
     },
     "production": {
@@ -34,7 +35,8 @@
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://admin.aagamholidays.com",
-        "EXPO_PUBLIC_WEBSITE_URL": "https://aagamholidays.com"
+        "EXPO_PUBLIC_WEBSITE_URL": "https://aagamholidays.com",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_bW92aW5nLXNjdWxwaW4tNzguY2xlcmsuYWNjb3VudHMuZGV2JA"
       }
     }
   },

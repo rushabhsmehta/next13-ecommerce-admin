@@ -4,6 +4,7 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { pushApi, adminApi } from "./api";
 import { getToken } from "./auth";
+import { getAdminApiToken } from "./clerk-token-provider";
 
 // Skip push notification setup in Expo Go (unsupported since SDK 53)
 const isExpoGo = Constants.appOwnership === "expo";
@@ -100,7 +101,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   return pushToken;
 }
 
-export async function registerAdminPushToken(adminAuthToken: string): Promise<void> {
+export async function registerAdminPushToken(): Promise<void> {
   if (Platform.OS === "web" || isExpoGo || !Device.isDevice) return;
 
   try {
@@ -124,7 +125,9 @@ export async function registerAdminPushToken(adminAuthToken: string): Promise<vo
       });
     }
 
-    await adminApi.registerPushToken(expoPushToken, adminAuthToken);
+    const adminJwt = await getAdminApiToken();
+    if (!adminJwt) return;
+    await adminApi.registerPushToken(expoPushToken, adminJwt);
   } catch (error) {
     console.error("[Admin Push] Failed to register push token:", error);
   }

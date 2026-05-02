@@ -71,7 +71,8 @@
           "photosPermission": "Allow Aagam Holidays to access your photos to share in trip chat.",
           "cameraPermission": "Allow Aagam Holidays to access your camera to take photos for trip chat."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

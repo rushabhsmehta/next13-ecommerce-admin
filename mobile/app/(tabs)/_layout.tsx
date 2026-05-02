@@ -9,7 +9,7 @@ import { whatsappApi } from "@/lib/whatsapp-api";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const { isLoggedIn, userType, token } = useAuth();
+  const { isLoggedIn, userType } = useAuth();
   const isAssociate = userType === "associate";
   const isAdmin = userType === "admin";
   const isTourist = isLoggedIn && !isAssociate && !isAdmin;
@@ -18,7 +18,7 @@ export default function TabLayout() {
 
   // Poll total unread WhatsApp count every 30s for admin badge
   useEffect(() => {
-    if (!isAdmin || !token) return;
+    if (!isAdmin) return;
 
     const fetchUnread = async () => {
       try {
@@ -33,7 +33,7 @@ export default function TabLayout() {
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
     return () => clearInterval(interval);
-  }, [isAdmin, token]);
+  }, [isAdmin]);
 
   return (
     <Tabs

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import whatsappPrisma from '@/lib/whatsapp-prismadb';
+import prismadb from '@/lib/prismadb';
 import { verifyWebhookSignature, updateMessageStatus, sendWhatsAppMessage } from '@/lib/whatsapp';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
@@ -611,6 +612,33 @@ export async function POST(request: NextRequest) {
               if (debugMode) {
                 console.log(`Saved incoming message ${message.id} from ${message.from}`);
               }
+
+              // Fire push notifications to all registered admin devices (non-blocking)
+              const senderDisplay = (metadata.contactName as string | undefined) || fromNumber || 'Customer';
+              const previewText = (messageBody || '').slice(0, 100);
+              prismadb.adminMobileToken
+                .findMany({ where: { pushToken: { not: null } }, select: { pushToken: true } })
+                .then((admins) => {
+                  if (!admins.length) return;
+                  return fetch('https://exp.host/--/api/v2/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(
+                      admins.map((a) => ({
+                        to: a.pushToken,
+                        title: `WhatsApp: ${senderDisplay}`,
+                        body: previewText,
+                        data: { phone: fromNumber, screen: 'whatsapp' },
+                        sound: 'default',
+                        channelId: 'whatsapp',
+                        priority: 'high',
+                      }))
+                    ),
+                  });
+                })
+                .catch((pushErr) => {
+                  console.error('[WhatsApp Webhook] Push notification error:', pushErr);
+                });
 
               const flowAckEligible =
                 message.type === 'interactive' &&

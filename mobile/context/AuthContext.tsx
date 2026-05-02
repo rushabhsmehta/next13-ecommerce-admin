@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { getToken, getUser, clearAuth, setToken, setUser } from "@/lib/auth";
 
-export type UserType = "tourist" | "associate" | null;
+export type UserType = "tourist" | "associate" | "admin" | null;
 
 interface AuthCtx {
   isLoggedIn: boolean;
@@ -12,6 +12,7 @@ interface AuthCtx {
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
   loginAsAssociate: (associate: any, accessToken: string) => Promise<void>;
+  loginAsAdmin: (adminData: any, accessToken: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx>({
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthCtx>({
   refresh: async () => {},
   logout: async () => {},
   loginAsAssociate: async () => {},
+  loginAsAdmin: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -64,9 +66,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserType("associate");
   };
 
+  const loginAsAdmin = async (adminData: any, accessToken: string) => {
+    const userData = { ...adminData, type: "admin" };
+    await setToken(accessToken);
+    await setUser(userData);
+    setTokenState(accessToken);
+    setUserState(userData);
+    setIsLoggedIn(true);
+    setUserType("admin");
+  };
+
   return (
     <AuthContext.Provider
-      value={{ isLoggedIn, userType, user, token, loading, refresh, logout, loginAsAssociate }}
+      value={{ isLoggedIn, userType, user, token, loading, refresh, logout, loginAsAssociate, loginAsAdmin }}
     >
       {children}
     </AuthContext.Provider>

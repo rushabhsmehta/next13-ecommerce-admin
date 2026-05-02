@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { pushApi } from "./api";
+import { pushApi, adminApi } from "./api";
 import { getToken } from "./auth";
 
 // Skip push notification setup in Expo Go (unsupported since SDK 53)
@@ -72,7 +72,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
   }
 
-  // Android notification channel
+  // Android notification channels
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
       name: "Default",
@@ -87,9 +87,47 @@ export async function registerForPushNotifications(): Promise<string | null> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#059669",
     });
+
+    await Notifications.setNotificationChannelAsync("whatsapp", {
+      name: "WhatsApp Messages",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#25D366",
+      sound: "default",
+    });
   }
 
   return pushToken;
+}
+
+export async function registerAdminPushToken(adminAuthToken: string): Promise<void> {
+  if (Platform.OS === "web" || isExpoGo || !Device.isDevice) return;
+
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") {
+      const { status: newStatus } = await Notifications.requestPermissionsAsync();
+      if (newStatus !== "granted") return;
+    }
+
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+    const expoPushToken = tokenData.data;
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("whatsapp", {
+        name: "WhatsApp Messages",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#25D366",
+        sound: "default",
+      });
+    }
+
+    await adminApi.registerPushToken(expoPushToken, adminAuthToken);
+  } catch (error) {
+    console.error("[Admin Push] Failed to register push token:", error);
+  }
 }
 
 export function addNotificationListener(

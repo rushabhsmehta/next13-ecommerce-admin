@@ -15,21 +15,26 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
-import { associateApi } from "@/lib/api";
+import { associateApi, adminApi } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+
+type LoginMode = "associate" | "admin";
 
 export default function AssociateLoginScreen() {
   const router = useRouter();
-  const { loginAsAssociate } = useAuth();
+  const { loginAsAssociate, loginAsAdmin } = useAuth();
 
+  const [mode, setMode] = useState<LoginMode>("associate");
   const [mobileNumber, setMobileNumber] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
 
+  const isAdmin = mode === "admin";
+
   const handleLogin = async () => {
     if (!mobileNumber.trim()) {
-      Alert.alert("Required", "Please enter your registered mobile number.");
+      Alert.alert("Required", "Please enter your mobile number.");
       return;
     }
     if (!accessToken.trim()) {
@@ -39,15 +44,20 @@ export default function AssociateLoginScreen() {
 
     setLoading(true);
     try {
-      const result = await associateApi.auth(mobileNumber.trim(), accessToken.trim());
-      await loginAsAssociate(result.associate, result.accessToken);
-      // Navigate back to tabs — Inquiries tab will now appear
-      router.replace("/(tabs)/inquiries");
+      if (isAdmin) {
+        const result = await adminApi.auth(mobileNumber.trim(), accessToken.trim());
+        await loginAsAdmin(result, result.token);
+        router.replace("/(tabs)/whatsapp" as any);
+      } else {
+        const result = await associateApi.auth(mobileNumber.trim(), accessToken.trim());
+        await loginAsAssociate(result.associate, result.accessToken);
+        router.replace("/(tabs)/inquiries");
+      }
     } catch (err: any) {
       Alert.alert(
         "Login Failed",
         err.message?.includes("401") || err.message?.includes("Invalid")
-          ? "Invalid mobile number or access token. Please check your credentials."
+          ? "Invalid credentials. Please check and try again."
           : "Something went wrong. Please try again."
       );
     } finally {
@@ -60,10 +70,14 @@ export default function AssociateLoginScreen() {
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <LinearGradient
-          colors={[Colors.gradient1, Colors.gradient2]}
+          colors={isAdmin ? ["#075E54", "#128C7E"] : [Colors.gradient1, Colors.gradient2]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
@@ -72,20 +86,70 @@ export default function AssociateLoginScreen() {
             <Ionicons name="chevron-back" size={22} color="#fff" />
           </Pressable>
           <View style={styles.logoWrap}>
-            <Ionicons name="briefcase" size={36} color="#fff" />
+            <Ionicons
+              name={isAdmin ? "logo-whatsapp" : "briefcase"}
+              size={36}
+              color="#fff"
+            />
           </View>
           <Text style={styles.brand}>AAGAM HOLIDAYS</Text>
-          <Text style={styles.title}>Associate Sign In</Text>
+          <Text style={styles.title}>
+            {isAdmin ? "Admin Sign In" : "Associate Sign In"}
+          </Text>
           <Text style={styles.subtitle}>
-            Enter your credentials provided by the Aagam team
+            {isAdmin
+              ? "Use the token generated from CRM Settings → Mobile Access"
+              : "Enter your credentials provided by the Aagam team"}
           </Text>
         </LinearGradient>
+
+        {/* Role Toggle */}
+        <View style={styles.toggleRow}>
+          <Pressable
+            style={[styles.toggleBtn, mode === "associate" && styles.toggleBtnActive]}
+            onPress={() => setMode("associate")}
+          >
+            <Ionicons
+              name="briefcase-outline"
+              size={16}
+              color={mode === "associate" ? "#fff" : Colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.toggleBtnText,
+                mode === "associate" && styles.toggleBtnTextActive,
+              ]}
+            >
+              Associate
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.toggleBtn, mode === "admin" && styles.toggleBtnAdminActive]}
+            onPress={() => setMode("admin")}
+          >
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={16}
+              color={mode === "admin" ? "#fff" : Colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.toggleBtnText,
+                mode === "admin" && styles.toggleBtnTextActive,
+              ]}
+            >
+              Admin
+            </Text>
+          </Pressable>
+        </View>
 
         {/* Form */}
         <View style={styles.form}>
           {/* Mobile Number */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Registered Mobile Number</Text>
+            <Text style={styles.label}>
+              {isAdmin ? "Your Mobile Number" : "Registered Mobile Number"}
+            </Text>
             <View style={styles.inputWrap}>
               <View style={styles.inputIcon}>
                 <Ionicons name="call-outline" size={18} color={Colors.primary} />
@@ -101,12 +165,18 @@ export default function AssociateLoginScreen() {
                 returnKeyType="next"
               />
             </View>
-            <Text style={styles.hint}>The mobile number registered with Aagam Holidays</Text>
+            <Text style={styles.hint}>
+              {isAdmin
+                ? "For identification only — any number works"
+                : "The mobile number registered with Aagam Holidays"}
+            </Text>
           </View>
 
           {/* Access Token */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Access Token</Text>
+            <Text style={styles.label}>
+              {isAdmin ? "Admin Access Token" : "Access Token"}
+            </Text>
             <View style={styles.inputWrap}>
               <View style={styles.inputIcon}>
                 <Ionicons name="key-outline" size={18} color={Colors.primary} />
@@ -123,7 +193,10 @@ export default function AssociateLoginScreen() {
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
               />
-              <Pressable onPress={() => setShowToken(!showToken)} style={styles.eyeBtn}>
+              <Pressable
+                onPress={() => setShowToken(!showToken)}
+                style={styles.eyeBtn}
+              >
                 <Ionicons
                   name={showToken ? "eye-off-outline" : "eye-outline"}
                   size={18}
@@ -131,7 +204,11 @@ export default function AssociateLoginScreen() {
                 />
               </Pressable>
             </View>
-            <Text style={styles.hint}>Shared by your Aagam coordinator (looks like: a1b2c3d4-...)</Text>
+            <Text style={styles.hint}>
+              {isAdmin
+                ? "Generate from: CRM → Settings → Mobile Access"
+                : "Shared by your Aagam coordinator"}
+            </Text>
           </View>
 
           {/* Sign In button */}
@@ -141,7 +218,9 @@ export default function AssociateLoginScreen() {
             disabled={loading}
           >
             <LinearGradient
-              colors={[Colors.gradient1, Colors.gradient2]}
+              colors={
+                isAdmin ? ["#075E54", "#128C7E"] : [Colors.gradient1, Colors.gradient2]
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.signInBtnGradient}
@@ -159,9 +238,15 @@ export default function AssociateLoginScreen() {
 
           {/* Info card */}
           <View style={styles.infoCard}>
-            <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              color={Colors.primary}
+            />
             <Text style={styles.infoText}>
-              Contact your Aagam Holidays coordinator to get your mobile number registered and receive your access token.
+              {isAdmin
+                ? "Admin login gives you access to the WhatsApp live chat tab with full messaging capabilities."
+                : "Contact your Aagam Holidays coordinator to get your mobile number registered and receive your access token."}
             </Text>
           </View>
         </View>
@@ -175,7 +260,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface },
   content: { paddingBottom: 40 },
 
-  // Header
   header: {
     paddingTop: 60,
     paddingBottom: Spacing.xxxl,
@@ -222,14 +306,47 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Form
+  toggleRow: {
+    flexDirection: "row",
+    margin: Spacing.xl,
+    marginBottom: 0,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    padding: 4,
+    gap: 4,
+    ...Shadows.light,
+  },
+  toggleBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  toggleBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  toggleBtnAdminActive: {
+    backgroundColor: "#075E54",
+  },
+  toggleBtnText: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  toggleBtnTextActive: {
+    color: "#fff",
+  },
+
   form: {
     padding: Spacing.xl,
     gap: Spacing.xl,
   },
-  fieldGroup: {
-    gap: Spacing.sm,
-  },
+  fieldGroup: { gap: Spacing.sm },
   label: {
     fontSize: FontSize.sm,
     fontWeight: "700",
@@ -265,16 +382,13 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     fontSize: FontSize.sm,
   },
-  eyeBtn: {
-    padding: Spacing.sm,
-  },
+  eyeBtn: { padding: Spacing.sm },
   hint: {
     fontSize: FontSize.xs,
     color: Colors.textTertiary,
     lineHeight: 16,
   },
 
-  // Button
   signInBtn: {
     borderRadius: BorderRadius.lg,
     overflow: "hidden",
@@ -294,7 +408,6 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 
-  // Info card
   infoCard: {
     flexDirection: "row",
     gap: Spacing.md,

@@ -187,6 +187,36 @@ export const associateApi = {
   getVehicleTypes: () => request("/api/vehicle-types"),
 };
 
+// ========== Admin APIs ==========
+
+export const adminApi = {
+  // Authenticate with mobile number + admin access token from CRM Settings
+  auth: (mobileNumber: string, accessToken: string) =>
+    request("/api/mobile/auth", {
+      method: "POST",
+      body: { mobileNumber, accessToken },
+    }),
+
+  // Verify stored admin token is still valid
+  me: (token: string) =>
+    request("/api/mobile/auth", { token }),
+
+  // Register Expo push token for this admin device
+  registerPushToken: (expoPushToken: string, token: string) =>
+    request("/api/mobile/push/subscribe", {
+      method: "POST",
+      body: { expoPushToken },
+      token,
+    }),
+
+  // Unregister push token
+  unregisterPushToken: (token: string) =>
+    request("/api/mobile/push/subscribe", {
+      method: "DELETE",
+      token,
+    }),
+};
+
 // ========== Push Notification APIs ==========
 
 export const pushApi = {

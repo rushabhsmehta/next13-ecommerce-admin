@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { useRouter, useNavigation } from "expo-router";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, useClerk } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
@@ -78,41 +78,9 @@ function GroupAvatar({ name }: { name: string }) {
 
 export default function ChatTab() {
   const router = useRouter();
-  const navigation = useNavigation();
   const { isSignedIn, getToken } = useAuth();
   const { signOut } = useClerk();
   const { isAdmin, travelUser, isLoading: userLoading } = useCurrentUser();
-
-  useEffect(() => {
-    if (!isSignedIn) return;
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          style={{ marginRight: 14, flexDirection: "row", alignItems: "center", gap: 6 }}
-          onPress={() =>
-            Alert.alert(
-              travelUser?.name ?? "Account",
-              "Sign out of your account?",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Sign Out",
-                  style: "destructive",
-                  onPress: () => signOut(),
-                },
-              ]
-            )
-          }
-        >
-          <View style={styles.headerAvatar}>
-            <Text style={styles.headerAvatarText}>
-              {(travelUser?.name ?? "U").charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      ),
-    });
-  }, [isSignedIn, travelUser]);
   const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -201,8 +169,32 @@ export default function ChatTab() {
     );
   }
 
+  function handleSignOut() {
+    Alert.alert(
+      travelUser?.name ?? "Account",
+      "Sign out of your account?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign Out", style: "destructive", onPress: () => signOut() },
+      ]
+    );
+  }
+
   return (
     <View style={styles.container}>
+      {isSignedIn && (
+        <TouchableOpacity style={styles.userStrip} onPress={handleSignOut} activeOpacity={0.7}>
+          <View style={styles.userStripAvatar}>
+            <Text style={styles.userStripAvatarText}>
+              {(travelUser?.name ?? "?").charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.userStripName} numberOfLines={1}>
+            {travelUser?.name ?? "Logged in"}
+          </Text>
+          <Text style={styles.userStripSignOut}>Sign out</Text>
+        </TouchableOpacity>
+      )}
       <FlatList
         data={groups}
         keyExtractor={(g) => g.id}
@@ -426,13 +418,25 @@ const styles = StyleSheet.create({
     color: Colors.text,
     backgroundColor: Colors.background,
   },
-  headerAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  userStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    gap: 10,
+    backgroundColor: Colors.background,
+  },
+  userStripAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  headerAvatarText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  userStripAvatarText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  userStripName: { flex: 1, fontSize: 14, fontWeight: "600", color: Colors.text },
+  userStripSignOut: { fontSize: 13, color: Colors.textTertiary },
 });

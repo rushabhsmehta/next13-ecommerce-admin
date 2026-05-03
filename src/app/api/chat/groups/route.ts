@@ -13,6 +13,43 @@ export async function GET(req: Request) {
     const { userId } = await auth();
     if (!userId) return jsonError("Unauthorized", 401);
 
+    // Check if org admin — admins see all groups
+    const orgMembership = await (prismadb as any).organizationMember.findFirst({
+      where: { userId, isActive: true, role: { in: ["ADMIN", "OWNER"] } },
+    });
+
+    if (orgMembership) {
+      const allGroups = await prismadb.chatGroup.findMany({
+        where: { isActive: true },
+        include: {
+          members: {
+            where: { isActive: true },
+            include: {
+              travelAppUser: { select: { id: true, name: true, avatarUrl: true } },
+            },
+          },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              content: true,
+              messageType: true,
+              createdAt: true,
+              sender: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      const groups = allGroups.map((g) => ({
+        ...g,
+        myRole: "ADMIN",
+        lastMessage: g.messages[0] ?? null,
+      }));
+      return NextResponse.json({ groups, isAdmin: true });
+    }
+
     // Find the travel app user by clerk ID
     const travelUser = await prismadb.travelAppUser.findUnique({
       where: { clerkUserId: userId },

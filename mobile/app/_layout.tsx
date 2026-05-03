@@ -90,6 +90,14 @@ export default function RootLayout() {
             name="destinations/[id]"
             options={{ headerTitle: "Destination" }}
           />
+          <Stack.Screen
+            name="chat/[groupId]"
+            options={{ headerBackTitle: "Back" }}
+          />
+          <Stack.Screen
+            name="whatsapp/[phone]"
+            options={{ headerBackTitle: "Back" }}
+          />
         </Stack>
       </ClerkLoaded>
     </ClerkProvider>

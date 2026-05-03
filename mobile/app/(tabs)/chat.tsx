@@ -12,9 +12,9 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth, useClerk } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -78,8 +78,41 @@ function GroupAvatar({ name }: { name: string }) {
 
 export default function ChatTab() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { isSignedIn, getToken } = useAuth();
-  const { isAdmin, isLoading: userLoading } = useCurrentUser();
+  const { signOut } = useClerk();
+  const { isAdmin, travelUser, isLoading: userLoading } = useCurrentUser();
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          style={{ marginRight: 14, flexDirection: "row", alignItems: "center", gap: 6 }}
+          onPress={() =>
+            Alert.alert(
+              travelUser?.name ?? "Account",
+              "Sign out of your account?",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Sign Out",
+                  style: "destructive",
+                  onPress: () => signOut(),
+                },
+              ]
+            )
+          }
+        >
+          <View style={styles.headerAvatar}>
+            <Text style={styles.headerAvatarText}>
+              {(travelUser?.name ?? "U").charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ),
+    });
+  }, [isSignedIn, travelUser]);
   const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -393,4 +426,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
     backgroundColor: Colors.background,
   },
+  headerAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerAvatarText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 });

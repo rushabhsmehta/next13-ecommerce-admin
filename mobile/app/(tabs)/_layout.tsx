@@ -1,11 +1,17 @@
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { isSignedIn, isLoaded } = useAuth();
+
+  // Wait for Clerk to initialise before deciding
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Redirect href="/login" />;
 
   return (
     <Tabs

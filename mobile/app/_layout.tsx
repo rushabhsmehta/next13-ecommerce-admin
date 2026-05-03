@@ -3,7 +3,31 @@ import { Alert } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Updates from "expo-updates";
+import * as SecureStore from "expo-secure-store";
+import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
+
+const tokenCache = {
+  async getToken(key: string) {
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch {
+      return null;
+    }
+  },
+  async saveToken(key: string, value: string) {
+    try {
+      await SecureStore.setItemAsync(key, value);
+    } catch {}
+  },
+  async clearToken(key: string) {
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch {}
+  },
+};
+
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
 async function checkForOTAUpdate() {
   try {
@@ -40,31 +64,34 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: Colors.background },
-          headerTintColor: Colors.text,
-          headerTitleStyle: { fontWeight: "700" },
-          contentStyle: { backgroundColor: Colors.background },
-          headerShadowVisible: false,
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="packages/[id]"
-          options={{
-            headerTitle: "",
-            headerTransparent: true,
-            headerTintColor: "#fff",
+    <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
+      <ClerkLoaded>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: Colors.background },
+            headerTintColor: Colors.text,
+            headerTitleStyle: { fontWeight: "700" },
+            contentStyle: { backgroundColor: Colors.background },
+            headerShadowVisible: false,
           }}
-        />
-        <Stack.Screen
-          name="destinations/[id]"
-          options={{ headerTitle: "Destination" }}
-        />
-      </Stack>
-    </>
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="packages/[id]"
+            options={{
+              headerTitle: "",
+              headerTransparent: true,
+              headerTintColor: "#fff",
+            }}
+          />
+          <Stack.Screen
+            name="destinations/[id]"
+            options={{ headerTitle: "Destination" }}
+          />
+        </Stack>
+      </ClerkLoaded>
+    </ClerkProvider>
   );
 }

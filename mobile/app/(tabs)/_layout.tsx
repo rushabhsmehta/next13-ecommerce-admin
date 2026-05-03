@@ -2,10 +2,16 @@ import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { isLoaded } = useAuth();
+  const { isAdmin } = useCurrentUser();
+
+  if (!isLoaded) return null;
 
   return (
     <Tabs
@@ -51,6 +57,37 @@ export default function TabLayout() {
                 name={focused ? "home" : "home-outline"}
                 size={22}
                 color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: "Trips",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons
+                name={focused ? "chatbubbles" : "chatbubbles-outline"}
+                size={22}
+                color={color}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="whatsapp"
+        options={{
+          title: "WhatsApp",
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons
+                name="logo-whatsapp"
+                size={22}
+                color={focused ? "#25D366" : color}
               />
             </View>
           ),

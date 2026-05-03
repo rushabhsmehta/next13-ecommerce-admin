@@ -14,6 +14,7 @@ import {
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -85,6 +86,7 @@ export default function ChatRoom() {
   const navigation = useNavigation();
   const { getToken } = useAuth();
   const { travelUser } = useCurrentUser();
+  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
@@ -218,7 +220,7 @@ export default function ChatRoom() {
         }}
       />
 
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { paddingBottom: insets.bottom + 10 }]}>
         <TextInput
           style={styles.input}
           value={text}
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 10,
     backgroundColor: Colors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,

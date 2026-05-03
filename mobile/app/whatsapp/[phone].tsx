@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
@@ -76,6 +77,7 @@ export default function WhatsAppConversation() {
   const phone = decodeURIComponent(rawPhone ?? "");
   const navigation = useNavigation();
   const { getToken } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<WaMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,7 +234,7 @@ export default function WhatsAppConversation() {
         </View>
       )}
 
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={styles.templateBtn}
           onPress={() => setShowTemplates(true)}
@@ -343,7 +345,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingTop: 8,
     backgroundColor: "#F0F0F0",
     gap: 6,
   },

@@ -12,6 +12,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, useClerk } from "@clerk/clerk-expo";
@@ -258,7 +259,7 @@ export default function ChatTab() {
       )}
 
       <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet">
-        <View style={styles.modal}>
+        <SafeAreaView style={styles.modal}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowCreate(false)}>
               <Text style={styles.modalCancel}>Cancel</Text>
@@ -309,7 +310,7 @@ export default function ChatTab() {
               placeholderTextColor={Colors.textTertiary}
             />
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );

@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Updates from "expo-updates";
 import * as SecureStore from "expo-secure-store";
 import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 
 const tokenCache = {
@@ -64,9 +65,10 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
-      <ClerkLoaded>
-        <StatusBar style="light" />
+    <SafeAreaProvider>
+      <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
+        <ClerkLoaded>
+          <StatusBar style="light" />
         <Stack
           screenOptions={{
             headerStyle: { backgroundColor: Colors.background },
@@ -99,7 +101,8 @@ export default function RootLayout() {
             options={{ headerBackTitle: "Back" }}
           />
         </Stack>
-      </ClerkLoaded>
-    </ClerkProvider>
+        </ClerkLoaded>
+      </ClerkProvider>
+    </SafeAreaProvider>
   );
 }

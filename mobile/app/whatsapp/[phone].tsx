@@ -15,7 +15,7 @@ import {
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
@@ -261,7 +261,7 @@ export default function WhatsAppConversation() {
       </View>
 
       <Modal visible={showTemplates} animationType="slide" presentationStyle="pageSheet">
-        <View style={styles.templateModal}>
+        <SafeAreaView style={styles.templateModal}>
           <View style={styles.templateHeader}>
             <Text style={styles.templateTitle}>Send a Template</Text>
             <TouchableOpacity onPress={() => setShowTemplates(false)}>
@@ -291,7 +291,7 @@ export default function WhatsAppConversation() {
               );
             }}
           />
-        </View>
+        </SafeAreaView>
       </Modal>
     </KeyboardAvoidingView>
   );

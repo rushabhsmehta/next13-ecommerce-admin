@@ -9,6 +9,7 @@ import {
   TextInput,
   RefreshControl,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
@@ -51,6 +52,7 @@ function ContactAvatar({ name, phone }: { name: string | null; phone: string }) 
 export default function WhatsAppTab() {
   const router = useRouter();
   const { getToken } = useAuth();
+  const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filtered, setFiltered] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,7 +183,7 @@ export default function WhatsAppTab() {
             </View>
           </TouchableOpacity>
         )}
-        contentContainerStyle={filtered.length === 0 ? { flex: 1 } : { paddingBottom: 20 }}
+        contentContainerStyle={filtered.length === 0 ? { flex: 1 } : { paddingBottom: insets.bottom + 20 }}
       />
     </View>
   );

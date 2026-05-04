@@ -12,7 +12,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, useClerk } from "@clerk/clerk-expo";
@@ -82,6 +82,7 @@ export default function ChatTab() {
   const { isSignedIn, getToken } = useAuth();
   const { signOut } = useClerk();
   const { isAdmin, travelUser, isLoading: userLoading } = useCurrentUser();
+  const insets = useSafeAreaInsets();
   const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -249,7 +250,7 @@ export default function ChatTab() {
             </TouchableOpacity>
           );
         }}
-        contentContainerStyle={groups.length === 0 ? { flex: 1 } : { paddingBottom: 100 }}
+        contentContainerStyle={groups.length === 0 ? { flex: 1 } : { paddingBottom: insets.bottom + 80 }}
       />
 
       {isAdmin && (

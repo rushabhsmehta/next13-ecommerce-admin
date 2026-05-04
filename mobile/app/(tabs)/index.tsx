@@ -491,34 +491,6 @@ export default function HomeScreen() {
                   style={styles.pkgImage}
                 />
               )}
-              <View style={styles.pkgTop}>
-                {pkg.numDaysNight ? (
-                  <View style={styles.pill}>
-                    <Ionicons name="time-outline" size={11} color="#fff" />
-                    <Text style={styles.pillText}>{pkg.numDaysNight}</Text>
-                  </View>
-                ) : null}
-                {pkg.tourCategory ? (
-                  <View style={styles.categoryPill}>
-                    <Text style={styles.categoryPillText}>{pkg.tourCategory}</Text>
-                  </View>
-                ) : null}
-              </View>
-              <View style={styles.pkgBottom}>
-                <View style={styles.pkgRight}>
-                  <View style={styles.priceBadge}>
-                    <Text style={styles.priceFrom}>from</Text>
-                    <Text style={styles.priceValue}>
-                      {pkg.pricePerAdult
-                        ? `₹${Number(pkg.pricePerAdult).toLocaleString("en-IN")}`
-                        : "Get Quote"}
-                    </Text>
-                  </View>
-                  <View style={styles.arrowCircle}>
-                    <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
-                  </View>
-                </View>
-              </View>
             </Pressable>
           ))
         ) : (
@@ -575,7 +547,7 @@ export default function HomeScreen() {
         </LinearGradient>
       </View>
 
-      <View style={{ height: 16 }} />
+      <View style={{ height: insets.bottom + 16 }} />
     </ScrollView>
   );
 }
@@ -801,67 +773,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     borderRadius: BorderRadius.xl,
     overflow: "hidden",
-    height: 205,
+    aspectRatio: 1,
     ...Shadows.medium,
   },
   pkgImage: {
-    position: "absolute",
     width: "100%",
     height: "100%",
-  },
-  pkgTop: {
-    position: "absolute",
-    top: Spacing.md,
-    left: Spacing.md,
-    right: Spacing.md,
-    flexDirection: "row",
-    gap: Spacing.xs,
-  },
-  pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-  },
-  pillText: { fontSize: 11, color: "#fff", fontWeight: "700" },
-  categoryPill: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-  },
-  categoryPillText: { fontSize: 11, color: "#fff", fontWeight: "700" },
-  pkgBottom: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "flex-end",
-    padding: Spacing.md,
-  },
-  pkgRight: { alignItems: "flex-end", gap: Spacing.xs },
-  priceBadge: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.md,
-    alignItems: "flex-end",
-  },
-  priceFrom: { fontSize: 9, color: "rgba(255,255,255,0.7)", fontWeight: "500" },
-  priceValue: { fontSize: FontSize.md, fontWeight: "800", color: "#fff" },
-  arrowCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
   },
 
   emptyState: {

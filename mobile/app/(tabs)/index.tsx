@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Pressable,
   TextInput,
   RefreshControl,
-  ActivityIndicator,
+  Animated,
   Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -28,21 +28,9 @@ const PHONE_NUMBER = "+919724444701";
 const WHATSAPP_NUMBER = "919724444701";
 
 const highlights = [
-  {
-    value: "10K+",
-    label: "Happy Travellers",
-    icon: "people-outline" as const,
-  },
-  {
-    value: "200+",
-    label: "Tour Packages",
-    icon: "briefcase-outline" as const,
-  },
-  {
-    value: "24/7",
-    label: "Support",
-    icon: "headset-outline" as const,
-  },
+  { value: "10K+", label: "Happy Travellers", icon: "people-outline" as const },
+  { value: "200+", label: "Tour Packages", icon: "briefcase-outline" as const },
+  { value: "4.8★", label: "Avg. Rating", icon: "star-outline" as const },
 ];
 
 const whyUs = [
@@ -119,6 +107,248 @@ type Package = {
   _count?: { itineraries?: number };
 };
 
+// ─── Skeleton Card ────────────────────────────────────────────────────────────
+function SkeletonCard({ opacity }: { opacity: Animated.Value }) {
+  return (
+    <Animated.View style={[skelStyles.card, { opacity }]}>
+      <View style={skelStyles.image} />
+      <View style={skelStyles.body}>
+        <View style={[skelStyles.line, { width: "78%" }]} />
+        <View style={[skelStyles.line, { width: "52%", marginTop: 6 }]} />
+        <View style={skelStyles.footer}>
+          <View style={[skelStyles.pill, { width: 60 }]} />
+          <View style={[skelStyles.pill, { width: 80 }]} />
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+const skelStyles = StyleSheet.create({
+  card: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.background,
+    overflow: "hidden",
+    ...Shadows.medium,
+  },
+  image: {
+    width: "100%",
+    height: 210,
+    backgroundColor: Colors.surfaceAlt,
+  },
+  body: { padding: Spacing.md + 2 },
+  line: { height: 14, borderRadius: 6, backgroundColor: Colors.border },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  pill: { height: 12, borderRadius: 6, backgroundColor: Colors.border },
+});
+
+// ─── Package Card ─────────────────────────────────────────────────────────────
+function PackageCard({ pkg, onPress }: { pkg: Package; onPress: () => void }) {
+  const imageUrl = pkg.images?.[0]?.url;
+  const displayPrice = pkg.pricePerAdult || pkg.price;
+  const formattedPrice = displayPrice
+    ? `₹${Number(displayPrice).toLocaleString("en-IN")}`
+    : null;
+
+  return (
+    <Pressable style={pkgCardStyles.card} onPress={onPress}>
+      {/* ── Image + Overlays ── */}
+      <View style={pkgCardStyles.imageWrap}>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={pkgCardStyles.image} />
+        ) : (
+          <LinearGradient
+            colors={[Colors.gradient1, Colors.gradient2]}
+            style={pkgCardStyles.image}
+          />
+        )}
+
+        {/* Bottom gradient for location text legibility */}
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.62)"]}
+          style={pkgCardStyles.imageGradient}
+        />
+
+        {/* Duration badge — top left */}
+        {pkg.numDaysNight ? (
+          <View style={pkgCardStyles.durationBadge}>
+            <Ionicons name="time-outline" size={10} color="#fff" />
+            <Text style={pkgCardStyles.durationText}>{pkg.numDaysNight}</Text>
+          </View>
+        ) : null}
+
+        {/* Category badge — top right */}
+        {pkg.tourCategory ? (
+          <LinearGradient
+            colors={[Colors.gradient1, Colors.gradient2]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={pkgCardStyles.categoryBadge}
+          >
+            <Text style={pkgCardStyles.categoryText}>{pkg.tourCategory}</Text>
+          </LinearGradient>
+        ) : null}
+
+        {/* Location — bottom of image */}
+        {pkg.location?.label ? (
+          <View style={pkgCardStyles.locationRow}>
+            <Ionicons name="location" size={11} color="rgba(255,255,255,0.92)" />
+            <Text style={pkgCardStyles.locationText} numberOfLines={1}>
+              {pkg.location.label}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* ── Card Body ── */}
+      <View style={pkgCardStyles.body}>
+        <Text style={pkgCardStyles.name} numberOfLines={2}>
+          {pkg.tourPackageName || "Tour Package"}
+        </Text>
+
+        <View style={pkgCardStyles.footer}>
+          {/* Rating */}
+          <View style={pkgCardStyles.ratingRow}>
+            <Ionicons name="star" size={12} color="#f59e0b" />
+            <Text style={pkgCardStyles.ratingText}>4.8</Text>
+            <Text style={pkgCardStyles.ratingLabel}>· Highly Rated</Text>
+          </View>
+
+          {/* Price */}
+          {formattedPrice ? (
+            <View style={pkgCardStyles.priceBlock}>
+              <Text style={pkgCardStyles.price}>{formattedPrice}</Text>
+              <Text style={pkgCardStyles.priceUnit}>/person</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+const pkgCardStyles = StyleSheet.create({
+  card: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.background,
+    overflow: "hidden",
+    ...Shadows.medium,
+  },
+  imageWrap: { position: "relative" },
+  image: { width: "100%", height: 210 },
+  imageGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+  },
+  durationBadge: {
+    position: "absolute",
+    top: Spacing.md,
+    left: Spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.48)",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+  },
+  durationText: {
+    fontSize: FontSize.xs,
+    color: "#fff",
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  categoryBadge: {
+    position: "absolute",
+    top: Spacing.md,
+    right: Spacing.md,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+  },
+  categoryText: {
+    fontSize: FontSize.xs,
+    color: "#fff",
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  locationRow: {
+    position: "absolute",
+    bottom: Spacing.sm,
+    left: Spacing.md,
+    right: Spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  locationText: {
+    fontSize: FontSize.xs,
+    color: "rgba(255,255,255,0.92)",
+    fontWeight: "600",
+    flex: 1,
+  },
+  body: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    gap: 8,
+  },
+  name: {
+    fontSize: FontSize.lg,
+    fontWeight: "800",
+    color: Colors.text,
+    lineHeight: 22,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  ratingText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  ratingLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    fontWeight: "500",
+  },
+  priceBlock: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 2,
+  },
+  price: {
+    fontSize: FontSize.lg,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
+  priceUnit: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: "500",
+  },
+});
+
+// ─── Home Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -131,6 +361,27 @@ export default function HomeScreen() {
   const [activeLocation, setActiveLocation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Skeleton pulse animation
+  const skeletonOpacity = useRef(new Animated.Value(0.5)).current;
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(skeletonOpacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(skeletonOpacity, {
+          toValue: 0.5,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [skeletonOpacity]);
 
   const loadPackages = useCallback(
     async (opts?: {
@@ -151,7 +402,13 @@ export default function HomeScreen() {
       setCategories((prev) =>
         prev.length > 0
           ? prev
-          : ([...new Set(nextPackages.map((pkg: Package) => pkg.tourCategory).filter(Boolean))] as string[])
+          : ([
+              ...new Set(
+                nextPackages
+                  .map((pkg: Package) => pkg.tourCategory)
+                  .filter(Boolean)
+              ),
+            ] as string[])
       );
     },
     []
@@ -206,9 +463,7 @@ export default function HomeScreen() {
     [activeLocation, destinations]
   );
 
-  const handleSearch = () => {
-    setAppliedSearch(searchText.trim());
-  };
+  const handleSearch = () => setAppliedSearch(searchText.trim());
 
   const handleClear = () => {
     setSearchText("");
@@ -217,16 +472,53 @@ export default function HomeScreen() {
     setActiveLocation(null);
   };
 
-  const handleRefresh = () => {
-    loadData(true);
-  };
+  const handleRefresh = () => loadData(true);
 
+  // ── Skeleton Loading State ──
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Finding great tours...</Text>
-      </View>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero skeleton */}
+        <Animated.View
+          style={[styles.skeletonHero, { paddingTop: insets.top + 20, opacity: skeletonOpacity }]}
+        />
+
+        {/* Trust bar skeleton */}
+        <View style={styles.skeletonTrustRow}>
+          {[1, 2, 3].map((i) => (
+            <Animated.View
+              key={i}
+              style={[styles.skeletonTrustCard, { opacity: skeletonOpacity }]}
+            />
+          ))}
+        </View>
+
+        {/* Section title skeleton */}
+        <View style={{ paddingHorizontal: Spacing.lg, marginTop: 20, marginBottom: 4 }}>
+          <Animated.View
+            style={[
+              { height: 10, width: 100, borderRadius: 5, backgroundColor: Colors.border, marginBottom: 6 },
+              { opacity: skeletonOpacity },
+            ]}
+          />
+          <Animated.View
+            style={[
+              { height: 18, width: 180, borderRadius: 6, backgroundColor: Colors.border },
+              { opacity: skeletonOpacity },
+            ]}
+          />
+        </View>
+
+        {/* Skeleton package cards */}
+        {[1, 2, 3].map((i) => (
+          <SkeletonCard key={i} opacity={skeletonOpacity} />
+        ))}
+
+        <View style={{ height: insets.bottom + 32 }} />
+      </ScrollView>
     );
   }
 
@@ -242,6 +534,7 @@ export default function HomeScreen() {
         />
       }
     >
+      {/* ── Hero ── */}
       <View style={styles.topHero}>
         <LinearGradient
           colors={[Colors.gradient1, Colors.gradient2]}
@@ -256,7 +549,7 @@ export default function HomeScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.brandLabel}>Aagam Holidays</Text>
               <Text style={styles.brandTitle}>Discover your{"\n"}next trip</Text>
-              <Text style={styles.brandSubtitle}>Plan your perfect getaway</Text>
+              <Text style={styles.brandSubtitle}>200+ handcrafted tours across India</Text>
             </View>
           </View>
 
@@ -273,11 +566,7 @@ export default function HomeScreen() {
             />
             {searchText ? (
               <Pressable onPress={() => setSearchText("")}>
-                <Ionicons
-                  name="close-circle"
-                  size={18}
-                  color={Colors.textTertiary}
-                />
+                <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
               </Pressable>
             ) : null}
             <View style={styles.searchDivider} />
@@ -288,18 +577,53 @@ export default function HomeScreen() {
         </LinearGradient>
       </View>
 
-      <View style={styles.highlightsRow}>
-        {highlights.map((item) => (
-          <View key={item.label} style={styles.highlightCard}>
-            <View style={styles.highlightIcon}>
-              <Ionicons name={item.icon} size={15} color={Colors.primary} />
-            </View>
-            <Text style={styles.highlightValue}>{item.value}</Text>
-            <Text style={styles.highlightLabel}>{item.label}</Text>
+      {/* ── Trust Bar ── */}
+      <View style={styles.trustBar}>
+        <View style={styles.trustItem}>
+          <LinearGradient
+            colors={[Colors.gradient1, Colors.gradient2]}
+            style={styles.trustIconWrap}
+          >
+            <Ionicons name="star" size={14} color="#fff" />
+          </LinearGradient>
+          <View>
+            <Text style={styles.trustValue}>4.8★ Rated</Text>
+            <Text style={styles.trustSub}>10K+ Reviews</Text>
           </View>
-        ))}
+        </View>
+
+        <View style={styles.trustDivider} />
+
+        <View style={styles.trustItem}>
+          <LinearGradient
+            colors={["#16a34a", "#15803d"]}
+            style={styles.trustIconWrap}
+          >
+            <Ionicons name="shield-checkmark" size={14} color="#fff" />
+          </LinearGradient>
+          <View>
+            <Text style={styles.trustValue}>100% Safe</Text>
+            <Text style={styles.trustSub}>Verified Tours</Text>
+          </View>
+        </View>
+
+        <View style={styles.trustDivider} />
+
+        <View style={styles.trustItem}>
+          <LinearGradient
+            colors={["#3b82f6", "#2563eb"]}
+            style={styles.trustIconWrap}
+          >
+            <Ionicons name="people" size={14} color="#fff" />
+          </LinearGradient>
+          <View>
+            <Text style={styles.trustValue}>10K+ Happy</Text>
+            <Text style={styles.trustSub}>Travellers</Text>
+          </View>
+        </View>
       </View>
 
+      {/* ── Popular Destinations ── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
@@ -317,34 +641,46 @@ export default function HomeScreen() {
             return (
               <Pressable
                 key={dest.id}
-                style={[styles.destCard, active && styles.destCardActive]}
-                onPress={() => {
-                  setActiveLocation(active ? null : dest.id);
-                }}
+                style={[styles.destChip, active && styles.destChipActive]}
+                onPress={() => setActiveLocation(active ? null : dest.id)}
               >
-                <View style={styles.destImageWrap}>
+                {/* Thumbnail */}
+                <View style={styles.destChipThumbWrap}>
                   {dest.imageUrl ? (
-                    <Image source={{ uri: dest.imageUrl }} style={styles.destImage} />
+                    <Image source={{ uri: dest.imageUrl }} style={styles.destChipThumb} />
                   ) : (
                     <LinearGradient
                       colors={[Colors.gradient1, Colors.gradient2]}
-                      style={styles.destImage}
+                      style={styles.destChipThumb}
                     />
                   )}
+                  {active && (
+                    <View style={styles.destChipThumbOverlay}>
+                      <Ionicons name="checkmark" size={11} color="#fff" />
+                    </View>
+                  )}
                 </View>
-                <Text style={styles.destLabel} numberOfLines={2}>
-                  {dest.label}
-                </Text>
-                <Text style={styles.destMeta}>
-                  {dest._count?.tourPackages || 0} package
-                  {(dest._count?.tourPackages || 0) === 1 ? "" : "s"}
-                </Text>
+
+                {/* Label + count */}
+                <View style={styles.destChipInfo}>
+                  <Text
+                    style={[styles.destChipLabel, active && styles.destChipLabelActive]}
+                    numberOfLines={1}
+                  >
+                    {dest.label}
+                  </Text>
+                  <Text style={styles.destChipMeta}>
+                    {dest._count?.tourPackages || 0} pkg
+                    {(dest._count?.tourPackages || 0) === 1 ? "" : "s"}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
         </ScrollView>
       </View>
 
+      {/* ── Testimonials ── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
@@ -389,6 +725,7 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
+      {/* ── Why Travel With Us ── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
@@ -411,6 +748,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {/* ── Tour Categories ── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
@@ -429,17 +767,9 @@ export default function HomeScreen() {
               <Pressable
                 key={cat}
                 onPress={() => setActiveCategory(cat)}
-                style={[
-                  styles.catChip,
-                  active && styles.catChipActive,
-                ]}
+                style={[styles.catChip, active && styles.catChipActive]}
               >
-                <Text
-                  style={[
-                    styles.catChipText,
-                    active && styles.catChipTextActive,
-                  ]}
-                >
+                <Text style={[styles.catChipText, active && styles.catChipTextActive]}>
                   {cat === "all" ? "All packages" : cat}
                 </Text>
               </Pressable>
@@ -448,14 +778,19 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
+      {/* ── Active Filter Pill ── */}
       {(appliedSearch || activeCategory !== "all" || activeLocation) && (
         <View style={styles.filterRow}>
           <View style={styles.filterPill}>
             <Ionicons name="funnel" size={11} color={Colors.primary} />
             <Text style={styles.filterText} numberOfLines={1}>
-              {[selectedDestinationLabel, activeCategory !== "all" ? activeCategory : null, appliedSearch ? `Search: ${appliedSearch}` : null]
+              {[
+                selectedDestinationLabel,
+                activeCategory !== "all" ? activeCategory : null,
+                appliedSearch ? `"${appliedSearch}"` : null,
+              ]
                 .filter(Boolean)
-                .join(" � ")}
+                .join(" · ")}
             </Text>
           </View>
           <Pressable style={styles.clearButton} onPress={handleClear}>
@@ -464,6 +799,7 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* ── Package Cards ── */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View>
@@ -474,28 +810,27 @@ export default function HomeScreen() {
                 : "Trending packages"}
             </Text>
           </View>
+          {packages.length > 0 && (
+            <View style={styles.packageCountBadge}>
+              <Text style={styles.packageCountText}>{packages.length}</Text>
+            </View>
+          )}
         </View>
 
         {packages.length > 0 ? (
           packages.map((pkg) => (
-            <Pressable
+            <PackageCard
               key={pkg.id}
-              style={styles.pkgCard}
+              pkg={pkg}
               onPress={() => router.push(`/packages/${pkg.slug || pkg.id}`)}
-            >
-              {pkg.images?.[0]?.url ? (
-                <Image source={{ uri: pkg.images[0].url }} style={styles.pkgImage} />
-              ) : (
-                <LinearGradient
-                  colors={[Colors.gradient1, Colors.gradient2]}
-                  style={styles.pkgImage}
-                />
-              )}
-            </Pressable>
+            />
           ))
         ) : (
           <View style={styles.emptyState}>
-            <LinearGradient colors={[Colors.gradient1, Colors.gradient2]} style={styles.emptyIcon}>
+            <LinearGradient
+              colors={[Colors.gradient1, Colors.gradient2]}
+              style={styles.emptyIcon}
+            >
               <Ionicons name="search-outline" size={28} color="#fff" />
             </LinearGradient>
             <Text style={styles.emptyTitle}>No packages found</Text>
@@ -506,6 +841,7 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* ── CTA ── */}
       <View style={styles.section}>
         <LinearGradient
           colors={[Colors.gradient1, Colors.gradient2]}
@@ -530,7 +866,7 @@ export default function HomeScreen() {
               onPress={() => Linking.openURL(`tel:${PHONE_NUMBER}`)}
             >
               <Ionicons name="call" size={16} color={Colors.primary} />
-              <Text style={styles.ctaButtonText}>Call</Text>
+              <Text style={styles.ctaButtonText}>Call Us</Text>
             </Pressable>
             <Pressable
               style={[styles.ctaButton, styles.ctaButtonWa]}
@@ -554,24 +890,30 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.surface },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
+
+  // ── Skeleton ──
+  skeletonHero: {
+    height: 220,
+    backgroundColor: Colors.surfaceAlt,
+    borderBottomLeftRadius: BorderRadius.xl,
+    borderBottomRightRadius: BorderRadius.xl,
   },
-  loadingText: {
-    marginTop: Spacing.md,
-    color: Colors.textSecondary,
-    fontSize: FontSize.md,
+  skeletonTrustRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+  },
+  skeletonTrustCard: {
+    flex: 1,
+    height: 72,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.border,
   },
 
-  topHero: {
-    marginBottom: Spacing.sm,
-  },
+  // ── Hero ──
+  topHero: { marginBottom: Spacing.sm },
   brandCard: {
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
     borderBottomLeftRadius: BorderRadius.xl,
     borderBottomRightRadius: BorderRadius.xl,
     paddingHorizontal: Spacing.lg,
@@ -620,11 +962,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 11,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: FontSize.md,
-    color: Colors.text,
-  },
+  searchInput: { flex: 1, fontSize: FontSize.md, color: Colors.text },
   searchDivider: {
     width: 1,
     height: 16,
@@ -638,14 +976,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
 
-  section: {
-    paddingTop: Spacing.sm,
-    paddingBottom: 0,
+  // ── Trust Bar ──
+  trustBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.background,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.md,
+    ...Shadows.light,
   },
+  trustItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "center",
+  },
+  trustIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  trustValue: {
+    fontSize: FontSize.xs + 1,
+    fontWeight: "800",
+    color: Colors.text,
+    lineHeight: 16,
+  },
+  trustSub: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    fontWeight: "500",
+    lineHeight: 14,
+  },
+  trustDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: Colors.border,
+  },
+
+  // ── Sections ──
+  section: { paddingTop: Spacing.sm, paddingBottom: 0 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
   },
@@ -662,75 +1044,87 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: Colors.text,
   },
+  packageCountBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  packageCountText: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
 
+  // ── Destination Chips ──
   destRow: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
-    paddingBottom: 0,
+    paddingBottom: 2,
   },
-  destCard: {
-    width: 128,
+  destChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
-    padding: 9,
-    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingRight: 14,
+    paddingLeft: 5,
+    paddingVertical: 5,
+    borderWidth: 1.5,
     borderColor: Colors.border,
     ...Shadows.light,
   },
-  destCardActive: {
+  destChipActive: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primaryBg,
   },
-  destImageWrap: {
-    width: "100%",
-    aspectRatio: 1,
-    borderRadius: BorderRadius.md,
+  destChipThumbWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     overflow: "hidden",
-    marginBottom: 8,
+    position: "relative",
   },
-  destImage: {
-    width: "100%",
-    height: "100%",
+  destChipThumb: { width: "100%", height: "100%" },
+  destChipThumbOverlay: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: "rgba(232, 97, 45, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  destLabel: {
+  destChipInfo: { gap: 1 },
+  destChipLabel: {
     fontSize: FontSize.sm,
     fontWeight: "700",
     color: Colors.text,
-    lineHeight: 17,
+    maxWidth: 90,
   },
-  destMeta: {
-    marginTop: 2,
+  destChipLabelActive: { color: Colors.primary },
+  destChipMeta: {
     fontSize: 10,
-    color: Colors.textSecondary,
-    fontWeight: "600",
+    color: Colors.textTertiary,
+    fontWeight: "500",
   },
-  catRow: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    paddingBottom: 0,
-  },
+
+  // ── Categories ──
+  catRow: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
   catChip: {
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.border,
   },
-  catChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  catChipText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    fontWeight: "600",
-  },
-  catChipTextActive: {
-    color: "#fff",
-    fontWeight: "800",
-  },
+  catChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  catChipText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "600" },
+  catChipTextActive: { color: "#fff", fontWeight: "800" },
 
+  // ── Filter pill ──
   filterRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -748,39 +1142,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: BorderRadius.full,
   },
-  filterText: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    color: Colors.primary,
-    fontWeight: "700",
-  },
+  filterText: { flex: 1, fontSize: FontSize.sm, color: Colors.primary, fontWeight: "700" },
   clearButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.primary,
     backgroundColor: Colors.background,
   },
-  clearButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: "800",
-    color: Colors.primary,
-  },
+  clearButtonText: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
 
-  pkgCard: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    borderRadius: BorderRadius.xl,
-    overflow: "hidden",
-    aspectRatio: 1,
-    ...Shadows.medium,
-  },
-  pkgImage: {
-    width: "100%",
-    height: "100%",
-  },
-
+  // ── Empty state ──
   emptyState: {
     alignItems: "center",
     paddingHorizontal: Spacing.xl,
@@ -795,11 +1168,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  emptyTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: "800",
-    color: Colors.text,
-  },
+  emptyTitle: { fontSize: FontSize.xl, fontWeight: "800", color: Colors.text },
   emptySubtitle: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
@@ -807,6 +1176,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  // ── CTA Card ──
   ctaCard: {
     borderRadius: BorderRadius.xl,
     marginHorizontal: Spacing.lg,
@@ -826,23 +1196,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  ctaTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: "800",
-    color: "#fff",
-    marginBottom: 4,
-  },
+  ctaTitle: { fontSize: FontSize.lg, fontWeight: "800", color: "#fff", marginBottom: 4 },
   ctaSubtitle: {
     fontSize: FontSize.sm,
     color: "rgba(255,255,255,0.85)",
     lineHeight: 20,
     marginBottom: Spacing.sm,
   },
-  ctaButtons: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    width: "100%",
-  },
+  ctaButtons: { flexDirection: "row", gap: Spacing.sm, width: "100%" },
   ctaButton: {
     flex: 1,
     flexDirection: "row",
@@ -853,57 +1214,11 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     paddingVertical: 11,
   },
-  ctaButtonWa: {
-    backgroundColor: "#25D366",
-  },
-  ctaButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: "800",
-    color: Colors.primary,
-  },
+  ctaButtonWa: { backgroundColor: "#25D366" },
+  ctaButtonText: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
 
-  highlightsRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  highlightCard: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    alignItems: "center",
-    ...Shadows.light,
-  },
-  highlightIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    backgroundColor: Colors.primaryBg,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  highlightValue: {
-    fontSize: FontSize.md,
-    fontWeight: "800",
-    color: Colors.text,
-  },
-  highlightLabel: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    marginTop: 2,
-  },
-  testimonialRow: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    paddingBottom: 0,
-  },
+  // ── Testimonials ──
+  testimonialRow: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
   testimonialCard: {
     width: 240,
     backgroundColor: Colors.background,
@@ -922,11 +1237,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  starRow: {
-    flexDirection: "row",
-    gap: 2,
-    marginBottom: 8,
-  },
+  starRow: { flexDirection: "row", gap: 2, marginBottom: 8 },
   testimonialQuote: {
     fontSize: FontSize.sm,
     color: Colors.text,
@@ -949,25 +1260,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 12,
-  },
-  testimonialName: {
-    fontSize: FontSize.sm,
-    fontWeight: "800",
-    color: Colors.text,
-  },
-  testimonialTrip: {
-    fontSize: 11,
-    color: Colors.primary,
-    fontWeight: "700",
-  },
-  testimonialLocation: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-  },
+  avatarText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  testimonialName: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
+  testimonialTrip: { fontSize: 11, color: Colors.primary, fontWeight: "700" },
+  testimonialLocation: { fontSize: 10, color: Colors.textSecondary },
+
+  // ── Why Grid ──
   whyGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -993,16 +1291,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  whyTitle: {
-    fontSize: FontSize.sm,
-    fontWeight: "800",
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  whyText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    lineHeight: 16,
-  },
+  whyTitle: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text, marginBottom: 4 },
+  whyText: { fontSize: 11, color: Colors.textSecondary, lineHeight: 16 },
 });
-

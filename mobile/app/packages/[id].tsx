@@ -10,16 +10,18 @@ import {
   Dimensions,
   Linking,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const WHATSAPP_NUMBER = "919724444701";
 
 export default function PackageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [pkg, setPkg] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -132,7 +134,31 @@ export default function PackageDetailScreen() {
               <Ionicons name="image" size={48} color="rgba(255,255,255,0.5)" />
             </LinearGradient>
           )}
-          <LinearGradient colors={["transparent", "rgba(0,0,0,0.4)"]} style={styles.imageBottomGradient} />
+          <LinearGradient
+            colors={["rgba(0,0,0,0.38)", "transparent"]}
+            style={styles.imageTopGradient}
+          />
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.4)"]}
+            style={styles.imageBottomGradient}
+          />
+
+          {/* Back button */}
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+          </Pressable>
+
+          {/* Image counter badge */}
+          {images.length > 1 && (
+            <View style={styles.imageCounter}>
+              <Ionicons name="images-outline" size={11} color="#fff" />
+              <Text style={styles.imageCounterText}>
+                {activeImageIndex + 1}/{images.length}
+              </Text>
+            </View>
+          )}
+
+          {/* Dot indicators */}
           {images.length > 1 && (
             <View style={styles.dotsContainer}>
               {images.map((_: any, i: number) => (
@@ -435,19 +461,28 @@ export default function PackageDetailScreen() {
           {displayPrice ? (
             <>
               <Text style={styles.ctaPriceLabel}>Starting from</Text>
-              <Text style={styles.ctaPrice}>
-                ₹{Number(displayPrice).toLocaleString("en-IN")}
-                <Text style={styles.ctaPriceUnit}> /person</Text>
-              </Text>
+              <View style={styles.ctaPriceRow}>
+                <Text style={styles.ctaPrice}>
+                  ₹{Number(displayPrice).toLocaleString("en-IN")}
+                </Text>
+                <Text style={styles.ctaPriceUnit}>/person</Text>
+              </View>
+              <View style={styles.ctaRatingRow}>
+                <Ionicons name="star" size={11} color="#f59e0b" />
+                <Text style={styles.ctaRatingText}>4.8 · Highly Rated</Text>
+              </View>
             </>
           ) : (
-            <Text style={styles.ctaPriceLabel}>Contact for pricing</Text>
+            <>
+              <Text style={styles.ctaPriceLabel}>Get a custom quote</Text>
+              <Text style={styles.ctaPriceContact}>Contact us →</Text>
+            </>
           )}
         </View>
         <Pressable
           onPress={() => {
             Linking.openURL(
-              `https://wa.me/?text=Hi, I'm interested in: ${pkg.tourPackageName}`
+              `https://wa.me/${WHATSAPP_NUMBER}?text=Hi, I'm interested in: ${pkg.tourPackageName}`
             );
           }}
         >
@@ -490,12 +525,47 @@ const styles = StyleSheet.create({
   imageContainer: { position: "relative" },
   heroImage: { width: SCREEN_WIDTH, height: 320 },
   placeholderImage: { justifyContent: "center", alignItems: "center" },
+  imageTopGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 96,
+  },
   imageBottomGradient: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     height: 80,
+  },
+  backButton: {
+    position: "absolute",
+    top: Spacing.xl + 4,
+    left: Spacing.lg,
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "rgba(0,0,0,0.38)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageCounter: {
+    position: "absolute",
+    top: Spacing.xl + 4,
+    right: Spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  imageCounterText: {
+    fontSize: FontSize.xs,
+    color: "#fff",
+    fontWeight: "700",
   },
   dotsContainer: {
     position: "absolute",
@@ -751,9 +821,18 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.borderLight,
     ...Shadows.heavy,
   },
-  ctaPriceLabel: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  ctaPriceLabel: { fontSize: FontSize.xs, color: Colors.textSecondary, marginBottom: 1 },
+  ctaPriceRow: { flexDirection: "row", alignItems: "baseline", gap: 3 },
   ctaPrice: { fontSize: FontSize.xxl, fontWeight: "800", color: Colors.text },
-  ctaPriceUnit: { fontSize: FontSize.xs, fontWeight: "400", color: Colors.textSecondary },
+  ctaPriceUnit: { fontSize: FontSize.xs, fontWeight: "500", color: Colors.textSecondary },
+  ctaRatingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 3,
+  },
+  ctaRatingText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "500" },
+  ctaPriceContact: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary, marginTop: 2 },
   ctaButton: {
     flexDirection: "row",
     alignItems: "center",

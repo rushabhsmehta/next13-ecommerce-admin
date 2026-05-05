@@ -18,7 +18,6 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, useClerk } from "@clerk/clerk-expo";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SkeletonListItem } from "@/components/skeleton/SkeletonLoader";
@@ -93,10 +92,8 @@ export default function ChatTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newStart, setNewStart] = useState<Date | null>(null);
-  const [newEnd, setNewEnd] = useState<Date | null>(null);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [newStart, setNewStart] = useState("");
+  const [newEnd, setNewEnd] = useState("");
   const [creating, setCreating] = useState(false);
   const skeletonOpacity = useRef(new Animated.Value(0.5)).current;
 
@@ -141,8 +138,8 @@ export default function ChatTab() {
         name: newName.trim(),
         description: newDesc.trim() || undefined,
       };
-      if (newStart) body.tourStartDate = newStart.toISOString().split("T")[0];
-      if (newEnd) body.tourEndDate = newEnd.toISOString().split("T")[0];
+      if (newStart.trim()) body.tourStartDate = newStart.trim();
+      if (newEnd.trim()) body.tourEndDate = newEnd.trim();
       const res = await fetch(`${API_BASE_URL}/api/chat/groups`, {
         method: "POST",
         headers: {
@@ -155,8 +152,8 @@ export default function ChatTab() {
         setShowCreate(false);
         setNewName("");
         setNewDesc("");
-        setNewStart(null);
-        setNewEnd(null);
+        setNewStart("");
+        setNewEnd("");
         fetchGroups(true);
       } else {
         Alert.alert("Error", "Failed to create group. Please try again.");
@@ -317,54 +314,26 @@ export default function ChatTab() {
               placeholderTextColor={Colors.textTertiary}
               multiline
             />
-            <Text style={styles.fieldLabel}>Tour Start Date</Text>
-            <TouchableOpacity
+            <Text style={styles.fieldLabel}>Tour Start Date (YYYY-MM-DD)</Text>
+            <TextInput
               style={styles.fieldInput}
-              onPress={() => setShowStartPicker(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Select tour start date"
-            >
-              <Text style={[styles.fieldInputText, !newStart && styles.fieldInputPlaceholder]}>
-                {newStart ? newStart.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Select start date"}
-              </Text>
-              <Ionicons name="calendar-outline" size={16} color={Colors.textTertiary} />
-            </TouchableOpacity>
-            {showStartPicker && (
-              <DateTimePicker
-                value={newStart || new Date()}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(_event: any, date?: Date) => {
-                  setShowStartPicker(Platform.OS === "ios");
-                  if (date) setNewStart(date);
-                }}
-                minimumDate={new Date()}
-              />
-            )}
-            <Text style={styles.fieldLabel}>Tour End Date</Text>
-            <TouchableOpacity
+              value={newStart}
+              onChangeText={setNewStart}
+              placeholder="e.g. 2026-06-15"
+              placeholderTextColor={Colors.textTertiary}
+              keyboardType="numbers-and-punctuation"
+              returnKeyType="next"
+            />
+            <Text style={styles.fieldLabel}>Tour End Date (YYYY-MM-DD)</Text>
+            <TextInput
               style={styles.fieldInput}
-              onPress={() => setShowEndPicker(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Select tour end date"
-            >
-              <Text style={[styles.fieldInputText, !newEnd && styles.fieldInputPlaceholder]}>
-                {newEnd ? newEnd.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Select end date"}
-              </Text>
-              <Ionicons name="calendar-outline" size={16} color={Colors.textTertiary} />
-            </TouchableOpacity>
-            {showEndPicker && (
-              <DateTimePicker
-                value={newEnd || new Date()}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(_event: any, date?: Date) => {
-                  setShowEndPicker(Platform.OS === "ios");
-                  if (date) setNewEnd(date);
-                }}
-                minimumDate={newStart || new Date()}
-              />
-            )}
+              value={newEnd}
+              onChangeText={setNewEnd}
+              placeholder="e.g. 2026-06-20"
+              placeholderTextColor={Colors.textTertiary}
+              keyboardType="numbers-and-punctuation"
+              returnKeyType="done"
+            />
           </View>
         </SafeAreaView>
       </Modal>

@@ -17,6 +17,48 @@ Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer f
 - **AI:** OpenAI, Google Gemini
 - **PDF:** jsPDF, @react-pdf/renderer, Puppeteer
 
+## Mobile App (Expo)
+
+Located in `mobile/` directory:
+
+- **Framework:** Expo SDK 55, React Native 0.83, Expo Router
+- **Auth:** `@clerk/clerk-expo`
+- **Testing:** Jest + Testing Library (unit), Detox (E2E Android)
+- **State:** React hooks + Context
+- **Storage:** `expo-secure-store` (auth), `expo-sqlite` (cache)
+
+### Mobile Commands
+
+```bash
+cd mobile
+npm start            # Start Expo dev server
+npm test             # Run unit tests
+npm run test:coverage # Run unit tests with coverage
+npm run e2e:build    # Build Detox test APK (debug)
+npm run e2e:test     # Run Detox E2E tests on emulator
+```
+
+### Mobile Testing Strategy
+
+| Test Type | Tool | Coverage Target | Location |
+|-----------|------|-----------------|----------|
+| Unit | Jest + Testing Library | API utilities, formatters | `mobile/__tests__/lib/` |
+| Component | Jest + Testing Library | Shared UI components | `mobile/__tests__/components/` |
+| E2E | Detox | Critical user paths | `mobile/e2e/` |
+
+**Critical E2E Paths:**
+1. Browse packages → filter → package detail → enquiry CTA
+2. Login → chat → send message
+3. Login → profile → sign out
+
+### Mobile Key Patterns
+
+- All interactive elements must have `testID` props for E2E
+- `accessibilityRole`, `accessibilityLabel`, `accessibilityHint` required for WCAG compliance
+- API calls use `lib/api.ts` with built-in retry/timeout
+- Offline cache via `lib/cache/index.ts` (expo-sqlite, 5-min TTL)
+- Chat uses adaptive polling: 3s active, 10s inactive, 30s background
+
 ## Commands
 
 ```bash

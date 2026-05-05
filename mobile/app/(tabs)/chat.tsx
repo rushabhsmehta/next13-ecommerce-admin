@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -11,13 +11,17 @@ import {
   RefreshControl,
   Platform,
   Alert,
+  Animated,
+  Pressable,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, useClerk } from "@clerk/clerk-expo";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { SkeletonListItem } from "@/components/skeleton/SkeletonLoader";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
@@ -89,9 +93,23 @@ export default function ChatTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newStart, setNewStart] = useState("");
-  const [newEnd, setNewEnd] = useState("");
+  const [newStart, setNewStart] = useState<Date | null>(null);
+  const [newEnd, setNewEnd] = useState<Date | null>(null);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
   const [creating, setCreating] = useState(false);
+  const skeletonOpacity = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(skeletonOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(skeletonOpacity, { toValue: 0.5, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [skeletonOpacity]);
 
   async function fetchGroups(silent = false) {
     if (!isSignedIn) return;
@@ -119,25 +137,26 @@ export default function ChatTab() {
     setCreating(true);
     try {
       const token = await getToken();
+      const body: Record<string, string | undefined> = {
+        name: newName.trim(),
+        description: newDesc.trim() || undefined,
+      };
+      if (newStart) body.tourStartDate = newStart.toISOString().split("T")[0];
+      if (newEnd) body.tourEndDate = newEnd.toISOString().split("T")[0];
       const res = await fetch(`${API_BASE_URL}/api/chat/groups`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          name: newName.trim(),
-          description: newDesc.trim() || undefined,
-          tourStartDate: newStart.trim() || undefined,
-          tourEndDate: newEnd.trim() || undefined,
-        }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setShowCreate(false);
         setNewName("");
         setNewDesc("");
-        setNewStart("");
-        setNewEnd("");
+        setNewStart(null);
+        setNewEnd(null);
         fetchGroups(true);
       } else {
         Alert.alert("Error", "Failed to create group. Please try again.");
@@ -150,13 +169,13 @@ export default function ChatTab() {
 
   if (!isSignedIn) {
     return (
-      <View style={styles.emptyContainer}>
+      <View testID="chat-login-prompt" style={styles.emptyContainer}>
         <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
         <Text style={styles.emptyTitle}>Your Trip Chats</Text>
         <Text style={styles.emptySubtitle}>
           Login to see your trip group chats and stay connected with your tour.
         </Text>
-        <TouchableOpacity style={styles.loginButton} onPress={() => router.push("/login")}>
+        <TouchableOpacity testID="login-button" style={styles.loginButton} onPress={() => router.push("/login")}>
           <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
       </View>
@@ -165,8 +184,12 @@ export default function ChatTab() {
 
   if (userLoading || loading) {
     return (
-      <View style={styles.emptyContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={styles.container}>
+        <View style={styles.userStripSkeleton}>
+          <Animated.View style={[styles.userStripAvatarSkeleton, { opacity: skeletonOpacity }]} />
+          <Animated.View style={[styles.userStripNameSkeleton, { opacity: skeletonOpacity }]} />
+        </View>
+        <SkeletonListItem count={6} />
       </View>
     );
   }
@@ -294,22 +317,54 @@ export default function ChatTab() {
               placeholderTextColor={Colors.textTertiary}
               multiline
             />
-            <Text style={styles.fieldLabel}>Tour Start Date (YYYY-MM-DD)</Text>
-            <TextInput
+            <Text style={styles.fieldLabel}>Tour Start Date</Text>
+            <TouchableOpacity
               style={styles.fieldInput}
-              value={newStart}
-              onChangeText={setNewStart}
-              placeholder="e.g. 2026-03-15"
-              placeholderTextColor={Colors.textTertiary}
-            />
-            <Text style={styles.fieldLabel}>Tour End Date (YYYY-MM-DD)</Text>
-            <TextInput
+              onPress={() => setShowStartPicker(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Select tour start date"
+            >
+              <Text style={[styles.fieldInputText, !newStart && styles.fieldInputPlaceholder]}>
+                {newStart ? newStart.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Select start date"}
+              </Text>
+              <Ionicons name="calendar-outline" size={16} color={Colors.textTertiary} />
+            </TouchableOpacity>
+            {showStartPicker && (
+              <DateTimePicker
+                value={newStart || new Date()}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(_event: any, date?: Date) => {
+                  setShowStartPicker(Platform.OS === "ios");
+                  if (date) setNewStart(date);
+                }}
+                minimumDate={new Date()}
+              />
+            )}
+            <Text style={styles.fieldLabel}>Tour End Date</Text>
+            <TouchableOpacity
               style={styles.fieldInput}
-              value={newEnd}
-              onChangeText={setNewEnd}
-              placeholder="e.g. 2026-03-20"
-              placeholderTextColor={Colors.textTertiary}
-            />
+              onPress={() => setShowEndPicker(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Select tour end date"
+            >
+              <Text style={[styles.fieldInputText, !newEnd && styles.fieldInputPlaceholder]}>
+                {newEnd ? newEnd.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Select end date"}
+              </Text>
+              <Ionicons name="calendar-outline" size={16} color={Colors.textTertiary} />
+            </TouchableOpacity>
+            {showEndPicker && (
+              <DateTimePicker
+                value={newEnd || new Date()}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(_event: any, date?: Date) => {
+                  setShowEndPicker(Platform.OS === "ios");
+                  if (date) setNewEnd(date);
+                }}
+                minimumDate={newStart || new Date()}
+              />
+            )}
           </View>
         </SafeAreaView>
       </Modal>
@@ -419,7 +474,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
     backgroundColor: Colors.background,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
+  fieldInputText: { fontSize: 15, color: Colors.text },
+  fieldInputPlaceholder: { color: Colors.textTertiary },
   userStrip: {
     flexDirection: "row",
     alignItems: "center",
@@ -441,4 +501,26 @@ const styles = StyleSheet.create({
   userStripAvatarText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   userStripName: { flex: 1, fontSize: 14, fontWeight: "600", color: Colors.text },
   userStripSignOut: { fontSize: 13, color: Colors.textTertiary },
+  userStripSkeleton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+    gap: 10,
+    backgroundColor: Colors.background,
+  },
+  userStripAvatarSkeleton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.surfaceAlt,
+  },
+  userStripNameSkeleton: {
+    flex: 1,
+    height: 14,
+    borderRadius: 6,
+    backgroundColor: Colors.surfaceAlt,
+  },
 });

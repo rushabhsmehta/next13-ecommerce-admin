@@ -6,6 +6,8 @@ import * as Updates from "expo-updates";
 import * as SecureStore from "expo-secure-store";
 import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ErrorBoundary } from "@/components/error/ErrorBoundary";
+import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { Colors } from "@/constants/theme";
 
 const tokenCache = {
@@ -68,39 +70,54 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
         <ClerkLoaded>
-          <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: Colors.background },
-            headerTintColor: Colors.text,
-            headerTitleStyle: { fontWeight: "700" },
-            contentStyle: { backgroundColor: Colors.background },
-            headerShadowVisible: false,
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="packages/[id]"
-            options={{
-              headerTitle: "",
-              headerTransparent: true,
-              headerTintColor: "#fff",
+          <ErrorBoundary>
+            <OfflineBanner />
+            <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: Colors.background },
+              headerTintColor: Colors.text,
+              headerTitleStyle: { fontWeight: "700" },
+              contentStyle: { backgroundColor: Colors.background },
+              headerShadowVisible: false,
             }}
-          />
-          <Stack.Screen
-            name="destinations/[id]"
-            options={{ headerTitle: "Destination" }}
-          />
-          <Stack.Screen
-            name="chat/[groupId]"
-            options={{ headerBackTitle: "Back" }}
-          />
-          <Stack.Screen
-            name="whatsapp/[phone]"
-            options={{ headerBackTitle: "Back" }}
-          />
-        </Stack>
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="packages/[id]"
+              options={{
+                headerTitle: "",
+                headerTransparent: true,
+                headerTintColor: "#fff",
+              }}
+            />
+            <Stack.Screen
+              name="destinations/[id]"
+              options={{ headerTitle: "Destination" }}
+            />
+            <Stack.Screen
+              name="chat/[groupId]"
+              options={{ headerBackTitle: "Back" }}
+            />
+            <Stack.Screen
+              name="whatsapp/[phone]"
+              options={{ headerBackTitle: "Back" }}
+            />
+            <Stack.Screen
+              name="profile/inquiries"
+              options={{ headerTitle: "My Enquiries", headerBackTitle: "Profile" }}
+            />
+            <Stack.Screen
+              name="profile/edit"
+              options={{ headerTitle: "Edit Profile", headerBackTitle: "Profile" }}
+            />
+            <Stack.Screen
+              name="packages/enquiry"
+              options={{ headerTitle: "Enquire Now", headerBackTitle: "Package" }}
+            />
+          </Stack>
+          </ErrorBoundary>
         </ClerkLoaded>
       </ClerkProvider>
     </SafeAreaProvider>

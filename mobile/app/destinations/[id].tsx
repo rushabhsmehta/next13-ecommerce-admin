@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,11 @@ import {
   StyleSheet,
   Image,
   Pressable,
-  ActivityIndicator,
+  Animated,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
+import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 
 export default function DestinationDetailScreen() {
@@ -19,16 +19,31 @@ export default function DestinationDetailScreen() {
   const [packages, setPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [destinationName, setDestinationName] = useState("");
+  const skeletonOpacity = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
-    if (id) {
-      loadPackages();
-    }
-  }, [id]);
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(skeletonOpacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(skeletonOpacity, {
+          toValue: 0.5,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [skeletonOpacity]);
 
   const loadPackages = async () => {
+    if (!id) return;
     try {
-      const data = await travelApi.getPackages({ locationId: id! });
+      const data = await travelApi.getPackages({ locationId: id });
       setPackages(data.packages || []);
       if (data.packages?.length > 0) {
         setDestinationName(data.packages[0].location?.label || "Destination");
@@ -40,12 +55,24 @@ export default function DestinationDetailScreen() {
     }
   };
 
+  useEffect(() => {
+    if (id) {
+      loadPackages();
+    }
+  }, [id]);
+
   const renderPackage = ({ item }: { item: any }) => (
     <Pressable
       style={styles.card}
       onPress={() => router.push(`/packages/${item.slug || item.id}`)}
+      accessibilityRole="button"
+      accessibilityLabel={`View package ${item.tourPackageName || "Tour Package"}`}
     >
-      <Image source={{ uri: item.images?.[0]?.url }} style={styles.cardImage} />
+      <Image
+        source={{ uri: item.images?.[0]?.url }}
+        style={styles.cardImage}
+        accessibilityLabel={item.images?.[0]?.url ? "Package image" : undefined}
+      />
       <View style={styles.cardBody}>
         <Text style={styles.name} numberOfLines={2}>
           {item.tourPackageName || "Tour Package"}
@@ -67,8 +94,23 @@ export default function DestinationDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={styles.container}>
+        <Animated.View
+          style={[styles.skeletonTitle, { opacity: skeletonOpacity }]}
+        />
+        {[1, 2, 3, 4].map((i) => (
+          <Animated.View
+            key={i}
+            style={[styles.skeletonCard, { opacity: skeletonOpacity }]}
+          >
+            <View style={styles.skeletonCardImage} />
+            <View style={styles.skeletonCardBody}>
+              <View style={[styles.skeletonLine, { width: "70%" }]} />
+              <View style={[styles.skeletonLine, { width: "45%", marginTop: 6 }]} />
+              <View style={[styles.skeletonLine, { width: "55%", marginTop: 6 }]} />
+            </View>
+          </Animated.View>
+        ))}
       </View>
     );
   }
@@ -128,4 +170,26 @@ const styles = StyleSheet.create({
   duration: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: 4 },
   price: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
   emptyText: { fontSize: FontSize.md, color: Colors.textSecondary },
+  skeletonTitle: {
+    height: 28,
+    width: 180,
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: BorderRadius.md,
+    marginHorizontal: Spacing.xl,
+    marginVertical: Spacing.lg,
+  },
+  skeletonCard: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.background,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexDirection: "row",
+    ...Shadows.light,
+  },
+  skeletonCardImage: { width: 120, height: 120, backgroundColor: Colors.surfaceAlt },
+  skeletonCardBody: { flex: 1, padding: Spacing.md, justifyContent: "center" },
+  skeletonLine: { height: 14, borderRadius: 6, backgroundColor: Colors.border },
 });

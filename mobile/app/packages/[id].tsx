@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Image,
   Pressable,
-  ActivityIndicator,
   Dimensions,
   Linking,
 } from "react-native";
@@ -15,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
+import { SkeletonPackageDetail } from "@/components/skeleton/SkeletonLoader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const WHATSAPP_NUMBER = "919724444701";
@@ -76,8 +76,8 @@ export default function PackageDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={styles.container}>
+        <SkeletonPackageDetail />
       </View>
     );
   }
@@ -108,12 +108,13 @@ export default function PackageDetailScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <View testID="package-detail-screen" style={styles.container}>
+      <ScrollView testID="package-detail-scroll" showsVerticalScrollIndicator={false}>
         {/* Image Gallery */}
         <View style={styles.imageContainer}>
           {images.length > 0 ? (
             <ScrollView
+              testID="package-image-gallery"
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -123,7 +124,12 @@ export default function PackageDetailScreen() {
               }}
             >
               {images.map((img: any, i: number) => (
-                <Image key={img.id || i} source={{ uri: img.url }} style={styles.heroImage} />
+                <Image
+                  key={img.id || i}
+                  source={{ uri: img.url }}
+                  style={styles.heroImage}
+                  accessibilityLabel="Package image"
+                />
               ))}
             </ScrollView>
           ) : (
@@ -144,7 +150,12 @@ export default function PackageDetailScreen() {
           />
 
           {/* Back button */}
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Ionicons name="chevron-back" size={20} color="#fff" />
           </Pressable>
 
@@ -162,7 +173,10 @@ export default function PackageDetailScreen() {
           {images.length > 1 && (
             <View style={styles.dotsContainer}>
               {images.map((_: any, i: number) => (
-                <View key={i} style={[styles.dot, i === activeImageIndex && styles.dotActive]} />
+                <View
+                  key={i}
+                  style={[styles.dot, i === activeImageIndex && styles.dotActive]}
+                />
               ))}
             </View>
           )}
@@ -187,14 +201,16 @@ export default function PackageDetailScreen() {
               pkg.location?.label ? { icon: "location", text: pkg.location.label } : null,
               pkg.numDaysNight ? { icon: "time", text: pkg.numDaysNight } : null,
               itineraries.length > 0 ? { icon: "calendar", text: `${itineraries.length} Days` } : null,
-            ].filter(Boolean).map((meta: any, i) => (
-              <View key={i} style={styles.metaItem}>
-                <View style={styles.metaIconWrap}>
-                  <Ionicons name={meta.icon} size={12} color={Colors.primary} />
+            ]
+              .filter(Boolean)
+              .map((meta: any, i) => (
+                <View key={i} style={styles.metaItem}>
+                  <View style={styles.metaIconWrap}>
+                    <Ionicons name={meta.icon} size={12} color={Colors.primary} />
+                  </View>
+                  <Text style={styles.metaText}>{meta.text}</Text>
                 </View>
-                <Text style={styles.metaText}>{meta.text}</Text>
-              </View>
-            ))}
+              ))}
           </View>
         </View>
 
@@ -203,15 +219,24 @@ export default function PackageDetailScreen() {
           {tabs.map((tab) => (
             <Pressable
               key={tab.key}
+              testID={`tab-${tab.key}`}
               style={[styles.tab, activeTab === tab.key && styles.tabActive]}
               onPress={() => setActiveTab(tab.key)}
+              accessibilityRole="tab"
+              accessibilityLabel={tab.label}
+              accessibilityState={{ selected: activeTab === tab.key }}
             >
               <Ionicons
                 name={tab.icon as any}
                 size={14}
                 color={activeTab === tab.key ? "#fff" : Colors.textTertiary}
               />
-              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.key && styles.tabTextActive,
+                ]}
+              >
                 {tab.label}
               </Text>
             </Pressable>
@@ -221,7 +246,7 @@ export default function PackageDetailScreen() {
         {/* Tab Content */}
         <View style={styles.tabContent}>
           {activeTab === "itinerary" && (
-            <View>
+            <View testID="itinerary-content">
               {itineraries.length === 0 ? (
                 <Text style={styles.emptyTab}>Itinerary coming soon.</Text>
               ) : (
@@ -235,12 +260,20 @@ export default function PackageDetailScreen() {
                   return (
                     <View key={day.id} style={styles.dayCard}>
                       {/* Day Header */}
-                      <Pressable style={styles.dayHeader} onPress={() => toggleDay(index)}>
+                      <Pressable
+                        style={styles.dayHeader}
+                        onPress={() => toggleDay(index)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Toggle day ${day.dayNumber || index + 1}`}
+                        accessibilityState={{ expanded: isExpanded }}
+                      >
                         <LinearGradient
                           colors={[Colors.gradient1, Colors.gradient2]}
                           style={styles.dayBadge}
                         >
-                          <Text style={styles.dayBadgeText}>D{day.dayNumber || index + 1}</Text>
+                          <Text style={styles.dayBadgeText}>
+                            D{day.dayNumber || index + 1}
+                          </Text>
                         </LinearGradient>
                         <View style={styles.dayTitleWrap}>
                           <Text style={styles.dayTitle}>
@@ -275,6 +308,7 @@ export default function PackageDetailScreen() {
                                   key={img.id}
                                   source={{ uri: img.url }}
                                   style={styles.dayImage}
+                                  accessibilityLabel="Day itinerary image"
                                 />
                               ))}
                             </ScrollView>
@@ -282,7 +316,9 @@ export default function PackageDetailScreen() {
 
                           {/* Description */}
                           {day.itineraryDescription && (
-                            <Text style={styles.dayDescription}>{day.itineraryDescription}</Text>
+                            <Text style={styles.dayDescription}>
+                              {day.itineraryDescription}
+                            </Text>
                           )}
 
                           {/* Hotel Section */}
@@ -304,6 +340,7 @@ export default function PackageDetailScreen() {
                                         key={img.id}
                                         source={{ uri: img.url }}
                                         style={styles.hotelImage}
+                                        accessibilityLabel="Hotel image"
                                       />
                                     ))}
                                   </ScrollView>
@@ -355,6 +392,7 @@ export default function PackageDetailScreen() {
                                             key={img.id}
                                             source={{ uri: img.url }}
                                             style={styles.activityImage}
+                                            accessibilityLabel="Activity image"
                                           />
                                         ))}
                                       </ScrollView>
@@ -378,7 +416,7 @@ export default function PackageDetailScreen() {
           )}
 
           {activeTab === "inclusions" && (
-            <View style={styles.inclusionsGrid}>
+            <View testID="inclusions-content" style={styles.inclusionsGrid}>
               {inclusions.length > 0 && (
                 <View style={styles.listSection}>
                   <View style={styles.listTitleRow}>
@@ -415,7 +453,7 @@ export default function PackageDetailScreen() {
           )}
 
           {activeTab === "policies" && (
-            <View>
+            <View testID="policies-content">
               {cancellationPolicy.length > 0 && (
                 <View style={styles.listSection}>
                   <View style={styles.listTitleRow}>
@@ -480,11 +518,23 @@ export default function PackageDetailScreen() {
           )}
         </View>
         <Pressable
+          testID="enquiry-cta"
           onPress={() => {
-            Linking.openURL(
-              `https://wa.me/${WHATSAPP_NUMBER}?text=Hi, I'm interested in: ${pkg.tourPackageName}`
-            );
+            const locationId = pkg.location?.id;
+            const locationLabel = pkg.location?.label ?? "";
+            const packageName = encodeURIComponent(pkg.tourPackageName ?? "");
+            if (locationId) {
+              router.push(
+                `/packages/enquiry?locationId=${locationId}&locationLabel=${encodeURIComponent(locationLabel)}&packageName=${packageName}`
+              );
+            } else {
+              Linking.openURL(
+                `https://wa.me/${WHATSAPP_NUMBER}?text=Hi, I'm interested in: ${pkg.tourPackageName}`
+              );
+            }
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Enquire now"
         >
           <LinearGradient
             colors={[Colors.gradient1, Colors.gradient2]}
@@ -492,7 +542,7 @@ export default function PackageDetailScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.ctaButton}
           >
-            <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+            <Ionicons name="send-outline" size={18} color="#fff" />
             <Text style={styles.ctaButtonText}>Enquire Now</Text>
           </LinearGradient>
         </Pressable>

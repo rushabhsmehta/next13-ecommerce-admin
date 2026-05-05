@@ -680,6 +680,7 @@ model TourPackage {
   packageVariants                  PackageVariant[]
   primaryRelatedPackages           TourPackageRelation[] @relation("PrimaryRelated")
   relatedToPackages                TourPackageRelation[] @relation("SecondaryRelated")
+  savedPackages                    SavedPackage[]
 
   @@index([locationId])
   @@index([websiteSortOrder])
@@ -1744,6 +1745,7 @@ model TravelAppUser {
   chatMemberships   ChatGroupMember[]
   chatMessages      ChatMessage[]
   pushSubscriptions PushSubscription[]
+  savedPackages     SavedPackage[]
 
   @@index([email])
   @@index([clerkUserId])
@@ -1884,4 +1886,18 @@ model AdminMobileToken {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model SavedPackage {
+  id              String        @id @default(uuid())
+  travelAppUserId String
+  tourPackageId   String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  travelAppUser   TravelAppUser @relation(fields: [travelAppUserId], references: [id], onDelete: Cascade)
+  tourPackage     TourPackage   @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+
+  @@unique([travelAppUserId, tourPackageId])
+  @@index([travelAppUserId])
+  @@index([tourPackageId])
 }

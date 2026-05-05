@@ -23,6 +23,8 @@ import {
   Shadows,
 } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
+import { useDebounce } from "@/hooks/useDebounce";
+import { SkeletonCard } from "@/components/skeleton/SkeletonLoader";
 
 const PHONE_NUMBER = "+919724444701";
 const WHATSAPP_NUMBER = "919724444701";
@@ -106,23 +108,6 @@ type Package = {
   images?: { url: string }[];
   _count?: { itineraries?: number };
 };
-
-// ─── Skeleton Card ────────────────────────────────────────────────────────────
-function SkeletonCard({ opacity }: { opacity: Animated.Value }) {
-  return (
-    <Animated.View style={[skelStyles.card, { opacity }]}>
-      <View style={skelStyles.image} />
-      <View style={skelStyles.body}>
-        <View style={[skelStyles.line, { width: "78%" }]} />
-        <View style={[skelStyles.line, { width: "52%", marginTop: 6 }]} />
-        <View style={skelStyles.footer}>
-          <View style={[skelStyles.pill, { width: 60 }]} />
-          <View style={[skelStyles.pill, { width: 80 }]} />
-        </View>
-      </View>
-    </Animated.View>
-  );
-}
 
 const skelStyles = StyleSheet.create({
   card: {
@@ -362,6 +347,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const debouncedSearch = useDebounce(searchText, 300);
+
   // Skeleton pulse animation
   const skeletonOpacity = useRef(new Animated.Value(0.5)).current;
   useEffect(() => {
@@ -427,7 +414,7 @@ export default function HomeScreen() {
           travelApi.getDestinations(),
           loadPackages({
             category: activeCategory,
-            search: appliedSearch,
+            search: debouncedSearch || appliedSearch || undefined,
             locationId: activeLocation,
             limit: 8,
           }),
@@ -451,7 +438,7 @@ export default function HomeScreen() {
         setRefreshing(false);
       }
     },
-    [activeCategory, activeLocation, appliedSearch, loadPackages]
+    [activeCategory, activeLocation, appliedSearch, debouncedSearch, loadPackages]
   );
 
   useEffect(() => {
@@ -463,7 +450,16 @@ export default function HomeScreen() {
     [activeLocation, destinations]
   );
 
-  const handleSearch = () => setAppliedSearch(searchText.trim());
+  const handleSearch = useCallback(() => {
+    const term = debouncedSearch.trim();
+    if (term !== appliedSearch) {
+      setAppliedSearch(term);
+    }
+  }, [debouncedSearch, appliedSearch]);
+
+  useEffect(() => {
+    handleSearch();
+  }, [handleSearch]);
 
   const handleClear = () => {
     setSearchText("");
@@ -514,7 +510,17 @@ export default function HomeScreen() {
 
         {/* Skeleton package cards */}
         {[1, 2, 3].map((i) => (
-          <SkeletonCard key={i} opacity={skeletonOpacity} />
+          <View key={i} style={skelStyles.card}>
+            <View style={skelStyles.image} />
+            <View style={skelStyles.body}>
+              <View style={[skelStyles.line, { width: "78%" }]} />
+              <View style={[skelStyles.line, { width: "52%", marginTop: 6 }]} />
+              <View style={skelStyles.footer}>
+                <View style={[skelStyles.pill, { width: 60 }]} />
+                <View style={[skelStyles.pill, { width: 80 }]} />
+              </View>
+            </View>
+          </View>
         ))}
 
         <View style={{ height: insets.bottom + 32 }} />
@@ -524,6 +530,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
+      testID="home-screen"
       style={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -556,21 +563,31 @@ export default function HomeScreen() {
           <View style={styles.searchBar}>
             <Ionicons name="search" size={16} color={Colors.textTertiary} />
             <TextInput
+              testID="search-input"
               style={styles.searchInput}
               placeholder="Search packages or destinations"
               placeholderTextColor={Colors.textTertiary}
               value={searchText}
               onChangeText={setSearchText}
-              onSubmitEditing={handleSearch}
               returnKeyType="search"
+              accessibilityLabel="Search packages or destinations"
+              accessibilityHint="Type to search for tour packages or destinations"
             />
             {searchText ? (
-              <Pressable onPress={() => setSearchText("")}>
+              <Pressable
+                onPress={() => setSearchText("")}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+              >
                 <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
               </Pressable>
             ) : null}
             <View style={styles.searchDivider} />
-            <Pressable onPress={handleSearch}>
+            <Pressable
+              onPress={handleSearch}
+              accessibilityRole="button"
+              accessibilityLabel="Submit search"
+            >
               <Text style={styles.searchButtonText}>Search</Text>
             </Pressable>
           </View>
@@ -757,6 +774,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <ScrollView
+          testID="category-chips"
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.catRow}
@@ -766,6 +784,7 @@ export default function HomeScreen() {
             return (
               <Pressable
                 key={cat}
+                testID={`category-chip-${cat}`}
                 onPress={() => setActiveCategory(cat)}
                 style={[styles.catChip, active && styles.catChipActive]}
               >
@@ -781,7 +800,7 @@ export default function HomeScreen() {
       {/* ── Active Filter Pill ── */}
       {(appliedSearch || activeCategory !== "all" || activeLocation) && (
         <View style={styles.filterRow}>
-          <View style={styles.filterPill}>
+          <View testID="filter-badge" style={styles.filterPill}>
             <Ionicons name="funnel" size={11} color={Colors.primary} />
             <Text style={styles.filterText} numberOfLines={1}>
               {[
@@ -817,28 +836,31 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {packages.length > 0 ? (
-          packages.map((pkg) => (
-            <PackageCard
-              key={pkg.id}
-              pkg={pkg}
-              onPress={() => router.push(`/packages/${pkg.slug || pkg.id}`)}
-            />
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <LinearGradient
-              colors={[Colors.gradient1, Colors.gradient2]}
-              style={styles.emptyIcon}
-            >
-              <Ionicons name="search-outline" size={28} color="#fff" />
-            </LinearGradient>
-            <Text style={styles.emptyTitle}>No packages found</Text>
-            <Text style={styles.emptySubtitle}>
-              Try a different search or clear the filters.
-            </Text>
-          </View>
-        )}
+        <View testID="package-list">
+          {packages.length > 0 ? (
+            packages.map((pkg, index) => (
+              <View key={pkg.id} testID={`package-card-${index}`}>
+                <PackageCard
+                  pkg={pkg}
+                  onPress={() => router.push(`/packages/${pkg.slug || pkg.id}`)}
+                />
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <LinearGradient
+                colors={[Colors.gradient1, Colors.gradient2]}
+                style={styles.emptyIcon}
+              >
+                <Ionicons name="search-outline" size={28} color="#fff" />
+              </LinearGradient>
+              <Text style={styles.emptyTitle}>No packages found</Text>
+              <Text style={styles.emptySubtitle}>
+                Try a different search or clear the filters.
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* ── CTA ── */}

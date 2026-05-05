@@ -1,55 +1,57 @@
 import { useEffect, useState, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
-import * as Network from "expo-network";
-import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { Colors, FontSize, Spacing } from "@/constants/theme";
+
+async function checkConnectivity(): Promise<boolean> {
+  try {
+    const res = await fetch("https://www.google.com/generate_204", {
+      method: "HEAD",
+      cache: "no-cache",
+    });
+    return res.status === 204 || res.ok;
+  } catch {
+    return false;
+  }
+}
 
 export function OfflineBanner() {
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    let mounted = true;
-    let checkInterval: ReturnType<typeof setInterval> | null = null;
+    mountedRef.current = true;
 
-    async function checkNetwork() {
-      try {
-        const state = await Network.getNetworkStateAsync();
-        if (!mounted) return;
-        const connected = state.isConnected ?? false;
-        setIsConnected(connected);
-
-        if (!connected && !isVisible) {
-          setIsVisible(true);
-          Animated.timing(opacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }).start();
-        } else if (connected && isVisible) {
-          Animated.timing(opacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            if (mounted) setIsVisible(false);
-          });
-        }
-      } catch {
-        // Network check failed, assume connected
-        setIsConnected(true);
-      }
+    function show() {
+      if (!mountedRef.current) return;
+      setIsVisible(true);
+      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     }
 
-    checkNetwork();
-    checkInterval = setInterval(checkNetwork, 5000);
+    function hide() {
+      Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        if (mountedRef.current) setIsVisible(false);
+      });
+    }
+
+    let wasOffline = false;
+
+    async function poll() {
+      const connected = await checkConnectivity();
+      if (!mountedRef.current) return;
+      if (!connected && !wasOffline) { wasOffline = true; show(); }
+      else if (connected && wasOffline) { wasOffline = false; hide(); }
+    }
+
+    poll();
+    const interval = setInterval(poll, 8000);
 
     return () => {
-      mounted = false;
-      if (checkInterval) clearInterval(checkInterval);
+      mountedRef.current = false;
+      clearInterval(interval);
     };
-  }, [isVisible, opacity]);
+  }, [opacity]);
 
   if (!isVisible) return null;
 

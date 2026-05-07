@@ -1,5 +1,14 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Critical Database Safety Rules
+
+- **NEVER** drop the production database, drop tables, or run destructive Prisma commands (`prisma db push --force-reset`, `prisma migrate reset`, `prisma db execute` with DROP)
+- Safe Prisma commands: `prisma format`, `prisma generate`, `prisma migrate dev` (creates a migration; never apply against prod without confirmation)
+- Schema changes require migrations — confirm with the user and explain the impact before running them
+- Test destructive operations only on local/dev DBs
+
 ## Project Overview
 
 Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer for managing tour packages, customer inquiries, hotel bookings, and financial transactions. Built on Next.js App Router.
@@ -205,6 +214,20 @@ Key models and relationships for the accounting system:
 - **Credit notes** (customer side) are tracked via `SaleReturn` fields: `creditNoteAmount`, `creditNoteNumber`, `creditType`. Managed through `sale-returns/credit-notes/` dashboard route and `credit-notes/` API.
 - **Supplier credits** (supplier side) are tracked via `PurchaseReturn` fields: `supplierCreditType`, `supplierCreditExpiry`. Managed through `purchase-returns/supplier-credits/` dashboard route and `supplier-credits/` API.
 
+### Tour Package Query Variants
+
+`TourPackageQuery` supports multiple priced variants per query, persisted as JSON columns:
+
+- `variantRoomAllocations` — `{ [variantId]: { [itineraryId]: [{ roomTypeId, occupancyTypeId, mealPlanId, quantity, guestNames?, voucherNumber? }] } }`
+- `variantTransportDetails` — vehicle type / quantity / description per variant per day
+- `variantPricingData` — `{ [variantId]: { totalCost, basePrice, appliedMarkup, breakdown: { accommodation, transport }, itineraryBreakdown[], calculatedAt } }`
+
+Pricing is computed by `src/lib/pricing-calculator.ts` and exposed via `POST /api/pricing/calculate-variant`. The variant tab UI lives in `src/components/tour-package-query/QueryVariantsTab.tsx` with three calculation methods (Manual, Auto from hotel+transport pricing, Use tour-package pricing).
+
+### Transaction ledgers
+
+`src/lib/transaction-service.ts#calculateRunningBalance(transactions, openingBalance)` produces the running-balance shape used across bank, cash, customer, and supplier ledger views. Standardized types live in `types/index.ts` (`TransactionBase`, `FormattedTransaction`, `PurchaseFormProps`, etc.).
+
 ## Path Aliases
 
 `@/*` maps to `./src/*` (configured in tsconfig.json).
@@ -240,6 +263,10 @@ Dashboard pages follow a two-component pattern:
 
 ### API Route Pattern
 
+Two patterns coexist; prefer the newer `handleApi` wrapper for new routes.
+
+**Legacy pattern (~200 existing routes):** plain try/catch, log with bracketed prefix, return `NextResponse`.
+
 ```tsx
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
@@ -250,15 +277,34 @@ export async function POST(req: Request) {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
     const body = await req.json();
-    // Validate, then create/update
-    const result = await prismadb.model.create({ data: { ... } });
+    const result = await prismadb.model.create({ data: { /* ... */ } });
     return NextResponse.json(result);
   } catch (error) {
-    console.log("[ROUTE_NAME_METHOD]", error);
+    console.log("[CUSTOMERS_POST]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }
 ```
+
+**Newer pattern (`src/lib/api-response.ts`):** `handleApi()` auto-handles ZodError → 422, `FORBIDDEN`/`NOT_FOUND` codes thrown from helpers (e.g. `requireFinanceOrAdmin`), and unhandled errors → 500. Use `jsonError(message, status, code?, details?)` for explicit error responses.
+
+```tsx
+import { handleApi, jsonError } from "@/lib/api-response";
+
+export const dynamic = "force-dynamic"; // required for routes returning mutable data
+
+export async function POST(req: Request) {
+  return handleApi(async () => {
+    const body = await req.json();
+    // ... validation, auth checks (throw FORBIDDEN/NOT_FOUND or ZodError)
+    const result = await prismadb.model.create({ data: body });
+    return NextResponse.json(result);
+  });
+}
+```
+
+- Add `export const dynamic = "force-dynamic"` to any route that reads/writes mutable data so Next.js doesn't statically cache it.
+- Prefer Prisma `select: { ... }` over `include` to avoid over-fetching.
 
 ### Form Pattern
 
@@ -278,14 +324,45 @@ API routes log errors with a bracketed prefix: `console.log("[CUSTOMERS_POST]", 
 - Use `formatSafeDate()` from `@/lib/utils` for timezone-safe date display
 - Use `dateToUtc()` from `@/lib/timezone-utils` when storing dates to DB
 
-## Authorization
+### Timezone Handling (Critical)
 
-Roles are stored in `OrganizationMember` model: `VIEWER`, `OPERATIONS`, `FINANCE`, `ADMIN`, `OWNER` (ordered by privilege).
+Date-only fields (`startDate`, `endDate`, `journeyDate`) previously shifted across timezones. Always go through `src/lib/timezone-utils.ts`:
 
-Key helpers in `src/lib/authz.ts`:
+- `dateToUtc(date)` — convert local date → UTC for DB storage (preserves date components, no day-shift)
+- `utcToLocal(utcDate)` — DB UTC → local for display
+- `normalizeApiDate(date)` — normalize incoming API dates (date-only stored as UTC midnight)
+- `formatLocalDate(date, format)` — display formatting with TZ awareness
+- `createDatePickerValue(value)` — feed react-day-picker without TZ shift
+
+### Debug Logging
+
+`src/components/DebugLogPanel.tsx` (mounted in root layout) intercepts `console.log/warn/error` and shows them in a dev-only panel. Prefix logs with emojis so the panel can categorize them:
+
+```ts
+console.log("🔍 [API] Fetching tour packages:", { locationId });
+console.error("❌ [DB] Transaction failed:", error);
+```
+
+## Authorization & Multi-Domain Architecture
+
+### Roles
+
+Roles are stored in `OrganizationMember`: `VIEWER`, `OPERATIONS`, `FINANCE`, `ADMIN`, `OWNER` (ordered by privilege).
+
+Helpers in `src/lib/authz.ts`:
 - `getUserOrgRole(userId, organizationId?)` — returns user's role
 - `roleAtLeast(role, minimum)` — checks if role meets minimum level
-- `requireFinanceOrAdmin(userId, organizationId?)` — throws `FORBIDDEN` if not FINANCE/ADMIN/OWNER
+- `requireFinanceOrAdmin(userId, organizationId?)` — throws `FORBIDDEN` (caught by `handleApi`) if not FINANCE/ADMIN/OWNER
+
+### Domain-based access (`src/middleware.ts`)
+
+The same Next.js app serves three audiences distinguished by hostname:
+
+- **Admin** (main domain) — full nav (`NAV_ITEMS` in `src/components/app-sidebar.tsx`)
+- **Associate** (`associate.aagamholidays.com`) — limited, mostly read-only nav (`ASSOCIATE_NAV_ITEMS`). Use `isCurrentUserAssociate()` / `getCurrentAssociatePartner()` from `src/lib/associate-utils.ts` to gate mutations. Associate matches Clerk user email against `AssociatePartner.gmail` or `email`.
+- **Ops** (`ops.aagamholidays.com`) — operational staff workflows under `src/app/ops/`
+
+Middleware auth is bypassed for: `/api/whatsapp/webhook`, requests with `HeadlessChrome` user-agent (Puppeteer PDF generation), and other public routes. Test permission/navigation changes on both admin and associate domains.
 
 ## MCP Tools (travel-admin)
 
@@ -419,6 +496,26 @@ Required variables (see `.env` for full list):
 - TypeScript strict mode enabled
 - No Prettier config; formatting relies on ESLint
 - `tsconfig.json` excludes: `node_modules`, `mobile`, `scripts`, `prisma`, `.next`
+
+## PDF Generation & Vercel
+
+- Puppeteer pipeline lives in `src/utils/generatepdf.ts`. In production it uses `@sparticuz/chromium-min` for serverless. Use `inlineImagesInHtml()` to convert remote header/footer images to data URIs (Puppeteer can't load remote images in margin templates) and `createProfessionalFooter(companyInfo)` for branded footers.
+- Middleware lets requests with `HeadlessChrome` user-agent through without Clerk auth so internal PDF jobs can hit dashboard pages.
+- `vercel.json` sets `maxDuration: 30` for `src/app/api/**` and `PRISMA_CLIENT_ENGINE_TYPE=binary` at build time. Multi-line env vars (e.g. `WHATSAPP_FLOW_PRIVATE_KEY`) must include the full `-----BEGIN/END-----` markers in Vercel.
+
+## Mobile App (Expo)
+
+A separate Expo app in `mobile/` (excluded from the root TypeScript project). Stack: Expo SDK 55, RN 0.83, Expo Router, `@clerk/clerk-expo`, Jest + Testing Library (unit), Detox (E2E Android), `expo-secure-store` (auth), `expo-sqlite` (offline cache, 5-min TTL).
+
+```bash
+cd mobile
+npm start            # Expo dev server
+npm test             # Unit tests
+npm run e2e:build    # Build Detox APK (debug)
+npm run e2e:test     # Run Detox E2E
+```
+
+Mobile conventions: every interactive element needs a `testID`; `accessibilityRole`/`accessibilityLabel`/`accessibilityHint` are required; API calls go through `lib/api.ts` (built-in retry/timeout); chat polling is adaptive (3s active / 10s inactive / 30s background).
 
 ## Git Workflow
 

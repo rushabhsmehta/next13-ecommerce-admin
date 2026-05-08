@@ -17,9 +17,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@clerk/clerk-expo";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { WHATSAPP_BUSINESS_NUMBER } from "@/constants/whatsapp";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
-const WHATSAPP_NUMBER = "919724444701";
+const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
 
 export default function EnquiryScreen() {
   const router = useRouter();

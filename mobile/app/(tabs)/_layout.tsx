@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUnread } from "@/hooks/useUnread";
+import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 
 export { UnreadProvider, useUnread } from "@/hooks/useUnread";
 
@@ -23,6 +24,23 @@ function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
       )}
       {total > 0 && (
         <View style={styles.badge}>
+          <Text style={styles.badgeText}>{total > 99 ? "99+" : total}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function WhatsAppTabIcon({ color, focused }: { color: string; focused: boolean }) {
+  const { total } = useWhatsAppUnread();
+  return (
+    <View
+      testID="tab-whatsapp-icon"
+      style={[styles.iconContainer, focused ? styles.activeIconWrap : undefined]}
+    >
+      <Ionicons name="logo-whatsapp" size={22} color={focused ? "#25D366" : color} />
+      {total > 0 && (
+        <View style={[styles.badge, styles.whatsappBadge]}>
           <Text style={styles.badgeText}>{total > 99 ? "99+" : total}</Text>
         </View>
       )}
@@ -104,13 +122,7 @@ function TabLayoutInner() {
           href: isAdmin ? undefined : null,
           tabBarAccessibilityLabel: "tab-whatsapp",
           tabBarIcon: ({ color, focused }) => (
-            <View testID="tab-whatsapp-icon" style={focused ? styles.activeIconWrap : undefined}>
-              <Ionicons
-                name="logo-whatsapp"
-                size={22}
-                color={focused ? "#25D366" : color}
-              />
-            </View>
+            <WhatsAppTabIcon color={color} focused={focused} />
           ),
         }}
       />
@@ -161,6 +173,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,
+  },
+  whatsappBadge: {
+    backgroundColor: "#25D366",
   },
   badgeText: {
     fontSize: 10,

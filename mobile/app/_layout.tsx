@@ -16,6 +16,7 @@ import {
   unregisterChatPushToken,
 } from "@/lib/chat/push";
 import { UnreadProvider, useUnread } from "@/hooks/useUnread";
+import { WhatsAppUnreadProvider } from "@/hooks/useWhatsAppUnread";
 
 const tokenCache = {
   async getToken(key: string) {
@@ -130,6 +131,7 @@ export default function RootLayout() {
       <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
         <ClerkLoaded>
           <UnreadProvider>
+            <WhatsAppUnreadProvider>
             <ErrorBoundary>
               <ChatPushController />
               <OfflineBanner />
@@ -179,6 +181,7 @@ export default function RootLayout() {
             />
           </Stack>
             </ErrorBoundary>
+            </WhatsAppUnreadProvider>
           </UnreadProvider>
         </ClerkLoaded>
       </ClerkProvider>

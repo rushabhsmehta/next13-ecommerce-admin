@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,17 +11,24 @@ import {
   ActivityIndicator,
   Modal,
   Keyboard,
+  AppState,
+  AppStateStatus,
+  Alert,
 } from "react-native";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
+import { ApiError, withAuth } from "@/lib/api";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 const WA_SENT_BG = "#DCF8C6";
 const WA_RECV_BG = "#FFFFFF";
 const WA_SCREEN_BG = "#ECE5DD";
+
+const POLL_ACTIVE_MS = 5_000;
+const POLL_BACKGROUND_MS = 30_000;
+const MESSAGE_LIMIT = 100;
 
 interface WaMessage {
   id: string;
@@ -35,11 +42,42 @@ interface WaMessage {
   whatsappCustomer?: { firstName: string | null; lastName: string | null } | null;
 }
 
+interface WindowInfo {
+  canMessage: boolean;
+  hoursRemaining: number | null;
+  expiresAt: string | null;
+}
+
+interface CustomerSummary {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  tags: string[];
+  notes: string | null;
+  isOptedIn: boolean;
+}
+
+interface MessagesResponse {
+  messages: WaMessage[];
+  nextCursor: string | null;
+  window: WindowInfo;
+  customer: CustomerSummary | null;
+}
+
 interface Template {
   id: string;
   name: string;
   language: string;
   components?: { type: string; text?: string }[];
+}
+
+interface TemplatesResponse {
+  items: Template[];
+  fetchedAt: number;
+  notModified: boolean;
 }
 
 function formatTime(dateStr: string): string {
@@ -60,7 +98,10 @@ function WaBubble({ msg }: { msg: WaMessage }) {
   const text = msg.message ?? (msg.mediaType ? `📎 ${msg.mediaType}` : "");
 
   return (
-    <View style={[styles.bubbleRow, isSent ? styles.bubbleRowRight : styles.bubbleRowLeft]}>
+    <View
+      style={[styles.bubbleRow, isSent ? styles.bubbleRowRight : styles.bubbleRowLeft]}
+      testID={`wa-msg-${msg.id}`}
+    >
       <View style={[styles.bubble, isSent ? styles.bubbleSent : styles.bubbleRecv]}>
         <Text style={styles.bubbleText}>{text}</Text>
         <View style={styles.bubbleMeta}>
@@ -83,79 +124,118 @@ export default function WhatsAppConversation() {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [windowOpen, setWindowOpen] = useState(true);
+  const [windowInfo, setWindowInfo] = useState<WindowInfo>({
+    canMessage: true,
+    hoursRemaining: null,
+    expiresAt: null,
+  });
+  const [customer, setCustomer] = useState<CustomerSummary | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [contactName, setContactName] = useState<string | null>(null);
+
   const flatListRef = useRef<FlatList>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFocused = useRef(false);
+  const appState = useRef<AppStateStatus>(AppState.currentState);
+  const errorShown = useRef(false);
+  const api = useRef(withAuth(getToken)).current;
 
-  async function fetchMessages(silent = false) {
-    try {
-      const token = await getToken();
-      const res = await fetch(
-        `${API_BASE_URL}/api/mobile/whatsapp/messages?phone=${encodeURIComponent(phone)}&limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) return;
-      const data = await res.json();
-      const msgs: WaMessage[] = data.messages ?? [];
-      setMessages(msgs);
-      if (!contactName && msgs.length > 0) {
-        const first = msgs.find((m) => m.whatsappCustomer);
-        if (first?.whatsappCustomer) {
-          const { firstName, lastName } = first.whatsappCustomer;
-          const name = [firstName, lastName].filter(Boolean).join(" ");
-          if (name) setContactName(name);
+  const fetchMessages = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      try {
+        const data = await api<MessagesResponse>(
+          `/api/mobile/whatsapp/messages?phone=${encodeURIComponent(phone)}&limit=${MESSAGE_LIMIT}`,
+        );
+        setMessages(data.messages ?? []);
+        setWindowInfo(
+          data.window ?? { canMessage: true, hoursRemaining: null, expiresAt: null },
+        );
+        if (data.customer) setCustomer(data.customer);
+        errorShown.current = false;
+      } catch (error) {
+        if (!silent && !errorShown.current) {
+          errorShown.current = true;
+          const message =
+            error instanceof ApiError ? error.message : "Could not load messages.";
+          Alert.alert("WhatsApp", message);
         }
+      } finally {
+        if (!silent) setLoading(false);
       }
-      if (!silent) setLoading(false);
+    },
+    [api, phone],
+  );
+
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const data = await api<TemplatesResponse>("/api/mobile/whatsapp/templates");
+      setTemplates(data.items ?? []);
     } catch {
-      if (!silent) setLoading(false);
+      /* templates are optional; surface error only when user taps the button. */
     }
-  }
+  }, [api]);
 
-  async function checkWindow() {
-    try {
-      const token = await getToken();
-      const res = await fetch(
-        `${API_BASE_URL}/api/mobile/whatsapp/window?phone=${encodeURIComponent(phone)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setWindowOpen(data.isOpen ?? true);
-      }
-    } catch {}
-  }
-
-  async function fetchTemplates() {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_BASE_URL}/api/mobile/whatsapp/templates`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setTemplates(data.templates ?? data ?? []);
-      }
-    } catch {}
-  }
-
-  useEffect(() => {
-    fetchMessages();
-    checkWindow();
-    fetchTemplates();
-    pollRef.current = setInterval(() => fetchMessages(true), 5000);
-    return () => {
+  const startPolling = useCallback(
+    (intervalMs: number) => {
       if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(() => {
+        if (appState.current === "active" && isFocused.current) {
+          fetchMessages({ silent: true });
+        }
+      }, intervalMs);
+    },
+    [fetchMessages],
+  );
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  // Templates are fetched once on mount; the server caches them for 60s.
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  // AppState transitions adjust polling cadence.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      const prev = appState.current;
+      appState.current = next;
+      if (prev !== "active" && next === "active" && isFocused.current) {
+        fetchMessages({ silent: true });
+        startPolling(POLL_ACTIVE_MS);
+      } else if (next !== "active") {
+        startPolling(POLL_BACKGROUND_MS);
+      }
+    });
+    return () => {
+      sub.remove();
     };
-  }, [phone]);
+  }, [fetchMessages, startPolling]);
+
+  // Initial load + adaptive polling tied to screen focus.
+  useFocusEffect(
+    useCallback(() => {
+      isFocused.current = true;
+      fetchMessages();
+      startPolling(POLL_ACTIVE_MS);
+      return () => {
+        isFocused.current = false;
+        stopPolling();
+      };
+    }, [fetchMessages, startPolling, stopPolling]),
+  );
 
   useEffect(() => {
-    const title = contactName || phone;
+    const title =
+      customer?.fullName ||
+      [customer?.firstName, customer?.lastName].filter(Boolean).join(" ") ||
+      phone;
     navigation.setOptions({ headerTitle: title });
-  }, [contactName, phone]);
+  }, [customer, navigation, phone]);
 
   async function sendText() {
     const trimmed = text.trim();
@@ -164,45 +244,55 @@ export default function WhatsAppConversation() {
     setText("");
     Keyboard.dismiss();
     try {
-      const token = await getToken();
-      await fetch(`${API_BASE_URL}/api/mobile/whatsapp/send`, {
+      await api("/api/mobile/whatsapp/send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type: "text", phone, message: trimmed }),
+        body: { type: "text", phone, message: trimmed },
       });
-      fetchMessages(true);
-    } catch {}
-    setSending(false);
+      fetchMessages({ silent: true });
+    } catch (error) {
+      setText(trimmed);
+      const message =
+        error instanceof ApiError ? error.message : "Could not send message.";
+      Alert.alert("Send failed", message);
+    } finally {
+      setSending(false);
+    }
   }
 
   async function sendTemplate(templateName: string) {
     setShowTemplates(false);
     setSending(true);
     try {
-      const token = await getToken();
-      await fetch(`${API_BASE_URL}/api/mobile/whatsapp/send`, {
+      await api("/api/mobile/whatsapp/send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ type: "template", phone, templateName }),
+        body: { type: "template", phone, templateName },
       });
-      fetchMessages(true);
-    } catch {}
-    setSending(false);
+      fetchMessages({ silent: true });
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? error.message : "Could not send template.";
+      Alert.alert("Send failed", message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function openTemplates() {
+    if (templates.length === 0) {
+      fetchTemplates();
+    }
+    setShowTemplates(true);
   }
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={styles.center} testID="wa-thread-loading">
         <ActivityIndicator size="large" color="#25D366" />
       </View>
     );
   }
+
+  const windowOpen = windowInfo.canMessage;
 
   return (
     <KeyboardAvoidingView
@@ -214,7 +304,9 @@ export default function WhatsAppConversation() {
         ref={flatListRef}
         data={messages}
         keyExtractor={(m) => m.id}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({ animated: false })
+        }
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         contentContainerStyle={styles.messageList}
         ListEmptyComponent={
@@ -226,7 +318,7 @@ export default function WhatsAppConversation() {
       />
 
       {!windowOpen && (
-        <View style={styles.windowWarning}>
+        <View style={styles.windowWarning} testID="wa-window-warning">
           <Ionicons name="time-outline" size={14} color="#856404" />
           <Text style={styles.windowWarningText}>
             24-hour window closed. Use a template to restart the conversation.
@@ -237,7 +329,9 @@ export default function WhatsAppConversation() {
       <View style={[styles.inputBar, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
           style={styles.templateBtn}
-          onPress={() => setShowTemplates(true)}
+          onPress={openTemplates}
+          accessibilityLabel="Open template picker"
+          testID="wa-open-templates"
         >
           <Ionicons name="list-outline" size={22} color={Colors.textTertiary} />
         </TouchableOpacity>
@@ -249,14 +343,25 @@ export default function WhatsAppConversation() {
           placeholderTextColor={Colors.textTertiary}
           multiline
           maxLength={4096}
-          editable={windowOpen}
+          editable={windowOpen && !sending}
+          accessibilityLabel="Message input"
+          testID="wa-message-input"
         />
         <TouchableOpacity
-          style={[styles.sendBtn, (!text.trim() || sending || !windowOpen) && styles.sendBtnDisabled]}
+          style={[
+            styles.sendBtn,
+            (!text.trim() || sending || !windowOpen) && styles.sendBtnDisabled,
+          ]}
           onPress={sendText}
           disabled={!text.trim() || sending || !windowOpen}
+          accessibilityLabel="Send message"
+          testID="wa-send-btn"
         >
-          <Ionicons name="send" size={20} color="#fff" />
+          {sending ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Ionicons name="send" size={20} color="#fff" />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -264,7 +369,11 @@ export default function WhatsAppConversation() {
         <SafeAreaView style={styles.templateModal}>
           <View style={styles.templateHeader}>
             <Text style={styles.templateTitle}>Send a Template</Text>
-            <TouchableOpacity onPress={() => setShowTemplates(false)}>
+            <TouchableOpacity
+              onPress={() => setShowTemplates(false)}
+              accessibilityLabel="Close template picker"
+              testID="wa-close-templates"
+            >
               <Ionicons name="close" size={24} color={Colors.text} />
             </TouchableOpacity>
           </View>
@@ -281,10 +390,13 @@ export default function WhatsAppConversation() {
                   style={styles.templateItem}
                   onPress={() => sendTemplate(item.name)}
                   activeOpacity={0.7}
+                  testID={`wa-template-${item.name}`}
                 >
                   <Text style={styles.templateName}>{item.name}</Text>
                   {bodyComp?.text && (
-                    <Text style={styles.templateBody} numberOfLines={2}>{bodyComp.text}</Text>
+                    <Text style={styles.templateBody} numberOfLines={2}>
+                      {bodyComp.text}
+                    </Text>
                   )}
                   <Text style={styles.templateLang}>{item.language}</Text>
                 </TouchableOpacity>
@@ -326,7 +438,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 2,
   },
   bubbleText: { fontSize: 15, color: "#1A1A1A", lineHeight: 20 },
-  bubbleMeta: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4, marginTop: 2 },
+  bubbleMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
+    marginTop: 2,
+  },
   bubbleTime: { fontSize: 11, color: "#667781" },
   tick: { fontSize: 11, color: "#667781" },
   tickBlue: { fontSize: 11, color: "#53BDEB" },

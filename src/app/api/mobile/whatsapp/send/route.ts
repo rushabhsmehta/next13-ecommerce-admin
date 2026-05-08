@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import {
   sendWhatsAppMessage,
   sendWhatsAppTemplate,
-  checkWhatsAppMessagingWindow,
 } from "@/lib/whatsapp";
 import { validateClerkAdmin } from "@/app/api/mobile/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
@@ -51,24 +52,6 @@ export async function POST(req: Request) {
     return new NextResponse("Unknown message type", { status: 400 });
   } catch (error) {
     console.log("[MOBILE_WA_SEND]", error);
-    return new NextResponse("Internal error", { status: 500 });
-  }
-}
-
-export async function GET(req: Request) {
-  try {
-    const admin = await validateClerkAdmin(req);
-    if (!admin) return new NextResponse("Unauthorized", { status: 401 });
-
-    const { searchParams } = new URL(req.url);
-    const phone = searchParams.get("phone");
-    if (!phone) return new NextResponse("phone required", { status: 400 });
-
-    const to = phone.startsWith("+") ? phone : `+${phone}`;
-    const windowStatus = await checkWhatsAppMessagingWindow(to);
-    return NextResponse.json(windowStatus);
-  } catch (error) {
-    console.log("[MOBILE_WA_WINDOW_GET]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }

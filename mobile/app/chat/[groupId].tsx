@@ -10,18 +10,27 @@ import {
   Platform,
   ActivityIndicator,
   Keyboard,
+  Alert,
   AppState,
   AppStateStatus,
 } from "react-native";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import * as Location from "expo-location";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { chatCache, type CachedMessage } from "@/lib/chat/cache";
-import { chatOutbox, type OutboxEntry } from "@/lib/chat/outbox";
+import { chatOutbox, type OutboxEntry, type OutboxPayload } from "@/lib/chat/outbox";
+import { uploadChatAttachment, type UploadKind } from "@/lib/chat/upload";
 import { useUnread } from "@/hooks/useUnread";
+import { AttachmentSheet, type AttachmentKind } from "@/components/chat/AttachmentSheet";
+import { ImageBubble } from "@/components/chat/ImageBubble";
+import { FileBubble } from "@/components/chat/FileBubble";
+import { LocationBubble } from "@/components/chat/LocationBubble";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
@@ -55,13 +64,62 @@ function MessageBubble({
   showSender: boolean;
   onRetry?: (clientId: string) => void;
 }) {
-  const text =
-    msg.messageType !== "TEXT"
-      ? `📎 ${msg.messageType.charAt(0) + msg.messageType.slice(1).toLowerCase()}`
-      : (msg.content ?? "");
-
   const failed = msg.outboxStatus === "failed";
   const sending = msg.outboxStatus === "pending" || msg.outboxStatus === "sending";
+
+  // Choose body renderer based on message type. Image and location bubbles get
+  // their own visual treatment so we drop the standard padded text bubble.
+  let body: React.ReactNode;
+  let usesPlainBubble = true;
+
+  switch (msg.messageType) {
+    case "IMAGE":
+      usesPlainBubble = false;
+      body = <ImageBubble fileUrl={msg.fileUrl ?? null} uploading={sending} />;
+      break;
+    case "PDF":
+    case "FILE":
+      body = (
+        <FileBubble
+          fileUrl={msg.fileUrl ?? null}
+          fileName={msg.fileName ?? null}
+          fileSize={msg.fileSize ?? null}
+          isPdf={msg.messageType === "PDF"}
+          isMine={isMine}
+          uploading={sending}
+        />
+      );
+      break;
+    case "LOCATION":
+      body = (
+        <LocationBubble
+          latitude={msg.latitude ?? null}
+          longitude={msg.longitude ?? null}
+          isMine={isMine}
+        />
+      );
+      break;
+    case "TEXT":
+    default:
+      body = (
+        <Text style={[styles.bubbleText, isMine ? styles.bubbleTextMine : styles.bubbleTextOther]}>
+          {msg.content ?? ""}
+        </Text>
+      );
+      break;
+  }
+
+  const innerStyle = usesPlainBubble
+    ? [
+        styles.bubble,
+        isMine ? styles.bubbleMine : styles.bubbleOther,
+        failed && styles.bubbleFailed,
+        sending && styles.bubbleSending,
+      ]
+    : [
+        styles.bubbleAttachment,
+        failed && styles.bubbleFailed,
+      ];
 
   return (
     <View style={[styles.bubbleRow, isMine ? styles.bubbleRowRight : styles.bubbleRowLeft]}>
@@ -76,26 +134,24 @@ function MessageBubble({
         {!isMine && showSender && msg.sender && (
           <Text style={styles.senderName}>{msg.sender.name}</Text>
         )}
-        <View
-          style={[
-            styles.bubble,
-            isMine ? styles.bubbleMine : styles.bubbleOther,
-            failed && styles.bubbleFailed,
-            sending && styles.bubbleSending,
-          ]}
-        >
-          <Text style={[styles.bubbleText, isMine ? styles.bubbleTextMine : styles.bubbleTextOther]}>
-            {text}
-          </Text>
+        <View style={innerStyle}>
+          {body}
           <View style={styles.bubbleMeta}>
-            <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther]}>
+            <Text
+              style={[
+                styles.bubbleTime,
+                usesPlainBubble && isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther,
+              ]}
+            >
               {formatTime(msg.createdAt)}
             </Text>
             {sending && (
               <Ionicons
                 name="time-outline"
                 size={11}
-                color={isMine ? "rgba(255,255,255,0.7)" : Colors.textTertiary}
+                color={
+                  usesPlainBubble && isMine ? "rgba(255,255,255,0.7)" : Colors.textTertiary
+                }
                 style={styles.statusIcon}
               />
             )}
@@ -219,6 +275,11 @@ function mergeMessages(
       createdAt: new Date(o.createdAt).toISOString(),
       senderId: myUser?.id ?? "",
       sender: myUser ? { id: myUser.id, name: myUser.name, avatarUrl: myUser.avatarUrl } : null,
+      fileUrl: o.payload.fileUrl ?? null,
+      fileName: o.payload.fileName ?? null,
+      fileSize: o.payload.fileSize ?? null,
+      latitude: o.payload.latitude ?? null,
+      longitude: o.payload.longitude ?? null,
       outboxStatus: o.status === "sent" ? undefined : (o.status as DisplayMessage["outboxStatus"]),
     };
     byId.set(o.clientId, display);
@@ -245,6 +306,8 @@ export default function ChatRoom() {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "connecting" | "error">("connecting");
+  const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const isFocusedRef = useRef(true);
   const lastSeenIdRef = useRef<string | null>(null);
@@ -445,6 +508,105 @@ export default function ChatRoom() {
     void flushOutbox();
   }
 
+  async function enqueueAttachmentMessage(payload: OutboxPayload) {
+    if (!groupId) return;
+    await chatOutbox.enqueue(groupId, payload);
+    await refreshOutbox();
+    void flushOutbox();
+  }
+
+  async function uploadAndSend(uri: string, kind: UploadKind, fileName?: string, contentType?: string) {
+    if (!groupId) return;
+    setUploading(true);
+    try {
+      const result = await uploadChatAttachment({
+        groupId,
+        uri,
+        kind,
+        fileName,
+        contentType,
+        getToken,
+      });
+      const messageType =
+        kind === "image" ? "IMAGE" : kind === "pdf" ? "PDF" : "FILE";
+      await enqueueAttachmentMessage({
+        messageType,
+        fileUrl: result.fileUrl,
+        fileName: result.fileName,
+        fileSize: result.fileSize,
+      });
+    } catch (err: any) {
+      Alert.alert("Upload failed", err?.message ?? "Could not upload attachment.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleAttachmentPick(kind: AttachmentKind) {
+    if (!groupId) return;
+    if (kind === "camera") {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission needed", "Camera access is required to take a photo.");
+        return;
+      }
+      const res = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        allowsEditing: false,
+      });
+      if (res.canceled || !res.assets?.[0]) return;
+      const asset = res.assets[0];
+      await uploadAndSend(asset.uri, "image", asset.fileName ?? undefined, asset.mimeType ?? undefined);
+    } else if (kind === "photo") {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission needed", "Photo library access is required.");
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        allowsEditing: false,
+      });
+      if (res.canceled || !res.assets?.[0]) return;
+      const asset = res.assets[0];
+      await uploadAndSend(asset.uri, "image", asset.fileName ?? undefined, asset.mimeType ?? undefined);
+    } else if (kind === "file") {
+      const res = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (res.canceled || !res.assets?.[0]) return;
+      const asset = res.assets[0];
+      const isPdf = (asset.mimeType ?? "").includes("pdf") || (asset.name ?? "").toLowerCase().endsWith(".pdf");
+      await uploadAndSend(
+        asset.uri,
+        isPdf ? "pdf" : "file",
+        asset.name,
+        asset.mimeType ?? undefined
+      );
+    } else if (kind === "location") {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission needed", "Location access is required to share your location.");
+        return;
+      }
+      try {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        await enqueueAttachmentMessage({
+          messageType: "LOCATION",
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      } catch (err: any) {
+        Alert.alert("Location unavailable", err?.message ?? "Could not get your location.");
+      }
+    }
+  }
+
   const myId = travelUser?.id ?? "";
 
   if (loading) {
@@ -502,6 +664,19 @@ export default function ChatRoom() {
       />
 
       <View style={[styles.inputBar, { paddingBottom: insets.bottom + 10 }]}>
+        <TouchableOpacity
+          style={styles.attachBtn}
+          onPress={() => setAttachmentSheetOpen(true)}
+          disabled={uploading}
+          accessibilityRole="button"
+          accessibilityLabel="Add attachment"
+        >
+          {uploading ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : (
+            <Ionicons name="attach" size={22} color={Colors.primary} />
+          )}
+        </TouchableOpacity>
         <TextInput
           style={styles.input}
           value={text}
@@ -524,6 +699,12 @@ export default function ChatRoom() {
           <Ionicons name="send" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      <AttachmentSheet
+        visible={attachmentSheetOpen}
+        onClose={() => setAttachmentSheetOpen(false)}
+        onPick={handleAttachmentPick}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -595,6 +776,17 @@ const styles = StyleSheet.create({
   bubbleFailed: {
     borderWidth: 1,
     borderColor: Colors.error,
+    borderRadius: 16,
+  },
+  bubbleAttachment: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 8,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
   },
   bubbleText: { fontSize: 15, lineHeight: 20 },
   bubbleTextMine: { color: "#FFFFFF" },
@@ -628,6 +820,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
     backgroundColor: Colors.background,
+  },
+  attachBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   sendBtn: {
     width: 40,

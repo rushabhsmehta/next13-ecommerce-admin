@@ -81,19 +81,6 @@ interface MessagesResponse {
   customer: CustomerSummary | null;
 }
 
-interface Template {
-  id: string;
-  name: string;
-  language: string;
-  components?: { type: string; text?: string }[];
-}
-
-interface TemplatesResponse {
-  items: Template[];
-  fetchedAt: number;
-  notModified: boolean;
-}
-
 interface SearchHit {
   id: string;
   message: string | null;
@@ -143,9 +130,6 @@ export default function WhatsAppConversation() {
     expiresAt: null,
   });
   const [customer, setCustomer] = useState<CustomerSummary | null>(null);
-
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [showTemplates, setShowTemplates] = useState(false);
 
   const [showAttachment, setShowAttachment] = useState(false);
   const [actionTarget, setActionTarget] = useState<WaMessage | null>(null);
@@ -268,15 +252,6 @@ export default function WhatsAppConversation() {
     };
   }, [phone]);
 
-  const fetchTemplates = useCallback(async () => {
-    try {
-      const data = await api<TemplatesResponse>("/api/mobile/whatsapp/templates");
-      setTemplates(data.items ?? []);
-    } catch {
-      /* templates are optional; surface error only when user taps the button. */
-    }
-  }, [api]);
-
   const startPolling = useCallback(
     (intervalMs: number) => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -295,10 +270,6 @@ export default function WhatsAppConversation() {
       pollRef.current = null;
     }
   }, []);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next) => {
@@ -448,29 +419,10 @@ export default function WhatsAppConversation() {
     });
   }
 
-  async function sendTemplate(templateName: string) {
-    setShowTemplates(false);
-    setSending(true);
-    try {
-      await api("/api/mobile/whatsapp/send", {
-        method: "POST",
-        body: { type: "template", phone, templateName },
-      });
-      fetchMessages({ silent: true });
-    } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : "Could not send template.";
-      Alert.alert("Send failed", message);
-    } finally {
-      setSending(false);
-    }
-  }
-
   function openTemplates() {
-    if (templates.length === 0) {
-      fetchTemplates();
-    }
-    setShowTemplates(true);
+    router.push(
+      `/whatsapp/templates?phone=${encodeURIComponent(phone)}&return=chat`,
+    );
   }
 
   async function pickAndSendImage() {
@@ -777,47 +729,6 @@ export default function WhatsAppConversation() {
         </TouchableOpacity>
       </View>
 
-      <Modal visible={showTemplates} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.templateModal}>
-          <View style={styles.templateHeader}>
-            <Text style={styles.templateTitle}>Send a Template</Text>
-            <TouchableOpacity
-              onPress={() => setShowTemplates(false)}
-              accessibilityLabel="Close template picker"
-              testID="wa-close-templates"
-            >
-              <Ionicons name="close" size={24} color={Colors.text} />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={templates}
-            keyExtractor={(t) => t.id ?? t.name}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No templates available</Text>
-            }
-            renderItem={({ item }) => {
-              const bodyComp = item.components?.find((c) => c.type === "BODY");
-              return (
-                <TouchableOpacity
-                  style={styles.templateItem}
-                  onPress={() => sendTemplate(item.name)}
-                  activeOpacity={0.7}
-                  testID={`wa-template-${item.name}`}
-                >
-                  <Text style={styles.templateName}>{item.name}</Text>
-                  {bodyComp?.text && (
-                    <Text style={styles.templateBody} numberOfLines={2}>
-                      {bodyComp.text}
-                    </Text>
-                  )}
-                  <Text style={styles.templateLang}>{item.language}</Text>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </SafeAreaView>
-      </Modal>
-
       <AttachmentSheet
         visible={showAttachment}
         onClose={() => setShowAttachment(false)}
@@ -968,24 +879,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sendBtnDisabled: { opacity: 0.4 },
-  templateModal: { flex: 1, backgroundColor: Colors.background },
-  templateHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  templateTitle: { fontSize: 17, fontWeight: "700", color: Colors.text },
-  templateItem: {
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  templateName: { fontSize: 15, fontWeight: "700", color: Colors.text },
-  templateBody: { fontSize: 13, color: Colors.textTertiary, marginTop: 4 },
-  templateLang: { fontSize: 11, color: Colors.primary, marginTop: 4 },
   headerActions: { flexDirection: "row", gap: 4, paddingRight: 6 },
   headerBtn: {
     width: 38,

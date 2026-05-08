@@ -18,7 +18,10 @@ export async function POST(req: Request) {
       phone,
       message,
       templateName,
+      templateLanguage,
       parameters,
+      headerParams,
+      buttonParams,
       mediaUrl,
       mediaType,
       caption,
@@ -61,8 +64,14 @@ export async function POST(req: Request) {
       const result = await sendWhatsAppTemplate({
         to,
         templateName,
-        languageCode: "en_US",
-        bodyParams: parameters ?? [],
+        languageCode:
+          typeof templateLanguage === "string" && templateLanguage.length > 0
+            ? templateLanguage
+            : "en_US",
+        bodyParams: Array.isArray(parameters) ? parameters : [],
+        headerParams:
+          headerParams && typeof headerParams === "object" ? headerParams : undefined,
+        buttonParams: Array.isArray(buttonParams) ? buttonParams : undefined,
       });
       return NextResponse.json(result);
     }

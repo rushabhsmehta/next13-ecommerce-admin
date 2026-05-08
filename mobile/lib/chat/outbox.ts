@@ -16,6 +16,7 @@ export interface OutboxPayload {
   contactName?: string | null;
   contactPhone?: string | null;
   tourPackageId?: string | null;
+  replyToId?: string | null;
 }
 
 export interface OutboxEntry {

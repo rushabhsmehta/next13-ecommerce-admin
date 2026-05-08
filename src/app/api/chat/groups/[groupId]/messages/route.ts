@@ -52,15 +52,30 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
     const { searchParams } = new URL(req.url);
     const cursor = searchParams.get("cursor") || undefined;
     const limit = parseInt(searchParams.get("limit") || "50", 10);
+    // Whether to keep deleted rows (so the client can render a "deleted"
+    // placeholder in place of an in-memory bubble it already has).
+    const includeDeleted = searchParams.get("includeDeleted") === "1";
 
     const messages = await prismadb.chatMessage.findMany({
       where: {
         chatGroupId: params.groupId,
-        isDeleted: false,
+        ...(includeDeleted ? {} : { isDeleted: false }),
       },
       include: {
         sender: {
           select: { id: true, name: true, avatarUrl: true },
+        },
+        replyTo: {
+          select: {
+            id: true,
+            content: true,
+            messageType: true,
+            isDeleted: true,
+            sender: { select: { id: true, name: true } },
+          },
+        },
+        reads: {
+          select: { travelAppUserId: true, readAt: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -71,8 +86,19 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
     const hasMore = messages.length > limit;
     const items = hasMore ? messages.slice(0, -1) : messages;
 
+    // Lightweight reads summary so the wire format stays small.
+    const enriched = items.map((m) => {
+      const otherReaders = (m.reads ?? []).filter((r) => r.travelAppUserId !== m.senderId);
+      return {
+        ...m,
+        readsCount: otherReaders.length,
+        // Drop the full reads array from the payload; clients use readsCount only for now.
+        reads: undefined,
+      };
+    });
+
     return NextResponse.json({
-      messages: items.reverse(),
+      messages: enriched.reverse(),
       nextCursor: hasMore ? items[items.length - 1]?.id : null,
       hasMore,
     });
@@ -122,7 +148,20 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
       contactName,
       contactPhone,
       tourPackageId,
+      replyToId,
     } = body;
+
+    // If replyToId is provided, ensure it points at a non-deleted message in this group.
+    let validReplyToId: string | null = null;
+    if (typeof replyToId === "string" && replyToId.length > 0) {
+      const parent = await prismadb.chatMessage.findUnique({
+        where: { id: replyToId },
+        select: { id: true, chatGroupId: true, isDeleted: true },
+      });
+      if (parent && parent.chatGroupId === params.groupId && !parent.isDeleted) {
+        validReplyToId = parent.id;
+      }
+    }
 
     // Per-messageType validation
     switch (messageType) {
@@ -161,10 +200,20 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
         contactName,
         contactPhone,
         tourPackageId,
+        replyToId: validReplyToId,
       },
       include: {
         sender: {
           select: { id: true, name: true, avatarUrl: true },
+        },
+        replyTo: {
+          select: {
+            id: true,
+            content: true,
+            messageType: true,
+            isDeleted: true,
+            sender: { select: { id: true, name: true } },
+          },
         },
       },
     });

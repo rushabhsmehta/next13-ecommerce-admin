@@ -2,6 +2,14 @@ import { getDb } from "../cache";
 
 const MAX_CACHED_PER_GROUP = 200;
 
+export interface CachedReplyTo {
+  id: string;
+  content: string | null;
+  messageType: string;
+  isDeleted: boolean;
+  sender: { id: string; name: string } | null;
+}
+
 export interface CachedMessage {
   id: string;
   content: string | null;
@@ -14,6 +22,12 @@ export interface CachedMessage {
   fileSize?: number | null;
   latitude?: number | null;
   longitude?: number | null;
+  replyToId?: string | null;
+  replyTo?: CachedReplyTo | null;
+  editedAt?: string | null;
+  deletedAt?: string | null;
+  isDeleted?: boolean;
+  readsCount?: number;
 }
 
 export interface GroupState {

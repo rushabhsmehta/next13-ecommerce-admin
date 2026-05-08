@@ -1745,6 +1745,7 @@ model TravelAppUser {
   chatMemberships   ChatGroupMember[]
   chatMessages      ChatMessage[]
   pushSubscriptions PushSubscription[]
+  mobilePushTokens  MobilePushToken[]
   savedPackages     SavedPackage[]
 
   @@index([email])
@@ -1875,6 +1876,21 @@ model TodoItem {
   @@index([userId])
   @@index([userId, status])
   @@index([assignedToStaffId])
+}
+
+model MobilePushToken {
+  id              String        @id @default(uuid())
+  travelAppUserId String
+  expoPushToken   String        @db.VarChar(500)
+  platform        String?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  travelAppUser   TravelAppUser @relation(fields: [travelAppUserId], references: [id], onDelete: Cascade)
+
+  @@unique([travelAppUserId, expoPushToken])
+  @@index([travelAppUserId])
+  @@index([isActive])
 }
 
 model AdminMobileToken {

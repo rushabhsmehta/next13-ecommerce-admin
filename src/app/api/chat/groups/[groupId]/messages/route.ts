@@ -2,8 +2,25 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
+import { sendChatMessagePush } from "@/lib/expo-push";
 
 export const dynamic = "force-dynamic";
+
+function previewForPush(messageType: string, content: string | null | undefined): string {
+  if (messageType === "TEXT") {
+    const text = (content ?? "").trim();
+    return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+  }
+  switch (messageType) {
+    case "IMAGE": return "📷 Photo";
+    case "PDF": return "📄 PDF";
+    case "FILE": return "📎 File";
+    case "LOCATION": return "📍 Location";
+    case "CONTACT": return "👤 Contact";
+    case "TOUR_LINK": return "🧭 Tour link";
+    default: return "";
+  }
+}
 
 // GET /api/chat/groups/[groupId]/messages - Get messages for a chat group
 export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
@@ -153,10 +170,24 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
     });
 
     // Update group's updatedAt
-    await prismadb.chatGroup.update({
+    const group = await prismadb.chatGroup.update({
       where: { id: params.groupId },
       data: { updatedAt: new Date() },
+      select: { name: true },
     });
+
+    // Fire-and-forget push fan-out. Don't block the response on it.
+    void sendChatMessagePush({
+      groupId: params.groupId,
+      excludeTravelAppUserId: travelUser.id,
+      payload: {
+        groupId: params.groupId,
+        messageId: message.id,
+        senderName: message.sender?.name ?? travelUser.name,
+        groupName: group.name,
+        preview: previewForPush(messageType, content),
+      },
+    }).catch((err) => console.error("[CHAT_MESSAGE_PUSH] failed", err));
 
     return NextResponse.json(message, { status: 201 });
   });

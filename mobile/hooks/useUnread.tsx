@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { chatCache } from "@/lib/chat/cache";
 
 interface UnreadCounts {
   [groupId: string]: number;
@@ -17,25 +18,47 @@ const UnreadContext = createContext<UnreadContextValue | null>(null);
 export function UnreadProvider({ children }: { children: ReactNode }) {
   const [counts, setCounts] = useState<UnreadCounts>({});
 
+  // Hydrate from SQLite on mount so badges survive app restarts.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const states = await chatCache.getAllGroupStates();
+      if (cancelled) return;
+      const hydrated: UnreadCounts = {};
+      for (const s of states) {
+        if (s.unreadCount > 0) hydrated[s.groupId] = s.unreadCount;
+      }
+      setCounts(hydrated);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const total = Object.values(counts).reduce((sum, c) => sum + c, 0);
 
   const increment = useCallback((groupId: string, delta = 1) => {
-    setCounts((prev) => ({
-      ...prev,
-      [groupId]: (prev[groupId] ?? 0) + delta,
-    }));
+    setCounts((prev) => {
+      const next = (prev[groupId] ?? 0) + delta;
+      void chatCache.setUnread(groupId, next);
+      return { ...prev, [groupId]: next };
+    });
   }, []);
 
   const clear = useCallback((groupId: string) => {
     setCounts((prev) => {
       const next = { ...prev };
       delete next[groupId];
+      void chatCache.setUnread(groupId, 0);
       return next;
     });
   }, []);
 
   const set = useCallback((groupId: string, count: number) => {
-    setCounts((prev) => ({ ...prev, [groupId]: count }));
+    setCounts((prev) => {
+      void chatCache.setUnread(groupId, count);
+      return { ...prev, [groupId]: count };
+    });
   }, []);
 
   return (

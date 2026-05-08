@@ -19,16 +19,17 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { chatCache, type CachedMessage } from "@/lib/chat/cache";
+import { chatOutbox, type OutboxEntry } from "@/lib/chat/outbox";
+import { useUnread } from "@/hooks/useUnread";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
-interface Message {
-  id: string;
-  content: string | null;
-  messageType: string;
-  createdAt: string;
-  senderId: string;
-  sender: { id: string; name: string; avatarUrl: string | null } | null;
+type Message = CachedMessage;
+
+interface DisplayMessage extends Message {
+  outboxStatus?: "pending" | "sending" | "failed";
+  clientId?: string;
 }
 
 interface GroupInfo {
@@ -47,15 +48,20 @@ function MessageBubble({
   msg,
   isMine,
   showSender,
+  onRetry,
 }: {
-  msg: Message;
+  msg: DisplayMessage;
   isMine: boolean;
   showSender: boolean;
+  onRetry?: (clientId: string) => void;
 }) {
   const text =
     msg.messageType !== "TEXT"
       ? `📎 ${msg.messageType.charAt(0) + msg.messageType.slice(1).toLowerCase()}`
       : (msg.content ?? "");
+
+  const failed = msg.outboxStatus === "failed";
+  const sending = msg.outboxStatus === "pending" || msg.outboxStatus === "sending";
 
   return (
     <View style={[styles.bubbleRow, isMine ? styles.bubbleRowRight : styles.bubbleRowLeft]}>
@@ -70,14 +76,49 @@ function MessageBubble({
         {!isMine && showSender && msg.sender && (
           <Text style={styles.senderName}>{msg.sender.name}</Text>
         )}
-        <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
+        <View
+          style={[
+            styles.bubble,
+            isMine ? styles.bubbleMine : styles.bubbleOther,
+            failed && styles.bubbleFailed,
+            sending && styles.bubbleSending,
+          ]}
+        >
           <Text style={[styles.bubbleText, isMine ? styles.bubbleTextMine : styles.bubbleTextOther]}>
             {text}
           </Text>
-          <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther]}>
-            {formatTime(msg.createdAt)}
-          </Text>
+          <View style={styles.bubbleMeta}>
+            <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther]}>
+              {formatTime(msg.createdAt)}
+            </Text>
+            {sending && (
+              <Ionicons
+                name="time-outline"
+                size={11}
+                color={isMine ? "rgba(255,255,255,0.7)" : Colors.textTertiary}
+                style={styles.statusIcon}
+              />
+            )}
+            {failed && (
+              <Ionicons
+                name="alert-circle"
+                size={12}
+                color={Colors.error}
+                style={styles.statusIcon}
+              />
+            )}
+          </View>
         </View>
+        {failed && msg.clientId && onRetry && (
+          <TouchableOpacity
+            onPress={() => onRetry(msg.clientId!)}
+            style={styles.retryRow}
+            accessibilityRole="button"
+            accessibilityLabel="Retry sending message"
+          >
+            <Text style={styles.retryText}>Failed — tap to retry</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -85,9 +126,9 @@ function MessageBubble({
 
 // ─── Adaptive Polling Hook ──────────────────────────────────────────────────
 
-const POLL_INTERVAL_FOREGROUND = 3000;   // 3s when app is active and chat visible
-const POLL_INTERVAL_BACKGROUND = 30000;  // 30s when app is backgrounded
-const POLL_INTERVAL_INACTIVE = 10000;    // 10s when app is inactive (e.g., modal open)
+const POLL_INTERVAL_FOREGROUND = 3000;
+const POLL_INTERVAL_BACKGROUND = 30000;
+const POLL_INTERVAL_INACTIVE = 10000;
 
 type PollPhase = "active" | "inactive" | "background";
 
@@ -100,7 +141,6 @@ function useAdaptivePolling(
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseRef = useRef<PollPhase>("active");
 
-  // Track app state changes
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       setAppState(nextAppState);
@@ -108,7 +148,6 @@ function useAdaptivePolling(
     return () => subscription.remove();
   }, []);
 
-  // Determine polling phase based on app state + visibility
   const getPhase = useCallback((): PollPhase => {
     if (appState === "background") return "background";
     if (appState === "inactive") return "inactive";
@@ -124,21 +163,18 @@ function useAdaptivePolling(
     }
   }, []);
 
-  // Set up adaptive polling
   useEffect(() => {
     const phase = getPhase();
     phaseRef.current = phase;
     const interval = getInterval(phase);
 
-    // Clear existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    // Only poll if not in background (background polling handled by push notifications)
     if (phase !== "background") {
-      callback(); // immediate fetch
+      callback();
       intervalRef.current = setInterval(callback, interval);
     }
 
@@ -154,6 +190,45 @@ function useAdaptivePolling(
   return { isVisible, setIsVisible, phase: phaseRef.current };
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function mergeMessages(
+  prev: DisplayMessage[],
+  serverMessages: Message[],
+  outboxEntries: OutboxEntry[],
+  myUser: { id: string; name: string; avatarUrl: string | null } | null
+): DisplayMessage[] {
+  // Server messages dominate by id. Outbox entries appear as pending/failed bubbles
+  // for any clientId that doesn't yet have a server twin.
+  const byId = new Map<string, DisplayMessage>();
+  for (const m of serverMessages) byId.set(m.id, m);
+
+  // Carry over any prev outbox entries that aren't in serverMessages yet (handles
+  // the gap between a successful send and the next fetch returning the real row).
+  for (const m of prev) {
+    if (m.outboxStatus && !byId.has(m.id)) byId.set(m.id, m);
+  }
+
+  // Outbox entries -> display messages (clientId as id). Replaces any prev entry for the same clientId.
+  for (const o of outboxEntries) {
+    const display: DisplayMessage = {
+      id: o.clientId,
+      clientId: o.clientId,
+      content: o.payload.content ?? null,
+      messageType: o.payload.messageType ?? "TEXT",
+      createdAt: new Date(o.createdAt).toISOString(),
+      senderId: myUser?.id ?? "",
+      sender: myUser ? { id: myUser.id, name: myUser.name, avatarUrl: myUser.avatarUrl } : null,
+      outboxStatus: o.status === "sent" ? undefined : (o.status as DisplayMessage["outboxStatus"]),
+    };
+    byId.set(o.clientId, display);
+  }
+
+  return Array.from(byId.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+}
+
 // ─── Chat Room Component ────────────────────────────────────────────────────
 
 export default function ChatRoom() {
@@ -161,50 +236,92 @@ export default function ChatRoom() {
   const navigation = useNavigation();
   const { getToken } = useAuth();
   const { travelUser } = useCurrentUser();
+  const { clear: clearUnread } = useUnread();
   const insets = useSafeAreaInsets();
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [serverMessages, setServerMessages] = useState<Message[]>([]);
+  const [outbox, setOutbox] = useState<OutboxEntry[]>([]);
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "connecting" | "error">("connecting");
   const flatListRef = useRef<FlatList>(null);
-  const lastIdRef = useRef<string | null>(null);
-  const viewabilityRef = useRef(true); // Track if chat is viewable
+  const isFocusedRef = useRef(true);
+  const lastSeenIdRef = useRef<string | null>(null);
 
-  const fetchMessages = useCallback(async (initial = false) => {
-    try {
-      const token = await getToken();
-      const res = await fetch(
-        `${API_BASE_URL}/api/chat/groups/${groupId}/messages?limit=50`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) {
-        setConnectionStatus("error");
-        return;
-      }
-      const data = await res.json();
-      const msgs: Message[] = data.messages ?? [];
-      setMessages((prev) => {
-        // Only update if there are new messages to prevent unnecessary re-renders
-        if (msgs.length === prev.length && msgs.length > 0) {
-          const lastNew = msgs[msgs.length - 1].id;
-          const lastPrev = prev[prev.length - 1]?.id;
-          if (lastNew === lastPrev) return prev;
+  const myUser = travelUser
+    ? { id: travelUser.id, name: travelUser.name, avatarUrl: null }
+    : null;
+
+  const messages = mergeMessages(
+    [], // prev not needed when we render fresh each time from state
+    serverMessages,
+    outbox,
+    myUser
+  );
+
+  const refreshOutbox = useCallback(async () => {
+    if (!groupId) return;
+    const list = await chatOutbox.list(groupId);
+    setOutbox(list);
+  }, [groupId]);
+
+  const persistLastSeen = useCallback(
+    async (latestMessageId: string | null) => {
+      if (!groupId) return;
+      lastSeenIdRef.current = latestMessageId;
+      await chatCache.setLastSeen(groupId, latestMessageId, 0);
+      clearUnread(groupId);
+    },
+    [groupId, clearUnread]
+  );
+
+  const fetchMessages = useCallback(
+    async (initial = false) => {
+      if (!groupId) return;
+      try {
+        const token = await getToken();
+        const res = await fetch(
+          `${API_BASE_URL}/api/chat/groups/${groupId}/messages?limit=50`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok) {
+          setConnectionStatus("error");
+          return;
         }
-        return msgs;
-      });
-      if (msgs.length > 0) lastIdRef.current = msgs[msgs.length - 1].id;
-      setConnectionStatus("connected");
-      if (initial) setLoading(false);
-    } catch {
-      setConnectionStatus("error");
-      if (initial) setLoading(false);
-    }
-  }, [getToken, groupId]);
+        const data = await res.json();
+        const msgs: Message[] = data.messages ?? [];
+        setServerMessages((prev) => {
+          if (
+            msgs.length === prev.length &&
+            msgs.length > 0 &&
+            msgs[msgs.length - 1].id === prev[prev.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return msgs;
+        });
+
+        // Persist to SQLite cache (best-effort)
+        if (msgs.length > 0) {
+          await chatCache.upsertMessages(groupId, msgs);
+          const latestId = msgs[msgs.length - 1].id;
+          if (isFocusedRef.current) {
+            await persistLastSeen(latestId);
+          }
+        }
+        setConnectionStatus("connected");
+        if (initial) setLoading(false);
+      } catch {
+        setConnectionStatus("error");
+        if (initial) setLoading(false);
+      }
+    },
+    [getToken, groupId, persistLastSeen]
+  );
 
   const fetchGroupInfo = useCallback(async () => {
+    if (!groupId) return;
     try {
       const token = await getToken();
       const res = await fetch(`${API_BASE_URL}/api/chat/groups/${groupId}/members`, {
@@ -228,70 +345,104 @@ export default function ChatRoom() {
     } catch {}
   }, [getToken, groupId, navigation]);
 
-  // Use adaptive polling
+  // Hydrate from SQLite on mount, then poll
+  useEffect(() => {
+    let cancelled = false;
+    if (!groupId) return;
+    (async () => {
+      const [cached, queued, state] = await Promise.all([
+        chatCache.loadMessages(groupId),
+        chatOutbox.list(groupId),
+        chatCache.getGroupState(groupId),
+      ]);
+      if (cancelled) return;
+      lastSeenIdRef.current = state.lastSeenMessageId;
+      setServerMessages(cached);
+      setOutbox(queued);
+      if (cached.length > 0) setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId]);
+
+  // Adaptive polling (also triggers an immediate flush attempt)
+  const flushOutbox = useCallback(async () => {
+    if (!groupId) return;
+    const result = await chatOutbox.flush({ groupId, getToken });
+    if (result.sentClientIds.length > 0) {
+      await refreshOutbox();
+      await fetchMessages();
+    } else if (result.failedClientIds.length > 0) {
+      await refreshOutbox();
+    }
+  }, [groupId, getToken, refreshOutbox, fetchMessages]);
+
   const { setIsVisible } = useAdaptivePolling(
-    () => fetchMessages(),
-    [fetchMessages]
+    () => {
+      void fetchMessages();
+      void flushOutbox();
+    },
+    [fetchMessages, flushOutbox]
   );
 
-  // Track screen focus/blur for visibility
+  // Track screen focus/blur
   useEffect(() => {
     const unsubscribeFocus = navigation.addListener("focus", () => {
       setIsVisible(true);
-      viewabilityRef.current = true;
-      fetchMessages(); // immediate refresh on focus
+      isFocusedRef.current = true;
+      void fetchMessages();
+      void flushOutbox();
+      // Mark current latest as read
+      if (serverMessages.length > 0) {
+        const latestId = serverMessages[serverMessages.length - 1].id;
+        void persistLastSeen(latestId);
+      } else {
+        void persistLastSeen(null);
+      }
     });
     const unsubscribeBlur = navigation.addListener("blur", () => {
       setIsVisible(false);
-      viewabilityRef.current = false;
+      isFocusedRef.current = false;
     });
-
     return () => {
       unsubscribeFocus();
       unsubscribeBlur();
     };
-  }, [navigation, fetchMessages, setIsVisible]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, fetchMessages, flushOutbox, persistLastSeen, setIsVisible]);
 
-  // Initial load
+  // Initial load (also triggers cache hydration above; this kicks off network)
   useEffect(() => {
     fetchMessages(true);
     fetchGroupInfo();
-  }, [fetchMessages, fetchGroupInfo]);
+    void refreshOutbox();
+  }, [fetchMessages, fetchGroupInfo, refreshOutbox]);
+
+  // Flush outbox whenever AppState comes back to active
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") void flushOutbox();
+    });
+    return () => sub.remove();
+  }, [flushOutbox]);
 
   async function sendMessage() {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
-    setSending(true);
+    if (!trimmed || !groupId) return;
     setText("");
     Keyboard.dismiss();
 
-    const optimisticId = `opt-${Date.now()}`;
-    const optimistic: Message = {
-      id: optimisticId,
-      content: trimmed,
-      messageType: "TEXT",
-      createdAt: new Date().toISOString(),
-      senderId: travelUser?.id ?? "",
-      sender: travelUser ? { id: travelUser.id, name: travelUser.name, avatarUrl: null } : null,
-    };
-    setMessages((prev) => [...prev, optimistic]);
+    // Enqueue first so a force-quit doesn't lose the message
+    await chatOutbox.enqueue(groupId, { messageType: "TEXT", content: trimmed });
+    await refreshOutbox();
+    void flushOutbox();
+  }
 
-    try {
-      const token = await getToken();
-      await fetch(`${API_BASE_URL}/api/chat/groups/${groupId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ messageType: "TEXT", content: trimmed }),
-      });
-      fetchMessages();
-    } catch {
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-      setText(trimmed);
-    }
-    setSending(false);
+  async function retrySend(clientId: string) {
+    await chatOutbox.retry(clientId);
+    await refreshOutbox();
+    void flushOutbox();
   }
 
   const myId = travelUser?.id ?? "";
@@ -310,7 +461,6 @@ export default function ChatRoom() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
     >
-      {/* Connection status indicator */}
       {connectionStatus === "error" && (
         <View style={styles.connectionBanner}>
           <Ionicons name="cloud-offline-outline" size={14} color={Colors.error} />
@@ -334,7 +484,14 @@ export default function ChatRoom() {
           const isMine = item.senderId === myId;
           const prevMsg = index > 0 ? messages[index - 1] : null;
           const showSender = !isMine && prevMsg?.senderId !== item.senderId;
-          return <MessageBubble msg={item} isMine={isMine} showSender={showSender} />;
+          return (
+            <MessageBubble
+              msg={item}
+              isMine={isMine}
+              showSender={showSender}
+              onRetry={retrySend}
+            />
+          );
         }}
         maintainVisibleContentPosition={{
           minIndexForVisible: 0,
@@ -358,9 +515,9 @@ export default function ChatRoom() {
           accessibilityHint="Type your message here"
         />
         <TouchableOpacity
-          style={[styles.sendBtn, (!text.trim() || sending) && styles.sendBtnDisabled]}
+          style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
           onPress={sendMessage}
-          disabled={!text.trim() || sending}
+          disabled={!text.trim()}
           accessibilityRole="button"
           accessibilityLabel="Send message"
         >
@@ -434,12 +591,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 2,
   },
+  bubbleSending: { opacity: 0.7 },
+  bubbleFailed: {
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
   bubbleText: { fontSize: 15, lineHeight: 20 },
   bubbleTextMine: { color: "#FFFFFF" },
   bubbleTextOther: { color: "#1A1A1A" },
-  bubbleTime: { fontSize: 10, marginTop: 2, textAlign: "right" },
+  bubbleMeta: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 4 },
+  bubbleTime: { fontSize: 10, marginTop: 2 },
   bubbleTimeMine: { color: "rgba(255,255,255,0.7)" },
   bubbleTimeOther: { color: Colors.textTertiary },
+  statusIcon: { marginTop: 1 },
+  retryRow: { paddingHorizontal: 4, paddingTop: 2, alignSelf: "flex-end" },
+  retryText: { fontSize: 11, color: Colors.error, fontWeight: "600" },
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",

@@ -20,6 +20,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth, useClerk } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useUnread } from "@/hooks/useUnread";
+import { chatCache } from "@/lib/chat/cache";
 import { SkeletonListItem } from "@/components/skeleton/SkeletonLoader";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
@@ -85,6 +87,7 @@ export default function ChatTab() {
   const { isSignedIn, getToken } = useAuth();
   const { signOut } = useClerk();
   const { isAdmin, travelUser, isLoading: userLoading } = useCurrentUser();
+  const { set: setUnread } = useUnread();
   const insets = useSafeAreaInsets();
   const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [loading, setLoading] = useState(false);
@@ -118,7 +121,19 @@ export default function ChatTab() {
       });
       if (res.ok) {
         const data = await res.json();
-        setGroups(data.groups ?? []);
+        const fetched: ChatGroup[] = data.groups ?? [];
+        setGroups(fetched);
+
+        // Reconcile unread badges: if last message id differs from last-seen,
+        // mark the group as unread (1). Otherwise clear.
+        await Promise.all(
+          fetched.map(async (g) => {
+            const state = await chatCache.getGroupState(g.id);
+            const latestId = g.lastMessage?.id ?? null;
+            const isUnread = !!latestId && latestId !== state.lastSeenMessageId;
+            setUnread(g.id, isUnread ? Math.max(state.unreadCount, 1) : 0);
+          })
+        );
       }
     } catch {}
     setLoading(false);

@@ -41,6 +41,13 @@ import {
   uploadWhatsAppMedia,
   type WhatsAppUploadKind,
 } from "@/lib/whatsapp/upload";
+import { whatsappCache } from "@/lib/whatsapp/cache";
+import {
+  whatsappOutbox,
+  type OutboxEntry,
+  type OutboxPayload,
+} from "@/lib/whatsapp/outbox";
+import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 
 const WA_SCREEN_BG = "#ECE5DD";
 
@@ -124,10 +131,12 @@ export default function WhatsAppConversation() {
   const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<WaMessage[]>([]);
+  const [outboxEntries, setOutboxEntries] = useState<OutboxEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { clear: clearWhatsAppUnread } = useWhatsAppUnread();
   const [windowInfo, setWindowInfo] = useState<WindowInfo>({
     canMessage: true,
     hoursRemaining: null,
@@ -170,18 +179,64 @@ export default function WhatsAppConversation() {
     return map;
   }, [messages]);
 
+  // Merge pending outbox entries into the rendered list as optimistic
+  // bubbles. They render with status="sending|failed" until the server
+  // confirms — at which point the server fetch replaces them.
+  const displayMessages = useMemo<WaMessage[]>(() => {
+    if (outboxEntries.length === 0) return messages;
+    const synthesized: WaMessage[] = outboxEntries.map((e) => {
+      const p = e.payload;
+      const mediaPayload: Record<string, unknown> | undefined =
+        p.mediaUrl && p.mediaType
+          ? {
+              [p.mediaType]: {
+                link: p.mediaUrl,
+                caption: p.caption ?? undefined,
+                filename: p.filename ?? undefined,
+              },
+            }
+          : undefined;
+      return {
+        id: `out-${e.clientId}`,
+        from: null,
+        to: null,
+        message: p.message ?? p.caption ?? null,
+        direction: "outbound",
+        status: e.status === "failed" ? "failed" : "pending",
+        createdAt: new Date(e.createdAt).toISOString(),
+        messageSid: null,
+        metadata: { outboxClientId: e.clientId },
+        payload: mediaPayload ?? null,
+      };
+    });
+    return [...messages, ...synthesized];
+  }, [messages, outboxEntries]);
+
+  const refreshOutbox = useCallback(async () => {
+    const entries = await whatsappOutbox.list(phone);
+    setOutboxEntries(entries);
+  }, [phone]);
+
+  const flushOutbox = useCallback(async () => {
+    await whatsappOutbox.flush({ phone, getToken });
+    await refreshOutbox();
+  }, [getToken, phone, refreshOutbox]);
+
   const fetchMessages = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
       try {
         const data = await api<MessagesResponse>(
           `/api/mobile/whatsapp/messages?phone=${encodeURIComponent(phone)}&limit=${MESSAGE_LIMIT}`,
         );
-        setMessages(data.messages ?? []);
+        const msgs = data.messages ?? [];
+        setMessages(msgs);
         setWindowInfo(
           data.window ?? { canMessage: true, hoursRemaining: null, expiresAt: null },
         );
         if (data.customer) setCustomer(data.customer);
         errorShown.current = false;
+        // Persist for offline reads next time the screen mounts.
+        void whatsappCache.upsertMessages(phone, msgs);
       } catch (error) {
         if (!silent && !errorShown.current) {
           errorShown.current = true;
@@ -195,6 +250,23 @@ export default function WhatsAppConversation() {
     },
     [api, phone],
   );
+
+  // Hydrate from SQLite immediately so the screen has content while we fetch.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await whatsappCache.loadMessages(phone, MESSAGE_LIMIT);
+      if (!cancelled && cached.length > 0) {
+        setMessages(cached);
+        setLoading(false);
+      }
+      const entries = await whatsappOutbox.list(phone);
+      if (!cancelled) setOutboxEntries(entries);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [phone]);
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -247,13 +319,24 @@ export default function WhatsAppConversation() {
   useFocusEffect(
     useCallback(() => {
       isFocused.current = true;
+      // Reading the thread clears the global WhatsApp unread badge — push
+      // notifications increment it, opening any thread is the correct
+      // signal that admin is up to date.
+      clearWhatsAppUnread();
       fetchMessages();
+      void flushOutbox();
       startPolling(POLL_ACTIVE_MS);
       return () => {
         isFocused.current = false;
         stopPolling();
       };
-    }, [fetchMessages, startPolling, stopPolling]),
+    }, [
+      clearWhatsAppUnread,
+      fetchMessages,
+      flushOutbox,
+      startPolling,
+      stopPolling,
+    ]),
   );
 
   // Header config: contact title + info button + search button.
@@ -328,7 +411,7 @@ export default function WhatsAppConversation() {
 
   function jumpToMessage(messageId: string) {
     setSearchOpen(false);
-    const idx = messages.findIndex((m) => m.id === messageId);
+    const idx = displayMessages.findIndex((m) => m.id === messageId);
     if (idx >= 0) {
       flatListRef.current?.scrollToIndex({
         index: idx,
@@ -338,36 +421,31 @@ export default function WhatsAppConversation() {
     }
   }
 
-  async function sendText() {
-    const trimmed = text.trim();
-    if (!trimmed || sending) return;
+  async function enqueueAndFlush(payload: OutboxPayload) {
+    const entry = await whatsappOutbox.enqueue(phone, payload);
+    setOutboxEntries((prev) => [...prev, entry]);
     setSending(true);
-    setText("");
-    const replyWamid = replyTo?.messageSid ?? null;
-    setReplyTo(null);
     try {
-      await api("/api/mobile/whatsapp/send", {
-        method: "POST",
-        body: {
-          type: "text",
-          phone,
-          message: trimmed,
-          replyToWamid: replyWamid,
-        },
-      });
+      await flushOutbox();
+      // After server confirms, refetch so the canonical message replaces the
+      // optimistic outbox bubble.
       fetchMessages({ silent: true });
-    } catch (error) {
-      setText(trimmed);
-      if (replyWamid) {
-        const original = messages.find((m) => m.messageSid === replyWamid);
-        if (original) setReplyTo(original);
-      }
-      const message =
-        error instanceof ApiError ? error.message : "Could not send message.";
-      Alert.alert("Send failed", message);
     } finally {
       setSending(false);
     }
+  }
+
+  async function sendText() {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
+    setText("");
+    const replyWamid = replyTo?.messageSid ?? null;
+    setReplyTo(null);
+    await enqueueAndFlush({
+      type: "text",
+      message: trimmed,
+      replyToWamid: replyWamid,
+    });
   }
 
   async function sendTemplate(templateName: string) {
@@ -467,6 +545,9 @@ export default function WhatsAppConversation() {
     const replyWamid = replyTo?.messageSid ?? null;
     setReplyTo(null);
     try {
+      // Upload happens online — retries don't make sense for the upload step
+      // because the local file URI may already be gone. The send step is
+      // queued through the outbox so it survives a flaky network.
       const result = await uploadWhatsAppMedia({
         uri: opts.uri,
         kind: opts.kind,
@@ -474,18 +555,13 @@ export default function WhatsAppConversation() {
         contentType: opts.contentType,
         getToken,
       });
-      await api("/api/mobile/whatsapp/send", {
-        method: "POST",
-        body: {
-          type: opts.kind,
-          phone,
-          mediaUrl: result.url,
-          mediaType: opts.kind,
-          filename: result.filename,
-          replyToWamid: replyWamid,
-        },
+      await enqueueAndFlush({
+        type: opts.kind,
+        mediaUrl: result.url,
+        mediaType: opts.kind,
+        filename: result.filename,
+        replyToWamid: replyWamid,
       });
-      fetchMessages({ silent: true });
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -564,7 +640,7 @@ export default function WhatsAppConversation() {
     >
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={displayMessages}
         keyExtractor={(m) => m.id}
         onContentSizeChange={() =>
           flatListRef.current?.scrollToEnd({ animated: false })
@@ -598,7 +674,7 @@ export default function WhatsAppConversation() {
               onPressReplyTo={
                 original
                   ? () => {
-                      const idx = messages.findIndex((m) => m.id === original.id);
+                      const idx = displayMessages.findIndex((m) => m.id === original.id);
                       if (idx >= 0) {
                         flatListRef.current?.scrollToIndex({
                           index: idx,

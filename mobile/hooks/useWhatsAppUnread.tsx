@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useState, ReactNode } from "rea
 interface WhatsAppUnreadContextValue {
   total: number;
   setTotal: (n: number) => void;
+  increment: (delta?: number) => void;
   clear: () => void;
 }
 
@@ -15,10 +16,14 @@ export function WhatsAppUnreadProvider({ children }: { children: ReactNode }) {
     setTotalState(Math.max(0, Math.floor(n)));
   }, []);
 
+  const increment = useCallback((delta = 1) => {
+    setTotalState((prev) => Math.max(0, prev + Math.floor(delta)));
+  }, []);
+
   const clear = useCallback(() => setTotalState(0), []);
 
   return (
-    <WhatsAppUnreadContext.Provider value={{ total, setTotal, clear }}>
+    <WhatsAppUnreadContext.Provider value={{ total, setTotal, increment, clear }}>
       {children}
     </WhatsAppUnreadContext.Provider>
   );

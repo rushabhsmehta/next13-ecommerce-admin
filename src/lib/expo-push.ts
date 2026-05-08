@@ -81,13 +81,24 @@ export async function sendExpoPushBatch(messages: ExpoPushMessage[]): Promise<Ex
   if (invalidIndexes.length > 0) {
     const badTokens = invalidIndexes.map((i) => valid[i]?.to).filter(Boolean);
     if (badTokens.length > 0) {
+      // Both `MobilePushToken` (travel app users) and `AdminMobileToken`
+      // (Clerk admins) can hold the same token if a device switches roles, so
+      // clear both. The queries are no-ops when a token isn't found.
       try {
         await prismadb.mobilePushToken.updateMany({
           where: { expoPushToken: { in: badTokens } },
           data: { isActive: false },
         });
       } catch (err) {
-        console.error("[EXPO_PUSH] failed to deactivate stale tokens", err);
+        console.error("[EXPO_PUSH] failed to deactivate stale travel tokens", err);
+      }
+      try {
+        await prismadb.adminMobileToken.updateMany({
+          where: { pushToken: { in: badTokens } },
+          data: { pushToken: null },
+        });
+      } catch (err) {
+        console.error("[EXPO_PUSH] failed to clear stale admin tokens", err);
       }
     }
   }
@@ -137,6 +148,48 @@ export async function sendChatMessagePush(opts: {
     },
     sound: "default",
     channelId: "chat-messages",
+  }));
+
+  await sendExpoPushBatch(messages);
+}
+
+export interface WhatsAppInboundPushPayload {
+  phone: string;
+  senderName: string;
+  preview: string;
+  messageId?: string;
+  messageSid?: string;
+}
+
+/**
+ * Fan-out an Expo push to every admin device that has a registered token.
+ * Used by the WhatsApp webhook to wake mobile admins when a customer sends
+ * an inbound message. Fire-and-forget — never block the webhook on this.
+ */
+export async function sendWhatsAppInboundPush(
+  payload: WhatsAppInboundPushPayload,
+): Promise<void> {
+  const admins = await prismadb.adminMobileToken.findMany({
+    where: { pushToken: { not: null } },
+    select: { pushToken: true },
+  });
+  const tokens = admins
+    .map((a) => a.pushToken)
+    .filter((t): t is string => typeof t === "string" && t.length > 0);
+  if (tokens.length === 0) return;
+
+  const messages: ExpoPushMessage[] = tokens.map((to) => ({
+    to,
+    title: `WhatsApp · ${payload.senderName}`,
+    body: payload.preview || "(media)",
+    data: {
+      type: "whatsapp_message",
+      phone: payload.phone,
+      messageId: payload.messageId,
+      messageSid: payload.messageSid,
+    },
+    sound: "default",
+    channelId: "whatsapp",
   }));
 
   await sendExpoPushBatch(messages);

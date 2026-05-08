@@ -52,6 +52,36 @@ async function initDb(): Promise<void> {
       unread_count INTEGER NOT NULL DEFAULT 0,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS wa_messages (
+      phone TEXT NOT NULL,
+      message_id TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (phone, message_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_wa_messages_phone_created
+      ON wa_messages(phone, created_at);
+
+    CREATE TABLE IF NOT EXISTS wa_outbox (
+      client_id TEXT PRIMARY KEY NOT NULL,
+      phone TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_wa_outbox_phone_status
+      ON wa_outbox(phone, status);
+
+    CREATE TABLE IF NOT EXISTS wa_phone_state (
+      phone TEXT PRIMARY KEY NOT NULL,
+      last_seen_message_id TEXT,
+      unread_count INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
+    );
   `);
 }
 

@@ -122,7 +122,8 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
   });
 }
 
-// DELETE /api/chat/groups/[groupId]/members - Remove a member (admin/ops only)
+// DELETE /api/chat/groups/[groupId]/members - Remove a member.
+// Admin/ops can remove anyone; any active member can remove themselves (leave group).
 export async function DELETE(req: Request, props: { params: Promise<{ groupId: string }> }) {
   const params = await props.params;
   return handleApi(async () => {
@@ -144,18 +145,18 @@ export async function DELETE(req: Request, props: { params: Promise<{ groupId: s
       },
     });
 
-    if (
-      !requestorMembership ||
-      !["ADMIN", "OPERATIONS"].includes(requestorMembership.role)
-    ) {
-      return jsonError("Only admins and operations staff can remove members", 403);
+    if (!requestorMembership || !requestorMembership.isActive) {
+      return jsonError("Not a member of this group", 403);
     }
 
     const { searchParams } = new URL(req.url);
-    const memberId = searchParams.get("memberId");
+    const memberId = searchParams.get("memberId") ?? travelUser.id;
 
-    if (!memberId) {
-      return jsonError("memberId is required", 400);
+    const isSelfLeave = memberId === travelUser.id;
+    const isAdminOrOps = ["ADMIN", "OPERATIONS"].includes(requestorMembership.role);
+
+    if (!isSelfLeave && !isAdminOrOps) {
+      return jsonError("Only admins and operations staff can remove other members", 403);
     }
 
     await prismadb.chatGroupMember.update({

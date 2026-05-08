@@ -158,6 +158,10 @@ export default function RootLayout() {
               options={{ headerBackTitle: "Back" }}
             />
             <Stack.Screen
+              name="chat-settings/[groupId]"
+              options={{ headerTitle: "Group settings", headerBackTitle: "Back" }}
+            />
+            <Stack.Screen
               name="whatsapp/[phone]"
               options={{ headerBackTitle: "Back" }}
             />

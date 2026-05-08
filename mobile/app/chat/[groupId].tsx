@@ -14,7 +14,7 @@ import {
   AppState,
   AppStateStatus,
 } from "react-native";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import * as ImagePicker from "expo-image-picker";
@@ -402,6 +402,7 @@ function mergeMessages(
 export default function ChatRoom() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const navigation = useNavigation();
+  const router = useRouter();
   const { getToken } = useAuth();
   const { travelUser } = useCurrentUser();
   const { clear: clearUnread } = useUnread();
@@ -560,6 +561,14 @@ export default function ChatRoom() {
               >
                 <Ionicons name="search" size={20} color={Colors.text} />
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => groupId && router.push(`/chat-settings/${groupId}`)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Group settings"
+              >
+                <Ionicons name="settings-outline" size={20} color={Colors.text} />
+              </TouchableOpacity>
               <View style={styles.headerMembers}>
                 <Ionicons name="people-outline" size={18} color={Colors.textTertiary} />
                 <Text style={styles.headerMemberCount}>{members.length}</Text>
@@ -569,7 +578,7 @@ export default function ChatRoom() {
         });
       }
     } catch {}
-  }, [getToken, groupId, navigation]);
+  }, [getToken, groupId, navigation, router]);
 
   // Mark messages as read when they become visible. We only mark messages from
   // other users that we haven't already reported as read this session.

@@ -168,6 +168,10 @@ export default function RootLayout() {
               options={{ headerBackTitle: "Back" }}
             />
             <Stack.Screen
+              name="whatsapp/contact/[phone]"
+              options={{ headerTitle: "Contact info", headerBackTitle: "Chat" }}
+            />
+            <Stack.Screen
               name="profile/inquiries"
               options={{ headerTitle: "My Enquiries", headerBackTitle: "Profile" }}
             />

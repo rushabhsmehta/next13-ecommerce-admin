@@ -13,15 +13,46 @@ export async function POST(req: Request) {
     if (!admin) return new NextResponse("Unauthorized", { status: 401 });
 
     const body = await req.json();
-    const { type, phone, message, templateName, parameters, mediaUrl, mediaType, caption } = body;
+    const {
+      type,
+      phone,
+      message,
+      templateName,
+      parameters,
+      mediaUrl,
+      mediaType,
+      caption,
+      filename,
+      replyToWamid,
+      reactionEmoji,
+      reactToWamid,
+    } = body;
 
     if (!phone) return new NextResponse("phone required", { status: 400 });
 
     const to = phone.startsWith("+") ? phone : `+${phone}`;
 
+    const context = typeof replyToWamid === "string" && replyToWamid.length > 0
+      ? { messageId: replyToWamid }
+      : undefined;
+
+    if (type === "reaction") {
+      const wamid = typeof reactToWamid === "string" ? reactToWamid : null;
+      if (!wamid) {
+        return new NextResponse("reactToWamid required", { status: 400 });
+      }
+      const emoji = typeof reactionEmoji === "string" ? reactionEmoji : "";
+      const result = await sendWhatsAppMessage({
+        to,
+        reaction: { messageId: wamid, emoji },
+        metadata: { reactionTo: wamid, sentByAdmin: admin.userId },
+      });
+      return NextResponse.json(result);
+    }
+
     if (type === "text" || !type) {
       if (!message) return new NextResponse("message required", { status: 400 });
-      const result = await sendWhatsAppMessage({ to, message });
+      const result = await sendWhatsAppMessage({ to, message, context });
       return NextResponse.json(result);
     }
 
@@ -44,7 +75,9 @@ export async function POST(req: Request) {
           url: mediaUrl,
           type: (mediaType ?? type) as "image" | "video" | "audio" | "document",
           caption: caption ?? undefined,
+          filename: filename ?? undefined,
         },
+        context,
       });
       return NextResponse.json(result);
     }

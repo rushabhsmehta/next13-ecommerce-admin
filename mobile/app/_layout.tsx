@@ -1,14 +1,21 @@
 import { useEffect, useRef } from "react";
 import { Alert } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Updates from "expo-updates";
 import * as SecureStore from "expo-secure-store";
-import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
+import * as Notifications from "expo-notifications";
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { Colors } from "@/constants/theme";
+import {
+  configureChatNotifications,
+  registerChatPushToken,
+  unregisterChatPushToken,
+} from "@/lib/chat/push";
+import { UnreadProvider, useUnread } from "@/hooks/useUnread";
 
 const tokenCache = {
   async getToken(key: string) {
@@ -56,6 +63,58 @@ async function checkForOTAUpdate() {
   }
 }
 
+function ChatPushController() {
+  const { isSignedIn, getToken } = useAuth();
+  const { increment } = useUnread();
+  const lastRegisteredFor = useRef<boolean | null>(null);
+
+  // Register / unregister whenever sign-in state flips.
+  useEffect(() => {
+    if (lastRegisteredFor.current === isSignedIn) return;
+    lastRegisteredFor.current = isSignedIn ?? false;
+
+    if (isSignedIn) {
+      void registerChatPushToken(() => getToken());
+    } else {
+      void unregisterChatPushToken(() => getToken());
+    }
+  }, [isSignedIn, getToken]);
+
+  // Configure handler, foreground receiver (bump unread badge), and tap listener (deep-link).
+  useEffect(() => {
+    configureChatNotifications();
+
+    const tapSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as
+        | { type?: string; groupId?: string }
+        | undefined;
+      if (data?.type === "chat_message" && data.groupId) {
+        try {
+          router.push(`/chat/${data.groupId}`);
+        } catch {
+          // ignore — router may not be ready in edge cases
+        }
+      }
+    });
+
+    const receiveSub = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data as
+        | { type?: string; groupId?: string }
+        | undefined;
+      if (data?.type === "chat_message" && data.groupId) {
+        increment(data.groupId, 1);
+      }
+    });
+
+    return () => {
+      tapSub.remove();
+      receiveSub.remove();
+    };
+  }, [increment]);
+
+  return null;
+}
+
 export default function RootLayout() {
   const checked = useRef(false);
 
@@ -70,9 +129,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
         <ClerkLoaded>
-          <ErrorBoundary>
-            <OfflineBanner />
-            <StatusBar style="light" />
+          <UnreadProvider>
+            <ErrorBoundary>
+              <ChatPushController />
+              <OfflineBanner />
+              <StatusBar style="light" />
           <Stack
             screenOptions={{
               headerStyle: { backgroundColor: Colors.background },
@@ -97,6 +158,10 @@ export default function RootLayout() {
               options={{ headerBackTitle: "Back" }}
             />
             <Stack.Screen
+              name="chat-settings/[groupId]"
+              options={{ headerTitle: "Group settings", headerBackTitle: "Back" }}
+            />
+            <Stack.Screen
               name="whatsapp/[phone]"
               options={{ headerBackTitle: "Back" }}
             />
@@ -113,7 +178,8 @@ export default function RootLayout() {
               options={{ headerTitle: "Enquire Now", headerBackTitle: "Package" }}
             />
           </Stack>
-          </ErrorBoundary>
+            </ErrorBoundary>
+          </UnreadProvider>
         </ClerkLoaded>
       </ClerkProvider>
     </SafeAreaProvider>

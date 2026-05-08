@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Lightweight helper around Cloudflare R2's S3-compatible API for WhatsApp media
 
@@ -279,4 +280,58 @@ export async function deleteR2Object(key: string): Promise<void> {
 
 export function getR2PublicUrl(key: string): string {
   return buildPublicUrl(key);
+}
+
+type CreatePresignedPutUrlParams = {
+  contentType: string;
+  fileName?: string;
+  prefix?: string;
+  segments?: Array<string | null | undefined>;
+  extension?: string;
+  expiresIn?: number;
+  cacheControl?: string;
+  metadata?: Record<string, string | undefined>;
+};
+
+type CreatePresignedPutUrlResult = {
+  uploadUrl: string;
+  publicUrl: string;
+  key: string;
+  expiresIn: number;
+};
+
+export async function createR2PresignedPutUrl(
+  params: CreatePresignedPutUrlParams
+): Promise<CreatePresignedPutUrlResult> {
+  const config = loadConfig();
+  const client = getClient();
+  const contentType = params.contentType?.trim() || 'application/octet-stream';
+  const inferredExtension = params.extension || extractExtension(params.fileName) || inferExtensionFromMime(contentType);
+
+  const key = buildObjectKey({
+    fileName: params.fileName,
+    templateName: null,
+    prefix: params.prefix,
+    segments: params.segments,
+    extension: inferredExtension,
+  });
+
+  const expiresIn = params.expiresIn ?? 600; // 10 minutes default
+
+  const command = new PutObjectCommand({
+    Bucket: config.bucket,
+    Key: key,
+    ContentType: contentType,
+    CacheControl: params.cacheControl || 'public, max-age=31536000, immutable',
+    Metadata: cleanMetadata(params.metadata),
+  });
+
+  const uploadUrl = await getSignedUrl(client, command, { expiresIn });
+
+  return {
+    uploadUrl,
+    publicUrl: buildPublicUrl(key),
+    key,
+    expiresIn,
+  };
 }

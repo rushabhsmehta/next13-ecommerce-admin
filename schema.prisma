@@ -1744,7 +1744,9 @@ model TravelAppUser {
   updatedAt         DateTime           @updatedAt
   chatMemberships   ChatGroupMember[]
   chatMessages      ChatMessage[]
+  chatMessageReads  ChatMessageRead[]
   pushSubscriptions PushSubscription[]
+  mobilePushTokens  MobilePushToken[]
   savedPackages     SavedPackage[]
 
   @@index([email])
@@ -1806,12 +1808,12 @@ enum ChatMessageType {
 }
 
 model ChatMessage {
-  id            String          @id @default(uuid())
+  id            String            @id @default(uuid())
   chatGroupId   String
   senderId      String
-  messageType   ChatMessageType @default(TEXT)
-  content       String?         @db.Text
-  fileUrl       String?         @db.Text
+  messageType   ChatMessageType   @default(TEXT)
+  content       String?           @db.Text
+  fileUrl       String?           @db.Text
   fileName      String?
   fileSize      Int?
   latitude      Float?
@@ -1819,15 +1821,35 @@ model ChatMessage {
   contactName   String?
   contactPhone  String?
   tourPackageId String?
-  isDeleted     Boolean         @default(false)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  chatGroup     ChatGroup       @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
-  sender        TravelAppUser   @relation(fields: [senderId], references: [id])
+  replyToId     String?
+  editedAt      DateTime?
+  deletedAt     DateTime?
+  isDeleted     Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  chatGroup     ChatGroup         @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
+  sender        TravelAppUser     @relation(fields: [senderId], references: [id])
+  replyTo       ChatMessage?      @relation("ChatMessageReply", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies       ChatMessage[]     @relation("ChatMessageReply")
+  reads         ChatMessageRead[]
 
   @@index([chatGroupId])
   @@index([senderId])
   @@index([createdAt])
+  @@index([replyToId])
+}
+
+model ChatMessageRead {
+  id              String        @id @default(uuid())
+  chatMessageId   String
+  travelAppUserId String
+  readAt          DateTime      @default(now())
+  chatMessage     ChatMessage   @relation(fields: [chatMessageId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  travelAppUser   TravelAppUser @relation(fields: [travelAppUserId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([chatMessageId, travelAppUserId])
+  @@index([travelAppUserId, readAt])
+  @@index([chatMessageId])
 }
 
 model PushSubscription {
@@ -1875,6 +1897,21 @@ model TodoItem {
   @@index([userId])
   @@index([userId, status])
   @@index([assignedToStaffId])
+}
+
+model MobilePushToken {
+  id              String        @id @default(uuid())
+  travelAppUserId String
+  expoPushToken   String        @db.VarChar(500)
+  platform        String?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  travelAppUser   TravelAppUser @relation(fields: [travelAppUserId], references: [id], onDelete: Cascade)
+
+  @@unique([travelAppUserId, expoPushToken])
+  @@index([travelAppUserId])
+  @@index([isActive])
 }
 
 model AdminMobileToken {

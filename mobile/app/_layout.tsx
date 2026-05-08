@@ -211,6 +211,22 @@ export default function RootLayout() {
               options={{ headerTitle: "Compose template", headerBackTitle: "Templates" }}
             />
             <Stack.Screen
+              name="whatsapp/customers/index"
+              options={{ headerTitle: "Customers", headerBackTitle: "WhatsApp" }}
+            />
+            <Stack.Screen
+              name="whatsapp/customers/[id]"
+              options={{ headerTitle: "Customer", headerBackTitle: "Customers" }}
+            />
+            <Stack.Screen
+              name="whatsapp/campaigns/index"
+              options={{ headerTitle: "Campaigns", headerBackTitle: "WhatsApp" }}
+            />
+            <Stack.Screen
+              name="whatsapp/campaigns/[id]"
+              options={{ headerTitle: "Campaign", headerBackTitle: "Campaigns" }}
+            />
+            <Stack.Screen
               name="profile/inquiries"
               options={{ headerTitle: "My Enquiries", headerBackTitle: "Profile" }}
             />

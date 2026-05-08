@@ -11,9 +11,11 @@ import {
   AppState,
   AppStateStatus,
   Alert,
+  Modal,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
@@ -72,6 +74,7 @@ function ContactAvatar({ name, phone }: { name: string | null; phone: string }) 
 
 export default function WhatsAppTab() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { getToken } = useAuth();
   const insets = useSafeAreaInsets();
   const { setTotal: setWhatsAppUnread } = useWhatsAppUnread();
@@ -83,6 +86,7 @@ export default function WhatsAppTab() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
+  const [showMenu, setShowMenu] = useState(false);
 
   const api = useRef(withAuth(getToken)).current;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -219,6 +223,29 @@ export default function WhatsAppTab() {
     applySearch(conversations, search);
   }, [search, conversations, applySearch]);
 
+  // Header overflow: opens a sheet linking to templates / customers / campaigns.
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => setShowMenu(true)}
+          style={styles.headerBtn}
+          accessibilityLabel="Open WhatsApp menu"
+          testID="whatsapp-tab-menu"
+        >
+          <Ionicons name="ellipsis-horizontal" size={22} color={Colors.text} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  function openMenuRoute(target: "templates" | "customers" | "campaigns") {
+    setShowMenu(false);
+    if (target === "templates") router.push("/whatsapp/templates");
+    else if (target === "customers") router.push("/whatsapp/customers");
+    else router.push("/whatsapp/campaigns");
+  }
+
   function openConversation(phone: string) {
     const encoded = encodeURIComponent(phone);
     router.push(`/whatsapp/${encoded}`);
@@ -336,7 +363,78 @@ export default function WhatsAppTab() {
             : { paddingBottom: insets.bottom + 20 }
         }
       />
+
+      <Modal
+        visible={showMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
+      >
+        <Pressable style={styles.menuBackdrop} onPress={() => setShowMenu(false)}>
+          <Pressable
+            style={[styles.menuSheet, { paddingBottom: insets.bottom + 24 }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.menuHandle} />
+            <MenuRow
+              icon="document-text-outline"
+              label="Templates"
+              hint="Send a pre-approved template"
+              onPress={() => openMenuRoute("templates")}
+            />
+            <MenuRow
+              icon="people-outline"
+              label="Customers"
+              hint="Browse contacts, tags, opt-in"
+              onPress={() => openMenuRoute("customers")}
+            />
+            <MenuRow
+              icon="megaphone-outline"
+              label="Campaigns"
+              hint="Launch and monitor broadcasts"
+              onPress={() => openMenuRoute("campaigns")}
+              isLast
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
+  );
+}
+
+function MenuRow({
+  icon,
+  label,
+  hint,
+  onPress,
+  isLast,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  hint: string;
+  onPress: () => void;
+  isLast?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.menuRow, isLast && styles.menuRowLast]}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${label}`}
+      testID={`whatsapp-menu-${label.toLowerCase()}`}
+    >
+      <View style={styles.menuIcon}>
+        <Ionicons name={icon} size={22} color="#075E54" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.menuLabel}>{label}</Text>
+        <Text style={styles.menuHint} numberOfLines={1}>
+          {hint}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+    </TouchableOpacity>
   );
 }
 
@@ -391,4 +489,51 @@ const styles = StyleSheet.create({
   },
   unreadText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   footer: { paddingVertical: 16, alignItems: "center" },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  menuSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 8,
+    paddingHorizontal: 8,
+  },
+  menuHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: "center",
+    marginBottom: 12,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  menuRowLast: { borderBottomWidth: 0 },
+  menuIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#E0F7E9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuLabel: { fontSize: 15, fontWeight: "700", color: Colors.text },
+  menuHint: { fontSize: 12, color: Colors.textTertiary, marginTop: 2 },
 });

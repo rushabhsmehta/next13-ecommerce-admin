@@ -6,6 +6,7 @@ export const Colors = {
   primaryDark: "#d4461a",    // darker orange
   primaryLight: "#f09050",   // light orange
   primaryBg: "#fff7ed",      // orange-50
+  primarySoft: "#fff1ea",    // soft orange-tinted chip background
   secondary: "#9b3a8d",      // purple (logo accent)
   secondaryLight: "#c05bae", // light purple
 
@@ -17,6 +18,8 @@ export const Colors = {
   surfaceAlt: "#f5f3f1",     // warm gray-100
   border: "#e8e5e1",         // warm gray-200
   borderLight: "#f5f3f1",    // warm gray-100
+  borderSubtle: "#ece8e3",   // hairline border on cards
+  borderStrong: "#d6cfc7",   // emphasized border
 
   text: "#1c1917",           // warm gray-900
   textSecondary: "#78716c",  // warm gray-500

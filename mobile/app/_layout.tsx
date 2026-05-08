@@ -86,11 +86,7 @@ export default function RootLayout() {
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen
               name="packages/[id]"
-              options={{
-                headerTitle: "",
-                headerTransparent: true,
-                headerTintColor: "#fff",
-              }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="destinations/[id]"

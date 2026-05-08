@@ -24,7 +24,11 @@ import {
 } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 import { useDebounce } from "@/hooks/useDebounce";
-import { SkeletonCard } from "@/components/skeleton/SkeletonLoader";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { splitPackageName } from "@/lib/rich-text";
+
+const DEST_CHIP_WIDTH = 188;
+const TESTIMONIAL_CARD_WIDTH = 240;
 
 const PHONE_NUMBER = "+919724444701";
 const WHATSAPP_NUMBER = "919724444701";
@@ -137,29 +141,49 @@ const skelStyles = StyleSheet.create({
 // ─── Package Card ─────────────────────────────────────────────────────────────
 function PackageCard({ pkg, onPress }: { pkg: Package; onPress: () => void }) {
   const imageUrl = pkg.images?.[0]?.url;
+  const [imageFailed, setImageFailed] = useState(false);
   const displayPrice = pkg.pricePerAdult || pkg.price;
   const formattedPrice = displayPrice
     ? `₹${Number(displayPrice).toLocaleString("en-IN")}`
     : null;
+  const nameParts = useMemo(
+    () => splitPackageName(pkg.tourPackageName ?? "Tour Package"),
+    [pkg.tourPackageName]
+  );
 
   return (
-    <Pressable style={pkgCardStyles.card} onPress={onPress}>
+    <Pressable
+      style={pkgCardStyles.card}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${nameParts.title} package`}
+    >
       {/* ── Image + Overlays ── */}
       <View style={pkgCardStyles.imageWrap}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={pkgCardStyles.image} />
-        ) : (
-          <LinearGradient
-            colors={[Colors.gradient1, Colors.gradient2]}
+        {imageUrl && !imageFailed ? (
+          <Image
+            source={{ uri: imageUrl }}
             style={pkgCardStyles.image}
+            resizeMode="cover"
+            onError={() => setImageFailed(true)}
           />
+        ) : (
+          <View style={[pkgCardStyles.image, pkgCardStyles.imageFallback]}>
+            <Ionicons name="image-outline" size={32} color={Colors.textTertiary} />
+            <Text style={pkgCardStyles.imageFallbackText} numberOfLines={1}>
+              {pkg.location?.label || "Photo coming soon"}
+            </Text>
+          </View>
         )}
 
         {/* Bottom gradient for location text legibility */}
-        <LinearGradient
-          colors={["transparent", "rgba(0,0,0,0.62)"]}
-          style={pkgCardStyles.imageGradient}
-        />
+        {imageUrl && !imageFailed ? (
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.62)"]}
+            style={pkgCardStyles.imageGradient}
+            pointerEvents="none"
+          />
+        ) : null}
 
         {/* Duration badge — top left */}
         {pkg.numDaysNight ? (
@@ -171,18 +195,13 @@ function PackageCard({ pkg, onPress }: { pkg: Package; onPress: () => void }) {
 
         {/* Category badge — top right */}
         {pkg.tourCategory ? (
-          <LinearGradient
-            colors={[Colors.gradient1, Colors.gradient2]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={pkgCardStyles.categoryBadge}
-          >
+          <View style={pkgCardStyles.categoryBadge}>
             <Text style={pkgCardStyles.categoryText}>{pkg.tourCategory}</Text>
-          </LinearGradient>
+          </View>
         ) : null}
 
-        {/* Location — bottom of image */}
-        {pkg.location?.label ? (
+        {/* Location — bottom of image (only when image renders) */}
+        {pkg.location?.label && imageUrl && !imageFailed ? (
           <View style={pkgCardStyles.locationRow}>
             <Ionicons name="location" size={11} color="rgba(255,255,255,0.92)" />
             <Text style={pkgCardStyles.locationText} numberOfLines={1}>
@@ -195,8 +214,13 @@ function PackageCard({ pkg, onPress }: { pkg: Package; onPress: () => void }) {
       {/* ── Card Body ── */}
       <View style={pkgCardStyles.body}>
         <Text style={pkgCardStyles.name} numberOfLines={2}>
-          {pkg.tourPackageName || "Tour Package"}
+          {nameParts.title}
         </Text>
+        {nameParts.subtitle ? (
+          <Text style={pkgCardStyles.subtitle} numberOfLines={1}>
+            {nameParts.subtitle}
+          </Text>
+        ) : null}
 
         <View style={pkgCardStyles.footer}>
           {/* Rating */}
@@ -230,6 +254,19 @@ const pkgCardStyles = StyleSheet.create({
   },
   imageWrap: { position: "relative" },
   image: { width: "100%", height: 210 },
+  imageFallback: {
+    backgroundColor: Colors.surfaceAlt,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+  },
+  imageFallbackText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: "500",
+    paddingHorizontal: Spacing.lg,
+    textAlign: "center",
+  },
   imageGradient: {
     position: "absolute",
     bottom: 0,
@@ -259,13 +296,14 @@ const pkgCardStyles = StyleSheet.create({
     position: "absolute",
     top: Spacing.md,
     right: Spacing.md,
+    backgroundColor: "#fff",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: BorderRadius.full,
   },
   categoryText: {
     fontSize: FontSize.xs,
-    color: "#fff",
+    color: Colors.text,
     fontWeight: "700",
     letterSpacing: 0.2,
   },
@@ -292,9 +330,15 @@ const pkgCardStyles = StyleSheet.create({
   },
   name: {
     fontSize: FontSize.lg,
-    fontWeight: "800",
+    fontWeight: "700",
     color: Colors.text,
     lineHeight: 22,
+  },
+  subtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: "500",
+    marginTop: -2,
   },
   footer: {
     flexDirection: "row",
@@ -597,42 +641,33 @@ export default function HomeScreen() {
       {/* ── Trust Bar ── */}
       <View style={styles.trustBar}>
         <View style={styles.trustItem}>
-          <LinearGradient
-            colors={[Colors.gradient1, Colors.gradient2]}
-            style={styles.trustIconWrap}
-          >
-            <Ionicons name="star" size={14} color="#fff" />
-          </LinearGradient>
+          <View style={styles.trustIconWrap}>
+            <Ionicons name="star" size={14} color={Colors.text} />
+          </View>
           <View>
-            <Text style={styles.trustValue}>4.8★ Rated</Text>
-            <Text style={styles.trustSub}>10K+ Reviews</Text>
+            <Text style={styles.trustValue}>4.8 Rated</Text>
+            <Text style={styles.trustSub}>10K+ reviews</Text>
           </View>
         </View>
 
         <View style={styles.trustDivider} />
 
         <View style={styles.trustItem}>
-          <LinearGradient
-            colors={["#16a34a", "#15803d"]}
-            style={styles.trustIconWrap}
-          >
-            <Ionicons name="shield-checkmark" size={14} color="#fff" />
-          </LinearGradient>
+          <View style={styles.trustIconWrap}>
+            <Ionicons name="shield-checkmark" size={14} color={Colors.text} />
+          </View>
           <View>
             <Text style={styles.trustValue}>100% Safe</Text>
-            <Text style={styles.trustSub}>Verified Tours</Text>
+            <Text style={styles.trustSub}>Verified tours</Text>
           </View>
         </View>
 
         <View style={styles.trustDivider} />
 
         <View style={styles.trustItem}>
-          <LinearGradient
-            colors={["#3b82f6", "#2563eb"]}
-            style={styles.trustIconWrap}
-          >
-            <Ionicons name="people" size={14} color="#fff" />
-          </LinearGradient>
+          <View style={styles.trustIconWrap}>
+            <Ionicons name="people" size={14} color={Colors.text} />
+          </View>
           <View>
             <Text style={styles.trustValue}>10K+ Happy</Text>
             <Text style={styles.trustSub}>Travellers</Text>
@@ -642,15 +677,17 @@ export default function HomeScreen() {
 
       {/* ── Popular Destinations ── */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionEyebrow}>Browse by destination</Text>
-            <Text style={styles.sectionTitle}>Popular places</Text>
-          </View>
-        </View>
+        <SectionHeader
+          title="Popular places"
+          subtitle={destinations.length > 0 ? `${destinations.length} destinations to explore` : undefined}
+        />
+        <View style={styles.carouselWrap}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={DEST_CHIP_WIDTH + Spacing.sm}
+          snapToAlignment="start"
           contentContainerStyle={styles.destRow}
         >
           {destinations.slice(0, 8).map((dest) => {
@@ -695,19 +732,26 @@ export default function HomeScreen() {
             );
           })}
         </ScrollView>
+        <LinearGradient
+          colors={["rgba(250,249,248,0)", Colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.edgeFade}
+          pointerEvents="none"
+        />
+        </View>
       </View>
 
       {/* ── Testimonials ── */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionEyebrow}>Traveller stories</Text>
-            <Text style={styles.sectionTitle}>What customers say</Text>
-          </View>
-        </View>
+        <SectionHeader title="What travellers say" subtitle="Stories from real trips" />
+        <View style={styles.carouselWrap}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={TESTIMONIAL_CARD_WIDTH + Spacing.sm}
+          snapToAlignment="start"
           contentContainerStyle={styles.testimonialRow}
         >
           {testimonials.map((item) => (
@@ -740,16 +784,19 @@ export default function HomeScreen() {
             </View>
           ))}
         </ScrollView>
+        <LinearGradient
+          colors={["rgba(250,249,248,0)", Colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.edgeFade}
+          pointerEvents="none"
+        />
+        </View>
       </View>
 
       {/* ── Why Travel With Us ── */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionEyebrow}>Why travel with us</Text>
-            <Text style={styles.sectionTitle}>The Aagam difference</Text>
-          </View>
-        </View>
+        <SectionHeader title="The Aagam difference" />
         <View style={styles.whyGrid}>
           {whyUs.map((item) => (
             <View key={item.title} style={styles.whyCard}>
@@ -767,12 +814,7 @@ export default function HomeScreen() {
 
       {/* ── Tour Categories ── */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionEyebrow}>Browse by type</Text>
-            <Text style={styles.sectionTitle}>Tour categories</Text>
-          </View>
-        </View>
+        <SectionHeader title="Tour categories" />
         <ScrollView
           testID="category-chips"
           horizontal
@@ -820,21 +862,18 @@ export default function HomeScreen() {
 
       {/* ── Package Cards ── */}
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionEyebrow}>Featured</Text>
-            <Text style={styles.sectionTitle}>
-              {appliedSearch || activeCategory !== "all" || activeLocation
-                ? "Matching packages"
-                : "Trending packages"}
-            </Text>
-          </View>
-          {packages.length > 0 && (
-            <View style={styles.packageCountBadge}>
-              <Text style={styles.packageCountText}>{packages.length}</Text>
-            </View>
-          )}
-        </View>
+        <SectionHeader
+          title={
+            appliedSearch || activeCategory !== "all" || activeLocation
+              ? "Matching packages"
+              : "Trending packages"
+          }
+          subtitle={
+            packages.length > 0
+              ? `${packages.length} ${packages.length === 1 ? "package" : "packages"}`
+              : undefined
+          }
+        />
 
         <View testID="package-list">
           {packages.length > 0 ? (
@@ -1023,12 +1062,13 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 9,
+    backgroundColor: Colors.surfaceAlt,
     justifyContent: "center",
     alignItems: "center",
   },
   trustValue: {
     fontSize: FontSize.xs + 1,
-    fontWeight: "800",
+    fontWeight: "700",
     color: Colors.text,
     lineHeight: 16,
   },
@@ -1041,43 +1081,18 @@ const styles = StyleSheet.create({
   trustDivider: {
     width: 1,
     height: 32,
-    backgroundColor: Colors.border,
+    backgroundColor: Colors.borderSubtle,
   },
 
   // ── Sections ──
-  section: { paddingTop: Spacing.sm, paddingBottom: 0 },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  sectionEyebrow: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: Colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: 1.3,
-    marginBottom: 3,
-  },
-  sectionTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: "800",
-    color: Colors.text,
-  },
-  packageCountBadge: {
+  section: { paddingTop: Spacing.lg, paddingBottom: 0 },
+  carouselWrap: { position: "relative" },
+  edgeFade: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
     width: 28,
-    height: 28,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryBg,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  packageCountText: {
-    fontSize: FontSize.sm,
-    fontWeight: "800",
-    color: Colors.primary,
   },
 
   // ── Destination Chips ──

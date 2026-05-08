@@ -96,14 +96,16 @@ function TabLayoutInner() {
           borderTopWidth: 1,
           borderTopColor: Colors.border,
           paddingBottom: Math.max(insets.bottom, 10),
-          paddingTop: 8,
+          paddingTop: 10,
+          height: 58 + Math.max(insets.bottom, 10),
           elevation: 4,
         },
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: "600",
-          letterSpacing: 0.2,
+          letterSpacing: 0.1,
         },
+        tabBarItemStyle: { paddingHorizontal: 0 },
         tabBarIconStyle: {
           marginBottom: 0,
         },

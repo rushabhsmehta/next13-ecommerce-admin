@@ -699,6 +699,23 @@ export default function WhatsAppConversation() {
             />
           )}
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() =>
+            router.push(
+              `/whatsapp/catalog?phone=${encodeURIComponent(phone)}&return=chat`,
+            )
+          }
+          disabled={!windowOpen}
+          accessibilityLabel="Send a tour package"
+          testID="wa-catalog-btn"
+        >
+          <Ionicons
+            name="bag-handle-outline"
+            size={22}
+            color={windowOpen ? Colors.textTertiary : "#cbd5e1"}
+          />
+        </TouchableOpacity>
         <TextInput
           style={styles.input}
           value={text}

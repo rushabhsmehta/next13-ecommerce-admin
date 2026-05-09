@@ -29,6 +29,12 @@ export async function POST(req: Request) {
       replyToWamid,
       reactionEmoji,
       reactToWamid,
+      // product / product_list interactive messages
+      catalogId,
+      productRetailerId,
+      productHeaderText,
+      productBody,
+      productFooter,
     } = body;
 
     if (!phone) return new NextResponse("phone required", { status: 400 });
@@ -72,6 +78,34 @@ export async function POST(req: Request) {
         headerParams:
           headerParams && typeof headerParams === "object" ? headerParams : undefined,
         buttonParams: Array.isArray(buttonParams) ? buttonParams : undefined,
+      });
+      return NextResponse.json(result);
+    }
+
+    if (type === "product") {
+      if (!catalogId || !productRetailerId) {
+        return new NextResponse(
+          "catalogId and productRetailerId required",
+          { status: 400 },
+        );
+      }
+      const result = await sendWhatsAppMessage({
+        to,
+        interactive: {
+          type: "product",
+          catalogId,
+          productRetailerId,
+          body: typeof productBody === "string" && productBody.length > 0
+            ? productBody
+            : "Have a look at this package",
+          ...(typeof productFooter === "string" && productFooter.length > 0
+            ? { footer: productFooter }
+            : {}),
+          ...(typeof productHeaderText === "string" && productHeaderText.length > 0
+            ? { header: { type: "text" as const, text: productHeaderText } }
+            : {}),
+        },
+        context,
       });
       return NextResponse.json(result);
     }

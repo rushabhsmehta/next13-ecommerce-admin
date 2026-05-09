@@ -227,6 +227,14 @@ export default function RootLayout() {
               options={{ headerTitle: "Campaign", headerBackTitle: "Campaigns" }}
             />
             <Stack.Screen
+              name="whatsapp/catalog/index"
+              options={{ headerTitle: "Catalog", headerBackTitle: "WhatsApp" }}
+            />
+            <Stack.Screen
+              name="whatsapp/flows/index"
+              options={{ headerTitle: "Flows", headerBackTitle: "WhatsApp" }}
+            />
+            <Stack.Screen
               name="profile/inquiries"
               options={{ headerTitle: "My Enquiries", headerBackTitle: "Profile" }}
             />

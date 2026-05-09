@@ -239,11 +239,15 @@ export default function WhatsAppTab() {
     });
   }, [navigation]);
 
-  function openMenuRoute(target: "templates" | "customers" | "campaigns") {
+  function openMenuRoute(
+    target: "templates" | "customers" | "campaigns" | "catalog" | "flows",
+  ) {
     setShowMenu(false);
     if (target === "templates") router.push("/whatsapp/templates");
     else if (target === "customers") router.push("/whatsapp/customers");
-    else router.push("/whatsapp/campaigns");
+    else if (target === "campaigns") router.push("/whatsapp/campaigns");
+    else if (target === "catalog") router.push("/whatsapp/catalog");
+    else router.push("/whatsapp/flows");
   }
 
   function openConversation(phone: string) {
@@ -393,6 +397,18 @@ export default function WhatsAppTab() {
               label="Campaigns"
               hint="Launch and monitor broadcasts"
               onPress={() => openMenuRoute("campaigns")}
+            />
+            <MenuRow
+              icon="bag-handle-outline"
+              label="Catalog"
+              hint="Browse tour packages and send products"
+              onPress={() => openMenuRoute("catalog")}
+            />
+            <MenuRow
+              icon="flash-outline"
+              label="Flows"
+              hint="Read-only — edit on web"
+              onPress={() => openMenuRoute("flows")}
               isLast
             />
           </Pressable>

@@ -56,7 +56,7 @@ export default function WhatsAppContactScreen() {
     setLoading(true);
     try {
       const data = await api<{ customer: Customer | null }>(
-        `/api/mobile/whatsapp/customers/${encodeURIComponent(phone)}`,
+        `/api/mobile/whatsapp/customers/by-phone/${encodeURIComponent(phone)}`,
       );
       const c = data.customer;
       setCustomer(c);
@@ -104,7 +104,7 @@ export default function WhatsAppContactScreen() {
     if (!customer) return;
     setSaving(true);
     try {
-      await api(`/api/mobile/whatsapp/customers/${encodeURIComponent(phone)}`, {
+      await api(`/api/mobile/whatsapp/customers/by-phone/${encodeURIComponent(phone)}`, {
         method: "PATCH",
         body: { tags, notes, isOptedIn },
       });

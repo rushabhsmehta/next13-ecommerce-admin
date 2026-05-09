@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { canAccessInquiryForContext, resolveInquiryAccessContext } from "@/lib/inquiry-access";
 
 export async function DELETE(
   req: Request,
@@ -13,6 +14,7 @@ export async function DELETE(
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
+    const accessContext = await resolveInquiryAccessContext(userId);
 
     if (!params.inquiryId) {
       return new NextResponse("Inquiry ID is required", { status: 400 });
@@ -33,6 +35,16 @@ export async function DELETE(
 
     if (!action) {
       return new NextResponse("Action not found or does not belong to this inquiry", { status: 404 });
+    }
+    const inquiry = await prismadb.inquiry.findUnique({
+      where: { id: params.inquiryId },
+      select: { associatePartnerId: true },
+    });
+    if (!inquiry) {
+      return new NextResponse("Inquiry not found", { status: 404 });
+    }
+    if (!canAccessInquiryForContext(accessContext, inquiry.associatePartnerId ?? null)) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     // Delete the action (guard by both id and inquiryId)

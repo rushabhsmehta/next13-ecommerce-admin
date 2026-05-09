@@ -239,6 +239,18 @@ export default function RootLayout() {
               options={{ headerTitle: "My Enquiries", headerBackTitle: "Profile" }}
             />
             <Stack.Screen
+              name="associate/inquiries/index"
+              options={{ headerTitle: "Associate Inquiries", headerBackTitle: "Profile" }}
+            />
+            <Stack.Screen
+              name="associate/inquiries/new"
+              options={{ headerTitle: "Create Inquiry", headerBackTitle: "Inquiries" }}
+            />
+            <Stack.Screen
+              name="associate/inquiries/[inquiryId]"
+              options={{ headerTitle: "Inquiry Detail", headerBackTitle: "Inquiries" }}
+            />
+            <Stack.Screen
               name="profile/edit"
               options={{ headerTitle: "Edit Profile", headerBackTitle: "Profile" }}
             />

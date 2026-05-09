@@ -8,6 +8,8 @@ import { normalizeWhatsAppPhone } from "@/lib/whatsapp-customers";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
 import { INQUIRY_STATUSES } from "@/lib/inquiry-statuses";
+import { canAccessInquiryForContext, resolveInquiryAccessContext } from "@/lib/inquiry-access";
+import { normalizePhoneNumber } from "@/lib/phone-utils";
 
 const validStatuses: readonly string[] = INQUIRY_STATUSES;
 
@@ -51,15 +53,25 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
 export async function GET(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+    const accessContext = await resolveInquiryAccessContext(userId);
     if (!params.inquiryId) {
       return new NextResponse("Inquiry ID is required", { status: 400 });
-    } const inquiry = await prismadb.inquiry.findUnique({
+    }
+
+    const inquiry = await prismadb.inquiry.findUnique({
       where: {
         id: params.inquiryId,
       },
       include: {
         location: true,
         associatePartner: true,
+        actions: {
+          orderBy: { createdAt: "desc" },
+        },
         roomAllocations: {
           include: {
             roomType: true,
@@ -75,6 +87,12 @@ export async function GET(req: Request, props: { params: Promise<{ inquiryId: st
       }
     });
 
+    if (!inquiry) {
+      return new NextResponse("Inquiry not found", { status: 404 });
+    }
+    if (!canAccessInquiryForContext(accessContext, inquiry.associatePartnerId ?? null)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
     console.log('📤 SERVER GET ROUTE - RETURNING INQUIRY DATA:');
     console.log('=============================================');
     console.log('1. Retrieved inquiry journeyDate from database:', inquiry?.journeyDate);
@@ -106,6 +124,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
     const user = await currentUser();
     const body = await req.json();
 
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
+    const accessContext = await resolveInquiryAccessContext(userId);
+
     console.log('[INQUIRY_PATCH] Received request body:', JSON.stringify(body, null, 2));
 
     // Support lightweight partial update when only nextFollowUpDate is being patched
@@ -122,9 +146,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
 
     if (isNextFollowUpOnly) {
       try {
-        if (!userId) {
-          return new NextResponse("Unauthenticated", { status: 403 });
-        }
         if (!params.inquiryId) {
           return new NextResponse("Inquiry id is required", { status: 400 });
         }
@@ -134,6 +155,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
         });
         if (!originalInquiry) {
           return new NextResponse("Inquiry not found", { status: 404 });
+        }
+        if (!canAccessInquiryForContext(accessContext, originalInquiry.associatePartnerId ?? null)) {
+          return new NextResponse("Forbidden", { status: 403 });
         }
 
         // Allow clearing the follow-up date when client sends null explicitly
@@ -153,7 +177,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
           action: "UPDATE",
           before: originalInquiry,
           after: inquiry,
-          userRole: "ADMIN", // Lightweight path; detailed role resolution not critical here
+          userRole: accessContext.isAssociate ? "ASSOCIATE" : "ADMIN",
           metadata: {
             // @ts-ignore
             nextFollowUpDateBefore: (originalInquiry as any).nextFollowUpDate,
@@ -204,10 +228,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
       remarks
     } = body;
 
-    if (!userId) {
-      return new NextResponse("Unauthenticated", { status: 403 });
-    }
-
     if (!customerName) {
       return new NextResponse("Customer name is required", { status: 400 });
     }
@@ -235,6 +255,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
 
     if (!originalInquiry) {
       return new NextResponse("Inquiry not found", { status: 404 });
+    }
+    if (!canAccessInquiryForContext(accessContext, originalInquiry.associatePartnerId ?? null)) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     // Determine user role (ADMIN or ASSOCIATE)
@@ -278,11 +301,15 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
       console.log('   - processedJourneyDate getFullYear():', processedJourneyDate.getFullYear());
     }
 
+    const normalizedPhone = normalizePhoneNumber(customerMobileNumber);
+    if (!normalizedPhone) {
+      return new NextResponse("Invalid mobile number format", { status: 400 });
+    }
     const updatedData: any = {
       customerName,
-      customerMobileNumber,
+      customerMobileNumber: normalizedPhone.e164,
       locationId,
-      associatePartnerId,
+      associatePartnerId: accessContext.isAssociate ? accessContext.associatePartnerId : associatePartnerId,
       numAdults,
       numChildrenAbove11,
       numChildren5to11,
@@ -483,6 +510,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ inquiryId:
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
+    const accessContext = await resolveInquiryAccessContext(userId);
 
     if (!params.inquiryId) {
       return new NextResponse("Inquiry id is required", { status: 400 });
@@ -503,6 +531,9 @@ export async function DELETE(req: Request, props: { params: Promise<{ inquiryId:
 
     if (!inquiry) {
       return new NextResponse("Inquiry not found", { status: 404 });
+    }
+    if (!canAccessInquiryForContext(accessContext, inquiry.associatePartnerId ?? null)) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     // Determine user role (ADMIN or ASSOCIATE)

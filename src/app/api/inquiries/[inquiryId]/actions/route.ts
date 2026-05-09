@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from '@/lib/timezone-utils';
+import { z } from "zod";
+import { canAccessInquiryForContext, resolveInquiryAccessContext } from "@/lib/inquiry-access";
+
+const actionSchema = z.object({
+  actionType: z.string().min(1),
+  remarks: z.string().min(1),
+  actionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
 
 export async function POST(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
@@ -13,6 +21,21 @@ export async function POST(req: Request, props: { params: Promise<{ inquiryId: s
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
+    }
+    const accessContext = await resolveInquiryAccessContext(userId);
+    const parsed = actionSchema.safeParse({ actionType, remarks, actionDate });
+    if (!parsed.success) {
+      return new NextResponse("Invalid action payload", { status: 400 });
+    }
+    const inquiry = await prismadb.inquiry.findUnique({
+      where: { id: params.inquiryId },
+      select: { id: true, associatePartnerId: true },
+    });
+    if (!inquiry) {
+      return new NextResponse("Inquiry not found", { status: 404 });
+    }
+    if (!canAccessInquiryForContext(accessContext, inquiry.associatePartnerId ?? null)) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     if (!actionType) {

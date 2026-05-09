@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
 import { INQUIRY_STATUSES } from "@/lib/inquiry-statuses";
+import { canAccessInquiryForContext, resolveInquiryAccessContext } from "@/lib/inquiry-access";
 
 const validStatuses: readonly string[] = INQUIRY_STATUSES;
 
@@ -16,6 +17,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
+    const accessContext = await resolveInquiryAccessContext(userId);
 
     if (!params.inquiryId) {
       return new NextResponse("Inquiry id is required", { status: 400 });
@@ -23,6 +25,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
 
     if (!body.status || !validStatuses.includes(body.status)) {
       return new NextResponse("Invalid status value", { status: 400 });
+    }
+
+    const existingInquiry = await prismadb.inquiry.findUnique({
+      where: { id: params.inquiryId },
+      select: { id: true, associatePartnerId: true },
+    });
+    if (!existingInquiry) {
+      return new NextResponse("Inquiry not found", { status: 404 });
+    }
+    if (!canAccessInquiryForContext(accessContext, existingInquiry.associatePartnerId ?? null)) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     const inquiry = await prismadb.inquiry.update({

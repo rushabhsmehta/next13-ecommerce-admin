@@ -16,6 +16,7 @@ import { useAuth, useClerk } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { buildTelUrl, buildWaMeUrl } from "@/constants/whatsapp";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
@@ -32,6 +33,7 @@ export default function ProfileTab() {
   const { isSignedIn, getToken } = useAuth();
   const { signOut } = useClerk();
   const insets = useSafeAreaInsets();
+  const { isAssociate } = useCurrentUser();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -129,6 +131,14 @@ export default function ProfileTab() {
           badge="Track your tour requests"
           onPress={() => router.push("/profile/inquiries")}
         />
+        {isAssociate ? (
+          <MenuItem
+            icon="briefcase-outline"
+            label="Associate Inquiries"
+            badge="Create and manage associate leads"
+            onPress={() => router.push("/associate/inquiries")}
+          />
+        ) : null}
       </View>
 
       <View style={styles.sectionTitle}>

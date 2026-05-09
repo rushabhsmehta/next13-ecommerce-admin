@@ -10,8 +10,17 @@ export interface TravelUser {
   isApproved: boolean;
 }
 
+export interface AssociatePartner {
+  id: string;
+  name: string;
+  email: string | null;
+  mobileNumber: string;
+}
+
 interface CurrentUserState {
   isAdmin: boolean;
+  isAssociate: boolean;
+  associatePartner: AssociatePartner | null;
   travelUser: TravelUser | null;
   isLoading: boolean;
 }
@@ -20,6 +29,8 @@ export function useCurrentUser(): CurrentUserState {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const [state, setState] = useState<CurrentUserState>({
     isAdmin: false,
+    isAssociate: false,
+    associatePartner: null,
     travelUser: null,
     isLoading: true,
   });
@@ -27,7 +38,13 @@ export function useCurrentUser(): CurrentUserState {
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
-      setState({ isAdmin: false, travelUser: null, isLoading: false });
+      setState({
+        isAdmin: false,
+        isAssociate: false,
+        associatePartner: null,
+        travelUser: null,
+        isLoading: false,
+      });
       return;
     }
 
@@ -36,24 +53,44 @@ export function useCurrentUser(): CurrentUserState {
       try {
         const token = await getToken();
         if (!token) {
-          setState({ isAdmin: false, travelUser: null, isLoading: false });
+          setState({
+            isAdmin: false,
+            isAssociate: false,
+            associatePartner: null,
+            travelUser: null,
+            isLoading: false,
+          });
           return;
         }
         const res = await fetch(`${API_BASE_URL}/api/mobile/auth-status`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {
-          setState({ isAdmin: false, travelUser: null, isLoading: false });
+          setState({
+            isAdmin: false,
+            isAssociate: false,
+            associatePartner: null,
+            travelUser: null,
+            isLoading: false,
+          });
           return;
         }
         const data = await res.json();
         setState({
           isAdmin: data.isAdmin ?? false,
+          isAssociate: data.isAssociate ?? false,
+          associatePartner: data.associatePartner ?? null,
           travelUser: data.travelUser ?? null,
           isLoading: false,
         });
       } catch {
-        setState({ isAdmin: false, travelUser: null, isLoading: false });
+        setState({
+          isAdmin: false,
+          isAssociate: false,
+          associatePartner: null,
+          travelUser: null,
+          isLoading: false,
+        });
       }
     }
 

@@ -17,6 +17,21 @@ import { normalizeWhatsAppPhone } from "@/lib/whatsapp-customers";
 import { sendWhatsAppTemplate } from "@/lib/whatsapp";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
+import { z } from "zod";
+import { normalizePhoneNumber } from "@/lib/phone-utils";
+import {
+  canAccessInquiryForContext,
+  canActOnInquiries,
+  resolveInquiryAccessContext,
+} from "@/lib/inquiry-access";
+
+const createInquirySchema = z.object({
+  customerName: z.string().min(1),
+  customerMobileNumber: z.string().min(6),
+  journeyDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  locationId: z.string().min(1).optional(),
+  locationName: z.string().min(1).optional(),
+});
 
 // Helper function to ensure customer exists in WhatsApp customer list
 async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string) {
@@ -60,6 +75,7 @@ export async function POST(req: Request) {
     const { userId } = await auth();
     const user = await currentUser();
     const body = await req.json();
+    const parsed = createInquirySchema.safeParse(body);
     const {
       customerName,
       customerMobileNumber,
@@ -96,6 +112,17 @@ export async function POST(req: Request) {
 
     if (!journeyDate) {
       return NextResponse.json({ error: "Journey date is required" }, { status: 400 });
+    }
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid inquiry payload", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const normalizedPhone = normalizePhoneNumber(customerMobileNumber);
+    if (!normalizedPhone) {
+      return NextResponse.json({ error: "Invalid mobile number format" }, { status: 400 });
+    }
+    const accessContext = await resolveInquiryAccessContext(userId);
+    if (!canActOnInquiries(accessContext)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Normalize and validate locationId when provided directly.
@@ -163,8 +190,10 @@ export async function POST(req: Request) {
     const inquiry = await prismadb.inquiry.create({
       data: {
         customerName,
-        customerMobileNumber,
-        associatePartnerId,
+        customerMobileNumber: normalizedPhone.e164,
+        associatePartnerId: accessContext.isAssociate
+          ? accessContext.associatePartnerId
+          : associatePartnerId,
         locationId,
         numAdults,
         numChildrenAbove11,
@@ -332,6 +361,10 @@ export async function GET(req: Request) {
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
     }
+    const accessContext = await resolveInquiryAccessContext(userId);
+    if (!canActOnInquiries(accessContext)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
 
     // Build date range filters based on period
     let dateFilter = {};
@@ -403,6 +436,9 @@ export async function GET(req: Request) {
       ...(status && status !== 'ALL' && { status }),
       ...dateFilter
     };
+    if (accessContext.isAssociate && accessContext.associatePartnerId) {
+      where.associatePartnerId = accessContext.associatePartnerId;
+    }
     if (noTourPackageQuery) {
       where.tourPackageQueries = { none: {} };
     }
@@ -453,6 +489,10 @@ export async function DELETE(req: Request) {
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
+    const accessContext = await resolveInquiryAccessContext(userId);
+    if (!canActOnInquiries(accessContext)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
 
     const url = new URL(req.url);
     const inquiryId = url.searchParams.get('id');
@@ -474,6 +514,9 @@ export async function DELETE(req: Request) {
 
     if (!inquiry) {
       return new NextResponse("Inquiry not found", { status: 404 });
+    }
+    if (!canAccessInquiryForContext(accessContext, inquiry.associatePartnerId ?? null)) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     // Log the related records for debugging

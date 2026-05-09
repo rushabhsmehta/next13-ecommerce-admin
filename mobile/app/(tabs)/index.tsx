@@ -23,6 +23,7 @@ import {
   Shadows,
 } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { splitPackageName } from "@/lib/rich-text";
@@ -385,6 +386,7 @@ const pkgCardStyles = StyleSheet.create({
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isAssociate } = useCurrentUser();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -678,6 +680,26 @@ export default function HomeScreen() {
           </View>
         </View>
       </View>
+
+      {isAssociate ? (
+        <Pressable
+          testID="associate-inquiries-banner"
+          accessibilityRole="button"
+          accessibilityLabel="Open associate inquiries"
+          accessibilityHint="Create and manage inquiries linked to your partner account"
+          style={styles.associateBanner}
+          onPress={() => router.push("/associate/inquiries")}
+        >
+          <View style={styles.associateBannerIcon}>
+            <Ionicons name="briefcase" size={18} color={Colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.associateBannerTitle}>Partner inquiries</Text>
+            <Text style={styles.associateBannerSub}>Create leads and track status</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+        </Pressable>
+      ) : null}
 
       {/* ── Popular Destinations ── */}
       <View style={styles.section}>
@@ -1086,6 +1108,39 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
     backgroundColor: Colors.borderSubtle,
+  },
+
+  associateBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadows.light,
+  },
+  associateBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryBg,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  associateBannerTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  associateBannerSub: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    marginTop: 2,
   },
 
   // ── Sections ──

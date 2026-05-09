@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { resolveInquiryAccessContext } from "@/lib/inquiry-access";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const [orgMembership, travelUser] = await Promise.all([
+    const [orgMembership, travelUser, inquiryAccess] = await Promise.all([
       (prismadb as any).organizationMember.findFirst({
         where: { userId, isActive: true, role: { in: ["ADMIN", "OWNER"] } },
       }),
@@ -26,10 +27,13 @@ export async function GET(req: Request) {
         where: { clerkUserId: userId },
         select: { id: true, name: true, email: true, isApproved: true },
       }),
+      resolveInquiryAccessContext(userId),
     ]);
 
     return NextResponse.json({
       isAdmin: !!orgMembership,
+      isAssociate: inquiryAccess.isAssociate,
+      associatePartner: inquiryAccess.associatePartner,
       travelUser,
     });
   } catch (error) {

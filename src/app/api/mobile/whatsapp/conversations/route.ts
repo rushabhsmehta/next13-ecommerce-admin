@@ -70,14 +70,29 @@ export async function GET(req: Request) {
     const ifNoneMatch = req.headers.get("If-None-Match");
 
     const cutoff = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
-    const cursorDate = cursor ? new Date(cursor) : null;
-    if (cursorDate && Number.isNaN(cursorDate.getTime())) {
-      return new NextResponse("invalid cursor", { status: 400 });
+
+    // Composite cursor "<isoTs>|<phone>" — using only the timestamp would
+    // skip rows that share a millisecond with the previous page boundary.
+    let cursorDate: Date | null = null;
+    let cursorPhone: string | null = null;
+    if (cursor) {
+      const sep = cursor.indexOf("|");
+      const tsPart = sep >= 0 ? cursor.slice(0, sep) : cursor;
+      cursorPhone = sep >= 0 ? cursor.slice(sep + 1) : "";
+      const parsed = new Date(tsPart);
+      if (Number.isNaN(parsed.getTime())) {
+        return new NextResponse("invalid cursor", { status: 400 });
+      }
+      cursorDate = parsed;
     }
 
-    const cursorClause = cursorDate
-      ? Prisma.sql`AND l.last_message_at < ${cursorDate}`
-      : Prisma.empty;
+    // Use PostgreSQL row comparison so (last_message_at, phone) is treated
+    // as a lexicographic tuple — paginates deterministically when many
+    // threads share a timestamp.
+    const cursorClause =
+      cursorDate !== null
+        ? Prisma.sql`AND (l.last_message_at, l.phone) < (${cursorDate}, ${cursorPhone ?? ""})`
+        : Prisma.empty;
 
     const rows = await whatsappPrisma.$queryRaw<ConversationRow[]>(Prisma.sql`
       WITH normalized AS (
@@ -149,7 +164,7 @@ export async function GET(req: Request) {
       LEFT JOIN unread u ON l.phone = u.phone
       LEFT JOIN "WhatsAppCustomer" c ON l.customer_id = c.id
       WHERE 1=1 ${cursorClause}
-      ORDER BY l.last_message_at DESC
+      ORDER BY l.last_message_at DESC, l.phone DESC
       LIMIT ${limit + 1};
     `);
 
@@ -185,7 +200,7 @@ export async function GET(req: Request) {
 
     const nextCursor =
       hasMore && sliced.length > 0
-        ? sliced[sliced.length - 1].last_message_at.toISOString()
+        ? `${sliced[sliced.length - 1].last_message_at.toISOString()}|${sliced[sliced.length - 1].phone}`
         : null;
 
     return NextResponse.json(

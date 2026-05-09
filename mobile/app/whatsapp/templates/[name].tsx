@@ -64,8 +64,14 @@ function pickBodyText(components: TemplateComponentLike[] | null | undefined): s
 }
 
 export default function WhatsAppTemplateSend() {
-  const params = useLocalSearchParams<{ name?: string; phone?: string; return?: string }>();
+  const params = useLocalSearchParams<{
+    name?: string;
+    lang?: string;
+    phone?: string;
+    return?: string;
+  }>();
   const name = params.name ? decodeURIComponent(params.name) : "";
+  const lang = params.lang ? decodeURIComponent(params.lang) : "";
   const phone = params.phone ? decodeURIComponent(params.phone) : "";
   const router = useRouter();
   const navigation = useNavigation();
@@ -94,8 +100,17 @@ export default function WhatsAppTemplateSend() {
     setLoading(true);
     try {
       const data = await api<TemplatesResponse>("/api/mobile/whatsapp/templates");
-      const found = (data.items ?? []).find((t) => t.name === name);
-      setTemplate(found ?? null);
+      const items = data.items ?? [];
+      // Templates are unique by (name, language) — Meta returns multiple rows
+      // when a template is translated. Match on both when caller supplied a
+      // language, otherwise fall back to the first match for backwards compat.
+      const found =
+        (lang
+          ? items.find((t) => t.name === name && t.language === lang)
+          : undefined) ??
+        items.find((t) => t.name === name) ??
+        null;
+      setTemplate(found);
       const body = pickBodyText(found?.components);
       const count = countTemplateBodyVariables(body);
       setBodyParams(Array.from({ length: count }, () => ""));
@@ -106,7 +121,7 @@ export default function WhatsAppTemplateSend() {
     } finally {
       setLoading(false);
     }
-  }, [api, name]);
+  }, [api, name, lang]);
 
   useEffect(() => {
     loadTemplate();

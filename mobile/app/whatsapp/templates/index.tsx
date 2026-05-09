@@ -128,13 +128,18 @@ export default function WhatsAppTemplateList() {
     return { recent, rest };
   }, [visible, recentNames]);
 
-  function openTemplate(name: string) {
+  function openTemplate(template: Template) {
+    // Templates are unique by (name, language); pass `lang` so the detail
+    // screen loads the exact variant the user picked.
+    const langQuery = `lang=${encodeURIComponent(template.language)}`;
     if (phone) {
       router.push(
-        `/whatsapp/templates/${encodeURIComponent(name)}?phone=${encodeURIComponent(phone)}&return=${params.return ?? ""}`,
+        `/whatsapp/templates/${encodeURIComponent(template.name)}?${langQuery}&phone=${encodeURIComponent(phone)}&return=${params.return ?? ""}`,
       );
     } else {
-      router.push(`/whatsapp/templates/${encodeURIComponent(name)}`);
+      router.push(
+        `/whatsapp/templates/${encodeURIComponent(template.name)}?${langQuery}`,
+      );
     }
   }
 
@@ -240,7 +245,7 @@ export default function WhatsAppTemplateList() {
           return (
             <TouchableOpacity
               style={styles.row}
-              onPress={() => openTemplate(t.name)}
+              onPress={() => openTemplate(t)}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel={`Send template ${t.name}`}

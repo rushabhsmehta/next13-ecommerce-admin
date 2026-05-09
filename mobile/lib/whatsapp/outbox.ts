@@ -108,13 +108,17 @@ export const whatsappOutbox = {
   async pending(phone?: string): Promise<OutboxEntry[]> {
     try {
       const db = await getDb();
+      // 'sending' is included so a row left mid-flight by an app crash or
+      // unhandled error is picked up on the next flush. flush() always
+      // re-marks the row to 'sending' before dispatching, so this is
+      // idempotent — duplicate sends are bounded by attempts < MAX_ATTEMPTS.
       const rows = phone
         ? await db.getAllAsync<RawRow>(
-            "SELECT * FROM wa_outbox WHERE phone = ? AND status IN ('pending','failed') ORDER BY created_at ASC",
+            "SELECT * FROM wa_outbox WHERE phone = ? AND status IN ('pending','failed','sending') ORDER BY created_at ASC",
             [normalizePhone(phone)],
           )
         : await db.getAllAsync<RawRow>(
-            "SELECT * FROM wa_outbox WHERE status IN ('pending','failed') ORDER BY created_at ASC",
+            "SELECT * FROM wa_outbox WHERE status IN ('pending','failed','sending') ORDER BY created_at ASC",
           );
       return rows.map(rowToEntry).filter((e): e is OutboxEntry => e !== null);
     } catch {

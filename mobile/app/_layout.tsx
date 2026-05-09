@@ -15,7 +15,14 @@ import {
   registerChatPushToken,
   unregisterChatPushToken,
 } from "@/lib/chat/push";
+import {
+  configureWhatsAppNotificationChannel,
+  registerAdminPushToken,
+  unregisterAdminPushToken,
+} from "@/lib/whatsapp/push";
 import { UnreadProvider, useUnread } from "@/hooks/useUnread";
+import { WhatsAppUnreadProvider, useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const tokenCache = {
   async getToken(key: string) {
@@ -63,15 +70,18 @@ async function checkForOTAUpdate() {
   }
 }
 
-function ChatPushController() {
+function PushController() {
   const { isSignedIn, getToken } = useAuth();
+  const { isAdmin } = useCurrentUser();
   const { increment } = useUnread();
-  const lastRegisteredFor = useRef<boolean | null>(null);
+  const { increment: incrementWhatsApp } = useWhatsAppUnread();
+  const lastChatRegisteredFor = useRef<boolean | null>(null);
+  const lastAdminRegisteredFor = useRef<boolean | null>(null);
 
-  // Register / unregister whenever sign-in state flips.
+  // Chat push: every signed-in user.
   useEffect(() => {
-    if (lastRegisteredFor.current === isSignedIn) return;
-    lastRegisteredFor.current = isSignedIn ?? false;
+    if (lastChatRegisteredFor.current === isSignedIn) return;
+    lastChatRegisteredFor.current = isSignedIn ?? false;
 
     if (isSignedIn) {
       void registerChatPushToken(() => getToken());
@@ -80,29 +90,51 @@ function ChatPushController() {
     }
   }, [isSignedIn, getToken]);
 
-  // Configure handler, foreground receiver (bump unread badge), and tap listener (deep-link).
+  // WhatsApp admin push: only admins.
+  useEffect(() => {
+    const shouldRegister = !!(isSignedIn && isAdmin);
+    if (lastAdminRegisteredFor.current === shouldRegister) return;
+    lastAdminRegisteredFor.current = shouldRegister;
+
+    if (shouldRegister) {
+      void registerAdminPushToken(() => getToken());
+    } else {
+      void unregisterAdminPushToken(() => getToken());
+    }
+  }, [isSignedIn, isAdmin, getToken]);
+
+  // Configure handlers, foreground receivers (bump unread badges), tap listeners (deep-link).
   useEffect(() => {
     configureChatNotifications();
+    configureWhatsAppNotificationChannel();
 
     const tapSub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as
-        | { type?: string; groupId?: string }
+        | { type?: string; groupId?: string; phone?: string }
         | undefined;
       if (data?.type === "chat_message" && data.groupId) {
         try {
           router.push(`/chat/${data.groupId}`);
-        } catch {
-          // ignore — router may not be ready in edge cases
-        }
+        } catch {}
+        return;
+      }
+      if (data?.type === "whatsapp_message" && data.phone) {
+        try {
+          router.push(`/whatsapp/${encodeURIComponent(data.phone)}`);
+        } catch {}
       }
     });
 
     const receiveSub = Notifications.addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data as
-        | { type?: string; groupId?: string }
+        | { type?: string; groupId?: string; phone?: string }
         | undefined;
       if (data?.type === "chat_message" && data.groupId) {
         increment(data.groupId, 1);
+        return;
+      }
+      if (data?.type === "whatsapp_message") {
+        incrementWhatsApp(1);
       }
     });
 
@@ -110,7 +142,7 @@ function ChatPushController() {
       tapSub.remove();
       receiveSub.remove();
     };
-  }, [increment]);
+  }, [increment, incrementWhatsApp]);
 
   return null;
 }
@@ -130,8 +162,9 @@ export default function RootLayout() {
       <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
         <ClerkLoaded>
           <UnreadProvider>
+            <WhatsAppUnreadProvider>
             <ErrorBoundary>
-              <ChatPushController />
+              <PushController />
               <OfflineBanner />
               <StatusBar style="light" />
           <Stack
@@ -166,6 +199,42 @@ export default function RootLayout() {
               options={{ headerBackTitle: "Back" }}
             />
             <Stack.Screen
+              name="whatsapp/contact/[phone]"
+              options={{ headerTitle: "Contact info", headerBackTitle: "Chat" }}
+            />
+            <Stack.Screen
+              name="whatsapp/templates/index"
+              options={{ headerTitle: "Templates", headerBackTitle: "Back" }}
+            />
+            <Stack.Screen
+              name="whatsapp/templates/[name]"
+              options={{ headerTitle: "Compose template", headerBackTitle: "Templates" }}
+            />
+            <Stack.Screen
+              name="whatsapp/customers/index"
+              options={{ headerTitle: "Customers", headerBackTitle: "WhatsApp" }}
+            />
+            <Stack.Screen
+              name="whatsapp/customers/[id]"
+              options={{ headerTitle: "Customer", headerBackTitle: "Customers" }}
+            />
+            <Stack.Screen
+              name="whatsapp/campaigns/index"
+              options={{ headerTitle: "Campaigns", headerBackTitle: "WhatsApp" }}
+            />
+            <Stack.Screen
+              name="whatsapp/campaigns/[id]"
+              options={{ headerTitle: "Campaign", headerBackTitle: "Campaigns" }}
+            />
+            <Stack.Screen
+              name="whatsapp/catalog/index"
+              options={{ headerTitle: "Catalog", headerBackTitle: "WhatsApp" }}
+            />
+            <Stack.Screen
+              name="whatsapp/flows/index"
+              options={{ headerTitle: "Flows", headerBackTitle: "WhatsApp" }}
+            />
+            <Stack.Screen
               name="profile/inquiries"
               options={{ headerTitle: "My Enquiries", headerBackTitle: "Profile" }}
             />
@@ -179,6 +248,7 @@ export default function RootLayout() {
             />
           </Stack>
             </ErrorBoundary>
+            </WhatsAppUnreadProvider>
           </UnreadProvider>
         </ClerkLoaded>
       </ClerkProvider>

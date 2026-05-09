@@ -26,10 +26,15 @@ import {
   splitPackageName,
 } from "@/lib/rich-text";
 
+import {
+  WHATSAPP_BUSINESS_NUMBER,
+  WHATSAPP_BUSINESS_NUMBER_E164,
+} from "@/constants/whatsapp";
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const HERO_HEIGHT = Math.min(SCREEN_HEIGHT * 0.42, 360);
-const WHATSAPP_NUMBER = "919724444701";
-const PHONE_NUMBER = "+919724444701";
+const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
+const PHONE_NUMBER = WHATSAPP_BUSINESS_NUMBER_E164;
 
 type TabKey = "itinerary" | "inclusions" | "policies";
 

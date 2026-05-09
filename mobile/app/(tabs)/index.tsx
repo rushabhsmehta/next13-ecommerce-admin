@@ -26,12 +26,16 @@ import { travelApi } from "@/lib/api";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { splitPackageName } from "@/lib/rich-text";
+import {
+  WHATSAPP_BUSINESS_NUMBER,
+  WHATSAPP_BUSINESS_NUMBER_E164,
+} from "@/constants/whatsapp";
 
 const DEST_CHIP_WIDTH = 188;
 const TESTIMONIAL_CARD_WIDTH = 240;
 
-const PHONE_NUMBER = "+919724444701";
-const WHATSAPP_NUMBER = "919724444701";
+const PHONE_NUMBER = WHATSAPP_BUSINESS_NUMBER_E164;
+const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
 
 const highlights = [
   { value: "10K+", label: "Happy Travellers", icon: "people-outline" as const },

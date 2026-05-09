@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useAuth, useClerk } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { buildTelUrl, buildWaMeUrl } from "@/constants/whatsapp";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
@@ -138,16 +140,14 @@ export default function ProfileTab() {
           label="Chat with Us on WhatsApp"
           iconColor="#25D366"
           onPress={() => {
-            const { Linking } = require("react-native");
-            Linking.openURL("https://wa.me/919724444701?text=Hi, I need help with my booking.");
+            Linking.openURL(buildWaMeUrl("Hi, I need help with my booking."));
           }}
         />
         <MenuItem
           icon="call-outline"
           label="Call Us"
           onPress={() => {
-            const { Linking } = require("react-native");
-            Linking.openURL("tel:+919724444701");
+            Linking.openURL(buildTelUrl());
           }}
         />
       </View>

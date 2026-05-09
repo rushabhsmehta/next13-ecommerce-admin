@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import prismadb from '@/lib/prismadb';
 import { verifyWebhookSignature, updateMessageStatus, sendWhatsAppMessage } from '@/lib/whatsapp';
+import { sendWhatsAppInboundPush } from '@/lib/expo-push';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_ACCESS_TOKEN = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
@@ -613,32 +614,22 @@ export async function POST(request: NextRequest) {
                 console.log(`Saved incoming message ${message.id} from ${message.from}`);
               }
 
-              // Fire push notifications to all registered admin devices (non-blocking)
-              const senderDisplay = (metadata.contactName as string | undefined) || fromNumber || 'Customer';
+              // Fire push notifications to all registered admin devices.
+              // Fire-and-forget so the webhook never blocks; sendWhatsAppInboundPush
+              // also deactivates dead tokens automatically.
+              const senderDisplay =
+                (metadata.contactName as string | undefined) || fromNumber || 'Customer';
               const previewText = (messageBody || '').slice(0, 100);
-              prismadb.adminMobileToken
-                .findMany({ where: { pushToken: { not: null } }, select: { pushToken: true } })
-                .then((admins) => {
-                  if (!admins.length) return;
-                  return fetch('https://exp.host/--/api/v2/push/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(
-                      admins.map((a) => ({
-                        to: a.pushToken,
-                        title: `WhatsApp: ${senderDisplay}`,
-                        body: previewText,
-                        data: { phone: fromNumber, screen: 'whatsapp' },
-                        sound: 'default',
-                        channelId: 'whatsapp',
-                        priority: 'high',
-                      }))
-                    ),
-                  });
-                })
-                .catch((pushErr) => {
+              if (fromNumber) {
+                void sendWhatsAppInboundPush({
+                  phone: fromNumber,
+                  senderName: senderDisplay,
+                  preview: previewText,
+                  messageSid: message.id,
+                }).catch((pushErr) => {
                   console.error('[WhatsApp Webhook] Push notification error:', pushErr);
                 });
+              }
 
               const flowAckEligible =
                 message.type === 'interactive' &&

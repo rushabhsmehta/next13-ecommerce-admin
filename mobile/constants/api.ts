@@ -1,11 +1,28 @@
-// API base URL - points to the Next.js backend
-// __DEV__ is a compile-time constant (true in Expo Go, false in production bundles)
-// This is resolved by Metro at bundle time — never depends on env vars or shell state.
+// API base URLs — sourced from app.json `expo.extra` so they can be tuned per
+// environment without code changes. `__DEV__` is a Metro compile-time flag
+// (true in Expo Go / debug builds, false in production bundles).
+
+import Constants from "expo-constants";
+
+interface ExtraConfig {
+  apiBaseUrl?: string;
+  apiBaseUrlDev?: string;
+  websiteUrl?: string;
+  websiteUrlDev?: string;
+  whatsappBusinessNumber?: string;
+}
+
+const extra = (Constants?.expoConfig?.extra ?? {}) as ExtraConfig;
+
+const PROD_API = "https://admin.aagamholidays.com";
+const DEV_API = "http://192.168.29.133:3000";
+const PROD_WEBSITE = "https://aagamholidays.com";
+const DEV_WEBSITE = "http://192.168.29.133:3000/travel";
 
 export const API_BASE_URL = __DEV__
-  ? "http://192.168.29.133:3000"
-  : "https://admin.aagamholidays.com";
+  ? extra.apiBaseUrlDev ?? DEV_API
+  : extra.apiBaseUrl ?? PROD_API;
 
 export const WEBSITE_URL = __DEV__
-  ? "http://192.168.29.133:3000/travel"
-  : "https://aagamholidays.com";
+  ? extra.websiteUrlDev ?? DEV_WEBSITE
+  : extra.websiteUrl ?? PROD_WEBSITE;

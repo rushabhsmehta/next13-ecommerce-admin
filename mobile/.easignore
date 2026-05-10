@@ -8,9 +8,14 @@ dist/
 android/.gradle/
 android/build/
 android/app/build/
+android/app/build/**
 android/app/.cxx/
+android/app/.cxx/**
 android/**/build/
+android/**/build/**
 android/**/.cxx/
+android/**/.cxx/**
+android/**/intermediates/
 
 # Gradle / JVM crash dumps sometimes appear under android/ — never needed remotely
 android/**/*.log

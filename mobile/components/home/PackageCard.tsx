@@ -24,13 +24,18 @@ export type HomePackage = {
   _count?: { itineraries?: number };
 };
 
+export const PACKAGE_CARD_CAROUSEL_WIDTH = 268;
+
 type Props = {
   pkg: HomePackage;
   onPress: () => void;
   testID?: string;
+  /** Horizontal carousel strip vs full-width list */
+  variant?: "list" | "carousel";
 };
 
-export function PackageCard({ pkg, onPress, testID }: Props) {
+export function PackageCard({ pkg, onPress, testID, variant = "list" }: Props) {
+  const isCarousel = variant === "carousel";
   const imageUrl = pkg.images?.[0]?.url;
   const [imageFailed, setImageFailed] = useState(false);
   const displayPrice = pkg.pricePerAdult || pkg.price;
@@ -49,22 +54,24 @@ export function PackageCard({ pkg, onPress, testID }: Props) {
   return (
     <Pressable
       testID={testID}
-      style={styles.card}
+      style={[styles.card, isCarousel && styles.cardCarousel]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Open ${nameParts.title} package`}
       accessibilityHint="View package details and enquire"
     >
-      <View style={styles.imageWrap}>
+      <View style={[styles.imageWrap, isCarousel && styles.imageWrapCarousel]}>
         {imageUrl && !imageFailed ? (
           <Image
             source={{ uri: imageUrl }}
-            style={styles.image}
+            style={[styles.image, isCarousel && styles.imageCarousel]}
             resizeMode="cover"
             onError={() => setImageFailed(true)}
           />
         ) : (
-          <View style={[styles.image, styles.imageFallback]}>
+          <View
+            style={[styles.image, isCarousel && styles.imageCarousel, styles.imageFallback]}
+          >
             <Ionicons name="image-outline" size={32} color={Colors.textTertiary} />
             <Text style={styles.imageFallbackText} numberOfLines={1}>
               {pkg.location?.label || "Photo coming soon"}
@@ -75,6 +82,9 @@ export function PackageCard({ pkg, onPress, testID }: Props) {
         {imageUrl && !imageFailed ? (
           <LinearGradient
             colors={["transparent", "rgba(0,0,0,0.62)"]}
+            locations={[0, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
             style={styles.imageGradient}
             pointerEvents="none"
           />
@@ -103,8 +113,8 @@ export function PackageCard({ pkg, onPress, testID }: Props) {
         ) : null}
       </View>
 
-      <View style={styles.body}>
-        <Text style={styles.name} numberOfLines={2}>
+      <View style={[styles.body, isCarousel && styles.bodyCarousel]}>
+        <Text style={[styles.name, isCarousel && styles.nameCarousel]} numberOfLines={2}>
           {nameParts.title}
         </Text>
         {nameParts.subtitle ? (
@@ -141,8 +151,29 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...Shadows.medium,
   },
+  cardCarousel: {
+    width: PACKAGE_CARD_CAROUSEL_WIDTH,
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginRight: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    ...Shadows.light,
+  },
   imageWrap: { position: "relative" },
+  /** Fixed square + clip avoids RN Image percentage/aspectRatio gaps on carousel cards */
+  imageWrapCarousel: {
+    width: PACKAGE_CARD_CAROUSEL_WIDTH,
+    height: PACKAGE_CARD_CAROUSEL_WIDTH,
+    overflow: "hidden",
+    backgroundColor: Colors.surfaceAlt,
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
+  },
   image: { width: "100%", height: 210 },
+  imageCarousel: {
+    width: PACKAGE_CARD_CAROUSEL_WIDTH,
+    height: PACKAGE_CARD_CAROUSEL_WIDTH,
+  },
   imageFallback: {
     backgroundColor: Colors.surfaceAlt,
     justifyContent: "center",
@@ -217,11 +248,21 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
     gap: 8,
   },
+  bodyCarousel: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    gap: 6,
+  },
   name: {
     fontSize: FontSize.lg,
     fontWeight: "700",
     color: Colors.text,
     lineHeight: 22,
+  },
+  nameCarousel: {
+    fontSize: FontSize.md,
+    lineHeight: 19,
   },
   subtitle: {
     fontSize: FontSize.sm,

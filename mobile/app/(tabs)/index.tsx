@@ -30,7 +30,11 @@ import { useUnread } from "@/hooks/useUnread";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { splitPackageName } from "@/lib/rich-text";
-import { PackageCard, type HomePackage } from "@/components/home/PackageCard";
+import {
+  PackageCard,
+  PACKAGE_CARD_CAROUSEL_WIDTH,
+  type HomePackage,
+} from "@/components/home/PackageCard";
 import { testimonials, whyUs } from "@/components/home/homeConstants";
 import {
   getLastViewedPackage,
@@ -42,9 +46,21 @@ import {
   WHATSAPP_BUSINESS_NUMBER_E164,
 } from "@/constants/whatsapp";
 
-const DEST_CHIP_WIDTH = 188;
+/** Fixed-width tiles in the Popular places row (identical card sizes) */
+const POPULAR_PLACE_CARD_WIDTH = 100;
+/** Thumb + label only (no package count) */
+const POPULAR_PLACE_CARD_HEIGHT = 112;
 const TESTIMONIAL_CARD_WIDTH = 240;
 const PAGE_SIZE = 8;
+const MAX_LOCATION_CAROUSELS = 12;
+const CAROUSEL_PKG_LIMIT = 8;
+
+type LocationCarouselRow = {
+  id: string;
+  label: string;
+  slug?: string | null;
+  packages: Package[];
+};
 
 const PHONE_NUMBER = WHATSAPP_BUSINESS_NUMBER_E164;
 const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
@@ -82,31 +98,6 @@ function buildWhatsAppPlanMessage(parts: {
   return lines.join(" ");
 }
 
-const skelStyles = StyleSheet.create({
-  card: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    borderRadius: BorderRadius.xl,
-    backgroundColor: Colors.background,
-    overflow: "hidden",
-    ...Shadows.medium,
-  },
-  image: {
-    width: "100%",
-    height: 210,
-    backgroundColor: Colors.surfaceAlt,
-  },
-  body: { padding: Spacing.md + 2 },
-  line: { height: 14, borderRadius: 6, backgroundColor: Colors.border },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  pill: { height: 12, borderRadius: 6, backgroundColor: Colors.border },
-});
-
 // ─── Home Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter();
@@ -117,6 +108,9 @@ export default function HomeScreen() {
   const { total: unreadChatTotal } = useUnread();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
+  const [locationCarouselRows, setLocationCarouselRows] = useState<
+    LocationCarouselRow[]
+  >([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [searchText, setSearchText] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -173,47 +167,171 @@ export default function HomeScreen() {
           debouncedSearch.trim() || appliedSearch.trim()
             ? debouncedSearch.trim() || appliedSearch.trim()
             : undefined;
-        const [destResult, pkgResult] = await Promise.allSettled([
-          travelApi.getDestinations(),
-          travelApi.getPackages({
-            limit: PAGE_SIZE,
-            offset: 0,
-            category: activeCategory !== "all" ? activeCategory : undefined,
-            search: searchQ,
-            locationId: activeLocation || undefined,
-          }),
-        ]);
+        const isBrowseMode =
+          !activeLocation && activeCategory === "all" && !searchQ;
 
-        if (myFetch !== dataFetchId.current) return;
+        if (isBrowseMode) {
+          const [destResult, metaResult] = await Promise.allSettled([
+            travelApi.getDestinations(),
+            travelApi.getPackages({
+              limit: 1,
+              offset: 0,
+            }),
+          ]);
 
-        if (destResult.status === "fulfilled") {
-          setDestinations(destResult.value.destinations || []);
-        } else {
-          console.error("Failed to load destinations:", destResult.reason);
-          setDestinations([]);
-        }
+          if (myFetch !== dataFetchId.current) return;
 
-        if (pkgResult.status === "fulfilled") {
-          const d = pkgResult.value as {
-            packages?: Package[];
-            hasMore?: boolean;
-            categories?: string[];
-            featuredPackageCount?: number;
-            total?: number;
-          };
-          setPackages(d.packages || []);
-          setHasMore(Boolean(d.hasMore));
-          setFeaturedPackageCount(typeof d.featuredPackageCount === "number" ? d.featuredPackageCount : 0);
-          setPackageTotal(typeof d.total === "number" ? d.total : null);
-          if (Array.isArray(d.categories) && d.categories.length > 0) {
-            setCategories(d.categories);
+          if (destResult.status === "fulfilled") {
+            setDestinations(destResult.value.destinations || []);
+          } else {
+            console.error("Failed to load destinations:", destResult.reason);
+            setDestinations([]);
+          }
+
+          if (metaResult.status === "fulfilled") {
+            const meta = metaResult.value as {
+              categories?: string[];
+              featuredPackageCount?: number;
+              total?: number;
+            };
+            setFeaturedPackageCount(
+              typeof meta.featuredPackageCount === "number"
+                ? meta.featuredPackageCount
+                : 0
+            );
+            setPackageTotal(typeof meta.total === "number" ? meta.total : null);
+            if (Array.isArray(meta.categories) && meta.categories.length > 0) {
+              setCategories(meta.categories);
+            }
+          } else {
+            console.error("Failed to load packages:", metaResult.reason);
+            setPackages([]);
+            setLocationCarouselRows([]);
+            setHasMore(false);
+            setLoadError("Packages could not load. Pull down to retry.");
+            setPackageTotal(null);
+          }
+
+          if (metaResult.status !== "fulfilled") {
+            return;
+          }
+
+          const sortedDests =
+            destResult.status === "fulfilled"
+              ? [...(destResult.value.destinations || [])].sort(
+                  (a, b) =>
+                    (b._count?.tourPackages ?? 0) -
+                    (a._count?.tourPackages ?? 0)
+                )
+              : [];
+
+          const destsForCarousels = sortedDests.slice(0, MAX_LOCATION_CAROUSELS);
+
+          const carouselResults = await Promise.all(
+            destsForCarousels.map(async (dest) => {
+              try {
+                const r = (await travelApi.getPackages({
+                  locationId: dest.id,
+                  limit: CAROUSEL_PKG_LIMIT,
+                  offset: 0,
+                })) as { packages?: Package[] };
+                const pkgs = r.packages || [];
+                return pkgs.length > 0
+                  ? {
+                      id: dest.id,
+                      label: dest.label,
+                      slug: dest.slug,
+                      packages: pkgs,
+                    }
+                  : null;
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          if (myFetch !== dataFetchId.current) return;
+
+          const rows = carouselResults.filter(
+            (r): r is LocationCarouselRow => r !== null
+          );
+
+          if (rows.length === 0) {
+            try {
+              const fb = (await travelApi.getPackages({
+                limit: PAGE_SIZE,
+                offset: 0,
+              })) as {
+                packages?: Package[];
+                hasMore?: boolean;
+              };
+              if (myFetch !== dataFetchId.current) return;
+              setPackages(fb.packages || []);
+              setHasMore(Boolean(fb.hasMore));
+              setLocationCarouselRows([]);
+              setLoadError(null);
+            } catch {
+              if (myFetch !== dataFetchId.current) return;
+              setPackages([]);
+              setHasMore(false);
+              setLocationCarouselRows([]);
+              setLoadError("Packages could not load. Pull down to retry.");
+            }
+          } else {
+            setLocationCarouselRows(rows);
+            setPackages([]);
+            setHasMore(false);
+            setLoadError(null);
           }
         } else {
-          console.error("Failed to load packages:", pkgResult.reason);
-          setPackages([]);
-          setHasMore(false);
-          setLoadError("Packages could not load. Pull down to retry.");
-          setPackageTotal(null);
+          setLocationCarouselRows([]);
+          const [destResult, pkgResult] = await Promise.allSettled([
+            travelApi.getDestinations(),
+            travelApi.getPackages({
+              limit: PAGE_SIZE,
+              offset: 0,
+              category:
+                activeCategory !== "all" ? activeCategory : undefined,
+              search: searchQ,
+              locationId: activeLocation || undefined,
+            }),
+          ]);
+
+          if (myFetch !== dataFetchId.current) return;
+
+          if (destResult.status === "fulfilled") {
+            setDestinations(destResult.value.destinations || []);
+          } else {
+            console.error("Failed to load destinations:", destResult.reason);
+            setDestinations([]);
+          }
+
+          if (pkgResult.status === "fulfilled") {
+            const d = pkgResult.value as {
+              packages?: Package[];
+              hasMore?: boolean;
+              categories?: string[];
+              featuredPackageCount?: number;
+              total?: number;
+            };
+            setPackages(d.packages || []);
+            setHasMore(Boolean(d.hasMore));
+            setFeaturedPackageCount(
+              typeof d.featuredPackageCount === "number"
+                ? d.featuredPackageCount
+                : 0
+            );
+            setPackageTotal(typeof d.total === "number" ? d.total : null);
+            if (Array.isArray(d.categories) && d.categories.length > 0) {
+              setCategories(d.categories);
+            }
+          } else {
+            console.error("Failed to load packages:", pkgResult.reason);
+            setPackages([]);
+            setHasMore(false);
+            setLoadError("Packages could not load. Pull down to retry.");
+            setPackageTotal(null);
+          }
         }
       } catch (error) {
         console.error(error);
@@ -302,6 +420,25 @@ export default function HomeScreen() {
     [appliedSearch, debouncedSearch, selectedDestinationLabel, activeCategory]
   );
 
+  const showingLocationCarousels = useMemo(() => {
+    const q =
+      debouncedSearch.trim() || appliedSearch.trim()
+        ? debouncedSearch.trim() || appliedSearch.trim()
+        : undefined;
+    return (
+      !activeLocation &&
+      activeCategory === "all" &&
+      !q &&
+      locationCarouselRows.length > 0
+    );
+  }, [
+    activeLocation,
+    activeCategory,
+    debouncedSearch,
+    appliedSearch,
+    locationCarouselRows,
+  ]);
+
   const syncDebouncedSearch = useCallback(() => {
     const term = debouncedSearch.trim();
     if (term !== appliedSearch) {
@@ -335,18 +472,8 @@ export default function HomeScreen() {
       >
         {/* Hero skeleton */}
         <Animated.View
-          style={[styles.skeletonHero, { paddingTop: insets.top + 20, opacity: skeletonOpacity }]}
+          style={[styles.skeletonHero, { paddingTop: insets.top + 8, opacity: skeletonOpacity }]}
         />
-
-        {/* Trust bar skeleton */}
-        <View style={styles.skeletonTrustRow}>
-          {[1, 2, 3].map((i) => (
-            <Animated.View
-              key={i}
-              style={[styles.skeletonTrustCard, { opacity: skeletonOpacity }]}
-            />
-          ))}
-        </View>
 
         {/* Section title skeleton */}
         <View style={{ paddingHorizontal: Spacing.lg, marginTop: 20, marginBottom: 4 }}>
@@ -364,18 +491,88 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Skeleton package cards */}
-        {[1, 2, 3].map((i) => (
-          <View key={i} style={skelStyles.card}>
-            <View style={skelStyles.image} />
-            <View style={skelStyles.body}>
-              <View style={[skelStyles.line, { width: "78%" }]} />
-              <View style={[skelStyles.line, { width: "52%", marginTop: 6 }]} />
-              <View style={skelStyles.footer}>
-                <View style={[skelStyles.pill, { width: 60 }]} />
-                <View style={[skelStyles.pill, { width: 80 }]} />
-              </View>
+        {/* Skeleton: popular place tiles */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View
+            style={{
+              flexDirection: "row",
+              paddingHorizontal: Spacing.lg,
+              gap: Spacing.sm,
+              paddingBottom: Spacing.sm,
+            }}
+          >
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  {
+                    width: POPULAR_PLACE_CARD_WIDTH,
+                    height: POPULAR_PLACE_CARD_HEIGHT,
+                    borderRadius: BorderRadius.lg,
+                    backgroundColor: Colors.surfaceAlt,
+                  },
+                  { opacity: skeletonOpacity },
+                ]}
+              />
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Skeleton: horizontal package strips per destination */}
+        {[1, 2].map((row) => (
+          <View key={row} style={{ marginBottom: Spacing.lg }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingHorizontal: Spacing.lg,
+                marginBottom: Spacing.sm,
+              }}
+            >
+              <Animated.View
+                style={[
+                  {
+                    height: 14,
+                    width: 132,
+                    borderRadius: 6,
+                    backgroundColor: Colors.border,
+                  },
+                  { opacity: skeletonOpacity },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  {
+                    height: 14,
+                    width: 52,
+                    borderRadius: 6,
+                    backgroundColor: Colors.border,
+                  },
+                  { opacity: skeletonOpacity },
+                ]}
+              />
             </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: "row", paddingLeft: Spacing.lg }}>
+                {[1, 2, 3].map((i) => (
+                  <Animated.View
+                    key={i}
+                    style={[
+                      {
+                        width: PACKAGE_CARD_CAROUSEL_WIDTH,
+                        height:
+                          PACKAGE_CARD_CAROUSEL_WIDTH + 118 /* square thumb + body */,
+                        marginRight: Spacing.sm,
+                        borderRadius: BorderRadius.lg,
+                        backgroundColor: Colors.surfaceAlt,
+                      },
+                      { opacity: skeletonOpacity },
+                    ]}
+                  />
+                ))}
+              </View>
+            </ScrollView>
           </View>
         ))}
 
@@ -403,19 +600,20 @@ export default function HomeScreen() {
           colors={[Colors.gradient1, Colors.gradient2]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.brandCard, { paddingTop: insets.top + 20 }]}
+          style={[styles.brandCard, { paddingTop: insets.top + 8 }]}
         >
           <View style={styles.brandRow}>
             <View style={styles.brandIcon}>
-              <Ionicons name="airplane" size={22} color="#fff" />
+              <Ionicons name="airplane" size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.brandLabel}>Aagam Holidays</Text>
-              <Text style={styles.brandTitle}>Discover your{"\n"}next trip</Text>
-              <Text style={styles.brandSubtitle}>
-                {featuredPackageCount > 0
-                  ? `${formatFeaturedCount(featuredPackageCount)} handcrafted tours across India`
-                  : "Handcrafted tours across India"}
+              <Text style={styles.brandTitle}>Discover your next trip</Text>
+              <Text style={styles.heroMetaInline} numberOfLines={1}>
+                {featuredPackageCount > 0 ? `${formatFeaturedCount(featuredPackageCount)} tours` : "Tours"}
+                {" · "}
+                Verified
+                {destinations.length > 0 ? ` · ${destinations.length} destinations` : ""}
               </Text>
             </View>
           </View>
@@ -455,47 +653,6 @@ export default function HomeScreen() {
         </LinearGradient>
       </View>
 
-      {/* ── Trust Bar ── */}
-      <View style={styles.trustBar}>
-        <View style={styles.trustItem}>
-          <View style={styles.trustIconWrap}>
-            <Ionicons name="briefcase-outline" size={14} color={Colors.text} />
-          </View>
-          <View>
-            <Text style={styles.trustValue}>
-              {featuredPackageCount > 0 ? formatFeaturedCount(featuredPackageCount) : "—"} tours
-            </Text>
-            <Text style={styles.trustSub}>Featured on the app</Text>
-          </View>
-        </View>
-
-        <View style={styles.trustDivider} />
-
-        <View style={styles.trustItem}>
-          <View style={styles.trustIconWrap}>
-            <Ionicons name="shield-checkmark" size={14} color={Colors.text} />
-          </View>
-          <View>
-            <Text style={styles.trustValue}>Verified</Text>
-            <Text style={styles.trustSub}>Safe, supported travel</Text>
-          </View>
-        </View>
-
-        <View style={styles.trustDivider} />
-
-        <View style={styles.trustItem}>
-          <View style={styles.trustIconWrap}>
-            <Ionicons name="earth-outline" size={14} color={Colors.text} />
-          </View>
-          <View>
-            <Text style={styles.trustValue}>
-              {destinations.length > 0 ? destinations.length : "—"} places
-            </Text>
-            <Text style={styles.trustSub}>Destinations</Text>
-          </View>
-        </View>
-      </View>
-
       {loadError ? (
         <View style={styles.errorBanner}>
           <Ionicons name="warning-outline" size={18} color={Colors.error} />
@@ -511,111 +668,36 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
-      {isAssociate ? (
-        <Pressable
-          testID="associate-inquiries-banner"
-          accessibilityRole="button"
-          accessibilityLabel="Open associate inquiries"
-          accessibilityHint="Create and manage inquiries linked to your partner account"
-          style={styles.associateBanner}
-          onPress={() => router.push("/associate/inquiries")}
-        >
-          <View style={styles.associateBannerIcon}>
-            <Ionicons name="briefcase" size={18} color={Colors.primary} />
+      {/* ── Active Filter Pill (above packages so results stay in context) ── */}
+      {(appliedSearch || activeCategory !== "all" || activeLocation) && (
+        <View style={styles.filterRow}>
+          <View testID="filter-badge" style={styles.filterPill}>
+            <Ionicons name="funnel" size={11} color={Colors.primary} />
+            <Text style={styles.filterText} numberOfLines={1}>
+              {[
+                selectedDestinationLabel,
+                activeCategory !== "all" ? activeCategory : null,
+                appliedSearch ? `"${appliedSearch}"` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.associateBannerTitle}>Partner inquiries</Text>
-            <Text style={styles.associateBannerSub}>Create leads and track status</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
-        </Pressable>
-      ) : null}
-
-      {showPersonalShortcuts ? (
-        <View style={styles.shortcutsRow}>
-          <Pressable
-            testID="home-shortcut-enquiries"
-            style={styles.shortcutChip}
-            onPress={() => router.push("/profile/inquiries")}
-            accessibilityRole="button"
-            accessibilityLabel="Open my enquiries"
-            accessibilityHint="View enquiries you submitted from the app"
-          >
-            <Ionicons name="mail-outline" size={18} color={Colors.primary} />
-            <Text style={styles.shortcutChipText}>My enquiries</Text>
+          <Pressable style={styles.clearButton} onPress={handleClear}>
+            <Text style={styles.clearButtonText}>Clear</Text>
           </Pressable>
-          <Pressable
-            testID="home-shortcut-trips"
-            style={styles.shortcutChip}
-            onPress={() => router.push("/chat")}
-            accessibilityRole="button"
-            accessibilityLabel="Open trips and chat"
-            accessibilityHint="View trip groups and messages"
-          >
-            <View style={styles.shortcutIconWrap}>
-              <Ionicons name="chatbubbles-outline" size={18} color={Colors.primary} />
-              {unreadChatTotal > 0 ? (
-                <View style={styles.shortcutBadge}>
-                  <Text style={styles.shortcutBadgeText}>
-                    {unreadChatTotal > 99 ? "99+" : unreadChatTotal}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-            <Text style={styles.shortcutChipText}>Trips</Text>
-          </Pressable>
-          {lastViewed ? (
-            <Pressable
-              testID="home-shortcut-continue"
-              style={styles.shortcutChip}
-              onPress={() =>
-                router.push(`/packages/${lastViewed.slug || lastViewed.id}`)
-              }
-              accessibilityRole="button"
-              accessibilityLabel="Continue last viewed package"
-            >
-              <Ionicons name="play-circle-outline" size={18} color={Colors.primary} />
-              <Text style={styles.shortcutChipText} numberOfLines={1}>
-                Continue
-              </Text>
-            </Pressable>
-          ) : null}
         </View>
-      ) : null}
+      )}
 
-      {featuredPackageCount > 0 || destinations.length > 0 ? (
-        <View style={styles.highlightsRow}>
-          {[
-            {
-              icon: "briefcase-outline" as const,
-              value: featuredPackageCount > 0 ? formatFeaturedCount(featuredPackageCount) : "—",
-              label: "Featured tours",
-            },
-            {
-              icon: "earth-outline" as const,
-              value: destinations.length > 0 ? String(destinations.length) : "—",
-              label: "Destinations",
-            },
-            {
-              icon: "headset-outline" as const,
-              value: "24/7",
-              label: "Travel desk",
-            },
-          ].map((h) => (
-            <View key={h.label} style={styles.highlightMini}>
-              <Ionicons name={h.icon} size={16} color={Colors.primary} />
-              <Text style={styles.highlightValue}>{h.value}</Text>
-              <Text style={styles.highlightLabel}>{h.label}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      {/* ── Popular Destinations ── */}
-      <View style={styles.section}>
+      {/* ── Popular places (same-size tiles, directly above packages) ── */}
+      <View style={styles.popularPlacesSection}>
         <SectionHeader
           title="Popular places"
-          subtitle={destinations.length > 0 ? `${destinations.length} destinations to explore` : undefined}
+          subtitle={
+            destinations.length > 0
+              ? `${destinations.length} destinations to explore`
+              : undefined
+          }
           action={
             destinations.length > 8
               ? {
@@ -627,69 +709,267 @@ export default function HomeScreen() {
           }
         />
         <View style={styles.carouselWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          decelerationRate="fast"
-          snapToInterval={DEST_CHIP_WIDTH + Spacing.sm}
-          snapToAlignment="start"
-          contentContainerStyle={styles.destRow}
-        >
-          {destinations.slice(0, 8).map((dest) => {
-            const active = activeLocation === dest.id;
-            return (
-              <Pressable
-                key={dest.id}
-                testID={`home-dest-${dest.id}`}
-                style={[styles.destChip, active && styles.destChipActive]}
-                onPress={() => setActiveLocation(active ? null : dest.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Filter by ${dest.label}`}
-                accessibilityHint="Toggle filter for packages in this destination"
-              >
-                {/* Thumbnail */}
-                <View style={styles.destChipThumbWrap}>
-                  {dest.imageUrl ? (
-                    <Image source={{ uri: dest.imageUrl }} style={styles.destChipThumb} />
-                  ) : (
-                    <LinearGradient
-                      colors={[Colors.gradient1, Colors.gradient2]}
-                      style={styles.destChipThumb}
-                    />
-                  )}
-                  {active && (
-                    <View style={styles.destChipThumbOverlay}>
-                      <Ionicons name="checkmark" size={11} color="#fff" />
-                    </View>
-                  )}
-                </View>
-
-                {/* Label + count */}
-                <View style={styles.destChipInfo}>
-                  <Text
-                    style={[styles.destChipLabel, active && styles.destChipLabelActive]}
-                    numberOfLines={1}
-                  >
-                    {dest.label}
-                  </Text>
-                  <Text style={styles.destChipMeta}>
-                    {dest._count?.tourPackages || 0} pkg
-                    {(dest._count?.tourPackages || 0) === 1 ? "" : "s"}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <LinearGradient
-          colors={["rgba(250,249,248,0)", Colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.edgeFade}
-          pointerEvents="none"
-        />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            snapToInterval={POPULAR_PLACE_CARD_WIDTH + Spacing.sm}
+            snapToAlignment="start"
+            contentContainerStyle={styles.destRow}
+          >
+            {destinations.slice(0, 8).map((dest) => {
+              const active = activeLocation === dest.id;
+              return (
+                <Pressable
+                  key={dest.id}
+                  testID={`home-dest-${dest.id}`}
+                  style={[styles.destChip, active && styles.destChipActive]}
+                  onPress={() => setActiveLocation(active ? null : dest.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Filter by ${dest.label}`}
+                  accessibilityHint="Toggle filter for packages in this destination"
+                >
+                  <View style={styles.destChipThumbWrap}>
+                    {dest.imageUrl ? (
+                      <Image
+                        source={{ uri: dest.imageUrl }}
+                        style={styles.destChipThumb}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <LinearGradient
+                        colors={[Colors.gradient1, Colors.gradient2]}
+                        style={styles.destChipThumb}
+                      />
+                    )}
+                    {active ? (
+                      <View style={styles.destChipThumbOverlay}>
+                        <Ionicons name="checkmark" size={11} color="#fff" />
+                      </View>
+                    ) : null}
+                  </View>
+                  <View style={styles.destChipInfo}>
+                    <Text
+                      style={[
+                        styles.destChipLabel,
+                        active && styles.destChipLabelActive,
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {dest.label}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <LinearGradient
+            colors={["rgba(250,249,248,0)", Colors.surface]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.edgeFade}
+            pointerEvents="none"
+          />
         </View>
       </View>
+
+      {/* ── Package Cards ── */}
+      <View style={styles.packagesSection}>
+        <SectionHeader
+          title={
+            showingLocationCarousels
+              ? "Packages by destination"
+              : appliedSearch || activeCategory !== "all" || activeLocation
+                ? "Matching packages"
+                : "Trending packages"
+          }
+          subtitle={
+            showingLocationCarousels
+              ? packageTotal != null && packageTotal > 0
+                ? `${packageTotal} ${packageTotal === 1 ? "package" : "packages"} · swipe each row`
+                : "Explore tours grouped by destination"
+              : packages.length > 0
+                ? packageTotal != null
+                  ? `Showing ${packages.length} of ${packageTotal} ${
+                      packageTotal === 1 ? "package" : "packages"
+                    }`
+                  : `${packages.length} ${packages.length === 1 ? "package" : "packages"}`
+                : !loadError &&
+                    !appliedSearch &&
+                    activeCategory === "all" &&
+                    !activeLocation
+                  ? "Tap a place above or pick a category below"
+                  : undefined
+          }
+        />
+
+        <View testID="package-list">
+          {showingLocationCarousels ? (
+            <>
+              {locationCarouselRows.map((row) => (
+                <View
+                  key={row.id}
+                  style={styles.locationCarouselBlock}
+                  testID={`home-location-carousel-${row.id}`}
+                >
+                  <View style={styles.locationCarouselHeader}>
+                    <Text style={styles.locationCarouselTitle} numberOfLines={1}>
+                      {row.label}
+                    </Text>
+                    <Pressable
+                      onPress={() => setActiveLocation(row.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`See all packages in ${row.label}`}
+                      accessibilityHint="Shows a full list filtered to this destination"
+                      hitSlop={8}
+                    >
+                      <Text style={styles.seeAllText}>See all</Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.carouselWrap}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      decelerationRate="fast"
+                      snapToInterval={
+                        PACKAGE_CARD_CAROUSEL_WIDTH + Spacing.sm
+                      }
+                      snapToAlignment="start"
+                      contentContainerStyle={styles.carouselPkgRow}
+                    >
+                      {row.packages.map((pkg, index) => (
+                        <PackageCard
+                          key={pkg.id}
+                          variant="carousel"
+                          testID={`package-card-${row.id}-${index}`}
+                          pkg={pkg}
+                          onPress={() => void openPackage(pkg)}
+                        />
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              ))}
+            </>
+          ) : packages.length > 0 ? (
+            packages.map((pkg, index) => (
+              <PackageCard
+                key={pkg.id}
+                testID={`package-card-${index}`}
+                pkg={pkg}
+                onPress={() => void openPackage(pkg)}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <LinearGradient
+                colors={[Colors.gradient1, Colors.gradient2]}
+                style={styles.emptyIcon}
+              >
+                <Ionicons name="search-outline" size={28} color="#fff" />
+              </LinearGradient>
+              <Text style={styles.emptyTitle}>
+                {loadError ? "Could not load packages" : "No packages found"}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {loadError
+                  ? "Use Retry above or pull down to refresh."
+                  : appliedSearch ||
+                      activeCategory !== "all" ||
+                      activeLocation
+                    ? "Try a different search or clear the filters."
+                    : "Featured packages are unavailable right now. Please try again later."}
+              </Text>
+            </View>
+          )}
+          {!showingLocationCarousels && hasMore && packages.length > 0 ? (
+            <Pressable
+              testID="home-load-more-packages"
+              style={[styles.loadMoreBtn, loadingMore ? styles.loadMoreDisabled : null]}
+              onPress={() => void loadMorePackages()}
+              disabled={loadingMore}
+              accessibilityRole="button"
+              accessibilityLabel="Load more packages"
+            >
+              {loadingMore ? (
+                <ActivityIndicator color={Colors.primary} />
+              ) : (
+                <Text style={styles.loadMoreText}>Load more</Text>
+              )}
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
+      {/* ── Partner + shortcuts (below packages so tours stay above the fold) ── */}
+      {isAssociate ? (
+        <Pressable
+          testID="associate-inquiries-banner"
+          accessibilityRole="button"
+          accessibilityLabel="Open associate inquiries"
+          accessibilityHint="Create and manage inquiries linked to your partner account"
+          style={styles.associateBannerCompact}
+          onPress={() => router.push("/associate/inquiries")}
+        >
+          <View style={styles.associateBannerIconCompact}>
+            <Ionicons name="briefcase" size={15} color={Colors.primary} />
+          </View>
+          <Text style={styles.associateBannerTitleCompact}>Partner inquiries</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+        </Pressable>
+      ) : null}
+
+      {showPersonalShortcuts ? (
+        <View style={styles.shortcutsRowCompact}>
+          <Pressable
+            testID="home-shortcut-enquiries"
+            style={styles.shortcutChipCompact}
+            onPress={() => router.push("/profile/inquiries")}
+            accessibilityRole="button"
+            accessibilityLabel="Open my enquiries"
+            accessibilityHint="View enquiries you submitted from the app"
+          >
+            <Ionicons name="mail-outline" size={15} color={Colors.primary} />
+            <Text style={styles.shortcutChipTextCompact}>Enquiries</Text>
+          </Pressable>
+          <Pressable
+            testID="home-shortcut-trips"
+            style={styles.shortcutChipCompact}
+            onPress={() => router.push("/chat")}
+            accessibilityRole="button"
+            accessibilityLabel="Open trips and chat"
+            accessibilityHint="View trip groups and messages"
+          >
+            <View style={styles.shortcutIconWrap}>
+              <Ionicons name="chatbubbles-outline" size={15} color={Colors.primary} />
+              {unreadChatTotal > 0 ? (
+                <View style={styles.shortcutBadge}>
+                  <Text style={styles.shortcutBadgeText}>
+                    {unreadChatTotal > 99 ? "99+" : unreadChatTotal}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={styles.shortcutChipTextCompact}>Trips</Text>
+          </Pressable>
+          {lastViewed ? (
+            <Pressable
+              testID="home-shortcut-continue"
+              style={styles.shortcutChipCompact}
+              onPress={() =>
+                router.push(`/packages/${lastViewed.slug || lastViewed.id}`)
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Continue last viewed package"
+            >
+              <Ionicons name="play-circle-outline" size={15} color={Colors.primary} />
+              <Text style={styles.shortcutChipTextCompact} numberOfLines={1}>
+                Continue
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* ── Tour Categories ── */}
       <View style={styles.section}>
@@ -716,95 +996,6 @@ export default function HomeScreen() {
             );
           })}
         </ScrollView>
-      </View>
-
-      {/* ── Active Filter Pill ── */}
-      {(appliedSearch || activeCategory !== "all" || activeLocation) && (
-        <View style={styles.filterRow}>
-          <View testID="filter-badge" style={styles.filterPill}>
-            <Ionicons name="funnel" size={11} color={Colors.primary} />
-            <Text style={styles.filterText} numberOfLines={1}>
-              {[
-                selectedDestinationLabel,
-                activeCategory !== "all" ? activeCategory : null,
-                appliedSearch ? `"${appliedSearch}"` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </Text>
-          </View>
-          <Pressable style={styles.clearButton} onPress={handleClear}>
-            <Text style={styles.clearButtonText}>Clear</Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* ── Package Cards ── */}
-      <View style={styles.section}>
-        <SectionHeader
-          title={
-            appliedSearch || activeCategory !== "all" || activeLocation
-              ? "Matching packages"
-              : "Trending packages"
-          }
-          subtitle={
-            packages.length > 0
-              ? packageTotal != null
-                ? `Showing ${packages.length} of ${packageTotal} ${
-                    packageTotal === 1 ? "package" : "packages"
-                  }`
-                : `${packages.length} ${packages.length === 1 ? "package" : "packages"}`
-              : undefined
-          }
-        />
-
-        <View testID="package-list">
-          {packages.length > 0 ? (
-            packages.map((pkg, index) => (
-              <PackageCard
-                key={pkg.id}
-                testID={`package-card-${index}`}
-                pkg={pkg}
-                onPress={() => void openPackage(pkg)}
-              />
-            ))
-          ) : (
-            <View style={styles.emptyState}>
-              <LinearGradient
-                colors={[Colors.gradient1, Colors.gradient2]}
-                style={styles.emptyIcon}
-              >
-                <Ionicons name="search-outline" size={28} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.emptyTitle}>
-                {loadError ? "Could not load packages" : "No packages found"}
-              </Text>
-              <Text style={styles.emptySubtitle}>
-                {loadError
-                  ? "Use Retry above or pull down to refresh."
-                  : appliedSearch || activeCategory !== "all" || activeLocation
-                    ? "Try a different search or clear the filters."
-                    : "Featured packages are unavailable right now. Please try again later."}
-              </Text>
-            </View>
-          )}
-          {hasMore && packages.length > 0 ? (
-            <Pressable
-              testID="home-load-more-packages"
-              style={[styles.loadMoreBtn, loadingMore ? styles.loadMoreDisabled : null]}
-              onPress={() => void loadMorePackages()}
-              disabled={loadingMore}
-              accessibilityRole="button"
-              accessibilityLabel="Load more packages"
-            >
-              {loadingMore ? (
-                <ActivityIndicator color={Colors.primary} />
-              ) : (
-                <Text style={styles.loadMoreText}>Load more</Text>
-              )}
-            </Pressable>
-          ) : null}
-        </View>
       </View>
 
       {/* ── Testimonials ── */}
@@ -929,42 +1120,30 @@ const styles = StyleSheet.create({
 
   // ── Skeleton ──
   skeletonHero: {
-    height: 220,
+    height: 148,
     backgroundColor: Colors.surfaceAlt,
     borderBottomLeftRadius: BorderRadius.xl,
     borderBottomRightRadius: BorderRadius.xl,
   },
-  skeletonTrustRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  skeletonTrustCard: {
-    flex: 1,
-    height: 72,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.border,
-  },
 
   // ── Hero ──
-  topHero: { marginBottom: Spacing.sm },
+  topHero: { marginBottom: 4 },
   brandCard: {
     borderBottomLeftRadius: BorderRadius.xl,
     borderBottomRightRadius: BorderRadius.xl,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.md,
   },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   brandIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
@@ -977,17 +1156,17 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   brandTitle: {
-    fontSize: FontSize.xxxl,
+    fontSize: FontSize.xl,
     color: "#fff",
     fontWeight: "800",
-    marginTop: 3,
-    lineHeight: 32,
+    marginTop: 2,
+    lineHeight: 26,
   },
-  brandSubtitle: {
-    fontSize: FontSize.sm,
-    color: "rgba(255,255,255,0.75)",
-    marginTop: 5,
-    fontWeight: "500",
+  heroMetaInline: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.72)",
+    marginTop: 4,
+    fontWeight: "600",
   },
   searchBar: {
     flexDirection: "row",
@@ -996,7 +1175,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.97)",
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 11,
+    paddingVertical: 8,
   },
   searchInput: { flex: 1, fontSize: FontSize.md, color: Colors.text },
   searchDivider: {
@@ -1012,84 +1191,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
 
-  // ── Trust Bar ──
-  trustBar: {
+  associateBannerCompact: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.background,
+    gap: 10,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: 14,
     paddingHorizontal: Spacing.md,
-    ...Shadows.light,
-  },
-  trustItem: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    justifyContent: "center",
-  },
-  trustIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    backgroundColor: Colors.surfaceAlt,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  trustValue: {
-    fontSize: FontSize.xs + 1,
-    fontWeight: "700",
-    color: Colors.text,
-    lineHeight: 16,
-  },
-  trustSub: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "500",
-    lineHeight: 14,
-  },
-  trustDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: Colors.borderSubtle,
-  },
-
-  associateBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
+    paddingVertical: 10,
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    ...Shadows.light,
   },
-  associateBannerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
+  associateBannerIconCompact: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.primaryBg,
     justifyContent: "center",
     alignItems: "center",
   },
-  associateBannerTitle: {
+  associateBannerTitleCompact: {
+    flex: 1,
     fontSize: FontSize.sm,
     fontWeight: "700",
     color: Colors.text,
-  },
-  associateBannerSub: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    marginTop: 2,
   },
 
   errorBanner: {
@@ -1113,30 +1240,30 @@ const styles = StyleSheet.create({
   },
   errorRetryText: { fontSize: FontSize.sm, fontWeight: "800", color: "#fff" },
 
-  shortcutsRow: {
+  shortcutsRowCompact: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
+    marginTop: Spacing.xs,
+    marginBottom: 2,
   },
-  shortcutChip: {
+  shortcutChipCompact: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
+    gap: 5,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 7,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.border,
-    ...Shadows.light,
   },
-  shortcutChipText: {
-    fontSize: FontSize.sm,
+  shortcutChipTextCompact: {
+    fontSize: FontSize.xs + 1,
     fontWeight: "700",
     color: Colors.text,
-    maxWidth: 100,
+    maxWidth: 88,
   },
   shortcutIconWrap: { position: "relative" },
   shortcutBadge: {
@@ -1153,25 +1280,6 @@ const styles = StyleSheet.create({
   },
   shortcutBadgeText: { fontSize: 9, fontWeight: "800", color: "#fff" },
 
-  highlightsRow: {
-    flexDirection: "row",
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    gap: Spacing.sm,
-  },
-  highlightMini: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 4,
-  },
-  highlightValue: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
-  highlightLabel: { fontSize: 10, color: Colors.textTertiary, fontWeight: "600", textAlign: "center" },
-
   loadMoreBtn: {
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
@@ -1187,6 +1295,37 @@ const styles = StyleSheet.create({
   loadMoreText: { fontSize: FontSize.md, fontWeight: "800", color: Colors.primary },
 
   // ── Sections ──
+  popularPlacesSection: {
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+  },
+  /** Packages directly below Popular places */
+  packagesSection: { paddingTop: Spacing.sm, paddingBottom: 0 },
+  locationCarouselBlock: { marginBottom: Spacing.lg },
+  locationCarouselHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  locationCarouselTitle: {
+    flex: 1,
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.text,
+  },
+  seeAllText: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
+  carouselPkgRow: {
+    paddingLeft: Spacing.lg,
+    paddingBottom: 2,
+    paddingRight: Spacing.lg,
+  },
   section: { paddingTop: Spacing.lg, paddingBottom: 0 },
   carouselWrap: { position: "relative" },
   edgeFade: {
@@ -1197,21 +1336,22 @@ const styles = StyleSheet.create({
     width: 28,
   },
 
-  // ── Destination Chips ──
+  // ── Popular places (fixed-size vertical tiles) ──
   destRow: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
     paddingBottom: 2,
   },
   destChip: {
-    flexDirection: "row",
+    width: POPULAR_PLACE_CARD_WIDTH,
+    height: POPULAR_PLACE_CARD_HEIGHT,
+    flexDirection: "column",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    paddingHorizontal: 6,
+    paddingVertical: Spacing.sm,
     backgroundColor: Colors.background,
-    borderRadius: BorderRadius.full,
-    paddingRight: 14,
-    paddingLeft: 5,
-    paddingVertical: 5,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1.5,
     borderColor: Colors.border,
     ...Shadows.light,
@@ -1221,33 +1361,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBg,
   },
   destChipThumbWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 52,
+    height: 52,
+    borderRadius: BorderRadius.sm,
     overflow: "hidden",
     position: "relative",
   },
   destChipThumb: { width: "100%", height: "100%" },
   destChipThumbOverlay: {
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(232, 97, 45, 0.55)",
     justifyContent: "center",
     alignItems: "center",
   },
-  destChipInfo: { gap: 1 },
+  destChipInfo: {
+    marginTop: Spacing.sm,
+    alignItems: "center",
+    width: "100%",
+    justifyContent: "center",
+  },
   destChipLabel: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs + 1,
     fontWeight: "700",
     color: Colors.text,
-    maxWidth: 90,
+    textAlign: "center",
+    width: "100%",
+    lineHeight: 15,
   },
   destChipLabelActive: { color: Colors.primary },
-  destChipMeta: {
-    fontSize: 10,
-    color: Colors.textTertiary,
-    fontWeight: "500",
-  },
 
   // ── Categories ──
   catRow: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },

@@ -2,6 +2,9 @@
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/travel/package-brochure/**/*.ts": {
+      "maxDuration": 60
     }
   },
   "build": {

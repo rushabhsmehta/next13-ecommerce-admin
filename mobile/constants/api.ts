@@ -64,3 +64,30 @@ export const API_BASE_URL = __DEV__
 export const WEBSITE_URL = __DEV__
   ? normalizeDevWebsiteUrl(extra.websiteUrlDev)
   : extra.websiteUrl ?? PROD_WEBSITE;
+
+/**
+ * Public web URL for a tour package detail page (`/travel/packages/[slug]`).
+ * `WEBSITE_URL` is either `https://aagamholidays.com` (prod) or ends with `/travel` in dev.
+ */
+export function buildTravelPackageUrl(
+  websiteUrl: string,
+  slug?: string | null,
+  id?: string | null
+): string {
+  const raw =
+    (slug != null && String(slug).trim() !== "" ? String(slug).trim() : null) ??
+    (id != null && String(id).trim() !== "" ? String(id).trim() : "");
+  const segment = encodeURIComponent(raw);
+  const base = websiteUrl.replace(/\/$/, "");
+  if (base.endsWith("/travel")) {
+    return `${base}/packages/${segment}`;
+  }
+  return `${base}/travel/packages/${segment}`;
+}
+
+export function getTravelPackageUrl(
+  slug?: string | null,
+  id?: string | null
+): string {
+  return buildTravelPackageUrl(WEBSITE_URL, slug, id);
+}

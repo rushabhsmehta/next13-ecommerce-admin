@@ -24,7 +24,7 @@ function clerkEmailsLowercased(user: {
     const raw = addr.emailAddress?.trim().toLowerCase();
     if (raw) seen.add(raw);
   }
-  return [...seen];
+  return Array.from(seen);
 }
 
 export async function resolveInquiryAccessContext(

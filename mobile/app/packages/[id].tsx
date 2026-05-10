@@ -9,7 +9,14 @@ import {
   Dimensions,
   Linking,
   Share,
+  Modal,
+  ActivityIndicator,
+  Platform,
+  Alert,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import * as FileSystem from "expo-file-system";
+import { downloadAndShareBrochurePdf } from "@/lib/share-brochure-pdf";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,13 +34,13 @@ import {
 } from "@/lib/rich-text";
 
 import {
-  WHATSAPP_BUSINESS_NUMBER,
   WHATSAPP_BUSINESS_NUMBER_E164,
+  buildWaMeUrl,
 } from "@/constants/whatsapp";
+import { API_BASE_URL, getTravelPackageUrl } from "@/constants/api";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const HERO_HEIGHT = Math.min(SCREEN_HEIGHT * 0.42, 360);
-const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
 const PHONE_NUMBER = WHATSAPP_BUSINESS_NUMBER_E164;
 
 type TabKey = "itinerary" | "inclusions" | "policies";
@@ -56,6 +63,8 @@ export default function PackageDetailScreen() {
   const [heroErrored, setHeroErrored] = useState<Set<number>>(new Set());
   const [routeExpanded, setRouteExpanded] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     if (id) loadPackage();
@@ -121,13 +130,62 @@ export default function PackageDetailScreen() {
     ? `₹${Number(displayPrice).toLocaleString("en-IN")}`
     : null;
 
-  const handleShare = async () => {
+  const packageUrl = getTravelPackageUrl(pkg.slug, pkg.id);
+  const shareMessage = `${nameParts.title} — Aagam Holidays\n${packageUrl}`;
+
+  const openShareModal = () => setShareModalVisible(true);
+  const closeShareModal = () => setShareModalVisible(false);
+
+  const handleCopyPackageLink = async () => {
     try {
-      await Share.share({
-        message: `${nameParts.title} — Aagam Holidays\nhttps://aagamholidays.com/packages/${pkg.slug || pkg.id}`,
+      await Clipboard.setStringAsync(packageUrl);
+      closeShareModal();
+      Alert.alert("Copied", "Package link copied to clipboard.");
+    } catch {
+      Alert.alert("Could not copy", "Please try again.");
+    }
+  };
+
+  const handleWhatsAppPackageShare = () => {
+    closeShareModal();
+    void Linking.openURL(buildWaMeUrl(shareMessage));
+  };
+
+  const handleNativeSharePackage = async () => {
+    try {
+      closeShareModal();
+      await Share.share(
+        Platform.OS === "ios"
+          ? {
+              title: nameParts.title,
+              message: shareMessage,
+              url: packageUrl,
+            }
+          : { title: nameParts.title, message: shareMessage }
+      );
+    } catch {
+      /* user dismissed share sheet */
+    }
+  };
+
+  const handleShareBrochurePdf = async () => {
+    const brochureSlug = pkg.slug || pkg.id;
+    const pdfUrl = `${API_BASE_URL}/api/travel/package-brochure/${encodeURIComponent(brochureSlug)}`;
+    const safeFile =
+      String(brochureSlug).replace(/[^a-zA-Z0-9-_]/g, "_") || "package";
+    const targetUri = `${FileSystem.cacheDirectory}brochure-${safeFile}.pdf`;
+    try {
+      setPdfLoading(true);
+      const shared = await downloadAndShareBrochurePdf({
+        pdfUrl,
+        cacheFileUri: targetUri,
+        dialogTitle: nameParts.title,
       });
-    } catch (error) {
-      console.warn("Share cancelled", error);
+      if (shared) {
+        closeShareModal();
+      }
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -141,7 +199,7 @@ export default function PackageDetailScreen() {
       );
     } else {
       Linking.openURL(
-        `https://wa.me/${WHATSAPP_NUMBER}?text=Hi, I'm interested in: ${nameParts.title}`
+        buildWaMeUrl(`Hi, I'm interested in: ${nameParts.title}`)
       );
     }
   };
@@ -221,7 +279,7 @@ export default function PackageDetailScreen() {
 
           <AppHeader
             onBack={() => router.back()}
-            onShare={handleShare}
+            onShare={openShareModal}
             onSave={() => setIsSaved((v) => !v)}
             isSaved={isSaved}
           />
@@ -660,6 +718,17 @@ export default function PackageDetailScreen() {
         >
           <Ionicons name="call-outline" size={20} color={Colors.text} />
         </Pressable>
+        <Pressable
+          testID="package-detail-share-bar"
+          style={styles.bottomCallButton}
+          onPress={openShareModal}
+          accessibilityRole="button"
+          accessibilityLabel="Share package"
+          accessibilityHint="Copy link, WhatsApp, brochure PDF, or other apps"
+          hitSlop={6}
+        >
+          <Ionicons name="share-outline" size={20} color={Colors.text} />
+        </Pressable>
         <View style={styles.bottomPriceBlock}>
           {formattedPrice ? (
             <>
@@ -695,6 +764,91 @@ export default function PackageDetailScreen() {
           </LinearGradient>
         </Pressable>
       </View>
+
+      <Modal
+        visible={shareModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeShareModal}
+      >
+        <View style={styles.shareModalBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={closeShareModal}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss share options"
+          />
+          <View style={styles.shareModalCard}>
+            <Text style={styles.shareModalTitle}>Share package</Text>
+            <Text style={styles.shareModalSubtitle} numberOfLines={2}>
+              {nameParts.title}
+            </Text>
+
+            <Pressable
+              testID="share-copy-link"
+              style={styles.shareModalRow}
+              onPress={() => void handleCopyPackageLink()}
+              accessibilityRole="button"
+              accessibilityLabel="Copy package link"
+            >
+              <Ionicons name="link-outline" size={22} color={Colors.primary} />
+              <Text style={styles.shareModalRowText}>Copy link</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+            </Pressable>
+
+            <Pressable
+              testID="share-whatsapp"
+              style={styles.shareModalRow}
+              onPress={handleWhatsAppPackageShare}
+              accessibilityRole="button"
+              accessibilityLabel="Share via WhatsApp"
+            >
+              <Ionicons name="logo-whatsapp" size={22} color="#25D366" />
+              <Text style={styles.shareModalRowText}>WhatsApp</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+            </Pressable>
+
+            <Pressable
+              testID="share-native"
+              style={styles.shareModalRow}
+              onPress={() => void handleNativeSharePackage()}
+              accessibilityRole="button"
+              accessibilityLabel="Share with other apps"
+            >
+              <Ionicons name="share-social-outline" size={22} color={Colors.primary} />
+              <Text style={styles.shareModalRowText}>More apps</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+            </Pressable>
+
+            <Pressable
+              testID="share-brochure-pdf"
+              style={[styles.shareModalRow, pdfLoading && styles.shareModalRowDisabled]}
+              onPress={() => void handleShareBrochurePdf()}
+              disabled={pdfLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Share brochure PDF"
+              accessibilityHint="Downloads a short PDF overview of this package"
+            >
+              {pdfLoading ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <Ionicons name="document-text-outline" size={22} color={Colors.primary} />
+              )}
+              <Text style={styles.shareModalRowText}>Brochure PDF</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+            </Pressable>
+
+            <Pressable
+              style={styles.shareModalCancel}
+              onPress={closeShareModal}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+            >
+              <Text style={styles.shareModalCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1034,6 +1188,67 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: Colors.textTertiary,
     marginTop: 8,
+  },
+
+  shareModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+  },
+  shareModalCard: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    zIndex: 2,
+    elevation: 8,
+    ...Shadows.heavy,
+  },
+  shareModalTitle: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    paddingHorizontal: Spacing.md,
+    marginBottom: 4,
+  },
+  shareModalSubtitle: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.text,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    lineHeight: 21,
+  },
+  shareModalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+  },
+  shareModalRowDisabled: { opacity: 0.55 },
+  shareModalRowText: {
+    flex: 1,
+    fontSize: FontSize.md,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  shareModalCancel: {
+    marginTop: Spacing.xs,
+    paddingVertical: Spacing.md,
+    alignItems: "center",
+  },
+  shareModalCancelText: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.textSecondary,
   },
 
   // Sticky bar

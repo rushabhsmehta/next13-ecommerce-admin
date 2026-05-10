@@ -33,6 +33,15 @@ const createInquirySchema = z.object({
   locationName: z.string().min(1).optional(),
 });
 
+/** Accept `YYYY-M-D` from mobile keyboards and normalize to `YYYY-MM-DD` before Zod. */
+function coerceYyyyMmDd(raw: unknown): unknown {
+  if (typeof raw !== "string") return raw;
+  const t = raw.trim();
+  const m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return raw;
+  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+}
+
 // Helper function to ensure customer exists in WhatsApp customer list
 async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string) {
   try {
@@ -74,6 +83,12 @@ export async function POST(req: Request) {
   try {
     const userId = await getRequestClerkUserId(req);
     const body = await req.json();
+    if (body && typeof body === "object") {
+      if ("journeyDate" in body) body.journeyDate = coerceYyyyMmDd(body.journeyDate);
+      if ("nextFollowUpDate" in body && body.nextFollowUpDate != null) {
+        body.nextFollowUpDate = coerceYyyyMmDd(body.nextFollowUpDate);
+      }
+    }
     const parsed = createInquirySchema.safeParse(body);
     const {
       customerName,

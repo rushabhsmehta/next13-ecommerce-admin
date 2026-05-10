@@ -16,23 +16,34 @@ export interface InquiryAccessContext {
     | null;
 }
 
+function clerkEmailsLowercased(user: {
+  emailAddresses: { emailAddress?: string | null }[];
+}): string[] {
+  const seen = new Set<string>();
+  for (const addr of user.emailAddresses) {
+    const raw = addr.emailAddress?.trim().toLowerCase();
+    if (raw) seen.add(raw);
+  }
+  return [...seen];
+}
+
 export async function resolveInquiryAccessContext(
   userId: string
 ): Promise<InquiryAccessContext> {
   const clerk = await clerkClient();
   const user = await clerk.users.getUser(userId);
-  const userEmail = user.emailAddresses[0]?.emailAddress?.toLowerCase() ?? null;
+  const emails = clerkEmailsLowercased(user);
 
   const [membership, associatePartner] = await Promise.all([
     (prismadb as any).organizationMember.findFirst({
       where: { userId, isActive: true },
       select: { id: true },
     }),
-    userEmail
+    emails.length
       ? prismadb.associatePartner.findFirst({
           where: {
             isActive: true,
-            OR: [{ email: userEmail }, { gmail: userEmail }],
+            OR: emails.flatMap((email) => [{ email }, { gmail: email }]),
           },
           select: {
             id: true,

@@ -10,7 +10,9 @@ export class ApiError extends Error {
     message: string,
     public statusCode: number | null,
     public retryable: boolean = false,
-    public code?: string
+    public code?: string,
+    /** Extra JSON from API (e.g. Zod `flatten()` on validation errors). */
+    public details?: unknown
   ) {
     super(message);
     this.name = "ApiError";
@@ -70,7 +72,8 @@ async function request<T = any>(
           errorData.error || `Request failed with status ${res.status}`,
           res.status,
           retryable,
-          errorData.code
+          errorData.code,
+          errorData.details
         );
       }
 

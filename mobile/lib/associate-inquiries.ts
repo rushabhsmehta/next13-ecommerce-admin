@@ -1,4 +1,14 @@
-import { request } from "@/lib/api";
+/** Same signature as `withAuth(...)` return type — required because `/api/locations` is Clerk-protected. */
+export type AuthenticatedRequest = <T = any>(
+  endpoint: string,
+  options?: {
+    method?: "GET" | "POST" | "PATCH" | "DELETE" | "PUT";
+    body?: any;
+    timeout?: number;
+    retries?: number;
+    headers?: Record<string, string>;
+  }
+) => Promise<T>;
 
 export interface InquiryActionItem {
   id: string;
@@ -24,14 +34,40 @@ export interface AssociateInquiry {
   actions?: InquiryActionItem[];
 }
 
+export interface InquiryRoomAllocationPayload {
+  roomTypeId: string;
+  occupancyTypeId: string;
+  mealPlanId?: string | null;
+  quantity: number;
+  guestNames?: string | null;
+  notes?: string | null;
+}
+
+export interface InquiryTransportPayload {
+  vehicleTypeId: string;
+  quantity: number;
+  isAirportPickupRequired?: boolean;
+  isAirportDropRequired?: boolean;
+  pickupLocation?: string | null;
+  dropLocation?: string | null;
+  /** ISO date string YYYY-MM-DD when required */
+  requirementDate?: string | null;
+  notes?: string | null;
+}
+
 export interface AssociateInquiryInput {
   customerName: string;
   customerMobileNumber: string;
   locationId: string;
   journeyDate: string;
   numAdults?: number;
+  numChildrenAbove11?: number;
+  numChildren5to11?: number;
+  numChildrenBelow5?: number;
   remarks?: string;
   nextFollowUpDate?: string;
+  roomAllocations?: InquiryRoomAllocationPayload[];
+  transportDetails?: InquiryTransportPayload[];
 }
 
 export interface AssociateInquiryUpdateInput {
@@ -101,6 +137,13 @@ export function createAssociateInquiryClient(
   };
 }
 
-export async function getLocationOptions(): Promise<LocationOption[]> {
-  return request<LocationOption[]>("/api/locations");
+export async function getLocationOptions(authRequest: AuthenticatedRequest): Promise<LocationOption[]> {
+  const rows = await authRequest<unknown[]>("/api/locations");
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => {
+      const r = row as { id?: string; label?: string | null };
+      return { id: r.id ?? "", label: r.label ?? "" };
+    })
+    .filter((row) => row.id.length > 0);
 }

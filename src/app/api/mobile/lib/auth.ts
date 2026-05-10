@@ -1,21 +1,10 @@
-import { verifyToken } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 
 export async function validateClerkAdmin(
   req: Request
 ): Promise<{ userId: string; role: string } | null> {
-  const header = req.headers.get("Authorization");
-  const jwt = header?.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!jwt) return null;
-
-  let payload: any;
-  try {
-    payload = await verifyToken(jwt, { secretKey: process.env.CLERK_SECRET_KEY! });
-  } catch {
-    return null;
-  }
-
-  const userId = payload?.sub as string | undefined;
+  const userId = await verifyMobileBearerUserId(req);
   if (!userId) return null;
 
   const membership = await (prismadb as any).organizationMember.findFirst({

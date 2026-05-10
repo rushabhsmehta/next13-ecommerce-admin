@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { dateToUtc } from "@/lib/timezone-utils";
 
@@ -12,9 +12,10 @@ type MemberCtx = {
 };
 
 async function loadMembership(
+  req: Request,
   groupId: string
 ): Promise<{ ok: true; ctx: MemberCtx } | { ok: false; res: NextResponse }> {
-  const { userId } = await auth();
+  const userId = await getRequestClerkUserId(req);
   if (!userId) return { ok: false, res: jsonError("Unauthorized", 401) };
 
   const travelUser = await prismadb.travelAppUser.findUnique({
@@ -37,10 +38,10 @@ async function loadMembership(
   return { ok: true, ctx: { travelUserId: travelUser.id, role: membership.role } };
 }
 
-export async function GET(_req: Request, props: { params: Promise<{ groupId: string }> }) {
+export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
   const params = await props.params;
   return handleApi(async () => {
-    const loaded = await loadMembership(params.groupId);
+    const loaded = await loadMembership(req, params.groupId);
     if (!loaded.ok) return loaded.res;
 
     const group = await prismadb.chatGroup.findUnique({
@@ -68,7 +69,7 @@ export async function GET(_req: Request, props: { params: Promise<{ groupId: str
 export async function PATCH(req: Request, props: { params: Promise<{ groupId: string }> }) {
   const params = await props.params;
   return handleApi(async () => {
-    const loaded = await loadMembership(params.groupId);
+    const loaded = await loadMembership(req, params.groupId);
     if (!loaded.ok) return loaded.res;
 
     if (!["ADMIN", "OPERATIONS"].includes(loaded.ctx.role)) {

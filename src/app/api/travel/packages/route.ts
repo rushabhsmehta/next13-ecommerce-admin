@@ -12,10 +12,12 @@ export async function GET(req: Request) {
     const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "50", 10), 1), 100);
     const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
-    const where: any = {
+    const baseWhere = {
       isFeatured: true,
       isArchived: false,
     };
+
+    const where: any = { ...baseWhere };
 
     if (locationId) where.locationId = locationId;
     if (category) where.tourCategory = category;
@@ -26,7 +28,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    const [packages, total] = await Promise.all([
+    const [packages, total, categoryGroups, featuredPackageCount] = await Promise.all([
       prismadb.tourPackage.findMany({
         where,
         select: {
@@ -49,7 +51,20 @@ export async function GET(req: Request) {
         skip: offset,
       }),
       prismadb.tourPackage.count({ where }),
+      prismadb.tourPackage.groupBy({
+        by: ["tourCategory"],
+        where: {
+          ...baseWhere,
+          tourCategory: { not: null },
+        },
+      }),
+      prismadb.tourPackage.count({ where: baseWhere }),
     ]);
+
+    const categories = categoryGroups
+      .map((g) => g.tourCategory)
+      .filter((c): c is string => Boolean(c))
+      .sort((a, b) => a.localeCompare(b));
 
     return NextResponse.json({
       packages,
@@ -57,6 +72,8 @@ export async function GET(req: Request) {
       limit,
       offset,
       hasMore: offset + packages.length < total,
+      categories,
+      featuredPackageCount,
     });
   } catch (error) {
     console.log("[TRAVEL_PACKAGES_GET]", error);

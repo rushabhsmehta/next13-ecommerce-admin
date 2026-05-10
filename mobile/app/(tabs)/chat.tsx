@@ -19,12 +19,12 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth, useClerk } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/theme";
+import { API_BASE_URL } from "@/constants/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 import { useUnread } from "@/hooks/useUnread";
 import { chatCache } from "@/lib/chat/cache";
 import { SkeletonListItem } from "@/components/skeleton/SkeletonLoader";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
 interface ChatGroup {
   id: string;
@@ -112,10 +112,10 @@ export default function ChatTab() {
   }, [skeletonOpacity]);
 
   async function fetchGroups(silent = false) {
-    if (!isSignedIn) return;
+    const token = await resolveMobileAuthToken(() => getToken());
+    if (!token) return;
     if (!silent) setLoading(true);
     try {
-      const token = await getToken();
       const res = await fetch(`${API_BASE_URL}/api/chat/groups`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -141,14 +141,16 @@ export default function ChatTab() {
   }
 
   useEffect(() => {
-    if (isSignedIn && !userLoading) fetchGroups();
-  }, [isSignedIn, userLoading]);
+    if (userLoading) return;
+    void fetchGroups();
+  }, [isSignedIn, userLoading, travelUser?.id]);
 
   async function handleCreateGroup() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      const token = await getToken();
+      const token = await resolveMobileAuthToken(() => getToken());
+      if (!token) return;
       const body: Record<string, string | undefined> = {
         name: newName.trim(),
         description: newDesc.trim() || undefined,
@@ -206,6 +208,21 @@ export default function ChatTab() {
     );
   }
 
+  if (!isSignedIn && !travelUser) {
+    return (
+      <View testID="chat-login-prompt" style={styles.emptyContainer}>
+        <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
+        <Text style={styles.emptyTitle}>Your Trip Chats</Text>
+        <Text style={styles.emptySubtitle}>
+          Login to see your trip group chats and stay connected with your tour.
+        </Text>
+        <TouchableOpacity testID="login-button" style={styles.loginButton} onPress={() => router.push("/login")}>
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   function handleSignOut() {
     Alert.alert(
       travelUser?.name ?? "Account",
@@ -219,7 +236,7 @@ export default function ChatTab() {
 
   return (
     <View style={styles.container}>
-      {isSignedIn && (
+      {(isSignedIn || travelUser) && (
         <TouchableOpacity style={styles.userStrip} onPress={handleSignOut} activeOpacity={0.7}>
           <View style={styles.userStripAvatar}>
             <Text style={styles.userStripAvatarText}>
@@ -289,7 +306,13 @@ export default function ChatTab() {
       />
 
       {isAdmin && (
-        <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
+        <TouchableOpacity
+          testID="trips-fab-new-group"
+          accessibilityRole="button"
+          accessibilityLabel="Create new trip group"
+          style={styles.fab}
+          onPress={() => setShowCreate(true)}
+        >
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
       )}
@@ -297,11 +320,17 @@ export default function ChatTab() {
       <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modal}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowCreate(false)}>
+            <TouchableOpacity testID="trips-modal-cancel" onPress={() => setShowCreate(false)}>
               <Text style={styles.modalCancel}>Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>New Trip Group</Text>
-            <TouchableOpacity onPress={handleCreateGroup} disabled={creating || !newName.trim()}>
+            <TouchableOpacity
+              testID="trips-modal-create"
+              accessibilityRole="button"
+              accessibilityLabel="Create trip group"
+              onPress={handleCreateGroup}
+              disabled={creating || !newName.trim()}
+            >
               {creating ? (
                 <ActivityIndicator size="small" color={Colors.primary} />
               ) : (
@@ -314,6 +343,7 @@ export default function ChatTab() {
           <View style={styles.modalBody}>
             <Text style={styles.fieldLabel}>Group Name *</Text>
             <TextInput
+              testID="trips-modal-group-name"
               style={styles.fieldInput}
               value={newName}
               onChangeText={setNewName}

@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
 import { API_BASE_URL } from "@/constants/api";
+import { setDevAuthBypassToken, getDevAuthBypassToken } from "@/lib/dev-auth-bypass";
 
 type Step = "email" | "otp" | "profile";
 type FlowType = "signIn" | "signUp";
@@ -38,6 +39,11 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** Local-only: server MOBILE_DEV_AUTH_BYPASS_TOKEN, no Clerk session */
+  const [devBypassTokenInput, setDevBypassTokenInput] = useState("");
+  const [devBypassActive, setDevBypassActive] = useState(false);
+  const [devProfileEmail, setDevProfileEmail] = useState("");
+  const [showDevBypass, setShowDevBypass] = useState(false);
 
   const isReady = signInLoaded && signUpLoaded;
 
@@ -58,6 +64,37 @@ export default function LoginScreen() {
         return t - 1;
       });
     }, 1000);
+  }
+
+  async function handleDevBypassContinue() {
+    const trimmed = devBypassTokenInput.trim();
+    if (!trimmed) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await setDevAuthBypassToken(trimmed);
+      const res = await fetch(`${API_BASE_URL}/api/mobile/auth-status`, {
+        headers: { Authorization: `Bearer ${trimmed}` },
+      });
+      if (!res.ok) {
+        await setDevAuthBypassToken(null);
+        setError("Invalid token or server rejected the request.");
+        return;
+      }
+      const authStatus = await res.json();
+      if (authStatus.travelUser) {
+        setDevBypassActive(false);
+        router.replace("/(tabs)");
+      } else {
+        setDevBypassActive(true);
+        setStep("profile");
+      }
+    } catch {
+      await setDevAuthBypassToken(null);
+      setError("Could not reach the server. Check API URL and bypass env.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleEmailSubmit() {
@@ -93,13 +130,12 @@ export default function LoginScreen() {
         const result = await signIn!.attemptFirstFactor({ strategy: "email_code", code });
         if (result.status === "complete") {
           await setSignInActive!({ session: result.createdSessionId });
-          // Check if TravelAppUser already exists
           const token = await getToken();
-          const res = await fetch(`${API_BASE_URL}/api/travel-auth/profile`, {
+          const res = await fetch(`${API_BASE_URL}/api/mobile/auth-status`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          const travelUser = await res.json();
-          if (travelUser) {
+          const authStatus = await res.json();
+          if (authStatus.travelUser) {
             router.replace("/(tabs)");
           } else {
             setStep("profile");
@@ -143,19 +179,34 @@ export default function LoginScreen() {
 
   async function handleProfileSubmit() {
     if (!name.trim()) return;
+    if (devBypassActive && !devProfileEmail.trim().includes("@")) {
+      setError("Enter a valid email for dev profile setup.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
-      const res = await fetch(`${API_BASE_URL}/api/travel-auth/profile`, {
+      const token = devBypassActive
+        ? await getDevAuthBypassToken()
+        : await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const body: { name: string; phone?: string; email?: string } = {
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+      };
+      if (devBypassActive) {
+        body.email = devProfileEmail.trim();
+      }
+      const res = await fetch(`${API_BASE_URL}/api/mobile/profile`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: name.trim(), phone: phone.trim() || undefined }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed to save profile");
+      setDevBypassActive(false);
       router.replace("/(tabs)");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save profile.");
@@ -185,6 +236,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
+      testID="login-screen"
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
@@ -236,6 +288,52 @@ export default function LoginScreen() {
                 <Text style={styles.primaryBtnText}>Continue</Text>
               )}
             </TouchableOpacity>
+
+            {__DEV__ ? (
+              <View style={styles.devSection}>
+                <TouchableOpacity
+                  testID="login-dev-bypass-toggle"
+                  accessibilityRole="button"
+                  accessibilityLabel="Show developer sign-in options"
+                  onPress={() => setShowDevBypass((v) => !v)}
+                >
+                  <Text style={styles.devToggleText}>
+                    {showDevBypass ? "Hide developer sign-in" : "Developer sign-in (bypass Clerk)"}
+                  </Text>
+                </TouchableOpacity>
+                {showDevBypass ? (
+                  <View style={styles.devForm}>
+                    <Text style={styles.devHint}>
+                      Set on the Next server: MOBILE_DEV_AUTH_BYPASS_ENABLED=1,
+                      MOBILE_DEV_AUTH_BYPASS_TOKEN, MOBILE_DEV_AUTH_BYPASS_USER_ID (a real Clerk user id).
+                    </Text>
+                    <TextInput
+                      testID="login-dev-bypass-token"
+                      style={styles.input}
+                      placeholder="Paste bypass token"
+                      placeholderTextColor={Colors.textTertiary}
+                      value={devBypassTokenInput}
+                      onChangeText={setDevBypassTokenInput}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!loading}
+                      accessibilityLabel="Dev auth bypass token"
+                    />
+                    <TouchableOpacity
+                      testID="login-dev-bypass-continue"
+                      style={[
+                        styles.secondaryBtn,
+                        (!devBypassTokenInput.trim() || loading) && styles.btnDisabled,
+                      ]}
+                      onPress={() => void handleDevBypassContinue()}
+                      disabled={!devBypassTokenInput.trim() || loading}
+                    >
+                      <Text style={styles.secondaryBtnText}>Continue with bypass token</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
           </View>
         )}
 
@@ -286,6 +384,23 @@ export default function LoginScreen() {
         {/* Step 3: Profile */}
         {step === "profile" && (
           <View style={styles.form}>
+            {devBypassActive ? (
+              <>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="you@example.com"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={devProfileEmail}
+                  onChangeText={setDevProfileEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  returnKeyType="next"
+                />
+              </>
+            ) : null}
             <Text style={styles.label}>Full name</Text>
             <TextInput
               style={styles.input}
@@ -293,7 +408,7 @@ export default function LoginScreen() {
               placeholderTextColor={Colors.textTertiary}
               value={name}
               onChangeText={setName}
-              autoFocus
+              autoFocus={!devBypassActive}
               editable={!loading}
               returnKeyType="next"
             />
@@ -312,9 +427,15 @@ export default function LoginScreen() {
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <TouchableOpacity
-              style={[styles.primaryBtn, (!name.trim() || loading) && styles.btnDisabled]}
+              style={[
+                styles.primaryBtn,
+                (!name.trim() || loading || (devBypassActive && !devProfileEmail.includes("@"))) &&
+                  styles.btnDisabled,
+              ]}
               onPress={handleProfileSubmit}
-              disabled={!name.trim() || loading}
+              disabled={
+                !name.trim() || loading || (devBypassActive && !devProfileEmail.includes("@"))
+              }
               activeOpacity={0.85}
             >
               {loading ? (
@@ -441,5 +562,40 @@ const styles = StyleSheet.create({
   },
   linkDisabled: {
     color: Colors.textTertiary,
+  },
+  devSection: {
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  devToggleText: {
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  devForm: {
+    marginTop: Spacing.md,
+  },
+  devHint: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    marginBottom: Spacing.sm,
+    lineHeight: 18,
+  },
+  secondaryBtn: {
+    borderRadius: BorderRadius.lg,
+    paddingVertical: 13,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceAlt,
+    marginTop: Spacing.sm,
+  },
+  secondaryBtnText: {
+    color: Colors.text,
+    fontWeight: "700",
+    fontSize: FontSize.sm,
   },
 });

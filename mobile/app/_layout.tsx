@@ -72,23 +72,24 @@ async function checkForOTAUpdate() {
 
 function PushController() {
   const { isSignedIn, getToken } = useAuth();
-  const { isAdmin } = useCurrentUser();
+  const { isAdmin, travelUser } = useCurrentUser();
   const { increment } = useUnread();
   const { increment: incrementWhatsApp } = useWhatsAppUnread();
   const lastChatRegisteredFor = useRef<boolean | null>(null);
   const lastAdminRegisteredFor = useRef<boolean | null>(null);
 
-  // Chat push: every signed-in user.
+  // Chat push: Clerk session or dev-bypass travel user (see resolveMobileAuthToken).
+  const chatPushActive = !!(isSignedIn || travelUser?.id);
   useEffect(() => {
-    if (lastChatRegisteredFor.current === isSignedIn) return;
-    lastChatRegisteredFor.current = isSignedIn ?? false;
+    if (lastChatRegisteredFor.current === chatPushActive) return;
+    lastChatRegisteredFor.current = chatPushActive;
 
-    if (isSignedIn) {
+    if (chatPushActive) {
       void registerChatPushToken(() => getToken());
     } else {
       void unregisterChatPushToken(() => getToken());
     }
-  }, [isSignedIn, getToken]);
+  }, [chatPushActive, getToken]);
 
   // WhatsApp admin push: only admins.
   useEffect(() => {
@@ -181,6 +182,10 @@ export default function RootLayout() {
             <Stack.Screen
               name="packages/[id]"
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="destinations/index"
+              options={{ headerTitle: "Destinations", headerBackTitle: "Back" }}
             />
             <Stack.Screen
               name="destinations/[id]"

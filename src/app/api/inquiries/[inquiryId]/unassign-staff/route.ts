@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import { createAuditLog } from "@/lib/utils/audit-logger";
 
 export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });

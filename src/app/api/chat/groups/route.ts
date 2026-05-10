@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { getUserOrgRole, roleAtLeast } from "@/lib/authz";
 import { dateToUtc } from "@/lib/timezone-utils";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // GET /api/chat/groups - List chat groups for authenticated user
 export async function GET(req: Request) {
   return handleApi(async () => {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     if (!userId) return jsonError("Unauthorized", 401);
 
     // Check if org admin — admins see all groups
@@ -105,7 +105,7 @@ export async function GET(req: Request) {
 // POST /api/chat/groups - Create a new chat group (admin/ops only)
 export async function POST(req: Request) {
   return handleApi(async () => {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     if (!userId) return jsonError("Unauthorized", 401);
 
     // Only ADMIN or OWNER can create chat groups

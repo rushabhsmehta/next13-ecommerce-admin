@@ -15,9 +15,9 @@ interface ExtraConfig {
 const extra = (Constants?.expoConfig?.extra ?? {}) as ExtraConfig;
 
 const PROD_API = "https://admin.aagamholidays.com";
-const DEV_API = "http://192.168.29.133:3000";
+const DEV_API = "http://10.0.2.2:3000";
 const PROD_WEBSITE = "https://aagamholidays.com";
-const DEV_WEBSITE = "http://192.168.29.133:3000/travel";
+const DEV_WEBSITE = "http://10.0.2.2:3000/travel";
 
 export const API_BASE_URL = __DEV__
   ? extra.apiBaseUrlDev ?? DEV_API

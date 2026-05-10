@@ -1054,6 +1054,7 @@ export default function ChatRoom() {
             )}
           </TouchableOpacity>
           <TextInput
+            testID="chat-composer-input"
             style={styles.input}
             value={text}
             onChangeText={setText}
@@ -1066,6 +1067,7 @@ export default function ChatRoom() {
             accessibilityHint="Type your message here"
           />
           <TouchableOpacity
+            testID="chat-send-button"
             style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
             onPress={sendMessage}
             disabled={!text.trim()}

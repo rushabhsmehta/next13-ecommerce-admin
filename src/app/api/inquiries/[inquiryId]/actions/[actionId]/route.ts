@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import { canAccessInquiryForContext, resolveInquiryAccessContext } from "@/lib/inquiry-access";
 
@@ -9,7 +9,7 @@ export async function DELETE(
 ) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });

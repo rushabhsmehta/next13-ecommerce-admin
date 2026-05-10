@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/clerk-expo";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { API_BASE_URL } from "@/constants/api";
+import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 
 export interface TravelUser {
   id: string;
@@ -37,21 +37,11 @@ export function useCurrentUser(): CurrentUserState {
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (!isSignedIn) {
-      setState({
-        isAdmin: false,
-        isAssociate: false,
-        associatePartner: null,
-        travelUser: null,
-        isLoading: false,
-      });
-      return;
-    }
 
     async function fetchAuthStatus() {
       setState((prev) => ({ ...prev, isLoading: true }));
       try {
-        const token = await getToken();
+        const token = await resolveMobileAuthToken(() => getToken());
         if (!token) {
           setState({
             isAdmin: false,
@@ -94,8 +84,8 @@ export function useCurrentUser(): CurrentUserState {
       }
     }
 
-    fetchAuthStatus();
-  }, [isSignedIn, isLoaded]);
+    void fetchAuthStatus();
+  }, [isSignedIn, isLoaded, getToken]);
 
   return state;
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
@@ -11,7 +11,7 @@ const validStatuses: readonly string[] = INQUIRY_STATUSES;
 export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     const body = await req.json();
 
     if (!userId) {

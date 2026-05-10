@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/constants/api";
+import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 
 const DEFAULT_TIMEOUT = 10000;
 const MAX_RETRIES = 3;
@@ -119,7 +120,7 @@ function withAuth(tokenProvider: () => Promise<string | null>) {
     endpoint: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const token = await tokenProvider();
+    const token = await resolveMobileAuthToken(tokenProvider);
     if (!token) {
       throw new ApiError("Not authenticated", 401, false, "UNAUTHENTICATED");
     }

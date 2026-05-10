@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { getRequestClerkUserId, getClerkPrimaryEmailByUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
@@ -53,7 +53,7 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
 export async function GET(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
@@ -120,8 +120,7 @@ export async function GET(req: Request, props: { params: Promise<{ inquiryId: st
 export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const userId = await getRequestClerkUserId(req);
     const body = await req.json();
 
     if (!userId) {
@@ -262,7 +261,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
 
     // Determine user role (ADMIN or ASSOCIATE)
     // Check if user email matches any associate partner's email
-    const userEmail = user?.emailAddresses[0]?.emailAddress || "";
+    const userEmail = (await getClerkPrimaryEmailByUserId(userId)) || "";
     let isAssociate = false;
     let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
 
@@ -504,8 +503,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
 export async function DELETE(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const userId = await getRequestClerkUserId(req);
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -537,7 +535,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ inquiryId:
     }
 
     // Determine user role (ADMIN or ASSOCIATE)
-    const userEmail = user?.emailAddresses[0]?.emailAddress || "";
+    const userEmail = (await getClerkPrimaryEmailByUserId(userId)) || "";
     let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
 
     if (userEmail) {

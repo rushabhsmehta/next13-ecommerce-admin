@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { sendChatMessagePush } from "@/lib/expo-push";
 
@@ -26,7 +26,7 @@ function previewForPush(messageType: string, content: string | null | undefined)
 export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
   const params = await props.params;
   return handleApi(async () => {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({
@@ -109,7 +109,7 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
 export async function POST(req: Request, props: { params: Promise<{ groupId: string }> }) {
   const params = await props.params;
   return handleApi(async () => {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({

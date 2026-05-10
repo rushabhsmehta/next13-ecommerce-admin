@@ -2,8 +2,8 @@ import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { API_BASE_URL } from "@/constants/api";
+import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 const CHAT_CHANNEL_ID = "chat-messages";
 
 let configuredHandler = false;
@@ -65,7 +65,7 @@ export async function registerChatPushToken(getToken: () => Promise<string | nul
     const expoPushToken = await getExpoPushToken();
     if (!expoPushToken) return null;
 
-    const jwt = await getToken();
+    const jwt = await resolveMobileAuthToken(getToken);
     if (!jwt) return null;
 
     await fetch(`${API_BASE_URL}/api/mobile/push/register`, {
@@ -91,7 +91,7 @@ export async function unregisterChatPushToken(
   expoPushToken?: string
 ): Promise<void> {
   try {
-    const jwt = await getToken();
+    const jwt = await resolveMobileAuthToken(getToken);
     if (!jwt) return;
     await fetch(`${API_BASE_URL}/api/mobile/push/register`, {
       method: "DELETE",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +16,11 @@ type Ctx = {
 };
 
 async function loadContext(
+  req: Request,
   groupId: string,
   messageId: string
 ): Promise<{ ok: true; ctx: Ctx } | { ok: false; res: NextResponse }> {
-  const { userId } = await auth();
+  const userId = await getRequestClerkUserId(req);
   if (!userId) return { ok: false, res: jsonError("Unauthorized", 401) };
 
   const travelUser = await prismadb.travelAppUser.findUnique({
@@ -61,7 +62,7 @@ export async function PATCH(
 ) {
   const params = await props.params;
   return handleApi(async () => {
-    const loaded = await loadContext(params.groupId, params.messageId);
+    const loaded = await loadContext(req, params.groupId, params.messageId);
     if (!loaded.ok) return loaded.res;
     const { message, isOwner, isAdmin } = loaded.ctx;
     if (!message) return jsonError("Message not found", 404);
@@ -107,12 +108,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   props: { params: Promise<{ groupId: string; messageId: string }> }
 ) {
   const params = await props.params;
   return handleApi(async () => {
-    const loaded = await loadContext(params.groupId, params.messageId);
+    const loaded = await loadContext(req, params.groupId, params.messageId);
     if (!loaded.ok) return loaded.res;
     const { message, isOwner, isAdmin } = loaded.ctx;
     if (!message) return jsonError("Message not found", 404);

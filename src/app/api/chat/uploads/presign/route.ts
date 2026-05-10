@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { createR2PresignedPutUrl } from "@/lib/r2-client";
 
@@ -43,7 +43,7 @@ function isAllowedContentType(kind: Kind, contentType: string): boolean {
 
 export async function POST(req: Request) {
   return handleApi(async () => {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({

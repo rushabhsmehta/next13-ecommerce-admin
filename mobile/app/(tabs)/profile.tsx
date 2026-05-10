@@ -17,8 +17,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { buildTelUrl, buildWaMeUrl } from "@/constants/whatsapp";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { API_BASE_URL } from "@/constants/api";
+import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
+import { setDevAuthBypassToken } from "@/lib/dev-auth-bypass";
 
 interface ProfileData {
   id: string;
@@ -33,23 +34,30 @@ export default function ProfileTab() {
   const { isSignedIn, getToken } = useAuth();
   const { signOut } = useClerk();
   const insets = useSafeAreaInsets();
-  const { isAssociate } = useCurrentUser();
+  const { isAssociate, travelUser: authTravelUser, isLoading: userAuthLoading } = useCurrentUser();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
-    if (!isSignedIn) { setLoading(false); return; }
+    const token = await resolveMobileAuthToken(() => getToken());
+    if (!token) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
     try {
-      const token = await getToken();
       const res = await fetch(`${API_BASE_URL}/api/mobile/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setProfile(await res.json());
     } catch {}
     setLoading(false);
-  }, [isSignedIn, getToken]);
+  }, [getToken]);
 
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+  useEffect(() => {
+    if (userAuthLoading) return;
+    void fetchProfile();
+  }, [fetchProfile, userAuthLoading]);
 
   function handleSignOut() {
     Alert.alert(
@@ -57,12 +65,19 @@ export default function ProfileTab() {
       "Are you sure you want to sign out?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Sign Out", style: "destructive", onPress: () => signOut() },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: () => {
+            void setDevAuthBypassToken(null);
+            signOut();
+          },
+        },
       ]
     );
   }
 
-  if (!isSignedIn) {
+  if (!userAuthLoading && !isSignedIn && !authTravelUser) {
     return (
       <View style={[styles.centered, { paddingBottom: insets.bottom }]}>
         <View style={styles.avatarPlaceholder}>
@@ -77,7 +92,7 @@ export default function ProfileTab() {
     );
   }
 
-  if (loading) {
+  if (userAuthLoading || loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={Colors.primary} />

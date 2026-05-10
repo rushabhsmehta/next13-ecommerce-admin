@@ -1,6 +1,5 @@
 import { travelApi, ApiError } from "../../lib/api";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { API_BASE_URL } from "../../constants/api";
 
 global.fetch = jest.fn();
 
@@ -73,10 +72,8 @@ describe("travelApi", () => {
 
       await travelApi.getPackages({ search: "Goa & Kerala" });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("search=Goa%20%26%20Kerala"),
-        expect.any(Object)
-      );
+      const callUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+      expect(new URL(callUrl).searchParams.get("search")).toBe("Goa & Kerala");
     });
 
     it("handles missing optional params gracefully", async () => {
@@ -86,6 +83,17 @@ describe("travelApi", () => {
 
       expect(global.fetch).toHaveBeenCalledWith(
         `${API_BASE_URL}/api/travel/packages`,
+        expect.any(Object)
+      );
+    });
+
+    it("appends offset param when provided", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue(createMockResponse({ packages: [] }));
+
+      await travelApi.getPackages({ limit: 8, offset: 16 });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        `${API_BASE_URL}/api/travel/packages?limit=8&offset=16`,
         expect.any(Object)
       );
     });

@@ -1,23 +1,14 @@
 import { NextResponse } from "next/server";
-import { verifyToken } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import { resolveInquiryAccessContext } from "@/lib/inquiry-access";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const header = req.headers.get("Authorization");
-    const jwt = header?.startsWith("Bearer ") ? header.slice(7) : null;
-    if (!jwt) return new NextResponse("Unauthorized", { status: 401 });
-
-    let userId: string;
-    try {
-      const payload = await verifyToken(jwt, { secretKey: process.env.CLERK_SECRET_KEY! });
-      userId = payload.sub as string;
-    } catch {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
     const [orgMembership, travelUser, inquiryAccess] = await Promise.all([
       (prismadb as any).organizationMember.findFirst({

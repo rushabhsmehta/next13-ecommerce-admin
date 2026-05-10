@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from '@/lib/timezone-utils';
 import { z } from "zod";
@@ -14,7 +14,7 @@ const actionSchema = z.object({
 export async function POST(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     const body = await req.json();
 
     const { actionType, remarks, actionDate } = body;

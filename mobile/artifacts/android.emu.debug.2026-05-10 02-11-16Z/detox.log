@@ -1,0 +1,719 @@
+07:41:16.790 detox[4240] B lifecycle node_modules\detox\local-cli\cli.js test --configuration android.emu.debug
+  data: {
+    "id": "9f30dd47-86eb-a8c8-1f87-14993402ac6b",
+    "detoxConfig": {
+      "configurationName": "android.emu.debug",
+      "apps": {
+        "default": {
+          "type": "android.apk",
+          "binaryPath": "android/app/build/outputs/apk/debug/app-debug.apk",
+          "build": "cd android && gradlew.bat assembleDebug assembleAndroidTest -DtestBuildType=debug"
+        }
+      },
+      "artifacts": {
+        "rootDir": "artifacts\\android.emu.debug.2026-05-10 02-11-16Z",
+        "plugins": {
+          "log": {
+            "enabled": true,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "screenshot": {
+            "enabled": true,
+            "shouldTakeAutomaticSnapshots": true,
+            "keepOnlyFailedTestsArtifacts": true
+          },
+          "video": {
+            "enabled": true,
+            "keepOnlyFailedTestsArtifacts": true
+          },
+          "instruments": {
+            "enabled": false,
+            "keepOnlyFailedTestsArtifacts": false
+          },
+          "uiHierarchy": {
+            "enabled": false,
+            "keepOnlyFailedTestsArtifacts": false
+          }
+        }
+      },
+      "behavior": {
+        "init": {
+          "keepLockFile": false,
+          "reinstallApp": true,
+          "exposeGlobals": true
+        },
+        "cleanup": {
+          "shutdownDevice": false
+        },
+        "launchApp": "auto"
+      },
+      "cli": {
+        "configuration": "android.emu.debug",
+        "start": true
+      },
+      "commands": [
+        {
+          "appName": "default",
+          "build": "cd android && gradlew.bat assembleDebug assembleAndroidTest -DtestBuildType=debug"
+        }
+      ],
+      "device": {
+        "type": "android.emulator",
+        "device": {
+          "avdName": "Pixel_4_API_33"
+        }
+      },
+      "logger": {
+        "level": "trace",
+        "overrideConsole": true,
+        "options": {
+          "showLoggerName": true,
+          "showPid": true,
+          "showLevel": false,
+          "showMetadata": false,
+          "basepath": "D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src",
+          "prefixers": {},
+          "stringifiers": {}
+        }
+      },
+      "testRunner": {
+        "retries": 0,
+        "forwardEnv": false,
+        "detached": false,
+        "bail": false,
+        "noRetryArgs": [
+          "shard"
+        ],
+        "jest": {
+          "setupTimeout": 300000,
+          "teardownTimeout": 30000,
+          "retryAfterCircusRetries": false,
+          "reportWorkerAssign": true
+        },
+        "args": {
+          "$0": "jest",
+          "_": [
+            "e2e"
+          ],
+          "config": "e2e/jest.config.js",
+          "--": []
+        },
+        "$0": "jest"
+      },
+      "session": {
+        "autoStart": true,
+        "debugSynchronization": 10000
+      }
+    },
+    "detoxIPCServer": "primary-4240",
+    "testResults": [],
+    "testSessionIndex": 0,
+    "workersCount": 0
+  }
+07:41:16.896 detox[4240] i ipc Server path not specified, so defaulting to ipc.config.socketRoot + ipc.config.appspace + ipc.config.id /tmp/detox.primary-4240
+07:41:16.901 detox[4240] i ipc starting server on  /tmp/detox.primary-4240 
+07:41:16.903 detox[4240] i ipc starting TLS server false
+07:41:16.904 detox[4240] i ipc starting server as Unix || Windows Socket
+07:41:16.917 detox[4240] i ws-server Detox server listening on localhost:64299...
+07:41:16.941 detox[4240] i lifecycle Serialized the session state at: C:\Users\rusha\AppData\Local\Temp\9f30dd47-86eb-a8c8-1f87-14993402ac6b.detox.json
+07:41:16.948 detox[4240] B lifecycle jest --config e2e/jest.config.js e2e
+07:41:19.400 detox[7488] i ipc Service path not specified, so defaulting to ipc.config.socketRoot + ipc.config.appspace + id 
+07:41:19.406 detox[7488] i ipc requested connection to  primary-4240 /tmp/detox.primary-4240
+07:41:19.407 detox[7488] i ipc Connecting client on Unix Socket : /tmp/detox.primary-4240
+07:41:19.414 detox[4240] i ipc ## socket connection to server detected ##
+07:41:19.417 detox[7488] i ipc retrying reset
+07:41:19.421 detox[7488] i ipc dispatching event to  primary-4240 /tmp/detox.primary-4240  :  registerContext , { id: 'secondary-7488' }
+07:41:19.427 detox[4240] i ipc received event of :  registerContext { id: 'secondary-7488' }
+07:41:19.430 detox[4240] i ipc dispatching event to socket  :  registerContextDone {
+  testResults: [],
+  testSessionIndex: 0,
+  unsafe_earlyTeardown: undefined
+}
+07:41:19.434 detox[7488] i ipc ## received events ##
+07:41:19.436 detox[7488] i ipc detected event registerContextDone { testResults: [], testSessionIndex: 0 }
+07:41:19.934 detox[7488] B lifecycle e2e\browsePackages.test.js
+07:41:20.021 detox[7488] B lifecycle set up environment
+07:41:20.026 detox[7488] i ipc dispatching event to  primary-4240 /tmp/detox.primary-4240  :  registerWorker , { workerId: 'w1' }
+07:41:20.028 detox[4240] i ipc received event of :  registerWorker { workerId: 'w1' }
+07:41:20.029 detox[4240] i ipc dispatching event to socket  :  registerWorkerDone { workersCount: 1 }
+07:41:20.031 detox[4240] i ipc broadcasting event to all known sockets listening to  \\.\pipe\tmp-detox.primary-4240  :   sessionStateUpdate { workersCount: 1 }
+07:41:20.031 detox[7488] i ipc ## received events ##
+07:41:20.032 detox[7488] i ipc detected event registerWorkerDone { workersCount: 1 }
+07:41:21.481 detox[7488] i ipc ## received events ##
+07:41:21.483 detox[7488] i ipc detected event sessionStateUpdate { workersCount: 1 }
+07:41:21.502 detox[4240] B ws-server@64302 connection :64299<->:64302
+07:41:21.507 detox[7488] i ws-client opened web socket to: ws://localhost:64299
+07:41:21.517 detox[7488] i ws-client send message
+  data: {"type":"login","params":{"sessionId":"fbb5a6d5-ee56-fd70-ddac-25a9339660c7","role":"tester"},"messageId":0}
+07:41:21.522 detox[4240] i ws-server@64302 get
+  data: {"type":"login","params":{"sessionId":"fbb5a6d5-ee56-fd70-ddac-25a9339660c7","role":"tester"},"messageId":0}
+07:41:21.524 detox[4240] i ws-server created session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:21.526 detox[4240] i ws-server@64302 send
+  data: {
+    "type": "loginSuccess",
+    "params": {
+      "testerConnected": true,
+      "appConnected": false
+    },
+    "messageId": 0
+  }
+07:41:21.530 detox[4240] i ws-server tester joined session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:21.533 detox[7488] i ws-client get message
+  data: {"type":"loginSuccess","params":{"testerConnected":true,"appConnected":false},"messageId":0}
+   
+07:41:21.818 detox[7488] i ipc dispatching event to  primary-4240 /tmp/detox.primary-4240  :  allocateDevice , {
+  deviceConfig: { type: 'android.emulator', device: { avdName: 'Pixel_4_API_33' } }
+}
+07:41:21.821 detox[4240] i ipc received event of :  allocateDevice {
+  deviceConfig: { type: 'android.emulator', device: { avdName: 'Pixel_4_API_33' } }
+}
+07:41:22.142 detox[4240] B device init
+  args: ()
+07:41:22.162 detox[4240] E device init
+07:41:22.163 detox[4240] B device@0 allocate
+  data: {
+    "type": "android.emulator",
+    "device": {
+      "avdName": "Pixel_4_API_33"
+    }
+  }
+07:41:22.422 detox[4240] E device@0 allocate
+  error: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'
+  
+  HINT: Make sure you choose one of the available emulators: Pixel_6
+07:41:22.425 detox[4240] i ipc dispatching event to socket  :  allocateDeviceDone {
+  error: {
+    name: 'DetoxRuntimeError',
+    message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6',
+    stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+      '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+      '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+      '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+      '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+  }
+}
+07:41:22.427 detox[7488] i ipc ## received events ##
+07:41:22.430 detox[7488] i ipc detected event allocateDeviceDone {
+  error: {
+    name: 'DetoxRuntimeError',
+    message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6',
+    stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+      '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+      '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+      '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+      '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+  }
+}
+07:41:22.435 detox[7488] E lifecycle set up environment
+  error: DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'
+  
+  HINT: Make sure you choose one of the available emulators: Pixel_6
+      at AVDValidator._assertAVDMatch (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\AVDValidator.js:36:13)
+      at AVDValidator.validate (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\AVDValidator.js:18:16)
+      at async EmulatorAllocDriver.allocate (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\EmulatorAllocDriver.js:56:5)
+      at async D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\DeviceAllocator.js:44:22
+07:41:22.437 detox[7488] B lifecycle tear down environment
+07:41:22.441 detox[7488] B artifacts-manager onBeforeCleanup
+  args: ()
+07:41:22.455 detox[7488] i artifact:ARTIFACT_SAVE saving FileArtifact to: artifacts\android.emu.debug.2026-05-10 02-11-16Z\detox_pid_7488.json.log { append: true }
+07:41:22.457 detox[7488] i artifact:ARTIFACT_SAVE saving FileArtifact to: artifacts\android.emu.debug.2026-05-10 02-11-16Z\detox_pid_7488.log { append: true }
+07:41:22.458 detox[7488] E artifacts-manager onBeforeCleanup
+07:41:22.468 detox[4240] i ws-server tester exited session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:22.470 detox[4240] E ws-server@64302 connection :64299<->:64302
+07:41:22.470 detox[7488] E lifecycle tear down environment
+07:41:22.471 detox[7488] E lifecycle e2e\browsePackages.test.js
+07:41:22.527 detox[7488] B lifecycle e2e\profileFlow.test.js
+07:41:22.544 detox[7488] B lifecycle set up environment
+07:41:22.546 detox[7488] i ipc dispatching event to  primary-4240 /tmp/detox.primary-4240  :  registerWorker , { workerId: 'w1' }
+07:41:22.548 detox[4240] i ipc received event of :  registerWorker { workerId: 'w1' }
+07:41:22.549 detox[4240] i ipc dispatching event to socket  :  registerWorkerDone { workersCount: 1 }
+07:41:22.550 detox[7488] i ipc ## received events ##
+07:41:22.551 detox[7488] i ipc detected event registerWorkerDone { workersCount: 1 }
+07:41:22.559 detox[4240] B ws-server@64303 connection :64299<->:64303
+07:41:22.560 detox[7488] i ws-client opened web socket to: ws://localhost:64299
+07:41:22.563 detox[7488] i ws-client send message
+  data: {"type":"login","params":{"sessionId":"fbb5a6d5-ee56-fd70-ddac-25a9339660c7","role":"tester"},"messageId":0}
+07:41:22.565 detox[4240] i ws-server@64303 get
+  data: {"type":"login","params":{"sessionId":"fbb5a6d5-ee56-fd70-ddac-25a9339660c7","role":"tester"},"messageId":0}
+07:41:22.566 detox[4240] i ws-server created session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:22.567 detox[4240] i ws-server@64303 send
+  data: {
+    "type": "loginSuccess",
+    "params": {
+      "testerConnected": true,
+      "appConnected": false
+    },
+    "messageId": 0
+  }
+07:41:22.568 detox[4240] i ws-server tester joined session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:22.569 detox[7488] i ws-client get message
+  data: {"type":"loginSuccess","params":{"testerConnected":true,"appConnected":false},"messageId":0}
+   
+07:41:22.571 detox[7488] i ipc dispatching event to  primary-4240 /tmp/detox.primary-4240  :  allocateDevice , {
+  deviceConfig: { type: 'android.emulator', device: { avdName: 'Pixel_4_API_33' } }
+}
+07:41:22.572 detox[4240] i ipc received event of :  allocateDevice {
+  deviceConfig: { type: 'android.emulator', device: { avdName: 'Pixel_4_API_33' } }
+}
+07:41:22.574 detox[4240] B device@1 allocate
+  data: {
+    "type": "android.emulator",
+    "device": {
+      "avdName": "Pixel_4_API_33"
+    }
+  }
+07:41:22.729 detox[4240] E device@1 allocate
+  error: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'
+  
+  HINT: Make sure you choose one of the available emulators: Pixel_6
+07:41:22.731 detox[4240] i ipc dispatching event to socket  :  allocateDeviceDone {
+  error: {
+    name: 'DetoxRuntimeError',
+    message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6',
+    stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+      '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+      '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+      '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+      '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+  }
+}
+07:41:22.733 detox[7488] i ipc ## received events ##
+07:41:22.734 detox[7488] i ipc detected event allocateDeviceDone {
+  error: {
+    name: 'DetoxRuntimeError',
+    message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6',
+    stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+      '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+      '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+      '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+      '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+  }
+}
+07:41:22.736 detox[7488] E lifecycle set up environment
+  error: DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'
+  
+  HINT: Make sure you choose one of the available emulators: Pixel_6
+      at AVDValidator._assertAVDMatch (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\AVDValidator.js:36:13)
+      at AVDValidator.validate (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\AVDValidator.js:18:16)
+      at async EmulatorAllocDriver.allocate (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\EmulatorAllocDriver.js:56:5)
+      at async D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\DeviceAllocator.js:44:22
+07:41:22.737 detox[7488] B lifecycle tear down environment
+07:41:22.739 detox[7488] B artifacts-manager onBeforeCleanup
+  args: ()
+07:41:22.742 detox[7488] i artifact:ARTIFACT_SAVE saving FileArtifact to: artifacts\android.emu.debug.2026-05-10 02-11-16Z\detox_pid_7488.json.log { append: true }
+07:41:22.743 detox[7488] i artifact:ARTIFACT_SAVE saving FileArtifact to: artifacts\android.emu.debug.2026-05-10 02-11-16Z\detox_pid_7488.log { append: true }
+07:41:22.745 detox[7488] E artifacts-manager onBeforeCleanup
+07:41:22.749 detox[4240] i ws-server tester exited session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:22.749 detox[7488] E lifecycle tear down environment
+07:41:22.750 detox[4240] E ws-server@64303 connection :64299<->:64303
+07:41:22.750 detox[7488] E lifecycle e2e\profileFlow.test.js
+07:41:22.767 detox[7488] B lifecycle e2e\authFlow.test.js
+07:41:22.783 detox[7488] B lifecycle set up environment
+07:41:22.785 detox[7488] i ipc dispatching event to  primary-4240 /tmp/detox.primary-4240  :  registerWorker , { workerId: 'w1' }
+07:41:22.786 detox[4240] i ipc received event of :  registerWorker { workerId: 'w1' }
+07:41:22.787 detox[4240] i ipc dispatching event to socket  :  registerWorkerDone { workersCount: 1 }
+07:41:22.788 detox[7488] i ipc ## received events ##
+07:41:22.789 detox[7488] i ipc detected event registerWorkerDone { workersCount: 1 }
+07:41:22.796 detox[4240] B ws-server@64304 connection :64299<->:64304
+07:41:22.797 detox[7488] i ws-client opened web socket to: ws://localhost:64299
+07:41:22.798 detox[7488] i ws-client send message
+  data: {"type":"login","params":{"sessionId":"fbb5a6d5-ee56-fd70-ddac-25a9339660c7","role":"tester"},"messageId":0}
+07:41:22.800 detox[4240] i ws-server@64304 get
+  data: {"type":"login","params":{"sessionId":"fbb5a6d5-ee56-fd70-ddac-25a9339660c7","role":"tester"},"messageId":0}
+07:41:22.801 detox[4240] i ws-server created session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:22.802 detox[4240] i ws-server@64304 send
+  data: {
+    "type": "loginSuccess",
+    "params": {
+      "testerConnected": true,
+      "appConnected": false
+    },
+    "messageId": 0
+  }
+07:41:22.803 detox[4240] i ws-server tester joined session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:22.804 detox[7488] i ws-client get message
+  data: {"type":"loginSuccess","params":{"testerConnected":true,"appConnected":false},"messageId":0}
+   
+07:41:22.806 detox[7488] i ipc dispatching event to  primary-4240 /tmp/detox.primary-4240  :  allocateDevice , {
+  deviceConfig: { type: 'android.emulator', device: { avdName: 'Pixel_4_API_33' } }
+}
+07:41:22.808 detox[4240] i ipc received event of :  allocateDevice {
+  deviceConfig: { type: 'android.emulator', device: { avdName: 'Pixel_4_API_33' } }
+}
+07:41:22.809 detox[4240] B device@2 allocate
+  data: {
+    "type": "android.emulator",
+    "device": {
+      "avdName": "Pixel_4_API_33"
+    }
+  }
+07:41:22.967 detox[4240] E device@2 allocate
+  error: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'
+  
+  HINT: Make sure you choose one of the available emulators: Pixel_6
+07:41:22.969 detox[4240] i ipc dispatching event to socket  :  allocateDeviceDone {
+  error: {
+    name: 'DetoxRuntimeError',
+    message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6',
+    stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+      '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+      '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+      '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+      '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+  }
+}
+07:41:22.970 detox[7488] i ipc ## received events ##
+07:41:22.971 detox[7488] i ipc detected event allocateDeviceDone {
+  error: {
+    name: 'DetoxRuntimeError',
+    message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6',
+    stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+      '\n' +
+      'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+      '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+      '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+      '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+      '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+  }
+}
+07:41:22.973 detox[7488] E lifecycle set up environment
+  error: DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'
+  
+  HINT: Make sure you choose one of the available emulators: Pixel_6
+      at AVDValidator._assertAVDMatch (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\AVDValidator.js:36:13)
+      at AVDValidator.validate (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\AVDValidator.js:18:16)
+      at async EmulatorAllocDriver.allocate (D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\drivers\android\emulator\EmulatorAllocDriver.js:56:5)
+      at async D:\GitHub\next13-ecommerce-admin\mobile\node_modules\detox\src\devices\allocation\DeviceAllocator.js:44:22
+07:41:22.974 detox[7488] B lifecycle tear down environment
+07:41:22.975 detox[7488] B artifacts-manager onBeforeCleanup
+  args: ()
+07:41:22.978 detox[7488] i artifact:ARTIFACT_SAVE saving FileArtifact to: artifacts\android.emu.debug.2026-05-10 02-11-16Z\detox_pid_7488.json.log { append: true }
+07:41:22.979 detox[7488] i artifact:ARTIFACT_SAVE saving FileArtifact to: artifacts\android.emu.debug.2026-05-10 02-11-16Z\detox_pid_7488.log { append: true }
+07:41:22.980 detox[7488] E artifacts-manager onBeforeCleanup
+07:41:22.983 detox[4240] i ws-server tester exited session fbb5a6d5-ee56-fd70-ddac-25a9339660c7
+07:41:22.984 detox[4240] E ws-server@64304 connection :64299<->:64304
+07:41:22.984 detox[7488] E lifecycle tear down environment
+07:41:22.985 detox[7488] E lifecycle e2e\authFlow.test.js
+07:41:23.001 detox[7488] i ipc dispatching event to  primary-4240 /tmp/detox.primary-4240  :  reportTestResults , {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\browsePackages.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\profileFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\authFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+07:41:23.004 detox[4240] i ipc received event of :  reportTestResults {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\browsePackages.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\profileFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\authFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+07:41:23.006 detox[4240] i ipc dispatching event to socket  :  reportTestResultsDone {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\browsePackages.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\profileFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\authFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+07:41:23.007 detox[7488] i ipc ## received events ##
+07:41:23.008 detox[4240] i ipc broadcasting event to all known sockets listening to  \\.\pipe\tmp-detox.primary-4240  :   sessionStateUpdate {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\browsePackages.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\profileFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\authFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+07:41:23.009 detox[7488] i ipc detected event reportTestResultsDone {
+  testResults: [
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\browsePackages.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\profileFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    },
+    {
+      success: false,
+      testFilePath: 'D:\\GitHub\\next13-ecommerce-admin\\mobile\\e2e\\authFlow.test.js',
+      testExecError: {
+        name: 'DetoxRuntimeError',
+        message: "Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6',
+        stack: "DetoxRuntimeError: Cannot boot Android Emulator with the name: 'Pixel_4_API_33'\n" +
+          '\n' +
+          'HINT: Make sure you choose one of the available emulators: Pixel_6\n' +
+          '    at AVDValidator._assertAVDMatch (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:36:13)\n' +
+          '    at AVDValidator.validate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\AVDValidator.js:18:16)\n' +
+          '    at async EmulatorAllocDriver.allocate (D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\drivers\\android\\emulator\\EmulatorAllocDriver.js:56:5)\n' +
+          '    at async D:\\GitHub\\next13-ecommerce-admin\\mobile\\node_modules\\detox\\src\\devices\\allocation\\DeviceAllocator.js:44:22'
+      },
+      isPermanentFailure: false
+    }
+  ]
+}
+07:41:23.018 detox[7488] i ipc connection closed primary-4240 /tmp/detox.primary-4240 0 tries remaining of 0
+07:41:23.019 detox[4240] i ipc socket disconnected secondary-7488
+07:41:23.019 detox[7488] i ipc secondary-7488 exceeded connection rety amount of  or stopRetrying flag set.
+07:41:23.151 detox[4240] E lifecycle Command failed with exit code = 1:
+jest --config e2e/jest.config.js e2e
+07:41:23.153 detox[4240] B device cleanup
+  args: ()
+07:41:23.161 detox[4240] E device cleanup
+07:41:23.165 detox[4240] i ws-server Detox server has been closed gracefully
+07:41:23.170 detox[4240] E lifecycle node_modules\detox\local-cli\cli.js test --configuration android.emu.debug

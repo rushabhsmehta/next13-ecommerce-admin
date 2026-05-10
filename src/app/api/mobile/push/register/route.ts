@@ -1,25 +1,17 @@
 import { NextResponse } from "next/server";
-import { verifyToken } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 
 export const dynamic = "force-dynamic";
 
 async function authTravelUser(req: Request): Promise<string | null> {
-  const header = req.headers.get("Authorization");
-  const jwt = header?.startsWith("Bearer ") ? header.slice(7) : null;
-  if (!jwt) return null;
-  try {
-    const payload = await verifyToken(jwt, { secretKey: process.env.CLERK_SECRET_KEY! });
-    const clerkUserId = payload.sub as string | undefined;
-    if (!clerkUserId) return null;
-    const travelUser = await prismadb.travelAppUser.findUnique({
-      where: { clerkUserId },
-      select: { id: true },
-    });
-    return travelUser?.id ?? null;
-  } catch {
-    return null;
-  }
+  const clerkUserId = await verifyMobileBearerUserId(req);
+  if (!clerkUserId) return null;
+  const travelUser = await prismadb.travelAppUser.findUnique({
+    where: { clerkUserId },
+    select: { id: true },
+  });
+  return travelUser?.id ?? null;
 }
 
 export async function POST(req: Request) {

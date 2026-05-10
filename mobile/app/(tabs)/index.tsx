@@ -10,11 +10,13 @@ import {
   RefreshControl,
   Animated,
   Linking,
+  ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@clerk/clerk-expo";
 import {
   Colors,
   Spacing,
@@ -24,9 +26,17 @@ import {
 } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useUnread } from "@/hooks/useUnread";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { splitPackageName } from "@/lib/rich-text";
+import { PackageCard, type HomePackage } from "@/components/home/PackageCard";
+import { testimonials, whyUs } from "@/components/home/homeConstants";
+import {
+  getLastViewedPackage,
+  setLastViewedPackage,
+  type LastViewedPackage,
+} from "@/lib/home-preferences";
 import {
   WHATSAPP_BUSINESS_NUMBER,
   WHATSAPP_BUSINESS_NUMBER_E164,
@@ -34,68 +44,10 @@ import {
 
 const DEST_CHIP_WIDTH = 188;
 const TESTIMONIAL_CARD_WIDTH = 240;
+const PAGE_SIZE = 8;
 
 const PHONE_NUMBER = WHATSAPP_BUSINESS_NUMBER_E164;
 const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
-
-const highlights = [
-  { value: "10K+", label: "Happy Travellers", icon: "people-outline" as const },
-  { value: "200+", label: "Tour Packages", icon: "briefcase-outline" as const },
-  { value: "4.8★", label: "Avg. Rating", icon: "star-outline" as const },
-];
-
-const whyUs = [
-  {
-    icon: "sparkles-outline" as const,
-    title: "Handcrafted trips",
-    text: "Each itinerary is planned to feel personal, not generic.",
-  },
-  {
-    icon: "shield-checkmark-outline" as const,
-    title: "Safe travel",
-    text: "We keep logistics, safety and support tightly managed.",
-  },
-  {
-    icon: "swap-horizontal-outline" as const,
-    title: "Custom plans",
-    text: "We can tweak packages to match dates, pace and budget.",
-  },
-  {
-    icon: "chatbubbles-outline" as const,
-    title: "Always reachable",
-    text: "Call or WhatsApp us whenever you need help.",
-  },
-];
-
-const testimonials = [
-  {
-    initials: "PS",
-    name: "Priya Sharma",
-    trip: "Kerala Backwaters & Munnar",
-    location: "Mumbai",
-    quote:
-      "Absolutely magical experience. Every detail was arranged beautifully and the trip felt effortless from start to finish.",
-    accent: ["#ff9f43", "#ff6b6b"] as [string, string],
-  },
-  {
-    initials: "RM",
-    name: "Rahul & Neha",
-    trip: "Rajasthan Heritage Tour",
-    location: "Ahmedabad",
-    quote:
-      "Super organised and smooth. The itinerary balanced sightseeing and rest perfectly, which made the whole journey enjoyable.",
-    accent: ["#8e7dff", "#5f6cff"] as [string, string],
-  },
-  {
-    initials: "AV",
-    name: "Anjali & Vikram",
-    trip: "Goa Honeymoon Package",
-    location: "Delhi",
-    quote:
-      "The team took care of everything and made the trip feel special. We just showed up and enjoyed every moment.",
-    accent: ["#ff6fae", "#ff7b72"] as [string, string],
-  },
-];
 
 type Destination = {
   id: string;
@@ -105,18 +57,30 @@ type Destination = {
   _count?: { tourPackages?: number };
 };
 
-type Package = {
-  id: string;
-  slug?: string | null;
-  tourPackageName?: string | null;
-  tourCategory?: string | null;
-  numDaysNight?: string | null;
-  pricePerAdult?: string | null;
-  price?: string | null;
-  location?: { label?: string | null };
-  images?: { url: string }[];
-  _count?: { itineraries?: number };
-};
+type Package = HomePackage;
+
+function formatFeaturedCount(n: number): string {
+  if (!n || n < 1) return "";
+  if (n >= 10_000) return `${Math.round(n / 1000)}K+`;
+  if (n >= 1000) {
+    const k = n / 1000;
+    const s = k >= 10 ? k.toFixed(0) : k.toFixed(1).replace(/\.0$/, "");
+    return `${s}K+`;
+  }
+  return String(n);
+}
+
+function buildWhatsAppPlanMessage(parts: {
+  search?: string;
+  destination?: string;
+  category?: string;
+}): string {
+  const lines = ["Hi, I would like to plan a tour."];
+  if (parts.destination) lines.push(`Destination interest: ${parts.destination}`);
+  if (parts.category && parts.category !== "all") lines.push(`Category: ${parts.category}`);
+  if (parts.search) lines.push(`I was searching for: ${parts.search}`);
+  return lines.join(" ");
+}
 
 const skelStyles = StyleSheet.create({
   card: {
@@ -143,250 +107,14 @@ const skelStyles = StyleSheet.create({
   pill: { height: 12, borderRadius: 6, backgroundColor: Colors.border },
 });
 
-// ─── Package Card ─────────────────────────────────────────────────────────────
-function PackageCard({ pkg, onPress }: { pkg: Package; onPress: () => void }) {
-  const imageUrl = pkg.images?.[0]?.url;
-  const [imageFailed, setImageFailed] = useState(false);
-  const displayPrice = pkg.pricePerAdult || pkg.price;
-  const formattedPrice = displayPrice
-    ? `₹${Number(displayPrice).toLocaleString("en-IN")}`
-    : null;
-  const nameParts = useMemo(
-    () => splitPackageName(pkg.tourPackageName ?? "Tour Package"),
-    [pkg.tourPackageName]
-  );
-
-  return (
-    <Pressable
-      style={pkgCardStyles.card}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${nameParts.title} package`}
-    >
-      {/* ── Image + Overlays ── */}
-      <View style={pkgCardStyles.imageWrap}>
-        {imageUrl && !imageFailed ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={pkgCardStyles.image}
-            resizeMode="cover"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <View style={[pkgCardStyles.image, pkgCardStyles.imageFallback]}>
-            <Ionicons name="image-outline" size={32} color={Colors.textTertiary} />
-            <Text style={pkgCardStyles.imageFallbackText} numberOfLines={1}>
-              {pkg.location?.label || "Photo coming soon"}
-            </Text>
-          </View>
-        )}
-
-        {/* Bottom gradient for location text legibility */}
-        {imageUrl && !imageFailed ? (
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.62)"]}
-            style={pkgCardStyles.imageGradient}
-            pointerEvents="none"
-          />
-        ) : null}
-
-        {/* Duration badge — top left */}
-        {pkg.numDaysNight ? (
-          <View style={pkgCardStyles.durationBadge}>
-            <Ionicons name="time-outline" size={10} color="#fff" />
-            <Text style={pkgCardStyles.durationText}>{pkg.numDaysNight}</Text>
-          </View>
-        ) : null}
-
-        {/* Category badge — top right */}
-        {pkg.tourCategory ? (
-          <View style={pkgCardStyles.categoryBadge}>
-            <Text style={pkgCardStyles.categoryText}>{pkg.tourCategory}</Text>
-          </View>
-        ) : null}
-
-        {/* Location — bottom of image (only when image renders) */}
-        {pkg.location?.label && imageUrl && !imageFailed ? (
-          <View style={pkgCardStyles.locationRow}>
-            <Ionicons name="location" size={11} color="rgba(255,255,255,0.92)" />
-            <Text style={pkgCardStyles.locationText} numberOfLines={1}>
-              {pkg.location.label}
-            </Text>
-          </View>
-        ) : null}
-      </View>
-
-      {/* ── Card Body ── */}
-      <View style={pkgCardStyles.body}>
-        <Text style={pkgCardStyles.name} numberOfLines={2}>
-          {nameParts.title}
-        </Text>
-        {nameParts.subtitle ? (
-          <Text style={pkgCardStyles.subtitle} numberOfLines={1}>
-            {nameParts.subtitle}
-          </Text>
-        ) : null}
-
-        <View style={pkgCardStyles.footer}>
-          {/* Rating */}
-          <View style={pkgCardStyles.ratingRow}>
-            <Ionicons name="star" size={12} color="#f59e0b" />
-            <Text style={pkgCardStyles.ratingText}>4.8</Text>
-            <Text style={pkgCardStyles.ratingLabel}>· Highly Rated</Text>
-          </View>
-
-          {/* Price */}
-          {formattedPrice ? (
-            <View style={pkgCardStyles.priceBlock}>
-              <Text style={pkgCardStyles.price}>{formattedPrice}</Text>
-              <Text style={pkgCardStyles.priceUnit}>/person</Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-const pkgCardStyles = StyleSheet.create({
-  card: {
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    borderRadius: BorderRadius.xl,
-    backgroundColor: Colors.background,
-    overflow: "hidden",
-    ...Shadows.medium,
-  },
-  imageWrap: { position: "relative" },
-  image: { width: "100%", height: 210 },
-  imageFallback: {
-    backgroundColor: Colors.surfaceAlt,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 6,
-  },
-  imageFallbackText: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    fontWeight: "500",
-    paddingHorizontal: Spacing.lg,
-    textAlign: "center",
-  },
-  imageGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-  },
-  durationBadge: {
-    position: "absolute",
-    top: Spacing.md,
-    left: Spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(0,0,0,0.48)",
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-  },
-  durationText: {
-    fontSize: FontSize.xs,
-    color: "#fff",
-    fontWeight: "700",
-    letterSpacing: 0.2,
-  },
-  categoryBadge: {
-    position: "absolute",
-    top: Spacing.md,
-    right: Spacing.md,
-    backgroundColor: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.full,
-  },
-  categoryText: {
-    fontSize: FontSize.xs,
-    color: Colors.text,
-    fontWeight: "700",
-    letterSpacing: 0.2,
-  },
-  locationRow: {
-    position: "absolute",
-    bottom: Spacing.sm,
-    left: Spacing.md,
-    right: Spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  locationText: {
-    fontSize: FontSize.xs,
-    color: "rgba(255,255,255,0.92)",
-    fontWeight: "600",
-    flex: 1,
-  },
-  body: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
-    gap: 8,
-  },
-  name: {
-    fontSize: FontSize.lg,
-    fontWeight: "700",
-    color: Colors.text,
-    lineHeight: 22,
-  },
-  subtitle: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    fontWeight: "500",
-    marginTop: -2,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  ratingText: {
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  ratingLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "500",
-  },
-  priceBlock: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 2,
-  },
-  price: {
-    fontSize: FontSize.lg,
-    fontWeight: "800",
-    color: Colors.primary,
-  },
-  priceUnit: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    fontWeight: "500",
-  },
-});
-
 // ─── Home Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isAssociate } = useCurrentUser();
+  const { isSignedIn } = useAuth();
+  const { isAssociate, travelUser } = useCurrentUser();
+  const showPersonalShortcuts = isSignedIn || !!travelUser;
+  const { total: unreadChatTotal } = useUnread();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -396,8 +124,19 @@ export default function HomeScreen() {
   const [activeLocation, setActiveLocation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [featuredPackageCount, setFeaturedPackageCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [lastViewed, setLastViewed] = useState<LastViewedPackage | null>(null);
+  const [packageTotal, setPackageTotal] = useState<number | null>(null);
 
   const debouncedSearch = useDebounce(searchText, 300);
+  const dataFetchId = useRef(0);
+
+  useEffect(() => {
+    void getLastViewedPackage().then(setLastViewed);
+  }, []);
 
   // Skeleton pulse animation
   const skeletonOpacity = useRef(new Animated.Value(0.5)).current;
@@ -420,55 +159,32 @@ export default function HomeScreen() {
     return () => pulse.stop();
   }, [skeletonOpacity]);
 
-  const loadPackages = useCallback(
-    async (opts?: {
-      category?: string;
-      search?: string;
-      locationId?: string | null;
-      limit?: number;
-    }) => {
-      const data = await travelApi.getPackages({
-        limit: opts?.limit ?? 8,
-        category: opts?.category && opts.category !== "all" ? opts.category : undefined,
-        search: opts?.search?.trim() || undefined,
-        locationId: opts?.locationId || undefined,
-      });
-
-      const nextPackages = data.packages || [];
-      setPackages(nextPackages);
-      setCategories((prev) =>
-        prev.length > 0
-          ? prev
-          : ([
-              ...new Set(
-                nextPackages
-                  .map((pkg: Package) => pkg.tourCategory)
-                  .filter(Boolean)
-              ),
-            ] as string[])
-      );
-    },
-    []
-  );
-
   const loadData = useCallback(
     async (showRefreshing = false) => {
+      const myFetch = ++dataFetchId.current;
+      if (showRefreshing) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setLoadError(null);
       try {
-        if (showRefreshing) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
-
+        const searchQ =
+          debouncedSearch.trim() || appliedSearch.trim()
+            ? debouncedSearch.trim() || appliedSearch.trim()
+            : undefined;
         const [destResult, pkgResult] = await Promise.allSettled([
           travelApi.getDestinations(),
-          loadPackages({
-            category: activeCategory,
-            search: debouncedSearch || appliedSearch || undefined,
-            locationId: activeLocation,
-            limit: 8,
+          travelApi.getPackages({
+            limit: PAGE_SIZE,
+            offset: 0,
+            category: activeCategory !== "all" ? activeCategory : undefined,
+            search: searchQ,
+            locationId: activeLocation || undefined,
           }),
         ]);
+
+        if (myFetch !== dataFetchId.current) return;
 
         if (destResult.status === "fulfilled") {
           setDestinations(destResult.value.destinations || []);
@@ -477,30 +193,116 @@ export default function HomeScreen() {
           setDestinations([]);
         }
 
-        if (pkgResult.status === "rejected") {
+        if (pkgResult.status === "fulfilled") {
+          const d = pkgResult.value as {
+            packages?: Package[];
+            hasMore?: boolean;
+            categories?: string[];
+            featuredPackageCount?: number;
+            total?: number;
+          };
+          setPackages(d.packages || []);
+          setHasMore(Boolean(d.hasMore));
+          setFeaturedPackageCount(typeof d.featuredPackageCount === "number" ? d.featuredPackageCount : 0);
+          setPackageTotal(typeof d.total === "number" ? d.total : null);
+          if (Array.isArray(d.categories) && d.categories.length > 0) {
+            setCategories(d.categories);
+          }
+        } else {
           console.error("Failed to load packages:", pkgResult.reason);
           setPackages([]);
+          setHasMore(false);
+          setLoadError("Packages could not load. Pull down to retry.");
+          setPackageTotal(null);
         }
       } catch (error) {
         console.error(error);
+        if (myFetch === dataFetchId.current) {
+          setLoadError("Something went wrong. Please try again.");
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (myFetch === dataFetchId.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
-    [activeCategory, activeLocation, appliedSearch, debouncedSearch, loadPackages]
+    [activeCategory, activeLocation, appliedSearch, debouncedSearch]
   );
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
+
+  const loadMorePackages = useCallback(async () => {
+    if (!hasMore || loadingMore) return;
+    const epoch = dataFetchId.current;
+    setLoadingMore(true);
+    setLoadError(null);
+    const searchQ =
+      debouncedSearch.trim() || appliedSearch.trim()
+        ? debouncedSearch.trim() || appliedSearch.trim()
+        : undefined;
+    try {
+      const data = (await travelApi.getPackages({
+        limit: PAGE_SIZE,
+        offset: packages.length,
+        category: activeCategory !== "all" ? activeCategory : undefined,
+        search: searchQ,
+        locationId: activeLocation || undefined,
+      })) as { packages?: Package[]; hasMore?: boolean };
+      if (epoch !== dataFetchId.current) return;
+      setPackages((prev) => [...prev, ...(data.packages || [])]);
+      setHasMore(Boolean(data.hasMore));
+    } catch {
+      if (epoch !== dataFetchId.current) return;
+      setLoadError("Could not load more packages.");
+    } finally {
+      if (epoch === dataFetchId.current) {
+        setLoadingMore(false);
+      }
+    }
+  }, [
+    hasMore,
+    loadingMore,
+    packages.length,
+    activeCategory,
+    activeLocation,
+    appliedSearch,
+    debouncedSearch,
+  ]);
 
   const selectedDestinationLabel = useMemo(
     () => destinations.find((d) => d.id === activeLocation)?.label,
     [activeLocation, destinations]
   );
 
-  const handleSearch = useCallback(() => {
+  const openPackage = useCallback(
+    async (pkg: Package) => {
+      const title = splitPackageName(pkg.tourPackageName ?? "Tour").title;
+      const entry: LastViewedPackage = {
+        id: pkg.id,
+        slug: pkg.slug ?? null,
+        title,
+      };
+      await setLastViewedPackage(entry);
+      setLastViewed(entry);
+      router.push(`/packages/${pkg.slug || pkg.id}`);
+    },
+    [router]
+  );
+
+  const waPlanMessage = useMemo(
+    () =>
+      buildWhatsAppPlanMessage({
+        search: appliedSearch || debouncedSearch.trim() || undefined,
+        destination: selectedDestinationLabel,
+        category: activeCategory,
+      }),
+    [appliedSearch, debouncedSearch, selectedDestinationLabel, activeCategory]
+  );
+
+  const syncDebouncedSearch = useCallback(() => {
     const term = debouncedSearch.trim();
     if (term !== appliedSearch) {
       setAppliedSearch(term);
@@ -508,8 +310,12 @@ export default function HomeScreen() {
   }, [debouncedSearch, appliedSearch]);
 
   useEffect(() => {
-    handleSearch();
-  }, [handleSearch]);
+    syncDebouncedSearch();
+  }, [syncDebouncedSearch]);
+
+  const submitSearch = useCallback(() => {
+    setAppliedSearch(searchText.trim());
+  }, [searchText]);
 
   const handleClear = () => {
     setSearchText("");
@@ -606,7 +412,11 @@ export default function HomeScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.brandLabel}>Aagam Holidays</Text>
               <Text style={styles.brandTitle}>Discover your{"\n"}next trip</Text>
-              <Text style={styles.brandSubtitle}>200+ handcrafted tours across India</Text>
+              <Text style={styles.brandSubtitle}>
+                {featuredPackageCount > 0
+                  ? `${formatFeaturedCount(featuredPackageCount)} handcrafted tours across India`
+                  : "Handcrafted tours across India"}
+              </Text>
             </View>
           </View>
 
@@ -619,6 +429,7 @@ export default function HomeScreen() {
               placeholderTextColor={Colors.textTertiary}
               value={searchText}
               onChangeText={setSearchText}
+              onSubmitEditing={submitSearch}
               returnKeyType="search"
               accessibilityLabel="Search packages or destinations"
               accessibilityHint="Type to search for tour packages or destinations"
@@ -634,7 +445,7 @@ export default function HomeScreen() {
             ) : null}
             <View style={styles.searchDivider} />
             <Pressable
-              onPress={handleSearch}
+              onPress={submitSearch}
               accessibilityRole="button"
               accessibilityLabel="Submit search"
             >
@@ -648,11 +459,13 @@ export default function HomeScreen() {
       <View style={styles.trustBar}>
         <View style={styles.trustItem}>
           <View style={styles.trustIconWrap}>
-            <Ionicons name="star" size={14} color={Colors.text} />
+            <Ionicons name="briefcase-outline" size={14} color={Colors.text} />
           </View>
           <View>
-            <Text style={styles.trustValue}>4.8 Rated</Text>
-            <Text style={styles.trustSub}>10K+ reviews</Text>
+            <Text style={styles.trustValue}>
+              {featuredPackageCount > 0 ? formatFeaturedCount(featuredPackageCount) : "—"} tours
+            </Text>
+            <Text style={styles.trustSub}>Featured on the app</Text>
           </View>
         </View>
 
@@ -663,8 +476,8 @@ export default function HomeScreen() {
             <Ionicons name="shield-checkmark" size={14} color={Colors.text} />
           </View>
           <View>
-            <Text style={styles.trustValue}>100% Safe</Text>
-            <Text style={styles.trustSub}>Verified tours</Text>
+            <Text style={styles.trustValue}>Verified</Text>
+            <Text style={styles.trustSub}>Safe, supported travel</Text>
           </View>
         </View>
 
@@ -672,14 +485,31 @@ export default function HomeScreen() {
 
         <View style={styles.trustItem}>
           <View style={styles.trustIconWrap}>
-            <Ionicons name="people" size={14} color={Colors.text} />
+            <Ionicons name="earth-outline" size={14} color={Colors.text} />
           </View>
           <View>
-            <Text style={styles.trustValue}>10K+ Happy</Text>
-            <Text style={styles.trustSub}>Travellers</Text>
+            <Text style={styles.trustValue}>
+              {destinations.length > 0 ? destinations.length : "—"} places
+            </Text>
+            <Text style={styles.trustSub}>Destinations</Text>
           </View>
         </View>
       </View>
+
+      {loadError ? (
+        <View style={styles.errorBanner}>
+          <Ionicons name="warning-outline" size={18} color={Colors.error} />
+          <Text style={styles.errorBannerText}>{loadError}</Text>
+          <Pressable
+            onPress={() => void loadData(true)}
+            style={styles.errorRetry}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading"
+          >
+            <Text style={styles.errorRetryText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {isAssociate ? (
         <Pressable
@@ -701,11 +531,100 @@ export default function HomeScreen() {
         </Pressable>
       ) : null}
 
+      {showPersonalShortcuts ? (
+        <View style={styles.shortcutsRow}>
+          <Pressable
+            testID="home-shortcut-enquiries"
+            style={styles.shortcutChip}
+            onPress={() => router.push("/profile/inquiries")}
+            accessibilityRole="button"
+            accessibilityLabel="Open my enquiries"
+            accessibilityHint="View enquiries you submitted from the app"
+          >
+            <Ionicons name="mail-outline" size={18} color={Colors.primary} />
+            <Text style={styles.shortcutChipText}>My enquiries</Text>
+          </Pressable>
+          <Pressable
+            testID="home-shortcut-trips"
+            style={styles.shortcutChip}
+            onPress={() => router.push("/chat")}
+            accessibilityRole="button"
+            accessibilityLabel="Open trips and chat"
+            accessibilityHint="View trip groups and messages"
+          >
+            <View style={styles.shortcutIconWrap}>
+              <Ionicons name="chatbubbles-outline" size={18} color={Colors.primary} />
+              {unreadChatTotal > 0 ? (
+                <View style={styles.shortcutBadge}>
+                  <Text style={styles.shortcutBadgeText}>
+                    {unreadChatTotal > 99 ? "99+" : unreadChatTotal}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={styles.shortcutChipText}>Trips</Text>
+          </Pressable>
+          {lastViewed ? (
+            <Pressable
+              testID="home-shortcut-continue"
+              style={styles.shortcutChip}
+              onPress={() =>
+                router.push(`/packages/${lastViewed.slug || lastViewed.id}`)
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Continue last viewed package"
+            >
+              <Ionicons name="play-circle-outline" size={18} color={Colors.primary} />
+              <Text style={styles.shortcutChipText} numberOfLines={1}>
+                Continue
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
+      {featuredPackageCount > 0 || destinations.length > 0 ? (
+        <View style={styles.highlightsRow}>
+          {[
+            {
+              icon: "briefcase-outline" as const,
+              value: featuredPackageCount > 0 ? formatFeaturedCount(featuredPackageCount) : "—",
+              label: "Featured tours",
+            },
+            {
+              icon: "earth-outline" as const,
+              value: destinations.length > 0 ? String(destinations.length) : "—",
+              label: "Destinations",
+            },
+            {
+              icon: "headset-outline" as const,
+              value: "24/7",
+              label: "Travel desk",
+            },
+          ].map((h) => (
+            <View key={h.label} style={styles.highlightMini}>
+              <Ionicons name={h.icon} size={16} color={Colors.primary} />
+              <Text style={styles.highlightValue}>{h.value}</Text>
+              <Text style={styles.highlightLabel}>{h.label}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
       {/* ── Popular Destinations ── */}
       <View style={styles.section}>
         <SectionHeader
           title="Popular places"
           subtitle={destinations.length > 0 ? `${destinations.length} destinations to explore` : undefined}
+          action={
+            destinations.length > 8
+              ? {
+                  label: "View all",
+                  testID: "destinations-view-all",
+                  onPress: () => router.push("/destinations" as Href),
+                }
+              : undefined
+          }
         />
         <View style={styles.carouselWrap}>
         <ScrollView
@@ -721,8 +640,12 @@ export default function HomeScreen() {
             return (
               <Pressable
                 key={dest.id}
+                testID={`home-dest-${dest.id}`}
                 style={[styles.destChip, active && styles.destChipActive]}
                 onPress={() => setActiveLocation(active ? null : dest.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by ${dest.label}`}
+                accessibilityHint="Toggle filter for packages in this destination"
               >
                 {/* Thumbnail */}
                 <View style={styles.destChipThumbWrap}>
@@ -765,76 +688,6 @@ export default function HomeScreen() {
           style={styles.edgeFade}
           pointerEvents="none"
         />
-        </View>
-      </View>
-
-      {/* ── Testimonials ── */}
-      <View style={styles.section}>
-        <SectionHeader title="What travellers say" subtitle="Stories from real trips" />
-        <View style={styles.carouselWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          decelerationRate="fast"
-          snapToInterval={TESTIMONIAL_CARD_WIDTH + Spacing.sm}
-          snapToAlignment="start"
-          contentContainerStyle={styles.testimonialRow}
-        >
-          {testimonials.map((item) => (
-            <View key={item.name} style={styles.testimonialCard}>
-              <View style={styles.quoteIcon}>
-                <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.primary} />
-              </View>
-              <View style={styles.starRow}>
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Ionicons key={index} name="star" size={12} color="#f5b400" />
-                ))}
-              </View>
-              <Text style={styles.testimonialQuote} numberOfLines={4}>
-                {item.quote}
-              </Text>
-              <View style={styles.testimonialFooter}>
-                <LinearGradient colors={item.accent} style={styles.avatar}>
-                  <Text style={styles.avatarText}>{item.initials}</Text>
-                </LinearGradient>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.testimonialName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.testimonialTrip} numberOfLines={1}>
-                    {item.trip}
-                  </Text>
-                  <Text style={styles.testimonialLocation}>{item.location}</Text>
-                </View>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-        <LinearGradient
-          colors={["rgba(250,249,248,0)", Colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.edgeFade}
-          pointerEvents="none"
-        />
-        </View>
-      </View>
-
-      {/* ── Why Travel With Us ── */}
-      <View style={styles.section}>
-        <SectionHeader title="The Aagam difference" />
-        <View style={styles.whyGrid}>
-          {whyUs.map((item) => (
-            <View key={item.title} style={styles.whyCard}>
-              <View style={styles.whyIconWrap}>
-                <Ionicons name={item.icon} size={20} color={Colors.primary} />
-              </View>
-              <Text style={styles.whyTitle}>{item.title}</Text>
-              <Text style={styles.whyText} numberOfLines={3}>
-                {item.text}
-              </Text>
-            </View>
-          ))}
         </View>
       </View>
 
@@ -896,7 +749,11 @@ export default function HomeScreen() {
           }
           subtitle={
             packages.length > 0
-              ? `${packages.length} ${packages.length === 1 ? "package" : "packages"}`
+              ? packageTotal != null
+                ? `Showing ${packages.length} of ${packageTotal} ${
+                    packageTotal === 1 ? "package" : "packages"
+                  }`
+                : `${packages.length} ${packages.length === 1 ? "package" : "packages"}`
               : undefined
           }
         />
@@ -904,12 +761,12 @@ export default function HomeScreen() {
         <View testID="package-list">
           {packages.length > 0 ? (
             packages.map((pkg, index) => (
-              <View key={pkg.id} testID={`package-card-${index}`}>
-                <PackageCard
-                  pkg={pkg}
-                  onPress={() => router.push(`/packages/${pkg.slug || pkg.id}`)}
-                />
-              </View>
+              <PackageCard
+                key={pkg.id}
+                testID={`package-card-${index}`}
+                pkg={pkg}
+                onPress={() => void openPackage(pkg)}
+              />
             ))
           ) : (
             <View style={styles.emptyState}>
@@ -919,12 +776,104 @@ export default function HomeScreen() {
               >
                 <Ionicons name="search-outline" size={28} color="#fff" />
               </LinearGradient>
-              <Text style={styles.emptyTitle}>No packages found</Text>
+              <Text style={styles.emptyTitle}>
+                {loadError ? "Could not load packages" : "No packages found"}
+              </Text>
               <Text style={styles.emptySubtitle}>
-                Try a different search or clear the filters.
+                {loadError
+                  ? "Use Retry above or pull down to refresh."
+                  : appliedSearch || activeCategory !== "all" || activeLocation
+                    ? "Try a different search or clear the filters."
+                    : "Featured packages are unavailable right now. Please try again later."}
               </Text>
             </View>
           )}
+          {hasMore && packages.length > 0 ? (
+            <Pressable
+              testID="home-load-more-packages"
+              style={[styles.loadMoreBtn, loadingMore ? styles.loadMoreDisabled : null]}
+              onPress={() => void loadMorePackages()}
+              disabled={loadingMore}
+              accessibilityRole="button"
+              accessibilityLabel="Load more packages"
+            >
+              {loadingMore ? (
+                <ActivityIndicator color={Colors.primary} />
+              ) : (
+                <Text style={styles.loadMoreText}>Load more</Text>
+              )}
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
+      {/* ── Testimonials ── */}
+      <View style={styles.section}>
+        <SectionHeader title="What travellers say" subtitle="Stories from real trips" />
+        <View style={styles.carouselWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            snapToInterval={TESTIMONIAL_CARD_WIDTH + Spacing.sm}
+            snapToAlignment="start"
+            contentContainerStyle={styles.testimonialRow}
+          >
+            {testimonials.map((item) => (
+              <View key={item.name} style={styles.testimonialCard}>
+                <View style={styles.quoteIcon}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.primary} />
+                </View>
+                <View style={styles.starRow}>
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Ionicons key={index} name="star" size={12} color="#f5b400" />
+                  ))}
+                </View>
+                <Text style={styles.testimonialQuote} numberOfLines={4}>
+                  {item.quote}
+                </Text>
+                <View style={styles.testimonialFooter}>
+                  <LinearGradient colors={item.accent} style={styles.avatar}>
+                    <Text style={styles.avatarText}>{item.initials}</Text>
+                  </LinearGradient>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.testimonialName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text style={styles.testimonialTrip} numberOfLines={1}>
+                      {item.trip}
+                    </Text>
+                    <Text style={styles.testimonialLocation}>{item.location}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+          <LinearGradient
+            colors={["rgba(250,249,248,0)", Colors.surface]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.edgeFade}
+            pointerEvents="none"
+          />
+        </View>
+      </View>
+
+      {/* ── Why Travel With Us ── */}
+      <View style={styles.section}>
+        <SectionHeader title="The Aagam difference" />
+        <View style={styles.whyGrid}>
+          {whyUs.map((item) => (
+            <View key={item.title} style={styles.whyCard}>
+              <View style={styles.whyIconWrap}>
+                <Ionicons name={item.icon} size={20} color={Colors.primary} />
+              </View>
+              <Text style={styles.whyTitle}>{item.title}</Text>
+              <Text style={styles.whyText} numberOfLines={3}>
+                {item.text}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
 
@@ -959,7 +908,7 @@ export default function HomeScreen() {
               style={[styles.ctaButton, styles.ctaButtonWa]}
               onPress={() =>
                 Linking.openURL(
-                  `https://wa.me/${WHATSAPP_NUMBER}?text=Hi, I would like to plan a tour.`
+                  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waPlanMessage)}`
                 )
               }
             >
@@ -1142,6 +1091,100 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     marginTop: 2,
   },
+
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  errorBannerText: { flex: 1, fontSize: FontSize.sm, color: Colors.text, fontWeight: "600" },
+  errorRetry: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary,
+  },
+  errorRetryText: { fontSize: FontSize.sm, fontWeight: "800", color: "#fff" },
+
+  shortcutsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+  shortcutChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadows.light,
+  },
+  shortcutChipText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.text,
+    maxWidth: 100,
+  },
+  shortcutIconWrap: { position: "relative" },
+  shortcutBadge: {
+    position: "absolute",
+    top: -8,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  shortcutBadgeText: { fontSize: 9, fontWeight: "800", color: "#fff" },
+
+  highlightsRow: {
+    flexDirection: "row",
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  highlightMini: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 4,
+  },
+  highlightValue: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
+  highlightLabel: { fontSize: 10, color: Colors.textTertiary, fontWeight: "600", textAlign: "center" },
+
+  loadMoreBtn: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadMoreDisabled: { opacity: 0.6 },
+  loadMoreText: { fontSize: FontSize.md, fontWeight: "800", color: Colors.primary },
 
   // ── Sections ──
   section: { paddingTop: Spacing.lg, paddingBottom: 0 },

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function GET(
 ) {
   const params = await props.params;
   return handleApi(async () => {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     if (!userId) return jsonError("Unauthorized", 401);
 
     const travelUser = await prismadb.travelAppUser.findUnique({

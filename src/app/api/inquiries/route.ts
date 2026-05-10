@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { getRequestClerkUserId, getClerkPrimaryEmailByUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc, formatLocalDate } from "@/lib/timezone-utils";
@@ -72,8 +72,7 @@ async function ensureWhatsAppCustomer(customerName: string, phoneNumber: string)
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    const user = await currentUser();
+    const userId = await getRequestClerkUserId(req);
     const body = await req.json();
     const parsed = createInquirySchema.safeParse(body);
     const {
@@ -171,7 +170,7 @@ export async function POST(req: Request) {
     }
 
     // Determine user role (ADMIN or ASSOCIATE)
-    const userEmail = user?.emailAddresses[0]?.emailAddress || "";
+    const userEmail = (await getClerkPrimaryEmailByUserId(userId)) || "";
     let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
 
     if (userEmail) {
@@ -261,7 +260,7 @@ export async function POST(req: Request) {
       await sendMetaEvent("Lead", {
         ip,
         userAgent,
-        email: user?.emailAddresses[0]?.emailAddress, // Or customer email if available in body?
+        email: userEmail || undefined,
         phone: customerMobileNumber,
         fbc: fbc || null,
         fbp: fbp || null,
@@ -347,7 +346,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     const url = new URL(req.url);
 
     // Extract query parameters
@@ -485,7 +484,7 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }

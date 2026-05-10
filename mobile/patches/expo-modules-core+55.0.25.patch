@@ -1,5 +1,5 @@
 diff --git a/node_modules/expo-modules-core/android/build.gradle b/node_modules/expo-modules-core/android/build.gradle
-index 9011b7e..08174fe 100644
+index aa170fa..3429f33 100644
 --- a/node_modules/expo-modules-core/android/build.gradle
 +++ b/node_modules/expo-modules-core/android/build.gradle
 @@ -69,12 +69,22 @@ def workletsProject = enableWorkletsIntegration ? findProject(":react-native-wor

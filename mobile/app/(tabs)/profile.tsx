@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -31,15 +31,21 @@ interface ProfileData {
 
 export default function ProfileTab() {
   const router = useRouter();
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn, getToken, isLoaded: clerkLoaded } = useAuth();
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
   const { signOut } = useClerk();
   const insets = useSafeAreaInsets();
   const { isAssociate, travelUser: authTravelUser, isLoading: userAuthLoading } = useCurrentUser();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  /** Avoid refetch spam when auth-status polling sets isLoading true/false without identity change. */
+  const lastProfileFetchAuthKeyRef = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
-    const token = await resolveMobileAuthToken(() => getToken());
+    const token = await resolveMobileAuthToken(() => getTokenRef.current());
     if (!token) {
       setProfile(null);
       setLoading(false);
@@ -52,12 +58,15 @@ export default function ProfileTab() {
       if (res.ok) setProfile(await res.json());
     } catch {}
     setLoading(false);
-  }, [getToken]);
+  }, []);
 
   useEffect(() => {
-    if (userAuthLoading) return;
+    if (!clerkLoaded || userAuthLoading) return;
+    const authKey = `${Boolean(isSignedIn)}:${authTravelUser?.id ?? ""}`;
+    if (lastProfileFetchAuthKeyRef.current === authKey) return;
+    lastProfileFetchAuthKeyRef.current = authKey;
     void fetchProfile();
-  }, [fetchProfile, userAuthLoading]);
+  }, [clerkLoaded, userAuthLoading, isSignedIn, authTravelUser?.id, fetchProfile]);
 
   function handleSignOut() {
     Alert.alert(

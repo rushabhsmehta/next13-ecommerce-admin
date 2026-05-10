@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -18,11 +18,18 @@ import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
 export default function AssociateInquiryListScreen() {
   const router = useRouter();
   const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [inquiries, setInquiries] = useState<AssociateInquiry[]>([]);
 
-  const client = useMemo(() => createAssociateInquiryClient(withAuth(() => getToken())), [getToken]);
+  const client = useMemo(
+    () => createAssociateInquiryClient(withAuth(() => getTokenRef.current())),
+    []
+  );
 
   const fetchInquiries = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);

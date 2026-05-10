@@ -83,7 +83,7 @@ describe("lastMessagePreview", () => {
       sender: { name: "Priya Sharma" },
     };
     const result = lastMessagePreview(msg);
-    expect(result.length).toBe(45); // 42 + "..."
+    expect(result.length).toBe(43); // 42 + ellipsis
     expect(result.endsWith("…")).toBe(true);
   });
 

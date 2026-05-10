@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,10 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 export default function EditProfileScreen() {
   const router = useRouter();
   const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -29,7 +33,7 @@ export default function EditProfileScreen() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const token = await getToken();
+        const token = await getTokenRef.current();
         const res = await fetch(`${API_BASE_URL}/api/mobile/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -43,7 +47,7 @@ export default function EditProfileScreen() {
       setLoading(false);
     }
     loadProfile();
-  }, [getToken]);
+  }, []);
 
   async function handleSave() {
     if (!name.trim()) {
@@ -52,7 +56,7 @@ export default function EditProfileScreen() {
     }
     setSaving(true);
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       const res = await fetch(`${API_BASE_URL}/api/mobile/profile`, {
         method: "PATCH",
         headers: {

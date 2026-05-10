@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-expo";
 import { API_BASE_URL } from "@/constants/api";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
@@ -27,6 +27,7 @@ interface CurrentUserState {
 
 export function useCurrentUser(): CurrentUserState {
   const { isSignedIn, isLoaded, getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
   const [state, setState] = useState<CurrentUserState>({
     isAdmin: false,
     isAssociate: false,
@@ -36,12 +37,16 @@ export function useCurrentUser(): CurrentUserState {
   });
 
   useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+
+  useEffect(() => {
     if (!isLoaded) return;
 
     async function fetchAuthStatus() {
       setState((prev) => ({ ...prev, isLoading: true }));
       try {
-        const token = await resolveMobileAuthToken(() => getToken());
+        const token = await resolveMobileAuthToken(() => getTokenRef.current());
         if (!token) {
           setState({
             isAdmin: false,
@@ -85,7 +90,7 @@ export function useCurrentUser(): CurrentUserState {
     }
 
     void fetchAuthStatus();
-  }, [isSignedIn, isLoaded, getToken]);
+  }, [isSignedIn, isLoaded]);
 
   return state;
 }

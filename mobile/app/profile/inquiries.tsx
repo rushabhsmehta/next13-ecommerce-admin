@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -47,6 +47,10 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function MyInquiriesScreen() {
   const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
   const insets = useSafeAreaInsets();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +59,7 @@ export default function MyInquiriesScreen() {
   const fetchInquiries = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const token = await getToken();
+      const token = await getTokenRef.current();
       const res = await fetch(`${API_BASE_URL}/api/mobile/my-inquiries`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -66,7 +70,7 @@ export default function MyInquiriesScreen() {
     } catch {}
     setLoading(false);
     setRefreshing(false);
-  }, [getToken]);
+  }, []);
 
   useEffect(() => { fetchInquiries(); }, [fetchInquiries]);
 

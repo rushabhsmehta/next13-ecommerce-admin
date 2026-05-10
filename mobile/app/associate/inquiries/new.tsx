@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -18,7 +18,14 @@ import { createAssociateInquiryClient, getLocationOptions, type LocationOption }
 export default function CreateAssociateInquiryScreen() {
   const router = useRouter();
   const { getToken } = useAuth();
-  const client = useMemo(() => createAssociateInquiryClient(withAuth(() => getToken())), [getToken]);
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+  const client = useMemo(
+    () => createAssociateInquiryClient(withAuth(() => getTokenRef.current())),
+    []
+  );
 
   const [submitting, setSubmitting] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(true);

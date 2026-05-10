@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,7 +20,14 @@ const STATUSES = ["PENDING", "HOT_QUERY", "QUERY_SENT", "CONFIRMED", "CANCELLED"
 export default function AssociateInquiryDetailScreen() {
   const { inquiryId } = useLocalSearchParams<{ inquiryId: string }>();
   const { getToken } = useAuth();
-  const client = useMemo(() => createAssociateInquiryClient(withAuth(() => getToken())), [getToken]);
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+  const client = useMemo(
+    () => createAssociateInquiryClient(withAuth(() => getTokenRef.current())),
+    []
+  );
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

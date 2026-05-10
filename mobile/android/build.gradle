@@ -18,6 +18,8 @@ allprojects {
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
   }
+  // Help native modules that resolve paths via rootProject.ext (EAS + monorepo-safe).
+  ext.REACT_NATIVE_NODE_MODULES_DIR = file("${rootDir}/../node_modules/react-native")
 }
 
 apply plugin: "expo-root-project"

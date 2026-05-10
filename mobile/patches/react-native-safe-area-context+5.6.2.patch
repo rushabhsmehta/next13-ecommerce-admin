@@ -1,0 +1,14 @@
+diff --git a/node_modules/react-native-safe-area-context/android/build.gradle b/node_modules/react-native-safe-area-context/android/build.gradle
+index f324b9a..581ee87 100644
+--- a/node_modules/react-native-safe-area-context/android/build.gradle
++++ b/node_modules/react-native-safe-area-context/android/build.gradle
+@@ -8,7 +8,8 @@ buildscript {
+ 
+     dependencies {
+         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
+-        classpath("com.android.tools.build:gradle:7.3.1")
++        // AGP version comes from the root Expo / React Native Gradle setup — pinning an old
++        // classpath here breaks EAS (AgpVersionAttr mismatch → "No variants exist").
+         classpath("com.diffplug.spotless:spotless-plugin-gradle:6.11.0")
+     }
+ }

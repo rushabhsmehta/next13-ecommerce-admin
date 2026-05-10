@@ -1,0 +1,13 @@
+diff --git a/node_modules/@solana-mobile/mobile-wallet-adapter-protocol/android/build.gradle b/node_modules/@solana-mobile/mobile-wallet-adapter-protocol/android/build.gradle
+index 61ead8f..24f522c 100644
+--- a/node_modules/@solana-mobile/mobile-wallet-adapter-protocol/android/build.gradle
++++ b/node_modules/@solana-mobile/mobile-wallet-adapter-protocol/android/build.gradle
+@@ -8,7 +8,7 @@ buildscript {
+   }
+ 
+   dependencies {
+-    classpath 'com.android.tools.build:gradle:9.0.1'
++    // Root project supplies AGP — 9.x pin breaks RN/Expo 8.12 graphs on EAS.
+     // noinspection DifferentKotlinGradleVersion
+     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+   }

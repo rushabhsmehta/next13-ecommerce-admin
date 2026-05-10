@@ -1,8 +1,24 @@
 node_modules/
 .expo/
 dist/
-android/
-ios/
+
+# Bare workflow: native android/ios must upload. Only exclude local machine state:
+# - .gradle is locked by the daemon during `eas build` on Windows (EBUSY copyfile)
+# - app/build + .cxx are multi‑GB locally; EAS regenerates them (explicit paths + globs)
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/**/build/
+android/**/.cxx/
+
+# Gradle / JVM crash dumps sometimes appear under android/ — never needed remotely
+android/**/*.log
+android/**/replay_pid*
+android/**/hs_err_pid*
+ios/Pods/
+ios/build/
+
 *.jks
 *.p8
 *.p12

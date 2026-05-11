@@ -51,7 +51,7 @@ function WhatsAppTabIcon({ color, focused }: { color: string; focused: boolean }
 function TabLayoutInner() {
   const insets = useSafeAreaInsets();
   const { isLoaded } = useAuth();
-  const { isAdmin } = useCurrentUser();
+  const { canUseAdmin, isAdmin } = useCurrentUser();
 
   if (!isLoaded) return null;
 
@@ -123,6 +123,23 @@ function TabLayoutInner() {
           tabBarAccessibilityLabel: "tab-whatsapp",
           tabBarIcon: ({ color, focused }) => (
             <WhatsAppTabIcon color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: "Admin",
+          href: canUseAdmin ? undefined : null,
+          tabBarAccessibilityLabel: "tab-admin",
+          tabBarIcon: ({ color, focused }) => (
+            <View testID="tab-admin-icon" style={focused ? styles.activeIconWrap : undefined}>
+              <Ionicons
+                name={focused ? "grid" : "grid-outline"}
+                size={22}
+                color={color}
+              />
+            </View>
           ),
         }}
       />

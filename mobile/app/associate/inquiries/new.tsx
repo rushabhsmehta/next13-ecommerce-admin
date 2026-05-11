@@ -252,6 +252,13 @@ export default function CreateAssociateInquiryScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.guideCard}>
+        <Text style={styles.guideTitle}>Guided inquiry flow</Text>
+        <Text style={styles.guideText}>
+          1. Add customer details  2. Pick travellers and services  3. Choose destination  4. Review notes and create
+        </Text>
+      </View>
+
       <Text style={styles.label}>Customer name</Text>
       <TextInput style={styles.input} value={customerName} onChangeText={setCustomerName} />
 
@@ -372,6 +379,15 @@ function FormNumRow({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, gap: Spacing.sm, paddingBottom: 32 },
+  guideCard: {
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.primaryBg,
+    padding: Spacing.md,
+    gap: 4,
+    marginBottom: Spacing.sm,
+  },
+  guideTitle: { color: Colors.text, fontWeight: "800", fontSize: FontSize.md },
+  guideText: { color: Colors.textSecondary, fontSize: FontSize.xs, lineHeight: 18 },
   sectionHeading: {
     marginTop: Spacing.md,
     fontSize: FontSize.md,

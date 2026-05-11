@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from "react";
 import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
+import { captureException } from "@/lib/analytics";
 
 interface Props {
   children: ReactNode;
@@ -26,10 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
-    if (typeof window !== "undefined" && "Sentry" in window) {
-      const Sentry = (window as any).Sentry;
-      Sentry?.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
-    }
+    captureException(error, { componentStack: errorInfo.componentStack });
   }
 
   handleRetry = (): void => {

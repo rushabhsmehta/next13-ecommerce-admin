@@ -16,7 +16,17 @@ export async function POST(req: Request) {
     if (!travelUser) return new NextResponse("User not found", { status: 404 });
 
     const body = await req.json();
-    const { locationId, name, phone, journeyDate, numAdults, remarks } = body;
+    const {
+      locationId,
+      name,
+      phone,
+      journeyDate,
+      numAdults,
+      numChildrenAbove11,
+      numChildren5to11,
+      numChildrenBelow5,
+      remarks,
+    } = body;
 
     if (!locationId || typeof locationId !== "string") {
       return new NextResponse("locationId is required", { status: 400 });
@@ -40,6 +50,9 @@ export async function POST(req: Request) {
         customerMobileNumber: phone.trim(),
         locationId,
         numAdults: numAdults ? Math.max(1, Number(numAdults)) : 1,
+        numChildrenAbove11: numChildrenAbove11 ? Math.max(0, Number(numChildrenAbove11)) : 0,
+        numChildren5to11: numChildren5to11 ? Math.max(0, Number(numChildren5to11)) : 0,
+        numChildrenBelow5: numChildrenBelow5 ? Math.max(0, Number(numChildrenBelow5)) : 0,
         journeyDate: journeyDate ? new Date(journeyDate) : undefined,
         remarks: remarks?.trim() || undefined,
         status: "PENDING",

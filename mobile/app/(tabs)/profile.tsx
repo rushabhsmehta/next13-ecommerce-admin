@@ -38,7 +38,13 @@ export default function ProfileTab() {
   }, [getToken]);
   const { signOut } = useClerk();
   const insets = useSafeAreaInsets();
-  const { isAssociate, travelUser: authTravelUser, isLoading: userAuthLoading } = useCurrentUser();
+  const {
+    isAdmin,
+    canUseAdmin,
+    isAssociate,
+    travelUser: authTravelUser,
+    isLoading: userAuthLoading,
+  } = useCurrentUser();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   /** Avoid refetch spam when auth-status polling sets isLoading true/false without identity change. */
@@ -155,6 +161,12 @@ export default function ProfileTab() {
           badge="Track your tour requests"
           onPress={() => router.push("/profile/inquiries")}
         />
+        <MenuItem
+          icon="heart-outline"
+          label="Saved Packages"
+          badge="Compare shortlisted tours"
+          onPress={() => router.push("/profile/saved-packages")}
+        />
         {isAssociate ? (
           <MenuItem
             icon="briefcase-outline"
@@ -163,6 +175,62 @@ export default function ProfileTab() {
             onPress={() => router.push("/associate/inquiries")}
           />
         ) : null}
+      </View>
+
+      {canUseAdmin ? (
+        <>
+          <View style={styles.sectionTitle}>
+            <Text style={styles.sectionTitleText}>Admin Shortcuts</Text>
+          </View>
+          <View style={styles.section}>
+            <MenuItem
+              icon="grid-outline"
+              label="Admin Workspace"
+              badge="CRM, finance, reports, settings"
+              onPress={() => router.push("/admin" as never)}
+            />
+            {isAdmin ? (
+              <>
+            <MenuItem
+              icon="logo-whatsapp"
+              label="WhatsApp Inbox"
+              badge="Unread replies and customers"
+              iconColor="#25D366"
+              onPress={() => router.push("/whatsapp")}
+            />
+            <MenuItem
+              icon="megaphone-outline"
+              label="Campaigns"
+              badge="Review and launch broadcasts"
+              onPress={() => router.push("/whatsapp/campaigns")}
+            />
+            <MenuItem
+              icon="albums-outline"
+              label="Templates"
+              badge="Reusable WhatsApp messages"
+              onPress={() => router.push("/whatsapp/templates")}
+            />
+              </>
+            ) : null}
+          </View>
+        </>
+      ) : null}
+
+      <View style={styles.sectionTitle}>
+        <Text style={styles.sectionTitleText}>Preferences</Text>
+      </View>
+      <View style={styles.section}>
+        <MenuItem
+          icon="notifications-outline"
+          label="Notification Preferences"
+          badge="Trip chat, enquiry updates, offers"
+          onPress={() =>
+            Alert.alert(
+              "Notification Preferences",
+              "Granular push controls are coming soon. For now, you can manage app notifications from device settings."
+            )
+          }
+        />
       </View>
 
       <View style={styles.sectionTitle}>

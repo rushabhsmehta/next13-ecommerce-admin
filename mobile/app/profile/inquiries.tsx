@@ -7,12 +7,15 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { format } from "date-fns";
+import { buildTelUrl, buildWaMeUrl } from "@/constants/whatsapp";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
@@ -21,7 +24,13 @@ interface Inquiry {
   status: string;
   location: string;
   numAdults: number;
+  numChildrenAbove11: number;
+  numChildren5to11: number;
+  numChildrenBelow5: number;
   journeyDate: string | null;
+  nextFollowUpDate: string | null;
+  assignedStaff: { name: string; email: string } | null;
+  latestQuote: { id: string; createdAt: string } | null;
   createdAt: string;
   updatedAt: string;
   lastAction: { actionType: string; remarks: string; actionDate: string } | null;
@@ -47,6 +56,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function MyInquiriesScreen() {
   const { getToken } = useAuth();
+  const router = useRouter();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
     getTokenRef.current = getToken;
@@ -107,6 +117,9 @@ export default function MyInquiriesScreen() {
           <Text style={styles.emptySubtitle}>
             Browse our packages and tap "Enquire Now" to submit a tour request.
           </Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={() => router.push("/")}>
+            <Text style={styles.emptyButtonText}>Browse Packages</Text>
+          </TouchableOpacity>
         </View>
       }
       renderItem={({ item }) => <InquiryCard inquiry={item} />}
@@ -118,7 +131,12 @@ function InquiryCard({ inquiry }: { inquiry: Inquiry }) {
   const journeyDateStr = inquiry.journeyDate
     ? format(new Date(inquiry.journeyDate), "dd MMM yyyy")
     : null;
+  const nextFollowUpStr = inquiry.nextFollowUpDate
+    ? format(new Date(inquiry.nextFollowUpDate), "dd MMM yyyy")
+    : null;
   const createdStr = format(new Date(inquiry.createdAt), "dd MMM yyyy");
+  const totalChildren =
+    inquiry.numChildrenAbove11 + inquiry.numChildren5to11 + inquiry.numChildrenBelow5;
 
   return (
     <View style={styles.card}>
@@ -134,10 +152,31 @@ function InquiryCard({ inquiry }: { inquiry: Inquiry }) {
 
       <View style={styles.cardBody}>
         <InfoChip icon="people-outline" label={`${inquiry.numAdults} adult${inquiry.numAdults !== 1 ? "s" : ""}`} />
+        {totalChildren > 0 ? (
+          <InfoChip icon="happy-outline" label={`${totalChildren} child${totalChildren !== 1 ? "ren" : ""}`} />
+        ) : null}
         {journeyDateStr && (
           <InfoChip icon="calendar-outline" label={journeyDateStr} />
         )}
         <InfoChip icon="time-outline" label={`Submitted ${createdStr}`} />
+      </View>
+
+      <View style={styles.timelineBox}>
+        <TimelineRow
+          icon="person-circle-outline"
+          label="Assigned to"
+          value={inquiry.assignedStaff?.name ?? "Team Aagam"}
+        />
+        <TimelineRow
+          icon="calendar-number-outline"
+          label="Next follow-up"
+          value={nextFollowUpStr ?? "Our team will update you soon"}
+        />
+        <TimelineRow
+          icon="document-attach-outline"
+          label="Quote"
+          value={inquiry.latestQuote ? "Quote is being prepared" : "Not generated yet"}
+        />
       </View>
 
       {inquiry.lastAction && (
@@ -151,8 +190,39 @@ function InquiryCard({ inquiry }: { inquiry: Inquiry }) {
 
       <View style={styles.cardFooter}>
         <Text style={styles.cardId}>#{inquiry.id.slice(0, 8).toUpperCase()}</Text>
-        <Text style={styles.footerHint}>Our team will contact you shortly</Text>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() =>
+              Linking.openURL(
+                buildWaMeUrl(`Hi, I need an update on enquiry #${inquiry.id.slice(0, 8).toUpperCase()}.`)
+              )
+            }
+          >
+            <Ionicons name="logo-whatsapp" size={13} color="#25D366" />
+            <Text style={styles.actionButtonText}>WhatsApp</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => Linking.openURL(buildTelUrl())}
+          >
+            <Ionicons name="call-outline" size={13} color={Colors.primary} />
+            <Text style={styles.actionButtonText}>Call</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+    </View>
+  );
+}
+
+function TimelineRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <View style={styles.timelineRow}>
+      <Ionicons name={icon} size={13} color={Colors.primary} />
+      <Text style={styles.timelineLabel}>{label}</Text>
+      <Text style={styles.timelineValue} numberOfLines={1}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -191,6 +261,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
+  emptyButton: {
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+  },
+  emptyButtonText: { color: "#fff", fontWeight: "800" },
 
   card: {
     backgroundColor: Colors.background,
@@ -258,6 +336,23 @@ const styles = StyleSheet.create({
   },
   lastActionText: { fontSize: FontSize.xs, color: Colors.textSecondary, flex: 1, lineHeight: 17 },
 
+  timelineBox: {
+    gap: 7,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryBg,
+  },
+  timelineRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  timelineLabel: {
+    width: 92,
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: "700",
+  },
+  timelineValue: { flex: 1, fontSize: FontSize.xs, color: Colors.text, fontWeight: "600" },
+
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
@@ -269,5 +364,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   cardId: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "600", fontVariant: ["tabular-nums"] },
-  footerHint: { fontSize: FontSize.xs, color: Colors.textTertiary },
+  actionRow: { flexDirection: "row", gap: Spacing.sm },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+    backgroundColor: Colors.background,
+  },
+  actionButtonText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "700" },
 });

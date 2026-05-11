@@ -4,7 +4,7 @@
  */
 
 import * as Clipboard from "expo-clipboard";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { Alert, Linking } from "react-native";
 
 function pdfFallbackAlert(pdfUrl: string, nativeMissing: boolean) {

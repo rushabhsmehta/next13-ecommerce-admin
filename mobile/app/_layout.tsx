@@ -240,8 +240,16 @@ export default function RootLayout() {
               options={{ headerTitle: "Flows", headerBackTitle: "WhatsApp" }}
             />
             <Stack.Screen
+              name="admin/crm/inquiries"
+              options={{ headerTitle: "CRM Inquiries", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
               name="profile/inquiries"
               options={{ headerTitle: "My Enquiries", headerBackTitle: "Profile" }}
+            />
+            <Stack.Screen
+              name="profile/saved-packages"
+              options={{ headerTitle: "Saved Packages", headerBackTitle: "Profile" }}
             />
             <Stack.Screen
               name="associate/inquiries/index"

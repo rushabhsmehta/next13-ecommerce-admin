@@ -45,6 +45,7 @@ import {
   WHATSAPP_BUSINESS_NUMBER,
   WHATSAPP_BUSINESS_NUMBER_E164,
 } from "@/constants/whatsapp";
+import { captureException, trackEvent } from "@/lib/analytics";
 
 /** Fixed-width tiles in the Popular places row (identical card sizes) */
 const POPULAR_PLACE_CARD_WIDTH = 100;
@@ -227,7 +228,7 @@ export default function HomeScreen() {
 
           const destsForCarousels = sortedDests.slice(0, MAX_LOCATION_CAROUSELS);
 
-          const carouselResults = await Promise.all(
+          const carouselResults: Array<LocationCarouselRow | null> = await Promise.all(
             destsForCarousels.map(async (dest) => {
               try {
                 const r = (await travelApi.getPackages({
@@ -335,6 +336,7 @@ export default function HomeScreen() {
         }
       } catch (error) {
         console.error(error);
+        captureException(error, { screen: "home", activeCategory, activeLocation });
         if (myFetch === dataFetchId.current) {
           setLoadError("Something went wrong. Please try again.");
         }
@@ -405,6 +407,7 @@ export default function HomeScreen() {
       };
       await setLastViewedPackage(entry);
       setLastViewed(entry);
+      trackEvent("package_open", { packageId: pkg.id, source: "home" });
       router.push(`/packages/${pkg.slug || pkg.id}`);
     },
     [router]
@@ -451,8 +454,18 @@ export default function HomeScreen() {
   }, [syncDebouncedSearch]);
 
   const submitSearch = useCallback(() => {
-    setAppliedSearch(searchText.trim());
+    const term = searchText.trim();
+    setAppliedSearch(term);
+    if (term) trackEvent("package_search", { queryLength: term.length });
   }, [searchText]);
+
+  const recommendedPackages = useMemo(() => {
+    if (!lastViewed) return [];
+    const pool = showingLocationCarousels
+      ? locationCarouselRows.flatMap((row) => row.packages)
+      : packages;
+    return pool.filter((pkg) => pkg.id !== lastViewed.id).slice(0, 3);
+  }, [lastViewed, locationCarouselRows, packages, showingLocationCarousels]);
 
   const handleClear = () => {
     setSearchText("");
@@ -971,6 +984,30 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
+      {recommendedPackages.length > 0 ? (
+        <View style={styles.recommendationSection}>
+          <SectionHeader
+            title="Recommended next"
+            subtitle="Based on your recent browsing"
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselPkgRow}
+          >
+            {recommendedPackages.map((pkg, index) => (
+              <PackageCard
+                key={pkg.id}
+                variant="carousel"
+                testID={`recommended-package-${index}`}
+                pkg={pkg}
+                onPress={() => void openPackage(pkg)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
       {/* ── Tour Categories ── */}
       <View style={styles.section}>
         <SectionHeader title="Tour categories" />
@@ -1301,6 +1338,7 @@ const styles = StyleSheet.create({
   },
   /** Packages directly below Popular places */
   packagesSection: { paddingTop: Spacing.sm, paddingBottom: 0 },
+  recommendationSection: { paddingTop: Spacing.md, paddingBottom: Spacing.xs },
   locationCarouselBlock: { marginBottom: Spacing.lg },
   locationCarouselHeader: {
     flexDirection: "row",

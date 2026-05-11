@@ -10,7 +10,7 @@ A React Native (Expo) mobile app for **iOS** and **Android** that connects to th
 
 | Technology | Purpose |
 |-----------|---------|
-| **Expo SDK 52** | React Native framework with managed workflow |
+| **Expo SDK 55** | React Native framework with managed workflow |
 | **Expo Router** | File-based navigation (like Next.js App Router) |
 | **Expo Notifications** | Push notifications for iOS & Android |
 | **Expo Image Picker** | Camera & photo library for chat |
@@ -28,9 +28,8 @@ mobile/
 │   ├── (tabs)/             # Bottom tab navigation
 │   │   ├── _layout.tsx     # Tab bar configuration
 │   │   ├── index.tsx       # Home - Hero, destinations, packages
-│   │   ├── explore.tsx     # Browse packages with search/filter
-│   │   ├── destinations.tsx# Browse destinations
-│   │   ├── chat.tsx        # Chat group list
+│   │   ├── chat.tsx        # Trip chat group list
+│   │   ├── whatsapp.tsx    # Admin WhatsApp inbox
 │   │   └── profile.tsx     # User profile & settings
 │   ├── packages/
 │   │   └── [id].tsx        # Package detail with gallery, itinerary
@@ -44,8 +43,9 @@ mobile/
 │   └── theme.ts            # Colors, spacing, typography
 ├── lib/
 │   ├── api.ts              # API client (connects to Next.js backend)
-│   ├── auth.ts             # Auth token management
-│   └── notifications.ts    # Push notification setup
+│   ├── cache/              # SQLite offline cache
+│   ├── chat/               # Chat cache, outbox, upload, push helpers
+│   └── whatsapp/           # WhatsApp cache, outbox, upload, push helpers
 ├── assets/                 # App icons, splash screens
 ├── app.json                # Expo configuration
 ├── eas.json                # EAS Build configuration

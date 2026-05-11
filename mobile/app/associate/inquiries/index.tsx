@@ -14,10 +14,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { withAuth } from "@/lib/api";
 import { createAssociateInquiryClient, type AssociateInquiry } from "@/lib/associate-inquiries";
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export default function AssociateInquiryListScreen() {
   const router = useRouter();
   const { getToken } = useAuth();
+  const { isAssociate } = useCurrentUser();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
     getTokenRef.current = getToken;
@@ -73,8 +75,12 @@ export default function AssociateInquiryListScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>No associate inquiries yet</Text>
-            <Text style={styles.emptySubtitle}>Create your first inquiry to start tracking follow-ups.</Text>
+            <Text style={styles.emptyTitle}>
+              {isAssociate ? "No associate inquiries yet" : "No CRM inquiries yet"}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              Create your first inquiry to start tracking follow-ups.
+            </Text>
           </View>
         }
         renderItem={({ item }) => (

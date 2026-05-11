@@ -109,6 +109,20 @@ export const cache = {
     }
   },
 
+  async getStale<T = any>(key: string): Promise<T | null> {
+    try {
+      const database = await getDb();
+      const row = await database.getFirstAsync<{ value: string }>(
+        "SELECT value FROM cache WHERE key = ?",
+        [key]
+      );
+      if (!row) return null;
+      return JSON.parse(row.value) as T;
+    } catch {
+      return null;
+    }
+  },
+
   async set<T = any>(key: string, value: T, ttlSeconds: number = 300): Promise<void> {
     try {
       const database = await getDb();

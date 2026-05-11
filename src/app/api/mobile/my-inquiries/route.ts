@@ -19,10 +19,16 @@ export async function GET(req: Request) {
       where: { fb_client_id: travelUser.id },
       include: {
         location: { select: { label: true } },
+        assignedStaff: { select: { name: true, email: true } },
         actions: {
           orderBy: { actionDate: "desc" },
           take: 1,
           select: { actionType: true, remarks: true, actionDate: true },
+        },
+        tourPackageQueries: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { id: true, createdAt: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -33,7 +39,15 @@ export async function GET(req: Request) {
       status: inq.status,
       location: inq.location.label,
       numAdults: inq.numAdults,
+      numChildrenAbove11: inq.numChildrenAbove11,
+      numChildren5to11: inq.numChildren5to11,
+      numChildrenBelow5: inq.numChildrenBelow5,
       journeyDate: inq.journeyDate,
+      nextFollowUpDate: inq.nextFollowUpDate,
+      assignedStaff: inq.assignedStaff
+        ? { name: inq.assignedStaff.name, email: inq.assignedStaff.email }
+        : null,
+      latestQuote: inq.tourPackageQueries[0] ?? null,
       createdAt: inq.createdAt,
       updatedAt: inq.updatedAt,
       lastAction: inq.actions[0] ?? null,

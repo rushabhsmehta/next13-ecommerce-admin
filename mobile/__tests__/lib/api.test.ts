@@ -1,4 +1,4 @@
-import { travelApi, ApiError } from "../../lib/api";
+import { request, travelApi, ApiError } from "../../lib/api";
 import { API_BASE_URL } from "../../constants/api";
 
 global.fetch = jest.fn();
@@ -170,5 +170,40 @@ describe("ApiError", () => {
     const error = new ApiError("Network error", null, true);
 
     expect(error.retryable).toBe(true);
+  });
+});
+
+describe("request retry safety", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("does not retry non-idempotent writes by default", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      createMockResponse({ error: "Server error" }, false, 500)
+    );
+
+    await expect(
+      request("/api/mobile/admin/test-write", { method: "POST", body: { amount: 100 } })
+    ).rejects.toMatchObject({ statusCode: 500 });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends an idempotency key when provided", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(createMockResponse({ ok: true }));
+
+    await request("/api/mobile/admin/test-write", {
+      method: "POST",
+      body: { amount: 100 },
+      idempotencyKey: "receipt-123",
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_BASE_URL}/api/mobile/admin/test-write`,
+      expect.objectContaining({
+        headers: expect.objectContaining({ "Idempotency-Key": "receipt-123" }),
+      })
+    );
   });
 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import { resolveInquiryAccessContext } from "@/lib/inquiry-access";
+import { buildMobileAdminProfile } from "@/lib/mobile-admin-access";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,9 @@ export async function GET(req: Request) {
 
     const [orgMembership, travelUser, inquiryAccess] = await Promise.all([
       (prismadb as any).organizationMember.findFirst({
-        where: { userId, isActive: true, role: { in: ["ADMIN", "OWNER"] } },
+        where: { userId, isActive: true },
+        orderBy: { createdAt: "asc" },
+        select: { role: true, organizationId: true },
       }),
       prismadb.travelAppUser.findUnique({
         where: { clerkUserId: userId },
@@ -20,9 +23,15 @@ export async function GET(req: Request) {
       }),
       resolveInquiryAccessContext(userId),
     ]);
+    const mobileAdmin = buildMobileAdminProfile(
+      orgMembership?.role ?? null,
+      inquiryAccess.isAssociate
+    );
 
     return NextResponse.json({
-      isAdmin: !!orgMembership,
+      ...mobileAdmin,
+      organizationId: orgMembership?.organizationId ?? null,
+      isAdmin: mobileAdmin.isAdmin,
       isAssociate: inquiryAccess.isAssociate,
       associatePartner: inquiryAccess.associatePartner,
       travelUser,

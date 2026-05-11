@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/constants/api";
+import { cache, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 
 const DEFAULT_TIMEOUT = 10000;
@@ -25,6 +26,8 @@ type RequestOptions = {
   timeout?: number;
   retries?: number;
   headers?: Record<string, string>;
+  idempotencyKey?: string;
+  signal?: AbortSignal;
 };
 
 async function sleep(ms: number): Promise<void> {
@@ -39,12 +42,15 @@ async function request<T = any>(
     method = "GET",
     body,
     timeout = DEFAULT_TIMEOUT,
-    retries = MAX_RETRIES,
+    retries = method === "GET" ? MAX_RETRIES : 0,
     headers: customHeaders,
+    idempotencyKey,
+    signal,
   } = options;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     ...customHeaders,
   };
 
@@ -59,7 +65,7 @@ async function request<T = any>(
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
+        signal: signal ?? controller.signal,
       });
 
       clearTimeout(timeoutId);
@@ -118,6 +124,25 @@ async function request<T = any>(
   throw lastError || new ApiError("Max retries exceeded", null, true);
 }
 
+async function cachedRequest<T = any>(
+  key: string,
+  endpoint: string,
+  ttlSeconds: number,
+  options: RequestOptions = {}
+): Promise<T> {
+  const fresh = await cache.get<T>(key);
+  if (fresh) return fresh;
+  try {
+    const data = await request<T>(endpoint, options);
+    await cache.set(key, data, ttlSeconds);
+    return data;
+  } catch (error) {
+    const stale = await cache.getStale<T>(key);
+    if (stale) return stale;
+    throw error;
+  }
+}
+
 function withAuth(tokenProvider: () => Promise<string | null>) {
   return async function authRequest<T = any>(
     endpoint: string,
@@ -154,14 +179,24 @@ export const travelApi = {
     if (params?.limit) searchParams.set("limit", String(params.limit));
     if (params?.offset) searchParams.set("offset", String(params.offset));
     const qs = searchParams.toString();
-    return request(`/api/travel/packages${qs ? `?${qs}` : ""}`);
+    const endpoint = `/api/travel/packages${qs ? `?${qs}` : ""}`;
+    return cachedRequest(
+      CACHE_KEYS.PACKAGES(Object.fromEntries(searchParams.entries())),
+      endpoint,
+      CACHE_TTL.PACKAGES
+    );
   },
 
-  getDestinations: () => request("/api/travel/destinations"),
+  getDestinations: () =>
+    cachedRequest(CACHE_KEYS.DESTINATIONS, "/api/travel/destinations", CACHE_TTL.DESTINATIONS),
 
   search: (query: string) =>
     request(`/api/travel/search?q=${encodeURIComponent(query)}`),
 
   getPackageBySlug: (slug: string) =>
-    request(`/api/tourPackageBySlug/${slug}`),
+    cachedRequest(
+      CACHE_KEYS.PACKAGE(slug),
+      `/api/tourPackageBySlug/${slug}`,
+      CACHE_TTL.PACKAGE
+    ),
 };

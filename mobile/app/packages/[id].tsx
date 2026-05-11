@@ -15,8 +15,14 @@ import {
   Alert,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { downloadAndShareBrochurePdf } from "@/lib/share-brochure-pdf";
+import { captureException, trackEvent } from "@/lib/analytics";
+import {
+  isPackageSaved,
+  removeSavedPackage,
+  savePackage,
+} from "@/lib/saved-packages";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -70,12 +76,23 @@ export default function PackageDetailScreen() {
     if (id) loadPackage();
   }, [id]);
 
+  useEffect(() => {
+    if (!pkg?.id) return;
+    void isPackageSaved(pkg.id).then(setIsSaved);
+    trackEvent("package_view", {
+      packageId: pkg.id,
+      slug: pkg.slug ?? null,
+      location: pkg.location?.label ?? null,
+    });
+  }, [pkg?.id, pkg?.slug, pkg?.location?.label]);
+
   const loadPackage = async () => {
     try {
       const data = await travelApi.getPackageBySlug(id!);
       setPkg(data);
     } catch (error) {
       console.error("Failed to load package:", error);
+      captureException(error, { screen: "package_detail", packageId: id });
     } finally {
       setLoading(false);
     }
@@ -140,6 +157,7 @@ export default function PackageDetailScreen() {
     try {
       await Clipboard.setStringAsync(packageUrl);
       closeShareModal();
+      trackEvent("package_share", { channel: "copy", packageId: pkg.id });
       Alert.alert("Copied", "Package link copied to clipboard.");
     } catch {
       Alert.alert("Could not copy", "Please try again.");
@@ -148,12 +166,14 @@ export default function PackageDetailScreen() {
 
   const handleWhatsAppPackageShare = () => {
     closeShareModal();
+    trackEvent("package_share", { channel: "whatsapp", packageId: pkg.id });
     void Linking.openURL(buildWaMeUrl(shareMessage));
   };
 
   const handleNativeSharePackage = async () => {
     try {
       closeShareModal();
+      trackEvent("package_share", { channel: "native", packageId: pkg.id });
       await Share.share(
         Platform.OS === "ios"
           ? {
@@ -182,6 +202,7 @@ export default function PackageDetailScreen() {
         dialogTitle: nameParts.title,
       });
       if (shared) {
+        trackEvent("package_share", { channel: "brochure_pdf", packageId: pkg.id });
         closeShareModal();
       }
     } finally {
@@ -190,6 +211,7 @@ export default function PackageDetailScreen() {
   };
 
   const handleEnquire = () => {
+    trackEvent("enquiry_start", { packageId: pkg.id, locationId: pkg.location?.id ?? null });
     const locationId = pkg.location?.id;
     const locationLabel = pkg.location?.label ?? "";
     const packageName = encodeURIComponent(extractPlainText(pkg.tourPackageName) ?? "");
@@ -202,6 +224,28 @@ export default function PackageDetailScreen() {
         buildWaMeUrl(`Hi, I'm interested in: ${nameParts.title}`)
       );
     }
+  };
+
+  const handleToggleSaved = async () => {
+    if (!pkg?.id) return;
+    if (isSaved) {
+      await removeSavedPackage(pkg.id);
+      setIsSaved(false);
+      trackEvent("package_unsaved", { packageId: pkg.id });
+      return;
+    }
+    await savePackage({
+      id: pkg.id,
+      slug: pkg.slug ?? null,
+      title: nameParts.title || "Tour Package",
+      subtitle: nameParts.subtitle || null,
+      imageUrl: images[0]?.url ?? null,
+      locationLabel: pkg.location?.label ?? null,
+      duration: nameParts.duration || pkg.numDaysNight || null,
+      price: formattedPrice,
+    });
+    setIsSaved(true);
+    trackEvent("package_saved", { packageId: pkg.id });
   };
 
   const stickyBarPaddingBottom = Math.max(insets.bottom, 12) + 8;
@@ -280,7 +324,7 @@ export default function PackageDetailScreen() {
           <AppHeader
             onBack={() => router.back()}
             onShare={openShareModal}
-            onSave={() => setIsSaved((v) => !v)}
+            onSave={() => void handleToggleSaved()}
             isSaved={isSaved}
           />
 

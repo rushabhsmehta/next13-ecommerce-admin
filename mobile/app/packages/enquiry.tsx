@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -16,11 +16,24 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@clerk/clerk-expo";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { WHATSAPP_BUSINESS_NUMBER } from "@/constants/whatsapp";
+import { API_BASE_URL } from "@/constants/api";
+import { trackEvent } from "@/lib/analytics";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
+const PHONE_RE = /^[6-9]\d{9}$/;
+const HOTEL_CATEGORIES = ["Budget", "3 Star", "4 Star", "5 Star", "Luxury"];
+
+function formatYmd(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export default function EnquiryScreen() {
   const router = useRouter();
@@ -33,12 +46,23 @@ export default function EnquiryScreen() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [journeyDate, setJourneyDate] = useState("");
+  const [journeyDate, setJourneyDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [numAdults, setNumAdults] = useState(2);
+  const [numChildren, setNumChildren] = useState(0);
+  const [numInfants, setNumInfants] = useState(0);
+  const [budget, setBudget] = useState("");
+  const [pickupCity, setPickupCity] = useState("");
+  const [hotelCategory, setHotelCategory] = useState("");
   const [remarks, setRemarks] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const journeyDateLabel = useMemo(
+    () => (journeyDate ? formatYmd(journeyDate) : "Choose preferred date"),
+    [journeyDate]
+  );
 
   useEffect(() => {
     if (!isSignedIn) { setLoadingProfile(false); return; }
@@ -61,12 +85,24 @@ export default function EnquiryScreen() {
 
   async function handleSubmit() {
     if (!name.trim()) { Alert.alert("Required", "Please enter your name."); return; }
-    if (!phone.trim()) { Alert.alert("Required", "Please enter your phone number."); return; }
+    const normalizedPhone = phone.replace(/\D/g, "");
+    if (!normalizedPhone) { Alert.alert("Required", "Please enter your phone number."); return; }
+    if (!PHONE_RE.test(normalizedPhone)) {
+      Alert.alert("Phone number", "Enter a valid 10-digit Indian mobile number.");
+      return;
+    }
     if (!locationId) { Alert.alert("Error", "Destination information is missing."); return; }
 
     setSubmitting(true);
     try {
       const token = await getToken();
+      const preferenceLines = [
+        remarks.trim(),
+        budget.trim() ? `Budget: ${budget.trim()}` : "",
+        pickupCity.trim() ? `Pickup city: ${pickupCity.trim()}` : "",
+        hotelCategory ? `Preferred hotel: ${hotelCategory}` : "",
+        packageName ? `Package: ${packageName}` : "",
+      ].filter(Boolean);
       const res = await fetch(`${API_BASE_URL}/api/mobile/enquiry`, {
         method: "POST",
         headers: {
@@ -76,13 +112,22 @@ export default function EnquiryScreen() {
         body: JSON.stringify({
           locationId,
           name: name.trim(),
-          phone: phone.trim(),
-          journeyDate: journeyDate.trim() || undefined,
+          phone: normalizedPhone,
+          journeyDate: journeyDate ? formatYmd(journeyDate) : undefined,
           numAdults,
-          remarks: remarks.trim() || undefined,
+          numChildren5to11: numChildren,
+          numChildrenBelow5: numInfants,
+          remarks: preferenceLines.join("\n") || undefined,
         }),
       });
       if (res.ok) {
+        trackEvent("enquiry_submit", {
+          locationId,
+          adults: numAdults,
+          children: numChildren,
+          infants: numInfants,
+          hasBudget: Boolean(budget.trim()),
+        });
         setSubmitted(true);
       } else {
         Alert.alert("Error", "Failed to submit enquiry. Please try again.");
@@ -91,6 +136,12 @@ export default function EnquiryScreen() {
       Alert.alert("Error", "Network error. Please try again.");
     }
     setSubmitting(false);
+  }
+
+  function handleDateChange(event: DateTimePickerEvent, selected?: Date) {
+    if (Platform.OS !== "ios") setShowDatePicker(false);
+    if (event.type === "dismissed") return;
+    if (selected) setJourneyDate(selected);
   }
 
   if (submitted) {
@@ -168,22 +219,49 @@ export default function EnquiryScreen() {
         <TextInput
           style={styles.input}
           value={phone}
-          onChangeText={setPhone}
+          onChangeText={(value) => setPhone(value.replace(/[^0-9]/g, "").slice(0, 10))}
           placeholder="e.g. 9876543210"
           placeholderTextColor={Colors.textTertiary}
           keyboardType="phone-pad"
           returnKeyType="next"
+          maxLength={10}
         />
 
         <FieldLabel>Preferred Travel Date</FieldLabel>
-        <TextInput
-          style={styles.input}
-          value={journeyDate}
-          onChangeText={setJourneyDate}
-          placeholder="e.g. 2026-06-15 (YYYY-MM-DD)"
-          placeholderTextColor={Colors.textTertiary}
-          returnKeyType="next"
-        />
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => setShowDatePicker(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Choose preferred travel date"
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={18}
+            color={journeyDate ? Colors.primary : Colors.textTertiary}
+          />
+          <Text style={[styles.dateButtonText, !journeyDate && styles.datePlaceholder]}>
+            {journeyDateLabel}
+          </Text>
+          {journeyDate ? (
+            <TouchableOpacity
+              hitSlop={8}
+              onPress={() => setJourneyDate(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Clear travel date"
+            >
+              <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+            </TouchableOpacity>
+          ) : null}
+        </TouchableOpacity>
+        {showDatePicker ? (
+          <DateTimePicker
+            value={journeyDate ?? new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            minimumDate={new Date()}
+            onChange={handleDateChange}
+          />
+        ) : null}
 
         <FieldLabel>Number of Adults</FieldLabel>
         <View style={styles.stepper}>
@@ -202,6 +280,90 @@ export default function EnquiryScreen() {
           </TouchableOpacity>
         </View>
 
+        <FieldLabel>Children (5-11)</FieldLabel>
+        <View style={styles.stepper}>
+          <TouchableOpacity
+            style={styles.stepperBtn}
+            onPress={() => setNumChildren((n) => Math.max(0, n - 1))}
+            accessibilityRole="button"
+            accessibilityLabel="Decrease children count"
+          >
+            <Ionicons name="remove" size={18} color={numChildren > 0 ? Colors.primary : Colors.textTertiary} />
+          </TouchableOpacity>
+          <Text style={styles.stepperValue}>{numChildren}</Text>
+          <TouchableOpacity
+            style={styles.stepperBtn}
+            onPress={() => setNumChildren((n) => Math.min(10, n + 1))}
+            accessibilityRole="button"
+            accessibilityLabel="Increase children count"
+          >
+            <Ionicons name="add" size={18} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <FieldLabel>Infants / Children Below 5</FieldLabel>
+        <View style={styles.stepper}>
+          <TouchableOpacity
+            style={styles.stepperBtn}
+            onPress={() => setNumInfants((n) => Math.max(0, n - 1))}
+            accessibilityRole="button"
+            accessibilityLabel="Decrease infants count"
+          >
+            <Ionicons name="remove" size={18} color={numInfants > 0 ? Colors.primary : Colors.textTertiary} />
+          </TouchableOpacity>
+          <Text style={styles.stepperValue}>{numInfants}</Text>
+          <TouchableOpacity
+            style={styles.stepperBtn}
+            onPress={() => setNumInfants((n) => Math.min(10, n + 1))}
+            accessibilityRole="button"
+            accessibilityLabel="Increase infants count"
+          >
+            <Ionicons name="add" size={18} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <FieldLabel>Approx Budget</FieldLabel>
+        <TextInput
+          style={styles.input}
+          value={budget}
+          onChangeText={setBudget}
+          placeholder="e.g. ₹60,000 total or ₹25,000/person"
+          placeholderTextColor={Colors.textTertiary}
+          returnKeyType="next"
+        />
+
+        <FieldLabel>Pickup City</FieldLabel>
+        <TextInput
+          style={styles.input}
+          value={pickupCity}
+          onChangeText={setPickupCity}
+          placeholder="e.g. Ahmedabad, Surat, Mumbai"
+          placeholderTextColor={Colors.textTertiary}
+          autoCapitalize="words"
+          returnKeyType="next"
+        />
+
+        <FieldLabel>Preferred Hotel Category</FieldLabel>
+        <View style={styles.hotelChipRow}>
+          {HOTEL_CATEGORIES.map((category) => {
+            const active = hotelCategory === category;
+            return (
+              <TouchableOpacity
+                key={category}
+                style={[styles.hotelChip, active && styles.hotelChipActive]}
+                onPress={() => setHotelCategory(active ? "" : category)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`Preferred hotel category ${category}`}
+              >
+                <Text style={[styles.hotelChipText, active && styles.hotelChipTextActive]}>
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         <FieldLabel>Special Requests</FieldLabel>
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -218,6 +380,8 @@ export default function EnquiryScreen() {
           style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Submit enquiry"
         >
           {submitting ? (
             <ActivityIndicator size="small" color="#fff" />
@@ -310,6 +474,19 @@ const styles = StyleSheet.create({
     color: Colors.text,
     backgroundColor: Colors.background,
   },
+  dateButton: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.background,
+  },
+  dateButtonText: { flex: 1, color: Colors.text, fontSize: FontSize.md },
+  datePlaceholder: { color: Colors.textTertiary },
   textArea: { height: 100, paddingTop: 12 },
 
   stepper: {
@@ -335,6 +512,25 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.text,
   },
+  hotelChipRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
+  hotelChip: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    backgroundColor: Colors.surface,
+  },
+  hotelChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+  },
+  hotelChipText: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+  },
+  hotelChipTextActive: { color: Colors.primary },
 
   submitButton: {
     flexDirection: "row",

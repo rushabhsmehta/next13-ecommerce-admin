@@ -33,7 +33,7 @@ import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useAssociatePartner, clearAssociatePartnerCache } from "@/hooks/use-associate-partner";
-import { canAccessDashboardPath } from "@/lib/crm-route-access";
+import { canAccessDashboardPath } from "@/lib/crm-route-access-rules";
 import { useCrmOrgRole } from "@/providers/crm-role-provider";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components

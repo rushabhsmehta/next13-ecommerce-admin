@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     if (!userId) return jsonError("Unauthorized", 401);
 
     // Check if org admin — admins see all groups
-    const orgMembership = await (prismadb as any).organizationMember.findFirst({
+    const orgMembership = await prismadb.organizationMember.findFirst({
       where: { userId, isActive: true, role: { in: ["ADMIN", "OWNER"] } },
     });
 

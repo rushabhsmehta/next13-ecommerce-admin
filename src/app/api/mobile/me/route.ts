@@ -7,7 +7,7 @@ export async function GET(req: Request) {
     const admin = await validateClerkAdmin(req);
     if (!admin) return new NextResponse("Unauthorized", { status: 401 });
 
-    const member = await (prismadb as any).organizationMember.findFirst({
+    const member = await prismadb.organizationMember.findFirst({
       where: { userId: admin.userId, isActive: true },
     });
 

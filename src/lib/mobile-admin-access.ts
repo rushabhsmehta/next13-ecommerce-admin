@@ -229,7 +229,7 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     category: "Sales",
     phase: "Phase 2",
     icon: "map-outline",
-    status: "planned",
+    status: "in-development",
     requiredPermission: "salesTrips.read",
     offlinePolicy: "draft_only",
     acceptanceTarget: "Admins can create, price, share, revise, and confirm tour queries from mobile.",

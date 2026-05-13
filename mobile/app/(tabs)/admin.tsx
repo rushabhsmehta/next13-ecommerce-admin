@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -57,8 +57,55 @@ function moduleRoute(moduleId: string, isAssociate: boolean): string | null {
   if (moduleId === "crm") {
     return isAssociate ? "/associate/inquiries" : "/admin/crm/inquiries";
   }
+  if (moduleId === "sales-trips" && !isAssociate) return "/admin/tour-queries";
   return null;
 }
+
+interface QuickAction {
+  id: string;
+  title: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
+  route: string;
+  visible: (ctx: { isAdmin: boolean; isAssociate: boolean; canUseAdmin: boolean }) => boolean;
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    id: "inquiries",
+    title: "Inquiries",
+    description: "Track leads and follow-ups",
+    icon: "document-text-outline",
+    route: "/admin/crm/inquiries",
+    visible: ({ canUseAdmin }) => canUseAdmin,
+  },
+  {
+    id: "customers",
+    title: "Customers",
+    description: "Search profiles and history",
+    icon: "people-outline",
+    route: "/admin/customers",
+    visible: ({ canUseAdmin }) => canUseAdmin,
+  },
+  {
+    id: "tour-queries",
+    title: "Tour Queries",
+    description: "Quotes, status, confirmation",
+    icon: "map-outline",
+    route: "/admin/tour-queries",
+    visible: ({ canUseAdmin }) => canUseAdmin,
+  },
+  {
+    id: "whatsapp",
+    title: "WhatsApp",
+    description: "Inbox, templates, campaigns",
+    icon: "logo-whatsapp",
+    iconColor: "#25D366",
+    route: "/whatsapp",
+    visible: ({ isAdmin }) => isAdmin,
+  },
+];
 
 function roleLabel(role: string | null, isAssociate: boolean) {
   if (role) return role.charAt(0) + role.slice(1).toLowerCase();
@@ -84,17 +131,34 @@ export default function AdminTab() {
   const { isSignedIn, getToken } = useAuth();
   const {
     organizationRole,
+    isAdmin,
     isAssociate,
     canUseAdmin,
     canUseFinance,
     mobileNavigation,
     isLoading: authLoading,
   } = useCurrentUser();
-  const adminRequest = useMemo(() => withAuth(() => getToken()), [getToken]);
+  const visibleQuickActions = useMemo(
+    () => QUICK_ACTIONS.filter((qa) => qa.visible({ isAdmin, isAssociate, canUseAdmin })),
+    [isAdmin, isAssociate, canUseAdmin]
+  );
+  // Stash getToken in a ref so the request closure is stable across renders.
+  // Otherwise Clerk produces a new getToken on every render which would
+  // re-create adminRequest -> re-create loadOverview -> re-fire the effect
+  // -> infinite refresh loop.
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+  const adminRequest = useMemo(
+    () => withAuth(() => getTokenRef.current()),
+    []
+  );
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastOverviewLoadKeyRef = useRef<string | null>(null);
 
   const loadOverview = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -126,8 +190,12 @@ export default function AdminTab() {
   );
 
   useEffect(() => {
-    if (!authLoading) void loadOverview();
-  }, [authLoading, loadOverview]);
+    if (authLoading) return;
+    const loadKey = `${canUseAdmin}:${organizationRole ?? ""}:${isAssociate}`;
+    if (lastOverviewLoadKeyRef.current === loadKey) return;
+    lastOverviewLoadKeyRef.current = loadKey;
+    void loadOverview();
+  }, [authLoading, canUseAdmin, organizationRole, isAssociate, loadOverview]);
 
   function openModule(module: MobileAdminModule) {
     const route = moduleRoute(module.id, isAssociate);
@@ -217,6 +285,36 @@ export default function AdminTab() {
         <View style={styles.errorCard}>
           <Ionicons name="warning-outline" size={18} color={Colors.error} />
           <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+
+      {visibleQuickActions.length ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Access</Text>
+          <View style={styles.quickRow}>
+            {visibleQuickActions.map((qa) => (
+              <Pressable
+                key={qa.id}
+                testID={`quick-action-${qa.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${qa.title}`}
+                style={styles.quickCard}
+                onPress={() => router.push(qa.route as never)}
+              >
+                <View style={styles.quickIcon}>
+                  <Ionicons
+                    name={qa.icon}
+                    size={22}
+                    color={qa.iconColor ?? Colors.primary}
+                  />
+                </View>
+                <Text style={styles.quickTitle}>{qa.title}</Text>
+                <Text style={styles.quickDescription} numberOfLines={2}>
+                  {qa.description}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       ) : null}
 
@@ -478,6 +576,39 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: FontSize.sm,
     marginBottom: Spacing.md,
+  },
+  quickRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  quickCard: {
+    flex: 1,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    padding: Spacing.md,
+    gap: 6,
+    minHeight: 96,
+  },
+  quickIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickTitle: {
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.text,
+    marginTop: 2,
+  },
+  quickDescription: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 16,
   },
   statsGrid: {
     flexDirection: "row",

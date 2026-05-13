@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
     const [membership, inquiryAccess] = await Promise.all([
-      (prismadb as any).organizationMember.findFirst({
+      prismadb.organizationMember.findFirst({
         where: { userId, isActive: true },
         orderBy: { createdAt: "asc" },
         select: { role: true, organizationId: true },

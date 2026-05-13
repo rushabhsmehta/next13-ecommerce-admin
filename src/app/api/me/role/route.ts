@@ -10,7 +10,10 @@ export async function GET() {
       res.headers.set('Cache-Control','public, max-age=30, stale-while-revalidate=120');
       return res;
     }
-    const membership = await (prismadb as any).organizationMember.findFirst({ where: { userId, isActive: true }, orderBy: { createdAt: 'asc' } });
+    const membership = await prismadb.organizationMember.findFirst({
+      where: { userId, isActive: true },
+      orderBy: { createdAt: "asc" },
+    });
     const res = NextResponse.json({ role: membership?.role || null });
     res.headers.set('Cache-Control','public, max-age=30, stale-while-revalidate=120');
     return res;

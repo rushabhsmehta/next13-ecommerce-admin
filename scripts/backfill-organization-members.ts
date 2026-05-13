@@ -6,6 +6,9 @@ const prisma = new PrismaClient();
   Backfill script:
   - For each Organization create a FINANCE member for first OperationalStaff (if any)
   - Idempotent: skips if membership already exists for user/org
+
+  WARNING: OperationalStaff.id is NOT a Clerk user id. For dashboard sign-in, OrganizationMember.userId
+  must be the Clerk user id (user_...). Prefer tools/upsert-organization-member.mjs or Settings → Organization members.
 */
 async function run() {
   const orgs = await prisma.organization.findMany();

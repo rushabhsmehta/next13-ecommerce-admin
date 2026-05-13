@@ -7,7 +7,7 @@ export async function validateClerkAdmin(
   const userId = await verifyMobileBearerUserId(req);
   if (!userId) return null;
 
-  const membership = await (prismadb as any).organizationMember.findFirst({
+  const membership = await prismadb.organizationMember.findFirst({
     where: { userId, isActive: true, role: { in: ["ADMIN", "OWNER"] } },
   });
   if (!membership) return null;

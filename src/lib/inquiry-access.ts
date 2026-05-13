@@ -35,7 +35,7 @@ export async function resolveInquiryAccessContext(
   const emails = clerkEmailsLowercased(user);
 
   const [membership, associatePartner] = await Promise.all([
-    (prismadb as any).organizationMember.findFirst({
+    prismadb.organizationMember.findFirst({
       where: { userId, isActive: true },
       select: { id: true },
     }),

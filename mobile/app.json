@@ -78,9 +78,9 @@
         "projectId": "f6e23049-3b76-47ee-8194-9c9ad6de731a"
       },
       "apiBaseUrl": "https://admin.aagamholidays.com",
-      "apiBaseUrlDev": "http://10.0.2.2:3000",
+      "apiBaseUrlDev": "https://admin.aagamholidays.com",
       "websiteUrl": "https://aagamholidays.com",
-      "websiteUrlDev": "http://10.0.2.2:3000/travel",
+      "websiteUrlDev": "https://aagamholidays.com",
       "whatsappBusinessNumber": "919724444701"
     },
     "owner": "rushabh2310",

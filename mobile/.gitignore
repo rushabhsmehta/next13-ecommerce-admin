@@ -20,3 +20,14 @@ google-service-account-key.json
 
 expo-env.d.ts
 # @end expo-cli
+
+# JVM / Gradle crash dumps (local only)
+android/hs_err_pid*.log
+android/replay_pid*.log
+
+# Detox / E2E output
+artifacts/
+
+# Local dev screenshots
+home-sim-screenshot.png
+*-sim-screenshot.png

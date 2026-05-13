@@ -45,6 +45,11 @@ mobile/node_modules/
 mobile/.expo/
 mobile/dist/
 mobile/web-build/
+mobile/android/hs_err_pid*.log
+mobile/android/replay_pid*.log
+mobile/artifacts/
+mobile/home-sim-screenshot.png
+mobile/*-sim-screenshot.png
 
 # Claude local settings
 .claude/settings.local.json

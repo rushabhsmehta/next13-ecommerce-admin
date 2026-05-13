@@ -33,6 +33,8 @@ import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useAssociatePartner, clearAssociatePartnerCache } from "@/hooks/use-associate-partner";
+import { canAccessDashboardPath } from "@/lib/crm-route-access";
+import { useCrmOrgRole } from "@/providers/crm-role-provider";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -178,6 +180,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [isAssociateDomain, setIsAssociateDomain] = useState(false);
   const [navItems, setNavItems] = useState(NAV_ITEMS);
   const { associatePartner } = useAssociatePartner();
+  const orgRole = useCrmOrgRole();
   const isMobile = useIsMobile();
   const previousDomainRef = React.useRef<boolean | null>(null);
 
@@ -201,6 +204,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       setNavItems(NAV_ITEMS);
     }
   }, []); // Empty dependency array - runs only on mount
+
+  const displayedNavItems = React.useMemo(() => {
+    if (isAssociateDomain) return navItems;
+    if (orgRole === undefined) return navItems;
+    return navItems
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => canAccessDashboardPath(orgRole, item.url)),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [isAssociateDomain, navItems, orgRole]);
 
   // Check if a section should be expanded
   const isSectionActive = (section: { title: string; items: { url: string }[] }) =>
@@ -266,7 +280,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarContent>
           <SidebarGroup>
             <SidebarMenu>
-              {navItems.map((section) => (
+              {displayedNavItems.map((section) => (
                 <Collapsible
                   key={section.title}
                   asChild

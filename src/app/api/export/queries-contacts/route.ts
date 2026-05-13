@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
 import { rateLimit } from '@/lib/rate-limit';
+import { assertCrmApiAccessForRequest, crmAccessErrorResponse } from '@/lib/crm-route-access';
 
 const limiter = rateLimit('export');
 
@@ -26,6 +27,14 @@ export async function GET(req: Request) {
 
     const { userId } = await auth();
     if (!userId) return new NextResponse('Unauthenticated', { status: 403 });
+
+    try {
+      await assertCrmApiAccessForRequest(userId, req.url);
+    } catch (e) {
+      const denied = crmAccessErrorResponse(e);
+      if (denied) return denied;
+      throw e;
+    }
 
     console.log('[QUERIES_EXPORT] Starting export...');
 

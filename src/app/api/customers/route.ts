@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { normalizePhoneNumber } from "@/lib/phone-utils";
 import { upsertWhatsAppCustomers } from "@/lib/whatsapp-customers";
+import { assertCrmApiAccessForRequest, crmAccessErrorResponse } from "@/lib/crm-route-access";
 
 function splitName(fullName: string): { firstName: string; lastName?: string } {
   const trimmed = fullName.trim();
@@ -50,6 +51,14 @@ export async function POST(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
+
+    try {
+      await assertCrmApiAccessForRequest(userId, req.url);
+    } catch (e) {
+      const denied = crmAccessErrorResponse(e);
+      if (denied) return denied;
+      throw e;
+    }
 
     const body = await req.json();
     const { name, contact, email, associatePartnerId, birthdate, marriageAnniversary } = body;
@@ -108,6 +117,14 @@ export async function GET(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
+
+    try {
+      await assertCrmApiAccessForRequest(userId, req.url);
+    } catch (e) {
+      const denied = crmAccessErrorResponse(e);
+      if (denied) return denied;
+      throw e;
+    }
 
     // Get search params for filtering
     const { searchParams } = new URL(req.url);

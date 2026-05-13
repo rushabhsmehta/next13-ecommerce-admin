@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,7 +12,9 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSignIn, useSignUp, useAuth } from "@clerk/clerk-expo";
+import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
+import { useSignIn, useSignUp, useAuth, useSSO } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,8 +22,11 @@ import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
 import { API_BASE_URL } from "@/constants/api";
 import { setDevAuthBypassToken, getDevAuthBypassToken } from "@/lib/dev-auth-bypass";
 
+WebBrowser.maybeCompleteAuthSession();
+
 type Step = "email" | "otp" | "profile";
 type FlowType = "signIn" | "signUp";
+type SocialStrategy = "oauth_google" | "oauth_apple";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -28,6 +34,7 @@ export default function LoginScreen() {
   const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
   const { signUp, setActive: setSignUpActive, isLoaded: signUpLoaded } = useSignUp();
   const { getToken } = useAuth();
+  const { startSSOFlow } = useSSO();
 
   const [step, setStep] = useState<Step>("email");
   const [flowType, setFlowType] = useState<FlowType>("signIn");
@@ -64,6 +71,49 @@ export default function LoginScreen() {
         return t - 1;
       });
     }, 1000);
+  }
+
+  async function completeAuthenticatedSession() {
+    const token = await getToken();
+    if (!token) throw new Error("Not authenticated");
+
+    const res = await fetch(`${API_BASE_URL}/api/mobile/auth-status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Could not verify your account.");
+
+    const authStatus = await res.json();
+    if (authStatus.travelUser) {
+      router.replace("/(tabs)");
+    } else {
+      setStep("profile");
+    }
+  }
+
+  async function handleSocialSignIn(strategy: SocialStrategy) {
+    setLoading(true);
+    setError(null);
+    try {
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: "aagamholidays",
+        path: "oauth-native-callback",
+      });
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy,
+        redirectUrl,
+      });
+      if (!createdSessionId || !setActive) {
+        setError("Sign-in was cancelled.");
+        return;
+      }
+
+      await setActive({ session: createdSessionId });
+      await completeAuthenticatedSession();
+    } catch (err: unknown) {
+      setError(extractClerkError(err) ?? "Could not sign in. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleDevBypassContinue() {
@@ -130,16 +180,7 @@ export default function LoginScreen() {
         const result = await signIn!.attemptFirstFactor({ strategy: "email_code", code });
         if (result.status === "complete") {
           await setSignInActive!({ session: result.createdSessionId });
-          const token = await getToken();
-          const res = await fetch(`${API_BASE_URL}/api/mobile/auth-status`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const authStatus = await res.json();
-          if (authStatus.travelUser) {
-            router.replace("/(tabs)");
-          } else {
-            setStep("profile");
-          }
+          await completeAuthenticatedSession();
         } else {
           setError("Verification incomplete. Please try again.");
         }
@@ -288,6 +329,36 @@ export default function LoginScreen() {
                 <Text style={styles.primaryBtnText}>Continue</Text>
               )}
             </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <Pressable
+              testID="login-google-btn"
+              style={[styles.socialBtn, loading && styles.btnDisabled]}
+              onPress={() => handleSocialSignIn("oauth_google")}
+              disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Continue with Google"
+            >
+              <Ionicons name="logo-google" size={18} color={Colors.text} />
+              <Text style={styles.socialBtnText}>Continue with Google</Text>
+            </Pressable>
+
+            <Pressable
+              testID="login-apple-btn"
+              style={[styles.socialBtn, loading && styles.btnDisabled]}
+              onPress={() => handleSocialSignIn("oauth_apple")}
+              disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Continue with Apple"
+            >
+              <Ionicons name="logo-apple" size={20} color={Colors.text} />
+              <Text style={styles.socialBtnText}>Continue with Apple</Text>
+            </Pressable>
 
             {__DEV__ ? (
               <View style={styles.devSection}>
@@ -546,6 +617,39 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "800",
     fontSize: FontSize.md,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: Spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    marginHorizontal: Spacing.sm,
+    color: Colors.textTertiary,
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+  },
+  socialBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: 13,
+    marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceAlt,
+  },
+  socialBtnText: {
+    color: Colors.text,
+    fontWeight: "700",
+    fontSize: FontSize.sm,
   },
   otpActions: {
     flexDirection: "row",

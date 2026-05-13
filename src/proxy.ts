@@ -1,5 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+
+function nextWithCrmPathname(req: NextRequest): NextResponse {
+  const pathname = req.nextUrl.pathname;
+  const h = new Headers(req.headers);
+  h.set("x-crm-pathname", pathname);
+  return NextResponse.next({ request: { headers: h } });
+}
 
 const isPublicRoute = createRouteMatcher([
   "/tourPackageQueryDisplay/(.*)",
@@ -31,7 +38,7 @@ const isIgnoredRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   // Skip authentication entirely for webhook
   if (isIgnoredRoute(req)) {
-    return NextResponse.next();
+    return nextWithCrmPathname(req);
   }
 
   // Check if the request is from an associate domain
@@ -57,7 +64,7 @@ export default clerkMiddleware(async (auth, req) => {
     }
 
     if (userId && !path.startsWith('/sign-in')) {
-      return NextResponse.next();
+      return nextWithCrmPathname(req);
     }
   }
 
@@ -95,7 +102,7 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  return NextResponse.next();
+  return nextWithCrmPathname(req);
 });
 
 export const config = {

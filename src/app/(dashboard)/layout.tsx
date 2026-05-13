@@ -6,7 +6,7 @@ import { getUserOrgRole } from "@/lib/authz";
 import {
   canAccessDashboardPath,
   isPublicDashboardPathname,
-} from "@/lib/crm-route-access";
+} from "@/lib/crm-route-access-rules";
 import { CrmRoleProvider } from "@/providers/crm-role-provider";
 
 export const dynamic = "force-dynamic";

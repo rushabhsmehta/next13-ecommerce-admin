@@ -11,7 +11,7 @@
 
 **Endpoint:** `POST /api/pricing/calculate-variant`  
 **Purpose:** Calculate pricing for a specific tour package variant  
-**Auth:** Required (via Clerk middleware)
+**Auth:** Required (Clerk session; edge proxy `src/proxy.ts`, `auth()` in API route)
 
 #### Request
 

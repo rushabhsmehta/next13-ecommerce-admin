@@ -42,7 +42,7 @@ This review covers security vulnerabilities, performance issues, best practices,
 
 ### 3. Auth Bypass via User-Agent Spoofing
 
-`src/middleware.ts` bypasses auth for User-Agent strings containing `HeadlessChrome` or `Puppeteer`.
+`src/lib/crm-route-access.ts` treats certain dashboard/PDF paths as automation when the user-agent contains `HeadlessChrome` or `Puppeteer`, which skips **org RBAC** checks (Clerk may still apply depending on route public config in `src/proxy.ts`).
 
 **Action:** Use API tokens or service keys for headless clients.
 

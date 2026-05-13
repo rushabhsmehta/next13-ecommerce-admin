@@ -18,12 +18,12 @@
 
 ### Multi-Domain & Multi-Tenant Architecture
 - **Admin domain**: Full access to all `NAV_ITEMS` (see `src/components/app-sidebar.tsx`)
-- **Associate domain** (`associate.aagamholidays.com`): Read-only access via middleware restrictions
-  - Check `src/middleware.ts` for domain detection and route blocking
+- **Associate domain** (`associate.aagamholidays.com`): Read-only access via Clerk proxy restrictions
+  - Check `src/proxy.ts` for domain detection and route blocking
   - Use `isCurrentUserAssociate()` from `src/lib/associate-utils.ts` before enabling mutations
   - Associates get `ASSOCIATE_NAV_ITEMS` (inquiries, tour packages view-only)
 - **Ops domain** (`ops.aagamholidays.com`): Operational staff workflows with auth enforcement
-- Middleware bypasses auth for: webhooks (`/api/whatsapp/webhook`), Puppeteer (HeadlessChrome user-agent), public routes
+- Proxy bypasses `auth.protect()` for: webhooks (`/api/whatsapp/webhook`), routes in the public/ignored matchers in `src/proxy.ts`. PDF automation UA handling for org RBAC lives in `src/lib/crm-route-access.ts`.
 
 ## 🎯 Variant System (Tour Package Queries)
 
@@ -130,13 +130,12 @@
 - Auth guards in `src/lib/authz.ts`: `getUserOrgRole()`, `roleAtLeast()`, `requireFinanceOrAdmin()`
 - Associate partner detection: `getCurrentAssociatePartner()` matches Clerk user email to `AssociatePartner.gmail` or `email` field
 
-### Middleware Patterns (`src/middleware.ts`)
+### Clerk proxy patterns (`src/proxy.ts`)
 ```typescript
-// Bypass auth for webhooks
-ignoredRoutes: ["/api/whatsapp/webhook"]
-// Bypass for Puppeteer PDF generation
-beforeAuth: check for "HeadlessChrome" user-agent
-// Domain-specific restrictions in afterAuth
+// Skip protect() for webhooks (isIgnoredRoute)
+// Public routes: createRouteMatcher([...]) — travel, sign-in, selected APIs, etc.
+// Associate / ops hosts: pathname allowlists and redirects after auth
+// Org RBAC for PDF paths + UA: see src/lib/crm-route-access.ts (isCrmPdfAutomationRequest)
 ```
 
 ## 🌐 API Routes Best Practices
@@ -370,7 +369,7 @@ npx prisma migrate dev   # Create new migration
 | **WhatsApp DB** | Use `whatsappPrisma` from `@/lib/whatsapp-prismadb` for campaign/catalog queries |
 | **UI component** | Check `src/components/ui/` for existing wrappers before adding deps |
 | **Logging** | Emoji-prefix console logs for DebugLogPanel categorization |
-| **Multi-domain** | Test on admin + associate domains, check middleware restrictions |
+| **Multi-domain** | Test on admin + associate domains, check `src/proxy.ts` host/path restrictions |
 | **Campaign ops** | Use `whatsappPrisma.whatsAppCampaign.findMany()` with `include: { _count: { select: { recipients } } }` |
 | **Temp files** | Delete temporary files after operations (e.g., `Remove-Item "temp-*.txt"`), never commit temp files to repo |
 

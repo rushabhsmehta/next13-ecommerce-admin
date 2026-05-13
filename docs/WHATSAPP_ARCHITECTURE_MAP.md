@@ -361,7 +361,7 @@ State Updates:
 │                          │                                     │
 │                          ▼                                     │
 │  LAYER 2: API Route Protection                                │
-│  ├── Authentication (add middleware)                          │
+│  ├── Authentication (Clerk proxy + auth() in routes)          │
 │  ├── Authorization (role-based)                               │
 │  ├── Rate limiting (recommended)                              │
 │  └── Request validation                                       │

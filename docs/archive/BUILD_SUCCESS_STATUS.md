@@ -8,7 +8,7 @@ Your Next.js application with WhatsApp integration has successfully completed a 
 
 1. **TypeScript Export Errors** - Fixed all function exports in helper library
 2. **Import Statement Conflicts** - Removed problematic imports, using local utility functions
-3. **Authentication Blocking** - Updated Clerk middleware with `ignoredRoutes`
+3. **Authentication Blocking** - Updated Clerk edge proxy (`src/proxy.ts`) with webhook/public route matchers
 4. **Webhook Accessibility** - All endpoints now accessible for Twilio
 
 ### 📊 Build Output Summary

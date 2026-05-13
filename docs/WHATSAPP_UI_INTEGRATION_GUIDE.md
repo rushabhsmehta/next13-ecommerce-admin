@@ -593,7 +593,7 @@ console.log(data.validation_errors); // Check errors
 
 ### Current Implementation
 
-✅ API routes protected (add auth middleware if needed)
+✅ API routes protected (use `auth()` / `handleApi` per route; public paths are explicit in `src/proxy.ts`)
 ✅ Input validation on client and server
 ✅ Template name sanitization
 ✅ No sensitive data in client-side code

@@ -184,7 +184,7 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
     ├── hooks/               # React hooks (modals, notifications, mobile detection)
     ├── providers/           # Context providers (theme, modal, toast)
     ├── types/               # TypeScript type definitions (TransactionFormProps, etc.)
-    └── middleware.ts        # Auth & routing middleware (Clerk)
+    └── proxy.ts             # Clerk auth & host-based routing (Next.js 16 proxy convention)
 ```
 
 ## Database
@@ -354,7 +354,7 @@ Helpers in `src/lib/authz.ts`:
 - `roleAtLeast(role, minimum)` — checks if role meets minimum level
 - `requireFinanceOrAdmin(userId, organizationId?)` — throws `FORBIDDEN` (caught by `handleApi`) if not FINANCE/ADMIN/OWNER
 
-### Domain-based access (`src/middleware.ts`)
+### Domain-based access (`src/proxy.ts`)
 
 The same Next.js app serves three audiences distinguished by hostname:
 
@@ -362,7 +362,7 @@ The same Next.js app serves three audiences distinguished by hostname:
 - **Associate** (`associate.aagamholidays.com`) — limited, mostly read-only nav (`ASSOCIATE_NAV_ITEMS`). Use `isCurrentUserAssociate()` / `getCurrentAssociatePartner()` from `src/lib/associate-utils.ts` to gate mutations. Associate matches Clerk user email against `AssociatePartner.gmail` or `email`.
 - **Ops** (`ops.aagamholidays.com`) — operational staff workflows under `src/app/ops/`
 
-Middleware auth is bypassed for: `/api/whatsapp/webhook`, requests with `HeadlessChrome` user-agent (Puppeteer PDF generation), and other public routes. Test permission/navigation changes on both admin and associate domains.
+The Clerk proxy skips `auth.protect()` for ignored routes (e.g. `/api/whatsapp/webhook`) and for paths matched by `isPublicRoute` / `isIgnoredRoute` in `src/proxy.ts`. Internal PDF automation relaxes **org RBAC** (not Clerk at the edge) when the user-agent matches HeadlessChrome/Puppeteer — see `isCrmPdfAutomationRequest()` in `src/lib/crm-route-access.ts`. Test permission/navigation changes on both admin and associate domains.
 
 ## MCP Tools (travel-admin)
 
@@ -500,7 +500,7 @@ Required variables (see `.env` for full list):
 ## PDF Generation & Vercel
 
 - Puppeteer pipeline lives in `src/utils/generatepdf.ts`. In production it uses `@sparticuz/chromium-min` for serverless. Use `inlineImagesInHtml()` to convert remote header/footer images to data URIs (Puppeteer can't load remote images in margin templates) and `createProfessionalFooter(companyInfo)` for branded footers.
-- Middleware lets requests with `HeadlessChrome` user-agent through without Clerk auth so internal PDF jobs can hit dashboard pages.
+- PDF-related dashboard routes are covered by `createRouteMatcher` public paths in `src/proxy.ts` where appropriate. `isCrmPdfAutomationRequest()` in `src/lib/crm-route-access.ts` skips **org RBAC** for Puppeteer/HeadlessChrome requests on those paths so internal PDF jobs can render.
 - `vercel.json` sets `maxDuration: 30` for `src/app/api/**` and `PRISMA_CLIENT_ENGINE_TYPE=binary` at build time. Multi-line env vars (e.g. `WHATSAPP_FLOW_PRIVATE_KEY`) must include the full `-----BEGIN/END-----` markers in Vercel.
 
 ## Mobile App (Expo)

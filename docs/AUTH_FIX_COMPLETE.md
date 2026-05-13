@@ -19,29 +19,35 @@ Campaign pages were incorrectly placed under `[storeId]/whatsapp/campaigns`.
 ### 2. Clerk Authentication Issue
 **The Problem:**
 ```typescript
-// ❌ OLD - All WhatsApp APIs bypassed auth
-ignoredRoutes: [
-  "/api/whatsapp/:path*",  // This bypassed ALL WhatsApp routes
-],
+// ❌ OLD — Broad bypass so every WhatsApp API skipped the Clerk edge layer
+// (e.g. legacy config equivalent to ignoring "/api/whatsapp/:path*")
 ```
 
-When all WhatsApp routes were ignored:
-- Middleware never ran authentication
-- Code tried to call `await auth()` inside the API
-- Clerk threw error: "can't detect usage of authMiddleware()"
+When every `/api/whatsapp/*` route was bypassed:
+- The Clerk edge layer never ran for those requests
+- Handlers still called `await auth()` expecting the Clerk edge proxy to have run
+- Clerk threw errors such as not detecting `authMiddleware()` / proxy usage
 - Result: **500 Internal Server Error**
 
-**The Fix:**
+**The Fix (current `src/proxy.ts` pattern):**
 ```typescript
-// ✅ NEW - Only webhook bypasses auth (for Meta callbacks)
-publicRoutes: [
-  // ...other routes
-  "/api/whatsapp/webhook",  // Public for Meta
-],
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-ignoredRoutes: [
-  "/api/whatsapp/webhook",  // Only webhook ignored
-],
+// Meta webhook only — skip Clerk entirely on this path
+const isIgnoredRoute = createRouteMatcher(["/api/whatsapp/webhook"]);
+
+// Public paths (no auth.protect); must NOT include /api/whatsapp/campaigns/*
+const isPublicRoute = createRouteMatcher([
+  "/api/whatsapp/webhook",
+  // ...travel, sign-in, etc.
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isIgnoredRoute(req)) return NextResponse.next();
+  if (!isPublicRoute(req)) await auth.protect();
+  // ...hostname / associate logic, then NextResponse.next()
+});
 ```
 
 Now:
@@ -53,16 +59,16 @@ Now:
 
 ## ✅ What Was Fixed
 
-### File: `src/middleware.ts`
+### File: `src/proxy.ts` (Clerk edge proxy, Next.js 16)
 
 **Changed:**
-- Removed `/api/whatsapp/:path*` from `ignoredRoutes`
-- Added only `/api/whatsapp/webhook` to both `publicRoutes` and `ignoredRoutes`
-- Now all campaign APIs require authentication except the webhook
+- Stopped bypassing all of `/api/whatsapp/*`; campaign and other management APIs now run through `clerkMiddleware` in `src/proxy.ts`.
+- `createRouteMatcher` + `isIgnoredRoute`: only `/api/whatsapp/webhook` skips the Clerk edge handler (Meta callbacks).
+- `isPublicRoute`: includes the webhook (and other intentionally public paths) but not `/api/whatsapp/campaigns/*`, so `auth.protect()` applies to campaign APIs.
 
 **Why This Works:**
-- Campaign APIs (`/api/whatsapp/campaigns/*`) now go through Clerk middleware
-- `await auth()` gets the userId from the middleware
+- Campaign APIs (`/api/whatsapp/campaigns/*`) now go through the Clerk proxy
+- `await auth()` gets the userId from the proxy
 - Webhook route remains public for Meta to send callbacks
 - Users must be logged in to manage campaigns ✅
 
@@ -145,7 +151,7 @@ Should see:
 
 ### Authentication Flow
 1. User visits `/whatsapp-campaigns`
-2. Clerk middleware checks authentication
+2. Clerk proxy checks authentication
 3. If not logged in → redirect to sign-in
 4. If logged in → allow access
 5. API calls include auth token
@@ -212,14 +218,14 @@ Click "Create Campaign" and test the wizard!
 ## 📝 Summary
 
 **What We Fixed:**
-- ✅ Removed `/api/whatsapp/:path*` from ignoredRoutes
-- ✅ Only webhook now bypasses authentication
-- ✅ Campaign APIs now properly authenticated
-- ✅ `await auth()` works in campaign routes
+- ✅ Dropped the broad `/api/whatsapp/*` bypass so the Clerk edge proxy runs for campaign APIs
+- ✅ Only `/api/whatsapp/webhook` uses `isIgnoredRoute` / public matchers (Meta callbacks)
+- ✅ Campaign APIs go through `auth.protect()` in `src/proxy.ts`
+- ✅ `await auth()` works in campaign route handlers
 
 **Result:**
 - ✅ No more 500 errors
-- ✅ No more "can't detect authMiddleware" errors
+- ✅ No more "can't detect authMiddleware()" / proxy context errors
 - ✅ Campaign list page loads successfully
 - ✅ Secure: Only authenticated users can access campaigns
 

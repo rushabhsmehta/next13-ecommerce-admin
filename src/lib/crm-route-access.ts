@@ -20,7 +20,7 @@ function lowerPath(pathname: string): string {
   return normalizePath(pathname).toLowerCase();
 }
 
-/** Public CRM pages under `(dashboard)` (middleware skips `auth.protect`). */
+/** Public CRM pages under `(dashboard)` (Clerk proxy skips `auth.protect`). */
 export const CRM_PUBLIC_DASHBOARD_PREFIXES: readonly string[] = [
   "/tourpackagequerydisplay",
   "/tourpackagequeryvariantdisplay",
@@ -54,7 +54,7 @@ function pathMatchesAnyPrefix(lower: string, prefixes: readonly string[]): boole
 }
 
 /**
- * Skip CRM org-role checks for internal PDF rendering (middleware may still require Clerk session).
+ * Skip CRM org-role checks for internal PDF rendering (edge proxy may still require Clerk session).
  */
 export function isCrmPdfAutomationRequest(pathname: string, userAgent: string | null | undefined): boolean {
   const lower = lowerPath(pathname);

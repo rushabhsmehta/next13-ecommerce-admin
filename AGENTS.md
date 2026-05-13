@@ -95,7 +95,7 @@ src/
   hooks/                 # React hooks
   providers/             # Context providers (theme, modal, toast)
   types/                 # TypeScript type definitions
-  middleware.ts          # Auth & routing middleware
+  proxy.ts               # Clerk auth & host-based routing (Next.js 16)
 schema.prisma            # Main MySQL schema (~1,700 lines)
 prisma/
   whatsapp-schema.prisma # PostgreSQL WhatsApp schema
@@ -116,7 +116,7 @@ Both clients are generated during `npm run build` and `postinstall`.
 
 ## Key Patterns
 
-- **Domain-based access:** Main domain = full admin, `ops.*` = operations, `associate.*` = limited partner access
+- **Domain-based access:** Main domain = full admin, `ops.*` = operations, `associate.*` = limited partner access (host checks in `src/proxy.ts`)
 - **Roles:** OWNER, ADMIN, FINANCE, OPERATIONS, VIEWER (organization-based)
 - **API routes** are in `src/app/api/` following Next.js App Router conventions
 - **Server components** are the default; client components use `"use client"` directive

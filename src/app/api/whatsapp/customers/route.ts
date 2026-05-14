@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     const search = url.searchParams.get('search') || undefined;
     const tags = parseTagsParam(url.searchParams.get('tags'));
     const isOptedInParam = url.searchParams.get('isOptedIn');
+    const associatePartnerId = url.searchParams.get('associatePartnerId') || undefined;
     const page = Math.max(parseInt(url.searchParams.get('page') || '1', 10), 1);
     const MAX_LIMIT = 1000;
     const limitParam = parseInt(url.searchParams.get('limit') || '50', 10);
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
       search,
       tags: tags.length ? tags : undefined,
       isOptedIn: isOptedInParam !== null ? isOptedInParam === 'true' : undefined,
+      associatePartnerId,
       skip: (page - 1) * limit,
       take: limit,
     } as const;

@@ -21,6 +21,7 @@ export type WhatsAppCustomerFilters = {
   search?: string;
   tags?: string[];
   isOptedIn?: boolean;
+  associatePartnerId?: string;
   skip?: number;
   take?: number;
   orderBy?: Prisma.WhatsAppCustomerOrderByWithRelationInput | Prisma.WhatsAppCustomerOrderByWithRelationInput[];
@@ -120,12 +121,16 @@ function buildUpdateData(input: Partial<WhatsAppCustomerInput>): Prisma.WhatsApp
   return data;
 }
 
-function buildWhatsAppCustomerWhere(filters: Pick<WhatsAppCustomerFilters, 'search' | 'tags' | 'isOptedIn'>) {
-  const { search, tags, isOptedIn } = filters;
+function buildWhatsAppCustomerWhere(filters: Pick<WhatsAppCustomerFilters, 'search' | 'tags' | 'isOptedIn' | 'associatePartnerId'>) {
+  const { search, tags, isOptedIn, associatePartnerId } = filters;
   const where: Prisma.WhatsAppCustomerWhereInput = {};
 
   if (typeof isOptedIn === 'boolean') {
     where.isOptedIn = isOptedIn;
+  }
+
+  if (associatePartnerId) {
+    where.associatePartnerId = associatePartnerId;
   }
 
   if (search) {
@@ -142,7 +147,6 @@ function buildWhatsAppCustomerWhere(filters: Pick<WhatsAppCustomerFilters, 'sear
   }
 
   if (tags && tags.length > 0) {
-    // PostgreSQL array contains - check if any of the provided tags exists in the customer's tags array
     where.tags = { hasSome: tags };
   }
 
@@ -154,12 +158,13 @@ export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {
     search,
     tags,
     isOptedIn,
+    associatePartnerId,
     skip = 0,
     take = DEFAULT_PAGE_SIZE,
     orderBy = { createdAt: 'desc' },
   } = filters;
 
-  const where = buildWhatsAppCustomerWhere({ search, tags, isOptedIn });
+  const where = buildWhatsAppCustomerWhere({ search, tags, isOptedIn, associatePartnerId });
 
   const [data, total] = await Promise.all([
     whatsappPrisma.whatsAppCustomer.findMany({
@@ -198,8 +203,8 @@ export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {
 }
 
 export async function exportWhatsAppCustomers(filters: WhatsAppCustomerFilters = {}) {
-  const { search, tags, isOptedIn } = filters;
-  const where = buildWhatsAppCustomerWhere({ search, tags, isOptedIn });
+  const { search, tags, isOptedIn, associatePartnerId } = filters;
+  const where = buildWhatsAppCustomerWhere({ search, tags, isOptedIn, associatePartnerId });
   const orderBy = filters.orderBy ?? [{ firstName: 'asc' }, { lastName: 'asc' }];
   return whatsappPrisma.whatsAppCustomer.findMany({ where, orderBy });
 }

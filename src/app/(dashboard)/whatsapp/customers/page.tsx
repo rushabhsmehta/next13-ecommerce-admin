@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DataTable } from '@/components/ui/data-table';
 import {
   AlertDialog,
@@ -177,6 +178,7 @@ export default function WhatsAppCustomersPage() {
   const [csvSummary, setCsvSummary] = useState<CsvImportSummary | null>(null);
   const [csvErrors, setCsvErrors] = useState<CsvErrorEntry[]>([]);
   const [optInFilter, setOptInFilter] = useState<'all' | 'opted-in' | 'opted-out'>('all');
+  const [partnerFilter, setPartnerFilter] = useState<string>('');
   const [associatePartners, setAssociatePartners] = useState<AssociatePartner[]>([]);
   const [partnerIdToNameMap, setPartnerIdToNameMap] = useState<Map<string, string>>(new Map());
   const [partnerPopoverOpen, setPartnerPopoverOpen] = useState(false);
@@ -221,8 +223,11 @@ export default function WhatsAppCustomersPage() {
       if (optInFilter !== 'all') {
         params.set('isOptedIn', optInFilter === 'opted-in' ? 'true' : 'false');
       }
-  params.set('page', String(page));
-  params.set('limit', String(PAGE_SIZE));
+      if (partnerFilter) {
+        params.set('associatePartnerId', partnerFilter);
+      }
+      params.set('page', String(page));
+      params.set('limit', String(PAGE_SIZE));
       const response = await fetch(`/api/whatsapp/customers?${params.toString()}`);
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Failed to fetch customers' }));
@@ -245,7 +250,7 @@ export default function WhatsAppCustomersPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, selectedTags, page, optInFilter]);
+  }, [searchTerm, selectedTags, page, optInFilter, partnerFilter]);
 
   useEffect(() => {
     fetchCustomers();
@@ -537,7 +542,7 @@ export default function WhatsAppCustomersPage() {
     }
   };
 
-  const activeFilters = selectedTags.length + (optInFilter === 'all' ? 0 : 1) + (searchTerm ? 1 : 0);
+  const activeFilters = selectedTags.length + (optInFilter === 'all' ? 0 : 1) + (searchTerm ? 1 : 0) + (partnerFilter ? 1 : 0);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const showingFrom = customers.length ? (page - 1) * PAGE_SIZE + 1 : 0;
   const showingTo = customers.length ? (page - 1) * PAGE_SIZE + customers.length : 0;
@@ -587,6 +592,9 @@ export default function WhatsAppCustomersPage() {
       }
       if (optInFilter !== 'all') {
         params.set('isOptedIn', optInFilter === 'opted-in' ? 'true' : 'false');
+      }
+      if (partnerFilter) {
+        params.set('associatePartnerId', partnerFilter);
       }
 
       const query = params.toString();
@@ -656,13 +664,29 @@ export default function WhatsAppCustomersPage() {
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
         <div className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Customers</CardTitle>
-                <CardDescription>Filter and manage WhatsApp-specific contacts.</CardDescription>
+            <CardHeader className="space-y-4">
+              {/* Title row + action buttons */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Customers</CardTitle>
+                  <CardDescription>Filter and manage WhatsApp-specific contacts.</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={fetchCustomers}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+                    <Download className="mr-2 h-4 w-4" />
+                    {exporting ? 'Preparing…' : 'Download CSV'}
+                  </Button>
+                </div>
               </div>
+
+              {/* Filter controls row */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="relative">
+                {/* Search */}
+                <div className="relative flex-1 min-w-[200px] max-w-xs">
                   <Input
                     placeholder="Search by name, email, or phone"
                     value={searchInput}
@@ -670,47 +694,50 @@ export default function WhatsAppCustomersPage() {
                       setPage(1);
                       setSearchInput(event.target.value);
                     }}
-                    className="w-72"
                   />
                   <Filter className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={optInFilter === 'all' ? 'outline' : 'secondary'}
-                    onClick={() => {
-                      setOptInFilter('all');
-                      setPage(1);
-                    }}
-                  >
-                    All
-                  </Button>
-                  <Button
-                    variant={optInFilter === 'opted-in' ? 'default' : 'outline'}
-                    onClick={() => {
-                      setOptInFilter('opted-in');
-                      setPage(1);
-                    }}
-                  >
-                    Opted In
-                  </Button>
-                  <Button
-                    variant={optInFilter === 'opted-out' ? 'default' : 'outline'}
-                    onClick={() => {
-                      setOptInFilter('opted-out');
-                      setPage(1);
-                    }}
-                  >
-                    Opted Out
-                  </Button>
+
+                {/* Opt-in filter */}
+                <div className="flex items-center rounded-lg border bg-muted/40 p-1 gap-1">
+                  {(['all', 'opted-in', 'opted-out'] as const).map((val) => (
+                    <button
+                      key={val}
+                      onClick={() => { setOptInFilter(val); setPage(1); }}
+                      className={clsx(
+                        'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                        optInFilter === val
+                          ? 'bg-white shadow-sm text-foreground dark:bg-zinc-800'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      {val === 'all' ? 'All' : val === 'opted-in' ? 'Opted In' : 'Opted Out'}
+                    </button>
+                  ))}
                 </div>
-                <Button variant="outline" onClick={fetchCustomers}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Refresh
-                </Button>
-                <Button variant="outline" onClick={handleExport} disabled={exporting}>
-                  <Download className="mr-2 h-4 w-4" />
-                  {exporting ? 'Preparing...' : 'Download CSV'}
-                </Button>
+
+                {/* Associate partner filter */}
+                {associatePartners.length > 0 && (
+                  <Select
+                    value={partnerFilter || 'all'}
+                    onValueChange={(value) => {
+                      setPartnerFilter(value === 'all' ? '' : value);
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-44">
+                      <SelectValue placeholder="All Partners" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Partners</SelectItem>
+                      {associatePartners.map((partner) => (
+                        <SelectItem key={partner.id} value={partner.id}>
+                          {partner.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -752,6 +779,7 @@ export default function WhatsAppCustomersPage() {
                       setSearchTerm('');
                       setSelectedTags([]);
                       setOptInFilter('all');
+                      setPartnerFilter('');
                       setPage(1);
                     }}
                   >

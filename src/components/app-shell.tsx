@@ -10,8 +10,10 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isTravelRoute = pathname?.startsWith("/travel");
+  const isAuthRoute =
+    pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up");
 
-  if (isTravelRoute) {
+  if (isTravelRoute || isAuthRoute) {
     return <>{children}</>;
   }
 

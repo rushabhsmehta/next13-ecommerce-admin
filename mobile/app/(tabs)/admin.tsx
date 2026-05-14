@@ -58,6 +58,9 @@ function moduleRoute(moduleId: string, isAssociate: boolean): string | null {
     return isAssociate ? "/associate/inquiries" : "/admin/crm/inquiries";
   }
   if (moduleId === "sales-trips" && !isAssociate) return "/admin/tour-queries";
+  if (moduleId === "operations" && !isAssociate) return "/admin/operations";
+  if (moduleId === "finance" && !isAssociate) return "/admin/finance";
+  if (moduleId === "reports" && !isAssociate) return "/admin/reports";
   return null;
 }
 
@@ -68,7 +71,12 @@ interface QuickAction {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
   route: string;
-  visible: (ctx: { isAdmin: boolean; isAssociate: boolean; canUseAdmin: boolean }) => boolean;
+  visible: (ctx: {
+    isAdmin: boolean;
+    isAssociate: boolean;
+    canUseAdmin: boolean;
+    canUseFinance: boolean;
+  }) => boolean;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
@@ -95,6 +103,30 @@ const QUICK_ACTIONS: QuickAction[] = [
     icon: "map-outline",
     route: "/admin/tour-queries",
     visible: ({ canUseAdmin }) => canUseAdmin,
+  },
+  {
+    id: "operations",
+    title: "Operations",
+    description: "Hotels, locations, suppliers",
+    icon: "construct-outline",
+    route: "/admin/operations",
+    visible: ({ canUseAdmin }) => canUseAdmin,
+  },
+  {
+    id: "finance",
+    title: "Finance",
+    description: "Sales, receipts, expenses",
+    icon: "cash-outline",
+    route: "/admin/finance",
+    visible: ({ canUseFinance, canUseAdmin }) => canUseFinance || canUseAdmin,
+  },
+  {
+    id: "reports",
+    title: "Reports",
+    description: "KPIs, outstanding, balances",
+    icon: "bar-chart-outline",
+    route: "/admin/reports",
+    visible: ({ canUseFinance, canUseAdmin }) => canUseFinance || canUseAdmin,
   },
   {
     id: "whatsapp",
@@ -139,8 +171,11 @@ export default function AdminTab() {
     isLoading: authLoading,
   } = useCurrentUser();
   const visibleQuickActions = useMemo(
-    () => QUICK_ACTIONS.filter((qa) => qa.visible({ isAdmin, isAssociate, canUseAdmin })),
-    [isAdmin, isAssociate, canUseAdmin]
+    () =>
+      QUICK_ACTIONS.filter((qa) =>
+        qa.visible({ isAdmin, isAssociate, canUseAdmin, canUseFinance })
+      ),
+    [isAdmin, isAssociate, canUseAdmin, canUseFinance]
   );
   // Stash getToken in a ref so the request closure is stable across renders.
   // Otherwise Clerk produces a new getToken on every render which would

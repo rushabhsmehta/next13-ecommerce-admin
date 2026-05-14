@@ -33,10 +33,10 @@ const createInquirySchema = z.object({
   locationName: z.string().min(1).optional(),
 });
 
-/** Accept `YYYY-M-D` from mobile keyboards and normalize to `YYYY-MM-DD` before Zod. */
+/** Accept `YYYY-M-D` or full ISO datetime strings and normalize to `YYYY-MM-DD` before Zod. */
 function coerceYyyyMmDd(raw: unknown): unknown {
   if (typeof raw !== "string") return raw;
-  const t = raw.trim();
+  const t = raw.trim().split("T")[0]; // strip time component if ISO datetime
   const m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (!m) return raw;
   return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;

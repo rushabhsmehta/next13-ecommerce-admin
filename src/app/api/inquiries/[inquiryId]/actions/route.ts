@@ -17,7 +17,9 @@ export async function POST(req: Request, props: { params: Promise<{ inquiryId: s
     const userId = await getRequestClerkUserId(req);
     const body = await req.json();
 
-    const { actionType, remarks, actionDate } = body;
+    const { actionType, remarks } = body;
+    // Strip ISO datetime tail if present (e.g. "2026-05-14T00:00:00.000Z" → "2026-05-14")
+    const actionDate = typeof body.actionDate === "string" ? body.actionDate.split("T")[0] : body.actionDate;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });

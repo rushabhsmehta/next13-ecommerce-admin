@@ -132,9 +132,9 @@ function buildWhatsAppCustomerWhere(filters: Pick<WhatsAppCustomerFilters, 'sear
     const term = search.trim();
     const digits = extractDigits(term);
     where.OR = [
-      { firstName: { contains: term } },
-      { lastName: { contains: term } },
-      { email: { contains: term } },
+      { firstName: { contains: term, mode: 'insensitive' } },
+      { lastName: { contains: term, mode: 'insensitive' } },
+      { email: { contains: term, mode: 'insensitive' } },
     ];
     if (digits.length >= 4) {
       where.OR?.push({ phoneNumber: { contains: digits } });

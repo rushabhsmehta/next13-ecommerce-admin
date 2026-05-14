@@ -202,8 +202,8 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         .vchr-table tr:last-child td { border-bottom: none; }
         .vchr-table .num { text-align: right; padding-right: 0; }
         .vchr-stay { margin-bottom: 18px; }
-        .vchr-stay-title { font-size: 14px; margin: 0 0 4px; }
-        .vchr-stay-meta { font-size: 10px; color: var(--vchr-mute); margin-bottom: 6px; letter-spacing: 0.04em; }
+        .vchr-stay-title { font-size: 16px; margin: 0 0 2px; }
+        .vchr-stay-badge { display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vchr-accent); background: #FFF3EC; border: 1px solid #FEDDCC; padding: 2px 7px; border-radius: 20px; margin-bottom: 8px; }
         .vchr-extra-bed { color: var(--vchr-mute); font-style: italic; }
         .vchr-empty { font-size: 10.5px; color: var(--vchr-mute); padding: 8px 0; font-style: italic; }
         .vchr-policy-grid { column-count: 2; column-gap: 32px; column-rule: 1px solid var(--vchr-line); }
@@ -216,6 +216,17 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         .vchr-signoff { padding: 18px 0 8px; text-align: center; }
         .vchr-signoff-mark { font-size: 9.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--vchr-accent); }
         .vchr-signoff-line { font-size: 11px; color: var(--vchr-mute); margin-top: 6px; }
+        .vchr-cover-logo { height: 38px; width: auto; object-fit: contain; object-position: left; display: block; margin-bottom: 14px; }
+        .vchr-cover-hero-wrap { position: relative; overflow: hidden; margin: 0; padding: 0; }
+        .vchr-cover-hero-wrap img { width: 100%; height: 320px; object-fit: cover; display: block; }
+        .vchr-cover-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,10,10,0.72) 0%, rgba(10,10,10,0.25) 50%, rgba(10,10,10,0.10) 100%); }
+        .vchr-cover-hero-caption { position: absolute; bottom: 0; left: 0; right: 0; padding: 28px 38px; }
+        .vchr-cover-hero-caption .vchr-cover-title { color: #fff; margin: 8px 0 6px; }
+        .vchr-cover-hero-caption .vchr-eyebrow { color: rgba(255,255,255,0.75); }
+        .vchr-cover-hero-caption .vchr-cover-meta { color: rgba(255,255,255,0.82); }
+        .vchr-cover-hero-caption .vchr-cover-wordmark { color: rgba(255,255,255,0.9); letter-spacing: 0.28em; }
+        .vchr-cover-rule-white { width: 36px; height: 1px; background: rgba(255,255,255,0.45); margin: 12px 0; }
+        .vchr-overview-panel { background: var(--vchr-cream); border-left: 3px solid var(--vchr-accent); padding: 18px 20px; border-radius: 2px; }
         @media print { .vchr-screen-only { display: none; } }
       `}</style>
 
@@ -237,46 +248,76 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         >
           {/* ── Cover ── */}
           <section data-pdf-section="true" className="vchr-cover">
-            <div className="vchr-cover-wordmark">
-              {currentCompany.name || 'Booking Voucher'}
-            </div>
-            <h1 className="vchr-serif vchr-cover-title">
-              {initialData.tourPackageQueryName}
-            </h1>
-            <div className="vchr-eyebrow" style={{ color: 'var(--vchr-mute)' }}>
-              Booking Voucher · Ref {initialData.tourPackageQueryNumber}
-            </div>
-            {confirmedVariantName && (
-              <div className="vchr-eyebrow" style={{ color: 'var(--vchr-accent)', marginTop: 4 }}>
-                Package: {confirmedVariantName}
-              </div>
-            )}
-            <div className="vchr-cover-rule" />
-            <div className="vchr-cover-meta">
-              {locationLabel && <span><strong>{locationLabel}</strong></span>}
-              {initialData.numDaysNight && <span>{initialData.numDaysNight}</span>}
-              {periodLabel && <span>{periodLabel}</span>}
-              {initialData.tourPackageQueryType && <span>{initialData.tourPackageQueryType} Package</span>}
-            </div>
-
-            {heroImage && (
-              <div className="vchr-hero" style={{ marginTop: 24 }}>
-                <Image
-                  src={heroImage}
-                  alt={initialData.tourPackageQueryName || 'Tour'}
-                  width={1400}
-                  height={560}
-                  priority
-                />
-              </div>
+            {/* Company logo */}
+            {currentCompany.logo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={currentCompany.logo} alt={currentCompany.name || ''} className="vchr-cover-logo" />
             )}
 
+            {heroImage ? (
+              <>
+                {/* Wordmark above image */}
+                <div className="vchr-cover-wordmark">{currentCompany.name || 'Booking Voucher'}</div>
+
+                {/* Hero image with gradient overlay */}
+                <div className="vchr-cover-hero-wrap" style={{ marginTop: 14 }}>
+                  <Image
+                    src={heroImage}
+                    alt={initialData.tourPackageQueryName || 'Tour'}
+                    width={1400}
+                    height={640}
+                    priority
+                  />
+                  <div className="vchr-cover-hero-overlay" />
+                  <div className="vchr-cover-hero-caption">
+                    <h1 className="vchr-serif vchr-cover-title">{initialData.tourPackageQueryName}</h1>
+                    <div className="vchr-eyebrow">
+                      Booking Voucher · Ref {initialData.tourPackageQueryNumber}
+                    </div>
+                    {confirmedVariantName && (
+                      <div className="vchr-eyebrow" style={{ color: 'rgba(255,194,140,0.95)', marginTop: 4 }}>
+                        Package: {confirmedVariantName}
+                      </div>
+                    )}
+                    <div className="vchr-cover-rule-white" />
+                    <div className="vchr-cover-meta">
+                      {locationLabel && <span><strong style={{ color: '#fff' }}>{locationLabel}</strong></span>}
+                      {initialData.numDaysNight && <span>{initialData.numDaysNight}</span>}
+                      {periodLabel && <span>{periodLabel}</span>}
+                      {initialData.tourPackageQueryType && <span>{initialData.tourPackageQueryType} Package</span>}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* No hero — original cream layout */
+              <>
+                <div className="vchr-cover-wordmark">{currentCompany.name || 'Booking Voucher'}</div>
+                <h1 className="vchr-serif vchr-cover-title">{initialData.tourPackageQueryName}</h1>
+                <div className="vchr-eyebrow" style={{ color: 'var(--vchr-mute)' }}>
+                  Booking Voucher · Ref {initialData.tourPackageQueryNumber}
+                </div>
+                {confirmedVariantName && (
+                  <div className="vchr-eyebrow" style={{ color: 'var(--vchr-accent)', marginTop: 4 }}>
+                    Package: {confirmedVariantName}
+                  </div>
+                )}
+                <div className="vchr-cover-rule" />
+                <div className="vchr-cover-meta">
+                  {locationLabel && <span><strong>{locationLabel}</strong></span>}
+                  {initialData.numDaysNight && <span>{initialData.numDaysNight}</span>}
+                  {periodLabel && <span>{periodLabel}</span>}
+                  {initialData.tourPackageQueryType && <span>{initialData.tourPackageQueryType} Package</span>}
+                </div>
+              </>
+            )}
           </section>
 
           {/* ── Trip Overview ── */}
           <section data-pdf-section="true" className="vchr-section">
             <h2 className="vchr-serif vchr-section-title">Trip Overview</h2>
             <div className="vchr-section-rule" />
+            <div className="vchr-overview-panel">
             <div className="vchr-grid-2">
               {!supplierView && initialData.customerName && (
                 <div>
@@ -351,6 +392,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                 <div dangerouslySetInnerHTML={{ __html: initialData.remarks }} />
               </div>
             )}
+            </div>{/* end vchr-overview-panel */}
           </section>
 
           {/* ── Day-by-Day ── */}
@@ -438,10 +480,8 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
                 return (
                   <div key={itineraryIdx} className="vchr-stay" data-pdf-section="true">
+                    <div className="vchr-stay-badge">Day {itinerary.dayNumber} · {itinerary.days}</div>
                     <h3 className="vchr-serif vchr-stay-title">{hotelDetails?.name || 'Hotel'}</h3>
-                    <div className="vchr-stay-meta">
-                      Day {itinerary.dayNumber} · {itinerary.days}
-                    </div>
                     {effectiveRoomAllocations.length > 0 ? (
                       <table className="vchr-table">
                         <thead>

@@ -33,6 +33,7 @@ export type MobileAdminModuleStatus =
   | "foundation"
   | "ready"
   | "planned"
+  | "in-development"
   | "restricted";
 
 export interface MobileAdminModule {

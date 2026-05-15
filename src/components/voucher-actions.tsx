@@ -48,6 +48,13 @@ const collectHeadMarkup = (): string => {
     });
   });
 
+  document.querySelectorAll("style[data-pdf-inline-style]").forEach((node) => {
+    const html = (node as HTMLElement).outerHTML;
+    if (html) {
+      unique.add(html);
+    }
+  });
+
   return Array.from(unique).join("\n");
 };
 

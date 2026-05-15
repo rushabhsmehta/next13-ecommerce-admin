@@ -159,7 +159,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
   return (
     <>
-      <style>{`
+      <style data-pdf-inline-style="tour-package-query-voucher">{`
         .vchr {
           --vchr-ink: #1f2933;
           --vchr-strong: #111827;

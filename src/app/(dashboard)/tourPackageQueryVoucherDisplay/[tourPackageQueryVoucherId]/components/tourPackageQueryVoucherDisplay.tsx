@@ -129,19 +129,19 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   const periodLabel = [
     initialData?.tourStartsFrom ? formatLocalDate(initialData.tourStartsFrom, 'dd MMM yyyy') : '',
     initialData?.tourEndsOn ? formatLocalDate(initialData.tourEndsOn, 'dd MMM yyyy') : '',
-  ].filter(Boolean).join(' — ');
+  ].filter(Boolean).join(' - ');
 
   const heroImage = initialData?.images?.[0]?.url;
 
   const footerLabel = [currentCompany.name || initialData?.tourPackageQueryName, 'Booking Voucher']
-    .filter(Boolean).join(' • ');
+    .filter(Boolean).join(' | ');
   const footerPrimaryLine = currentCompany.name
-    ? [currentCompany.name, currentCompany.address].filter(Boolean).join(' • ')
+    ? [currentCompany.name, currentCompany.address].filter(Boolean).join(' | ')
     : initialData?.tourPackageQueryName || '';
   const footerSecondaryLine = [
     currentCompany.phone ? `Phone: ${currentCompany.phone}` : null,
     currentCompany.email ? `Email: ${currentCompany.email}` : null,
-  ].filter(Boolean).join(' • ');
+  ].filter(Boolean).join(' | ');
 
   if (!initialData || !initialData.isFeatured) return <div>No data available</div>;
 
@@ -161,73 +161,96 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
     <>
       <style>{`
         .vchr {
-          --vchr-ink: #111827;
-          --vchr-mute: #6B7280;
-          --vchr-faint: #9CA3AF;
-          --vchr-line: #E5E7EB;
-          --vchr-cream: #FAF7F2;
-          --vchr-accent: #C2410C;
+          --vchr-ink: #1f2933;
+          --vchr-strong: #111827;
+          --vchr-mute: #667085;
+          --vchr-faint: #98a2b3;
+          --vchr-line: #eadfce;
+          --vchr-cream: #fff9f0;
+          --vchr-accent: #b45309;
+          --vchr-accent-deep: #7c2d12;
+          --vchr-gold: #d6a85d;
           color: var(--vchr-ink);
-          font-family: var(--font-sans), 'Inter', system-ui, sans-serif;
+          font-family: "Aptos", "Segoe UI", "Inter", system-ui, sans-serif;
           font-size: 11.5px;
-          line-height: 1.55;
-          background: #ffffff;
+          line-height: 1.58;
+          background:
+            radial-gradient(circle at top left, rgba(214, 168, 93, 0.16), transparent 260px),
+            linear-gradient(180deg, #fffdf8 0%, #ffffff 34%, #fffaf3 100%);
+          border: 1px solid rgba(180, 83, 9, 0.16);
+          box-shadow: 0 24px 70px rgba(80, 44, 18, 0.12);
+          overflow: hidden;
         }
-        .vchr-serif { font-family: var(--font-serif), 'Cormorant Garamond', Georgia, serif; font-weight: 500; letter-spacing: 0.005em; }
-        .vchr-eyebrow { font-size: 9.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vchr-mute); }
-        .vchr-section { padding: 22px 0 18px; }
-        .vchr-section + .vchr-section { border-top: 1px solid var(--vchr-line); }
-        .vchr-section-title { font-size: 18px; font-weight: 500; margin: 0 0 4px; }
-        .vchr-section-rule { width: 28px; height: 1px; background: var(--vchr-accent); margin: 0 0 14px; }
-        .vchr-cover { background: var(--vchr-cream); padding: 36px 38px 32px; }
-        .vchr-cover-wordmark { font-size: 10px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase; color: var(--vchr-accent); }
-        .vchr-cover-title { font-size: 30px; line-height: 1.15; margin: 14px 0 8px; }
-        .vchr-cover-meta { display: flex; gap: 18px; flex-wrap: wrap; font-size: 10.5px; color: var(--vchr-mute); margin-top: 10px; }
-        .vchr-cover-meta span strong { color: var(--vchr-ink); font-weight: 600; }
-        .vchr-cover-rule { width: 36px; height: 1px; background: var(--vchr-accent); margin: 18px 0; }
-        .vchr-hero { width: 100%; height: 280px; overflow: hidden; margin-top: 10px; }
-        .vchr-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .vchr-grid-2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; row-gap: 14px; }
-        .vchr-field-label { font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vchr-faint); margin-bottom: 3px; }
-        .vchr-field-value { font-size: 12px; color: var(--vchr-ink); }
-        .vchr-day-row { display: grid; grid-template-columns: 64px 1fr; gap: 18px; padding: 12px 0; border-top: 1px solid var(--vchr-line); }
-        .vchr-day-row:first-child { border-top: none; }
-        .vchr-day-num { font-size: 22px; color: var(--vchr-accent); line-height: 1; }
-        .vchr-day-num-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vchr-mute); margin-top: 2px; }
-        .vchr-day-text { font-size: 12px; color: var(--vchr-ink); line-height: 1.5; }
-        .vchr-day-text strong { font-weight: 600; }
-        .vchr-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .vchr-table th { text-align: left; font-weight: 600; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vchr-mute); padding: 8px 10px 8px 0; border-bottom: 1px solid var(--vchr-line); }
-        .vchr-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--vchr-line); vertical-align: top; color: var(--vchr-ink); }
+        .vchr-serif { font-family: "Georgia", "Times New Roman", serif; font-weight: 500; letter-spacing: -0.015em; }
+        .vchr-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vchr-accent); }
+        .vchr-muted { color: var(--vchr-mute); }
+        .vchr-section { padding: 26px 36px 24px; background: rgba(255, 255, 255, 0.84); }
+        .vchr-section + .vchr-section { border-top: 1px solid rgba(234, 223, 206, 0.85); }
+        .vchr-section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
+        .vchr-section-kicker { font-size: 8.5px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--vchr-gold); margin-bottom: 3px; }
+        .vchr-section-title { color: var(--vchr-strong); font-size: 21px; line-height: 1.1; margin: 0; }
+        .vchr-section-rule { width: 42px; height: 2px; background: linear-gradient(90deg, var(--vchr-accent), var(--vchr-gold)); border-radius: 999px; }
+        .vchr-cover { position: relative; min-height: 520px; background: #1d1712; color: #ffffff; padding: 0; }
+        .vchr-cover::after { content: ""; position: absolute; inset: auto 32px 28px; height: 1px; background: rgba(255,255,255,0.28); }
+        .vchr-cover-media { position: absolute; inset: 0; overflow: hidden; }
+        .vchr-cover-media img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(1.06) contrast(1.02); }
+        .vchr-cover-fallback { position: absolute; inset: 0; background: radial-gradient(circle at 20% 18%, rgba(214,168,93,0.42), transparent 210px), radial-gradient(circle at 84% 22%, rgba(251,191,36,0.22), transparent 250px), linear-gradient(135deg, #2b170f 0%, #713f12 44%, #111827 100%); }
+        .vchr-cover-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(17,24,39,0.90) 0%, rgba(17,24,39,0.64) 48%, rgba(17,24,39,0.22) 100%), linear-gradient(0deg, rgba(17,24,39,0.64), rgba(17,24,39,0.08)); }
+        .vchr-cover-content { position: relative; z-index: 1; min-height: 520px; display: flex; flex-direction: column; justify-content: space-between; padding: 34px 38px 36px; }
+        .vchr-cover-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+        .vchr-cover-logo { max-height: 46px; max-width: 154px; width: auto; object-fit: contain; object-position: left; display: block; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,0.92); box-shadow: 0 12px 30px rgba(0,0,0,0.18); }
+        .vchr-cover-pill { border: 1px solid rgba(255,255,255,0.28); border-radius: 999px; color: rgba(255,255,255,0.84); font-size: 9px; font-weight: 700; letter-spacing: 0.18em; padding: 7px 12px; text-transform: uppercase; }
+        .vchr-cover-main { max-width: 560px; }
+        .vchr-cover-wordmark { color: rgba(255,255,255,0.78); font-size: 9px; font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; }
+        .vchr-cover-title { color: #fff; font-size: 42px; line-height: 1.02; margin: 16px 0 12px; text-wrap: balance; }
+        .vchr-cover-subtitle { color: rgba(255,255,255,0.82); font-size: 12px; letter-spacing: 0.04em; }
+        .vchr-cover-rule { width: 58px; height: 2px; background: linear-gradient(90deg, #facc15, rgba(255,255,255,0.58)); border-radius: 999px; margin: 18px 0; }
+        .vchr-cover-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; max-width: 510px; }
+        .vchr-cover-meta-item { border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.10); border-radius: 15px; padding: 10px 12px; backdrop-filter: blur(8px); }
+        .vchr-cover-meta-label { color: rgba(255,255,255,0.58); display: block; font-size: 8px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+        .vchr-cover-meta-value { color: #fff; display: block; font-size: 12px; font-weight: 650; margin-top: 2px; }
+        .vchr-overview-panel { background: linear-gradient(135deg, #fff7ed, #fffdf7); border: 1px solid var(--vchr-line); border-radius: 22px; padding: 18px; box-shadow: 0 14px 34px rgba(124, 45, 18, 0.06); }
+        .vchr-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .vchr-field-card { background: rgba(255,255,255,0.82); border: 1px solid rgba(234, 223, 206, 0.82); border-radius: 16px; padding: 12px 13px; }
+        .vchr-field-label { font-size: 8.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vchr-faint); margin-bottom: 4px; }
+        .vchr-field-value { color: var(--vchr-strong); font-size: 12px; font-weight: 560; overflow-wrap: anywhere; }
+        .vchr-remarks { margin-top: 14px; border-top: 1px dashed var(--vchr-line); padding-top: 13px; font-size: 11px; color: var(--vchr-ink); line-height: 1.62; }
+        .vchr-remarks-label { font-size: 8.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vchr-accent); margin-bottom: 5px; }
+        .vchr-timeline { position: relative; }
+        .vchr-day-row { display: grid; grid-template-columns: 74px 1fr; gap: 18px; padding: 14px 0; border-top: 1px solid rgba(234, 223, 206, 0.78); }
+        .vchr-day-row:first-child { border-top: none; padding-top: 0; }
+        .vchr-day-marker { width: 54px; height: 54px; border: 1px solid var(--vchr-line); border-radius: 18px; background: linear-gradient(145deg, #fff7ed, #ffffff); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 0 4px rgba(255,249,240,0.8); }
+        .vchr-day-num { color: var(--vchr-accent-deep); font-size: 22px; line-height: 1; }
+        .vchr-day-num-label { color: var(--vchr-mute); font-size: 8px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 3px; }
+        .vchr-day-text { color: var(--vchr-ink); font-size: 12px; line-height: 1.55; padding-top: 5px; }
+        .vchr-day-text strong { color: var(--vchr-strong); font-weight: 650; }
+        .vchr-table-wrap { border: 1px solid var(--vchr-line); border-radius: 18px; overflow: hidden; background: #ffffff; box-shadow: 0 12px 30px rgba(124,45,18,0.045); }
+        .vchr-table { width: 100%; border-collapse: collapse; font-size: 10.8px; }
+        .vchr-table th { background: #fff7ed; color: var(--vchr-accent-deep); text-align: left; font-weight: 800; font-size: 8.3px; letter-spacing: 0.13em; text-transform: uppercase; padding: 10px 11px; border-bottom: 1px solid var(--vchr-line); }
+        .vchr-table td { padding: 10px 11px; border-bottom: 1px solid rgba(234, 223, 206, 0.74); vertical-align: top; color: var(--vchr-ink); }
         .vchr-table tr:last-child td { border-bottom: none; }
-        .vchr-table .num { text-align: right; padding-right: 0; }
-        .vchr-stay { margin-bottom: 18px; }
-        .vchr-stay-title { font-size: 16px; margin: 0 0 2px; }
-        .vchr-stay-badge { display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vchr-accent); background: #FFF3EC; border: 1px solid #FEDDCC; padding: 2px 7px; border-radius: 20px; margin-bottom: 8px; }
+        .vchr-table .num { text-align: right; }
+        .vchr-stay { margin-bottom: 16px; border: 1px solid var(--vchr-line); border-radius: 20px; overflow: hidden; background: #ffffff; break-inside: avoid; page-break-inside: avoid; }
+        .vchr-stay-head { background: linear-gradient(135deg, #fff7ed, #fffdf8); padding: 13px 15px 11px; border-bottom: 1px solid var(--vchr-line); }
+        .vchr-stay-title { color: var(--vchr-strong); font-size: 17px; margin: 4px 0 0; }
+        .vchr-stay-badge { display: inline-block; font-size: 8.5px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: var(--vchr-accent-deep); }
         .vchr-extra-bed { color: var(--vchr-mute); font-style: italic; }
-        .vchr-empty { font-size: 10.5px; color: var(--vchr-mute); padding: 8px 0; font-style: italic; }
-        .vchr-policy-grid { column-count: 2; column-gap: 32px; column-rule: 1px solid var(--vchr-line); }
+        .vchr-empty { color: var(--vchr-mute); font-size: 10.5px; font-style: italic; padding: 14px 15px; }
+        .vchr-policy-grid { column-count: 2; column-gap: 30px; column-rule: 1px solid var(--vchr-line); }
         .vchr-policy-block { break-inside: avoid; page-break-inside: avoid; margin: 0 0 18px; }
-        .vchr-policy-title { font-size: 13px; margin: 0 0 6px; }
-        .vchr-policy-list { margin: 0; padding-left: 14px; font-size: 10.5px; color: var(--vchr-ink); line-height: 1.6; }
-        .vchr-policy-list li { margin-bottom: 3px; }
-        .vchr-remarks { margin-top: 14px; font-size: 11px; color: var(--vchr-ink); line-height: 1.6; }
-        .vchr-remarks-label { font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vchr-faint); margin-bottom: 4px; }
-        .vchr-signoff { padding: 18px 0 8px; text-align: center; }
-        .vchr-signoff-mark { font-size: 9.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--vchr-accent); }
-        .vchr-signoff-line { font-size: 11px; color: var(--vchr-mute); margin-top: 6px; }
-        .vchr-cover-logo { height: 38px; width: auto; object-fit: contain; object-position: left; display: block; margin-bottom: 14px; }
-        .vchr-cover-hero-wrap { position: relative; overflow: hidden; margin: 0; padding: 0; }
-        .vchr-cover-hero-wrap img { width: 100%; height: 320px; object-fit: cover; display: block; }
-        .vchr-cover-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,10,10,0.72) 0%, rgba(10,10,10,0.25) 50%, rgba(10,10,10,0.10) 100%); }
-        .vchr-cover-hero-caption { position: absolute; bottom: 0; left: 0; right: 0; padding: 28px 38px; }
-        .vchr-cover-hero-caption .vchr-cover-title { color: #fff; margin: 8px 0 6px; }
-        .vchr-cover-hero-caption .vchr-eyebrow { color: rgba(255,255,255,0.75); }
-        .vchr-cover-hero-caption .vchr-cover-meta { color: rgba(255,255,255,0.82); }
-        .vchr-cover-hero-caption .vchr-cover-wordmark { color: rgba(255,255,255,0.9); letter-spacing: 0.28em; }
-        .vchr-cover-rule-white { width: 36px; height: 1px; background: rgba(255,255,255,0.45); margin: 12px 0; }
-        .vchr-overview-panel { background: var(--vchr-cream); border-left: 3px solid var(--vchr-accent); padding: 18px 20px; border-radius: 2px; }
-        @media print { .vchr-screen-only { display: none; } }
+        .vchr-policy-title { color: var(--vchr-strong); font-size: 14px; margin: 0 0 7px; }
+        .vchr-policy-list { margin: 0; padding-left: 15px; font-size: 10.5px; color: var(--vchr-ink); line-height: 1.65; }
+        .vchr-policy-list li { margin-bottom: 4px; }
+        .vchr-signoff { background: linear-gradient(135deg, #24140f, #7c2d12); color: #fff; padding: 24px 36px 28px; text-align: center; }
+        .vchr-signoff-mark { font-size: 9.5px; font-weight: 800; letter-spacing: 0.24em; text-transform: uppercase; color: #facc15; }
+        .vchr-signoff-line { color: rgba(255,255,255,0.78); font-size: 11px; margin-top: 7px; }
+        @media print {
+          .vchr-screen-only { display: none; }
+          .vchr { border: 0; box-shadow: none; }
+          .vchr-section { padding-left: 30px; padding-right: 30px; }
+          .vchr-cover { min-height: 500px; }
+          .vchr-cover-content { min-height: 500px; }
+        }
       `}</style>
 
       <div className="space-y-4 px-3 sm:px-4 md:px-6 lg:px-10 xl:px-16">
@@ -246,141 +269,142 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           className="vchr"
           style={{ maxWidth: 780, margin: '0 auto' }}
         >
-          {/* ── Cover ── */}
           <section data-pdf-section="true" className="vchr-cover">
-            {/* Company logo */}
-            {currentCompany.logo && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={currentCompany.logo} alt={currentCompany.name || ''} className="vchr-cover-logo" />
-            )}
-
             {heroImage ? (
-              <>
-                {/* Wordmark above image */}
-                <div className="vchr-cover-wordmark">{currentCompany.name || 'Booking Voucher'}</div>
-
-                {/* Hero image with gradient overlay */}
-                <div className="vchr-cover-hero-wrap" style={{ marginTop: 14 }}>
-                  <Image
-                    src={heroImage}
-                    alt={initialData.tourPackageQueryName || 'Tour'}
-                    width={1400}
-                    height={640}
-                    priority
-                  />
-                  <div className="vchr-cover-hero-overlay" />
-                  <div className="vchr-cover-hero-caption">
-                    <h1 className="vchr-serif vchr-cover-title">{initialData.tourPackageQueryName}</h1>
-                    <div className="vchr-eyebrow">
-                      Booking Voucher · Ref {initialData.tourPackageQueryNumber}
-                    </div>
-                    {confirmedVariantName && (
-                      <div className="vchr-eyebrow" style={{ color: 'rgba(255,194,140,0.95)', marginTop: 4 }}>
-                        Package: {confirmedVariantName}
-                      </div>
-                    )}
-                    <div className="vchr-cover-rule-white" />
-                    <div className="vchr-cover-meta">
-                      {locationLabel && <span><strong style={{ color: '#fff' }}>{locationLabel}</strong></span>}
-                      {initialData.numDaysNight && <span>{initialData.numDaysNight}</span>}
-                      {periodLabel && <span>{periodLabel}</span>}
-                      {initialData.tourPackageQueryType && <span>{initialData.tourPackageQueryType} Package</span>}
-                    </div>
-                  </div>
-                </div>
-              </>
+              <div className="vchr-cover-media">
+                <Image
+                  src={heroImage}
+                  alt={initialData.tourPackageQueryName || 'Tour'}
+                  width={1400}
+                  height={900}
+                  priority
+                />
+              </div>
             ) : (
-              /* No hero — original cream layout */
-              <>
-                <div className="vchr-cover-wordmark">{currentCompany.name || 'Booking Voucher'}</div>
-                <h1 className="vchr-serif vchr-cover-title">{initialData.tourPackageQueryName}</h1>
-                <div className="vchr-eyebrow" style={{ color: 'var(--vchr-mute)' }}>
-                  Booking Voucher · Ref {initialData.tourPackageQueryNumber}
-                </div>
-                {confirmedVariantName && (
-                  <div className="vchr-eyebrow" style={{ color: 'var(--vchr-accent)', marginTop: 4 }}>
-                    Package: {confirmedVariantName}
-                  </div>
+              <div className="vchr-cover-fallback" />
+            )}
+            <div className="vchr-cover-shade" />
+            <div className="vchr-cover-content">
+              <div className="vchr-cover-top">
+                {currentCompany.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={currentCompany.logo} alt={currentCompany.name || ''} className="vchr-cover-logo" />
+                ) : (
+                  <div className="vchr-cover-wordmark">{currentCompany.name || 'Booking Voucher'}</div>
                 )}
+                <div className="vchr-cover-pill">Booking Voucher</div>
+              </div>
+
+              <div className="vchr-cover-main">
+                <div className="vchr-cover-wordmark">{currentCompany.name || 'Curated Travel'}</div>
+                <h1 className="vchr-serif vchr-cover-title">{initialData.tourPackageQueryName}</h1>
+                <div className="vchr-cover-subtitle">
+                  Ref {initialData.tourPackageQueryNumber || initialData.id.substring(0, 8).toUpperCase()}
+                  {confirmedVariantName ? ` | ${confirmedVariantName}` : ''}
+                </div>
                 <div className="vchr-cover-rule" />
                 <div className="vchr-cover-meta">
-                  {locationLabel && <span><strong>{locationLabel}</strong></span>}
-                  {initialData.numDaysNight && <span>{initialData.numDaysNight}</span>}
-                  {periodLabel && <span>{periodLabel}</span>}
-                  {initialData.tourPackageQueryType && <span>{initialData.tourPackageQueryType} Package</span>}
+                  {locationLabel && (
+                    <div className="vchr-cover-meta-item">
+                      <span className="vchr-cover-meta-label">Destination</span>
+                      <span className="vchr-cover-meta-value">{locationLabel}</span>
+                    </div>
+                  )}
+                  {initialData.numDaysNight && (
+                    <div className="vchr-cover-meta-item">
+                      <span className="vchr-cover-meta-label">Duration</span>
+                      <span className="vchr-cover-meta-value">{initialData.numDaysNight}</span>
+                    </div>
+                  )}
+                  {periodLabel && (
+                    <div className="vchr-cover-meta-item">
+                      <span className="vchr-cover-meta-label">Travel Period</span>
+                      <span className="vchr-cover-meta-value">{periodLabel}</span>
+                    </div>
+                  )}
+                  {initialData.tourPackageQueryType && (
+                    <div className="vchr-cover-meta-item">
+                      <span className="vchr-cover-meta-label">Package Type</span>
+                      <span className="vchr-cover-meta-value">{initialData.tourPackageQueryType}</span>
+                    </div>
+                  )}
                 </div>
-              </>
-            )}
+              </div>
+            </div>
           </section>
 
-          {/* ── Trip Overview ── */}
           <section data-pdf-section="true" className="vchr-section">
-            <h2 className="vchr-serif vchr-section-title">Trip Overview</h2>
-            <div className="vchr-section-rule" />
+            <div className="vchr-section-head">
+              <div>
+                <div className="vchr-section-kicker">Reservation Summary</div>
+                <h2 className="vchr-serif vchr-section-title">Trip Overview</h2>
+              </div>
+              <div className="vchr-section-rule" />
+            </div>
             <div className="vchr-overview-panel">
             <div className="vchr-grid-2">
               {!supplierView && initialData.customerName && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Guest</div>
                   <div className="vchr-field-value">
                     {initialData.customerName}
-                    {initialData.customerNumber ? ` · ${initialData.customerNumber}` : ''}
+                    {initialData.customerNumber ? ` | ${initialData.customerNumber}` : ''}
                   </div>
                 </div>
               )}
               {!supplierView && initialData.assignedTo && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Assigned To</div>
                   <div className="vchr-field-value">
                     {initialData.assignedTo}
-                    {initialData.assignedToMobileNumber ? ` · ${initialData.assignedToMobileNumber}` : ''}
+                    {initialData.assignedToMobileNumber ? ` | ${initialData.assignedToMobileNumber}` : ''}
                   </div>
                 </div>
               )}
               {locationLabel && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Destination</div>
                   <div className="vchr-field-value">{locationLabel}</div>
                 </div>
               )}
               {initialData.numDaysNight && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Duration</div>
                   <div className="vchr-field-value">{initialData.numDaysNight}</div>
                 </div>
               )}
               {periodLabel && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Travel Period</div>
                   <div className="vchr-field-value">{periodLabel}</div>
                 </div>
               )}
               {(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Travellers</div>
                   <div className="vchr-field-value">
                     {[
                       initialData.numAdults ? `${initialData.numAdults} Adults` : '',
-                      initialData.numChild5to12 ? `${initialData.numChild5to12} Child (5–12)` : '',
-                      initialData.numChild0to5 ? `${initialData.numChild0to5} Child (0–5)` : '',
-                    ].filter(Boolean).join(' · ')}
+                      initialData.numChild5to12 ? `${initialData.numChild5to12} Child (5-12)` : '',
+                      initialData.numChild0to5 ? `${initialData.numChild0to5} Child (0-5)` : '',
+                    ].filter(Boolean).join(' | ')}
                   </div>
                 </div>
               )}
               {initialData.transport && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Transport</div>
                   <div className="vchr-field-value">{initialData.transport}</div>
                 </div>
               )}
               {initialData.pickup_location && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Pickup</div>
                   <div className="vchr-field-value">{initialData.pickup_location}</div>
                 </div>
               )}
               {initialData.drop_location && (
-                <div>
+                <div className="vchr-field-card">
                   <div className="vchr-field-label">Drop</div>
                   <div className="vchr-field-value">{initialData.drop_location}</div>
                 </div>
@@ -395,22 +419,26 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             </div>{/* end vchr-overview-panel */}
           </section>
 
-          {/* ── Day-by-Day ── */}
           {initialData.itineraries && initialData.itineraries.length > 0 && (
             <section data-pdf-section="true" className="vchr-section">
-              <h2 className="vchr-serif vchr-section-title">Day-by-Day</h2>
-              <div className="vchr-section-rule" />
-              <div>
+              <div className="vchr-section-head">
+                <div>
+                  <div className="vchr-section-kicker">Journey Flow</div>
+                  <h2 className="vchr-serif vchr-section-title">Day-by-Day</h2>
+                </div>
+                <div className="vchr-section-rule" />
+              </div>
+              <div className="vchr-timeline">
                 {initialData.itineraries.map((itinerary, index) => {
                   const cleanedTitle = stripHtml(itinerary.itineraryTitle || '');
                   return (
                     <div key={index} className="vchr-day-row">
-                      <div>
+                      <div className="vchr-day-marker">
                         <div className="vchr-serif vchr-day-num">{String(itinerary.dayNumber).padStart(2, '0')}</div>
                         <div className="vchr-day-num-label">{itinerary.days || 'Day'}</div>
                       </div>
                       <div className="vchr-day-text">
-                        <strong>{cleanedTitle || '—'}</strong>
+                        <strong>{cleanedTitle || '-'}</strong>
                       </div>
                     </div>
                   );
@@ -419,11 +447,16 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             </section>
           )}
 
-          {/* ── Flights ── */}
           {!supplierView && initialData.flightDetails && initialData.flightDetails.length > 0 && (
             <section data-pdf-section="true" className="vchr-section">
-              <h2 className="vchr-serif vchr-section-title">Flights</h2>
-              <div className="vchr-section-rule" />
+              <div className="vchr-section-head">
+                <div>
+                  <div className="vchr-section-kicker">Air Travel</div>
+                  <h2 className="vchr-serif vchr-section-title">Flights</h2>
+                </div>
+                <div className="vchr-section-rule" />
+              </div>
+              <div className="vchr-table-wrap">
               <table className="vchr-table">
                 <thead>
                   <tr>
@@ -440,16 +473,16 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                       <td>{flight.date}</td>
                       <td>
                         {flight.flightName}
-                        {flight.flightNumber ? <span style={{ color: 'var(--vchr-mute)' }}> · {flight.flightNumber}</span> : null}
+                        {flight.flightNumber ? <span style={{ color: 'var(--vchr-mute)' }}> | {flight.flightNumber}</span> : null}
                       </td>
                       <td>
                         <strong>{flight.from}</strong>
-                        <span style={{ color: 'var(--vchr-mute)' }}> → </span>
+                        <span style={{ color: 'var(--vchr-mute)' }}> to </span>
                         <strong>{flight.to}</strong>
                       </td>
                       <td>
                         {flight.departureTime}
-                        <span style={{ color: 'var(--vchr-mute)' }}> – </span>
+                        <span style={{ color: 'var(--vchr-mute)' }}> - </span>
                         {flight.arrivalTime}
                       </td>
                       <td>{flight.flightDuration}</td>
@@ -457,16 +490,21 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                   ))}
                 </tbody>
               </table>
+              </div>
             </section>
           )}
 
-          {/* ── Accommodation ── */}
           {initialData.itineraries && initialData.itineraries.length > 0 && (
             <section data-pdf-section="true" className="vchr-section">
-              <h2 className="vchr-serif vchr-section-title">Accommodation</h2>
-              <div className="vchr-section-rule" />
+              <div className="vchr-section-head">
+                <div>
+                  <div className="vchr-section-kicker">Stays & Rooms</div>
+                  <h2 className="vchr-serif vchr-section-title">Accommodation</h2>
+                </div>
+                <div className="vchr-section-rule" />
+              </div>
               {initialData.itineraries.map((itinerary, itineraryIdx) => {
-                // Resolve hotel: snapshot hotel → query override → itinerary default
+                // Prefer confirmed-variant hotels, then query overrides, then itinerary defaults.
                 const effectiveHotelId =
                   confirmedVariantHotelsByDay[itinerary.dayNumber as number] ??
                   confirmedHotelOverrides[itinerary.id] ??
@@ -480,8 +518,10 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
                 return (
                   <div key={itineraryIdx} className="vchr-stay" data-pdf-section="true">
-                    <div className="vchr-stay-badge">Day {itinerary.dayNumber} · {itinerary.days}</div>
-                    <h3 className="vchr-serif vchr-stay-title">{hotelDetails?.name || 'Hotel'}</h3>
+                    <div className="vchr-stay-head">
+                      <div className="vchr-stay-badge">Day {itinerary.dayNumber} | {itinerary.days}</div>
+                      <h3 className="vchr-serif vchr-stay-title">{hotelDetails?.name || 'Hotel'}</h3>
+                    </div>
                     {effectiveRoomAllocations.length > 0 ? (
                       <table className="vchr-table">
                         <thead>
@@ -498,23 +538,23 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                           {effectiveRoomAllocations.map((room: any, roomIdx: number) => {
                             const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
                             const useCustom = room?.useCustomRoomType || customText.length > 0;
-                            const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '—');
-                            const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '—';
-                            const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '—';
+                            const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '-');
+                            const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '-';
+                            const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '-';
                             return (
                               <React.Fragment key={roomIdx}>
                                 <tr>
                                   <td style={{ fontWeight: 500 }}>{roomTypeName}</td>
                                   <td>{occupancyName}</td>
                                   <td>{mealPlanName}</td>
-                                  <td>{room.quantity || '—'}</td>
-                                  <td style={{ color: 'var(--vchr-mute)' }}>{room.guestNames || '—'}</td>
-                                  <td style={{ color: 'var(--vchr-mute)' }}>{room.voucherNumber || '—'}</td>
+                                  <td>{room.quantity || '-'}</td>
+                                  <td style={{ color: 'var(--vchr-mute)' }}>{room.guestNames || '-'}</td>
+                                  <td style={{ color: 'var(--vchr-mute)' }}>{room.voucherNumber || '-'}</td>
                                 </tr>
                                 {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
                                   <tr key={`eb-${ebIdx}`}>
                                     <td className="vchr-extra-bed" style={{ paddingLeft: 16 }}>
-                                      + Extra bed · {eb.occupancyType?.name || '—'}
+                                      + Extra bed | {eb.occupancyType?.name || '-'}
                                     </td>
                                     <td colSpan={5} className="vchr-extra-bed">
                                       Qty {eb.quantity || 1}
@@ -535,11 +575,15 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             </section>
           )}
 
-          {/* ── Policies & Terms ── */}
           {policies.length > 0 && (
             <section data-pdf-section="true" data-pdf-break-before="true" className="vchr-section">
-              <h2 className="vchr-serif vchr-section-title">Policies &amp; Terms</h2>
-              <div className="vchr-section-rule" />
+              <div className="vchr-section-head">
+                <div>
+                  <div className="vchr-section-kicker">Useful Details</div>
+                  <h2 className="vchr-serif vchr-section-title">Policies &amp; Terms</h2>
+                </div>
+                <div className="vchr-section-rule" />
+              </div>
               <div className="vchr-policy-grid">
                 {policies.map((policy, idx) => (
                   <div key={idx} className="vchr-policy-block">
@@ -555,10 +599,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             </section>
           )}
 
-          {/* ── Sign-off ── */}
           {selectedOption !== 'Empty' && currentCompany.name && (
             <section data-pdf-section="true" className="vchr-signoff">
-              <div className="vchr-signoff-mark">— {currentCompany.name} —</div>
+              <div className="vchr-signoff-mark">{currentCompany.name}</div>
               <div className="vchr-signoff-line">
                 Thank you for travelling with us. Wishing you a memorable journey.
               </div>

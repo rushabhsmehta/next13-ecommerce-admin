@@ -119,7 +119,6 @@ const SelectContent = React.forwardRef<
           className
         )}
         position={position}
-        onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => {
           setSearch("")
           onCloseAutoFocus?.(e)

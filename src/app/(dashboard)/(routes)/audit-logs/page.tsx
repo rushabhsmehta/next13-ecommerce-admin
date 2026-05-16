@@ -134,7 +134,7 @@ const getChangedFields = (before: any, after: any) => {
 
 const AuditLogsPage = () => {
   const router = useRouter();
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [rawAuditLogs, setRawAuditLogs] = useState<AuditLog[]>([]);
   const [paginationInfo, setPaginationInfo] = useState<PaginationInfo>({ total: 0, limit: 10, offset: 0 });
   const [loading, setLoading] = useState(true);
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>("");

@@ -1,10 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
 
@@ -15,15 +13,13 @@ interface PurchasesClientProps {
 }
 
 export const PurchasesClient: React.FC<PurchasesClientProps> = ({ data }) => {
-  const router = useRouter();
-  const [searchKey, setSearchKey] = useState("");
+  const [search, setSearch] = useState("");
 
-  // Filter data based on search input
+  // Filter data based on search input (parent-only; do not pass search text as DataTable searchKey)
   const filteredData = data.filter((item) => {
-    if (searchKey === "") return true;
-    
-    // Convert all strings to lowercase for case-insensitive search
-    const searchLower = searchKey.toLowerCase();
+    if (search === "") return true;
+
+    const searchLower = search.toLowerCase();
     
     // Search across multiple fields
     return (
@@ -41,12 +37,12 @@ export const PurchasesClient: React.FC<PurchasesClientProps> = ({ data }) => {
           <Input
             placeholder="Search purchases..."
             className="pl-8"
-            value={searchKey}
-            onChange={(e) => setSearchKey(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
-      <DataTable columns={columns} data={filteredData} searchKey={searchKey} />
+      <DataTable columns={columns} data={filteredData} />
     </>
   );
 };

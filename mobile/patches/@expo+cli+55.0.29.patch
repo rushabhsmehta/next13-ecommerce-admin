@@ -1,0 +1,15 @@
+diff --git a/node_modules/@expo/cli/build/src/start/server/metro/MetroBundlerDevServer.js b/node_modules/@expo/cli/build/src/start/server/metro/MetroBundlerDevServer.js
+index b2fd087..fe112b0 100644
+--- a/node_modules/@expo/cli/build/src/start/server/metro/MetroBundlerDevServer.js
++++ b/node_modules/@expo/cli/build/src/start/server/metro/MetroBundlerDevServer.js
+@@ -855,7 +855,9 @@ class MetroBundlerDevServer extends _BundlerDevServer.BundlerDevServer {
+         };
+         this.instanceMetroOptions = instanceMetroOptions;
+         const parsedOptions = {
+-            host: options.location.hostType === 'localhost' ? 'localhost' : undefined,
++            // Bind IPv4 loopback so `adb reverse tcp:8081` + dev-client `http://127.0.0.1:8081`
++            // match Metro on Windows (Node otherwise often listens only on `[::1]`).
++            host: options.location.hostType === 'localhost' ? '127.0.0.1' : undefined,
+             port: options.port,
+             maxWorkers: options.maxWorkers,
+             resetCache: options.resetDevServer

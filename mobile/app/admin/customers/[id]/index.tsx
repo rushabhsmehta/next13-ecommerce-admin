@@ -16,44 +16,8 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
-
-interface CustomerDetail {
-  customer: {
-    id: string;
-    name: string;
-    contact: string | null;
-    email: string | null;
-    createdAt: string;
-    birthdate: string | null;
-    marriageAnniversary: string | null;
-    associatePartner: {
-      id: string;
-      name: string;
-      mobileNumber: string;
-    } | null;
-  };
-  inquiries: Array<{
-    id: string;
-    status: string;
-    numAdults: number;
-    numChildren5to11: number;
-    journeyDate: string | null;
-    createdAt: string;
-    location: { id: string; label: string };
-  }>;
-  sales: Array<{
-    id: string;
-    invoiceNumber: string | null;
-    salePrice: number;
-    gstAmount: number | null;
-    status: string | null;
-    saleDate: string;
-  }>;
-  summary: {
-    salesCount: number;
-    outstanding: number;
-  };
-}
+import { createCustomersClient, type CustomerDetail } from "@/lib/customers";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 function formatINR(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "₹0";
@@ -70,16 +34,24 @@ function formatDate(s: string | null | undefined): string {
 }
 
 export default function CustomerDetailScreen() {
+  return (
+    <PermissionGate permission="crm.read">
+      <CustomerDetailScreenInner />
+    </PermissionGate>
+  );
+}
+
+function CustomerDetailScreenInner() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
-  // Stable request closure (see admin/customers/index.tsx for rationale).
   const getTokenRef = useRef(getToken);
   useEffect(() => {
     getTokenRef.current = getToken;
   }, [getToken]);
   const request = useMemo(() => withAuth(() => getTokenRef.current()), []);
+  const client = useMemo(() => createCustomersClient(request), [request]);
 
   const [data, setData] = useState<CustomerDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,9 +65,7 @@ export default function CustomerDetailScreen() {
       else setLoading(true);
       setError(null);
       try {
-        const res = await request<CustomerDetail>(`/api/mobile/customers/${id}`, {
-          retries: 1,
-        });
+        const res = await client.get(id);
         setData(res);
       } catch (err) {
         const message =
@@ -106,7 +76,7 @@ export default function CustomerDetailScreen() {
         setRefreshing(false);
       }
     },
-    [id, request]
+    [id, client]
   );
 
   useEffect(() => {
@@ -169,6 +139,15 @@ export default function CustomerDetailScreen() {
             >
               <Ionicons name="chevron-back" size={22} color="#fff" />
             </Pressable>
+            <Pressable
+              testID={`customer-edit-${customer.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Edit customer"
+              style={styles.heroBack}
+              onPress={() => router.push(`/admin/customers/${customer.id}/edit` as never)}
+            >
+              <Ionicons name="create-outline" size={20} color="#fff" />
+            </Pressable>
           </View>
           <View style={styles.heroAvatar}>
             <Text style={styles.heroAvatarText}>{initials}</Text>
@@ -223,15 +202,19 @@ export default function CustomerDetailScreen() {
             <Text style={styles.statValue}>{summary.salesCount}</Text>
             <Text style={styles.statLabel}>Sales</Text>
           </View>
-          <View
+          <Pressable
+            testID={`customer-ledger-${customer.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Open ledger"
             style={[
               styles.statCard,
               summary.outstanding > 0 ? styles.statCardAttention : null,
             ]}
+            onPress={() => router.push(`/admin/customers/${customer.id}/ledger` as never)}
           >
             <Text style={styles.statValue}>{formatINR(summary.outstanding)}</Text>
-            <Text style={styles.statLabel}>Outstanding</Text>
-          </View>
+            <Text style={styles.statLabel}>Outstanding · Tap for ledger</Text>
+          </Pressable>
         </View>
 
         {customer.associatePartner ? (
@@ -260,7 +243,7 @@ export default function CustomerDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Open inquiry ${inq.id.slice(0, 8)}`}
                 style={styles.listRow}
-                onPress={() => router.push(`/associate/inquiries/${inq.id}` as never)}
+                onPress={() => router.push(`/admin/crm/inquiries/${inq.id}` as never)}
               >
                 <View style={styles.listIcon}>
                   <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
@@ -270,7 +253,7 @@ export default function CustomerDetailScreen() {
                     {inq.location?.label ?? "—"}
                   </Text>
                   <Text style={styles.listMeta}>
-                    {inq.numAdults} adults
+                    {inq.numAdults ?? 0} adults
                     {inq.numChildren5to11 ? `, ${inq.numChildren5to11} children` : ""}
                     {" · "}
                     {formatDate(inq.journeyDate ?? inq.createdAt)}
@@ -340,7 +323,7 @@ const styles = StyleSheet.create({
   heroTopRow: {
     alignSelf: "stretch",
     flexDirection: "row",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
   },
   heroBack: {
     width: 36,

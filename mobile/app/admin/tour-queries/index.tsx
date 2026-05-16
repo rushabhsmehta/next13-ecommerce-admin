@@ -4,7 +4,6 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,9 +15,13 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { PermissionGate } from "@/components/auth/PermissionGate";
+import { AdminHeader, AdminHeaderIconButton } from "@/components/admin/AdminHeader";
+import { TripFocusCard, TripMiniMetric, TripStatusPill } from "@/components/admin/trips";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-type StatusFilter = "all" | "confirmed" | "draft" | "archived";
+/** API-backed filter keeps `status=all`; "Active" is copy-only (non-archived focus). */
+type ApiStatusFilter = "all" | "confirmed" | "draft" | "archived";
 
 interface TourQueryListItem {
   id: string;
@@ -50,12 +53,18 @@ interface TourQueryListResponse {
 
 const PAGE_SIZE = 25;
 
-const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "confirmed", label: "Confirmed" },
-  { id: "draft", label: "Draft" },
-  { id: "archived", label: "Archived" },
-];
+const STATUS_SEGMENTS: { api: ApiStatusFilter; label: string; testSuffix: string; hint?: string }[] =
+  [
+    {
+      api: "all",
+      label: "Active",
+      testSuffix: "active",
+      hint: "Shows non-archived work by default. Archived stays in its own tab.",
+    },
+    { api: "confirmed", label: "Confirmed", testSuffix: "confirmed" },
+    { api: "draft", label: "Draft", testSuffix: "draft" },
+    { api: "archived", label: "Archived", testSuffix: "archived" },
+  ];
 
 function formatDate(s: string | null | undefined): string {
   if (!s) return "—";
@@ -76,16 +85,49 @@ function formatINR(value: string | number | null | undefined): string {
   return `₹${Math.round(n).toLocaleString("en-IN")}`;
 }
 
+function hasPositivePrice(totalPrice: string | null | undefined): boolean {
+  if (!totalPrice) return false;
+  const n = Number.parseFloat(totalPrice);
+  return Number.isFinite(n) && n > 0;
+}
+
+function rowReadinessDotClass(item: TourQueryListItem): "confirmed" | "draft_gap" | "draft_ok" | "archived" {
+  if (item.isArchived) return "archived";
+  const confirmed = item.isFeatured && !item.isArchived;
+  if (confirmed) return "confirmed";
+  const missing =
+    !hasPositivePrice(item.totalPrice) || !item.tourStartsFrom || !(item.customerNumber && item.customerNumber.trim());
+  return missing ? "draft_gap" : "draft_ok";
+}
+
+function rowNextHint(item: TourQueryListItem): string {
+  if (item.isArchived) return "Restore from detail";
+  if (item.isFeatured && !item.isArchived) return "Open trip";
+  /* draft */
+  if (!hasPositivePrice(item.totalPrice)) return "Review pricing";
+  if (!item.confirmedVariantId) return "Compare variants";
+  return "Open trip";
+}
+
 export default function TourQueriesListScreen() {
+  return (
+    <PermissionGate permission="salesTrips.read">
+      <TourQueriesListScreenInner />
+    </PermissionGate>
+  );
+}
+
+function TourQueriesListScreenInner() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
-  const { canUseAdmin, isLoading: authLoading } = useCurrentUser();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
     getTokenRef.current = getToken;
   }, [getToken]);
   const request = useMemo(() => withAuth(() => getTokenRef.current()), []);
+  const { permissions } = useCurrentUser();
+  const canWriteSales = permissions.includes("salesTrips.write");
 
   const [items, setItems] = useState<TourQueryListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +135,7 @@ export default function TourQueriesListScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [status, setStatus] = useState<StatusFilter>("all");
+  const [status, setStatus] = useState<ApiStatusFilter>("all");
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
@@ -105,11 +147,11 @@ export default function TourQueriesListScreen() {
   }, [search]);
 
   const load = useCallback(
-    async (mode: "initial" | "refresh" | "more", searchTerm: string, statusKey: StatusFilter) => {
-      if (!canUseAdmin) {
-        setLoading(false);
-        return;
-      }
+    async (
+      mode: "initial" | "refresh" | "more",
+      searchTerm: string,
+      statusKey: ApiStatusFilter
+    ) => {
       if (mode === "more") setLoadingMore(true);
       else if (mode === "refresh") setRefreshing(true);
       else setLoading(true);
@@ -129,12 +171,10 @@ export default function TourQueriesListScreen() {
         setHasMore(data.hasMore);
         setOffset(data.nextOffset);
         setTotal(data.total);
-        setItems((prev) =>
-          mode === "more" ? [...prev, ...data.queries] : data.queries
-        );
+        setItems((prev) => (mode === "more" ? [...prev, ...data.queries] : data.queries));
       } catch (err) {
         const message =
-          err instanceof ApiError ? err.message : "Could not load tour queries.";
+          err instanceof ApiError ? err.message : "Could not load trips.";
         setError(message);
       } finally {
         setLoading(false);
@@ -142,58 +182,74 @@ export default function TourQueriesListScreen() {
         setLoadingMore(false);
       }
     },
-    [canUseAdmin, request, offset]
+    [request, offset]
   );
 
   useEffect(() => {
-    if (!authLoading) void load("initial", debouncedSearch, status);
+    void load("initial", debouncedSearch, status);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, debouncedSearch, status]);
+  }, [debouncedSearch, status]);
 
-  if (authLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
+  const draftsInLoaded = items.some((q) => !q.isArchived && !q.isFeatured);
 
-  if (!canUseAdmin) {
-    return (
-      <View style={styles.centered}>
-        <Ionicons name="shield-outline" size={42} color={Colors.textTertiary} />
-        <Text style={styles.emptyTitle}>Admin access required</Text>
-        <Text style={styles.emptyText}>This list is only visible to authorized staff.</Text>
-      </View>
-    );
-  }
+  const focusProps = debouncedSearch
+    ? ({
+        variant: "strip" as const,
+        title: `Search results for "${debouncedSearch}"`,
+        detail: `${total} match${total === 1 ? "" : "es"}`,
+      })
+    : status === "confirmed"
+      ? ({
+          variant: "strip" as const,
+          title: "Confirmed trips ready for ops and finance",
+          detail: "Use share and PDF when communicating with travelers.",
+        })
+      : status === "archived"
+        ? ({
+            variant: "strip" as const,
+            title: "Archived trips are hidden from active work",
+            detail: "Open any trip and restore when you want it visible again.",
+          })
+        : status === "all" && draftsInLoaded
+          ? ({
+              variant: "strip" as const,
+              title: "Draft trips need review",
+              detail: "Check pricing and dates before you share or confirm.",
+            })
+          : null;
+
+  const subtitle = loading ? "Loading..." : `${total} trip${total === 1 ? "" : "s"}`;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title: "Tour Queries", headerShown: false }} />
+      <Stack.Screen options={{ title: "Trips", headerShown: false }} />
 
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle}>Tour Queries</Text>
-          <Text style={styles.headerSubtitle}>{loading ? "…" : `${total} total`}</Text>
-        </View>
-      </View>
+      <AdminHeader
+        title="Trips"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        showAccent
+        rightSlot={
+          canWriteSales ? (
+            <AdminHeaderIconButton
+              testID="tour-queries-new"
+              icon="add"
+              label="Create new trip"
+              hint="Opens the screen to choose inquiry, package, or copy."
+              onPress={() => router.push("/admin/tour-queries/create" as never)}
+            />
+          ) : null
+        }
+      />
 
       <View style={styles.searchRow}>
         <Ionicons name="search" size={16} color={Colors.textTertiary} />
         <TextInput
           testID="tour-queries-search-input"
-          accessibilityLabel="Search tour queries"
+          accessibilityRole="search"
+          accessibilityLabel="Search trips by query number, name, or customer"
           style={styles.searchInput}
-          placeholder="Search by query #, name, customer"
+          placeholder="Customer, query # or trip name"
           placeholderTextColor={Colors.textTertiary}
           value={search}
           onChangeText={setSearch}
@@ -201,35 +257,47 @@ export default function TourQueriesListScreen() {
           autoCapitalize="none"
         />
         {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
+          <Pressable
+            onPress={() => setSearch("")}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+            accessibilityHint="Clears the search field."
+          >
             <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
           </Pressable>
         ) : null}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.statusRow}
-      >
-        {STATUS_FILTERS.map((f) => {
-          const active = status === f.id;
+      <View style={styles.segmentWrap}>
+        {STATUS_SEGMENTS.map((seg) => {
+          const active = status === seg.api;
           return (
             <Pressable
-              key={f.id}
-              testID={`tour-queries-filter-${f.id}`}
+              key={seg.api}
+              testID={`trips-status-filter-${seg.testSuffix}`}
               accessibilityRole="button"
-              accessibilityLabel={`Filter ${f.label}`}
-              style={[styles.chip, active ? styles.chipActive : null]}
-              onPress={() => setStatus(f.id)}
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`Show ${seg.label} trips`}
+              accessibilityHint={seg.hint}
+              style={[styles.segment, active ? styles.segmentActive : null]}
+              onPress={() => setStatus(seg.api)}
             >
-              <Text style={[styles.chipText, active ? styles.chipTextActive : null]}>
-                {f.label}
+              <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
+                {seg.label}
               </Text>
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
+
+      {focusProps ? (
+        <View style={styles.focusInset}>
+          <TripFocusCard
+            {...focusProps}
+            testID="trips-focus-card"
+          />
+        </View>
+      ) : null}
 
       {error ? (
         <View style={styles.errorCard}>
@@ -265,12 +333,12 @@ export default function TourQueriesListScreen() {
             </View>
           ) : (
             <View style={styles.centeredInList}>
-              <Ionicons name="map-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No tour queries</Text>
+              <Ionicons name="map-outline" size={36} color={Colors.textTertiary} accessibilityElementsHidden />
+              <Text style={styles.emptyTitle}>No trips</Text>
               <Text style={styles.emptyText}>
                 {debouncedSearch
-                  ? "Try a different search term."
-                  : "Queries created from inquiries will appear here."}
+                  ? "Try customer name or mobile number."
+                  : "Converted inquiries will show up here under Active."}
               </Text>
             </View>
           )
@@ -284,75 +352,67 @@ export default function TourQueriesListScreen() {
         }
         renderItem={({ item }) => {
           const confirmed = item.isFeatured && !item.isArchived;
-          const displayName =
-            item.tourPackageQueryName ??
-            item.tourPackageQueryNumber ??
-            "Untitled query";
+          const displayName = item.tourPackageQueryName?.trim()
+            ? item.tourPackageQueryName
+            : item.tourPackageQueryNumber ?? "Untitled trip";
+          const dot = rowReadinessDotClass(item);
+          const dotColor =
+            dot === "confirmed"
+              ? "#16a34a"
+              : dot === "draft_gap"
+                ? "#d97706"
+                : dot === "draft_ok"
+                  ? Colors.textTertiary
+                  : "#94a3b8";
+          const dateLine =
+            item.tourStartsFrom || item.tourEndsOn
+              ? `${formatDate(item.tourStartsFrom)} to ${formatDate(item.tourEndsOn)}`
+              : `Updated ${formatDate(item.updatedAt)}`;
+          const paxLine = item.numAdults ? `${item.numAdults} pax` : "Pax TBD";
+          const priceLine = hasPositivePrice(item.totalPrice)
+            ? formatINR(item.totalPrice)
+            : "No price";
+
           return (
             <Pressable
               testID={`tour-query-row-${item.id}`}
               accessibilityRole="button"
-              accessibilityLabel={`Open ${displayName}`}
+              accessibilityLabel={`Open trip ${displayName}`}
               style={styles.row}
-              onPress={() =>
-                router.push(`/admin/tour-queries/${item.id}` as never)
-              }
+              onPress={() => router.push(`/admin/tour-queries/${item.id}` as never)}
             >
-              <View style={styles.rowHead}>
+              <View style={styles.rowTop}>
                 <Text style={styles.rowTitle} numberOfLines={1}>
                   {displayName}
                 </Text>
-                <View
-                  style={[
-                    styles.badge,
-                    confirmed ? styles.badgeConfirmed : styles.badgeDraft,
-                  ]}
-                >
-                  <Text style={styles.badgeText}>
-                    {item.isArchived
-                      ? "Archived"
-                      : confirmed
-                      ? "Confirmed"
-                      : "Draft"}
-                  </Text>
-                </View>
+                <TripStatusPill
+                  compact
+                  isArchived={item.isArchived}
+                  isConfirmed={confirmed}
+                />
               </View>
-              {item.tourPackageQueryNumber ? (
-                <Text style={styles.rowNumber}>
+              <Text style={styles.rowCust} numberOfLines={1}>
+                {item.customerName ?? "Customer TBD"}
+                {item.location?.label ? ` · ${item.location.label}` : ""}
+              </Text>
+              {!item.tourPackageQueryName?.trim() && item.tourPackageQueryNumber ? (
+                <Text style={styles.rowSubNum} numberOfLines={1}>
                   {item.tourPackageQueryNumber}
                 </Text>
               ) : null}
-              <View style={styles.rowMetaRow}>
-                {item.location?.label ? (
-                  <View style={styles.metaPill}>
-                    <Ionicons name="location-outline" size={12} color={Colors.textSecondary} />
-                    <Text style={styles.metaPillText}>{item.location.label}</Text>
-                  </View>
-                ) : null}
-                {item.numDaysNight ? (
-                  <View style={styles.metaPill}>
-                    <Ionicons name="calendar-outline" size={12} color={Colors.textSecondary} />
-                    <Text style={styles.metaPillText}>{item.numDaysNight}</Text>
-                  </View>
-                ) : null}
-                {item.numAdults ? (
-                  <View style={styles.metaPill}>
-                    <Ionicons name="people-outline" size={12} color={Colors.textSecondary} />
-                    <Text style={styles.metaPillText}>{item.numAdults} adults</Text>
-                  </View>
-                ) : null}
+              <View style={styles.metricsRow}>
+                <TripMiniMetric label="Travel" value={dateLine} />
+                <TripMiniMetric label="Pax" value={paxLine} />
+                <TripMiniMetric label="Price" value={priceLine} />
               </View>
-              <View style={styles.rowFootRow}>
-                <Text style={styles.rowFootText} numberOfLines={1}>
-                  {item.customerName ?? "—"}
-                </Text>
-                <Text style={styles.rowFootDate}>
-                  {formatDate(item.tourStartsFrom ?? item.updatedAt)}
-                </Text>
+              <View
+                style={styles.hintRow}
+                testID={`trip-row-readiness-${item.id}`}
+                accessibilityLabel={`Attention ${dot}. Next: ${rowNextHint(item)}`}
+              >
+                <View style={[styles.readinessDot, { backgroundColor: dotColor }]} accessibilityElementsHidden />
+                <Text style={styles.hintText}>{rowNextHint(item)}</Text>
               </View>
-              {item.totalPrice ? (
-                <Text style={styles.rowPrice}>{formatINR(item.totalPrice)}</Text>
-              ) : null}
             </Pressable>
           );
         }}
@@ -363,38 +423,12 @@ export default function TourQueriesListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
-    backgroundColor: Colors.background,
-  },
   centeredInList: {
     paddingTop: Spacing.xxl,
     paddingHorizontal: Spacing.xl,
     alignItems: "center",
     gap: Spacing.sm,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTextWrap: { flex: 1 },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -414,29 +448,35 @@ const styles = StyleSheet.create({
     color: Colors.text,
     paddingVertical: 0,
   },
-  statusRow: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    paddingBottom: Spacing.sm,
+  segmentWrap: {
+    flexDirection: "row",
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    overflow: "hidden",
   },
-  chip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
-    borderRadius: BorderRadius.full,
+  segment: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: "center",
     backgroundColor: Colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: Colors.borderSubtle,
   },
-  chipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  segmentActive: {
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.primary,
   },
-  chipText: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
+  segmentText: {
+    fontSize: 11,
+    fontWeight: "800",
     color: Colors.textSecondary,
   },
-  chipTextActive: { color: "#fff" },
+  segmentTextActive: { color: Colors.text },
+  focusInset: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm },
   errorCard: {
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
@@ -459,57 +499,22 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     gap: 6,
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  rowHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
+  rowTop: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   rowTitle: {
     flex: 1,
     fontSize: FontSize.md,
     fontWeight: "800",
     color: Colors.text,
   },
-  rowNumber: { fontSize: FontSize.xs, color: Colors.textTertiary },
-  rowMetaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 2,
-  },
-  metaPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: BorderRadius.full,
-  },
-  metaPillText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "600" },
-  rowFootRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  rowFootText: { fontSize: FontSize.sm, color: Colors.textSecondary, flex: 1 },
-  rowFootDate: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "700" },
-  rowPrice: { fontSize: FontSize.md, fontWeight: "900", color: Colors.text, marginTop: 4 },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-  },
-  badgeConfirmed: { backgroundColor: "#dcfce7" },
-  badgeDraft: { backgroundColor: Colors.primaryBg },
-  badgeText: {
-    fontSize: FontSize.xs,
-    fontWeight: "800",
-    color: Colors.text,
-    textTransform: "uppercase",
-  },
+  rowCust: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "600" },
+  rowSubNum: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "700" },
+  metricsRow: { flexDirection: "row", gap: Spacing.xs, marginTop: 4 },
+  hintRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  readinessDot: { width: 8, height: 8, borderRadius: 4 },
+  hintText: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "600", flex: 1 },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
   emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
   emptyText: {

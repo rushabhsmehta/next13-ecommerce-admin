@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -15,8 +16,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
+import {
+  AdminActionRail,
+  AdminHeader,
+  AdminHeaderIconButton,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { OfflineGate } from "@/components/auth/PermissionGate";
+import { createFinanceClient } from "@/lib/finance";
+import { downloadAndSharePdf } from "@/lib/pdf-download";
 
 type FinanceType =
   | "sales"
@@ -56,9 +65,54 @@ const TABS: { id: FinanceType; label: string; icon: keyof typeof Ionicons.glyphM
 
 const PAGE_SIZE = 25;
 
+const FINANCE_QUICK_PAGES: {
+  id: string;
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  route: string;
+}[] = [
+  {
+    id: "collect",
+    title: "Collect",
+    icon: "swap-vertical-outline",
+    route: "/admin/finance/collect",
+  },
+  {
+    id: "record",
+    title: "Record",
+    icon: "add-circle-outline",
+    route: "/admin/finance/record",
+  },
+  {
+    id: "invoice",
+    title: "Invoice",
+    icon: "receipt-outline",
+    route: "/admin/finance/invoice",
+  },
+  {
+    id: "return",
+    title: "Return",
+    icon: "return-down-back-outline",
+    route: "/admin/finance/return",
+  },
+  {
+    id: "tds",
+    title: "TDS",
+    icon: "document-text-outline",
+    route: "/admin/finance/tds",
+  },
+];
+
 function formatINR(n: number): string {
   if (!Number.isFinite(n)) return "—";
-  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+  return `Rs. ${Math.round(n).toLocaleString("en-IN")}`;
+}
+
+function formatAmountHeadline(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  if (Math.abs(n) >= 10_000_000) return `Rs. ${(n / 10_000_000).toFixed(2)}Cr`;
+  if (Math.abs(n) >= 100_000) return `Rs. ${(n / 100_000).toFixed(2)}L`;
+  return `Rs. ${Math.round(n).toLocaleString("en-IN")}`;
 }
 
 function formatDate(s: string): string {
@@ -70,6 +124,14 @@ function formatDate(s: string): string {
 }
 
 export default function FinanceHubScreen() {
+  return (
+    <OfflineGate policy="online_only">
+      <FinanceHubScreenInner />
+    </OfflineGate>
+  );
+}
+
+function FinanceHubScreenInner() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
@@ -82,6 +144,32 @@ export default function FinanceHubScreen() {
     getTokenRef.current = getToken;
   }, [getToken]);
   const request = useMemo(() => withAuth(() => getTokenRef.current()), []);
+  const financeClient = useMemo(() => createFinanceClient(request), [request]);
+  const [voucherBusyId, setVoucherBusyId] = useState<string | null>(null);
+
+  const downloadVoucher = useCallback(
+    async (kind: "sale" | "purchase", id: string, label: string) => {
+      setVoucherBusyId(id);
+      try {
+        await downloadAndSharePdf({
+          endpoint: financeClient.voucherEndpoint(kind, id),
+          fileName: `${kind}-${label}`,
+          getToken: () => getTokenRef.current(),
+          dialogTitle: `Share ${kind} voucher`,
+        });
+      } catch (err) {
+        Alert.alert(
+          "Voucher unavailable",
+          err instanceof ApiError
+            ? err.message
+            : "Could not generate the voucher PDF."
+        );
+      } finally {
+        setVoucherBusyId(null);
+      }
+    },
+    [financeClient]
+  );
 
   const [tab, setTab] = useState<FinanceType>("sales");
   const [search, setSearch] = useState("");
@@ -168,24 +256,41 @@ export default function FinanceHubScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ title: "Finance", headerShown: false }} />
 
-      <View style={styles.header}>
-        <Pressable
-          style={styles.iconBtn}
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Finance</Text>
-          <Text style={styles.headerSubtitle}>Last 90 days</Text>
-        </View>
-      </View>
+      <AdminHeader
+        title="Finance"
+        subtitle="Last 90 days"
+        onBackPress={() => router.back()}
+        rightSlot={
+          <AdminHeaderIconButton
+            testID="finance-accounts-link"
+            icon="card-outline"
+            label="Accounts and balances"
+            hint="Shows bank and cash accounts with balances."
+            onPress={() => router.push("/admin/finance/accounts" as never)}
+          />
+        }
+        showAccent
+        testID="finance-admin-header"
+      />
+
+      {canUseFinance || canUseAdmin ? (
+        <AdminActionRail
+          testIDPrefix="finance-action"
+          compact
+          singleRow
+          actions={FINANCE_QUICK_PAGES.map((p) => ({
+            id: p.id,
+            title: p.title,
+            icon: p.icon,
+            onPress: () => router.push(p.route as never),
+          }))}
+        />
+      ) : null}
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabRow}
+        contentContainerStyle={styles.tabRail}
       >
         {TABS.map((t) => {
           const active = tab === t.id;
@@ -195,7 +300,8 @@ export default function FinanceHubScreen() {
               testID={`finance-tab-${t.id}`}
               accessibilityRole="button"
               accessibilityLabel={t.label}
-              style={[styles.tabChip, active ? styles.tabChipActive : null]}
+              accessibilityHint={`Shows ${t.label} activity for the last 90 days.`}
+              style={[styles.segment, active ? styles.segmentActive : null]}
               onPress={() => {
                 setTab(t.id);
                 setSearch("");
@@ -205,9 +311,9 @@ export default function FinanceHubScreen() {
               <Ionicons
                 name={t.icon}
                 size={14}
-                color={active ? "#fff" : Colors.textSecondary}
+                color={active ? Colors.textInverse : Colors.textSecondary}
               />
-              <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
+              <Text style={[styles.segmentLabel, active ? styles.segmentLabelActive : null]}>
                 {t.label}
               </Text>
             </Pressable>
@@ -216,16 +322,9 @@ export default function FinanceHubScreen() {
       </ScrollView>
 
       <View style={styles.summaryCard}>
-        <View>
-          <Text style={styles.summaryLabel}>{currentTab.label} (90d)</Text>
-          <Text style={styles.summaryAmount}>
-            {loading ? "…" : formatINR(totalAmount)}
-          </Text>
-        </View>
-        <View style={styles.summaryRightCol}>
-          <Text style={styles.summarySubLabel}>Records</Text>
-          <Text style={styles.summarySubValue}>{loading ? "…" : total}</Text>
-        </View>
+        <Text style={styles.summaryTabName}>{currentTab.label}</Text>
+        <Text style={styles.summaryEntries}>{loading ? "…" : `${total} ${total === 1 ? "entry" : "entries"}`}</Text>
+        <Text style={styles.summaryAmount}>{loading ? "…" : formatAmountHeadline(totalAmount)}</Text>
       </View>
 
       <View style={styles.searchRow}>
@@ -242,8 +341,14 @@ export default function FinanceHubScreen() {
           autoCapitalize="none"
         />
         {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+          <Pressable
+            testID="finance-search-clear"
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+            accessibilityHint="Removes search text."
+            onPress={() => setSearch("")}
+          >
+            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} accessibilityElementsHidden />
           </Pressable>
         ) : null}
       </View>
@@ -282,12 +387,8 @@ export default function FinanceHubScreen() {
             </View>
           ) : (
             <View style={styles.centeredInList}>
-              <Ionicons name={currentTab.icon} size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>Nothing yet</Text>
               <Text style={styles.emptyText}>
-                {debouncedSearch
-                  ? "No matches in the last 90 days."
-                  : `No ${currentTab.label.toLowerCase()} in the last 90 days.`}
+                {debouncedSearch ? "No results for this search." : `No ${currentTab.label.toLowerCase()} yet.`}
               </Text>
             </View>
           )
@@ -299,41 +400,85 @@ export default function FinanceHubScreen() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => (
-          <View testID={`finance-row-${item.id}`} style={styles.row}>
-            <View
-              style={[styles.iconCircle, { backgroundColor: `${currentTab.tint}15` }]}
+        renderItem={({ item }) => {
+          const voucherKind =
+            tab === "sales" ? "sale" : tab === "purchases" ? "purchase" : null;
+          const busy = voucherBusyId === item.id;
+          const RowTag = voucherKind ? Pressable : View;
+          return (
+            <RowTag
+              testID={`finance-row-${item.id}`}
+              style={styles.row}
+              {...(voucherKind
+                ? {
+                    accessibilityRole: "button" as const,
+                    accessibilityLabel: `Download ${voucherKind} voucher for ${item.title}`,
+                    accessibilityHint:
+                      "Generates a branded PDF voucher and opens the share sheet.",
+                    disabled: busy,
+                    onPress: () =>
+                      downloadVoucher(
+                        voucherKind,
+                        item.id,
+                        item.reference || item.id.slice(0, 8)
+                      ),
+                  }
+                : {})}
             >
-              <Ionicons name={currentTab.icon} size={18} color={currentTab.tint} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              {item.subtitle ? (
-                <Text style={styles.rowSubtitle} numberOfLines={1}>
-                  {item.subtitle}
+              <View
+                style={[
+                  styles.iconCircle,
+                  { backgroundColor: `${currentTab.tint}15` },
+                ]}
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color={currentTab.tint} />
+                ) : (
+                  <Ionicons
+                    name={currentTab.icon}
+                    size={18}
+                    color={currentTab.tint}
+                  />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {item.title}
                 </Text>
-              ) : null}
-              <View style={styles.rowMetaRow}>
-                <Text style={styles.rowDate}>{formatDate(item.date)}</Text>
-                {item.status ? (
-                  <View style={styles.statusPill}>
-                    <Text style={styles.statusPillText}>{item.status}</Text>
-                  </View>
-                ) : null}
-                {item.reference ? (
-                  <Text style={styles.rowReference} numberOfLines={1}>
-                    {item.reference}
+                {item.subtitle ? (
+                  <Text style={styles.rowSubtitle} numberOfLines={1}>
+                    {item.subtitle}
                   </Text>
                 ) : null}
+                <View style={styles.rowMetaRow}>
+                  <Text style={styles.rowDate}>{formatDate(item.date)}</Text>
+                  {item.status ? (
+                    <View style={styles.statusPill}>
+                      <Text style={styles.statusPillText}>{item.status}</Text>
+                    </View>
+                  ) : null}
+                  {item.reference ? (
+                    <Text style={styles.rowReference} numberOfLines={1}>
+                      {item.reference}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
-            </View>
-            <Text style={[styles.amount, { color: currentTab.tint }]}>
-              {formatINR(item.amount)}
-            </Text>
-          </View>
-        )}
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={[styles.amount, { color: currentTab.tint }]}>
+                  {formatINR(item.amount)}
+                </Text>
+                {voucherKind ? (
+                  <Ionicons
+                    name="download-outline"
+                    size={14}
+                    color={Colors.textTertiary}
+                  />
+                ) : null}
+              </View>
+            </RowTag>
+          );
+        }}
       />
     </View>
   );
@@ -350,65 +495,61 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   centeredInList: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
+    paddingTop: Spacing.xl,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
+    alignItems: "center",
   },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
+  tabRail: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
     backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
   },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  tabRow: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    paddingBottom: Spacing.sm,
-  },
-  tabChip: {
+  segment: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "transparent",
+    backgroundColor: "transparent",
   },
-  tabChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  tabText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
-  tabTextActive: { color: "#fff" },
+  segmentActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primaryDark,
+  },
+  segmentLabel: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.textSecondary },
+  segmentLabelActive: { color: Colors.textInverse },
   summaryCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 4,
     backgroundColor: Colors.surface,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
+    gap: 4,
+    minHeight: 88,
   },
-  summaryLabel: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "700" },
-  summaryAmount: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  summaryRightCol: { alignItems: "flex-end" },
-  summarySubLabel: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "700" },
-  summarySubValue: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
+  summaryTabName: {
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.text,
+  },
+  summaryEntries: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: "600",
+  },
+  summaryAmount: { fontSize: 26, fontWeight: "800", color: Colors.text, marginTop: 2 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -469,11 +610,11 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 10, color: Colors.textSecondary, fontWeight: "700" },
   amount: { fontSize: FontSize.md, fontWeight: "900" },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
   emptyText: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     textAlign: "center",
     lineHeight: 20,
+    fontWeight: "600",
   },
 });

@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[],
+  /** Column accessor/id to filter — NOT the user's search text */
   searchKey?: string;
   searchPlaceholder?: string;
   onEditRow?: (row: TData) => void;
@@ -86,7 +87,8 @@ export function DataTable<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     enableRowSelection,
     state: { columnFilters, rowSelection },
-    getRowId: (row: any) => row.id ?? row.ID ?? row.Id ?? row._id ?? String(Math.random()),
+    getRowId: (row: any, index: number) =>
+      row.id ?? row.ID ?? row.Id ?? row._id ?? `row-${index}`,
     ...(enablePagination && { initialState: { pagination: { pageSize: 25 } } }),
     meta: {
       onEdit: onEditRow,

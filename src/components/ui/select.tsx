@@ -42,14 +42,21 @@ function extractText(children: React.ReactNode): string {
   return ""
 }
 
-// Recursively filters SelectItem children by search text.
-// SelectItems are identified by the presence of a `value` prop.
-// Groups are preserved if any of their items match; hidden if none match.
-function filterSelectItems(children: React.ReactNode, search: string): React.ReactNode {
-  if (!search) return children
-  const normalized = search.toLowerCase()
+type SearchVisibilityResult = {
+  nodes: React.ReactNode
+  hasVisible: boolean
+}
 
-  return React.Children.map(children, (child) => {
+// Hide non-matching items in-place instead of unmounting them (prevents focus loss in search input).
+function applySelectSearchVisibility(
+  children: React.ReactNode,
+  search: string
+): SearchVisibilityResult {
+  if (!search) return { nodes: children, hasVisible: true }
+  const normalized = search.toLowerCase()
+  let hasVisible = false
+
+  const nodes = React.Children.map(children, (child) => {
     if (!React.isValidElement(child)) return child
     const element = child as React.ReactElement<Record<string, unknown>>
     const props = element.props
@@ -57,25 +64,40 @@ function filterSelectItems(children: React.ReactNode, search: string): React.Rea
     // SelectItem: has a string `value` prop — match against its text content
     if (typeof props.value === "string") {
       const text = extractText(props.children as React.ReactNode)
-      return text.toLowerCase().includes(normalized) ? child : null
+      const matches = text.toLowerCase().includes(normalized)
+      if (matches) hasVisible = true
+      return React.cloneElement(element, {
+        className: cn(props.className as string | undefined, !matches && "hidden"),
+        disabled: !matches ? true : props.disabled,
+      })
     }
 
-    // SelectGroup / SelectLabel / other wrappers: filter their children recursively
+    // SelectGroup / SelectLabel / other wrappers: recurse, hide wrapper if no visible children
     if (props.children) {
-      const filtered = filterSelectItems(props.children as React.ReactNode, search)
-      const hasVisible = React.Children.toArray(filtered).length > 0
-      if (!hasVisible) return null
-      return React.cloneElement(element, {}, filtered)
+      const { nodes: inner, hasVisible: innerVisible } = applySelectSearchVisibility(
+        props.children as React.ReactNode,
+        search
+      )
+      if (innerVisible) hasVisible = true
+      return React.cloneElement(
+        element,
+        {
+          className: cn(props.className as string | undefined, !innerVisible && "hidden"),
+        },
+        inner
+      )
     }
 
     return child
   })
+
+  return { nodes, hasVisible }
 }
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => {
+>(({ className, children, position = "popper", onCloseAutoFocus, ...props }, ref) => {
   const [search, setSearch] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
 
@@ -85,8 +107,7 @@ const SelectContent = React.forwardRef<
     return () => clearTimeout(timer)
   }, [])
 
-  const filtered = filterSelectItems(children, search)
-  const hasResults = React.Children.toArray(filtered).length > 0
+  const { nodes: visibleChildren, hasVisible } = applySelectSearchVisibility(children, search)
 
   return (
     <SelectPrimitive.Portal>
@@ -98,6 +119,11 @@ const SelectContent = React.forwardRef<
           className
         )}
         position={position}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => {
+          setSearch("")
+          onCloseAutoFocus?.(e)
+        }}
         {...props}
       >
         <div className="flex items-center border-b px-2">
@@ -118,8 +144,8 @@ const SelectContent = React.forwardRef<
               "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
           )}
         >
-          {hasResults ? (
-            filtered
+          {hasVisible ? (
+            visibleChildren
           ) : (
             <div className="py-6 text-center text-sm text-muted-foreground">
               No results found.

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
 import { rateLimit } from '@/lib/rate-limit';
 import { assertCrmApiAccessForRequest, crmAccessErrorResponse } from '@/lib/crm-route-access';
+import { getRequestClerkUserId } from '@/lib/clerk-request-user';
+import { isMobileBearerExportRequest, recordMobileExportAudit } from '@/app/api/export/lib/mobile-audit';
 
 const limiter = rateLimit('export');
 
@@ -25,7 +26,8 @@ export async function GET(req: Request) {
     const limited = limiter.check(req);
     if (limited) return limited;
 
-    const { userId } = await auth();
+    // Accept either Clerk web session OR a mobile bearer token. RBAC below is enforced for both.
+    const userId = await getRequestClerkUserId(req);
     if (!userId) return new NextResponse('Unauthenticated', { status: 403 });
 
     try {
@@ -104,6 +106,15 @@ export async function GET(req: Request) {
     const csv = ['\uFEFF' + csvHeaders, ...csvRows].join('\r\n');
 
     console.log(`[QUERIES_EXPORT] CSV generated, size: ${csv.length} bytes`);
+
+    if (isMobileBearerExportRequest(req)) {
+      await recordMobileExportAudit({
+        userId,
+        entityType: 'QueryContactsExport',
+        bytes: csv.length,
+        rows: queries.length,
+      });
+    }
 
     return new NextResponse(csv, {
       headers: {

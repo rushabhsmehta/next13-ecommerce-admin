@@ -1,65 +1,50 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
+import { Animated, Pressable, StyleSheet, Text } from "react-native";
 import { Colors, FontSize, Spacing } from "@/constants/theme";
+import { useNetwork } from "@/lib/network";
 
-async function checkConnectivity(): Promise<boolean> {
-  try {
-    const res = await fetch("https://www.google.com/generate_204", {
-      method: "HEAD",
-      cache: "no-cache",
-    });
-    return res.status === 204 || res.ok;
-  } catch {
-    return false;
-  }
-}
-
+/**
+ * Reads connectivity from the shared NetworkProvider so the banner agrees
+ * with the API-client's `requireOnline` gate and the per-screen
+ * <OfflineGate />. Falling back to the cached snapshot keeps it functional
+ * in tests that don't wrap with the provider.
+ */
 export function OfflineBanner() {
-  const [isVisible, setIsVisible] = useState(false);
+  const { isOnline } = useNetwork();
+  const [dismissed, setDismissed] = useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
-  const mountedRef = useRef(true);
+  const visible = !isOnline && !dismissed;
 
   useEffect(() => {
-    mountedRef.current = true;
+    Animated.timing(opacity, {
+      toValue: visible ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [visible, opacity]);
 
-    function show() {
-      if (!mountedRef.current) return;
-      setIsVisible(true);
-      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    }
+  useEffect(() => {
+    if (isOnline) setDismissed(false);
+  }, [isOnline]);
 
-    function hide() {
-      Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-        if (mountedRef.current) setIsVisible(false);
-      });
-    }
-
-    let wasOffline = false;
-
-    async function poll() {
-      const connected = await checkConnectivity();
-      if (!mountedRef.current) return;
-      if (!connected && !wasOffline) { wasOffline = true; show(); }
-      else if (connected && wasOffline) { wasOffline = false; hide(); }
-    }
-
-    poll();
-    const interval = setInterval(poll, 8000);
-
-    return () => {
-      mountedRef.current = false;
-      clearInterval(interval);
-    };
-  }, [opacity]);
-
-  if (!isVisible) return null;
+  if (!visible) return null;
 
   return (
-    <Animated.View style={[styles.banner, { opacity }]} accessibilityRole="alert">
+    <Animated.View
+      style={[styles.banner, { opacity }]}
+      accessibilityRole="alert"
+      testID="offline-banner"
+    >
       <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
       <Text style={styles.text}>No internet connection. Some features may be unavailable.</Text>
-      <Pressable onPress={() => setIsVisible(false)} hitSlop={8}>
+      <Pressable
+        onPress={() => setDismissed(true)}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss offline banner"
+        testID="offline-banner-dismiss"
+      >
         <Ionicons name="close" size={16} color="rgba(255,255,255,0.7)" />
       </Pressable>
     </Animated.View>

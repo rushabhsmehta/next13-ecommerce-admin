@@ -28,7 +28,27 @@ type RequestOptions = {
   headers?: Record<string, string>;
   idempotencyKey?: string;
   signal?: AbortSignal;
+  /**
+   * When true, fail fast with a non-retryable `OFFLINE` ApiError if the
+   * device is offline. Used by `online_only` modules (finance, exports,
+   * settings) to prevent silent retries against a dead network.
+   * The check is delegated through a registered callback so this module
+   * stays free of an `expo-network` import (kept lean for tests).
+   */
+  requireOnline?: boolean;
 };
+
+type OfflineChecker = () => Promise<boolean>;
+let registeredOfflineChecker: OfflineChecker | null = null;
+
+/**
+ * Register a function that resolves to `true` when the device is offline.
+ * Called by `NetworkProvider` on mount so the API client can hard-block
+ * writes flagged `requireOnline` without coupling to expo-network here.
+ */
+export function setOfflineChecker(checker: OfflineChecker | null) {
+  registeredOfflineChecker = checker;
+}
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,7 +66,20 @@ async function request<T = any>(
     headers: customHeaders,
     idempotencyKey,
     signal,
+    requireOnline = false,
   } = options;
+
+  if (requireOnline && registeredOfflineChecker) {
+    const offline = await registeredOfflineChecker();
+    if (offline) {
+      throw new ApiError(
+        "You appear to be offline. Reconnect to continue.",
+        null,
+        false,
+        "OFFLINE"
+      );
+    }
+  }
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

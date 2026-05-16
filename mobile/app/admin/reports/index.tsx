@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -13,6 +14,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
+import {
+  AdminHeader,
+  AdminMetricCard,
+  AdminSection,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -40,14 +46,15 @@ const WINDOWS: { id: number; label: string }[] = [
 
 function formatINR(n: number): string {
   if (!Number.isFinite(n)) return "—";
-  if (Math.abs(n) >= 10_000_000) return `₹${(n / 10_000_000).toFixed(2)}Cr`;
-  if (Math.abs(n) >= 100_000) return `₹${(n / 100_000).toFixed(2)}L`;
-  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+  if (Math.abs(n) >= 10_000_000) return `Rs. ${(n / 10_000_000).toFixed(2)}Cr`;
+  if (Math.abs(n) >= 100_000) return `Rs. ${(n / 100_000).toFixed(2)}L`;
+  return `Rs. ${Math.round(n).toLocaleString("en-IN")}`;
 }
 
 export default function ReportsHubScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const layout = useWindowDimensions();
   const { getToken } = useAuth();
   const { canUseAdmin, canUseFinance, isLoading: authLoading } = useCurrentUser();
   const allowed = canUseAdmin || canUseFinance;
@@ -63,6 +70,12 @@ export default function ReportsHubScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [moreMetricsOpen, setMoreMetricsOpen] = useState(false);
+
+  const gutter = Spacing.sm;
+  const horizontalPad = Spacing.lg * 2;
+  const usableWidth = Math.max(280, layout.width - horizontalPad);
+  const col2 = Math.floor((usableWidth - gutter) / 2);
 
   const load = useCallback(
     async (mode: "initial" | "refresh", windowDays: number) => {
@@ -115,33 +128,22 @@ export default function ReportsHubScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ title: "Reports", headerShown: false }} />
 
-      <View style={styles.header}>
-        <Pressable
-          style={styles.iconBtn}
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Reports</Text>
-          <Text style={styles.headerSubtitle}>
-            {data ? `Last ${data.windowDays} days` : "…"}
-          </Text>
-        </View>
-      </View>
+      <AdminHeader
+        title="Reports"
+        subtitle={data ? `Last ${data.windowDays} days` : "…"}
+        onBackPress={() => router.back()}
+        showAccent
+        testID="reports-admin-header"
+      />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh", days)}
-            tintColor={Colors.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh", days)} tintColor={Colors.primary} />
         }
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.windowRow}>
+        <View style={[styles.segmentRail, { marginHorizontal: Spacing.lg }]}>
           {WINDOWS.map((w) => {
             const active = days === w.id;
             return (
@@ -149,12 +151,14 @@ export default function ReportsHubScreen() {
                 key={w.id}
                 testID={`reports-window-${w.id}`}
                 accessibilityRole="button"
-                accessibilityLabel={`Window ${w.label}`}
-                style={[styles.windowChip, active ? styles.windowChipActive : null]}
+                accessibilityLabel={`Reporting window ${w.label}`}
+                accessibilityHint="Changes KPI window for this dashboard."
+                style={[styles.segment, active ? styles.segmentActive : null]}
                 onPress={() => setDays(w.id)}
               >
                 <Text
-                  style={[styles.windowChipText, active ? styles.windowChipTextActive : null]}
+                  style={[styles.segmentLabel, active ? styles.segmentLabelActive : null]}
+                  allowFontScaling={false}
                 >
                   {w.label}
                 </Text>
@@ -164,7 +168,7 @@ export default function ReportsHubScreen() {
         </View>
 
         {error ? (
-          <View style={styles.errorCard}>
+          <View style={[styles.errorCard, { marginHorizontal: Spacing.lg }]}>
             <Ionicons name="warning-outline" size={16} color={Colors.error} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
@@ -176,176 +180,187 @@ export default function ReportsHubScreen() {
           </View>
         ) : data ? (
           <>
-            <Section title="Balances">
-              <View style={styles.bigKpi}>
-                <Text style={styles.bigKpiLabel}>Total available</Text>
-                <Text style={styles.bigKpiAmount}>{formatINR(data.balances.total)}</Text>
-                <View style={styles.kpiSubRow}>
-                  <View style={styles.kpiSubCol}>
-                    <Text style={styles.kpiSubLabel}>Bank ({data.balances.bankCount})</Text>
-                    <Text style={styles.kpiSubValue}>
-                      {formatINR(data.balances.bank)}
-                    </Text>
+            <AdminSection title="Liquidity" testID="reports-balances-section">
+              <View
+                style={styles.balanceAnchor}
+                testID="reports-balance-anchor"
+                accessibilityRole="summary"
+                accessibilityLabel={`Total liquidity ${formatINR(data.balances.total)}`}
+              >
+                <Text style={styles.anchorEyebrow} allowFontScaling={false}>
+                  Total balance
+                </Text>
+                <Text style={styles.anchorHero} allowFontScaling={false}>
+                  {formatINR(data.balances.total)}
+                </Text>
+                <View style={styles.anchorSplit}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.anchorSplitLabel}>Bank ({data.balances.bankCount})</Text>
+                    <Text style={styles.anchorSplitValue}>{formatINR(data.balances.bank)}</Text>
                   </View>
-                  <View style={styles.kpiSubCol}>
-                    <Text style={styles.kpiSubLabel}>Cash ({data.balances.cashCount})</Text>
-                    <Text style={styles.kpiSubValue}>
-                      {formatINR(data.balances.cash)}
-                    </Text>
+                  <View style={styles.anchorDivider} accessibilityElementsHidden />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.anchorSplitLabel}>Cash ({data.balances.cashCount})</Text>
+                    <Text style={styles.anchorSplitValue}>{formatINR(data.balances.cash)}</Text>
                   </View>
                 </View>
               </View>
-            </Section>
+            </AdminSection>
 
-            <Section title="Outstanding (all-time)">
-              <View style={styles.dualCard}>
-                <View style={styles.dualCardSide}>
-                  <Ionicons name="arrow-down-circle" size={18} color="#16a34a" />
-                  <Text style={styles.dualCardLabel}>Receivables</Text>
-                  <Text style={[styles.dualCardAmount, { color: "#16a34a" }]}>
-                    {formatINR(data.outstanding.receivables)}
-                  </Text>
+            <AdminSection title="Outstanding">
+              <View style={[styles.metricRow, { gap: gutter }]}>
+                <View style={{ width: col2 }}>
+                  <AdminMetricCard
+                    id="reports-receivables"
+                    label="Receivables"
+                    category="Receivables"
+                    value={formatINR(data.outstanding.receivables)}
+                    accentValueColor="#16a34a"
+                    testID="reports-outstanding-receivables"
+                    onPress={() => router.push("/admin/finance" as never)}
+                  />
                 </View>
-                <View style={styles.dualDivider} />
-                <View style={styles.dualCardSide}>
-                  <Ionicons name="arrow-up-circle" size={18} color="#dc2626" />
-                  <Text style={styles.dualCardLabel}>Payables</Text>
-                  <Text style={[styles.dualCardAmount, { color: "#dc2626" }]}>
-                    {formatINR(data.outstanding.payables)}
-                  </Text>
+                <View style={{ width: col2 }}>
+                  <AdminMetricCard
+                    id="reports-payables"
+                    label="Payables"
+                    category="Payables"
+                    value={formatINR(data.outstanding.payables)}
+                    accentValueColor="#dc2626"
+                    testID="reports-outstanding-payables"
+                    onPress={() => router.push("/admin/finance" as never)}
+                  />
                 </View>
               </View>
-            </Section>
+            </AdminSection>
 
-            <Section title="Pipeline">
-              <View style={styles.gridRow}>
-                <KpiCard
-                  icon="document-text-outline"
-                  label="Inquiries"
-                  amount={String(data.inquiries.total)}
-                  sub={Object.entries(data.inquiries.byStatus)
-                    .slice(0, 3)
-                    .map(([k, v]) => `${k}:${v}`)
-                    .join(" · ")}
-                  onPress={() => router.push("/admin/crm/inquiries" as never)}
-                />
-                <KpiCard
-                  icon="map-outline"
-                  label="Tour Queries"
-                  amount={String(data.tourQueries.total)}
-                  sub={`${data.tourQueries.confirmed} confirmed`}
-                  onPress={() => router.push("/admin/tour-queries" as never)}
-                />
+            <AdminSection title="Pipeline">
+              <View style={[styles.metricRow, { gap: gutter }]}>
+                <View style={{ width: col2 }}>
+                  <AdminMetricCard
+                    id="reports-inquiries"
+                    label="Inquiries"
+                    category="Inquiries"
+                    value={String(data.inquiries.total)}
+                    detail={Object.entries(data.inquiries.byStatus)
+                      .slice(0, 3)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join(" · ")}
+                    testID="reports-kpi-inquiries"
+                    onPress={() => router.push("/admin/crm/inquiries" as never)}
+                  />
+                </View>
+                <View style={{ width: col2 }}>
+                  <AdminMetricCard
+                    id="reports-tour-queries"
+                    label="Tour queries"
+                    category="Tour queries"
+                    value={String(data.tourQueries.total)}
+                    detail={`${data.tourQueries.confirmed} confirmed`}
+                    testID="reports-kpi-queries"
+                    onPress={() => router.push("/admin/tour-queries" as never)}
+                  />
+                </View>
               </View>
-            </Section>
+            </AdminSection>
 
-            <Section title="Revenue">
-              <View style={styles.gridRow}>
-                <KpiCard
-                  icon="receipt-outline"
-                  label="Sales"
-                  amount={formatINR(data.sales.amount)}
-                  sub={`${data.sales.count} invoices`}
-                  tint="#16a34a"
-                  onPress={() => router.push("/admin/finance" as never)}
+            <AdminSection title={`Window (${data.windowDays}d)`}>
+              <Pressable
+                testID="reports-more-metrics-toggle"
+                accessibilityRole="button"
+                accessibilityLabel={moreMetricsOpen ? "Hide more metrics" : "Show more metrics"}
+                style={styles.moreToggle}
+                onPress={() => setMoreMetricsOpen((v) => !v)}
+              >
+                <Text style={styles.moreToggleText}>{moreMetricsOpen ? "Hide" : "More"} metrics</Text>
+                <Ionicons
+                  name={moreMetricsOpen ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={Colors.textSecondary}
+                  accessibilityElementsHidden
                 />
-                <KpiCard
-                  icon="arrow-down-circle-outline"
-                  label="Receipts"
-                  amount={formatINR(data.receipts.amount)}
-                  sub={`${data.receipts.count} entries`}
-                  tint="#16a34a"
-                  onPress={() => router.push("/admin/finance" as never)}
-                />
-              </View>
-              <View style={styles.gridRow}>
-                <KpiCard
-                  icon="trending-up-outline"
-                  label="Other income"
-                  amount={formatINR(data.incomes.amount)}
-                  sub={`${data.incomes.count} entries`}
-                  tint="#16a34a"
-                  onPress={() => router.push("/admin/finance" as never)}
-                />
-                <KpiCard
-                  icon="cart-outline"
-                  label="Purchases"
-                  amount={formatINR(data.purchases.amount)}
-                  sub={`${data.purchases.count} bills`}
-                  tint="#dc2626"
-                  onPress={() => router.push("/admin/finance" as never)}
-                />
-              </View>
-              <View style={styles.gridRow}>
-                <KpiCard
-                  icon="arrow-up-circle-outline"
-                  label="Payments"
-                  amount={formatINR(data.payments.amount)}
-                  sub={`${data.payments.count} entries`}
-                  tint="#dc2626"
-                  onPress={() => router.push("/admin/finance" as never)}
-                />
-                <KpiCard
-                  icon="wallet-outline"
-                  label="Expenses"
-                  amount={formatINR(data.expenses.amount)}
-                  sub={`${data.expenses.count} entries`}
-                  tint="#dc2626"
-                  onPress={() => router.push("/admin/finance" as never)}
-                />
-              </View>
-            </Section>
+              </Pressable>
+              {moreMetricsOpen ? (
+                <View style={[styles.metricRow, { gap: gutter }]}>
+                  <View style={{ width: col2 }}>
+                    <AdminMetricCard
+                      id="reports-sales-amt"
+                      label="Sales"
+                      category="Sales"
+                      value={formatINR(data.sales.amount)}
+                      detail={`${data.sales.count} invoices`}
+                      accentValueColor="#16a34a"
+                      testID="reports-kpi-sales"
+                      onPress={() => router.push("/admin/finance" as never)}
+                    />
+                  </View>
+                  <View style={{ width: col2 }}>
+                    <AdminMetricCard
+                      id="reports-receipts-amt"
+                      label="Receipts"
+                      category="Receipts"
+                      value={formatINR(data.receipts.amount)}
+                      detail={`${data.receipts.count} entries`}
+                      accentValueColor="#16a34a"
+                      testID="reports-kpi-receipts"
+                      onPress={() => router.push("/admin/finance" as never)}
+                    />
+                  </View>
+                  <View style={{ width: col2 }}>
+                    <AdminMetricCard
+                      id="reports-income-other"
+                      label="Income"
+                      category="Income"
+                      value={formatINR(data.incomes.amount)}
+                      detail={`${data.incomes.count} postings`}
+                      accentValueColor="#16a34a"
+                      testID="reports-kpi-income"
+                      onPress={() => router.push("/admin/finance" as never)}
+                    />
+                  </View>
+                  <View style={{ width: col2 }}>
+                    <AdminMetricCard
+                      id="reports-purchases"
+                      label="Purchases"
+                      category="Purchases"
+                      value={formatINR(data.purchases.amount)}
+                      detail={`${data.purchases.count} bills`}
+                      accentValueColor="#0284c7"
+                      testID="reports-kpi-purchases"
+                      onPress={() => router.push("/admin/finance" as never)}
+                    />
+                  </View>
+                  <View style={{ width: col2 }}>
+                    <AdminMetricCard
+                      id="reports-payments"
+                      label="Payments"
+                      category="Payments"
+                      value={formatINR(data.payments.amount)}
+                      detail={`${data.payments.count} entries`}
+                      accentValueColor="#dc2626"
+                      testID="reports-kpi-payments"
+                      onPress={() => router.push("/admin/finance" as never)}
+                    />
+                  </View>
+                  <View style={{ width: col2 }}>
+                    <AdminMetricCard
+                      id="reports-expenses"
+                      label="Expenses"
+                      category="Expenses"
+                      value={formatINR(data.expenses.amount)}
+                      detail={`${data.expenses.count} postings`}
+                      accentValueColor="#dc2626"
+                      testID="reports-kpi-expenses"
+                      onPress={() => router.push("/admin/finance" as never)}
+                    />
+                  </View>
+                </View>
+              ) : null}
+            </AdminSection>
           </>
         ) : null}
       </ScrollView>
     </View>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-}
-
-function KpiCard({
-  icon,
-  label,
-  amount,
-  sub,
-  tint,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  amount: string;
-  sub?: string;
-  tint?: string;
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable
-      style={styles.kpiCard}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label} ${amount}`}
-    >
-      <View style={[styles.kpiIcon, tint ? { backgroundColor: `${tint}15` } : null]}>
-        <Ionicons name={icon} size={18} color={tint ?? Colors.primary} />
-      </View>
-      <Text style={styles.kpiLabel}>{label}</Text>
-      <Text style={[styles.kpiAmount, tint ? { color: tint } : null]} numberOfLines={1}>
-        {amount}
-      </Text>
-      {sub ? (
-        <Text style={styles.kpiSub} numberOfLines={1}>
-          {sub}
-        </Text>
-      ) : null}
-    </Pressable>
   );
 }
 
@@ -359,37 +374,35 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     backgroundColor: Colors.background,
   },
-  header: {
+  scroll: { paddingHorizontal: 0, paddingTop: Spacing.sm, gap: Spacing.sm },
+  segmentRail: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
     backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: 2 },
-  windowRow: { flexDirection: "row", gap: Spacing.sm, marginBottom: Spacing.md },
-  windowChip: {
-    flex: 1,
-    paddingVertical: 8,
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
+    borderColor: Colors.borderSubtle,
+    marginBottom: Spacing.md,
+    justifyContent: "space-between",
   },
-  windowChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  windowChipText: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.textSecondary },
-  windowChipTextActive: { color: "#fff" },
+  segment: {
+    flexGrow: 1,
+    alignItems: "center",
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: "transparent",
+    backgroundColor: "transparent",
+  },
+  segmentActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primaryDark,
+  },
+  segmentLabel: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.textSecondary },
+  segmentLabelActive: { color: Colors.textInverse },
   errorCard: {
     marginBottom: Spacing.sm,
     borderRadius: BorderRadius.md,
@@ -403,69 +416,53 @@ const styles = StyleSheet.create({
   },
   errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
   loadingBox: { paddingVertical: Spacing.xxl, alignItems: "center" },
-  section: { marginBottom: Spacing.md },
-  sectionTitle: {
-    fontSize: FontSize.xs,
-    fontWeight: "900",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginBottom: Spacing.sm,
-    marginLeft: 4,
-  },
-  bigKpi: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    gap: 4,
-  },
-  bigKpiLabel: { color: "#fff", fontSize: FontSize.xs, fontWeight: "800", opacity: 0.85 },
-  bigKpiAmount: { color: "#fff", fontSize: 28, fontWeight: "900" },
-  kpiSubRow: {
-    flexDirection: "row",
-    gap: Spacing.lg,
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.2)",
-  },
-  kpiSubCol: { flex: 1 },
-  kpiSubLabel: { color: "#fff", fontSize: 10, fontWeight: "700", opacity: 0.85 },
-  kpiSubValue: { color: "#fff", fontSize: FontSize.md, fontWeight: "900", marginTop: 2 },
-  dualCard: {
-    flexDirection: "row",
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-  },
-  dualCardSide: { flex: 1, alignItems: "center", gap: 4 },
-  dualDivider: { width: 1, backgroundColor: Colors.borderSubtle, marginHorizontal: Spacing.sm },
-  dualCardLabel: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "700" },
-  dualCardAmount: { fontSize: FontSize.lg, fontWeight: "900" },
-  gridRow: { flexDirection: "row", gap: Spacing.sm, marginBottom: Spacing.sm },
-  kpiCard: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    gap: 4,
-  },
-  kpiIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryBg,
-    alignItems: "center",
-    justifyContent: "center",
+  anchorEyebrow: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: "600",
     marginBottom: 4,
   },
-  kpiLabel: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "800" },
-  kpiAmount: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  kpiSub: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "600" },
+  balanceAnchor: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  anchorHero: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: Colors.text,
+    letterSpacing: -0.35,
+  },
+  anchorSplit: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+  },
+  anchorSplitLabel: { fontSize: FontSize.sm, color: Colors.textTertiary, fontWeight: "700" },
+  anchorSplitValue: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text, marginTop: 4 },
+  moreToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: 2,
+  },
+  moreToggleText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.primary,
+  },
+  anchorDivider: { width: 1, backgroundColor: Colors.borderSubtle, opacity: 0.8 },
+  metricRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
   emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
   emptyText: {
     fontSize: FontSize.sm,

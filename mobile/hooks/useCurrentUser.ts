@@ -26,7 +26,7 @@ export interface MobileAdminModule {
   category: string;
   phase: string;
   icon: string;
-  status: "foundation" | "ready" | "planned" | "restricted";
+  status: "foundation" | "ready" | "planned" | "in-development" | "restricted";
   requiredPermission: string;
   offlinePolicy: "read_cache" | "draft_only" | "online_only";
   acceptanceTarget: string;

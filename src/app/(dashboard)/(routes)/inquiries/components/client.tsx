@@ -34,6 +34,7 @@ import { parseISO, isSameDay } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pagination } from "./pagination";
+import { InquiriesFiltersContent } from "./inquiries-filters-content";
 
 interface InquiriesClientProps {
   data: InquiryColumn[];
@@ -268,60 +269,6 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     }).length;
   }, [rows]);
 
-  // Filter component for mobile view
-  const FiltersContent = () => (
-    <div className="flex flex-col space-y-4 py-4">
-      <PeriodFilter />
-      <StatusFilter />
-      {/* Assigned staff filter for mobile pane */}
-      {!isAssociateUser && operationalStaffs && (
-        <Select
-          value={localAssignedStaffId}
-          onValueChange={(v) => onAssignedStaffChange(v)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select Assigned Staff" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Staff</SelectItem>
-            {operationalStaffs.map((s) => (
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      <div className="flex items-center space-x-2">
-        <Checkbox id="followups-only" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
-        <label htmlFor="followups-only" className="text-sm">Follow-ups only</label>
-        {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
-      </div>
-      <div className="flex items-center space-x-2">
-        <Checkbox id="no-tpq" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
-        <label htmlFor="no-tpq" className="text-sm">No Tour Package Query</label>
-        {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
-      </div>
-
-      {!isAssociateUser && (
-        <Select
-          value={localAssociateId}
-          onValueChange={onAssociateChange}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select Associate" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Associates</SelectItem>
-            {associates.map((associate) => (
-              <SelectItem key={associate.id} value={associate.id}>
-                {associate.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-    </div>
-  );
-
   return (
     <>
       <div className="flex flex-col space-y-4">
@@ -412,7 +359,20 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
                   Apply filters to narrow down your results
                 </SheetDescription>
               </SheetHeader>
-              <FiltersContent />
+              <InquiriesFiltersContent
+                isAssociateUser={isAssociateUser}
+                operationalStaffs={operationalStaffs}
+                localAssignedStaffId={localAssignedStaffId}
+                onAssignedStaffChange={onAssignedStaffChange}
+                followUpsOnly={followUpsOnly}
+                onToggleFollowUpsOnly={onToggleFollowUpsOnly}
+                noTourPackageQuery={noTourPackageQuery}
+                onToggleNoTPQ={onToggleNoTPQ}
+                isPending={isPending}
+                localAssociateId={localAssociateId}
+                onAssociateChange={onAssociateChange}
+                associates={associates}
+              />
               <div className="flex justify-end items-center space-x-2 mt-4">
                 <Button variant="ghost" onClick={clearAllFilters}>Clear</Button>
               </div>

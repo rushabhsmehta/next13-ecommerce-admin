@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
+import { resolveInquiryAccessContext } from "@/lib/inquiry-access";
 import prismadb from "@/lib/prismadb";
 import * as bcrypt from 'bcryptjs';
 
@@ -9,12 +11,17 @@ export async function GET(
   req: Request
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
     const { searchParams } = new URL(req.url);
     const activeOnly = searchParams.get('active');
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const access = await resolveInquiryAccessContext(userId);
+    if (!access.isAdminLike) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     const whereClause = activeOnly === 'true' ? { isActive: true } : {};

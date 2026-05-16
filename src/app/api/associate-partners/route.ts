@@ -1,19 +1,24 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
+import { resolveInquiryAccessContext } from "@/lib/inquiry-access";
 import prismadb from "@/lib/prismadb";
 
-export async function POST(
-  req: Request,
-) {
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
+    const userId = await getRequestClerkUserId(req);
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+    const access = await resolveInquiryAccessContext(userId);
+    if (!access.isAdminLike) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     const body = await req.json();
 
     const { name, mobileNumber, email, gmail } = body;
-
-    if (!userId) {
-      return new NextResponse("Unauthenticated", { status: 403 });
-    }
 
     if (!name) {
       return new NextResponse("Name is required", { status: 400 });
@@ -29,30 +34,45 @@ export async function POST(
         mobileNumber,
         email,
         gmail,
-      }
+      },
     });
-  
+
     return NextResponse.json(associatePartner);
   } catch (error) {
-    console.log('[ASSOCIATE_PARTNERS_POST]', error);
+    console.log("[ASSOCIATE_PARTNERS_POST]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }
 
-export async function GET(
-  req: Request,
-) {
+export async function GET(req: Request) {
   try {
+    const userId = await getRequestClerkUserId(req);
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+    const access = await resolveInquiryAccessContext(userId);
+    if (!access.isAdminLike) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const activeOnly = searchParams.get("activeOnly") === "true";
+
     const associatePartners = await prismadb.associatePartner.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
+      where: activeOnly ? { isActive: true } : {},
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        gmail: true,
+        isActive: true,
+      },
     });
-  
+
     return NextResponse.json(associatePartners);
   } catch (error) {
-    console.log('[ASSOCIATE_PARTNERS_GET]', error);
+    console.log("[ASSOCIATE_PARTNERS_GET]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }
-

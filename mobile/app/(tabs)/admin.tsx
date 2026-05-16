@@ -1,25 +1,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BorderRadius, Colors, FontSize, Shadows, Spacing } from "@/constants/theme";
 import {
-  MobileAdminModule,
-  OrganizationRole,
-  useCurrentUser,
-} from "@/hooks/useCurrentUser";
+  AdminActionRail,
+  AdminFocusCard,
+  AdminFocusEmpty,
+  AdminMetricCard,
+  AdminModuleCard,
+  AdminSection,
+  AdminStatusPill,
+} from "@/components/admin";
+import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import type { OrganizationRole } from "@/hooks/useCurrentUser";
+import { MobileAdminModule, useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNetwork } from "@/lib/network";
 import { ApiError, withAuth } from "@/lib/api";
 
 type AdminStat = {
@@ -45,77 +51,39 @@ type AdminOverviewProfile = {
 
 type AdminOverview = {
   generatedAt: string;
-  organizationId: string | null;
   profile: AdminOverviewProfile;
   stats: AdminStat[];
-  safety: Record<string, string>;
-  rollout: string[];
 };
 
-function moduleRoute(moduleId: string, isAssociate: boolean): string | null {
-  if (moduleId === "communications") return "/whatsapp";
-  if (moduleId === "crm") {
-    return isAssociate ? "/associate/inquiries" : "/admin/crm/inquiries";
-  }
-  if (moduleId === "sales-trips" && !isAssociate) return "/admin/tour-queries";
-  if (moduleId === "operations" && !isAssociate) return "/admin/operations";
-  if (moduleId === "finance" && !isAssociate) return "/admin/finance";
-  if (moduleId === "reports" && !isAssociate) return "/admin/reports";
-  return null;
-}
-
-interface QuickAction {
+const SHORTCUT_DEFINITIONS: {
   id: string;
   title: string;
-  description: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
   route: string;
-  visible: (ctx: {
+  visible: (c: {
     isAdmin: boolean;
-    isAssociate: boolean;
     canUseAdmin: boolean;
     canUseFinance: boolean;
   }) => boolean;
-}
-
-const QUICK_ACTIONS: QuickAction[] = [
+}[] = [
   {
-    id: "inquiries",
-    title: "Inquiries",
-    description: "Track leads and follow-ups",
-    icon: "document-text-outline",
+    id: "crm",
+    title: "CRM",
+    icon: "people-outline",
     route: "/admin/crm/inquiries",
     visible: ({ canUseAdmin }) => canUseAdmin,
   },
   {
-    id: "customers",
-    title: "Customers",
-    description: "Search profiles and history",
-    icon: "people-outline",
-    route: "/admin/customers",
-    visible: ({ canUseAdmin }) => canUseAdmin,
-  },
-  {
-    id: "tour-queries",
-    title: "Tour Queries",
-    description: "Quotes, status, confirmation",
+    id: "trips",
+    title: "Trips",
     icon: "map-outline",
     route: "/admin/tour-queries",
     visible: ({ canUseAdmin }) => canUseAdmin,
   },
   {
-    id: "operations",
-    title: "Operations",
-    description: "Hotels, locations, suppliers",
-    icon: "construct-outline",
-    route: "/admin/operations",
-    visible: ({ canUseAdmin }) => canUseAdmin,
-  },
-  {
     id: "finance",
     title: "Finance",
-    description: "Sales, receipts, expenses",
     icon: "cash-outline",
     route: "/admin/finance",
     visible: ({ canUseFinance, canUseAdmin }) => canUseFinance || canUseAdmin,
@@ -123,7 +91,6 @@ const QUICK_ACTIONS: QuickAction[] = [
   {
     id: "reports",
     title: "Reports",
-    description: "KPIs, outstanding, balances",
     icon: "bar-chart-outline",
     route: "/admin/reports",
     visible: ({ canUseFinance, canUseAdmin }) => canUseFinance || canUseAdmin,
@@ -131,7 +98,6 @@ const QUICK_ACTIONS: QuickAction[] = [
   {
     id: "whatsapp",
     title: "WhatsApp",
-    description: "Inbox, templates, campaigns",
     icon: "logo-whatsapp",
     iconColor: "#25D366",
     route: "/whatsapp",
@@ -139,27 +105,172 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
 ];
 
-function roleLabel(role: string | null, isAssociate: boolean) {
-  if (role) return role.charAt(0) + role.slice(1).toLowerCase();
-  return isAssociate ? "Associate" : "Mobile user";
+const TOOL_IDS: string[] = [
+  "crm",
+  "sales-trips",
+  "finance",
+  "reports",
+  "operations",
+  "communications",
+  "exports",
+  "todos",
+];
+
+/** Dashboard snapshot (~6 Owner metrics) — omit audits/travel noise */
+const SNAPSHOT_IDS: string[] = [
+  "open-inquiries",
+  "follow-ups-due",
+  "tour-queries",
+  "open-todos",
+  "receipts-payments",
+  "unread-notifications",
+];
+
+const ATTENTION_IDS_ORDER = [
+  "follow-ups-due",
+  "open-todos",
+  "open-inquiries",
+  "unread-notifications",
+];
+
+function attentionSortPriority(id: string): number {
+  const idx = ATTENTION_IDS_ORDER.indexOf(id);
+  return idx === -1 ? 99 + id.charCodeAt(0) : idx;
 }
 
-function statusLabel(status: MobileAdminModule["status"]) {
-  switch (status) {
-    case "foundation":
-      return "Foundation";
-    case "ready":
-      return "Ready";
-    case "restricted":
-      return "Restricted";
+function moduleRoute(moduleId: string, isAssociate: boolean): string | null {
+  if (moduleId === "communications") return "/whatsapp";
+  if (moduleId === "crm") return isAssociate ? "/associate/inquiries" : "/admin/crm/inquiries";
+  if (moduleId === "todos" && !isAssociate) return "/admin/todos";
+  if (moduleId === "exports" && !isAssociate) return "/admin/exports";
+  if (moduleId === "sales-trips") return "/admin/tour-queries";
+  if (moduleId === "operations" && !isAssociate) return "/admin/operations";
+  if (moduleId === "finance" && !isAssociate) return "/admin/finance";
+  if (moduleId === "reports" && !isAssociate) return "/admin/reports";
+  return null;
+}
+
+function resolveAttentionRoute(statId: string, isAssociate: boolean): string | null {
+  switch (statId) {
+    case "follow-ups-due":
+    case "open-inquiries":
+      return isAssociate ? "/associate/inquiries" : "/admin/crm/inquiries";
+    case "open-todos":
+      return isAssociate ? null : "/admin/todos";
+    case "unread-notifications":
+      return null;
     default:
-      return "Planned";
+      return null;
+  }
+}
+
+function displayRoleBadge(
+  ctx: Pick<ReturnType<typeof useCurrentUser>, "organizationRole" | "isAssociate" | "isOwner">
+): string {
+  if (ctx.isAssociate) return "Associate";
+  if (ctx.isOwner) return "Owner";
+  const role = ctx.organizationRole;
+  if (!role) return "Staff";
+  if (role === "ADMIN") return "Admin";
+  if (role === "FINANCE") return "Finance";
+  if (role === "OPERATIONS") return "Ops";
+  if (role === "VIEWER") return "Viewer";
+  return role.charAt(0) + role.slice(1).toLowerCase();
+}
+
+function syncLine(iso?: string | null): string | null {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return null;
+    return `Synced ${d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+  } catch {
+    return null;
+  }
+}
+
+function findStat(stats: AdminStat[], id: string): AdminStat | undefined {
+  return stats.find((s) => s.id === id);
+}
+
+function formatSnapshotStat(stat: AdminStat): string {
+  if (stat.id === "receipts-payments" && typeof stat.value === "string") {
+    return stat.value.replace(/\s*\/\s*/, " · ");
+  }
+  if (typeof stat.value === "number") return stat.value.toLocaleString("en-IN");
+  return String(stat.value);
+}
+
+function snapshotLabel(stat: AdminStat): string {
+  const map: Record<string, string> = {
+    "open-inquiries": "Open inquiries",
+    "follow-ups-due": "Follow-ups due",
+    "tour-queries": "Tour queries",
+    "open-todos": "Open todos",
+    "receipts-payments": "Receipts · payments",
+    "unread-notifications": "Unread alerts",
+  };
+  return map[stat.id] ?? stat.label;
+}
+
+type FocusPick = {
+  stat: AdminStat;
+  title: string;
+  detail: string;
+  actionLabel?: string;
+  tone: "high" | "medium";
+};
+
+function buildFocus(primaryStat: AdminStat | null): FocusPick | null {
+  if (!primaryStat) return null;
+  const n =
+    typeof primaryStat.value === "number"
+      ? primaryStat.value
+      : Number.parseInt(String(primaryStat.value), 10);
+  const countLabel = Number.isFinite(n) ? n.toLocaleString("en-IN") : String(primaryStat.value);
+
+  switch (primaryStat.id) {
+    case "follow-ups-due":
+      return {
+        stat: primaryStat,
+        title: "Follow-ups need review",
+        detail: `${countLabel} due now`,
+        actionLabel: "Open CRM",
+        tone: "high",
+      };
+    case "open-todos":
+      return {
+        stat: primaryStat,
+        title: "Todos need review",
+        detail: `${countLabel} open`,
+        actionLabel: "Open todos",
+        tone: "high",
+      };
+    case "open-inquiries":
+      return {
+        stat: primaryStat,
+        title: "Open inquiries",
+        detail: `${countLabel} open`,
+        actionLabel: "Open CRM",
+        tone: "medium",
+      };
+    case "unread-notifications":
+      return {
+        stat: primaryStat,
+        title: "Unread alerts",
+        detail: `${countLabel} waiting`,
+        tone: "medium",
+      };
+    default:
+      return null;
   }
 }
 
 export default function AdminTab() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const net = useNetwork();
   const { isSignedIn, getToken } = useAuth();
   const {
     organizationRole,
@@ -169,31 +280,69 @@ export default function AdminTab() {
     canUseFinance,
     mobileNavigation,
     isLoading: authLoading,
+    isOwner,
   } = useCurrentUser();
-  const visibleQuickActions = useMemo(
+
+  const degraded = net.isInternetReachable === false && net.isOnline;
+  const showNetPill = !net.isOnline || degraded;
+
+  const shortcuts = useMemo(() => {
+    return SHORTCUT_DEFINITIONS.filter((s) =>
+      s.visible({
+        isAdmin,
+        canUseAdmin,
+        canUseFinance,
+      })
+    ).slice(0, 5);
+  }, [isAdmin, canUseAdmin, canUseFinance]);
+
+  const shortcutActions = useMemo(
     () =>
-      QUICK_ACTIONS.filter((qa) =>
-        qa.visible({ isAdmin, isAssociate, canUseAdmin, canUseFinance })
-      ),
-    [isAdmin, isAssociate, canUseAdmin, canUseFinance]
+      shortcuts.map((s) => ({
+        ...s,
+        route: s.id === "crm" && isAssociate ? "/associate/inquiries" : s.route,
+        onPress: () =>
+          router.push((s.id === "crm" && isAssociate ? "/associate/inquiries" : s.route) as never),
+      })),
+    [router, shortcuts, isAssociate]
   );
-  // Stash getToken in a ref so the request closure is stable across renders.
-  // Otherwise Clerk produces a new getToken on every render which would
-  // re-create adminRequest -> re-create loadOverview -> re-fire the effect
-  // -> infinite refresh loop.
+
+  const horizontalPad = Spacing.lg * 2;
+  const layoutGutter = Spacing.sm;
+  const usableWidth = Math.max(280, windowWidth - horizontalPad);
+  const kpiCols = windowWidth >= 760 ? 3 : 2;
+  const snapshotTile =
+    kpiCols > 1 ? Math.floor((usableWidth - layoutGutter * (kpiCols - 1)) / kpiCols) : usableWidth;
+
+  const modulesById = useMemo(() => {
+    const m = new Map<string, MobileAdminModule>();
+    for (const mod of mobileNavigation) {
+      if (mod.id !== "today") m.set(mod.id, mod);
+    }
+    return m;
+  }, [mobileNavigation]);
+
+  const toolModules = useMemo(() => {
+    return TOOL_IDS.map((id) => modulesById.get(id)).filter((x): x is MobileAdminModule => !!x && x.status !== "planned");
+  }, [modulesById]);
+
+  const plannedModules = useMemo(
+    () => mobileNavigation.filter((m) => m.status === "planned" && m.id !== "today"),
+    [mobileNavigation]
+  );
+
   const getTokenRef = useRef(getToken);
   useEffect(() => {
     getTokenRef.current = getToken;
   }, [getToken]);
-  const adminRequest = useMemo(
-    () => withAuth(() => getTokenRef.current()),
-    []
-  );
+  const adminRequest = useMemo(() => withAuth(() => getTokenRef.current()), []);
+
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const lastOverviewLoadKeyRef = useRef<string | null>(null);
+  const lastLoadKeyRef = useRef<string | null>(null);
+  const [plannedOpen, setPlannedOpen] = useState(false);
 
   const loadOverview = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -206,16 +355,12 @@ export default function AdminTab() {
       else setLoading(true);
       setError(null);
       try {
-        const data = await adminRequest<AdminOverview>("/api/mobile/admin/overview", {
-          retries: 1,
-        });
+        const data = await adminRequest<AdminOverview>("/api/mobile/admin/overview", { retries: 1 });
         setOverview(data);
       } catch (err) {
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : "Could not load the mobile admin dashboard.";
-        setError(message);
+        setError(
+          err instanceof ApiError ? err.message : "Could not load the mobile admin dashboard."
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -226,11 +371,37 @@ export default function AdminTab() {
 
   useEffect(() => {
     if (authLoading) return;
-    const loadKey = `${canUseAdmin}:${organizationRole ?? ""}:${isAssociate}`;
-    if (lastOverviewLoadKeyRef.current === loadKey) return;
-    lastOverviewLoadKeyRef.current = loadKey;
+    const key = `${canUseAdmin}:${organizationRole ?? ""}:${isAssociate}`;
+    if (lastLoadKeyRef.current === key) return;
+    lastLoadKeyRef.current = key;
     void loadOverview();
   }, [authLoading, canUseAdmin, organizationRole, isAssociate, loadOverview]);
+
+  const stats = overview?.stats ?? [];
+  const attentionStats = [...stats.filter((s) => s.requiresAttention)].sort(
+    (a, b) => attentionSortPriority(a.id) - attentionSortPriority(b.id)
+  );
+
+  const primaryAttention = useMemo(() => {
+    const routedFirst = attentionStats.find((s) => s.id !== "unread-notifications");
+    return routedFirst ?? attentionStats[0] ?? null;
+  }, [attentionStats]);
+
+  const focusPick = primaryAttention ? buildFocus(primaryAttention) : null;
+
+  const focusRoute = focusPick ? resolveAttentionRoute(focusPick.stat.id, isAssociate) : null;
+
+  const moreAttentionCount =
+    attentionStats.length > 1 && focusPick ? attentionStats.length - 1 : 0;
+
+  const snapshotItems = useMemo(() => {
+    const out: AdminStat[] = [];
+    for (const id of SNAPSHOT_IDS) {
+      const s = findStat(stats, id);
+      if (s) out.push(s);
+    }
+    return out.slice(0, 6);
+  }, [stats]);
 
   function openModule(module: MobileAdminModule) {
     const route = moduleRoute(module.id, isAssociate);
@@ -238,20 +409,25 @@ export default function AdminTab() {
       router.push(route as never);
       return;
     }
+    router.push(`/admin/coming-soon?moduleId=${encodeURIComponent(module.id)}` as never);
+  }
 
-    Alert.alert(
-      module.title,
-      `${module.description}\n\n${module.phase} acceptance: ${module.acceptanceTarget}\n\nWorkflows:\n${module.workflows
-        .map((workflow) => `- ${workflow}`)
-        .join("\n")}\n\nWeb routes covered: ${module.webRoutes.length}\nOffline policy: ${module.offlinePolicy.replace(/_/g, " ")}.`
+  function firstRoutedAttentionRoute(): string {
+    const ordered = [...attentionStats].sort(
+      (a, b) => attentionSortPriority(a.id) - attentionSortPriority(b.id)
     );
+    for (const s of ordered) {
+      const route = resolveAttentionRoute(s.id, isAssociate);
+      if (route) return route;
+    }
+    return isAssociate ? "/associate/inquiries" : "/admin/crm/inquiries";
   }
 
   if (authLoading || loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading admin workspace...</Text>
+        <ActivityIndicator size="large" color={Colors.primary} accessibilityLabel="Loading admin" />
+        <Text style={styles.loadingText}>Loading…</Text>
       </View>
     );
   }
@@ -259,17 +435,17 @@ export default function AdminTab() {
   if (!isSignedIn && !canUseAdmin) {
     return (
       <View style={styles.centered}>
-        <Ionicons name="lock-closed-outline" size={42} color={Colors.textTertiary} />
+        <Ionicons name="lock-closed-outline" size={42} color={Colors.textTertiary} accessibilityLabel="Locked" />
         <Text style={styles.emptyTitle}>Admin access required</Text>
-        <Text style={styles.emptyText}>Sign in with an authorized staff account to use mobile admin.</Text>
+        <Text style={styles.emptyText}>Sign in with authorized staff credentials.</Text>
         <Pressable
           testID="admin-sign-in"
           accessibilityRole="button"
-          accessibilityLabel="Sign in to mobile admin"
+          accessibilityLabel="Sign in"
           style={styles.primaryButton}
           onPress={() => router.push("/login")}
         >
-          <Text style={styles.primaryButtonText}>Sign In</Text>
+          <Text style={styles.primaryButtonText}>Sign in</Text>
         </Pressable>
       </View>
     );
@@ -280,41 +456,42 @@ export default function AdminTab() {
       <View style={styles.centered}>
         <Ionicons name="shield-outline" size={42} color={Colors.textTertiary} />
         <Text style={styles.emptyTitle}>No admin workspace</Text>
-        <Text style={styles.emptyText}>Your account does not currently have mobile admin permissions.</Text>
+        <Text style={styles.emptyText}>Mobile admin isn’t enabled for this account.</Text>
       </View>
     );
   }
 
+  const roleBadgeLabel = displayRoleBadge({ organizationRole, isAssociate, isOwner });
+  const sync = syncLine(overview?.generatedAt ?? null);
+
   return (
     <ScrollView
       testID="admin-dashboard"
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => void loadOverview("refresh")} />
-      }
+      style={styles.screen}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.md }]}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void loadOverview("refresh")} />}
       showsVerticalScrollIndicator={false}
     >
-      <LinearGradient
-        colors={[Colors.gradient1, Colors.gradient2]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <View style={styles.heroTopRow}>
-          <View>
-            <Text style={styles.kicker}>Mobile Admin</Text>
-            <Text style={styles.heroTitle}>Run today from here</Text>
-          </View>
-          <View style={styles.rolePill}>
-            <Text style={styles.rolePillText}>{roleLabel(organizationRole, isAssociate)}</Text>
-          </View>
+      <View testID="admin-command-header" style={styles.toolbar}>
+        <View style={styles.toolbarAccent} accessibilityElementsHidden />
+        <View style={styles.toolbarRow}>
+          <Text style={styles.toolbarTitle} allowFontScaling={false} accessibilityRole="header">
+            Admin
+          </Text>
+          <AdminStatusPill label={roleBadgeLabel} variant="neutral" compact testID="admin-role-pill" />
+          {showNetPill ? (
+            <AdminStatusPill
+              label={net.isOnline ? "Limited connectivity" : "Offline"}
+              variant={net.isOnline ? "warning" : "offline"}
+              compact
+              testID="admin-connection-pill"
+            />
+          ) : null}
         </View>
-        <Text style={styles.heroSubtitle}>
-          CRM, sales, operations, finance, communications, reports, settings, and audit controls
-          are organized into role-aware mobile modules.
+        <Text style={styles.syncTiny} allowFontScaling={false}>
+          {sync ?? "Pull down to refresh"}
         </Text>
-      </LinearGradient>
+      </View>
 
       {error ? (
         <View style={styles.errorCard}>
@@ -323,181 +500,124 @@ export default function AdminTab() {
         </View>
       ) : null}
 
-      {visibleQuickActions.length ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Access</Text>
-          <View style={styles.quickRow}>
-            {visibleQuickActions.map((qa) => (
-              <Pressable
-                key={qa.id}
-                testID={`quick-action-${qa.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${qa.title}`}
-                style={styles.quickCard}
-                onPress={() => router.push(qa.route as never)}
-              >
-                <View style={styles.quickIcon}>
-                  <Ionicons
-                    name={qa.icon}
-                    size={22}
-                    color={qa.iconColor ?? Colors.primary}
-                  />
-                </View>
-                <Text style={styles.quickTitle}>{qa.title}</Text>
-                <Text style={styles.quickDescription} numberOfLines={2}>
-                  {qa.description}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+      <AdminSection title="Focus" dense testID="admin-focus-section">
+        {!attentionStats.length ? (
+          <AdminFocusEmpty testID="admin-focus-empty" />
+        ) : focusPick ? (
+          <AdminFocusCard
+            eyebrow="Today"
+            title={focusPick.title}
+            detail={focusPick.detail}
+            actionLabel={focusPick.actionLabel}
+            onPress={
+              focusRoute && focusPick.actionLabel
+                ? () => router.push(focusRoute as never)
+                : undefined
+            }
+            priorityTone={focusPick.tone}
+            secondaryLine={
+              moreAttentionCount > 0
+                ? `${moreAttentionCount} more ${moreAttentionCount === 1 ? "item needs" : "items need"} attention`
+                : focusPick.stat.id === "unread-notifications"
+                  ? "Unread alerts appear on web admin"
+                  : undefined
+            }
+            onSecondaryPress={moreAttentionCount > 0 ? () => router.push(firstRoutedAttentionRoute() as never) : undefined}
+            testID="admin-focus-card"
+          />
+        ) : (
+          <AdminFocusEmpty />
+        )}
+      </AdminSection>
+
+      {shortcutActions.length ? (
+        <AdminSection title="Shortcuts" dense>
+          <AdminActionRail
+            compact
+            singleRow={shortcutActions.length <= 5}
+            actions={shortcutActions.map((s) => ({
+              id: s.id,
+              title: s.title,
+              icon: s.icon,
+              iconColor: s.iconColor,
+              onPress: s.onPress,
+            }))}
+            testIDPrefix="admin-action"
+          />
+        </AdminSection>
       ) : null}
 
-      {overview?.stats?.length ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today</Text>
-          <View style={styles.statsGrid}>
-            {overview.stats.map((stat) => (
-              <View
-                key={stat.id}
-                style={[
-                  styles.statCard,
-                  stat.requiresAttention ? styles.statCardAttention : null,
-                ]}
-              >
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-                <Text style={styles.statCategory}>{stat.category}</Text>
+      {snapshotItems.length ? (
+        <AdminSection title="Snapshot" dense testID="admin-snapshot-zone">
+          <View style={[styles.snapRow, { gap: layoutGutter }]}>
+            {snapshotItems.map((st) => (
+              <View key={st.id} style={[styles.snapCell, { width: snapshotTile }]}>
+                <AdminMetricCard
+                  id={`snap-${st.id}`}
+                  label={snapshotLabel(st)}
+                  category={st.category}
+                  value={formatSnapshotStat(st)}
+                  dotTone={st.requiresAttention ? "attention" : "neutral"}
+                  showCategory={false}
+                  requiresAttention={false}
+                />
               </View>
             ))}
           </View>
-        </View>
+        </AdminSection>
       ) : null}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Admin Modules</Text>
-        <Text style={styles.sectionHint}>
-          Visible modules are based on your server-side role and associate access.
-        </Text>
-        <View style={styles.moduleList}>
-          {mobileNavigation.map((module) => (
-            <Pressable
-              key={module.id}
-              testID={`admin-module-${module.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${module.title}`}
-              accessibilityHint={module.acceptanceTarget}
-              style={styles.moduleCard}
-              onPress={() => openModule(module)}
-            >
-              <View style={styles.moduleIcon}>
-                <Ionicons name={module.icon as never} size={22} color={Colors.primary} />
-              </View>
-              <View style={styles.moduleBody}>
-                <View style={styles.moduleTitleRow}>
-                  <Text style={styles.moduleTitle}>{module.title}</Text>
-                  <Text style={styles.statusBadge}>{statusLabel(module.status)}</Text>
-                </View>
-                <Text style={styles.moduleDescription}>{module.description}</Text>
-                <View style={styles.workflowList}>
-                  {module.workflows.slice(0, 2).map((workflow) => (
-                    <Text key={workflow} style={styles.workflowText}>
-                      - {workflow}
-                    </Text>
-                  ))}
-                </View>
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaText}>{module.phase}</Text>
-                  <Text style={styles.metaDot}>•</Text>
-                  <Text style={styles.metaText}>{module.offlinePolicy.replace(/_/g, " ")}</Text>
-                  <Text style={styles.metaDot}>•</Text>
-                  <Text style={styles.metaText}>{module.webRoutes.length} web routes</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
-            </Pressable>
+      <AdminSection title="Tools" dense>
+        <View style={styles.toolsList}>
+          {toolModules.map((mod) => (
+            <AdminModuleCard key={mod.id} module={mod} variant="tool" onPress={() => openModule(mod)} />
           ))}
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Safety Guardrails</Text>
-        <View style={styles.guardrailCard}>
-          <Guardrail
-            icon="cloud-offline-outline"
-            title="Offline policy"
-            text="CRM and operations can use drafts, but finance and sensitive settings require online confirmation."
-          />
-          <Guardrail
-            icon="repeat-outline"
-            title="Write retry policy"
-            text="Non-idempotent finance writes stay protected from unsafe automatic retries."
-          />
-          <Guardrail
-            icon="server-outline"
-            title="Server truth"
-            text="Roles, prices, balances, allocations, reports, and status transitions remain server-authoritative."
-          />
-          <Guardrail
-            icon="shield-checkmark-outline"
-            title={canUseFinance ? "Finance enabled" : "Finance restricted"}
-            text={
-              canUseFinance
-                ? "Finance modules are available with online-only money movement safeguards."
-                : "Finance modules remain hidden unless your role is Finance, Admin, or Owner."
-            }
-          />
-        </View>
-      </View>
-
-      {overview?.rollout?.length ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rollout Sequence</Text>
-          <View style={styles.timelineCard}>
-            {overview.rollout.map((item, index) => (
-              <View key={item} style={styles.timelineRow}>
-                <View style={styles.timelineIndex}>
-                  <Text style={styles.timelineIndexText}>{index + 1}</Text>
-                </View>
-                <Text style={styles.timelineText}>{item}</Text>
+        {plannedModules.length ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={plannedOpen ? "Hide planned modules" : "Show planned modules"}
+              onPress={() => setPlannedOpen((v) => !v)}
+              style={styles.plannedToggle}
+              testID="admin-planned-toggle"
+            >
+              <Text style={styles.plannedToggleText}>
+                {plannedOpen ? "Hide" : "Show"} upcoming modules ({plannedModules.length})
+              </Text>
+              <Ionicons name={plannedOpen ? "chevron-up" : "chevron-down"} size={18} color={Colors.textTertiary} />
+            </Pressable>
+            {plannedOpen ? (
+              <View style={styles.toolsList}>
+                {plannedModules.map((mod) => (
+                  <AdminModuleCard key={`p-${mod.id}`} module={mod} variant="tool" onPress={() => openModule(mod)} />
+                ))}
               </View>
-            ))}
-          </View>
-        </View>
-      ) : null}
+            ) : null}
+          </>
+        ) : null}
+      </AdminSection>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open admin safeguards"
+        accessibilityHint="Shows safety and offline policies."
+        onPress={() => router.push("/admin/safeguards" as never)}
+        style={styles.footerLink}
+        testID="admin-safeguards-link"
+      >
+        <Text style={styles.footerLinkText}>Admin safeguards</Text>
+        <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} accessibilityElementsHidden />
+      </Pressable>
     </ScrollView>
   );
 }
 
-function Guardrail({
-  icon,
-  title,
-  text,
-}: {
-  icon: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <View style={styles.guardrailRow}>
-      <View style={styles.guardrailIcon}>
-        <Ionicons name={icon as never} size={18} color={Colors.primary} />
-      </View>
-      <View style={styles.guardrailBody}>
-        <Text style={styles.guardrailTitle}>{title}</Text>
-        <Text style={styles.guardrailText}>{text}</Text>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  screen: { flex: 1, backgroundColor: Colors.background },
   content: {
-    paddingTop: Spacing.lg,
+    gap: Spacing.xs,
   },
   centered: {
     flex: 1,
@@ -507,10 +627,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     gap: Spacing.md,
   },
-  loadingText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-  },
+  loadingText: { fontSize: FontSize.sm, color: Colors.textSecondary },
   emptyTitle: {
     fontSize: FontSize.xl,
     fontWeight: "800",
@@ -530,298 +647,86 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     marginTop: Spacing.sm,
   },
-  primaryButtonText: {
-    color: Colors.textInverse,
-    fontWeight: "800",
-    fontSize: FontSize.md,
-  },
-  hero: {
+  primaryButtonText: { color: Colors.textInverse, fontWeight: "800", fontSize: FontSize.md },
+
+  toolbar: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderSubtle,
+    gap: 6,
     marginHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    ...Shadows.medium,
+    marginBottom: Spacing.xs,
   },
-  heroTopRow: {
+  toolbarAccent: {
+    height: 2,
+    width: 48,
+    marginBottom: Spacing.sm,
+    marginTop: 2,
+    borderRadius: 1,
+    backgroundColor: Colors.primary,
+    alignSelf: "flex-start",
+    marginLeft: 0,
+  },
+  toolbarRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: Spacing.md,
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
   },
-  kicker: {
-    color: "rgba(255,255,255,0.78)",
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  heroTitle: {
-    color: Colors.textInverse,
-    fontSize: FontSize.xxxl,
-    fontWeight: "900",
-    marginTop: 4,
-  },
-  heroSubtitle: {
-    color: "rgba(255,255,255,0.86)",
-    fontSize: FontSize.md,
-    lineHeight: 21,
-    marginTop: Spacing.md,
-  },
-  rolePill: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderColor: "rgba(255,255,255,0.28)",
-    borderWidth: 1,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  rolePillText: {
-    color: Colors.textInverse,
+  toolbarTitle: {
+    fontSize: FontSize.lg,
     fontWeight: "800",
-    fontSize: FontSize.sm,
+    color: Colors.text,
+    letterSpacing: 0,
+  },
+  syncTiny: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    fontWeight: "600",
+    marginTop: 2,
   },
   errorCard: {
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
     padding: Spacing.md,
+    backgroundColor: "#fff1f2",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#fecdd3",
+    borderRadius: BorderRadius.md,
     flexDirection: "row",
     gap: Spacing.sm,
     alignItems: "center",
   },
-  errorText: {
-    flex: 1,
-    color: Colors.error,
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-  },
-  section: {
-    marginTop: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: "900",
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  sectionHint: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.sm,
-    marginBottom: Spacing.md,
-  },
-  quickRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  quickCard: {
-    flex: 1,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    gap: 6,
-    minHeight: 96,
-  },
-  quickIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primaryBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickTitle: {
-    fontSize: FontSize.md,
-    fontWeight: "800",
-    color: Colors.text,
-    marginTop: 2,
-  },
-  quickDescription: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    lineHeight: 16,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.md,
-  },
-  statCard: {
-    width: "47.8%",
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-  },
-  statCardAttention: {
-    borderColor: Colors.primaryLight,
-    backgroundColor: Colors.primaryBg,
-  },
-  statValue: {
-    fontSize: FontSize.xxl,
-    fontWeight: "900",
-    color: Colors.text,
-  },
-  statLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.text,
-    fontWeight: "700",
-    marginTop: 4,
-  },
-  statCategory: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    marginTop: 2,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  moduleList: {
-    gap: Spacing.md,
-  },
-  moduleCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    ...Shadows.light,
-  },
-  moduleIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primaryBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  moduleBody: {
-    flex: 1,
-    gap: 5,
-  },
-  moduleTitleRow: {
+  errorText: { flex: 1, color: Colors.error, fontSize: FontSize.sm, fontWeight: "600" },
+
+  snapRow: { flexDirection: "row", flexWrap: "wrap" },
+  snapCell: { maxWidth: "100%" },
+
+  toolsList: { gap: 2 },
+
+  plannedToggle: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
   },
-  moduleTitle: {
-    flex: 1,
-    fontSize: FontSize.lg,
-    color: Colors.text,
-    fontWeight: "900",
-  },
-  statusBadge: {
-    fontSize: FontSize.xs,
-    color: Colors.primary,
-    backgroundColor: Colors.primaryBg,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    overflow: "hidden",
-    fontWeight: "800",
-  },
-  moduleDescription: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.sm,
-    lineHeight: 19,
-  },
-  workflowList: {
-    gap: 2,
-    marginTop: 2,
-  },
-  workflowText: {
-    color: Colors.textSecondary,
-    fontSize: FontSize.xs,
-    lineHeight: 16,
-  },
-  metaRow: {
+  plannedToggleText: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: "700" },
+
+  footerLink: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.xs,
-  },
-  metaText: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "700",
-    textTransform: "uppercase",
-  },
-  metaDot: {
-    color: Colors.textTertiary,
-  },
-  guardrailCard: {
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    backgroundColor: Colors.surface,
-    overflow: "hidden",
-  },
-  guardrailRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  },
-  guardrailIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryBg,
     alignItems: "center",
     justifyContent: "center",
+    gap: 4,
+    paddingVertical: Spacing.lg,
+    marginHorizontal: Spacing.xl,
   },
-  guardrailBody: {
-    flex: 1,
-  },
-  guardrailTitle: {
-    fontSize: FontSize.md,
-    fontWeight: "800",
-    color: Colors.text,
-  },
-  guardrailText: {
+  footerLinkText: {
     fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    lineHeight: 19,
-    marginTop: 2,
-  },
-  timelineCard: {
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    backgroundColor: Colors.background,
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  timelineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  timelineIndex: {
-    width: 26,
-    height: 26,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timelineIndexText: {
-    color: Colors.primary,
-    fontWeight: "900",
-    fontSize: FontSize.xs,
-  },
-  timelineText: {
-    flex: 1,
-    fontSize: FontSize.md,
-    color: Colors.text,
     fontWeight: "700",
+    color: Colors.textSecondary,
+    textDecorationLine: "underline",
   },
 });

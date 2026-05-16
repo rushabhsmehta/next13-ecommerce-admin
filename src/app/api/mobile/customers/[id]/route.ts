@@ -1,12 +1,26 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import {
   assertCrmApiAccessForRequest,
   crmAccessErrorResponse,
 } from "@/lib/crm-route-access";
+import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import { dateToUtc } from "@/lib/timezone-utils";
+import { normalizePhoneNumber } from "@/lib/phone-utils";
 
 export const dynamic = "force-dynamic";
+
+const updateSchema = z.object({
+  name: z.string().min(1).max(200),
+  contact: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal("")),
+  associatePartnerId: z.string().optional().nullable(),
+  birthdate: z.string().optional().nullable(),
+  marriageAnniversary: z.string().optional().nullable(),
+});
 
 /**
  * Mobile customer detail: returns customer profile + most recent inquiries
@@ -87,6 +101,102 @@ export async function GET(
     });
   } catch (error) {
     console.log("[MOBILE_CUSTOMER_DETAIL]", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    try {
+      await assertCrmApiAccessForRequest(userId, req.url);
+    } catch (e) {
+      const denied = crmAccessErrorResponse(e);
+      if (denied) return denied;
+      throw e;
+    }
+
+    if (!params.id) {
+      return new NextResponse("Customer ID is required", { status: 400 });
+    }
+
+    const body = await req.json();
+    const parsed = updateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid customer payload", details: parsed.error.flatten() },
+        { status: 422 }
+      );
+    }
+
+    const { name, contact, email, associatePartnerId, birthdate, marriageAnniversary } =
+      parsed.data;
+
+    const normalizedName = name.trim();
+    if (!normalizedName) {
+      return new NextResponse("Name is required", { status: 400 });
+    }
+    const normalizedEmail =
+      typeof email === "string" && email.trim().length > 0 ? email.trim() : null;
+    const sanitizedPartnerId =
+      typeof associatePartnerId === "string" && associatePartnerId.trim().length > 0
+        ? associatePartnerId.trim()
+        : null;
+
+    let contactValue: string | null = null;
+    let shouldUpdateContact = false;
+    if (contact !== undefined) {
+      shouldUpdateContact = true;
+      if (typeof contact === "string" && contact.trim().length > 0) {
+        const normalizedContact = normalizePhoneNumber(contact);
+        if (!normalizedContact) {
+          return new NextResponse("Invalid contact number", { status: 400 });
+        }
+        contactValue = normalizedContact.e164;
+      } else {
+        contactValue = null;
+      }
+    }
+
+    const updateData: Prisma.CustomerUpdateInput = {
+      name: normalizedName,
+      email: normalizedEmail,
+      birthdate: dateToUtc(birthdate),
+      marriageAnniversary: dateToUtc(marriageAnniversary),
+    };
+    if (shouldUpdateContact) {
+      updateData.contact = contactValue;
+    }
+    if (associatePartnerId !== undefined) {
+      updateData.associatePartner = sanitizedPartnerId
+        ? { connect: { id: sanitizedPartnerId } }
+        : { disconnect: true };
+    }
+
+    const customer = await prismadb.customer.update({
+      where: { id: params.id },
+      data: updateData,
+      include: {
+        associatePartner: { select: { id: true, name: true } },
+      },
+    });
+
+    await recordMobileAudit({
+      userId,
+      entityType: "Customer",
+      entityId: customer.id,
+      action: "UPDATE",
+      metadata: { name: customer.name, contact: customer.contact },
+    });
+
+    return NextResponse.json(customer);
+  } catch (error) {
+    console.log("[MOBILE_CUSTOMER_PATCH]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }

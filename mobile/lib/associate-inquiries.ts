@@ -66,6 +66,8 @@ export interface AssociateInquiryInput {
   numChildrenBelow5?: number;
   remarks?: string;
   nextFollowUpDate?: string;
+  /** Admin-only: link inquiry to an associate partner. */
+  associatePartnerId?: string;
   roomAllocations?: InquiryRoomAllocationPayload[];
   transportDetails?: InquiryTransportPayload[];
 }

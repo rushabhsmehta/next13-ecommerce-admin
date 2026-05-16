@@ -29,6 +29,27 @@ jest.mock("expo-network", () => ({
   ),
 }));
 
+jest.mock("@expo/vector-icons", () => {
+  const React = jest.requireActual("react");
+  const { View } = jest.requireActual("react-native");
+  const makeIcon = (displayName: string) => {
+    const Icon = (props: any) =>
+      React.createElement(View, { ...props, "data-icon": displayName });
+    Icon.displayName = displayName;
+    return Icon;
+  };
+  return {
+    Ionicons: makeIcon("Ionicons"),
+    MaterialIcons: makeIcon("MaterialIcons"),
+    MaterialCommunityIcons: makeIcon("MaterialCommunityIcons"),
+    FontAwesome: makeIcon("FontAwesome"),
+    FontAwesome5: makeIcon("FontAwesome5"),
+    Feather: makeIcon("Feather"),
+    AntDesign: makeIcon("AntDesign"),
+    Entypo: makeIcon("Entypo"),
+  };
+});
+
 jest.mock("@clerk/clerk-expo", () => ({
   ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
   ClerkLoaded: ({ children }: { children: React.ReactNode }) => children,

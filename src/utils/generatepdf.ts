@@ -239,3 +239,88 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
     }
   }
 }
+
+/**
+ * Render a fully-built page URL to a PDF buffer. Used by the mobile PDF
+ * endpoint so it can reuse the exact web PDF/display composition (the
+ * `/tourPackageQueryDisplay/[id]` and `/tourPackageQueryPDFGenerator/[id]`
+ * pages are public) without re-implementing the HTML on the server.
+ *
+ * Unlike `generatePDF`, this navigates with `page.goto` so the page's own
+ * client rendering runs, then prints to PDF.
+ */
+export async function generatePDFFromUrl(
+  url: string,
+  options?: GeneratePdfOptions & { waitMs?: number }
+): Promise<Buffer> {
+  if (!url) {
+    throw new Error("A page URL is required to generate a PDF.");
+  }
+
+  let browser: Browser | null = null;
+  try {
+    const isProduction =
+      process.env.NODE_ENV === "production" ||
+      process.env.VERCEL_ENV === "production";
+
+    if (isProduction) {
+      const executablePath = await chromium.executablePath(
+        "https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar"
+      );
+      browser = await puppeteer.launch({
+        executablePath,
+        args: chromium.args,
+        headless: chromium.headless,
+        defaultViewport: chromium.defaultViewport,
+      });
+    } else {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      });
+    }
+
+    const page = await browser.newPage();
+    // Identify as automation so server-side org RBAC relaxes for internal
+    // PDF jobs (see isCrmPdfAutomationRequest in crm-route-access.ts).
+    await page.setUserAgent(
+      "Mozilla/5.0 (compatible; HeadlessChrome) AagamMobilePDF"
+    );
+    await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
+    await page.evaluateHandle("document.fonts.ready");
+    if (options?.waitMs && options.waitMs > 0) {
+      await new Promise((r) => setTimeout(r, options.waitMs));
+    }
+
+    const hasHeaderFooter = Boolean(options?.headerHtml || options?.footerHtml);
+    const marginDefaults = hasHeaderFooter
+      ? { top: "72px", right: "14px", bottom: "96px", left: "14px" }
+      : { top: "10px", right: "10px", bottom: "10px", left: "10px" };
+    const margin = {
+      top: options?.margin?.top ?? marginDefaults.top,
+      right: options?.margin?.right ?? marginDefaults.right,
+      bottom: options?.margin?.bottom ?? marginDefaults.bottom,
+      left: options?.margin?.left ?? marginDefaults.left,
+    };
+
+    const pdfBuffer = (await page.pdf({
+      format: "A4",
+      printBackground: true,
+      scale: options?.scale ?? 0.8,
+      margin,
+      displayHeaderFooter: hasHeaderFooter,
+      headerTemplate: options?.headerHtml ?? "<div></div>",
+      footerTemplate:
+        options?.footerHtml ??
+        `<div style="font-size:10px;padding:8px;color:#64748b;width:100%;text-align:center;">
+          Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>`,
+    })) as Buffer;
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error("Error in URL PDF generation:", error);
+    throw error;
+  } finally {
+    if (browser) await browser.close();
+  }
+}

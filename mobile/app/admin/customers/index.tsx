@@ -145,6 +145,15 @@ export default function CustomersListScreen() {
             {loading ? "…" : `${total} total`}
           </Text>
         </View>
+        <Pressable
+          testID="customers-new"
+          accessibilityRole="button"
+          accessibilityLabel="New customer"
+          onPress={() => router.push("/admin/customers/new" as never)}
+          style={styles.newBtn}
+        >
+          <Ionicons name="add" size={20} color="#fff" />
+        </Pressable>
       </View>
 
       <View style={styles.searchRow}>
@@ -303,6 +312,14 @@ const styles = StyleSheet.create({
   headerTextWrap: { flex: 1 },
   headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
   headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
+  newBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,8 +1,47 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
+import {
+  associateCanViewTourPackageQuery,
+  requireSalesTripsRead,
+  requireSalesTripsWrite,
+} from "@/app/api/mobile/lib/assert-sales-trips-access";
+import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 
 export const dynamic = "force-dynamic";
+
+const stringArray = z.array(z.string()).optional();
+const patchSchema = z.object({
+  tourPackageQueryName: z.string().max(300).optional(),
+  customerName: z.string().max(200).optional(),
+  customerNumber: z.string().max(40).optional(),
+  numAdults: z.string().max(10).optional(),
+  numChild5to12: z.string().max(10).optional(),
+  numChild0to5: z.string().max(10).optional(),
+  tourStartsFrom: z.string().optional().nullable(),
+  tourEndsOn: z.string().optional().nullable(),
+  remarks: z.string().max(5000).optional().nullable(),
+  inclusions: stringArray,
+  exclusions: stringArray,
+  importantNotes: stringArray,
+  paymentPolicy: stringArray,
+  usefulTip: stringArray,
+  cancellationPolicy: stringArray,
+  airlineCancellationPolicy: stringArray,
+  termsconditions: stringArray,
+  kitchenGroupPolicy: stringArray,
+  itineraries: z
+    .array(
+      z.object({
+        id: z.string(),
+        itineraryTitle: z.string().optional(),
+        itineraryDescription: z.string().optional(),
+        mealsIncluded: z.string().optional(),
+      })
+    )
+    .optional(),
+});
 
 /**
  * Try to parse a value that may be a JSON-encoded string array (legacy storage
@@ -38,6 +77,10 @@ export async function GET(
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const accessResult = await requireSalesTripsRead(userId);
+    if (!accessResult.ok) return accessResult.response;
+    const { access } = accessResult;
 
     const params = await props.params;
     if (!params.id) return new NextResponse("Missing id", { status: 400 });
@@ -80,6 +123,7 @@ export async function GET(
         kitchenGroupPolicy: true,
         isFeatured: true,
         isArchived: true,
+        associatePartnerId: true,
         confirmedVariantId: true,
         assignedTo: true,
         assignedToMobileNumber: true,
@@ -94,6 +138,7 @@ export async function GET(
             customerName: true,
             customerMobileNumber: true,
             status: true,
+            associatePartnerId: true,
           },
         },
         flightDetails: {
@@ -154,6 +199,10 @@ export async function GET(
 
     if (!tpq) return new NextResponse("Not found", { status: 404 });
 
+    if (!associateCanViewTourPackageQuery(access, tpq)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     const response = {
       ...tpq,
       inclusionsList: parsePolicyField(tpq.inclusions),
@@ -170,6 +219,134 @@ export async function GET(
     return NextResponse.json(response);
   } catch (error) {
     console.log("[MOBILE_TOUR_QUERY_GET]", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}
+
+/**
+ * Native edit for a tour query: core fields, policy text blocks (stored as
+ * JSON string arrays), and per-day itinerary text (title / description /
+ * meals). Hotel, room allocation and transport editing stay in the web hotel
+ * editor (linked from the detail screen) — they require pricing-aware nested
+ * forms outside this slice. Requires `salesTrips.write` + associate scope.
+ */
+export async function PATCH(
+  req: Request,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const accessResult = await requireSalesTripsWrite(userId);
+    if (!accessResult.ok) return accessResult.response;
+    const { access } = accessResult;
+
+    const params = await props.params;
+    const id = params.id?.trim();
+    if (!id) return new NextResponse("Missing id", { status: 400 });
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const parsed = patchSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: parsed.error.flatten() },
+        { status: 422 }
+      );
+    }
+    const v = parsed.data;
+
+    const existing = await prismadb.tourPackageQuery.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        associatePartnerId: true,
+        inquiry: { select: { associatePartnerId: true } },
+        itineraries: { select: { id: true } },
+      },
+    });
+    if (!existing) return new NextResponse("Not found", { status: 404 });
+    if (!associateCanViewTourPackageQuery(access, existing)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (v.tourPackageQueryName !== undefined)
+      data.tourPackageQueryName = v.tourPackageQueryName;
+    if (v.customerName !== undefined) data.customerName = v.customerName;
+    if (v.customerNumber !== undefined) data.customerNumber = v.customerNumber;
+    if (v.numAdults !== undefined) data.numAdults = v.numAdults;
+    if (v.numChild5to12 !== undefined) data.numChild5to12 = v.numChild5to12;
+    if (v.numChild0to5 !== undefined) data.numChild0to5 = v.numChild0to5;
+    if (v.remarks !== undefined) data.remarks = v.remarks;
+    if (v.tourStartsFrom !== undefined)
+      data.tourStartsFrom = v.tourStartsFrom ? new Date(v.tourStartsFrom) : null;
+    if (v.tourEndsOn !== undefined)
+      data.tourEndsOn = v.tourEndsOn ? new Date(v.tourEndsOn) : null;
+
+    const policyKeys = [
+      "inclusions",
+      "exclusions",
+      "importantNotes",
+      "paymentPolicy",
+      "usefulTip",
+      "cancellationPolicy",
+      "airlineCancellationPolicy",
+      "termsconditions",
+      "kitchenGroupPolicy",
+    ] as const;
+    for (const key of policyKeys) {
+      const val = v[key];
+      if (val !== undefined) {
+        data[key] = val.filter((s) => s.trim().length > 0);
+      }
+    }
+
+    const validItineraryIds = new Set(existing.itineraries.map((i) => i.id));
+
+    await prismadb.$transaction(async (tx) => {
+      if (Object.keys(data).length > 0) {
+        await tx.tourPackageQuery.update({ where: { id }, data });
+      }
+      if (v.itineraries?.length) {
+        for (const it of v.itineraries) {
+          if (!validItineraryIds.has(it.id)) continue;
+          const itData: Record<string, unknown> = {};
+          if (it.itineraryTitle !== undefined)
+            itData.itineraryTitle = it.itineraryTitle;
+          if (it.itineraryDescription !== undefined)
+            itData.itineraryDescription = it.itineraryDescription;
+          if (it.mealsIncluded !== undefined)
+            itData.mealsIncluded = it.mealsIncluded;
+          if (Object.keys(itData).length > 0) {
+            await tx.itinerary.update({
+              where: { id: it.id },
+              data: itData,
+            });
+          }
+        }
+      }
+    });
+
+    await recordMobileAudit({
+      userId,
+      entityType: "TourPackageQuery",
+      entityId: id,
+      action: "UPDATE",
+      metadata: {
+        fields: Object.keys(data),
+        itinerariesTouched: v.itineraries?.length ?? 0,
+      },
+    });
+
+    return NextResponse.json({ id, updated: true });
+  } catch (error) {
+    console.log("[MOBILE_TOUR_QUERY_PATCH]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }

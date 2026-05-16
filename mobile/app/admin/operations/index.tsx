@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
+import { AdminHeader } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -148,21 +149,13 @@ export default function OperationsHubScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <Stack.Screen options={{ title: "Operations", headerShown: false }} />
 
-      <View style={styles.header}>
-        <Pressable
-          style={styles.iconBtn}
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Operations</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${total} ${currentTab.label.toLowerCase()}`}
-          </Text>
-        </View>
-      </View>
+      <AdminHeader
+        title="Operations"
+        subtitle={loading ? "…" : `${total} · ${currentTab.label}`}
+        onBackPress={() => router.back()}
+        showAccent
+        testID="operations-admin-header"
+      />
 
       <ScrollView
         horizontal
@@ -177,7 +170,7 @@ export default function OperationsHubScreen() {
               testID={`operations-tab-${t.id}`}
               accessibilityRole="button"
               accessibilityLabel={t.label}
-              style={[styles.tabChip, active ? styles.tabChipActive : null]}
+              style={[styles.segment, active ? styles.segmentActive : null]}
               onPress={() => {
                 setTab(t.id);
                 setSearch("");
@@ -187,9 +180,9 @@ export default function OperationsHubScreen() {
               <Ionicons
                 name={t.icon}
                 size={14}
-                color={active ? "#fff" : Colors.textSecondary}
+                color={active ? Colors.textInverse : Colors.textSecondary}
               />
-              <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
+              <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
                 {t.label}
               </Text>
             </Pressable>
@@ -216,6 +209,32 @@ export default function OperationsHubScreen() {
           </Pressable>
         ) : null}
       </View>
+
+      {tab === "suppliers" ? (
+        <Pressable
+          testID="operations-manage-suppliers"
+          accessibilityRole="button"
+          accessibilityLabel="Manage suppliers — add, edit, delete"
+          style={styles.manageBanner}
+          onPress={() => router.push("/admin/operations/suppliers" as never)}
+        >
+          <Ionicons name="construct-outline" size={16} color={Colors.primary} />
+          <Text style={styles.manageText}>Manage suppliers (add / edit / delete)</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+        </Pressable>
+      ) : (
+        <Pressable
+          testID="operations-manage-staff"
+          accessibilityRole="button"
+          accessibilityLabel="Manage operational staff — add, edit, deactivate"
+          style={styles.manageBanner}
+          onPress={() => router.push("/admin/operations/staff" as never)}
+        >
+          <Ionicons name="people-outline" size={16} color={Colors.primary} />
+          <Text style={styles.manageText}>Manage operational staff</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+        </Pressable>
+      )}
 
       {error ? (
         <View style={styles.errorCard}>
@@ -251,11 +270,9 @@ export default function OperationsHubScreen() {
             </View>
           ) : (
             <View style={styles.centeredInList}>
-              <Ionicons name={currentTab.icon} size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>Nothing here yet</Text>
-              <Text style={styles.emptyText}>
+              <Text style={styles.emptyBody}>
                 {debouncedSearch
-                  ? "Try a different search term."
+                  ? `No results for "${debouncedSearch}".`
                   : `No ${currentTab.label.toLowerCase()} found.`}
               </Text>
             </View>
@@ -268,36 +285,33 @@ export default function OperationsHubScreen() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => (
-          <View testID={`operations-row-${item.id}`} style={styles.row}>
-            {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
-            ) : (
-              <View style={[styles.thumb, styles.thumbPlaceholder]}>
-                <Ionicons
-                  name={currentTab.icon}
-                  size={18}
-                  color={Colors.textTertiary}
-                />
+        renderItem={({ item }) => {
+          const sub =
+            item.subtitle && item.meta
+              ? `${item.subtitle} · ${item.meta}`
+              : item.subtitle ?? item.meta ?? null;
+          return (
+            <View testID={`operations-row-${item.id}`} style={styles.row}>
+              {item.imageUrl ? (
+                <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
+              ) : (
+                <View style={[styles.thumb, styles.thumbPlaceholder]} accessibilityElementsHidden>
+                  <Ionicons name={currentTab.icon} size={20} color={Colors.textTertiary} />
+                </View>
+              )}
+              <View style={styles.rowTextCol}>
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {sub ? (
+                  <Text style={styles.rowSubtitle} numberOfLines={2}>
+                    {sub}
+                  </Text>
+                ) : null}
               </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {item.name}
-              </Text>
-              {item.subtitle ? (
-                <Text style={styles.rowSubtitle} numberOfLines={1}>
-                  {item.subtitle}
-                </Text>
-              ) : null}
-              {item.meta ? (
-                <Text style={styles.rowMeta} numberOfLines={1}>
-                  {item.meta}
-                </Text>
-              ) : null}
             </View>
-          </View>
-        )}
+          );
+        }}
       />
     </View>
   );
@@ -314,47 +328,37 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   centeredInList: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
+    paddingTop: Spacing.xl,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
     alignItems: "center",
-    justifyContent: "center",
   },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   tabRow: {
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-    paddingBottom: Spacing.sm,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    marginHorizontal: Spacing.lg,
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
   },
-  tabChip: {
+  segment: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "transparent",
   },
-  tabChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  tabText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
-  tabTextActive: { color: "#fff" },
+  segmentActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primaryDark,
+  },
+  segmentText: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.textSecondary },
+  segmentTextActive: { color: Colors.textInverse },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -369,6 +373,20 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   searchInput: { flex: 1, fontSize: FontSize.sm, color: Colors.text, paddingVertical: 0 },
+  manageBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+  },
+  manageText: { flex: 1, fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
   errorCard: {
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
@@ -386,13 +404,14 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    gap: Spacing.sm,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    borderRadius: BorderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   thumb: {
     width: 44,
@@ -400,16 +419,20 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     backgroundColor: Colors.surfaceAlt,
   },
-  thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
-  rowTitle: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
-  rowSubtitle: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
-  rowMeta: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: {
+  thumbPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  rowTextCol: { flex: 1, gap: 2 },
+  rowTitle: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
+  rowSubtitle: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "600" },
+  emptyBody: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     textAlign: "center",
-    lineHeight: 20,
+    fontWeight: "600",
   },
+  footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
 });

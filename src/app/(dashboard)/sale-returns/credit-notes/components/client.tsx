@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { BadgeCheck, Clock, AlertCircle, Pencil } from "lucide-react";
@@ -65,7 +65,7 @@ export const CreditNotesClient: React.FC<CreditNotesClientProps> = ({ data }) =>
   const router = useRouter();
   const [editDialog, setEditDialog] = useState<EditDialogState | null>(null);
 
-  const columns: ColumnDef<CreditNoteRow>[] = [
+  const columns = useMemo<ColumnDef<CreditNoteRow>[]>(() => [
     {
       accessorKey: "creditNoteNumber",
       header: "CN Number",
@@ -161,7 +161,7 @@ export const CreditNotesClient: React.FC<CreditNotesClientProps> = ({ data }) =>
         </div>
       )
     }
-  ];
+  ], [router]);
 
   const totalCredit = data.reduce((sum, cn) => sum + cn.amount, 0);
   const totalAvailable = data.reduce((sum, cn) => sum + cn.availableCredit, 0);

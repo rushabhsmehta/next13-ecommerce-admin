@@ -1,0 +1,133 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import prismadb from "@/lib/prismadb";
+import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
+import {
+  requireOperationsRead,
+  requireOperationsWrite,
+} from "@/app/api/mobile/lib/assert-operations-access";
+import {
+  readIdempotencyKey,
+  findPriorIdempotentEntityId,
+} from "@/app/api/mobile/lib/finance-guard";
+import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+
+export const dynamic = "force-dynamic";
+
+const createSchema = z.object({
+  name: z.string().min(1, "Name is required").max(200),
+  contact: z.string().max(40).optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal("")),
+  gstNumber: z.string().max(30).optional().nullable(),
+  address: z.string().max(2000).optional().nullable(),
+});
+
+/** Supplier directory — list + create. operations.read / .write. */
+export async function GET(req: Request) {
+  try {
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+    const guard = await requireOperationsRead(userId);
+    if (!guard.ok) return guard.response;
+
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search")?.trim() ?? "";
+    const limitRaw = Number.parseInt(searchParams.get("limit") ?? "30", 10);
+    const offsetRaw = Number.parseInt(searchParams.get("offset") ?? "0", 10);
+    const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 30, 1), 100);
+    const offset = Math.max(Number.isFinite(offsetRaw) ? offsetRaw : 0, 0);
+
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search } },
+            { contact: { contains: search } },
+            { email: { contains: search } },
+          ],
+        }
+      : {};
+
+    const [suppliers, total] = await Promise.all([
+      prismadb.supplier.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          contact: true,
+          email: true,
+          gstNumber: true,
+          address: true,
+        },
+        orderBy: { name: "asc" },
+        skip: offset,
+        take: limit,
+      }),
+      prismadb.supplier.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      suppliers,
+      total,
+      hasMore: offset + suppliers.length < total,
+      nextOffset: offset + suppliers.length,
+    });
+  } catch (error) {
+    console.log("[MOBILE_OPS_SUPPLIERS_GET]", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+    const guard = await requireOperationsWrite(userId);
+    if (!guard.ok) return guard.response;
+
+    const key = readIdempotencyKey(req);
+    const prior = await findPriorIdempotentEntityId("Supplier", key);
+    if (prior) {
+      const existing = await prismadb.supplier.findUnique({
+        where: { id: prior },
+      });
+      return NextResponse.json(
+        { id: prior, supplier: existing, idempotentReplay: true },
+        { status: 200 }
+      );
+    }
+
+    const body = await req.json();
+    const parsed = createSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid supplier payload", details: parsed.error.flatten() },
+        { status: 422 }
+      );
+    }
+    const v = parsed.data;
+
+    const supplier = await prismadb.supplier.create({
+      data: {
+        name: v.name.trim(),
+        contact: v.contact?.trim() || null,
+        email: v.email && v.email.trim() ? v.email.trim() : null,
+        gstNumber: v.gstNumber?.trim() || null,
+        address: v.address?.trim() || null,
+      },
+      select: { id: true, name: true },
+    });
+
+    await recordMobileAudit({
+      userId,
+      entityType: "Supplier",
+      entityId: supplier.id,
+      action: "CREATE",
+      metadata: { idempotencyKey: key ?? undefined, name: supplier.name },
+    });
+
+    return NextResponse.json(supplier, { status: 201 });
+  } catch (error) {
+    console.log("[MOBILE_OPS_SUPPLIERS_POST]", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}

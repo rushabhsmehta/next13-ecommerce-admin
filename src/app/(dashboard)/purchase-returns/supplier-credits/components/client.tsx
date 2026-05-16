@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Building2, Clock, AlertCircle } from "lucide-react";
@@ -54,7 +55,7 @@ function StatusBadge({ status }: { status: string }) {
 export const SupplierCreditsClient: React.FC<SupplierCreditsClientProps> = ({ data }) => {
   const router = useRouter();
 
-  const columns: ColumnDef<SupplierCreditRow>[] = [
+  const columns = useMemo<ColumnDef<SupplierCreditRow>[]>(() => [
     {
       accessorKey: "supplierName",
       header: "Supplier",
@@ -125,7 +126,7 @@ export const SupplierCreditsClient: React.FC<SupplierCreditsClientProps> = ({ da
         </Button>
       )
     }
-  ];
+  ], [router]);
 
   const totalCredit = data.reduce((sum, sc) => sum + sc.amount, 0);
   const totalAvailable = data.reduce((sum, sc) => sum + sc.availableCredit, 0);

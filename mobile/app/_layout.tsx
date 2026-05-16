@@ -9,6 +9,7 @@ import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
+import { NetworkProvider } from "@/lib/network";
 import { Colors } from "@/constants/theme";
 import {
   configureChatNotifications,
@@ -162,6 +163,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
         <ClerkLoaded>
+          <NetworkProvider>
           <UnreadProvider>
             <WhatsAppUnreadProvider>
             <ErrorBoundary>
@@ -240,8 +242,64 @@ export default function RootLayout() {
               options={{ headerTitle: "Flows", headerBackTitle: "WhatsApp" }}
             />
             <Stack.Screen
-              name="admin/crm/inquiries"
+              name="admin/crm/inquiries/new"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/crm/inquiries/[inquiryId]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/crm/inquiries/index"
               options={{ headerTitle: "CRM Inquiries", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/customers/index"
+              options={{ headerTitle: "Customers", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/customers/[id]"
+              options={{ headerTitle: "Customer", headerBackTitle: "Customers" }}
+            />
+            <Stack.Screen
+              name="admin/tour-queries/index"
+              options={{ headerTitle: "Tour Queries", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/tour-queries/[id]"
+              options={{ headerTitle: "Tour Query", headerBackTitle: "Queries" }}
+            />
+            <Stack.Screen
+              name="admin/operations/index"
+              options={{ headerTitle: "Operations", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/finance/index"
+              options={{ headerTitle: "Finance", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/reports/index"
+              options={{ headerTitle: "Reports", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/coming-soon"
+              options={{ headerTitle: "Coming soon", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/todos/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/todos/new"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/todos/[id]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/exports/index"
+              options={{ headerTitle: "Exports", headerBackTitle: "Admin" }}
             />
             <Stack.Screen
               name="profile/inquiries"
@@ -275,6 +333,7 @@ export default function RootLayout() {
             </ErrorBoundary>
             </WhatsAppUnreadProvider>
           </UnreadProvider>
+          </NetworkProvider>
         </ClerkLoaded>
       </ClerkProvider>
     </SafeAreaProvider>

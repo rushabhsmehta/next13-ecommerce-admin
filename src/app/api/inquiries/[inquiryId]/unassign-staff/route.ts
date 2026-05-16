@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import { createAuditLog } from "@/lib/utils/audit-logger";
+import {
+  canAccessInquiryForContext,
+  resolveInquiryAccessContext,
+} from "@/lib/inquiry-access";
 
 export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: string }> }) {
   const params = await props.params;
@@ -10,6 +14,11 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const access = await resolveInquiryAccessContext(userId);
+    if (!access.isAdminLike) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     // Validate that the inquiry exists and get current assignment for audit log
@@ -24,6 +33,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
 
     if (!inquiry) {
       return new NextResponse("Inquiry not found", { status: 404 });
+    }
+    if (!canAccessInquiryForContext(access, inquiry.associatePartnerId ?? null)) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     // Get the name of the previously assigned staff for the audit log

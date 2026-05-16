@@ -69,6 +69,7 @@ export async function GET(req: Request, props: { params: Promise<{ inquiryId: st
       include: {
         location: true,
         associatePartner: true,
+        assignedStaff: true,
         actions: {
           orderBy: { createdAt: "desc" },
         },

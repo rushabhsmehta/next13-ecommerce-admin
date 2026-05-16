@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
@@ -43,7 +43,6 @@ import {
   ArrowDownUp, 
   Eye, 
   MoreHorizontal, 
-  Search,
   UserCircle,
   Calendar,
   FileText,
@@ -159,40 +158,38 @@ const AuditLogsPage = () => {
       
       const data = await response.json();
       
-      // Filter logs by user role if selected
-      let filteredLogs = data.auditLogs;
-      if (userRoleFilter) {
-        filteredLogs = filteredLogs.filter((log: AuditLog) => log.userRole === userRoleFilter);
-      }
-      
-      // Filter logs by search query
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        filteredLogs = filteredLogs.filter((log: AuditLog) => 
-          log.entityId.toLowerCase().includes(query) ||
-          log.userName.toLowerCase().includes(query) ||
-          log.userEmail.toLowerCase().includes(query) ||
-          (log.metadata && JSON.stringify(log.metadata).toLowerCase().includes(query))
-        );
-      }
-      
-      setAuditLogs(filteredLogs);
+      setRawAuditLogs(data.auditLogs);
       setPaginationInfo(data.pagination);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
     } finally {
       setLoading(false);
     }
-  }, [entityTypeFilter, actionFilter, userRoleFilter, searchQuery, paginationInfo.limit, paginationInfo.offset]);
-    // Initial fetch and fetch when filters change
+  }, [entityTypeFilter, actionFilter, paginationInfo.limit, paginationInfo.offset]);
+
+  const auditLogs = useMemo(() => {
+    let filtered = rawAuditLogs;
+    if (userRoleFilter) {
+      filtered = filtered.filter((log) => log.userRole === userRoleFilter);
+    }
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (log) =>
+          log.entityId.toLowerCase().includes(query) ||
+          log.userName.toLowerCase().includes(query) ||
+          log.userEmail.toLowerCase().includes(query) ||
+          (log.metadata &&
+            JSON.stringify(log.metadata).toLowerCase().includes(query))
+      );
+    }
+    return filtered;
+  }, [rawAuditLogs, userRoleFilter, searchQuery]);
+
+  // Initial fetch and fetch when API filters change (search is client-side only)
   useEffect(() => {
     fetchLogs();
-  }, [fetchLogs, entityTypeFilter, actionFilter, userRoleFilter, paginationInfo.offset, paginationInfo.limit]);
-  
-  // Handle search
-  const handleSearch = () => {
-    fetchLogs();
-  };
+  }, [fetchLogs, entityTypeFilter, actionFilter, paginationInfo.offset, paginationInfo.limit]);
   
   // View original entity
   const viewEntity = (entityId: string, entityType: string) => {
@@ -269,9 +266,14 @@ const AuditLogsPage = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-[220px]"
             />
-            <Button onClick={handleSearch} size="sm">
-              <Search className="h-4 w-4 mr-2" />
-              Search
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setSearchQuery("")}
+              disabled={!searchQuery}
+            >
+              Clear
             </Button>
           </div>
         </div>

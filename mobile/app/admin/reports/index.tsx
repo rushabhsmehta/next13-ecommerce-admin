@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
+import { REPORT_KINDS, REPORT_LABELS, type ReportKind } from "@/lib/reports";
 import {
   AdminHeader,
   AdminMetricCard,
@@ -357,6 +358,24 @@ export default function ReportsHubScreen() {
                 </View>
               ) : null}
             </AdminSection>
+
+            <AdminSection title="Report Library">
+              <View style={styles.reportGrid}>
+                {REPORT_KINDS.map((kind: ReportKind) => (
+                  <Pressable
+                    key={kind}
+                    testID={`reports-open-${kind}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${REPORT_LABELS[kind]} report`}
+                    style={styles.reportTile}
+                    onPress={() => router.push(`/admin/reports/${kind}` as never)}
+                  >
+                    <Text style={styles.reportTileText}>{REPORT_LABELS[kind]}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+                  </Pressable>
+                ))}
+              </View>
+            </AdminSection>
           </>
         ) : null}
       </ScrollView>
@@ -463,6 +482,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
   },
+  reportGrid: { gap: Spacing.xs },
+  reportTile: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+  },
+  reportTileText: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
   emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
   emptyText: {
     fontSize: FontSize.sm,

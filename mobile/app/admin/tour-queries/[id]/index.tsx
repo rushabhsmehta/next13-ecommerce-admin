@@ -32,7 +32,6 @@ import {
 import {
   absoluteAdminUrl,
   tourQueryDisplayPath,
-  tourQueryFinancialSummaryPath,
   tourQueryHotelUpdatePath,
   tourQueryPdfPath,
   tourQueryPdfWithVariantsPath,
@@ -325,10 +324,6 @@ function TourQueryDetailScreenInner() {
     if (!id) return "";
     return absoluteAdminUrl(getAdminBase(), tourQueryPdfWithVariantsPath(id));
   }, [id]);
-  const financeUrl = useMemo(() => {
-    if (!id) return "";
-    return absoluteAdminUrl(getAdminBase(), tourQueryFinancialSummaryPath(id));
-  }, [id]);
   const hotelEditUrl = useMemo(() => {
     if (!id) return "";
     return absoluteAdminUrl(getAdminBase(), tourQueryHotelUpdatePath(id));
@@ -414,13 +409,6 @@ function TourQueryDetailScreenInner() {
   const openPdfVariants = useCallback(() => {
     void sharePdf(true, pdfVariantsUrl);
   }, [sharePdf, pdfVariantsUrl]);
-
-  const openFinance = useCallback(() => {
-    if (!financeUrl) return;
-    Linking.openURL(financeUrl).catch(() => {
-      Alert.alert("Could not open page", "Opening the finance summary failed.");
-    });
-  }, [financeUrl]);
 
   const openHotelEditor = useCallback(() => {
     if (!hotelEditUrl) return;
@@ -570,12 +558,13 @@ function TourQueryDetailScreenInner() {
       title: "Business",
       rows: [
         {
-          id: "finance-web",
-          label: "Finance (web)",
+          id: "finance",
+          label: "Finance",
           icon: "wallet-outline",
-          testID: "tour-query-web-finance",
-          accessibilityHint: "Opens finance summary on the admin website.",
-          onPress: openFinance,
+          testID: "tour-query-finance",
+          accessibilityHint: "Opens the native finance summary for this trip.",
+          onPress: () =>
+            router.push(`/admin/tour-queries/${id}/finance` as never),
         },
         ...(data.inquiry?.id
           ? [
@@ -658,7 +647,6 @@ function TourQueryDetailScreenInner() {
     id,
     openPdfVariants,
     openHotelEditor,
-    openFinance,
     router,
     shareWebLink,
     canWriteSales,

@@ -222,6 +222,67 @@ export default function OperationsHubScreen() {
           <Text style={styles.manageText}>Manage suppliers (add / edit / delete)</Text>
           <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
         </Pressable>
+      ) : tab === "locations" ? (
+        <Pressable
+          testID="operations-manage-locations"
+          accessibilityRole="button"
+          accessibilityLabel="Manage locations — add, edit, delete"
+          style={styles.manageBanner}
+          onPress={() => router.push("/admin/operations/locations" as never)}
+        >
+          <Ionicons name="earth-outline" size={16} color={Colors.primary} />
+          <Text style={styles.manageText}>Manage locations (add / edit / delete)</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+        </Pressable>
+      ) : tab === "destinations" ? (
+        <Pressable
+          testID="operations-manage-destinations"
+          accessibilityRole="button"
+          accessibilityLabel="Manage destinations — add, edit, delete"
+          style={styles.manageBanner}
+          onPress={() => router.push("/admin/operations/destinations" as never)}
+        >
+          <Ionicons name="compass-outline" size={16} color={Colors.primary} />
+          <Text style={styles.manageText}>Manage destinations (add / edit / delete)</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+        </Pressable>
+      ) : tab === "hotels" ? (
+        <Pressable
+          testID="operations-manage-hotels"
+          accessibilityRole="button"
+          accessibilityLabel="Manage hotels — add, edit, delete"
+          style={styles.manageBanner}
+          onPress={() => router.push("/admin/operations/hotels" as never)}
+        >
+          <Ionicons name="bed-outline" size={16} color={Colors.primary} />
+          <Text style={styles.manageText}>Manage hotels (add / edit / delete)</Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+        </Pressable>
+      ) : tab === "itineraries" ? (
+        <>
+          <Pressable
+            testID="operations-manage-itineraries"
+            accessibilityRole="button"
+            accessibilityLabel="Manage itinerary masters"
+            style={styles.manageBanner}
+            onPress={() => router.push("/admin/operations/itineraries" as never)}
+          >
+            <Ionicons name="list-outline" size={16} color={Colors.primary} />
+            <Text style={styles.manageText}>Manage itinerary masters</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+          </Pressable>
+          <Pressable
+            testID="operations-manage-activities"
+            accessibilityRole="button"
+            accessibilityLabel="Manage activity masters"
+            style={styles.manageBanner}
+            onPress={() => router.push("/admin/operations/activities" as never)}
+          >
+            <Ionicons name="walk-outline" size={16} color={Colors.primary} />
+            <Text style={styles.manageText}>Manage activity masters</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+          </Pressable>
+        </>
       ) : (
         <Pressable
           testID="operations-manage-staff"
@@ -235,6 +296,34 @@ export default function OperationsHubScreen() {
           <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
         </Pressable>
       )}
+
+      <Pressable
+        testID="operations-manage-transport-pricing"
+        accessibilityRole="button"
+        accessibilityLabel="Manage transport pricing and vehicle types"
+        style={styles.manageBanner}
+        onPress={() =>
+          router.push("/admin/operations/transport-pricing" as never)
+        }
+      >
+        <Ionicons name="car-outline" size={16} color={Colors.primary} />
+        <Text style={styles.manageText}>
+          Manage transport pricing & vehicle types
+        </Text>
+        <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+      </Pressable>
+
+      <Pressable
+        testID="operations-manage-location-suppliers"
+        accessibilityRole="button"
+        accessibilityLabel="Manage location supplier relationships"
+        style={styles.manageBanner}
+        onPress={() => router.push("/admin/operations/location-suppliers" as never)}
+      >
+        <Ionicons name="git-network-outline" size={16} color={Colors.primary} />
+        <Text style={styles.manageText}>Manage location-supplier links</Text>
+        <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+      </Pressable>
 
       {error ? (
         <View style={styles.errorCard}>
@@ -433,6 +522,13 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: "center",
     fontWeight: "600",
+  },
+  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
+  emptyText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
   },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
 });

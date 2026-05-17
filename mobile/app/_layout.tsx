@@ -274,12 +274,52 @@ export default function RootLayout() {
               options={{ headerTitle: "Operations", headerBackTitle: "Admin" }}
             />
             <Stack.Screen
+              name="admin/flight-tickets/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/flight-tickets/new"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/flight-tickets/[pnr]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/ops-portal/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/ops-portal/[id]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/website/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/ai-wizards/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/travel-app/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/settings/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="admin/finance/index"
               options={{ headerTitle: "Finance", headerBackTitle: "Admin" }}
             />
             <Stack.Screen
               name="admin/reports/index"
               options={{ headerTitle: "Reports", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/reports/[kind]"
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="admin/coming-soon"

@@ -111,6 +111,12 @@ const TOOL_IDS: string[] = [
   "finance",
   "reports",
   "operations",
+  "flight-tickets",
+  "website-management",
+  "ai-wizards",
+  "ops-portal",
+  "travel-app-admin",
+  "settings",
   "communications",
   "exports",
   "todos",
@@ -145,6 +151,12 @@ function moduleRoute(moduleId: string, isAssociate: boolean): string | null {
   if (moduleId === "exports" && !isAssociate) return "/admin/exports";
   if (moduleId === "sales-trips") return "/admin/tour-queries";
   if (moduleId === "operations" && !isAssociate) return "/admin/operations";
+  if (moduleId === "flight-tickets" && !isAssociate) return "/admin/flight-tickets";
+  if (moduleId === "website-management" && !isAssociate) return "/admin/website";
+  if (moduleId === "ai-wizards" && !isAssociate) return "/admin/ai-wizards";
+  if (moduleId === "ops-portal" && !isAssociate) return "/admin/ops-portal";
+  if (moduleId === "travel-app-admin" && !isAssociate) return "/admin/travel-app";
+  if (moduleId === "settings" && !isAssociate) return "/admin/settings";
   if (moduleId === "finance" && !isAssociate) return "/admin/finance";
   if (moduleId === "reports" && !isAssociate) return "/admin/reports";
   return null;

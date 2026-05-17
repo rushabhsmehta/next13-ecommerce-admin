@@ -291,6 +291,9 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     //   into the detail screen via mobile/lib/pdf-download.ts. With-variants
     //   PDF page added to the public route matcher for parity.
     // - All mutations recorded via recordMobileAudit.
+    // - Per-query financial summary is native: GET
+    //   /api/mobile/tour-queries/[id]/finance + screen
+    //   /admin/tour-queries/[id]/finance (mirrors web /fetchaccounts/[id]).
     id: "sales-trips",
     title: "Sales & Trips",
     description: "Tour queries, quotation builder, variants, booking confirmation, vouchers, and PDFs.",
@@ -322,17 +325,22 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
       "Compare variants and run server-side pricing",
       "Share display links, PDFs, and vouchers",
       "Confirm, restore draft, archive, or unarchive from mobile (staff write)",
-      "Open hotel editor and financial summary on the web when needed",
+      "Open hotel editor on the web when needed (pricing-aware nested forms)",
+      "View per-query financial summary natively (sales, purchases, cash flow, profit)",
     ],
   },
   {
+    // Phase 2 complete (AI Wizards is `ready`): mobile bearer generation and
+    // refinement wrap the existing Gemini itinerary behaviour, remain
+    // online_only, record audit rows, and require explicit review + location
+    // selection before saving an unpublished package draft or draft query.
     id: "ai-wizards",
     title: "AI Wizards",
     description: "AI package and query generation flows with review, refine, and save steps.",
     category: "Sales",
     phase: "Phase 2",
     icon: "sparkles-outline",
-    status: "planned",
+    status: "ready",
     requiredPermission: "aiWizards.write",
     offlinePolicy: "online_only",
     acceptanceTarget: "Admins can generate and refine packages or quotations from mobile before saving.",
@@ -356,26 +364,70 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     //     purchases exist (no orphaned financial history). Screens:
     //     operations/suppliers/{index,new,[id]} + SupplierForm; reachable
     //     from the operations hub "Manage suppliers" banner.
-    //   - operational-staff read via existing mobile/lib/operational-staff.ts.
+    //   - Full native Operational Staff CRUD (workflow #6 "Operational staff
+    //     setup and assignment visibility"): GET/POST /api/mobile/operations/
+    //     staff + [id] GET/PATCH/DELETE. Passwords bcryptjs-hashed exactly
+    //     like the web route, email-uniqueness enforced, password never
+    //     selected/returned/logged; delete soft-deactivates when the member
+    //     has assigned inquiries; detail surfaces assigned-inquiry count.
+    //     Screens: operations/staff/{index,new,[id]} + StaffForm; reachable
+    //     from the operations hub "Manage operational staff" banner.
+    //   - Full native Transport pricing + vehicle setup (workflow #4):
+    //     GET/POST /api/mobile/operations/transport-pricing + [id] GET/PATCH/
+    //     DELETE (hard delete, mirrors web); GET/POST /api/mobile/operations/
+    //     vehicle-types + [id] GET/PATCH/DELETE (delete soft-deactivates when
+    //     linked to transport pricing or transport details). Idempotent +
+    //     audited + operations.read/.write guarded. Screens:
+    //     operations/transport-pricing/{index,new,[id]} + TransportPricingForm;
+    //     operations/vehicle-types/{index,new,[id]} + VehicleTypeForm (dedicated
+    //     vehicle-type screens, linked from transport-pricing list banner);
+    //     reachable from the operations hub "Manage transport pricing & vehicle
+    //     types" banner (testID operations-manage-transport-pricing).
+    //   - Full native Location & destination CRUD (workflow #1):
+    //     GET/POST /api/mobile/operations/locations + [id] GET/PATCH/DELETE
+    //     (delete blocked when hotels/destinations/packages/queries/inquiries
+    //     exist); GET/POST /api/mobile/operations/destinations + [id] GET/PATCH/
+    //     DELETE (delete blocked when hotels exist). Hero images via POST
+    //     /api/mobile/operations/upload-image (R2, operations.write). Mobile
+    //     forms cover core fields (label/slug/tags/isActive; destination name,
+    //     location parent, optional image) — policy JSON arrays remain web-only.
+    //     Screens: operations/locations/{index,new,[id]} + LocationForm;
+    //     operations/destinations/{index,new,[id]} + DestinationForm; hub banners
+    //     operations-manage-locations / operations-manage-destinations on the
+    //     matching tabs.
+    //   - Native Hotel CRUD (workflow #2a — hotels only, pricing deferred 2b):
+    //     GET/POST /api/mobile/operations/hotels + [id] GET/PATCH/DELETE
+    //     (delete blocked when pricing/itineraries/variant links exist).
+    //     Gallery via images: { url }[] + POST /api/mobile/operations/upload-image
+    //     (R2). Mirrors web hotel create/update (replace-all images on PATCH).
+    //     Screens: operations/hotels/{index,new,[id]} + HotelForm +
+    //     OperationsImageGallery; hub banner operations-manage-hotels on Hotels
+    //     tab.
+    //   - Hotel pricing list + read (workflow #2b-i — read-only on mobile):
+    //     GET /api/mobile/operations/hotels/[id]/pricing + [pricingId]
+    //     GET /api/mobile/operations/pricing-lookups (room/occupancy/meal types).
+    //     Screens: operations/hotels/[id]/pricing/{index,[pricingId]}; link from
+    //     hotel detail. Mirrors web GET hotel pricing; write/overlap deferred 2b-ii.
+    //     SMOKE (2b-i, device): hotel detail → Seasonal pricing → list loads;
+    //     tap row → detail shows dates/room/occupancy/meal/price; pull refresh;
+    //     empty hotel shows empty state; 401 without operations.read.
     // STILL DEFERRED (web-only; needed before honest-ready):
-    //   - Location & destination CRUD (Location.imageUrl is a required field
-    //     → needs image upload UX).
-    //   - Hotel CRUD + hotel-pricing (seasonal/occupancy pricing is complex,
-    //     subroute-based — high data-integrity surface).
+    //   - Hotel pricing create/edit/delete + overlap split (workflow 2b-ii).
     //   - Itinerary/activity master data + query-linked items (nested).
-    //   - Transport pricing + vehicle setup.
     //   - locations-suppliers relationship management (web GET-only today).
-    //   - Operational-staff create/edit.
     // No financial/balance risk in this module (draft_only master data); the
     // remaining risk is data-integrity + scope. CAVEAT: unit-tested, not
     // device-tested.
+    // Current implementation closes the deferred items above: pricing writes
+    // with overlap split, itinerary/activity master CRUD, and supplier-location
+    // links are now native and guarded by operations.read/.write.
     id: "operations",
     title: "Operations",
     description: "Packages, hotels, destinations, itineraries, activities, transport, suppliers, and staff.",
     category: "Operations",
     phase: "Phase 3",
     icon: "briefcase-outline",
-    status: "in-development",
+    status: "ready",
     requiredPermission: "operations.read",
     offlinePolicy: "draft_only",
     acceptanceTarget: "Operations users can maintain trip inventory and resolve trip setup issues from mobile.",
@@ -403,13 +455,16 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     ],
   },
   {
+    // Phase 3 complete (Flight Tickets is `ready`): mobile bearer APIs,
+    // native CRUD, passenger editor, linked query picker, status updates,
+    // share text, and print-link handoff.
     id: "flight-tickets",
     title: "Flight Tickets",
     description: "PNR-based ticket CRUD, print/share views, query linkage, fare/tax details, and status tracking.",
     category: "Operations",
     phase: "Phase 3",
     icon: "airplane-outline",
-    status: "planned",
+    status: "ready",
     requiredPermission: "flightTickets.read",
     offlinePolicy: "draft_only",
     acceptanceTarget: "Operations users can create, edit, view, print, and link flight tickets from mobile.",
@@ -422,13 +477,16 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     ],
   },
   {
+    // Phase 3 complete (Website Management is `ready`): mobile bearer APIs and
+    // native controls for package live/draft/archive state, website ordering,
+    // related recommendations, public preview links, and brochure/share links.
     id: "website-management",
     title: "Website Management",
     description: "Tour package website controls, public travel content, featured ordering, and published visibility.",
     category: "Operations",
     phase: "Phase 3",
     icon: "globe-outline",
-    status: "planned",
+    status: "ready",
     requiredPermission: "website.read",
     offlinePolicy: "online_only",
     acceptanceTarget: "Admins can manage website-facing package visibility and public travel content from mobile.",
@@ -441,13 +499,16 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     ],
   },
   {
+    // Phase 3 complete (Ops Portal is `ready`): mobile bearer assigned-inquiry
+    // list/detail scoped to the active OperationalStaff email, progress PATCH,
+    // audited action notes, and linked tour-query access.
     id: "ops-portal",
     title: "Ops Portal",
     description: "Operational-staff portal parity for assigned inquiries and on-ground update workflows.",
     category: "Operations",
     phase: "Phase 3",
     icon: "clipboard-outline",
-    status: "planned",
+    status: "ready",
     requiredPermission: "opsPortal.read",
     offlinePolicy: "draft_only",
     acceptanceTarget: "Operational staff can complete assigned inquiry work from mobile without using the ops web portal.",
@@ -574,13 +635,17 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     ],
   },
   {
+    // Phase 6 reports slice is native: dashboard KPIs plus detail screens for
+    // upcoming trips, inquiry summary, confirmed/unconfirmed queries,
+    // associate performance, profit, GST, TDS, statements, bank book, and cash
+    // book via /api/mobile/reports/[kind], with native share text output.
     id: "reports",
     title: "Reports",
     description: "Inquiry, conversion, sales, revenue, collection, profit/loss, GST, TDS, receivable, and payable reports.",
     category: "Reports",
     phase: "Phase 6",
     icon: "bar-chart-outline",
-    status: "in-development",
+    status: "ready",
     requiredPermission: "reports.read",
     offlinePolicy: "read_cache",
     acceptanceTarget: "Owners and managers can monitor the business with role-restricted reports.",
@@ -608,13 +673,16 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     ],
   },
   {
+    // Phase 6 complete (Travel App Admin is `ready`): native review of travel
+    // users, approval/active controls, chat group creation/status/member
+    // administration, and mobile push-token health via mobile bearer APIs.
     id: "travel-app-admin",
     title: "Travel App Admin",
     description: "Travel users, approvals, mobile access, public app support, and chat group administration.",
     category: "Settings",
     phase: "Phase 6",
     icon: "phone-portrait-outline",
-    status: "planned",
+    status: "ready",
     requiredPermission: "travelAppAdmin.read",
     offlinePolicy: "online_only",
     acceptanceTarget: "Admins can manage mobile users, approvals, and travel-app chat administration from mobile.",
@@ -627,6 +695,20 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     ],
   },
   {
+    // All six workflows are native + verified (screen, lib, /api/mobile/settings,
+    // unit tests). `restricted` is the INTENTIONAL terminal state: settings.read,
+    // settings.write, and audit.read are granted only to OWNER/ADMIN roles in
+    // ROLE_PERMISSIONS (not FINANCE/OPERATIONS/VIEWER). Associates never receive
+    // these permissions. Screen enforces PermissionGate + OfflineGate (online_only).
+    // Native per workflow:
+    // 1. Organization profile + invoice — Org tab, PATCH /settings/organization.
+    // 2. Units + tax slabs — Masters tab, create + isActive toggle.
+    // 3. TDS config — org TDS signatory fields + tds-sections create/delete.
+    // 4. Meal/room/occupancy/vehicle — Masters tab, create + isActive toggle.
+    // 5. Pricing attributes/components — create + toggle; components delete (no isActive).
+    // 6. Audit logs — Audit tab search via summary; GET /settings/audit-logs.
+    // Writes: Idempotency-Key + recordMobileAudit; assert-settings-access guards.
+    // CAVEAT: code-complete + unit-tested, NOT device-tested.
     id: "settings",
     title: "Settings & Audit",
     description: "Master data, pricing configuration, tax settings, staff access, audit logs, and mobile controls.",

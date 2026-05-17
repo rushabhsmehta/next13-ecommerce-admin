@@ -16,6 +16,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
+import { DateField } from "@/components/ui/DateField";
 import { ApiError, withAuth } from "@/lib/api";
 import {
   createAssociateInquiryClient,
@@ -222,7 +223,7 @@ export function CreateInquiryForm({
     if (!ISO_DATE.test(journeyNormalized)) {
       Alert.alert(
         "Journey date",
-        "Use format YYYY-MM-DD (e.g. 2026-05-10). Single-digit months and days are OK."
+        "Choose a valid journey date from the calendar."
       );
       return;
     }
@@ -231,7 +232,7 @@ export function CreateInquiryForm({
     if (nextFollowUpDate.trim()) {
       nextFu = normalizeYmd(nextFollowUpDate.trim());
       if (!ISO_DATE.test(nextFu)) {
-        Alert.alert("Follow-up date", "Use format YYYY-MM-DD or leave blank.");
+        Alert.alert("Follow-up date", "Choose a valid follow-up date or leave it blank.");
         return;
       }
     }
@@ -247,7 +248,7 @@ export function CreateInquiryForm({
       if (!ISO_DATE.test(nd)) {
         Alert.alert(
           "Transport requirement date",
-          `Use YYYY-MM-DD for transport "${lookupLabel(lookups.vehicleTypes, t.vehicleTypeId)}" or clear the date.`
+          `Choose a valid transport date for "${lookupLabel(lookups.vehicleTypes, t.vehicleTypeId)}" or clear the date.`
         );
         return;
       }
@@ -322,10 +323,16 @@ export function CreateInquiryForm({
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.guideCard}>
         <Text style={styles.guideTitle}>Guided inquiry flow</Text>
-        <Text style={styles.guideText}>
-          1. Add customer details 2. Pick travellers and services 3. Choose destination 4.
-          Review notes and create
-        </Text>
+        {[
+          "Add customer details",
+          "Pick travellers and services",
+          "Choose destination",
+          "Review notes and create",
+        ].map((step, i) => (
+          <Text key={step} style={styles.guideText}>
+            {`${i + 1}. ${step}`}
+          </Text>
+        ))}
       </View>
 
       {showAssociatePartnerPicker ? (
@@ -370,26 +377,25 @@ export function CreateInquiryForm({
         keyboardType="phone-pad"
       />
 
-      <Text style={styles.label}>Journey date (YYYY-MM-DD)</Text>
-      <TextInput
+      <Text style={styles.label}>Journey date</Text>
+      <DateField
         testID="inquiry-create-journey"
         accessibilityLabel="Journey date"
         style={styles.input}
         value={journeyDate}
-        onChangeText={setJourneyDate}
-        placeholder="2026-05-10"
-        placeholderTextColor={Colors.textTertiary}
+        onChange={setJourneyDate}
+        placeholder="Choose journey date"
+        allowClear={false}
       />
 
       <Text style={styles.label}>Next follow-up (optional)</Text>
-      <TextInput
+      <DateField
         testID="inquiry-create-follow-up"
         accessibilityLabel="Next follow-up date"
         style={styles.input}
         value={nextFollowUpDate}
-        onChangeText={setNextFollowUpDate}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor={Colors.textTertiary}
+        onChange={setNextFollowUpDate}
+        placeholder="Choose follow-up date"
       />
 
       <Text style={styles.sectionHeading}>Travellers</Text>

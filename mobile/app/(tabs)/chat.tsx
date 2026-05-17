@@ -25,6 +25,7 @@ import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 import { useUnread } from "@/hooks/useUnread";
 import { chatCache } from "@/lib/chat/cache";
 import { SkeletonListItem } from "@/components/skeleton/SkeletonLoader";
+import { DateField } from "@/components/ui/DateField";
 
 interface ChatGroup {
   id: string;
@@ -237,17 +238,30 @@ export default function ChatTab() {
   return (
     <View style={styles.container}>
       {(isSignedIn || travelUser) && (
-        <TouchableOpacity style={styles.userStrip} onPress={handleSignOut} activeOpacity={0.7}>
+        <View style={styles.userStrip}>
           <View style={styles.userStripAvatar}>
             <Text style={styles.userStripAvatarText}>
               {(travelUser?.name ?? "?").charAt(0).toUpperCase()}
             </Text>
           </View>
-          <Text style={styles.userStripName} numberOfLines={1}>
-            {travelUser?.name ?? "Logged in"}
-          </Text>
-          <Text style={styles.userStripSignOut}>Sign out</Text>
-        </TouchableOpacity>
+          <View style={styles.userStripText}>
+            <Text style={styles.userStripName} numberOfLines={1}>
+              {travelUser?.name ?? "Logged in"}
+            </Text>
+            <Text style={styles.userStripCaption}>Signed in</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.userStripSignOut}
+            onPress={handleSignOut}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+            hitSlop={8}
+          >
+            <Ionicons name="log-out-outline" size={16} color={Colors.textSecondary} />
+            <Text style={styles.userStripSignOutText}>Sign out</Text>
+          </TouchableOpacity>
+        </View>
       )}
       <FlatList
         data={groups}
@@ -359,25 +373,23 @@ export default function ChatTab() {
               placeholderTextColor={Colors.textTertiary}
               multiline
             />
-            <Text style={styles.fieldLabel}>Tour Start Date (YYYY-MM-DD)</Text>
-            <TextInput
+            <Text style={styles.fieldLabel}>Tour start date</Text>
+            <DateField
               style={styles.fieldInput}
               value={newStart}
-              onChangeText={setNewStart}
-              placeholder="e.g. 2026-06-15"
-              placeholderTextColor={Colors.textTertiary}
-              keyboardType="numbers-and-punctuation"
-              returnKeyType="next"
+              onChange={setNewStart}
+              placeholder="Choose start date"
+              testID="trips-modal-start-date"
+              accessibilityLabel="Tour start date"
             />
-            <Text style={styles.fieldLabel}>Tour End Date (YYYY-MM-DD)</Text>
-            <TextInput
+            <Text style={styles.fieldLabel}>Tour end date</Text>
+            <DateField
               style={styles.fieldInput}
               value={newEnd}
-              onChangeText={setNewEnd}
-              placeholder="e.g. 2026-06-20"
-              placeholderTextColor={Colors.textTertiary}
-              keyboardType="numbers-and-punctuation"
-              returnKeyType="done"
+              onChange={setNewEnd}
+              placeholder="Choose end date"
+              testID="trips-modal-end-date"
+              accessibilityLabel="Tour end date"
             />
           </View>
         </SafeAreaView>
@@ -498,12 +510,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 12,
+    marginBottom: 8,
+    borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     gap: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surfaceAlt,
   },
+  userStripText: { flex: 1 },
+  userStripCaption: { fontSize: 12, color: Colors.textTertiary, marginTop: 1 },
+  userStripSignOutText: { fontSize: 13, fontWeight: "600", color: Colors.textSecondary },
   userStripAvatar: {
     width: 32,
     height: 32,
@@ -513,8 +529,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   userStripAvatarText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  userStripName: { flex: 1, fontSize: 14, fontWeight: "600", color: Colors.text },
-  userStripSignOut: { fontSize: 13, color: Colors.textTertiary },
+  userStripName: { fontSize: 14, fontWeight: "600", color: Colors.text },
+  userStripSignOut: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
   userStripSkeleton: {
     flexDirection: "row",
     alignItems: "center",

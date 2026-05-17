@@ -26,6 +26,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing, FontSize, BorderRadius, Shadows } from "@/constants/theme";
 import { travelApi } from "@/lib/api";
@@ -253,6 +254,7 @@ export default function PackageDetailScreen() {
 
   return (
     <View testID="package-detail-screen" style={styles.container}>
+      <StatusBar style="light" />
       <ScrollView
         testID="package-detail-scroll"
         showsVerticalScrollIndicator={false}

@@ -130,6 +130,7 @@ function TabLayoutInner() {
         name="admin"
         options={{
           title: "Admin",
+          headerShown: false,
           href: canUseAdmin ? undefined : null,
           tabBarAccessibilityLabel: "tab-admin",
           tabBarIcon: ({ color, focused }) => (

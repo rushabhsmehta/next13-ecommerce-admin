@@ -3,10 +3,8 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,12 +13,17 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AdminActionRail,
+  AdminEmptyState,
+  AdminErrorState,
   AdminFocusCard,
   AdminFocusEmpty,
-  AdminMetricCard,
+  AdminLoadingState,
+  AdminMetricStrip,
   AdminModuleCard,
+  AdminScreen,
   AdminSection,
-  AdminStatusPill,
+  AdminToolGroup,
+  AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import type { OrganizationRole } from "@/hooks/useCurrentUser";
@@ -55,71 +58,87 @@ type AdminOverview = {
   stats: AdminStat[];
 };
 
-const SHORTCUT_DEFINITIONS: {
+type QuickActionCtx = {
+  permissions: string[];
+  isAssociate: boolean;
+  canUseFinance: boolean;
+  isAdmin: boolean;
+};
+
+const QUICK_ACTIONS: {
   id: string;
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
   route: string;
-  visible: (c: {
-    isAdmin: boolean;
-    canUseAdmin: boolean;
-    canUseFinance: boolean;
-  }) => boolean;
+  visible: (c: QuickActionCtx) => boolean;
 }[] = [
   {
-    id: "crm",
-    title: "CRM",
-    icon: "people-outline",
-    route: "/admin/crm/inquiries",
-    visible: ({ canUseAdmin }) => canUseAdmin,
+    id: "new-inquiry",
+    title: "Inquiry",
+    icon: "person-add-outline",
+    route: "/admin/crm/inquiries/new",
+    visible: ({ permissions, isAssociate }) =>
+      !isAssociate && permissions.includes("crm.write"),
   },
   {
-    id: "trips",
-    title: "Trips",
+    id: "new-trip",
+    title: "Trip",
     icon: "map-outline",
-    route: "/admin/tour-queries",
-    visible: ({ canUseAdmin }) => canUseAdmin,
+    route: "/admin/tour-queries/create",
+    visible: ({ permissions }) => permissions.includes("salesTrips.write"),
   },
   {
-    id: "finance",
-    title: "Finance",
-    icon: "cash-outline",
-    route: "/admin/finance",
-    visible: ({ canUseFinance, canUseAdmin }) => canUseFinance || canUseAdmin,
+    id: "receipt",
+    title: "Receipt",
+    icon: "arrow-down-circle-outline",
+    route: "/admin/finance/collect",
+    visible: ({ canUseFinance, permissions }) =>
+      canUseFinance && permissions.includes("finance.write"),
   },
   {
-    id: "reports",
-    title: "Reports",
-    icon: "bar-chart-outline",
-    route: "/admin/reports",
-    visible: ({ canUseFinance, canUseAdmin }) => canUseFinance || canUseAdmin,
+    id: "payment",
+    title: "Payment",
+    icon: "arrow-up-circle-outline",
+    route: "/admin/finance/record",
+    visible: ({ canUseFinance, permissions }) =>
+      canUseFinance && permissions.includes("finance.write"),
   },
   {
-    id: "whatsapp",
-    title: "WhatsApp",
-    icon: "logo-whatsapp",
-    iconColor: "#25D366",
-    route: "/whatsapp",
-    visible: ({ isAdmin }) => isAdmin,
+    id: "flight-ticket",
+    title: "Ticket",
+    icon: "airplane-outline",
+    route: "/admin/flight-tickets/new",
+    visible: ({ permissions }) => permissions.includes("flightTickets.write"),
+  },
+  {
+    id: "hotel",
+    title: "Hotel",
+    icon: "bed-outline",
+    route: "/admin/operations/hotels/new",
+    visible: ({ permissions }) => permissions.includes("operations.write"),
+  },
+  {
+    id: "ai-draft",
+    title: "AI draft",
+    icon: "sparkles-outline",
+    route: "/admin/ai-wizards",
+    visible: ({ permissions }) => permissions.includes("aiWizards.write"),
   },
 ];
 
-const TOOL_IDS: string[] = [
-  "crm",
-  "sales-trips",
-  "finance",
-  "reports",
-  "operations",
-  "flight-tickets",
-  "website-management",
-  "ai-wizards",
-  "ops-portal",
-  "travel-app-admin",
-  "settings",
-  "communications",
-  "exports",
-  "todos",
+const TOOL_GROUPS: { id: string; title: string; moduleIds: string[] }[] = [
+  { id: "crm", title: "CRM", moduleIds: ["crm", "todos", "exports"] },
+  { id: "sales", title: "Sales", moduleIds: ["sales-trips", "ai-wizards"] },
+  {
+    id: "operations",
+    title: "Operations",
+    moduleIds: ["operations", "flight-tickets", "website-management", "ops-portal"],
+  },
+  { id: "finance", title: "Finance", moduleIds: ["finance"] },
+  { id: "communications", title: "Communications", moduleIds: ["communications"] },
+  { id: "reports", title: "Reports", moduleIds: ["reports"] },
+  { id: "settings", title: "Settings", moduleIds: ["settings", "travel-app-admin"] },
 ];
 
 /** Dashboard snapshot (~6 Owner metrics) — omit audits/travel noise */
@@ -171,6 +190,22 @@ function resolveAttentionRoute(statId: string, isAssociate: boolean): string | n
       return isAssociate ? null : "/admin/todos";
     case "unread-notifications":
       return null;
+    default:
+      return null;
+  }
+}
+
+function resolveMetricRoute(statId: string, isAssociate: boolean): string | null {
+  switch (statId) {
+    case "open-inquiries":
+    case "follow-ups-due":
+      return isAssociate ? "/associate/inquiries" : "/admin/crm/inquiries";
+    case "tour-queries":
+      return "/admin/tour-queries";
+    case "open-todos":
+      return isAssociate ? null : "/admin/todos";
+    case "receipts-payments":
+      return isAssociate ? null : "/admin/finance";
     default:
       return null;
   }
@@ -281,7 +316,6 @@ function buildFocus(primaryStat: AdminStat | null): FocusPick | null {
 export default function AdminTab() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
   const net = useNetwork();
   const { isSignedIn, getToken } = useAuth();
   const {
@@ -291,6 +325,7 @@ export default function AdminTab() {
     canUseAdmin,
     canUseFinance,
     mobileNavigation,
+    permissions,
     isLoading: authLoading,
     isOwner,
   } = useCurrentUser();
@@ -298,33 +333,26 @@ export default function AdminTab() {
   const degraded = net.isInternetReachable === false && net.isOnline;
   const showNetPill = !net.isOnline || degraded;
 
-  const shortcuts = useMemo(() => {
-    return SHORTCUT_DEFINITIONS.filter((s) =>
-      s.visible({
-        isAdmin,
-        canUseAdmin,
-        canUseFinance,
-      })
-    ).slice(0, 5);
-  }, [isAdmin, canUseAdmin, canUseFinance]);
-
-  const shortcutActions = useMemo(
-    () =>
-      shortcuts.map((s) => ({
-        ...s,
-        route: s.id === "crm" && isAssociate ? "/associate/inquiries" : s.route,
-        onPress: () =>
-          router.push((s.id === "crm" && isAssociate ? "/associate/inquiries" : s.route) as never),
-      })),
-    [router, shortcuts, isAssociate]
+  const quickActionCtx = useMemo<QuickActionCtx>(
+    () => ({ permissions, isAssociate, canUseFinance, isAdmin }),
+    [permissions, isAssociate, canUseFinance, isAdmin]
   );
 
-  const horizontalPad = Spacing.lg * 2;
-  const layoutGutter = Spacing.sm;
-  const usableWidth = Math.max(280, windowWidth - horizontalPad);
-  const kpiCols = windowWidth >= 760 ? 3 : 2;
-  const snapshotTile =
-    kpiCols > 1 ? Math.floor((usableWidth - layoutGutter * (kpiCols - 1)) / kpiCols) : usableWidth;
+  const quickActions = useMemo(() => {
+    return QUICK_ACTIONS.filter((a) => a.visible(quickActionCtx)).slice(0, 6);
+  }, [quickActionCtx]);
+
+  const quickActionRail = useMemo(
+    () =>
+      quickActions.map((a) => ({
+        id: a.id,
+        title: a.title,
+        icon: a.icon,
+        iconColor: a.iconColor,
+        onPress: () => router.push(a.route as never),
+      })),
+    [router, quickActions]
+  );
 
   const modulesById = useMemo(() => {
     const m = new Map<string, MobileAdminModule>();
@@ -334,8 +362,13 @@ export default function AdminTab() {
     return m;
   }, [mobileNavigation]);
 
-  const toolModules = useMemo(() => {
-    return TOOL_IDS.map((id) => modulesById.get(id)).filter((x): x is MobileAdminModule => !!x && x.status !== "planned");
+  const toolGroups = useMemo(() => {
+    return TOOL_GROUPS.map((group) => ({
+      ...group,
+      modules: group.moduleIds
+        .map((id) => modulesById.get(id))
+        .filter((x): x is MobileAdminModule => !!x && x.status !== "planned"),
+    })).filter((g) => g.modules.length > 0);
   }, [modulesById]);
 
   const plannedModules = useMemo(
@@ -406,14 +439,22 @@ export default function AdminTab() {
   const moreAttentionCount =
     attentionStats.length > 1 && focusPick ? attentionStats.length - 1 : 0;
 
-  const snapshotItems = useMemo(() => {
+  const metricStripItems = useMemo(() => {
     const out: AdminStat[] = [];
     for (const id of SNAPSHOT_IDS) {
       const s = findStat(stats, id);
       if (s) out.push(s);
     }
-    return out.slice(0, 6);
-  }, [stats]);
+    return out.slice(0, 6).map((st) => ({
+      id: st.id,
+      label: snapshotLabel(st),
+      value: formatSnapshotStat(st),
+      attention: st.requiresAttention,
+      onPress: resolveMetricRoute(st.id, isAssociate)
+        ? () => router.push(resolveMetricRoute(st.id, isAssociate)! as never)
+        : undefined,
+    }));
+  }, [stats, isAssociate, router]);
 
   function openModule(module: MobileAdminModule) {
     const route = moduleRoute(module.id, isAssociate);
@@ -436,12 +477,7 @@ export default function AdminTab() {
   }
 
   if (authLoading || loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} accessibilityLabel="Loading admin" />
-        <Text style={styles.loadingText}>Loading…</Text>
-      </View>
-    );
+    return <AdminLoadingState label="Loading admin…" testID="admin-loading" />;
   }
 
   if (!isSignedIn && !canUseAdmin) {
@@ -475,44 +511,39 @@ export default function AdminTab() {
 
   const roleBadgeLabel = displayRoleBadge({ organizationRole, isAssociate, isOwner });
   const sync = syncLine(overview?.generatedAt ?? null);
+  const topBadges = [
+    { id: "role", label: roleBadgeLabel, variant: "neutral" as const },
+    ...(showNetPill
+      ? [
+          {
+            id: "net",
+            label: net.isOnline ? "Limited connectivity" : "Offline",
+            variant: (net.isOnline ? "warning" : "offline") as "warning" | "offline",
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <ScrollView
+    <AdminScreen
       testID="admin-dashboard"
-      style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.md }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void loadOverview("refresh")} />}
-      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={() => void loadOverview("refresh")} />
+      }
+      contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.md }}
     >
-      <View testID="admin-command-header" style={styles.toolbar}>
-        <View style={styles.toolbarAccent} accessibilityElementsHidden />
-        <View style={styles.toolbarRow}>
-          <Text style={styles.toolbarTitle} allowFontScaling={false} accessibilityRole="header">
-            Admin
-          </Text>
-          <AdminStatusPill label={roleBadgeLabel} variant="neutral" compact testID="admin-role-pill" />
-          {showNetPill ? (
-            <AdminStatusPill
-              label={net.isOnline ? "Limited connectivity" : "Offline"}
-              variant={net.isOnline ? "warning" : "offline"}
-              compact
-              testID="admin-connection-pill"
-            />
-          ) : null}
-        </View>
-        <Text style={styles.syncTiny} allowFontScaling={false}>
-          {sync ?? "Pull down to refresh"}
-        </Text>
-      </View>
+      <AdminTopBar
+        title="Admin"
+        subtitle={sync ?? "Pull down to refresh"}
+        badges={topBadges}
+        testID="admin-command-header"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={18} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState message={error} onRetry={() => void loadOverview("refresh")} testID="admin-overview-error" />
       ) : null}
 
-      <AdminSection title="Focus" dense testID="admin-focus-section">
+      <AdminSection title="Focus" dense uppercaseEyebrow testID="admin-focus-section">
         {!attentionStats.length ? (
           <AdminFocusEmpty testID="admin-focus-empty" />
         ) : focusPick ? (
@@ -542,49 +573,34 @@ export default function AdminTab() {
         )}
       </AdminSection>
 
-      {shortcutActions.length ? (
-        <AdminSection title="Shortcuts" dense>
+      {quickActionRail.length ? (
+        <AdminSection title="Quick actions" dense uppercaseEyebrow testID="admin-quick-actions">
           <AdminActionRail
             compact
-            singleRow={shortcutActions.length <= 5}
-            actions={shortcutActions.map((s) => ({
-              id: s.id,
-              title: s.title,
-              icon: s.icon,
-              iconColor: s.iconColor,
-              onPress: s.onPress,
-            }))}
-            testIDPrefix="admin-action"
+            singleRow={quickActionRail.length <= 4}
+            actions={quickActionRail}
+            testIDPrefix="admin-quick"
           />
         </AdminSection>
       ) : null}
 
-      {snapshotItems.length ? (
-        <AdminSection title="Snapshot" dense testID="admin-snapshot-zone">
-          <View style={[styles.snapRow, { gap: layoutGutter }]}>
-            {snapshotItems.map((st) => (
-              <View key={st.id} style={[styles.snapCell, { width: snapshotTile }]}>
-                <AdminMetricCard
-                  id={`snap-${st.id}`}
-                  label={snapshotLabel(st)}
-                  category={st.category}
-                  value={formatSnapshotStat(st)}
-                  dotTone={st.requiresAttention ? "attention" : "neutral"}
-                  showCategory={false}
-                  requiresAttention={false}
-                />
-              </View>
-            ))}
-          </View>
+      {metricStripItems.length ? (
+        <AdminSection title="At a glance" dense uppercaseEyebrow testID="admin-snapshot-zone">
+          <AdminMetricStrip items={metricStripItems} />
         </AdminSection>
       ) : null}
 
-      <AdminSection title="Tools" dense>
-        <View style={styles.toolsList}>
-          {toolModules.map((mod) => (
-            <AdminModuleCard key={mod.id} module={mod} variant="tool" onPress={() => openModule(mod)} />
-          ))}
-        </View>
+      <AdminSection title="Tools" dense uppercaseEyebrow testID="admin-tools-section">
+        {toolGroups.map((group, index) => (
+          <AdminToolGroup
+            key={group.id}
+            id={group.id}
+            title={group.title}
+            modules={group.modules}
+            defaultExpanded={index === 0}
+            onOpenModule={openModule}
+          />
+        ))}
 
         {plannedModules.length ? (
           <>
@@ -611,6 +627,15 @@ export default function AdminTab() {
         ) : null}
       </AdminSection>
 
+      <AdminSection title="Continue work" dense uppercaseEyebrow testID="admin-recent-section">
+        <AdminEmptyState
+          icon="time-outline"
+          title="No recent records yet"
+          body="Trips and inquiries you open will appear here when that API is available."
+          testID="admin-recent-empty"
+        />
+      </AdminSection>
+
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open admin safeguards"
@@ -622,15 +647,11 @@ export default function AdminTab() {
         <Text style={styles.footerLinkText}>Admin safeguards</Text>
         <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} accessibilityElementsHidden />
       </Pressable>
-    </ScrollView>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
-  content: {
-    gap: Spacing.xs,
-  },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -660,61 +681,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   primaryButtonText: { color: Colors.textInverse, fontWeight: "800", fontSize: FontSize.md },
-
-  toolbar: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.sm,
-    backgroundColor: Colors.background,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderSubtle,
-    gap: 6,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.xs,
-  },
-  toolbarAccent: {
-    height: 2,
-    width: 48,
-    marginBottom: Spacing.sm,
-    marginTop: 2,
-    borderRadius: 1,
-    backgroundColor: Colors.primary,
-    alignSelf: "flex-start",
-    marginLeft: 0,
-  },
-  toolbarRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-  },
-  toolbarTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: "800",
-    color: Colors.text,
-    letterSpacing: 0,
-  },
-  syncTiny: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#fecdd3",
-    borderRadius: BorderRadius.md,
-    flexDirection: "row",
-    gap: Spacing.sm,
-    alignItems: "center",
-  },
-  errorText: { flex: 1, color: Colors.error, fontSize: FontSize.sm, fontWeight: "600" },
-
-  snapRow: { flexDirection: "row", flexWrap: "wrap" },
-  snapCell: { maxWidth: "100%" },
 
   toolsList: { gap: 2 },
 

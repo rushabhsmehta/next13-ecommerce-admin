@@ -169,7 +169,7 @@ export default function RootLayout() {
             <ErrorBoundary>
               <PushController />
               <OfflineBanner />
-              <StatusBar style="light" />
+              <StatusBar style="dark" />
           <Stack
             screenOptions={{
               headerStyle: { backgroundColor: Colors.background },

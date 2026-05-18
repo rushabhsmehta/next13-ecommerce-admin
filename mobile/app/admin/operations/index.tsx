@@ -205,6 +205,7 @@ export default function OperationsHubScreen() {
           />
         </>
       ) : null}
+      <Text style={styles.moreToolsLabel}>More tools</Text>
       <OpsManageLink
         testID="operations-manage-transport-pricing"
         label="Transport pricing & vehicles"
@@ -369,6 +370,15 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listLoader: { marginTop: Spacing.lg },
   listHeader: { gap: Spacing.xs, marginBottom: Spacing.sm },
+  moreToolsLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
   manageLink: {
     flexDirection: "row",
     alignItems: "center",

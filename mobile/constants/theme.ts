@@ -31,6 +31,15 @@ export const Colors = {
   error: "#ef4444",
   info: "#3b82f6",
 
+  // Soft tinted backgrounds for status pills / banners
+  successBg: "#ecfdf5",
+  warningBg: "#fffbeb",
+  errorBg: "#fff1f2",
+  infoBg: "#eff6ff",
+
+  // External brand
+  whatsapp: "#25D366",
+
   overlay: "rgba(0, 0, 0, 0.5)",
   cardShadow: "rgba(232, 97, 45, 0.08)",
 

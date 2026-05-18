@@ -21,9 +21,11 @@ import {
   AdminFilterSheet,
   AdminScreen,
   AdminSegmentedControl,
+  AdminStatusPill,
   AdminTopBar,
   AdminTopBarPrimaryButton,
 } from "@/components/admin";
+import type { AdminStatusPillVariant } from "@/components/admin/AdminStatusPill";
 import {
   BorderRadius,
   Colors,
@@ -385,6 +387,24 @@ function AdminInquiriesList({
   );
 }
 
+const STATUS_PILL: Record<string, { variant: AdminStatusPillVariant; label: string }> = {
+  pending: { variant: "warning", label: "Pending" },
+  contacted: { variant: "info", label: "Contacted" },
+  quoted: { variant: "primary", label: "Quoted" },
+  negotiation: { variant: "primary", label: "Negotiation" },
+  confirmed: { variant: "success", label: "Confirmed" },
+  cancelled: { variant: "danger", label: "Cancelled" },
+};
+
+function statusPill(status: string): { variant: AdminStatusPillVariant; label: string } {
+  return (
+    STATUS_PILL[status?.toLowerCase()] ?? {
+      variant: "neutral",
+      label: status || "—",
+    }
+  );
+}
+
 function InquiryCard({
   row,
   canWrite,
@@ -402,91 +422,83 @@ function InquiryCard({
   onWhatsApp: () => void;
   onDelete: () => void;
 }) {
+  const pill = statusPill(row.status);
+  const hasPhone = !!row.customerMobileNumber;
+
+  function openMenu() {
+    const options: { text: string; style?: "cancel" | "destructive"; onPress?: () => void }[] = [];
+    if (hasPhone) options.push({ text: "Call", onPress: onCall });
+    if (canWrite) options.push({ text: "Delete inquiry", style: "destructive", onPress: onDelete });
+    options.push({ text: "Cancel", style: "cancel" });
+    Alert.alert(row.customerName, undefined, options);
+  }
+
   return (
     <Pressable
       testID={`inquiry-row-${row.id}`}
       accessibilityRole="button"
       accessibilityLabel={`Open inquiry for ${row.customerName}`}
-      style={styles.card}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={onOpen}
       accessibilityHint="Opens inquiry details."
     >
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardName} numberOfLines={1}>
-          {row.customerName}
-        </Text>
-        <View style={styles.statusPill}>
-          <Text style={styles.statusPillText}>{row.status}</Text>
+      <View style={styles.cardBody}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardName} numberOfLines={1}>
+            {row.customerName}
+          </Text>
+          <AdminStatusPill label={pill.label} variant={pill.variant} compact />
         </View>
-      </View>
-      <Text style={styles.cardMeta}>
-        {row.location?.label ?? "Unknown location"} · {row.customerMobileNumber}
-      </Text>
-      {row.nextFollowUpDate ? (
-        <Text style={styles.cardFollowUp}>
-          Next follow-up: {new Date(row.nextFollowUpDate).toLocaleDateString("en-IN")}
+        <Text style={styles.cardMeta} numberOfLines={1}>
+          {row.location?.label ?? "Unknown location"}
+          {hasPhone ? ` · ${row.customerMobileNumber}` : ""}
         </Text>
-      ) : null}
-      {row.associatePartner ? (
-        <Text style={styles.cardAssociate}>Via {row.associatePartner.name}</Text>
-      ) : null}
-      <View style={styles.cardActions}>
-        {row.customerMobileNumber ? (
-          <Pressable
-            testID={`inquiry-call-${row.id}`}
-            accessibilityRole="button"
-            accessibilityLabel="Call customer"
-            onPress={(e) => {
-              e.stopPropagation();
-              onCall();
-            }}
-            style={styles.actionBtn}
-            hitSlop={8}
-          >
-            <Ionicons name="call" size={14} color={Colors.primary} />
-            <Text style={styles.actionText}>Call</Text>
-          </Pressable>
-        ) : null}
-        {row.customerMobileNumber ? (
-          <Pressable
-            testID={`inquiry-whatsapp-${row.id}`}
-            accessibilityRole="button"
-            accessibilityLabel="WhatsApp customer"
-            onPress={(e) => {
-              e.stopPropagation();
-              onWhatsApp();
-            }}
-            style={styles.actionBtn}
-            hitSlop={8}
-          >
-            <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
-            <Text style={styles.actionText}>WhatsApp</Text>
-          </Pressable>
-        ) : null}
-        {canWrite ? (
-          <Pressable
-            testID={`inquiry-delete-${row.id}`}
-            accessibilityRole="button"
-            accessibilityLabel="Delete inquiry"
-            disabled={deleting}
-            onPress={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            style={[styles.actionBtn, styles.actionDelete]}
-            hitSlop={8}
-          >
-            {deleting ? (
-              <ActivityIndicator size="small" color={Colors.error} />
-            ) : (
-              <>
-                <Ionicons name="trash-outline" size={14} color={Colors.error} />
-                <Text style={[styles.actionText, styles.actionTextDelete]}>Delete</Text>
-              </>
-            )}
-          </Pressable>
+        {row.nextFollowUpDate ? (
+          <View style={styles.followRow}>
+            <Ionicons name="alarm-outline" size={12} color={Colors.warning} />
+            <Text style={styles.cardFollowUp} numberOfLines={1}>
+              Follow-up {new Date(row.nextFollowUpDate).toLocaleDateString("en-IN")}
+            </Text>
+          </View>
         ) : null}
       </View>
+
+      {deleting ? (
+        <ActivityIndicator size="small" color={Colors.error} style={styles.cardTrailing} />
+      ) : (
+        <View style={styles.cardTrailing}>
+          {hasPhone ? (
+            <Pressable
+              testID={`inquiry-whatsapp-${row.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="WhatsApp customer"
+              onPress={(e) => {
+                e.stopPropagation();
+                onWhatsApp();
+              }}
+              style={styles.iconBtn}
+              hitSlop={8}
+            >
+              <Ionicons name="logo-whatsapp" size={20} color={Colors.whatsapp} />
+            </Pressable>
+          ) : null}
+          {hasPhone || canWrite ? (
+            <Pressable
+              testID={`inquiry-menu-${row.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="More actions"
+              onPress={(e) => {
+                e.stopPropagation();
+                openMenu();
+              }}
+              style={styles.iconBtn}
+              hitSlop={8}
+            >
+              <Ionicons name="ellipsis-vertical" size={18} color={Colors.textTertiary} />
+            </Pressable>
+          ) : null}
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -527,52 +539,38 @@ const styles = StyleSheet.create({
   followToggleText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.textSecondary },
   followToggleTextOn: { color: Colors.textInverse },
   card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
     backgroundColor: Colors.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderSubtle,
     paddingVertical: Spacing.md,
     marginHorizontal: -Spacing.lg,
     paddingHorizontal: Spacing.lg,
-    gap: 4,
+    minHeight: 64,
   },
+  cardPressed: { backgroundColor: Colors.surfaceAlt },
+  cardBody: { flex: 1, gap: 3 },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     gap: Spacing.sm,
   },
   cardName: { flex: 1, fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryBg,
-  },
-  statusPillText: {
-    fontSize: FontSize.xs,
-    fontWeight: "800",
-    color: Colors.primary,
-    textTransform: "uppercase",
-  },
-  cardMeta: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
-  cardFollowUp: { fontSize: FontSize.xs, color: Colors.warning, fontWeight: "700", marginTop: 2 },
-  cardAssociate: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  cardActions: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-    flexWrap: "wrap",
-  },
-  actionBtn: {
+  cardMeta: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  followRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  cardFollowUp: { fontSize: FontSize.xs, color: Colors.warning, fontWeight: "700" },
+  cardTrailing: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: Colors.primaryBg,
-    borderRadius: BorderRadius.full,
+    gap: Spacing.xs,
   },
-  actionDelete: { backgroundColor: "#fff1f2" },
-  actionText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.primary },
-  actionTextDelete: { color: Colors.error },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

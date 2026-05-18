@@ -6,6 +6,8 @@ export type AdminStatusPillVariant =
   | "primary"
   | "success"
   | "warning"
+  | "info"
+  | "danger"
   | "muted"
   | "online"
   | "offline";
@@ -13,11 +15,13 @@ export type AdminStatusPillVariant =
 const variantStyles: Record<AdminStatusPillVariant, { bg: string; fg: string; border: string }> = {
   neutral: { bg: Colors.surfaceAlt, fg: Colors.textSecondary, border: Colors.borderSubtle },
   primary: { bg: Colors.primaryBg, fg: Colors.primary, border: Colors.primaryLight },
-  success: { bg: "#ecfdf5", fg: Colors.success, border: "#bbf7d0" },
-  warning: { bg: "#fffbeb", fg: Colors.warning, border: "#fde68a" },
+  success: { bg: Colors.successBg, fg: Colors.success, border: "#bbf7d0" },
+  warning: { bg: Colors.warningBg, fg: Colors.warning, border: "#fde68a" },
+  info: { bg: Colors.infoBg, fg: Colors.info, border: "#bfdbfe" },
+  danger: { bg: Colors.errorBg, fg: Colors.error, border: "#fecdd3" },
   muted: { bg: Colors.surface, fg: Colors.textTertiary, border: Colors.borderSubtle },
-  online: { bg: "#ecfdf5", fg: Colors.success, border: "#bbf7d0" },
-  offline: { bg: "#fff1f2", fg: Colors.error, border: "#fecdd3" },
+  online: { bg: Colors.successBg, fg: Colors.success, border: "#bbf7d0" },
+  offline: { bg: Colors.errorBg, fg: Colors.error, border: "#fecdd3" },
 };
 
 export interface AdminStatusPillProps {

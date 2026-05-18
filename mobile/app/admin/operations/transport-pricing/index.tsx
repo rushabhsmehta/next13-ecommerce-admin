@@ -17,8 +17,10 @@ import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   AdminCommandBar,
   AdminEmptyState,
+  AdminEntityRow,
   AdminErrorState,
   AdminScreen,
+  AdminStatusPill,
   AdminTopBar,
   AdminTopBarPrimaryButton,
 } from "@/components/admin";
@@ -214,39 +216,25 @@ function Inner() {
           ) : null
         }
         renderItem={({ item }) => (
-          <Pressable
+          <AdminEntityRow
             testID={`transport-pricing-row-${item.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Open pricing for ${item.locationLabel}`}
-            style={styles.row}
+            icon="car"
+            title={item.locationLabel}
+            subtitle={`${item.vehicleTypeName ?? "No vehicle"} · ${
+              item.transportType === "PerDay" ? "Per day" : "Per trip"
+            }`}
+            meta={`${inr(item.price)} · ${fmtDate(item.startDate)} – ${fmtDate(
+              item.endDate
+            )}`}
+            trailing={
+              !item.isActive ? (
+                <AdminStatusPill label="Inactive" variant="muted" compact />
+              ) : undefined
+            }
             onPress={() =>
               router.push(`/admin/operations/transport-pricing/${item.id}` as never)
             }
-          >
-            <View style={styles.avatar}>
-              <Ionicons name="car" size={18} color={Colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowName} numberOfLines={1}>
-                {item.locationLabel}
-              </Text>
-              <Text style={styles.rowMeta} numberOfLines={1}>
-                {item.vehicleTypeName ?? "No vehicle"}
-                {" · "}
-                {item.transportType === "PerDay" ? "Per day" : "Per trip"}
-              </Text>
-              <Text style={styles.rowDates} numberOfLines={1}>
-                {fmtDate(item.startDate)} – {fmtDate(item.endDate)}
-              </Text>
-            </View>
-            <View style={styles.priceCol}>
-              <Text style={styles.priceText}>{inr(item.price)}</Text>
-              {!item.isActive ? (
-                <Text style={styles.inactiveBadge}>Inactive</Text>
-              ) : null}
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
-          </Pressable>
+          />
         )}
       />
     </AdminScreen>
@@ -256,38 +244,6 @@ function Inner() {
 const styles = StyleSheet.create({
   list: { flex: 1 },
   listLoader: { marginTop: Spacing.xl },
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  newBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   manageBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -302,69 +258,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryLight,
   },
   manageText: { flex: 1, fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: { flex: 1, fontSize: FontSize.sm, color: Colors.text, paddingVertical: 0 },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
   listContent: { paddingHorizontal: Spacing.lg },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rowName: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
-  rowMeta: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
-  rowDates: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  priceCol: { alignItems: "flex-end", gap: 2 },
-  priceText: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
-  inactiveBadge: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: Colors.error,
-    textTransform: "uppercase",
-  },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
 });

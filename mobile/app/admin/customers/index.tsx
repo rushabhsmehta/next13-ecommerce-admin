@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -14,11 +14,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
-import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { BorderRadius, Colors, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   AdminCommandBar,
   AdminEmptyState,
+  AdminEntityRow,
   AdminErrorState,
   AdminLoadingState,
   AdminScreen,
@@ -213,52 +214,76 @@ export default function CustomersListScreen() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => (
-          <Pressable
-            testID={`customer-row-${item.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${item.name}`}
-            style={styles.row}
-            onPress={() => router.push(`/admin/customers/${item.id}` as never)}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {(item.name ?? "?")
-                  .split(" ")
-                  .map((s) => s[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase()}
-              </Text>
-            </View>
-            <View style={styles.rowBody}>
-              <Text style={styles.rowName} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={styles.rowMeta} numberOfLines={1}>
-                {item.contact ?? "No phone"}
-                {item.email ? ` · ${item.email}` : ""}
-              </Text>
-              {item.associatePartner ? (
-                <Text style={styles.rowAssociate} numberOfLines={1}>
-                  Associate: {item.associatePartner.name}
-                </Text>
-              ) : null}
-            </View>
-            {item.contact ? (
-              <Pressable
-                testID={`customer-call-${item.id}`}
-                accessibilityLabel={`Call ${item.name}`}
-                style={styles.callBtn}
-                onPress={() => Linking.openURL(`tel:${item.contact}`)}
-                hitSlop={8}
-              >
-                <Ionicons name="call" size={16} color={Colors.primary} />
-              </Pressable>
-            ) : null}
-            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const hasPhone = !!item.contact;
+          const openMenu = () => {
+            const options: {
+              text: string;
+              style?: "cancel" | "destructive";
+              onPress?: () => void;
+            }[] = [];
+            if (hasPhone) {
+              options.push({
+                text: "Call",
+                onPress: () => Linking.openURL(`tel:${item.contact}`),
+              });
+            }
+            options.push({ text: "Cancel", style: "cancel" });
+            Alert.alert(item.name, undefined, options);
+          };
+          return (
+            <AdminEntityRow
+              testID={`customer-row-${item.id}`}
+              icon="person"
+              title={item.name}
+              subtitle={`${item.contact ?? "No phone"}${
+                item.email ? ` · ${item.email}` : ""
+              }`}
+              meta={
+                item.associatePartner
+                  ? `Associate: ${item.associatePartner.name}`
+                  : undefined
+              }
+              onPress={() => router.push(`/admin/customers/${item.id}` as never)}
+              trailing={
+                hasPhone ? (
+                  <View style={styles.actions}>
+                    <Pressable
+                      testID={`customer-call-${item.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Call ${item.name}`}
+                      style={styles.iconBtn}
+                      hitSlop={8}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        Linking.openURL(`tel:${item.contact}`);
+                      }}
+                    >
+                      <Ionicons name="call" size={18} color={Colors.primary} />
+                    </Pressable>
+                    <Pressable
+                      testID={`customer-menu-${item.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="More actions"
+                      style={styles.iconBtn}
+                      hitSlop={8}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        openMenu();
+                      }}
+                    >
+                      <Ionicons
+                        name="ellipsis-vertical"
+                        size={18}
+                        color={Colors.textTertiary}
+                      />
+                    </Pressable>
+                  </View>
+                ) : undefined
+              }
+            />
+          );
+        }}
       />
     </AdminScreen>
   );
@@ -267,118 +292,18 @@ export default function CustomersListScreen() {
 const styles = StyleSheet.create({
   list: { flex: 1 },
   listLoader: { marginTop: Spacing.xl },
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
-    backgroundColor: Colors.background,
-  },
-  centeredInList: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTextWrap: { flex: 1 },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  newBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    color: Colors.text,
-    paddingVertical: 0,
-  },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
   listContent: { paddingHorizontal: Spacing.lg },
-  row: {
+  footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
+  actions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { color: Colors.primary, fontWeight: "800", fontSize: FontSize.sm },
-  rowBody: { flex: 1, gap: 2 },
-  rowName: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
-  rowMeta: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  rowAssociate: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  callBtn: {
-    width: 32,
-    height: 32,
+  iconBtn: {
+    width: 36,
+    height: 36,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primaryBg,
     alignItems: "center",
     justifyContent: "center",
-  },
-  footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
   },
 });

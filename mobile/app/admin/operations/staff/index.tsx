@@ -9,16 +9,17 @@ import {
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
-import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import {
   AdminCommandBar,
   AdminEmptyState,
+  AdminEntityRow,
   AdminErrorState,
   AdminScreen,
+  AdminStatusPill,
   AdminTopBar,
   AdminTopBarPrimaryButton,
 } from "@/components/admin";
@@ -177,45 +178,21 @@ function Inner() {
           )
         }
         renderItem={({ item }) => (
-          <Pressable
+          <AdminEntityRow
             testID={`staff-row-${item.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${item.name}`}
-            style={styles.row}
+            title={item.name}
+            subtitle={item.email}
+            meta={item.role === "ADMIN" ? "Admin" : "Operations"}
+            icon="person-circle-outline"
             onPress={() =>
               router.push(`/admin/operations/staff/${item.id}` as never)
             }
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {(item.name ?? "?")
-                  .split(" ")
-                  .map((s) => s[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase()}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.rowTopRow}>
-                <Text style={styles.rowName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                {!item.isActive ? (
-                  <View style={styles.inactivePill}>
-                    <Text style={styles.inactivePillText}>Inactive</Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text style={styles.rowMeta} numberOfLines={1}>
-                {item.email}
-              </Text>
-              <Text style={styles.rowRole}>
-                {item.role === "ADMIN" ? "Admin" : "Operations"}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
-          </Pressable>
+            trailing={
+              !item.isActive ? (
+                <AdminStatusPill label="Inactive" variant="muted" compact />
+              ) : undefined
+            }
+          />
         )}
       />
     </AdminScreen>
@@ -225,52 +202,7 @@ function Inner() {
 const styles = StyleSheet.create({
   list: { flex: 1 },
   listLoader: { marginTop: Spacing.xl },
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  newBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: { flex: 1, fontSize: FontSize.sm, color: Colors.text, paddingVertical: 0 },
+  listContent: { paddingHorizontal: Spacing.lg },
   filterRow: {
     flexDirection: "row",
     paddingHorizontal: Spacing.lg,
@@ -290,51 +222,4 @@ const styles = StyleSheet.create({
   },
   filterChipText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
   filterChipTextActive: { color: Colors.primary },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  listContent: { paddingHorizontal: Spacing.lg },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { color: Colors.primary, fontWeight: "800", fontSize: FontSize.sm },
-  rowTopRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
-  rowName: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text, flex: 1 },
-  rowMeta: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
-  rowRole: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  inactivePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-  },
-  inactivePillText: { fontSize: 10, fontWeight: "800", color: Colors.textTertiary },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: { fontSize: FontSize.sm, color: Colors.textSecondary, textAlign: "center" },
 });

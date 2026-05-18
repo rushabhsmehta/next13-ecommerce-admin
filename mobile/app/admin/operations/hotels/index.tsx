@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -19,6 +18,7 @@ import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
   AdminCommandBar,
   AdminEmptyState,
+  AdminEntityRow,
   AdminErrorState,
   AdminScreen,
   AdminTopBar,
@@ -215,34 +215,22 @@ function Inner() {
           ) : null
         }
         renderItem={({ item }) => (
-          <Pressable
+          <AdminEntityRow
             testID={`hotel-row-${item.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${item.name}`}
-            style={styles.row}
+            icon="bed"
+            title={item.name}
+            subtitle={
+              item.destinationName
+                ? `${item.locationLabel} · ${item.destinationName}`
+                : item.locationLabel
+            }
+            meta={
+              (item.pricingCount ?? 0) > 0
+                ? `${item.pricingCount} pricing row(s)`
+                : undefined
+            }
             onPress={() => router.push(`/admin/operations/hotels/${item.id}` as never)}
-          >
-            {item.heroImageUrl?.trim() ? (
-              <Image source={{ uri: item.heroImageUrl.trim() }} style={styles.thumb} />
-            ) : (
-              <View style={[styles.thumb, styles.thumbPlaceholder]}>
-                <Ionicons name="bed" size={18} color={Colors.textTertiary} />
-              </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowName} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={styles.rowMeta} numberOfLines={1}>
-                {item.locationLabel}
-                {item.destinationName ? ` · ${item.destinationName}` : ""}
-              </Text>
-              {(item.pricingCount ?? 0) > 0 ? (
-                <Text style={styles.rowPricing}>{item.pricingCount} pricing row(s)</Text>
-              ) : null}
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
-          </Pressable>
+          />
         )}
       />
     </AdminScreen>
@@ -252,38 +240,6 @@ function Inner() {
 const styles = StyleSheet.create({
   list: { flex: 1 },
   listLoader: { marginTop: Spacing.xl },
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  newBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -299,60 +255,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryLight,
   },
   filterChipText: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.primary },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: { flex: 1, fontSize: FontSize.sm, color: Colors.text, paddingVertical: 0 },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
   listContent: { paddingHorizontal: Spacing.lg },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  thumb: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surfaceAlt,
-  },
-  thumbPlaceholder: { alignItems: "center", justifyContent: "center" },
-  rowName: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
-  rowMeta: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
-  rowPricing: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
 });

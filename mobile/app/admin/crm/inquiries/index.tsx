@@ -69,12 +69,15 @@ interface InquiryRow {
   tourPackageQueries?: Array<{ id: string }> | null;
 }
 
+// Canonical inquiry statuses (must match the DB enum used by /api/inquiries;
+// see src/lib/inquiry-statuses.ts). The previous list invented
+// contacted/quoted/negotiation and a lowercase "pending", which the API
+// passes straight to Prisma — so those filters always returned zero rows.
 const STATUS_FILTERS: { id: string; label: string }[] = [
   { id: "ALL", label: "All" },
-  { id: "pending", label: "Pending" },
-  { id: "contacted", label: "Contacted" },
-  { id: "quoted", label: "Quoted" },
-  { id: "negotiation", label: "Negotiation" },
+  { id: "PENDING", label: "Pending" },
+  { id: "HOT_QUERY", label: "Hot Query" },
+  { id: "QUERY_SENT", label: "Query Sent" },
   { id: "CONFIRMED", label: "Confirmed" },
   { id: "CANCELLED", label: "Cancelled" },
 ];
@@ -389,11 +392,10 @@ function AdminInquiriesList({
 
 const STATUS_PILL: Record<string, { variant: AdminStatusPillVariant; label: string }> = {
   pending: { variant: "warning", label: "Pending" },
-  contacted: { variant: "info", label: "Contacted" },
-  quoted: { variant: "primary", label: "Quoted" },
-  negotiation: { variant: "primary", label: "Negotiation" },
+  hot_query: { variant: "danger", label: "Hot Query" },
+  query_sent: { variant: "info", label: "Query Sent" },
   confirmed: { variant: "success", label: "Confirmed" },
-  cancelled: { variant: "danger", label: "Cancelled" },
+  cancelled: { variant: "muted", label: "Cancelled" },
 };
 
 function statusPill(status: string): { variant: AdminStatusPillVariant; label: string } {

@@ -136,8 +136,13 @@ function Inner() {
 
   const amt = Number(amount);
   const amtOk = Number.isFinite(amt) && amt > 0;
+  const amtWithinDoc = !doc || (Number.isFinite(amt) && amt <= doc.balanceDue + 0.01);
+  const gstTrimmed = gst.trim();
+  const gstNum = Number(gst);
+  const gstOk = gstTrimmed.length === 0 || Number.isFinite(gstNum);
   const dateState = todayIso();
-  const canSubmit = amtOk && !!party && !!doc && !submitting;
+  const canSubmit =
+    amtOk && amtWithinDoc && gstOk && !!party && !!doc && !submitting;
 
   const submit = useCallback(async () => {
     if (!canSubmit || !doc) return;
@@ -148,7 +153,7 @@ function Inner() {
           saleDetailId: doc.id,
           returnDate: dateState,
           amount: amt,
-          gstAmount: gst ? Number(gst) : null,
+          gstAmount: gstTrimmed.length > 0 ? gstNum : null,
           reference: reference.trim() || null,
           returnReason: reason.trim() || null,
           creditType,
@@ -158,7 +163,7 @@ function Inner() {
           purchaseDetailId: doc.id,
           returnDate: dateState,
           amount: amt,
-          gstAmount: gst ? Number(gst) : null,
+          gstAmount: gstTrimmed.length > 0 ? gstNum : null,
           reference: reference.trim() || null,
           returnReason: reason.trim() || null,
           supplierCreditType: creditType,
@@ -204,11 +209,17 @@ function Inner() {
               ? `Choose a ${partyType}.`
               : !doc
                 ? "Choose a source document."
-                : !amtOk
-                  ? "Enter a positive return amount."
-                  : submitting
-                    ? "Saving…"
-                    : undefined
+                : amount.trim().length === 0
+                  ? "Enter a return amount."
+                  : !amtOk
+                    ? "Enter a positive return amount."
+                    : !amtWithinDoc
+                      ? `Return exceeds document balance (₹${Math.round(doc.balanceDue).toLocaleString("en-IN")}).`
+                      : !gstOk
+                        ? "Enter a valid GST amount."
+                        : submitting
+                          ? "Saving…"
+                          : undefined
           }
           onPrimaryPress={submit}
         />

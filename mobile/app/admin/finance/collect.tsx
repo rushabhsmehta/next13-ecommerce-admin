@@ -15,6 +15,7 @@ import { OfflineGate } from "@/components/auth/PermissionGate";
 import { DateField } from "@/components/ui/DateField";
 import {
   AdminBottomActionBar,
+  AdminErrorState,
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
@@ -81,16 +82,31 @@ function Inner() {
   const [partyPickerOpen, setPartyPickerOpen] = useState(false);
   const [partyResults, setPartyResults] = useState<FinanceParty[]>([]);
   const [partyLoading, setPartyLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const partyType = mode === "receipt" ? "customer" : "supplier";
   const allocKind = mode === "receipt" ? "sales" : "purchases";
 
-  useEffect(() => {
+  const loadAccounts = useCallback(() => {
     client.listAccounts().then(
-      (r) => setAccounts(r.accounts),
-      () => setAccounts([])
+      (r) => {
+        setAccounts(r.accounts);
+        setLoadError(null);
+      },
+      (err) => {
+        setAccounts([]);
+        setLoadError(
+          err instanceof ApiError
+            ? err.message
+            : "Could not load accounts. Pull to retry."
+        );
+      }
     );
   }, [client]);
+
+  useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
 
   useEffect(() => {
     setParty(null);
@@ -115,8 +131,14 @@ function Inner() {
       try {
         const r = await client.listParties(partyType, term || undefined);
         setPartyResults(r.parties);
-      } catch {
+        setLoadError(null);
+      } catch (err) {
         setPartyResults([]);
+        setLoadError(
+          err instanceof ApiError
+            ? err.message
+            : `Could not load ${partyType}s. Try again.`
+        );
       } finally {
         setPartyLoading(false);
       }
@@ -152,11 +174,29 @@ function Inner() {
   const amountNum = Number(amount);
   const amountOk = Number.isFinite(amountNum) && amountNum > 0;
   const dateOk = ISO.test(date);
-  const allocTotal = Object.values(allocs).reduce(
-    (s, v) => s + (Number(v) || 0),
-    0
+  const allocTotal = Object.values(allocs).reduce((s, v) => {
+    const n = Number(v);
+    return s + (Number.isFinite(n) ? n : 0);
+  }, 0);
+  const allocById = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const it of allocatable) {
+      const n = Number(allocs[it.id]);
+      m[it.id] = Number.isFinite(n) ? n : 0;
+    }
+    return m;
+  }, [allocatable, allocs]);
+  const overAllocatedItem = useMemo(
+    () =>
+      allocatable.find(
+        (it) => allocById[it.id] > it.balanceDue + 0.01
+      ) ?? null,
+    [allocatable, allocById]
   );
-  const allocOk = allocTotal <= amountNum + 0.01;
+  const allocWithinInvoices = !overAllocatedItem;
+  const allocWithinAmount =
+    Number.isFinite(amountNum) && allocTotal <= amountNum + 0.01;
+  const allocOk = allocWithinInvoices && allocWithinAmount;
   const canSubmit =
     amountOk && dateOk && !!account && !!party && allocOk && !submitting;
 
@@ -233,15 +273,19 @@ function Inner() {
               ? `Choose a ${partyType}.`
               : !account
                 ? "Choose an account."
-                : !amountOk
-                  ? "Enter a positive amount."
-                  : !dateOk
-                    ? "Choose a date."
-                    : !allocOk
-                      ? "Allocated total exceeds the amount."
-                      : submitting
-                        ? "Saving…"
-                        : undefined
+                : amount.trim().length === 0
+                  ? "Enter an amount."
+                  : !amountOk
+                    ? "Enter a positive amount."
+                    : !dateOk
+                      ? "Choose a date."
+                      : !allocWithinInvoices
+                        ? `Allocation exceeds invoice balance (${overAllocatedItem?.reference ?? ""}).`
+                        : !allocWithinAmount
+                          ? "Allocations exceed amount."
+                          : submitting
+                            ? "Saving…"
+                            : undefined
           }
           onPrimaryPress={submit}
         />
@@ -255,6 +299,17 @@ function Inner() {
         onBackPress={() => router.back()}
         testID="finance-collect"
       />
+
+      {loadError ? (
+        <AdminErrorState
+          message={loadError}
+          onRetry={() => {
+            loadAccounts();
+            if (partyPickerOpen) void loadParties("");
+          }}
+          testID="finance-collect-error"
+        />
+      ) : null}
 
       <AdminFormSection title="Type" testID="finance-collect-mode-section">
         <AdminSegmentedControl
@@ -352,6 +407,11 @@ function Inner() {
                   Due {fmt(it.balanceDue)}
                   {it.tourPackageQueryName ? ` · ${it.tourPackageQueryName}` : ""}
                 </Text>
+                {allocById[it.id] > it.balanceDue + 0.01 ? (
+                  <Text style={styles.helpErr}>
+                    Exceeds balance ({fmt(it.balanceDue)}).
+                  </Text>
+                ) : null}
               </View>
               <TextInput
                 testID={`finance-collect-alloc-${it.id}`}
@@ -365,8 +425,13 @@ function Inner() {
               />
             </View>
           ))}
-          {!allocOk ? (
-            <Text style={styles.helpErr}>Allocated total exceeds the amount.</Text>
+          {!allocWithinInvoices ? (
+            <Text style={styles.helpErr}>
+              Allocation exceeds invoice balance
+              {overAllocatedItem ? ` (${overAllocatedItem.reference})` : ""}.
+            </Text>
+          ) : !allocWithinAmount ? (
+            <Text style={styles.helpErr}>Allocations exceed amount.</Text>
           ) : null}
         </AdminFormSection>
       ) : null}

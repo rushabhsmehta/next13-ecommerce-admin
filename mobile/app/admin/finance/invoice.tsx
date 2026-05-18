@@ -99,6 +99,13 @@ function Inner() {
     void loadParties("");
   }, [partyPickerOpen, loadParties]);
 
+  // Invalidate a prior server tax check whenever tax-affecting inputs change,
+  // so a stale mismatch doesn't permanently block submit and the user must
+  // re-verify after editing.
+  useEffect(() => {
+    setServerTax(null);
+  }, [baseAmount, gstPct, isGst]);
+
   const partyOptions = useMemo(
     () =>
       partyResults.map((p) => ({
@@ -116,7 +123,6 @@ function Inner() {
     isGst && Number.isFinite(pct) && pct > 0 ? round2((base * pct) / 100) : 0;
   const total = round2(base + gstAmount);
   const dateOk = ISO.test(date);
-  const canSubmit = baseOk && dateOk && !!party && !submitting;
 
   const [serverTax, setServerTax] = useState<{
     gstAmount: number;
@@ -126,6 +132,11 @@ function Inner() {
     total: number;
   } | null>(null);
   const [verifying, setVerifying] = useState(false);
+
+  const taxMismatch =
+    !!serverTax && Math.abs(serverTax.total - total) > 0.5;
+  const canSubmit =
+    baseOk && dateOk && !!party && !taxMismatch && !submitting;
 
   const verifyTax = useCallback(async () => {
     if (!baseOk) return;
@@ -219,10 +230,12 @@ function Inner() {
               : !baseOk
                 ? "Enter a positive base amount."
                 : !dateOk
-                    ? "Choose a date."
-                  : submitting
-                    ? "Saving…"
-                    : undefined
+                  ? "Choose a date."
+                  : taxMismatch
+                    ? "Server tax differs — re-verify before saving."
+                    : submitting
+                      ? "Saving…"
+                      : undefined
           }
           onPrimaryPress={submit}
         />
@@ -370,9 +383,11 @@ function Inner() {
                 ? ` · IGST ₹${serverTax.igst.toLocaleString("en-IN")}`
                 : ` · CGST ₹${serverTax.cgst.toLocaleString("en-IN")} · SGST ₹${serverTax.sgst.toLocaleString("en-IN")}`}
             </Text>
-            <Text style={styles.serverLine}>
+            <Text style={[styles.serverLine, taxMismatch ? styles.serverLineErr : null]}>
               Server total ₹{serverTax.total.toLocaleString("en-IN")}
-              {Math.abs(serverTax.total - total) > 0.5 ? " — differs from local!" : " ✓ matches"}
+              {taxMismatch
+                ? " — differs from local. Adjust the amount/GST so totals match before saving."
+                : " ✓ matches"}
             </Text>
           </View>
         ) : null}
@@ -460,4 +475,5 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
   },
   serverLine: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  serverLineErr: { color: Colors.error, fontWeight: "800" },
 });

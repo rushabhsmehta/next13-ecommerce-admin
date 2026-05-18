@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Linking,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
@@ -47,7 +50,6 @@ export default function AssociatePartnerDetailScreen() {
 
 function AssociatePartnerDetailScreenInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -145,21 +147,18 @@ function AssociatePartnerDetailScreenInner() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading partner…" testID="partner-detail-loading" />;
   }
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errorText}>{error ?? "Partner not found"}</Text>
-        <Pressable style={styles.primaryBtn} onPress={() => void load()}>
-          <Text style={styles.primaryBtnText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="partner-detail-error">
+        <Stack.Screen options={{ title: "Partner", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Partner not found"}
+          onRetry={() => void load()}
+          testID="partner-detail-error-state"
+        />
+      </AdminScreen>
     );
   }
 
@@ -172,236 +171,181 @@ function AssociatePartnerDetailScreenInner() {
     .toUpperCase();
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="partner-detail-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: partner.name, headerShown: false }} />
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor="#fff"
-          />
+
+      <AdminTopBar
+        title={partner.name}
+        subtitle={partner.mobileNumber}
+        onBackPress={() => router.back()}
+        testID="partner-detail-header"
+        badges={
+          !partner.isActive
+            ? [{ id: "inactive", label: "Inactive", variant: "warning" }]
+            : undefined
         }
-      >
-        <LinearGradient
-          colors={[Colors.gradient1, Colors.gradient2]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.hero, { paddingTop: insets.top + 12 }]}
-        >
-          <View style={styles.heroTopRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Back"
-              style={styles.heroBack}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="chevron-back" size={22} color="#fff" />
-            </Pressable>
-            <View style={{ flexDirection: "row", gap: Spacing.sm }}>
-              <Pressable
-                testID={`partner-edit-${partner.id}`}
-                accessibilityRole="button"
-                accessibilityLabel="Edit partner"
-                style={styles.heroBack}
-                onPress={() => setEditing(true)}
-              >
-                <Ionicons name="create-outline" size={20} color="#fff" />
-              </Pressable>
-              <Pressable
-                testID={`partner-delete-${partner.id}`}
-                accessibilityRole="button"
-                accessibilityLabel="Remove partner"
-                style={styles.heroBack}
-                onPress={() => void confirmDelete()}
-                disabled={busy}
-              >
-                <Ionicons name="trash-outline" size={20} color="#fff" />
-              </Pressable>
-            </View>
+        rightSlot={
+          <View style={styles.headerActions}>
+            <AdminTopBarIconButton
+              icon="create-outline"
+              label="Edit partner"
+              testID={`partner-edit-${partner.id}`}
+              onPress={() => setEditing(true)}
+            />
+            <AdminTopBarIconButton
+              icon="trash-outline"
+              label="Remove partner"
+              testID={`partner-delete-${partner.id}`}
+              onPress={() => void confirmDelete()}
+              disabled={busy}
+            />
           </View>
-          <View style={styles.heroAvatar}>
-            <Text style={styles.heroAvatarText}>{initials}</Text>
-          </View>
-          <Text style={styles.heroName}>{partner.name}</Text>
-          <Text style={styles.heroPhone}>{partner.mobileNumber}</Text>
-          {!partner.isActive ? (
-            <View style={styles.inactiveBadge}>
-              <Text style={styles.inactiveBadgeText}>Inactive</Text>
-            </View>
-          ) : null}
-          <View style={styles.heroActions}>
-            <Pressable
-              accessibilityLabel="Call partner"
-              style={styles.heroAction}
-              onPress={() => Linking.openURL(`tel:${partner.mobileNumber}`)}
-            >
-              <Ionicons name="call" size={16} color="#fff" />
-              <Text style={styles.heroActionText}>Call</Text>
-            </Pressable>
-            {partner.email ? (
-              <Pressable
-                accessibilityLabel="Email partner"
-                style={styles.heroAction}
-                onPress={() => Linking.openURL(`mailto:${partner.email}`)}
-              >
-                <Ionicons name="mail" size={16} color="#fff" />
-                <Text style={styles.heroActionText}>Email</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        </LinearGradient>
+        }
+      />
 
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{summary.inquiryCount}</Text>
-            <Text style={styles.statLabel}>Inquiries</Text>
-          </View>
+      <View style={styles.profileCard}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact</Text>
-          <View style={styles.infoCard}>
-            <Ionicons name="call" size={18} color={Colors.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.infoTitle}>{partner.mobileNumber}</Text>
-              <Text style={styles.infoMeta}>Mobile</Text>
-            </View>
-          </View>
+        <View style={styles.profileActions}>
+          <Pressable
+            accessibilityLabel="Call partner"
+            style={styles.profileAction}
+            onPress={() => Linking.openURL(`tel:${partner.mobileNumber}`)}
+          >
+            <Ionicons name="call" size={16} color={Colors.primary} />
+            <Text style={styles.profileActionText}>Call</Text>
+          </Pressable>
           {partner.email ? (
-            <View style={styles.infoCard}>
-              <Ionicons name="mail" size={18} color={Colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.infoTitle}>{partner.email}</Text>
-                <Text style={styles.infoMeta}>Email</Text>
-              </View>
-            </View>
-          ) : null}
-          {partner.gmail ? (
-            <View style={styles.infoCard}>
-              <Ionicons name="logo-google" size={18} color={Colors.primary} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.infoTitle}>{partner.gmail}</Text>
-                <Text style={styles.infoMeta}>Clerk login</Text>
-              </View>
-            </View>
+            <Pressable
+              accessibilityLabel="Email partner"
+              style={styles.profileAction}
+              onPress={() => Linking.openURL(`mailto:${partner.email}`)}
+            >
+              <Ionicons name="mail" size={16} color={Colors.primary} />
+              <Text style={styles.profileActionText}>Email</Text>
+            </Pressable>
           ) : null}
         </View>
+      </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Inquiries</Text>
-          {recentInquiries.length === 0 ? (
-            <Text style={styles.muted}>No inquiries from this partner yet.</Text>
-          ) : (
-            recentInquiries.map((inq) => (
-              <Pressable
-                key={inq.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Open inquiry ${inq.id.slice(0, 8)}`}
-                style={styles.listRow}
-                onPress={() => router.push(`/admin/crm/inquiries/${inq.id}` as never)}
-              >
-                <View style={styles.listIcon}>
-                  <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.listTitle} numberOfLines={1}>
-                    {inq.customerName}
-                  </Text>
-                  <Text style={styles.listMeta}>
-                    {inq.location?.label ?? "—"} · {formatDate(inq.journeyDate ?? inq.createdAt)}
-                  </Text>
-                </View>
-                <View style={styles.statusPill}>
-                  <Text style={styles.statusPillText}>{inq.status}</Text>
-                </View>
-              </Pressable>
-            ))
-          )}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{summary.inquiryCount}</Text>
+          <Text style={styles.statLabel}>Inquiries</Text>
         </View>
-      </ScrollView>
-    </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Contact</Text>
+        <View style={styles.infoCard}>
+          <Ionicons name="call" size={18} color={Colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoTitle}>{partner.mobileNumber}</Text>
+            <Text style={styles.infoMeta}>Mobile</Text>
+          </View>
+        </View>
+        {partner.email ? (
+          <View style={styles.infoCard}>
+            <Ionicons name="mail" size={18} color={Colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoTitle}>{partner.email}</Text>
+              <Text style={styles.infoMeta}>Email</Text>
+            </View>
+          </View>
+        ) : null}
+        {partner.gmail ? (
+          <View style={styles.infoCard}>
+            <Ionicons name="logo-google" size={18} color={Colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoTitle}>{partner.gmail}</Text>
+              <Text style={styles.infoMeta}>Clerk login</Text>
+            </View>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Inquiries</Text>
+        {recentInquiries.length === 0 ? (
+          <Text style={styles.muted}>No inquiries from this partner yet.</Text>
+        ) : (
+          recentInquiries.map((inq) => (
+            <Pressable
+              key={inq.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Open inquiry ${inq.id.slice(0, 8)}`}
+              style={styles.listRow}
+              onPress={() => router.push(`/admin/crm/inquiries/${inq.id}` as never)}
+            >
+              <View style={styles.listIcon}>
+                <Ionicons name="document-text-outline" size={18} color={Colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.listTitle} numberOfLines={1}>
+                  {inq.customerName}
+                </Text>
+                <Text style={styles.listMeta}>
+                  {inq.location?.label ?? "—"} · {formatDate(inq.journeyDate ?? inq.createdAt)}
+                </Text>
+              </View>
+              <View style={styles.statusPill}>
+                <Text style={styles.statusPillText}>{inq.status}</Text>
+              </View>
+            </Pressable>
+          ))
+        )}
+      </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  headerActions: { flexDirection: "row", gap: 4 },
+  profileCard: {
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.background,
     gap: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
   },
-  errorText: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text, textAlign: "center" },
-  primaryBtn: {
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  primaryBtnText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-
-  hero: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-    alignItems: "center",
-  },
-  heroTopRow: {
-    alignSelf: "stretch",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  heroBack: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroAvatar: {
+  avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: Colors.primaryBg,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: Spacing.sm,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.42)",
+    borderColor: Colors.primaryLight,
   },
-  heroAvatarText: { color: "#fff", fontWeight: "900", fontSize: FontSize.xxl },
-  heroName: { color: "#fff", fontSize: FontSize.xl, fontWeight: "900", marginTop: Spacing.sm },
-  heroPhone: { color: "rgba(255,255,255,0.86)", fontSize: FontSize.sm },
-  inactiveBadge: {
-    marginTop: Spacing.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "rgba(255,255,255,0.25)",
-  },
-  inactiveBadgeText: { fontSize: FontSize.xs, fontWeight: "800", color: "#fff" },
-  heroActions: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.md },
-  heroAction: {
+  avatarText: { color: Colors.primary, fontWeight: "900", fontSize: FontSize.xxl },
+  profileActions: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.xs },
+  profileAction: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
     borderRadius: BorderRadius.full,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: Colors.primaryBg,
   },
-  heroActionText: { color: "#fff", fontWeight: "700", fontSize: FontSize.sm },
-
-  statsRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    marginTop: -Spacing.md,
-  },
+  profileActionText: { color: Colors.primary, fontWeight: "700", fontSize: FontSize.sm },
+  statsRow: { flexDirection: "row", gap: Spacing.md },
   statCard: {
     flex: 1,
     backgroundColor: Colors.surface,
@@ -412,14 +356,8 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
   statLabel: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-
-  section: { marginTop: Spacing.xl, paddingHorizontal: Spacing.lg },
-  sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: "900",
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
+  section: { gap: Spacing.sm },
+  sectionTitle: { fontSize: FontSize.lg, fontWeight: "900", color: Colors.text },
   infoCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -433,7 +371,6 @@ const styles = StyleSheet.create({
   },
   infoTitle: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
   infoMeta: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
-
   listRow: {
     flexDirection: "row",
     alignItems: "center",

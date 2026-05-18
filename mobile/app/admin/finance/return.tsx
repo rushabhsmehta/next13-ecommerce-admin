@@ -1,25 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { OfflineGate } from "@/components/auth/PermissionGate";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+} from "@/components/admin";
 import {
   createFinanceClient,
   type FinanceParty,
@@ -27,8 +28,12 @@ import {
 } from "@/lib/finance";
 
 type Mode = "sale" | "purchase";
-const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const todayIso = () => new Date().toISOString().slice(0, 10);
+
+const MODE_OPTIONS: { id: Mode; label: string }[] = [
+  { id: "sale", label: "Sale return" },
+  { id: "purchase", label: "Purchase return" },
+];
 
 export default function FinanceReturnScreen() {
   return (
@@ -40,7 +45,6 @@ export default function FinanceReturnScreen() {
 
 function Inner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -67,8 +71,8 @@ function Inner() {
   );
   const [submitting, setSubmitting] = useState(false);
 
-  const [picker, setPicker] = useState<null | "party" | "doc">(null);
-  const [partySearch, setPartySearch] = useState("");
+  const [partyPickerOpen, setPartyPickerOpen] = useState(false);
+  const [docPickerOpen, setDocPickerOpen] = useState(false);
   const [partyResults, setPartyResults] = useState<FinanceParty[]>([]);
   const [partyLoading, setPartyLoading] = useState(false);
 
@@ -111,10 +115,24 @@ function Inner() {
   );
 
   useEffect(() => {
-    if (picker !== "party") return;
-    const t = setTimeout(() => void loadParties(partySearch.trim()), 250);
-    return () => clearTimeout(t);
-  }, [picker, partySearch, loadParties]);
+    if (!partyPickerOpen) return;
+    void loadParties("");
+  }, [partyPickerOpen, loadParties]);
+
+  const partyOptions = useMemo(
+    () => partyResults.map((p) => ({ id: p.id, label: p.name, subtitle: p.subtitle })),
+    [partyResults]
+  );
+
+  const docOptions = useMemo(
+    () =>
+      docs.map((d) => ({
+        id: d.id,
+        label: d.reference,
+        subtitle: `Due ₹${Math.round(d.balanceDue).toLocaleString("en-IN")}${d.tourPackageQueryName ? ` · ${d.tourPackageQueryName}` : ""}`,
+      })),
+    [docs]
+  );
 
   const amt = Number(amount);
   const amtOk = Number.isFinite(amt) && amt > 0;
@@ -172,116 +190,110 @@ function Inner() {
   const creditOptions = mode === "sale" ? saleCreditTypes : purchaseCreditTypes;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AdminScreen
+      keyboardAvoiding
+      testID="finance-return-screen"
+      footer={
+        <AdminBottomActionBar
+          primaryLabel="Save return"
+          primaryIcon="save-outline"
+          primaryTestID="finance-return-submit"
+          primaryDisabled={!canSubmit}
+          disabledReason={
+            !party
+              ? `Choose a ${partyType}.`
+              : !doc
+                ? "Choose a source document."
+                : !amtOk
+                  ? "Enter a positive return amount."
+                  : submitting
+                    ? "Saving…"
+                    : undefined
+          }
+          onPrimaryPress={submit}
+        />
+      }
     >
       <Stack.Screen options={{ title: "Return", headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="finance-return-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Record return</Text>
-      </View>
 
-      <View style={styles.modeRow}>
-        {(["sale", "purchase"] as Mode[]).map((m) => {
-          const active = mode === m;
-          return (
-            <Pressable
-              key={m}
-              testID={`finance-return-mode-${m}`}
-              accessibilityRole="button"
-              accessibilityLabel={m === "sale" ? "Sale return" : "Purchase return"}
-              style={[styles.modeChip, active ? styles.modeChipActive : null]}
-              onPress={() => setMode(m)}
-            >
-              <Text
-                style={[styles.modeText, active ? styles.modeTextActive : null]}
-              >
-                {m === "sale" ? "Sale return" : "Purchase return"}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <AdminTopBar
+        title="Record return"
+        subtitle="Sale or purchase return"
+        onBackPress={() => router.back()}
+        testID="finance-return"
+      />
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 120 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.label}>
-          {mode === "sale" ? "Customer *" : "Supplier *"}
-        </Text>
-        <Pressable
-          testID="finance-return-party"
-          accessibilityRole="button"
-          accessibilityLabel="Choose party"
-          style={styles.pickerBtn}
-          onPress={() => {
-            setPicker("party");
-            setPartySearch("");
-            void loadParties("");
-          }}
-        >
-          <Text style={styles.pickerText} numberOfLines={1}>
-            {party ? party.name : "Tap to choose"}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color={Colors.textSecondary} />
-        </Pressable>
-
-        <Text style={styles.label}>
-          {mode === "sale" ? "Against invoice *" : "Against bill *"}
-        </Text>
-        <Pressable
-          testID="finance-return-doc"
-          accessibilityRole="button"
-          accessibilityLabel="Choose source document"
-          style={styles.pickerBtn}
-          disabled={!party}
-          onPress={() => setPicker("doc")}
-        >
-          <Text style={styles.pickerText} numberOfLines={1}>
-            {doc
-              ? `${doc.reference} · due ₹${Math.round(
-                  doc.balanceDue
-                ).toLocaleString("en-IN")}`
-              : party
-              ? "Tap to choose"
-              : "Choose a party first"}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color={Colors.textSecondary} />
-        </Pressable>
-
-        <Text style={styles.label}>Return amount (₹) *</Text>
-        <TextInput
-          testID="finance-return-amount"
-          style={styles.input}
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          placeholderTextColor={Colors.textTertiary}
+      <AdminFormSection title="Type" testID="finance-return-mode-section">
+        <AdminSegmentedControl
+          options={MODE_OPTIONS}
+          value={mode}
+          onChange={setMode}
+          testIDPrefix="finance-return-mode"
+          scrollable={false}
         />
+      </AdminFormSection>
 
-        <Text style={styles.label}>GST amount (optional)</Text>
-        <TextInput
-          testID="finance-return-gst"
-          style={styles.input}
-          value={gst}
-          onChangeText={setGst}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          placeholderTextColor={Colors.textTertiary}
-        />
+      <AdminFormSection title="Source" testID="finance-return-source">
+        <AdminFormField label={mode === "sale" ? "Customer" : "Supplier"} required>
+          <Pressable
+            testID="finance-return-party"
+            accessibilityRole="button"
+            accessibilityLabel="Choose party"
+            style={styles.pickerBtn}
+            onPress={() => setPartyPickerOpen(true)}
+          >
+            <Text style={styles.pickerText} numberOfLines={1}>
+              {party ? party.name : "Tap to choose"}
+            </Text>
+          </Pressable>
+        </AdminFormField>
 
-        <Text style={styles.label}>
+        <AdminFormField label={mode === "sale" ? "Against invoice" : "Against bill"} required>
+          <Pressable
+            testID="finance-return-doc"
+            accessibilityRole="button"
+            accessibilityLabel="Choose source document"
+            style={styles.pickerBtn}
+            disabled={!party}
+            onPress={() => setDocPickerOpen(true)}
+          >
+            <Text style={styles.pickerText} numberOfLines={1}>
+              {doc
+                ? `${doc.reference} · due ₹${Math.round(doc.balanceDue).toLocaleString("en-IN")}`
+                : party
+                  ? "Tap to choose"
+                  : "Choose a party first"}
+            </Text>
+          </Pressable>
+        </AdminFormField>
+      </AdminFormSection>
+
+      <AdminFormSection title="Amounts" testID="finance-return-amounts">
+        <AdminFormField label="Return amount (₹)" required>
+          <TextInput
+            testID="finance-return-amount"
+            style={styles.input}
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor={Colors.textTertiary}
+          />
+        </AdminFormField>
+
+        <AdminFormField label="GST amount (optional)">
+          <TextInput
+            testID="finance-return-gst"
+            style={styles.input}
+            value={gst}
+            onChangeText={setGst}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor={Colors.textTertiary}
+          />
+        </AdminFormField>
+
+        <Text style={styles.fieldLabel}>
           {mode === "sale" ? "Credit type" : "Supplier credit type"}
         </Text>
         <View style={styles.chipRow}>
@@ -294,12 +306,7 @@ function Inner() {
                 style={[styles.chip, active ? styles.chipActive : null]}
                 onPress={() => setCreditType(ct)}
               >
-                <Text
-                  style={[
-                    styles.chipText,
-                    active ? styles.chipTextActive : null,
-                  ]}
-                >
+                <Text style={[styles.chipText, active ? styles.chipTextActive : null]}>
                   {ct.replace(/_/g, " ")}
                 </Text>
               </Pressable>
@@ -307,204 +314,72 @@ function Inner() {
           })}
         </View>
 
-        <Text style={styles.label}>Reference</Text>
-        <TextInput
-          testID="finance-return-reference"
-          style={styles.input}
-          value={reference}
-          onChangeText={setReference}
-          placeholder="Optional"
-          placeholderTextColor={Colors.textTertiary}
-        />
+        <AdminFormField label="Reference">
+          <TextInput
+            testID="finance-return-reference"
+            style={styles.input}
+            value={reference}
+            onChangeText={setReference}
+            placeholder="Optional"
+            placeholderTextColor={Colors.textTertiary}
+          />
+        </AdminFormField>
 
-        <Text style={styles.label}>Reason</Text>
-        <TextInput
-          testID="finance-return-reason"
-          style={[styles.input, styles.textarea]}
-          value={reason}
-          onChangeText={setReason}
-          placeholder="Optional"
-          placeholderTextColor={Colors.textTertiary}
-          multiline
-        />
-      </ScrollView>
+        <AdminFormField label="Reason">
+          <TextInput
+            testID="finance-return-reason"
+            style={[styles.input, styles.textarea]}
+            value={reason}
+            onChangeText={setReason}
+            placeholder="Optional"
+            placeholderTextColor={Colors.textTertiary}
+            multiline
+          />
+        </AdminFormField>
+      </AdminFormSection>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          testID="finance-return-submit"
-          accessibilityRole="button"
-          accessibilityLabel="Save return"
-          disabled={!canSubmit}
-          style={[styles.submit, !canSubmit ? styles.submitDisabled : null]}
-          onPress={submit}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>Save return</Text>
-            </>
-          )}
-        </Pressable>
-      </View>
+      <AdminPickerSheet
+        visible={partyPickerOpen}
+        title={`Choose ${partyType}`}
+        options={partyOptions}
+        selectedId={party?.id ?? null}
+        loading={partyLoading}
+        onClose={() => setPartyPickerOpen(false)}
+        onSelect={(opt) => {
+          const found = partyResults.find((p) => p.id === opt.id);
+          if (found) {
+            setParty(found);
+            setDoc(null);
+          }
+        }}
+        searchPlaceholder={`Search ${partyType}…`}
+        emptyLabel="No matches."
+        testID="finance-return-party-sheet"
+      />
 
-      <Modal
-        visible={picker !== null}
-        animationType="slide"
-        onRequestClose={() => setPicker(null)}
-      >
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
-            <Text style={styles.modalTitle}>
-              {picker === "party"
-                ? `Choose ${partyType}`
-                : mode === "sale"
-                ? "Choose invoice"
-                : "Choose bill"}
-            </Text>
-            <Pressable
-              testID="finance-return-picker-close"
-              accessibilityLabel="Close picker"
-              onPress={() => setPicker(null)}
-            >
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
-          </View>
-
-          {picker === "party" ? (
-            <>
-              <TextInput
-                style={styles.modalSearch}
-                value={partySearch}
-                onChangeText={setPartySearch}
-                placeholder={`Search ${partyType}…`}
-                placeholderTextColor={Colors.textTertiary}
-              />
-              {partyLoading ? (
-                <ActivityIndicator
-                  style={{ marginTop: 24 }}
-                  color={Colors.primary}
-                />
-              ) : (
-                <FlatList
-                  data={partyResults}
-                  keyExtractor={(p) => p.id}
-                  keyboardShouldPersistTaps="handled"
-                  ListEmptyComponent={
-                    <Text style={[styles.help, { padding: 16 }]}>
-                      No matches.
-                    </Text>
-                  }
-                  renderItem={({ item }) => (
-                    <Pressable
-                      testID={`finance-return-party-${item.id}`}
-                      style={styles.modalRow}
-                      onPress={() => {
-                        setParty(item);
-                        setDoc(null);
-                        setPicker(null);
-                      }}
-                    >
-                      <Text style={styles.modalName}>{item.name}</Text>
-                    </Pressable>
-                  )}
-                />
-              )}
-            </>
-          ) : (
-            <FlatList
-              data={docs}
-              keyExtractor={(d) => d.id}
-              ListEmptyComponent={
-                <Text style={[styles.help, { padding: 16 }]}>
-                  No documents for this party.
-                </Text>
-              }
-              renderItem={({ item }) => (
-                <Pressable
-                  testID={`finance-return-doc-${item.id}`}
-                  style={styles.modalRow}
-                  onPress={() => {
-                    setDoc(item);
-                    setPicker(null);
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalName}>{item.reference}</Text>
-                    <Text style={styles.modalSub}>
-                      Due ₹
-                      {Math.round(item.balanceDue).toLocaleString("en-IN")}
-                      {item.tourPackageQueryName
-                        ? ` · ${item.tourPackageQueryName}`
-                        : ""}
-                    </Text>
-                  </View>
-                </Pressable>
-              )}
-            />
-          )}
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+      <AdminPickerSheet
+        visible={docPickerOpen}
+        title={mode === "sale" ? "Choose invoice" : "Choose bill"}
+        options={docOptions}
+        selectedId={doc?.id ?? null}
+        onClose={() => setDocPickerOpen(false)}
+        onSelect={(opt) => {
+          const found = docs.find((d) => d.id === opt.id);
+          if (found) setDoc(found);
+        }}
+        emptyLabel="No documents for this party."
+        testID="finance-return-doc-sheet"
+      />
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  modeRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  modeChip: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-  },
-  modeChipActive: {
-    backgroundColor: Colors.primaryBg,
-    borderColor: Colors.primaryLight,
-  },
-  modeText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
-  modeTextActive: { color: Colors.primary },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.md,
-    marginBottom: 4,
-  },
   input: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSize.md,
@@ -512,18 +387,22 @@ const styles = StyleSheet.create({
   },
   textarea: { minHeight: 70, textAlignVertical: "top" },
   pickerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
   },
-  pickerText: { flex: 1, fontSize: FontSize.md, color: Colors.text, marginRight: 8 },
-  chipRow: { flexDirection: "row", gap: Spacing.sm, flexWrap: "wrap" },
+  pickerText: { fontSize: FontSize.md, color: Colors.text, fontWeight: "600" },
+  fieldLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 4,
+  },
+  chipRow: { flexDirection: "row", gap: Spacing.sm, flexWrap: "wrap", marginBottom: Spacing.md },
   chip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 7,
@@ -543,52 +422,4 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
   },
   chipTextActive: { color: Colors.primary },
-  help: { color: Colors.textTertiary, fontSize: FontSize.xs },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
-    backgroundColor: Colors.background,
-  },
-  submit: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  modalTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  modalClose: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
-  modalSearch: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    fontSize: FontSize.md,
-    color: Colors.text,
-  },
-  modalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  modalName: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
-  modalSub: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
 });

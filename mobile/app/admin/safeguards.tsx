@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Stack, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AdminHeader } from "@/components/admin";
-import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
+import { Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ApiError, withAuth } from "@/lib/api";
 
@@ -15,7 +18,6 @@ type SafetyOverview = {
 
 export default function AdminSafeguardsScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const { canUseAdmin } = useCurrentUser();
 
@@ -65,56 +67,47 @@ export default function AdminSafeguardsScreen() {
   }, [overview]);
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <AdminScreen testID="admin-safeguards-screen" contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: "Safeguards", headerShown: false }} />
-      <AdminHeader
+
+      <AdminTopBar
         title="Admin safeguards"
         subtitle="Operational policies"
         onBackPress={() => router.back()}
-        showAccent={false}
         testID="admin-safeguards-header"
       />
+
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={Colors.primary} accessibilityLabel="Loading safeguards" />
-        </View>
+        <AdminLoadingState label="Loading safeguards…" testID="admin-safeguards-loading" />
       ) : error ? (
-        <View style={styles.center}>
-          <Ionicons name="warning-outline" size={36} color={Colors.error} accessibilityLabel="Warning" />
-          <Text style={styles.errText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load()}
+          testID="admin-safeguards-error"
+        />
       ) : (
-        <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + Spacing.xl }]}
-          showsVerticalScrollIndicator={false}
-        >
-          {rows.map((r) => (
-            <View
-              key={r.k}
-              style={styles.row}
-              accessibilityRole="text"
-              accessibilityLabel={`${r.label}. ${r.text!.replace(/_/g, " ")}.`}
-            >
-              <Text style={styles.label}>{r.label}</Text>
-              <Text style={styles.body}>{String(r.text).replace(/_/g, " ")}</Text>
-            </View>
-          ))}
-        </ScrollView>
+        rows.map((r) => (
+          <View
+            key={r.k}
+            style={styles.row}
+            accessibilityRole="text"
+            accessibilityLabel={`${r.label}. ${r.text!.replace(/_/g, " ")}.`}
+          >
+            <Text style={styles.label}>{r.label}</Text>
+            <Text style={styles.body}>{String(r.text).replace(/_/g, " ")}</Text>
+          </View>
+        ))
       )}
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  content: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
     gap: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
   },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, gap: Spacing.sm },
   row: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.borderSubtle,
@@ -129,5 +122,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textTransform: "none",
   },
-  errText: { fontSize: FontSize.sm, color: Colors.error, textAlign: "center" },
 });

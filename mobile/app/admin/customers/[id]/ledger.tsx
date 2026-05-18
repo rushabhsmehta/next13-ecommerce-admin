@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -11,8 +8,13 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
@@ -51,7 +53,6 @@ export default function CustomerLedgerScreen() {
 
 function CustomerLedgerScreenInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -95,88 +96,78 @@ function CustomerLedgerScreenInner() {
   }, [load]);
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading ledger…" testID="customer-ledger-loading" />;
   }
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errorText}>{error ?? "Ledger not found"}</Text>
-        <Pressable style={styles.primaryBtn} onPress={() => void load()}>
-          <Text style={styles.primaryBtnText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="customer-ledger-error">
+        <Stack.Screen options={{ title: "Ledger", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Ledger not found"}
+          onRetry={() => void load()}
+          testID="customer-ledger-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   const { customer, transactions, summary } = data;
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="customer-ledger-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: `${customer.name} – Ledger`, headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
+
+      <AdminTopBar
+        title={customer.name}
+        subtitle="Ledger"
+        onBackPress={() => router.back()}
+        testID="customer-ledger-header"
+      />
+
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Sales</Text>
+          <Text style={styles.summaryValue}>{formatINR(summary.totalSales)}</Text>
+        </View>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Returns</Text>
+          <Text style={styles.summaryValue}>{formatINR(summary.totalReturns)}</Text>
+        </View>
+      </View>
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Receipts</Text>
+          <Text style={styles.summaryValue}>{formatINR(summary.totalReceipts)}</Text>
+        </View>
+        <View
+          style={[
+            styles.summaryCard,
+            summary.currentBalance > 0 ? styles.summaryCardAttention : null,
+          ]}
         >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{customer.name}</Text>
-          <Text style={styles.headerSubtitle}>Ledger</Text>
+          <Text style={styles.summaryLabel}>Current balance</Text>
+          <Text style={styles.summaryValue}>{formatINR(summary.currentBalance)}</Text>
         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
-        }
-      >
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Sales</Text>
-            <Text style={styles.summaryValue}>{formatINR(summary.totalSales)}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Returns</Text>
-            <Text style={styles.summaryValue}>{formatINR(summary.totalReturns)}</Text>
-          </View>
-        </View>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Receipts</Text>
-            <Text style={styles.summaryValue}>{formatINR(summary.totalReceipts)}</Text>
-          </View>
-          <View
-            style={[
-              styles.summaryCard,
-              summary.currentBalance > 0 ? styles.summaryCardAttention : null,
-            ]}
-          >
-            <Text style={styles.summaryLabel}>Current balance</Text>
-            <Text style={styles.summaryValue}>{formatINR(summary.currentBalance)}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Transactions</Text>
-        {transactions.length === 0 ? (
-          <Text style={styles.muted}>No transactions yet.</Text>
-        ) : (
-          transactions.map((entry) => <LedgerRow key={`${entry.type}-${entry.id}`} entry={entry} />)
-        )}
-      </ScrollView>
-    </View>
+      <Text style={styles.sectionTitle}>Transactions</Text>
+      {transactions.length === 0 ? (
+        <Text style={styles.muted}>No transactions yet.</Text>
+      ) : (
+        transactions.map((entry) => <LedgerRow key={`${entry.type}-${entry.id}`} entry={entry} />)
+      )}
+    </AdminScreen>
   );
 }
 
@@ -224,47 +215,8 @@ function LedgerRow({ entry }: { entry: LedgerEntry }) {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.background,
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  errorText: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text, textAlign: "center" },
-  primaryBtn: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  primaryBtnText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-
-  summaryRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
+  summaryRow: { flexDirection: "row", gap: Spacing.md },
   summaryCard: {
     flex: 1,
     backgroundColor: Colors.surface,
@@ -280,28 +232,20 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { fontSize: FontSize.xs, color: Colors.textTertiary, marginBottom: 4 },
   summaryValue: { fontSize: FontSize.lg, fontWeight: "900", color: Colors.text },
-
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: "900",
     color: Colors.text,
-    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  muted: {
-    fontSize: FontSize.sm,
-    color: Colors.textTertiary,
-    paddingHorizontal: Spacing.lg,
-  },
-
+  muted: { fontSize: FontSize.sm, color: Colors.textTertiary },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    marginHorizontal: Spacing.lg,
     marginBottom: Spacing.xs,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,

@@ -5,10 +5,8 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -18,8 +16,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import {
   AdminActionRail,
-  AdminHeader,
-  AdminHeaderIconButton,
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
+  AdminMetricStrip,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+  AdminTopBarIconButton,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -233,46 +238,27 @@ function FinanceHubScreenInner() {
   }, [authLoading, tab, debouncedSearch]);
 
   if (authLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading finance…" />;
   }
 
   if (!allowed) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="shield-outline" size={42} color={Colors.textTertiary} />
-        <Text style={styles.emptyTitle}>Finance access required</Text>
-        <Text style={styles.emptyText}>This view is restricted to finance staff.</Text>
-      </View>
+      <AdminScreen scroll={false} testID="finance-access-denied">
+        <AdminEmptyState
+          icon="shield-outline"
+          title="Finance access required"
+          body="This view is restricted to finance staff."
+          testID="finance-access-empty"
+        />
+      </AdminScreen>
     );
   }
 
   const currentTab = TABS.find((t) => t.id === tab)!;
+  const financeSegments = TABS.map((t) => ({ id: t.id, label: t.label }));
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title: "Finance", headerShown: false }} />
-
-      <AdminHeader
-        title="Finance"
-        subtitle="Last 90 days"
-        onBackPress={() => router.back()}
-        rightSlot={
-          <AdminHeaderIconButton
-            testID="finance-accounts-link"
-            icon="card-outline"
-            label="Accounts and balances"
-            hint="Shows bank and cash accounts with balances."
-            onPress={() => router.push("/admin/finance/accounts" as never)}
-          />
-        }
-        showAccent
-        testID="finance-admin-header"
-      />
-
+  const listHeader = (
+    <View style={styles.listHeader}>
       {canUseFinance || canUseAdmin ? (
         <AdminActionRail
           testIDPrefix="finance-action"
@@ -286,82 +272,74 @@ function FinanceHubScreenInner() {
           }))}
         />
       ) : null}
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabRail}
-      >
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <Pressable
-              key={t.id}
-              testID={`finance-tab-${t.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={t.label}
-              accessibilityHint={`Shows ${t.label} activity for the last 90 days.`}
-              style={[styles.segment, active ? styles.segmentActive : null]}
-              onPress={() => {
-                setTab(t.id);
-                setSearch("");
-                setDebouncedSearch("");
-              }}
-            >
-              <Ionicons
-                name={t.icon}
-                size={14}
-                color={active ? Colors.textInverse : Colors.textSecondary}
-              />
-              <Text style={[styles.segmentLabel, active ? styles.segmentLabelActive : null]}>
-                {t.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryTabName}>{currentTab.label}</Text>
-        <Text style={styles.summaryEntries}>{loading ? "…" : `${total} ${total === 1 ? "entry" : "entries"}`}</Text>
-        <Text style={styles.summaryAmount}>{loading ? "…" : formatAmountHeadline(totalAmount)}</Text>
-      </View>
-
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="finance-search-input"
-          accessibilityLabel={`Search ${currentTab.label}`}
-          style={styles.searchInput}
-          placeholder={`Search ${currentTab.label.toLowerCase()}…`}
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable
-            testID="finance-search-clear"
-            accessibilityRole="button"
-            accessibilityLabel="Clear search"
-            accessibilityHint="Removes search text."
-            onPress={() => setSearch("")}
-          >
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} accessibilityElementsHidden />
-          </Pressable>
-        ) : null}
-      </View>
-
+      <AdminMetricStrip
+        items={[
+          {
+            id: "entries",
+            label: `${currentTab.label} entries`,
+            value: loading ? "…" : total,
+          },
+          {
+            id: "amount",
+            label: "90-day total",
+            value: loading ? "…" : formatAmountHeadline(totalAmount),
+          },
+        ]}
+        testID="finance-metric-strip"
+      />
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", tab, debouncedSearch)}
+          testID="finance-error"
+        />
       ) : null}
+    </View>
+  );
+
+  return (
+    <AdminScreen scroll={false} testID="finance-hub-screen">
+      <Stack.Screen options={{ title: "Finance", headerShown: false }} />
+
+      <AdminTopBar
+        title="Finance"
+        subtitle="Last 90 days"
+        onBackPress={() => router.back()}
+        testID="finance-admin-header"
+        rightSlot={
+          <AdminTopBarIconButton
+            testID="finance-accounts-link"
+            icon="card-outline"
+            label="Accounts and balances"
+            hint="Shows bank and cash accounts with balances."
+            onPress={() => router.push("/admin/finance/accounts" as never)}
+          />
+        }
+      />
+
+      <AdminSegmentedControl
+        options={financeSegments}
+        value={tab}
+        onChange={(next) => {
+          setTab(next);
+          setSearch("");
+          setDebouncedSearch("");
+        }}
+        testIDPrefix="finance-tab"
+      />
+
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder={`Search ${currentTab.label.toLowerCase()}…`}
+        searchTestID="finance-search-input"
+        testID="finance-command-bar"
+      />
 
       <FlatList
+        style={styles.list}
         data={items}
+        ListHeaderComponent={listHeader}
         keyExtractor={(it) => `${tab}-${it.id}`}
         contentContainerStyle={[
           styles.listContent,
@@ -382,15 +360,18 @@ function FinanceHubScreenInner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centeredInList}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centeredInList}>
-              <Text style={styles.emptyText}>
-                {debouncedSearch ? "No results for this search." : `No ${currentTab.label.toLowerCase()} yet.`}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon={currentTab.icon}
+              title={debouncedSearch ? "No results" : `No ${currentTab.label.toLowerCase()} yet`}
+              body={
+                debouncedSearch
+                  ? "Try a different search term."
+                  : `Record ${currentTab.label.toLowerCase()} from the quick actions above.`
+              }
+              testID="finance-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -480,114 +461,25 @@ function FinanceHubScreenInner() {
           );
         }}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xl,
-    gap: Spacing.sm,
-    backgroundColor: Colors.background,
-  },
-  centeredInList: {
-    paddingTop: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-    alignItems: "center",
-  },
-  tabRail: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-  },
-  segment: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: "transparent",
-    backgroundColor: "transparent",
-  },
-  segmentActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primaryDark,
-  },
-  segmentLabel: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.textSecondary },
-  segmentLabelActive: { color: Colors.textInverse },
-  summaryCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 4,
-    backgroundColor: Colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-    borderRadius: BorderRadius.md,
-    gap: 4,
-    minHeight: 88,
-  },
-  summaryTabName: {
-    fontSize: FontSize.md,
-    fontWeight: "800",
-    color: Colors.text,
-  },
-  summaryEntries: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    fontWeight: "600",
-  },
-  summaryAmount: { fontSize: 26, fontWeight: "800", color: Colors.text, marginTop: 2 },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: { flex: 1, fontSize: FontSize.sm, color: Colors.text, paddingVertical: 0 },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  listContent: { paddingHorizontal: Spacing.lg, paddingTop: 2 },
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.lg },
+  listHeader: { gap: Spacing.sm, marginBottom: Spacing.sm },
+  listContent: { paddingHorizontal: Spacing.lg, paddingTop: 2, flexGrow: 1 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderSubtle,
+    paddingVertical: Spacing.md,
+    marginHorizontal: -Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   iconCircle: {
     width: 38,
@@ -610,11 +502,4 @@ const styles = StyleSheet.create({
   statusPillText: { fontSize: 10, color: Colors.textSecondary, fontWeight: "700" },
   amount: { fontSize: FontSize.md, fontWeight: "900" },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-    fontWeight: "600",
-  },
 });

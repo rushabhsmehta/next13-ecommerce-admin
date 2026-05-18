@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -17,6 +16,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type OpsHotel } from "@/lib/operations";
 
@@ -102,41 +109,30 @@ function Inner() {
   }, [debounced, locationFilter]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="hotels-list-screen">
       <Stack.Screen options={{ title: "Hotels", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Hotels</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${total} total`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="hotels-new"
-            accessibilityRole="button"
-            accessibilityLabel="New hotel"
-            onPress={() =>
-              router.push(
-                locationFilter
-                  ? (`/admin/operations/hotels/new?locationId=${locationFilter}` as never)
-                  : ("/admin/operations/hotels/new" as never)
-              )
-            }
-            style={styles.newBtn}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminTopBar
+        title="Hotels"
+        subtitle={loading ? "…" : `${total} total`}
+        onBackPress={() => router.back()}
+        testID="hotels-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="hotels-new"
+              onPress={() =>
+                router.push(
+                  locationFilter
+                    ? (`/admin/operations/hotels/new?locationId=${locationFilter}` as never)
+                    : ("/admin/operations/hotels/new" as never)
+                )
+              }
+            />
+          ) : null
+        }
+      />
 
       {locationFilter ? (
         <Pressable
@@ -151,34 +147,24 @@ function Inner() {
         </Pressable>
       ) : null}
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="hotels-search"
-          accessibilityLabel="Search hotels"
-          style={styles.searchInput}
-          placeholder="Search by name or location"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name or location"
+        searchTestID="hotels-search"
+        testID="hotels-command-bar"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debounced)}
+          testID="hotels-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(r) => r.id}
         contentContainerStyle={[
@@ -200,17 +186,25 @@ function Inner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="bed-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No hotels</Text>
-              <Text style={styles.emptyText}>
-                {debounced ? "Try a different search." : "Tap + to add one."}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="bed-outline"
+              title="No hotels"
+              body={debounced ? "Try a different search." : "Add a hotel to start building pricing."}
+              actionLabel={canWrite && !debounced ? "New hotel" : undefined}
+              onActionPress={
+                canWrite && !debounced
+                  ? () =>
+                      router.push(
+                        locationFilter
+                          ? (`/admin/operations/hotels/new?locationId=${locationFilter}` as never)
+                          : ("/admin/operations/hotels/new" as never)
+                      )
+                  : undefined
+              }
+              testID="hotels-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -228,8 +222,8 @@ function Inner() {
             style={styles.row}
             onPress={() => router.push(`/admin/operations/hotels/${item.id}` as never)}
           >
-            {item.heroImageUrl ? (
-              <Image source={{ uri: item.heroImageUrl }} style={styles.thumb} />
+            {item.heroImageUrl?.trim() ? (
+              <Image source={{ uri: item.heroImageUrl.trim() }} style={styles.thumb} />
             ) : (
               <View style={[styles.thumb, styles.thumbPlaceholder]}>
                 <Ionicons name="bed" size={18} color={Colors.textTertiary} />
@@ -251,11 +245,13 @@ function Inner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     paddingTop: Spacing.xxl,

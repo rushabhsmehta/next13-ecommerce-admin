@@ -377,9 +377,9 @@ export default function WhatsAppCatalog() {
               accessibilityLabel={`Open ${item.title}`}
               testID={`wa-catalog-product-${item.id}`}
             >
-              {item.heroImageUrl ? (
+              {item.heroImageUrl?.trim() ? (
                 <Image
-                  source={{ uri: item.heroImageUrl }}
+                  source={{ uri: item.heroImageUrl.trim() }}
                   style={styles.thumb}
                   resizeMode="cover"
                 />

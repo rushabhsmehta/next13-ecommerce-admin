@@ -15,6 +15,11 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminEmptyState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   createOperationsClient,
@@ -120,23 +125,18 @@ function Inner() {
     }
   }
 
+  const subtitle = loading ? "Loading..." : `${items.length} links`;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="location-suppliers-screen">
       <Stack.Screen options={{ title: "Location suppliers", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Location suppliers</Text>
-          <Text style={styles.headerSub}>{items.length} links</Text>
-        </View>
-      </View>
+
+      <AdminTopBar
+        title="Location suppliers"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="location-suppliers-header"
+      />
 
       <View style={styles.formCard}>
         <Pressable
@@ -180,6 +180,7 @@ function Inner() {
       </View>
 
       <FlatList
+        style={styles.list}
         testID="location-supplier-list"
         data={items}
         keyExtractor={(item) => item.id}
@@ -193,11 +194,13 @@ function Inner() {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} color={Colors.primary} />
           ) : (
-            <Text style={styles.empty}>No links yet.</Text>
+            <AdminEmptyState
+              icon="link-outline"
+              title="No links yet."
+              testID="location-suppliers-empty"
+            />
           )
         }
         renderItem={({ item }) => (
@@ -242,11 +245,13 @@ function Inner() {
           }
         }}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row",

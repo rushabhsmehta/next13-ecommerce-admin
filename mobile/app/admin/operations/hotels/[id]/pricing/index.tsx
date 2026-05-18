@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -15,6 +14,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import {
   createOperationsClient,
   type HotelPricingListResponse,
@@ -99,171 +105,131 @@ function Inner() {
 
   const title = data?.hotel.name ?? "Hotel pricing";
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title, headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={styles.headerSub}>Seasonal pricing</Text>
-        </View>
-      </View>
+  if (loading) {
+    return (
+      <AdminLoadingState label="Loading hotel pricing…" testID="hotel-pricing-list-loading" />
+    );
+  }
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      ) : error ? (
-        <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-          <Text style={styles.errText}>{error}</Text>
-          <Pressable style={styles.retry} onPress={() => void load()}>
-            <Text style={styles.retryText}>Try again</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <FlatList
-          testID="hotel-pricing-list"
-          data={data?.items ?? []}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            padding: Spacing.lg,
-            paddingBottom: insets.bottom + Spacing.xl,
-            flexGrow: (data?.items.length ?? 0) === 0 ? 1 : undefined,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => void load("refresh")}
-              tintColor={Colors.primary}
-            />
-          }
-          ListHeaderComponent={
-            <View style={styles.summary}>
-              <View style={styles.summaryTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.summaryText}>
-                    {data?.total ?? 0} active pricing row(s)
-                  </Text>
-                  <Text style={styles.summaryHint}>
-                    Overlaps are split automatically when a new range is saved.
-                  </Text>
-                </View>
-                <Pressable
-                  testID="hotel-pricing-add"
-                  accessibilityRole="button"
-                  accessibilityLabel="Add hotel pricing"
-                  style={styles.addButton}
-                  onPress={() =>
-                    router.push(
-                      `/admin/operations/hotels/${hotelId}/pricing/new` as never
-                    )
-                  }
-                >
-                  <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={styles.addButtonText}>Add</Text>
-                </Pressable>
-              </View>
-            </View>
-          }
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Ionicons name="pricetag-outline" size={40} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No pricing rows</Text>
-              <Text style={styles.emptySub}>
-                Add the first seasonal rate for this hotel.
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <Pressable
-              testID={`hotel-pricing-row-${item.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Pricing ${fmtDate(item.startDate)} to ${fmtDate(item.endDate)}, ${inr(item.price)}`}
-              style={styles.card}
-              onPress={() =>
-                router.push(
-                  `/admin/operations/hotels/${hotelId}/pricing/${item.id}` as never
-                )
-              }
-            >
-              <View style={styles.cardTop}>
-                <Text style={styles.cardDates}>
-                  {fmtDate(item.startDate)} – {fmtDate(item.endDate)}
-                </Text>
-                <Text style={styles.cardPrice}>{inr(item.price)}</Text>
-              </View>
-              <Text style={styles.cardSub} numberOfLines={2}>
-                {rowSubtitle(item)}
-              </Text>
-              {!item.isActive ? (
-                <Text style={styles.inactiveBadge}>Inactive</Text>
-              ) : null}
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={Colors.textTertiary}
-                style={styles.chevron}
-              />
-            </Pressable>
-          )}
+  if (error) {
+    return (
+      <AdminScreen testID="hotel-pricing-list-error">
+        <Stack.Screen options={{ title, headerShown: false }} />
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load()}
+          testID="hotel-pricing-list-error-state"
         />
-      )}
-    </View>
+      </AdminScreen>
+    );
+  }
+
+  return (
+    <AdminScreen scroll={false} testID="hotel-pricing-list-screen">
+      <Stack.Screen options={{ title, headerShown: false }} />
+      <AdminTopBar
+        title={title}
+        subtitle="Seasonal pricing"
+        onBackPress={() => router.back()}
+        testID="hotel-pricing-list-header"
+        rightSlot={
+          <AdminTopBarPrimaryButton
+            label="Add"
+            icon="add"
+            testID="hotel-pricing-add"
+            onPress={() =>
+              router.push(
+                `/admin/operations/hotels/${hotelId}/pricing/new` as never
+              )
+            }
+          />
+        }
+      />
+      <FlatList
+        testID="hotel-pricing-list"
+        style={styles.list}
+        data={data?.items ?? []}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: insets.bottom + Spacing.xl },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void load("refresh")}
+            tintColor={Colors.primary}
+          />
+        }
+        ListHeaderComponent={
+          <View style={styles.summary}>
+            <Text style={styles.summaryText}>
+              {data?.total ?? 0} active pricing row(s)
+            </Text>
+            <Text style={styles.summaryHint}>
+              Overlaps are split automatically when a new range is saved.
+            </Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Ionicons name="pricetag-outline" size={40} color={Colors.textTertiary} />
+            <Text style={styles.emptyTitle}>No pricing rows</Text>
+            <Text style={styles.emptySub}>
+              Add the first seasonal rate for this hotel.
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <Pressable
+            testID={`hotel-pricing-row-${item.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Pricing ${fmtDate(item.startDate)} to ${fmtDate(item.endDate)}, ${inr(item.price)}`}
+            style={styles.card}
+            onPress={() =>
+              router.push(
+                `/admin/operations/hotels/${hotelId}/pricing/${item.id}` as never
+              )
+            }
+          >
+            <View style={styles.cardTop}>
+              <Text style={styles.cardDates}>
+                {fmtDate(item.startDate)} – {fmtDate(item.endDate)}
+              </Text>
+              <Text style={styles.cardPrice}>{inr(item.price)}</Text>
+            </View>
+            <Text style={styles.cardSub} numberOfLines={2}>
+              {rowSubtitle(item)}
+            </Text>
+            {!item.isActive ? (
+              <Text style={styles.inactiveBadge}>Inactive</Text>
+            ) : null}
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={Colors.textTertiary}
+              style={styles.chevron}
+            />
+          </Pressable>
+        )}
+      />
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  backBtn: { padding: Spacing.xs },
-  headerText: { flex: 1 },
-  headerTitle: { fontSize: FontSize.lg, fontWeight: "700", color: Colors.text },
-  headerSub: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.xl },
-  errText: { marginTop: Spacing.md, color: Colors.error, textAlign: "center" },
-  retry: {
-    marginTop: Spacing.lg,
+  list: { flex: 1 },
+  listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
+    flexGrow: 1,
   },
-  retryText: { color: "#fff", fontWeight: "600" },
-  summary: { marginBottom: Spacing.md },
-  summaryTop: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
+  summary: { marginBottom: Spacing.md, paddingTop: Spacing.sm },
   summaryText: { fontSize: FontSize.md, fontWeight: "600", color: Colors.text },
   summaryHint: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 9,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  addButtonText: { color: "#fff", fontWeight: "800", fontSize: FontSize.sm },
   empty: {
     flex: 1,
     alignItems: "center",

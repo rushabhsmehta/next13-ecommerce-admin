@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -15,6 +14,14 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createFlightTicketsClient, type FlightTicket } from "@/lib/flight-tickets";
@@ -127,67 +134,44 @@ function FlightTicketsInner() {
   const subtitle = loading ? "Loading..." : `${total} ticket${total === 1 ? "" : "s"}`;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="flight-tickets-screen">
       <Stack.Screen options={{ title: "Flight Tickets", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Flight Tickets</Text>
-          <Text style={styles.headerSubtitle}>{subtitle}</Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="flight-tickets-new"
-            accessibilityRole="button"
-            accessibilityLabel="Create flight ticket"
-            style={styles.newBtn}
-            onPress={() => router.push("/admin/flight-tickets/new" as never)}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="flight-tickets-search"
-          accessibilityRole="search"
-          accessibilityLabel="Search flight tickets"
-          style={styles.searchInput}
-          placeholder="PNR, passenger, route, customer"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="characters"
-        />
-        {search.length ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Clear search"
-            onPress={() => setSearch("")}
-          >
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminTopBar
+        title="Flight Tickets"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="flight-tickets-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="flight-tickets-new"
+              onPress={() => router.push("/admin/flight-tickets/new" as never)}
+            />
+          ) : null
+        }
+      />
+
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="PNR, passenger, route, customer"
+        searchTestID="flight-tickets-search"
+        testID="flight-tickets-command-bar"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debounced)}
+          testID="flight-tickets-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
@@ -204,17 +188,26 @@ function FlightTicketsInner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="airplane-outline" size={38} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No tickets</Text>
-              <Text style={styles.emptyText}>
-                {debounced ? "Try another PNR or customer name." : "Tap + to create a ticket."}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="airplane-outline"
+              title="No tickets"
+              body={
+                debounced
+                  ? "Try another PNR or customer name."
+                  : canWrite
+                    ? "Create a ticket to track bookings and passengers."
+                    : "No flight tickets match your search."
+              }
+              actionLabel={canWrite && !debounced ? "Create ticket" : undefined}
+              onActionPress={
+                canWrite && !debounced
+                  ? () => router.push("/admin/flight-tickets/new" as never)
+                  : undefined
+              }
+              testID="flight-tickets-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -267,71 +260,14 @@ function FlightTicketsInner() {
           );
         }}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  newBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: { flex: 1, fontSize: FontSize.sm, color: Colors.text, paddingVertical: 0 },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   listContent: { paddingHorizontal: Spacing.lg },
-  centered: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
   row: {
     flexDirection: "row",
     gap: Spacing.md,
@@ -375,11 +311,4 @@ const styles = StyleSheet.create({
   status_bad: { backgroundColor: "#fee2e2" },
   statusText: { fontSize: 10, fontWeight: "900", color: Colors.text },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-  },
 });

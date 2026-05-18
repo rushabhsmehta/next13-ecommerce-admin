@@ -17,10 +17,8 @@ const overlapSchema = z.object({
   excludeId: z.string().optional(),
 });
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });

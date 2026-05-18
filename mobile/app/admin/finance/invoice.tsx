@@ -2,12 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,16 +11,30 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { OfflineGate } from "@/components/auth/PermissionGate";
+import { DateField } from "@/components/ui/DateField";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+} from "@/components/admin";
 import { createFinanceClient, type FinanceParty } from "@/lib/finance";
 
 type Mode = "sale" | "purchase";
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+const MODE_OPTIONS: { id: Mode; label: string }[] = [
+  { id: "sale", label: "Sale (invoice)" },
+  { id: "purchase", label: "Purchase (bill)" },
+];
 
 export default function FinanceInvoiceScreen() {
   return (
@@ -37,7 +46,6 @@ export default function FinanceInvoiceScreen() {
 
 function Inner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -61,8 +69,7 @@ function Inner() {
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const [picker, setPicker] = useState(false);
-  const [partySearch, setPartySearch] = useState("");
+  const [partyPickerOpen, setPartyPickerOpen] = useState(false);
   const [partyResults, setPartyResults] = useState<FinanceParty[]>([]);
   const [partyLoading, setPartyLoading] = useState(false);
 
@@ -88,10 +95,19 @@ function Inner() {
   );
 
   useEffect(() => {
-    if (!picker) return;
-    const t = setTimeout(() => void loadParties(partySearch.trim()), 250);
-    return () => clearTimeout(t);
-  }, [picker, partySearch, loadParties]);
+    if (!partyPickerOpen) return;
+    void loadParties("");
+  }, [partyPickerOpen, loadParties]);
+
+  const partyOptions = useMemo(
+    () =>
+      partyResults.map((p) => ({
+        id: p.id,
+        label: p.name,
+        subtitle: p.subtitle ?? undefined,
+      })),
+    [partyResults]
+  );
 
   const base = Number(baseAmount);
   const pct = Number(gstPct);
@@ -188,98 +204,87 @@ function Inner() {
   ]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AdminScreen
+      keyboardAvoiding
+      testID="finance-invoice-screen"
+      footer={
+        <AdminBottomActionBar
+          primaryLabel={`Save ${mode === "sale" ? "sale" : "purchase"}`}
+          primaryIcon="save-outline"
+          primaryTestID="finance-invoice-submit"
+          primaryDisabled={!canSubmit}
+          disabledReason={
+            !party
+              ? `Choose a ${partyType}.`
+              : !baseOk
+                ? "Enter a positive base amount."
+                : !dateOk
+                    ? "Choose a date."
+                  : submitting
+                    ? "Saving…"
+                    : undefined
+          }
+          onPrimaryPress={submit}
+        />
+      }
     >
       <Stack.Screen options={{ title: "Sale / Purchase", headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="finance-invoice-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Record sale / purchase</Text>
-      </View>
 
-      <View style={styles.modeRow}>
-        {(["sale", "purchase"] as Mode[]).map((m) => {
-          const active = mode === m;
-          return (
-            <Pressable
-              key={m}
-              testID={`finance-invoice-mode-${m}`}
-              accessibilityRole="button"
-              accessibilityLabel={m === "sale" ? "Sale" : "Purchase"}
-              style={[styles.modeChip, active ? styles.modeChipActive : null]}
-              onPress={() => setMode(m)}
-            >
-              <Ionicons
-                name={m === "sale" ? "receipt-outline" : "cart-outline"}
-                size={16}
-                color={active ? Colors.primary : Colors.textSecondary}
-              />
-              <Text
-                style={[styles.modeText, active ? styles.modeTextActive : null]}
-              >
-                {m === "sale" ? "Sale (invoice)" : "Purchase (bill)"}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <AdminTopBar
+        title="Record sale / purchase"
+        subtitle="Invoice or bill"
+        onBackPress={() => router.back()}
+        testID="finance-invoice"
+      />
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 120 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.label}>
-          {mode === "sale" ? "Customer *" : "Supplier *"}
-        </Text>
-        <Pressable
-          testID="finance-invoice-party"
-          accessibilityRole="button"
-          accessibilityLabel="Choose party"
-          style={styles.pickerBtn}
-          onPress={() => {
-            setPicker(true);
-            setPartySearch("");
-            void loadParties("");
-          }}
-        >
-          <Text style={styles.pickerText} numberOfLines={1}>
-            {party ? party.name : "Tap to choose"}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color={Colors.textSecondary} />
-        </Pressable>
-
-        <Text style={styles.label}>
-          {mode === "sale" ? "Invoice number" : "Bill number"}
-        </Text>
-        <TextInput
-          testID="finance-invoice-number"
-          style={styles.input}
-          value={docNumber}
-          onChangeText={setDocNumber}
-          placeholder="Optional"
-          placeholderTextColor={Colors.textTertiary}
-          autoCapitalize="characters"
+      <AdminFormSection title="Type" testID="finance-invoice-mode-section">
+        <AdminSegmentedControl
+          options={MODE_OPTIONS}
+          value={mode}
+          onChange={setMode}
+          testIDPrefix="finance-invoice-mode"
+          scrollable={false}
         />
+      </AdminFormSection>
 
-        <Text style={styles.label}>Base amount (₹) *</Text>
-        <TextInput
-          testID="finance-invoice-amount"
-          style={styles.input}
-          value={baseAmount}
-          onChangeText={setBaseAmount}
-          keyboardType="decimal-pad"
-          placeholder="0"
-          placeholderTextColor={Colors.textTertiary}
-        />
+      <AdminFormSection title="Document" testID="finance-invoice-document">
+        <AdminFormField label={mode === "sale" ? "Customer" : "Supplier"} required>
+          <Pressable
+            testID="finance-invoice-party"
+            accessibilityRole="button"
+            accessibilityLabel="Choose party"
+            style={styles.pickerBtn}
+            onPress={() => setPartyPickerOpen(true)}
+          >
+            <Text style={styles.pickerText} numberOfLines={1}>
+              {party ? party.name : "Tap to choose"}
+            </Text>
+          </Pressable>
+        </AdminFormField>
+
+        <AdminFormField label={mode === "sale" ? "Invoice number" : "Bill number"}>
+          <TextInput
+            testID="finance-invoice-number"
+            style={styles.input}
+            value={docNumber}
+            onChangeText={setDocNumber}
+            placeholder="Optional"
+            placeholderTextColor={Colors.textTertiary}
+            autoCapitalize="characters"
+          />
+        </AdminFormField>
+
+        <AdminFormField label="Base amount (₹)" required>
+          <TextInput
+            testID="finance-invoice-amount"
+            style={styles.input}
+            value={baseAmount}
+            onChangeText={setBaseAmount}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor={Colors.textTertiary}
+          />
+        </AdminFormField>
 
         <Pressable
           testID="finance-invoice-gst-toggle"
@@ -297,8 +302,7 @@ function Inner() {
         </Pressable>
 
         {isGst ? (
-          <>
-            <Text style={styles.label}>GST %</Text>
+          <AdminFormField label="GST %">
             <TextInput
               testID="finance-invoice-gstpct"
               style={styles.input}
@@ -308,216 +312,97 @@ function Inner() {
               placeholder="e.g. 5"
               placeholderTextColor={Colors.textTertiary}
             />
-          </>
+          </AdminFormField>
         ) : null}
 
-        <Text style={styles.label}>Date (YYYY-MM-DD) *</Text>
-        <TextInput
-          testID="finance-invoice-date"
-          style={styles.input}
-          value={date}
-          onChangeText={setDate}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {!dateOk ? <Text style={styles.helpErr}>Use YYYY-MM-DD.</Text> : null}
+        <AdminFormField label="Date" required>
+          <DateField
+            testID="finance-invoice-date"
+            style={styles.input}
+            value={date}
+            onChange={setDate}
+            accessibilityLabel="Document date"
+            allowClear={false}
+          />
+        </AdminFormField>
 
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          testID="finance-invoice-description"
-          style={[styles.input, styles.textarea]}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Optional"
-          placeholderTextColor={Colors.textTertiary}
-          multiline
-        />
+        <AdminFormField label="Description">
+          <TextInput
+            testID="finance-invoice-description"
+            style={[styles.input, styles.textarea]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Optional"
+            placeholderTextColor={Colors.textTertiary}
+            multiline
+          />
+        </AdminFormField>
+      </AdminFormSection>
 
-        <View style={styles.totalCard}>
-          <Text style={styles.totalRow}>
-            Base: ₹{baseOk ? base.toLocaleString("en-IN") : "0"}
-          </Text>
-          {isGst ? (
-            <Text style={styles.totalRow}>
-              GST: ₹{gstAmount.toLocaleString("en-IN")}
-            </Text>
-          ) : null}
-          <Text style={styles.totalValue}>
-            Total: ₹{total.toLocaleString("en-IN")}
-          </Text>
-          <Pressable
-            testID="finance-invoice-verify"
-            accessibilityRole="button"
-            accessibilityLabel="Verify tax on server"
-            accessibilityHint="Recomputes GST and the CGST/SGST/IGST split using the server's authoritative tax helpers."
-            disabled={!baseOk || verifying}
-            style={styles.verifyBtn}
-            onPress={verifyTax}
-          >
-            {verifying ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : (
-              <Text style={styles.verifyText}>Verify tax on server</Text>
-            )}
-          </Pressable>
-          {serverTax ? (
-            <View style={styles.serverBox}>
-              <Text style={styles.serverLine}>
-                Server GST ₹{serverTax.gstAmount.toLocaleString("en-IN")}
-                {serverTax.igst > 0
-                  ? ` · IGST ₹${serverTax.igst.toLocaleString("en-IN")}`
-                  : ` · CGST ₹${serverTax.cgst.toLocaleString(
-                      "en-IN"
-                    )} · SGST ₹${serverTax.sgst.toLocaleString("en-IN")}`}
-              </Text>
-              <Text style={styles.serverLine}>
-                Server total ₹{serverTax.total.toLocaleString("en-IN")}
-                {Math.abs(serverTax.total - total) > 0.5
-                  ? " — differs from local!"
-                  : " ✓ matches"}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
+      <View style={styles.totalCard}>
+        <Text style={styles.totalRow}>
+          Base: ₹{baseOk ? base.toLocaleString("en-IN") : "0"}
+        </Text>
+        {isGst ? (
+          <Text style={styles.totalRow}>GST: ₹{gstAmount.toLocaleString("en-IN")}</Text>
+        ) : null}
+        <Text style={styles.totalValue}>Total: ₹{total.toLocaleString("en-IN")}</Text>
         <Pressable
-          testID="finance-invoice-submit"
+          testID="finance-invoice-verify"
           accessibilityRole="button"
-          accessibilityLabel="Save"
-          disabled={!canSubmit}
-          style={[styles.submit, !canSubmit ? styles.submitDisabled : null]}
-          onPress={submit}
+          accessibilityLabel="Verify tax on server"
+          accessibilityHint="Recomputes GST and the CGST/SGST/IGST split using the server's authoritative tax helpers."
+          disabled={!baseOk || verifying}
+          style={styles.verifyBtn}
+          onPress={verifyTax}
         >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
+          {verifying ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
           ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>
-                Save {mode === "sale" ? "sale" : "purchase"}
-              </Text>
-            </>
+            <Text style={styles.verifyText}>Verify tax on server</Text>
           )}
         </Pressable>
+        {serverTax ? (
+          <View style={styles.serverBox}>
+            <Text style={styles.serverLine}>
+              Server GST ₹{serverTax.gstAmount.toLocaleString("en-IN")}
+              {serverTax.igst > 0
+                ? ` · IGST ₹${serverTax.igst.toLocaleString("en-IN")}`
+                : ` · CGST ₹${serverTax.cgst.toLocaleString("en-IN")} · SGST ₹${serverTax.sgst.toLocaleString("en-IN")}`}
+            </Text>
+            <Text style={styles.serverLine}>
+              Server total ₹{serverTax.total.toLocaleString("en-IN")}
+              {Math.abs(serverTax.total - total) > 0.5 ? " — differs from local!" : " ✓ matches"}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
-      <Modal
-        visible={picker}
-        animationType="slide"
-        onRequestClose={() => setPicker(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
-            <Text style={styles.modalTitle}>Choose {partyType}</Text>
-            <Pressable
-              testID="finance-invoice-picker-close"
-              accessibilityLabel="Close picker"
-              onPress={() => setPicker(false)}
-            >
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            style={styles.modalSearch}
-            value={partySearch}
-            onChangeText={setPartySearch}
-            placeholder={`Search ${partyType}…`}
-            placeholderTextColor={Colors.textTertiary}
-          />
-          {partyLoading ? (
-            <ActivityIndicator style={{ marginTop: 24 }} color={Colors.primary} />
-          ) : (
-            <FlatList
-              data={partyResults}
-              keyExtractor={(p) => p.id}
-              keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={
-                <Text style={[styles.help, { padding: 16 }]}>No matches.</Text>
-              }
-              renderItem={({ item }) => (
-                <Pressable
-                  testID={`finance-invoice-party-${item.id}`}
-                  style={styles.modalRow}
-                  onPress={() => {
-                    setParty(item);
-                    setPicker(false);
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalName}>{item.name}</Text>
-                    {item.subtitle ? (
-                      <Text style={styles.modalSub}>{item.subtitle}</Text>
-                    ) : null}
-                  </View>
-                </Pressable>
-              )}
-            />
-          )}
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+      <AdminPickerSheet
+        visible={partyPickerOpen}
+        title={`Choose ${partyType}`}
+        options={partyOptions}
+        selectedId={party?.id ?? null}
+        loading={partyLoading}
+        onClose={() => setPartyPickerOpen(false)}
+        onSelect={(opt) => {
+          const found = partyResults.find((p) => p.id === opt.id);
+          if (found) setParty(found);
+        }}
+        searchPlaceholder={`Search ${partyType}…`}
+        emptyLabel="No matches."
+        testID="finance-invoice-party-sheet"
+      />
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  modeRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  modeChip: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-  },
-  modeChipActive: {
-    backgroundColor: Colors.primaryBg,
-    borderColor: Colors.primaryLight,
-  },
-  modeText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
-  modeTextActive: { color: Colors.primary },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.md,
-    marginBottom: 4,
-  },
   input: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSize.md,
@@ -525,28 +410,23 @@ const styles = StyleSheet.create({
   },
   textarea: { minHeight: 70, textAlignVertical: "top" },
   pickerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
   },
-  pickerText: { flex: 1, fontSize: FontSize.md, color: Colors.text, marginRight: 8 },
+  pickerText: { fontSize: FontSize.md, color: Colors.text, fontWeight: "600" },
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   toggleText: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  help: { color: Colors.textTertiary, fontSize: FontSize.xs },
-  helpErr: { color: Colors.error, fontSize: FontSize.xs, marginTop: 4 },
   totalCard: {
-    marginTop: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
     backgroundColor: Colors.primaryBg,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
@@ -580,51 +460,4 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
   },
   serverLine: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
-    backgroundColor: Colors.background,
-  },
-  submit: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  modalTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  modalClose: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
-  modalSearch: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    fontSize: FontSize.md,
-    color: Colors.text,
-  },
-  modalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  modalName: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
-  modalSub: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
 });

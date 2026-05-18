@@ -25,6 +25,9 @@ interface Props {
 /** Multi-image gallery picker for hotel create/edit (mirrors web `images: { url }[]`). */
 export function OperationsImageGallery({ images, onChange, getToken, testID }: Props) {
   const [uploading, setUploading] = useState(false);
+  const visibleImages = images
+    .map((img, index) => ({ url: img.url.trim(), index }))
+    .filter((img) => img.url);
 
   async function addImage() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,8 +37,9 @@ export function OperationsImageGallery({ images, onChange, getToken, testID }: P
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
+      quality: 0.72,
       allowsMultipleSelection: false,
+      exif: false,
     });
     if (result.canceled || !result.assets[0]) return;
 
@@ -71,19 +75,19 @@ export function OperationsImageGallery({ images, onChange, getToken, testID }: P
         contentContainerStyle={styles.row}
         testID={testID ? `${testID}-scroll` : undefined}
       >
-        {images.map((img, index) => (
-          <View key={`${img.url}-${index}`} style={styles.thumbWrap}>
+        {visibleImages.map((img) => (
+          <View key={`${img.url}-${img.index}`} style={styles.thumbWrap}>
             <Image
               source={{ uri: img.url }}
               style={styles.thumb}
               accessibilityIgnoresInvertColors
             />
             <Pressable
-              testID={testID ? `${testID}-remove-${index}` : undefined}
+              testID={testID ? `${testID}-remove-${img.index}` : undefined}
               accessibilityRole="button"
-              accessibilityLabel={`Remove image ${index + 1}`}
+              accessibilityLabel={`Remove image ${img.index + 1}`}
               style={styles.removeIcon}
-              onPress={() => removeAt(index)}
+              onPress={() => removeAt(img.index)}
             >
               <Ionicons name="close-circle" size={22} color={Colors.error} />
             </Pressable>
@@ -107,10 +111,10 @@ export function OperationsImageGallery({ images, onChange, getToken, testID }: P
           )}
         </Pressable>
       </ScrollView>
-      {images.length === 0 ? (
+      {visibleImages.length === 0 ? (
         <Text style={styles.hint}>At least one image is required *</Text>
       ) : (
-        <Text style={styles.hint}>{images.length} image(s)</Text>
+        <Text style={styles.hint}>{visibleImages.length} image(s)</Text>
       )}
     </View>
   );

@@ -17,7 +17,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
-import { AdminHeader } from "@/components/admin/AdminHeader";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { API_BASE_URL } from "@/constants/api";
 import {
   absoluteAdminUrl,
@@ -124,28 +129,19 @@ function TourQueryFinanceScreenInner() {
 
   if (loading) {
     return (
-      <View style={styles.centered} testID="tour-query-finance-loading">
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AdminLoadingState label="Loading finance…" testID="tour-query-finance-loading" />
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.centered} testID="tour-query-finance-error">
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errText} accessibilityRole="alert">
-          {error ?? "Finance summary not found"}
-        </Text>
-        <Pressable
-          style={styles.retry}
-          onPress={() => void load()}
-          accessibilityRole="button"
-          accessibilityLabel="Try again"
-          testID="tour-query-finance-retry"
-        >
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
+      <AdminScreen testID="tour-query-finance-error">
+        <Stack.Screen options={{ title: "Finance", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Finance summary not found"}
+          onRetry={() => void load()}
+          testID="tour-query-finance-error-state"
+        />
         {webFinanceUrl ? (
           <Pressable
             style={styles.webFallbackBtn}
@@ -159,7 +155,7 @@ function TourQueryFinanceScreenInner() {
             <Ionicons name="open-outline" size={16} color={Colors.primary} />
           </Pressable>
         ) : null}
-      </View>
+      </AdminScreen>
     );
   }
 
@@ -171,29 +167,22 @@ function TourQueryFinanceScreenInner() {
   const hasAnyRows = SECTION_META.some((m) => sections[m.key].length > 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="tour-query-finance-screen"
+      contentContainerStyle={{
+        paddingHorizontal: Spacing.lg,
+        gap: Spacing.md,
+      }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+    >
       <Stack.Screen options={{ title: "Finance", headerShown: false }} />
-      <AdminHeader
-        title="Finance"
-        subtitle={title}
-        onBackPress={() => router.back()}
-      />
-
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-          gap: Spacing.md,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
-        }
-        testID="tour-query-finance-scroll"
-      >
+      <AdminTopBar title="Finance" subtitle={title} onBackPress={() => router.back()} testID="tour-query-finance-header" />
         <View style={styles.summaryCard} testID="tour-query-finance-totals">
           <Text style={styles.summaryHeading} accessibilityRole="header">
             Summary
@@ -274,8 +263,7 @@ function TourQueryFinanceScreenInner() {
             />
           ))
         )}
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 

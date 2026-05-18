@@ -745,9 +745,9 @@ export default function HomeScreen() {
                   accessibilityHint="Toggle filter for packages in this destination"
                 >
                   <View style={styles.destChipThumbWrap}>
-                    {dest.imageUrl ? (
+                    {dest.imageUrl?.trim() ? (
                       <Image
-                        source={{ uri: dest.imageUrl }}
+                        source={{ uri: dest.imageUrl.trim() }}
                         style={styles.destChipThumb}
                         resizeMode="cover"
                       />

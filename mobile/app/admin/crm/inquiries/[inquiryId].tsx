@@ -2,11 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -30,7 +27,23 @@ import {
 } from "@/lib/inquiry-statuses";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import {
+  AdminErrorState,
+  AdminFormField,
+  AdminFormSection,
+  AdminLoadingState,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+} from "@/components/admin";
+import { DateField } from "@/components/ui/DateField";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+
+const STATUS_SEGMENT_OPTIONS = INQUIRY_STATUSES.map((st) => ({
+  id: st,
+  label: INQUIRY_STATUS_LABELS[st],
+}));
 
 interface AdminInquiryDetail {
   id: string;
@@ -112,13 +125,11 @@ function AdminInquiryDetailInner() {
 
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [locationId, setLocationId] = useState("");
-  const [locationModal, setLocationModal] = useState(false);
-  const [locationSearch, setLocationSearch] = useState("");
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
-  const [staffModal, setStaffModal] = useState(false);
+  const [staffPickerOpen, setStaffPickerOpen] = useState(false);
   const [staffList, setStaffList] = useState<StaffRow[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
-  const [staffSearch, setStaffSearch] = useState("");
 
   const load = useCallback(async () => {
     if (!inquiryId) return;
@@ -195,10 +206,9 @@ function AdminInquiryDetailInner() {
     })();
   }, [authRequest, canWrite]);
 
-  async function openStaffModal() {
+  async function openStaffPicker() {
     if (!canWrite || !inquiryId) return;
-    setStaffModal(true);
-    setStaffSearch("");
+    setStaffPickerOpen(true);
     setStaffLoading(true);
     try {
       const rows = await authRequest<StaffRow[]>(
@@ -225,7 +235,7 @@ function AdminInquiryDetailInner() {
         { method: "PATCH", body: { staffId } }
       );
       await refresh();
-      setStaffModal(false);
+      setStaffPickerOpen(false);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Assign failed.";
@@ -395,21 +405,15 @@ function AdminInquiryDetailInner() {
     ]);
   }
 
-  const filteredLocations = useMemo(() => {
-    const q = locationSearch.trim().toLowerCase();
-    if (!q) return locations;
-    return locations.filter((l) => l.label.toLowerCase().includes(q));
-  }, [locations, locationSearch]);
+  const locationOptions = useMemo(
+    () => locations.map((l) => ({ id: l.id, label: l.label })),
+    [locations]
+  );
 
-  const filteredStaff = useMemo(() => {
-    const q = staffSearch.trim().toLowerCase();
-    if (!q) return staffList;
-    return staffList.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        (s.email && s.email.toLowerCase().includes(q))
-    );
-  }, [staffList, staffSearch]);
+  const staffOptions = useMemo(
+    () => staffList.map((s) => ({ id: s.id, label: s.name, subtitle: s.email })),
+    [staffList]
+  );
 
   const selectedLocationLabel =
     locations.find((l) => l.id === locationId)?.label ??
@@ -417,30 +421,14 @@ function AdminInquiryDetailInner() {
     "Select location";
 
   if (loading && !detail) {
-    return (
-      <View style={[styles.center, { paddingTop: insets.top }]}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator color={Colors.primary} size="large" />
-      </View>
-    );
+    return <AdminLoadingState label="Loading inquiry…" testID="inquiry-detail-loading" />;
   }
 
   if (error && !detail) {
     return (
-      <View style={[styles.center, { paddingTop: insets.top, paddingHorizontal: 24 }]}>
+      <AdminScreen testID="inquiry-detail-error">
         <Stack.Screen options={{ headerShown: false }} />
-        <Ionicons name="warning-outline" size={40} color={Colors.error} />
-        <Text style={styles.errorTitle}>Could not open inquiry</Text>
-        <Text style={styles.errorText}>{error}</Text>
-        <Pressable
-          testID="inquiry-detail-retry"
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading inquiry"
-          style={styles.primaryBtn}
-          onPress={() => void load()}
-        >
-          <Text style={styles.primaryBtnText}>Retry</Text>
-        </Pressable>
+        <AdminErrorState message={error} onRetry={() => void load()} testID="inquiry-detail-error-state" />
         <Pressable
           testID="inquiry-detail-back"
           accessibilityRole="button"
@@ -450,55 +438,34 @@ function AdminInquiryDetailInner() {
         >
           <Text style={styles.secondaryBtnText}>Back</Text>
         </Pressable>
-      </View>
+      </AdminScreen>
     );
   }
 
   if (!detail) return null;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="inquiry-detail-screen"
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void refresh()}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+    >
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.header}>
-        <Pressable
-          testID="inquiry-detail-header-back"
-          accessibilityRole="button"
-          accessibilityLabel="Back to inquiries"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {detail.customerName}
-          </Text>
-          <Text style={styles.headerSub} numberOfLines={1}>
-            {detail.customerMobileNumber}
-          </Text>
-        </View>
-      </View>
+      <AdminTopBar
+        title={detail.customerName}
+        subtitle={detail.customerMobileNumber}
+        onBackPress={() => router.back()}
+        testID="inquiry-detail-header"
+      />
 
-      <ScrollView
-        testID="inquiry-detail-scroll"
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + 32,
-          paddingHorizontal: Spacing.lg,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void refresh()}
-            tintColor={Colors.primary}
-          />
-        }
-      >
-        {error ? (
-          <View style={styles.banner}>
-            <Text style={styles.bannerText}>{error}</Text>
-          </View>
-        ) : null}
+      {error ? <AdminErrorState message={error} onRetry={() => void refresh()} testID="inquiry-detail-banner-error" /> : null}
 
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Location</Text>
@@ -542,45 +509,31 @@ function AdminInquiryDetailInner() {
           </View>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Status</Text>
-        <View style={styles.statusRow}>
-          {INQUIRY_STATUSES.map((st) => {
-            const active = statusDraft === st;
-            return (
-              <Pressable
-                key={st}
-                testID={`inquiry-status-${st}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Set status ${INQUIRY_STATUS_LABELS[st]}`}
-                accessibilityState={{ disabled: !canWrite || saving }}
-                disabled={!canWrite || saving}
-                onPress={() => void patchStatus(st)}
-                style={[styles.statusChip, active ? styles.statusChipOn : null]}
-              >
-                <Text
-                  style={[
-                    styles.statusChipText,
-                    active ? styles.statusChipTextOn : null,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {INQUIRY_STATUS_LABELS[st]}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+      <AdminFormSection title="Status" testID="inquiry-detail-status">
+        <AdminSegmentedControl
+          options={STATUS_SEGMENT_OPTIONS}
+          value={
+            (INQUIRY_STATUSES as readonly string[]).includes(statusDraft)
+              ? (statusDraft as InquiryStatus)
+              : "PENDING"
+          }
+          onChange={(st) => {
+            if (canWrite && !saving) void patchStatus(st);
+          }}
+          testIDPrefix="inquiry-status"
+        />
+      </AdminFormSection>
 
         {canWrite ? (
           <>
-            <Text style={styles.sectionTitle}>Operational staff</Text>
+            <AdminFormSection title="Operational staff" testID="inquiry-detail-staff">
             <View style={styles.rowGap}>
               <Pressable
                 testID="inquiry-assign-staff"
                 accessibilityRole="button"
                 accessibilityLabel="Assign operational staff"
                 style={styles.primaryBtn}
-                onPress={() => void openStaffModal()}
+                onPress={() => void openStaffPicker()}
               >
                 <Ionicons name="person-add-outline" size={18} color="#fff" />
                 <Text style={styles.primaryBtnText}>Assign staff</Text>
@@ -597,18 +550,17 @@ function AdminInquiryDetailInner() {
                 </Pressable>
               ) : null}
             </View>
+            </AdminFormSection>
 
-            <Text style={styles.sectionTitle}>Follow-up</Text>
-            <Text style={styles.hint}>YYYY-MM-DD (leave empty to clear)</Text>
-            <TextInput
+            <AdminFormSection title="Follow-up" testID="inquiry-detail-follow-up">
+            <AdminFormField label="Next follow-up" hint="Leave empty to clear.">
+            <DateField
               testID="inquiry-follow-up-input"
               accessibilityLabel="Next follow-up date"
               style={styles.input}
               value={nextFollowUp}
-              onChangeText={setNextFollowUp}
-              placeholder="2026-05-20"
-              placeholderTextColor={Colors.textTertiary}
-              autoCapitalize="none"
+              onChange={setNextFollowUp}
+              placeholder="Choose follow-up date"
             />
             <Pressable
               testID="inquiry-save-follow-up"
@@ -620,9 +572,11 @@ function AdminInquiryDetailInner() {
             >
               <Text style={styles.primaryBtnText}>Save follow-up</Text>
             </Pressable>
+            </AdminFormField>
+            </AdminFormSection>
 
-            <Text style={styles.sectionTitle}>Edit inquiry</Text>
-            <Text style={styles.fieldLabel}>Customer name</Text>
+            <AdminFormSection title="Edit inquiry" testID="inquiry-detail-edit">
+            <AdminFormField label="Customer name">
             <TextInput
               testID="inquiry-edit-name"
               accessibilityLabel="Customer name"
@@ -630,7 +584,8 @@ function AdminInquiryDetailInner() {
               value={customerName}
               onChangeText={setCustomerName}
             />
-            <Text style={styles.fieldLabel}>Mobile</Text>
+            </AdminFormField>
+            <AdminFormField label="Mobile">
             <TextInput
               testID="inquiry-edit-phone"
               accessibilityLabel="Customer mobile number"
@@ -639,33 +594,32 @@ function AdminInquiryDetailInner() {
               onChangeText={setCustomerMobile}
               keyboardType="phone-pad"
             />
-            <Text style={styles.fieldLabel}>Location</Text>
+            </AdminFormField>
+            <AdminFormField label="Location">
             <Pressable
               testID="inquiry-location-picker"
               accessibilityRole="button"
               accessibilityLabel="Choose location"
               style={styles.pickerBtn}
-              onPress={() => {
-                setLocationSearch("");
-                setLocationModal(true);
-              }}
+              onPress={() => setLocationPickerOpen(true)}
             >
               <Text style={styles.pickerBtnText} numberOfLines={2}>
                 {selectedLocationLabel}
               </Text>
               <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
             </Pressable>
-            <Text style={styles.fieldLabel}>Journey date (YYYY-MM-DD)</Text>
-            <TextInput
+            </AdminFormField>
+            <AdminFormField label="Journey date">
+            <DateField
               testID="inquiry-edit-journey"
               accessibilityLabel="Journey date"
               style={styles.input}
               value={journeyDate}
-              onChangeText={setJourneyDate}
-              placeholder="Optional"
-              placeholderTextColor={Colors.textTertiary}
+              onChange={setJourneyDate}
+              placeholder="Choose journey date"
             />
-            <Text style={styles.fieldLabel}>Adults / Children 5–11</Text>
+            </AdminFormField>
+            <AdminFormField label="Adults / Children 5–11">
             <View style={styles.inlineInputs}>
               <TextInput
                 testID="inquiry-edit-adults"
@@ -684,7 +638,8 @@ function AdminInquiryDetailInner() {
                 keyboardType="number-pad"
               />
             </View>
-            <Text style={styles.fieldLabel}>Remarks</Text>
+            </AdminFormField>
+            <AdminFormField label="Remarks">
             <TextInput
               testID="inquiry-edit-remarks"
               accessibilityLabel="Remarks"
@@ -693,6 +648,7 @@ function AdminInquiryDetailInner() {
               onChangeText={setRemarks}
               multiline
             />
+            </AdminFormField>
             <Pressable
               testID="inquiry-save-profile"
               accessibilityRole="button"
@@ -705,9 +661,9 @@ function AdminInquiryDetailInner() {
                 {saving ? "Saving…" : "Save changes"}
               </Text>
             </Pressable>
+            </AdminFormSection>
 
-            <Text style={styles.sectionTitle}>Activity</Text>
-            <Text style={styles.hint}>Type and notes are stored on the inquiry timeline.</Text>
+            <AdminFormSection title="Activity" testID="inquiry-detail-activity" description="Type and notes are stored on the inquiry timeline.">
             <View style={styles.typeRow}>
               {ACTION_TYPES.map((t) => (
                 <Pressable
@@ -752,6 +708,7 @@ function AdminInquiryDetailInner() {
             >
               <Text style={styles.primaryBtnText}>Add to timeline</Text>
             </Pressable>
+            </AdminFormSection>
           </>
         ) : (
           <View style={styles.readOnlyBanner}>
@@ -761,7 +718,7 @@ function AdminInquiryDetailInner() {
           </View>
         )}
 
-        <Text style={styles.sectionTitle}>Timeline</Text>
+      <AdminFormSection title="Timeline" testID="inquiry-detail-timeline">
         {(detail.actions ?? []).length === 0 ? (
           <Text style={styles.muted}>No activity yet.</Text>
         ) : (
@@ -788,108 +745,29 @@ function AdminInquiryDetailInner() {
             </View>
           ))
         )}
-      </ScrollView>
+      </AdminFormSection>
 
-      <Modal
-        visible={locationModal}
-        animationType="slide"
-        onRequestClose={() => setLocationModal(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-        <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
-          <Text style={styles.modalTitle}>Choose location</Text>
-          <Pressable
-            testID="inquiry-location-modal-close"
-            accessibilityRole="button"
-            accessibilityLabel="Close location picker"
-            onPress={() => setLocationModal(false)}
-          >
-            <Text style={styles.modalClose}>Done</Text>
-          </Pressable>
-        </View>
-        <TextInput
-          style={styles.modalSearch}
-          value={locationSearch}
-          onChangeText={setLocationSearch}
-          placeholder="Search locations…"
-          placeholderTextColor={Colors.textTertiary}
-        />
-        <FlatList
-          style={{ flex: 1 }}
-          data={filteredLocations}
-          keyExtractor={(item) => item.id}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <Pressable
-              testID={`inquiry-location-option-${item.id}`}
-              style={styles.modalRow}
-              onPress={() => {
-                setLocationId(item.id);
-                setLocationModal(false);
-              }}
-            >
-              <Text style={styles.modalRowText}>{item.label}</Text>
-              {locationId === item.id ? (
-                <Ionicons name="checkmark" size={20} color={Colors.primary} />
-              ) : null}
-            </Pressable>
-          )}
-        />
-        </View>
-      </Modal>
+      <AdminPickerSheet
+        visible={locationPickerOpen}
+        title="Choose location"
+        options={locationOptions}
+        selectedId={locationId}
+        onClose={() => setLocationPickerOpen(false)}
+        onSelect={(opt) => setLocationId(opt.id)}
+        testID="inquiry-location-sheet"
+      />
 
-      <Modal
-        visible={staffModal}
-        animationType="slide"
-        onRequestClose={() => setStaffModal(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-        <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
-          <Text style={styles.modalTitle}>Assign staff</Text>
-          <Pressable
-            testID="inquiry-staff-modal-close"
-            accessibilityRole="button"
-            accessibilityLabel="Close staff picker"
-            onPress={() => setStaffModal(false)}
-          >
-            <Text style={styles.modalClose}>Close</Text>
-          </Pressable>
-        </View>
-        <TextInput
-          style={styles.modalSearch}
-          value={staffSearch}
-          onChangeText={setStaffSearch}
-          placeholder="Search by name or email…"
-          placeholderTextColor={Colors.textTertiary}
-        />
-        {staffLoading ? (
-          <ActivityIndicator style={{ marginTop: 24 }} color={Colors.primary} />
-        ) : (
-          <FlatList
-            style={{ flex: 1 }}
-            data={filteredStaff}
-            keyExtractor={(item) => item.id}
-            keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={
-              <Text style={[styles.muted, { padding: 16 }]}>No staff found.</Text>
-            }
-            renderItem={({ item }) => (
-              <Pressable
-                testID={`inquiry-staff-option-${item.id}`}
-                style={styles.modalRow}
-                onPress={() => void assignStaff(item.id)}
-              >
-                <View>
-                  <Text style={styles.modalRowText}>{item.name}</Text>
-                  <Text style={styles.modalSub}>{item.email}</Text>
-                </View>
-              </Pressable>
-            )}
-          />
-        )}
-        </View>
-      </Modal>
-    </View>
+      <AdminPickerSheet
+        visible={staffPickerOpen}
+        title="Assign staff"
+        options={staffOptions}
+        selectedId={detail.assignedStaff?.id ?? null}
+        loading={staffLoading}
+        onClose={() => setStaffPickerOpen(false)}
+        onSelect={(opt) => void assignStaff(opt.id)}
+        testID="inquiry-staff-sheet"
+      />
+    </AdminScreen>
   );
 }
 

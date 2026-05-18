@@ -6,7 +6,6 @@ import {
   Linking,
   Pressable,
   RefreshControl,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -15,10 +14,16 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { API_BASE_URL } from "@/constants/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { FlightTicketForm } from "@/components/flight-tickets/FlightTicketForm";
 import {
@@ -98,7 +103,6 @@ export default function FlightTicketDetailScreen() {
 
 function FlightTicketDetailInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { pnr, mode } = useLocalSearchParams<{ pnr: string; mode?: string }>();
   const decodedPnr = pnr ? decodeURIComponent(pnr) : "";
   const { getToken } = useAuth();
@@ -204,80 +208,59 @@ function FlightTicketDetailInner() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AdminLoadingState label="Loading ticket…" testID="flight-ticket-loading" />
     );
   }
 
   if (error || !ticket) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errorTitle}>{error ?? "Flight ticket not found"}</Text>
-        <Pressable
-          testID="flight-ticket-retry"
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading flight ticket"
-          style={styles.retryBtn}
-          onPress={() => void load()}
-        >
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="flight-ticket-error">
+        <Stack.Screen options={{ title: "Flight ticket", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Flight ticket not found"}
+          onRetry={() => void load()}
+          testID="flight-ticket-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="flight-ticket-detail-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: ticket.pnr, headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {ticket.pnr}
-          </Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {ticket.airline} {ticket.flightNumber}
-          </Text>
-        </View>
-        <Pressable
-          testID="flight-ticket-share"
-          accessibilityRole="button"
-          accessibilityLabel="Share flight ticket"
-          style={styles.iconBtn}
-          onPress={() => void shareTicket()}
-        >
-          <Ionicons name="share-outline" size={20} color={Colors.text} />
-        </Pressable>
-        <Pressable
-          testID="flight-ticket-print"
-          accessibilityRole="button"
-          accessibilityLabel="Open flight ticket print view"
-          style={styles.iconBtn}
-          onPress={openPrint}
-        >
-          <Ionicons name="print-outline" size={20} color={Colors.text} />
-        </Pressable>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
+      <AdminTopBar
+        title={ticket.pnr}
+        subtitle={`${ticket.airline} ${ticket.flightNumber}`}
+        onBackPress={() => router.back()}
+        testID="flight-ticket-header"
+        rightSlot={
+          <View style={styles.headerActions}>
+            <AdminTopBarIconButton
+              icon="share-outline"
+              label="Share flight ticket"
+              testID="flight-ticket-share"
+              onPress={() => void shareTicket()}
+            />
+            <AdminTopBarIconButton
+              icon="print-outline"
+              label="Open flight ticket print view"
+              testID="flight-ticket-print"
+              onPress={openPrint}
+            />
+          </View>
         }
-      >
+      />
         <View style={styles.hero}>
           <View style={styles.routeRow}>
             <Text style={styles.airport}>{ticket.departureAirport}</Text>
@@ -399,8 +382,7 @@ function FlightTicketDetailInner() {
             </Pressable>
           </View>
         ) : null}
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 
@@ -423,6 +405,7 @@ function Info({ label, value, strong }: { label: string; value: string; strong?:
 }
 
 const styles = StyleSheet.create({
+  headerActions: { flexDirection: "row", gap: 4 },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     flex: 1,

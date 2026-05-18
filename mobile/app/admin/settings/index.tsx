@@ -13,9 +13,15 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate, OfflineGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   createSettingsAdminClient,
@@ -24,6 +30,12 @@ import {
 } from "@/lib/settings-admin";
 
 type TabKey = "organization" | "masters" | "audit";
+
+const TAB_SEGMENTS: { id: TabKey; label: string }[] = [
+  { id: "organization", label: "Org" },
+  { id: "masters", label: "Masters" },
+  { id: "audit", label: "Audit" },
+];
 
 const MASTER_KINDS: { id: SettingsMasterKind; label: string }[] = [
   { id: "units", label: "Units" },
@@ -49,7 +61,6 @@ export default function SettingsAuditScreen() {
 
 function SettingsAuditInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -198,52 +209,40 @@ function SettingsAuditInner() {
   const rows = data?.masters?.[kind === "pricing-attributes" ? "pricingAttributes" : kind === "tax-slabs" ? "taxSlabs" : kind === "meal-plans" ? "mealPlans" : kind === "room-types" ? "roomTypes" : kind === "occupancy-types" ? "occupancyTypes" : kind === "vehicle-types" ? "vehicleTypes" : kind === "pricing-components" ? "pricingComponents" : kind === "tds-sections" ? "tdsSections" : "units"] ?? [];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="settings-audit-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: "Settings", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" style={styles.iconButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <Text style={styles.headerSubtitle}>Organization, masters, audit</Text>
-        </View>
-      </View>
+      <AdminTopBar
+        title="Settings"
+        subtitle="Organization, masters, audit"
+        onBackPress={() => router.back()}
+        testID="settings-header"
+      />
 
-      <View style={styles.segmentRail}>
-        {(["organization", "masters", "audit"] as TabKey[]).map((key) => (
-          <Pressable
-            key={key}
-            testID={`settings-tab-${key}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Show ${key}`}
-            accessibilityState={{ selected: tab === key }}
-            style={[styles.segment, tab === key ? styles.segmentActive : null]}
-            onPress={() => setTab(key)}
-          >
-            <Text style={[styles.segmentText, tab === key ? styles.segmentTextActive : null]}>
-              {key === "organization" ? "Org" : key === "masters" ? "Masters" : "Audit"}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <AdminSegmentedControl
+        options={TAB_SEGMENTS}
+        value={tab}
+        onChange={setTab}
+        testIDPrefix="settings-tab"
+        scrollable={false}
+      />
 
-      <ScrollView
-        testID="settings-audit-screen"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} />}
-      >
-        {error ? (
-          <View style={styles.errorCard}>
-            <Ionicons name="warning-outline" size={16} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-        {loading && !data ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        ) : data ? (
+      {error ? (
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh")}
+          testID="settings-error"
+        />
+      ) : null}
+      {loading && !data ? (
+        <AdminLoadingState label="Loading settings…" testID="settings-loading" />
+      ) : data ? (
           <>
             {tab === "organization" ? (
               <View style={styles.panel}>
@@ -351,8 +350,7 @@ function SettingsAuditInner() {
             ) : null}
           </>
         ) : null}
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 

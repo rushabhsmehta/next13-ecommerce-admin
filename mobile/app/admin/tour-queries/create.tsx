@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
-import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminEmptyState, AdminScreen, AdminTopBar } from "@/components/admin";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   createTourQueryCreateClient,
@@ -200,9 +200,9 @@ function CreateTourQueryScreenInner() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="trip-create-screen">
       <Stack.Screen options={{ title: "New trip", headerShown: false }} />
-      <AdminHeader title="New trip" subtitle="Choose a source" onBackPress={() => router.back()} />
+      <AdminTopBar title="New trip" subtitle="Choose a source" onBackPress={() => router.back()} testID="trip-create-header" />
 
       <Text style={styles.stepEyebrow}>Step 1 of 1 · Choose a source</Text>
 
@@ -282,16 +282,14 @@ function CreateTourQueryScreenInner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>Loading sources...</Text>
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="search-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>{meta.emptyTitle}</Text>
-              <Text style={styles.emptyText}>{meta.emptyHint}</Text>
-            </View>
+            <AdminEmptyState
+              icon="search-outline"
+              title={meta.emptyTitle}
+              body={meta.emptyHint}
+              testID="tq-create-empty"
+            />
           )
         }
         renderItem={({ item }) => (
@@ -328,11 +326,12 @@ function CreateTourQueryScreenInner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   stepEyebrow: {
     fontSize: FontSize.xs,

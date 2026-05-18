@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,24 +10,37 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { OfflineGate } from "@/components/auth/PermissionGate";
+import { DateField } from "@/components/ui/DateField";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+} from "@/components/admin";
 import { createFinanceClient, type FinanceAccount } from "@/lib/finance";
 
 type Kind = "transfer" | "expense" | "income";
 
-const KINDS: { id: Kind; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: "transfer", label: "Transfer", icon: "swap-horizontal-outline" },
-  { id: "expense", label: "Expense", icon: "wallet-outline" },
-  { id: "income", label: "Income", icon: "trending-up-outline" },
+const KIND_OPTIONS: { id: Kind; label: string }[] = [
+  { id: "transfer", label: "Transfer" },
+  { id: "expense", label: "Expense" },
+  { id: "income", label: "Income" },
 ];
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function accountKey(a: FinanceAccount): string {
+  return `${a.kind}-${a.id}`;
 }
 
 export default function FinanceRecordScreen() {
@@ -46,7 +53,6 @@ export default function FinanceRecordScreen() {
 
 function Inner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -90,6 +96,16 @@ function Inner() {
     };
   }, [client]);
 
+  const accountOptions = useMemo(
+    () =>
+      accounts.map((a) => ({
+        id: accountKey(a),
+        label: a.name,
+        subtitle: `${a.subtitle ?? ""} · ₹${Math.round(a.currentBalance).toLocaleString("en-IN")}`.trim(),
+      })),
+    [accounts]
+  );
+
   const amountNum = Number(amount);
   const amountOk = Number.isFinite(amountNum) && amountNum > 0;
   const dateOk = ISO.test(date);
@@ -103,7 +119,6 @@ function Inner() {
         !(fromAccount.kind === toAccount.kind && fromAccount.id === toAccount.id)
       );
     if (kind === "income") return !!account;
-    // expense
     return isAccrued || !!account;
   })();
 
@@ -160,109 +175,112 @@ function Inner() {
     router,
   ]);
 
-  function pick(a: FinanceAccount) {
-    if (picker === "account") setAccount(a);
-    else if (picker === "from") setFromAccount(a);
-    else if (picker === "to") setToAccount(a);
-    setPicker(null);
+  function pickAccount(optId: string) {
+    const found = accounts.find((a) => accountKey(a) === optId);
+    if (!found) return;
+    if (picker === "account") setAccount(found);
+    else if (picker === "from") setFromAccount(found);
+    else if (picker === "to") setToAccount(found);
   }
 
+  const selectedPickerId =
+    picker === "account"
+      ? account
+        ? accountKey(account)
+        : null
+      : picker === "from"
+        ? fromAccount
+          ? accountKey(fromAccount)
+          : null
+        : picker === "to"
+          ? toAccount
+            ? accountKey(toAccount)
+            : null
+          : null;
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AdminScreen
+      keyboardAvoiding
+      testID="finance-record-screen"
+      footer={
+        <AdminBottomActionBar
+          primaryLabel="Save"
+          primaryIcon="save-outline"
+          primaryTestID="finance-record-submit"
+          primaryDisabled={!canSubmit}
+          disabledReason={
+            !amountOk
+              ? "Enter a positive amount."
+              : !dateOk
+                ? "Choose a date."
+                : submitting
+                  ? "Saving…"
+                  : undefined
+          }
+          onPrimaryPress={submit}
+        />
+      }
     >
       <Stack.Screen options={{ title: "Record", headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="finance-record-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Record transaction</Text>
-      </View>
 
-      <View style={styles.kindRow}>
-        {KINDS.map((k) => {
-          const active = kind === k.id;
-          return (
-            <Pressable
-              key={k.id}
-              testID={`finance-record-kind-${k.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={k.label}
-              style={[styles.kindChip, active ? styles.kindChipActive : null]}
-              onPress={() => setKind(k.id)}
-            >
-              <Ionicons
-                name={k.icon}
-                size={15}
-                color={active ? Colors.primary : Colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.kindText,
-                  active ? styles.kindTextActive : null,
-                ]}
-              >
-                {k.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <AdminTopBar
+        title="Record transaction"
+        subtitle="Transfer, expense, or income"
+        onBackPress={() => router.back()}
+        testID="finance-record"
+      />
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 110 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.label}>Amount (₹) *</Text>
-        <TextInput
-          testID="finance-record-amount"
-          accessibilityLabel="Amount"
-          style={styles.input}
-          placeholder="0"
-          placeholderTextColor={Colors.textTertiary}
-          value={amount}
-          onChangeText={setAmount}
-          keyboardType="decimal-pad"
+      <AdminFormSection title="Type" testID="finance-record-kind-section">
+        <AdminSegmentedControl
+          options={KIND_OPTIONS}
+          value={kind}
+          onChange={setKind}
+          testIDPrefix="finance-record-kind"
+          scrollable={false}
         />
-        {!amountOk && amount.length > 0 ? (
-          <Text style={styles.helpErr}>Enter a positive amount.</Text>
-        ) : null}
+      </AdminFormSection>
 
-        <Text style={styles.label}>Date (YYYY-MM-DD) *</Text>
-        <TextInput
-          testID="finance-record-date"
-          accessibilityLabel="Date"
-          style={styles.input}
-          value={date}
-          onChangeText={setDate}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {!dateOk ? (
-          <Text style={styles.helpErr}>Use YYYY-MM-DD.</Text>
-        ) : null}
+      <AdminFormSection title="Details" testID="finance-record-details">
+        <AdminFormField label="Amount (₹)" required error={!amountOk && amount.length > 0 ? "Enter a positive amount." : undefined}>
+          <TextInput
+            testID="finance-record-amount"
+            accessibilityLabel="Amount"
+            style={styles.input}
+            placeholder="0"
+            placeholderTextColor={Colors.textTertiary}
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="decimal-pad"
+          />
+        </AdminFormField>
+
+        <AdminFormField label="Date" required>
+          <DateField
+            testID="finance-record-date"
+            accessibilityLabel="Date"
+            style={styles.input}
+            value={date}
+            onChange={setDate}
+            allowClear={false}
+          />
+        </AdminFormField>
 
         {kind === "transfer" ? (
           <>
-            <Text style={styles.label}>From account *</Text>
-            <AccountButton
-              account={fromAccount}
-              onPress={() => setPicker("from")}
-              testID="finance-record-from"
-            />
-            <Text style={styles.label}>To account *</Text>
-            <AccountButton
-              account={toAccount}
-              onPress={() => setPicker("to")}
-              testID="finance-record-to"
-            />
+            <AdminFormField label="From account" required>
+              <AccountButton
+                account={fromAccount}
+                onPress={() => setPicker("from")}
+                testID="finance-record-from"
+              />
+            </AdminFormField>
+            <AdminFormField label="To account" required>
+              <AccountButton
+                account={toAccount}
+                onPress={() => setPicker("to")}
+                testID="finance-record-to"
+              />
+            </AdminFormField>
           </>
         ) : null}
 
@@ -285,109 +303,53 @@ function Inner() {
               </Text>
             </Pressable>
             {!isAccrued ? (
-              <>
-                <Text style={styles.label}>Paid from account *</Text>
+              <AdminFormField label="Paid from account" required>
                 <AccountButton
                   account={account}
                   onPress={() => setPicker("account")}
                   testID="finance-record-account"
                 />
-              </>
+              </AdminFormField>
             ) : null}
           </>
         ) : null}
 
         {kind === "income" ? (
-          <>
-            <Text style={styles.label}>Received in account *</Text>
+          <AdminFormField label="Received in account" required>
             <AccountButton
               account={account}
               onPress={() => setPicker("account")}
               testID="finance-record-account"
             />
-          </>
+          </AdminFormField>
         ) : null}
 
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          testID="finance-record-description"
-          accessibilityLabel="Description"
-          style={[styles.input, styles.textarea]}
-          placeholder="Optional note"
-          placeholderTextColor={Colors.textTertiary}
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
-      </ScrollView>
+        <AdminFormField label="Description">
+          <TextInput
+            testID="finance-record-description"
+            accessibilityLabel="Description"
+            style={[styles.input, styles.textarea]}
+            placeholder="Optional note"
+            placeholderTextColor={Colors.textTertiary}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+          />
+        </AdminFormField>
+      </AdminFormSection>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          testID="finance-record-submit"
-          accessibilityRole="button"
-          accessibilityLabel="Save transaction"
-          disabled={!canSubmit}
-          style={[styles.submit, !canSubmit ? styles.submitDisabled : null]}
-          onPress={submit}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>Save</Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-
-      <Modal
+      <AdminPickerSheet
         visible={picker !== null}
-        animationType="slide"
-        onRequestClose={() => setPicker(null)}
-      >
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
-            <Text style={styles.modalTitle}>Choose account</Text>
-            <Pressable
-              testID="finance-record-picker-close"
-              accessibilityLabel="Close account picker"
-              onPress={() => setPicker(null)}
-            >
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
-          </View>
-          {!accountsLoaded ? (
-            <ActivityIndicator style={{ marginTop: 24 }} color={Colors.primary} />
-          ) : (
-            <FlatList
-              data={accounts}
-              keyExtractor={(a) => `${a.kind}-${a.id}`}
-              ListEmptyComponent={
-                <Text style={[styles.help, { padding: 16 }]}>
-                  No active accounts.
-                </Text>
-              }
-              renderItem={({ item }) => (
-                <Pressable
-                  testID={`finance-record-acct-${item.id}`}
-                  style={styles.modalRow}
-                  onPress={() => pick(item)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalName}>{item.name}</Text>
-                    <Text style={styles.modalSub}>{item.subtitle}</Text>
-                  </View>
-                  <Text style={styles.modalBal}>
-                    ₹{Math.round(item.currentBalance).toLocaleString("en-IN")}
-                  </Text>
-                </Pressable>
-              )}
-            />
-          )}
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+        title="Choose account"
+        options={accountOptions}
+        selectedId={selectedPickerId}
+        loading={!accountsLoaded}
+        onClose={() => setPicker(null)}
+        onSelect={(opt) => pickAccount(opt.id)}
+        emptyLabel="No active accounts."
+        testID="finance-record-acct"
+      />
+    </AdminScreen>
   );
 }
 
@@ -411,131 +373,35 @@ function AccountButton({
       <Text style={styles.pickerText} numberOfLines={1}>
         {account ? account.name : "Tap to choose"}
       </Text>
-      <Ionicons name="chevron-down" size={18} color={Colors.textSecondary} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  kindRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  kindChip: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-  },
-  kindChipActive: {
-    backgroundColor: Colors.primaryBg,
-    borderColor: Colors.primaryLight,
-  },
-  kindText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
-  kindTextActive: { color: Colors.primary },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.md,
-    marginBottom: 4,
-  },
   input: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
   },
   textarea: { minHeight: 80, textAlignVertical: "top" },
-  help: { color: Colors.textTertiary, fontSize: FontSize.xs },
-  helpErr: { color: Colors.error, fontSize: FontSize.xs, marginTop: 4 },
   pickerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
   },
-  pickerText: { flex: 1, fontSize: FontSize.md, color: Colors.text, marginRight: 8 },
+  pickerText: { fontSize: FontSize.md, color: Colors.text, fontWeight: "600" },
   accruedRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   accruedText: { flex: 1, fontSize: FontSize.sm, color: Colors.textSecondary },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
-    backgroundColor: Colors.background,
-  },
-  submit: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  modalTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  modalClose: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
-  modalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  modalName: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
-  modalSub: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  modalBal: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
 });

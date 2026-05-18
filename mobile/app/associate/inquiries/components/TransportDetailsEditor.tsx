@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
 import { LookupPickerModal } from "@/components/inquiry/LookupPickerModal";
+import { DateField } from "@/components/ui/DateField";
 import { lookupLabel, type InquiryFormLookups } from "@/lib/inquiry-lookups";
 
 export interface TransportDraftRow {
@@ -165,13 +166,14 @@ export function TransportDetailsEditor({ lookups, rows, onChangeRows }: Props) {
       <Text style={styles.miniLabel}>Drop location (optional)</Text>
       <TextInput style={styles.input} value={draftDrop} onChangeText={setDraftDrop} />
 
-      <Text style={styles.miniLabel}>Requirement date YYYY-MM-DD (optional)</Text>
-      <TextInput
+      <Text style={styles.miniLabel}>Requirement date (optional)</Text>
+      <DateField
         style={styles.input}
         value={draftReqDate}
-        onChangeText={setDraftReqDate}
-        placeholder="2026-05-10"
-        placeholderTextColor={Colors.textTertiary}
+        onChange={setDraftReqDate}
+        placeholder="Choose requirement date"
+        testID="transport-draft-requirement-date"
+        accessibilityLabel="Transport requirement date"
       />
 
       <Text style={styles.miniLabel}>Notes (optional)</Text>
@@ -206,6 +208,10 @@ export function TransportDetailsEditor({ lookups, rows, onChangeRows }: Props) {
       />
     </View>
   );
+}
+
+export default function TransportDetailsEditorRoutePlaceholder() {
+  return null;
 }
 
 const styles = StyleSheet.create({

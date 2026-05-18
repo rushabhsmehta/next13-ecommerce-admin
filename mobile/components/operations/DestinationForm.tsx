@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -15,7 +11,14 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
 import {
@@ -24,8 +27,6 @@ import {
   type OpsLocation,
 } from "@/lib/operations";
 import { OperationsImagePicker } from "@/components/operations/OperationsImagePicker";
-import { LookupPickerModal } from "@/components/inquiry/LookupPickerModal";
-import type { InquiryLookupOption } from "@/lib/inquiry-lookups";
 
 interface InitialValues {
   name: string;
@@ -60,7 +61,6 @@ export function DestinationForm({
   defaultLocationId,
 }: Props) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -81,7 +81,9 @@ export function DestinationForm({
   const [locationLabel, setLocationLabel] = useState(seed.locationLabel);
   const [isActive, setIsActive] = useState(seed.isActive);
   const [submitting, setSubmitting] = useState(false);
-  const [locationOptions, setLocationOptions] = useState<InquiryLookupOption[]>([]);
+  const [locationOptions, setLocationOptions] = useState<{ id: string; label: string }[]>(
+    []
+  );
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const loadLocations = useCallback(async () => {
@@ -104,8 +106,8 @@ export function DestinationForm({
     void loadLocations();
   }, [loadLocations]);
 
-  const canSubmit =
-    name.trim().length > 0 && locationId.length > 0 && !submitting;
+  const screenTitle = mode === "create" ? "New destination" : "Edit destination";
+  const canSubmit = name.trim().length > 0 && locationId.length > 0 && !submitting;
 
   async function submit() {
     if (!canSubmit) return;
@@ -138,83 +140,89 @@ export function DestinationForm({
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AdminScreen
+      keyboardAvoiding
+      testID={mode === "create" ? "destination-new-screen" : "destination-edit-screen"}
+      footer={
+        <AdminBottomActionBar
+          primaryLabel={mode === "create" ? "Create destination" : "Save changes"}
+          primaryIcon={mode === "create" ? "add-circle-outline" : "save-outline"}
+          primaryTestID="destination-form-submit"
+          primaryDisabled={!canSubmit}
+          disabledReason={
+            !locationId
+              ? "Select a parent location."
+              : !name.trim()
+                ? "Enter a destination name."
+                : submitting
+                  ? "Saving…"
+                  : undefined
+          }
+          onPrimaryPress={submit}
+        />
+      }
     >
-      <Stack.Screen
-        options={{
-          title: mode === "create" ? "New destination" : "Edit destination",
-          headerShown: false,
-        }}
+      <Stack.Screen options={{ title: screenTitle, headerShown: false }} />
+
+      <AdminTopBar
+        title={screenTitle}
+        subtitle="Destination"
+        onBackPress={() => router.back()}
+        testID="destination-form"
       />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="destination-form-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>
-          {mode === "create" ? "New destination" : "Edit destination"}
-        </Text>
-      </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.label}>Location *</Text>
-        <Pressable
-          testID="destination-form-location"
-          accessibilityRole="button"
-          accessibilityLabel="Choose parent location"
-          style={styles.pickerBtn}
-          onPress={() => setShowLocationPicker(true)}
-        >
-          <Text style={locationId ? styles.pickerValue : styles.pickerPlaceholder}>
-            {locationLabel || "Select location…"}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
-        </Pressable>
+      <AdminFormSection title="Location" testID="destination-form-location-section">
+        <AdminFormField label="Parent location" required>
+          <Pressable
+            testID="destination-form-location"
+            accessibilityRole="button"
+            accessibilityLabel="Choose parent location"
+            style={styles.pickerBtn}
+            onPress={() => setShowLocationPicker(true)}
+          >
+            <Text style={locationId ? styles.pickerValue : styles.pickerPlaceholder}>
+              {locationLabel || "Select location…"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+      </AdminFormSection>
 
-        <Text style={styles.label}>Name *</Text>
-        <TextInput
-          testID="destination-form-name"
-          accessibilityLabel="Destination name"
-          style={styles.input}
-          placeholder="e.g. North Goa"
-          placeholderTextColor={Colors.textTertiary}
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-          maxLength={200}
-        />
-
-        <Text style={styles.label}>Image</Text>
-        <OperationsImagePicker
-          testID="destination-form-image"
-          accessibilityLabel="Destination image"
-          value={imageUrl}
-          onChange={setImageUrl}
-          getToken={() => getTokenRef.current()}
-        />
-
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          testID="destination-form-description"
-          accessibilityLabel="Description"
-          style={[styles.input, styles.textarea]}
-          placeholder="Optional"
-          placeholderTextColor={Colors.textTertiary}
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
-
+      <AdminFormSection title="Details" testID="destination-form-details">
+        <AdminFormField label="Name" required>
+          <TextInput
+            testID="destination-form-name"
+            accessibilityLabel="Destination name"
+            style={styles.input}
+            placeholder="e.g. North Goa"
+            placeholderTextColor={Colors.textTertiary}
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            maxLength={200}
+          />
+        </AdminFormField>
+        <AdminFormField label="Image">
+          <OperationsImagePicker
+            testID="destination-form-image"
+            accessibilityLabel="Destination image"
+            value={imageUrl}
+            onChange={setImageUrl}
+            getToken={() => getTokenRef.current()}
+          />
+        </AdminFormField>
+        <AdminFormField label="Description">
+          <TextInput
+            testID="destination-form-description"
+            accessibilityLabel="Description"
+            style={[styles.input, styles.textarea]}
+            placeholder="Optional"
+            placeholderTextColor={Colors.textTertiary}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+          />
+        </AdminFormField>
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Active</Text>
           <Switch
@@ -224,79 +232,30 @@ export function DestinationForm({
             onValueChange={setIsActive}
           />
         </View>
-      </ScrollView>
+      </AdminFormSection>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          testID="destination-form-submit"
-          accessibilityRole="button"
-          accessibilityLabel={mode === "create" ? "Create destination" : "Save changes"}
-          disabled={!canSubmit}
-          style={[styles.submit, !canSubmit ? styles.submitDisabled : null]}
-          onPress={submit}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>
-                {mode === "create" ? "Create destination" : "Save changes"}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-
-      <LookupPickerModal
+      <AdminPickerSheet
         visible={showLocationPicker}
         title="Location"
         options={locationOptions}
-        testID="destination-location-picker"
+        selectedId={locationId}
         onClose={() => setShowLocationPicker(false)}
-        onSelect={(id) => {
-          const opt = locationOptions.find((o) => o.id === id);
-          setLocationId(id);
-          setLocationLabel(opt?.label ?? "");
+        onSelect={(opt) => {
+          setLocationId(opt.id);
+          setLocationLabel(opt.label);
         }}
+        testID="destination-location-picker"
       />
-    </KeyboardAvoidingView>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, gap: 4 },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.md,
-    marginBottom: 4,
-  },
   input: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSize.md,
@@ -308,38 +267,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.sm,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
   },
-  pickerValue: { flex: 1, fontSize: FontSize.md, color: Colors.text },
+  pickerValue: { flex: 1, fontSize: FontSize.md, color: Colors.text, fontWeight: "600" },
   pickerPlaceholder: { flex: 1, fontSize: FontSize.md, color: Colors.textTertiary },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: Spacing.lg,
     paddingVertical: Spacing.sm,
   },
   switchLabel: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
-    backgroundColor: Colors.background,
-  },
-  submit: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
 });

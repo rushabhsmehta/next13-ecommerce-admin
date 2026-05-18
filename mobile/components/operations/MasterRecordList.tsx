@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -15,6 +14,14 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   createOperationsClient,
@@ -35,8 +42,18 @@ export function MasterRecordList({ kind }: { kind: Kind }) {
 
 function labels(kind: Kind) {
   return kind === "itinerary"
-    ? { title: "Itinerary masters", route: "/admin/operations/itineraries", icon: "list-outline" as const }
-    : { title: "Activity masters", route: "/admin/operations/activities", icon: "walk-outline" as const };
+    ? {
+        title: "Itinerary masters",
+        route: "/admin/operations/itineraries",
+        icon: "list-outline" as const,
+        emptyBody: "Create an itinerary master to reuse day plans across packages.",
+      }
+    : {
+        title: "Activity masters",
+        route: "/admin/operations/activities",
+        icon: "walk-outline" as const,
+        emptyBody: "Create an activity master to reuse experiences across packages.",
+      };
 }
 
 function Inner({ kind }: { kind: Kind }) {
@@ -55,9 +72,15 @@ function Inner({ kind }: { kind: Kind }) {
   const meta = labels(kind);
   const [items, setItems] = useState<RecordRow[]>([]);
   const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const load = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -67,8 +90,8 @@ function Inner({ kind }: { kind: Kind }) {
       try {
         const res =
           kind === "itinerary"
-            ? await client.listItineraries({ search: search.trim(), limit: 100 })
-            : await client.listActivities({ search: search.trim(), limit: 100 });
+            ? await client.listItineraries({ search: debounced, limit: 100 })
+            : await client.listActivities({ search: debounced, limit: 100 });
         setItems(res.items);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Could not load records.");
@@ -77,65 +100,58 @@ function Inner({ kind }: { kind: Kind }) {
         setRefreshing(false);
       }
     },
-    [client, kind, search]
+    [client, kind, debounced]
   );
 
   useEffect(() => {
-    const t = setTimeout(() => void load(), 250);
-    return () => clearTimeout(t);
+    void load();
   }, [load]);
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title: meta.title, headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{meta.title}</Text>
-          <Text style={styles.headerSub}>{items.length} records</Text>
-        </View>
-        <Pressable
-          testID={`${kind}-add`}
-          accessibilityRole="button"
-          accessibilityLabel={`Add ${kind}`}
-          style={styles.addBtn}
-          onPress={() => router.push(`${meta.route}/new` as never)}
-        >
-          <Ionicons name="add" size={20} color="#fff" />
-        </Pressable>
-      </View>
+  const subtitle = loading
+    ? "Loading..."
+    : `${items.length} record${items.length === 1 ? "" : "s"}`;
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID={`${kind}-search`}
-          accessibilityLabel={`Search ${meta.title}`}
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search title or location"
-          placeholderTextColor={Colors.textTertiary}
-        />
-      </View>
+  return (
+    <AdminScreen scroll={false} testID={`${kind}-masters-screen`}>
+      <Stack.Screen options={{ title: meta.title, headerShown: false }} />
+
+      <AdminTopBar
+        title={meta.title}
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID={`${kind}-masters-header`}
+        rightSlot={
+          <AdminTopBarPrimaryButton
+            label="New"
+            icon="add"
+            testID={`${kind}-add`}
+            onPress={() => router.push(`${meta.route}/new` as never)}
+          />
+        }
+      />
+
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Title or location"
+        searchTestID={`${kind}-search`}
+        testID={`${kind}-command-bar`}
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh")}
+          testID={`${kind}-error`}
+        />
       ) : null}
 
       <FlatList
         testID={`${kind}-list`}
+        style={styles.list}
         data={items}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -145,14 +161,18 @@ function Inner({ kind }: { kind: Kind }) {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name={meta.icon} size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyText}>No records found.</Text>
-            </View>
+            <AdminEmptyState
+              icon={meta.icon}
+              title="No records"
+              body={debounced ? "Try another search term." : meta.emptyBody}
+              actionLabel={!debounced ? "Create record" : undefined}
+              onActionPress={
+                !debounced ? () => router.push(`${meta.route}/new` as never) : undefined
+              }
+              testID={`${kind}-empty`}
+            />
           )
         }
         renderItem={({ item }) => (
@@ -160,78 +180,55 @@ function Inner({ kind }: { kind: Kind }) {
             testID={`${kind}-row-${item.id}`}
             accessibilityRole="button"
             accessibilityLabel={item.title ?? "Record"}
-            style={styles.card}
+            style={styles.row}
             onPress={() => router.push(`${meta.route}/${item.id}` as never)}
           >
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {item.title || "Untitled"}
-            </Text>
-            <Text style={styles.cardSub} numberOfLines={2}>
-              {item.locationLabel || "No location"}
-            </Text>
-            <Text style={styles.cardDesc} numberOfLines={2}>
-              {item.description || "No description"}
-            </Text>
+            <View style={styles.rowIcon}>
+              <Ionicons name={meta.icon} size={18} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={styles.rowTitle} numberOfLines={1}>
+                {item.title || "Untitled"}
+              </Text>
+              <Text style={styles.rowMeta} numberOfLines={1}>
+                {item.locationLabel || "No location"}
+              </Text>
+              <Text style={styles.rowSub} numberOfLines={2}>
+                {item.description || "No description"}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
+  listContent: { paddingHorizontal: Spacing.lg },
+  row: {
     flexDirection: "row",
+    gap: Spacing.md,
     alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: { padding: Spacing.xs },
-  headerTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  headerSub: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  addBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: { flex: 1, fontSize: FontSize.sm, color: Colors.text, paddingVertical: 0 },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm },
-  centered: { alignItems: "center", paddingTop: Spacing.xxl, gap: Spacing.sm },
-  emptyText: { color: Colors.textSecondary, fontWeight: "700" },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.borderSubtle,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
   },
-  cardTitle: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
-  cardSub: { marginTop: 3, fontSize: FontSize.xs, color: Colors.primary, fontWeight: "700" },
-  cardDesc: { marginTop: 6, fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 19 },
+  rowIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowTitle: { fontSize: FontSize.md, fontWeight: "900", color: Colors.text },
+  rowMeta: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: "700" },
+  rowSub: { fontSize: FontSize.xs, color: Colors.textSecondary, lineHeight: 17 },
 });

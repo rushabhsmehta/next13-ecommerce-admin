@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -13,10 +12,16 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type LocationDetail } from "@/lib/operations";
 import { LocationForm } from "@/components/operations/LocationForm";
@@ -31,7 +36,6 @@ export default function LocationDetailScreen() {
 
 function Inner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { permissions } = useCurrentUser();
   const canWrite = permissions.includes("operations.write");
@@ -130,114 +134,105 @@ function Inner() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AdminLoadingState label="Loading location…" testID="location-detail-loading" />
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errText}>{error ?? "Not found"}</Text>
-        <Pressable style={styles.retry} onPress={() => void load()}>
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="location-detail-error">
+        <Stack.Screen options={{ title: "Location", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Location not found"}
+          onRetry={() => void load()}
+          testID="location-detail-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   const { location, summary } = data;
+  const locationImageUrl = location.imageUrl.trim();
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="location-detail-screen"
+      bottomInset={Spacing.xl}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+    >
       <Stack.Screen options={{ title: location.label, headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {location.label}
-        </Text>
-        {canWrite ? (
-          <>
-            <Pressable
-              testID={`location-edit-${location.id}`}
-              accessibilityRole="button"
-              accessibilityLabel="Edit location"
-              style={styles.iconBtn}
-              onPress={() => setEditing(true)}
-            >
-              <Ionicons name="create-outline" size={20} color={Colors.text} />
-            </Pressable>
-            <Pressable
-              testID={`location-delete-${location.id}`}
-              accessibilityRole="button"
-              accessibilityLabel="Delete location"
-              style={styles.iconBtn}
-              disabled={busy}
-              onPress={confirmDelete}
-            >
-              <Ionicons name="trash-outline" size={20} color={Colors.error} />
-            </Pressable>
-          </>
-        ) : null}
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{
-          padding: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
+      <AdminTopBar
+        title={location.label}
+        subtitle={location.isActive ? "Active" : "Inactive"}
+        onBackPress={() => router.back()}
+        testID="location-detail-header"
+        rightSlot={
+          canWrite ? (
+            <View style={styles.headerActions}>
+              <AdminTopBarIconButton
+                icon="create-outline"
+                label="Edit location"
+                testID={`location-edit-${location.id}`}
+                onPress={() => setEditing(true)}
+              />
+              <AdminTopBarIconButton
+                icon="trash-outline"
+                label="Delete location"
+                testID={`location-delete-${location.id}`}
+                disabled={busy}
+                onPress={confirmDelete}
+              />
+            </View>
+          ) : null
         }
-      >
+      />
+      {locationImageUrl ? (
         <Image
-          source={{ uri: location.imageUrl }}
+          source={{ uri: locationImageUrl }}
           style={styles.hero}
           accessibilityIgnoresInvertColors
         />
-        <View style={styles.card}>
-          <Row label="Status" value={location.isActive ? "Active" : "Inactive"} />
-          {location.slug ? <Row label="Slug" value={location.slug} /> : null}
-          {location.tags ? <Row label="Tags" value={location.tags} /> : null}
+      ) : (
+        <View style={[styles.hero, styles.heroPlaceholder]}>
+          <Ionicons name="image-outline" size={28} color={Colors.textTertiary} />
         </View>
+      )}
+      <View style={styles.card}>
+        <Row label="Status" value={location.isActive ? "Active" : "Inactive"} />
+        {location.slug ? <Row label="Slug" value={location.slug} /> : null}
+        {location.tags ? <Row label="Tags" value={location.tags} /> : null}
+      </View>
 
-        <Pressable
-          testID={`location-view-destinations-${location.id}`}
-          accessibilityRole="button"
-          accessibilityLabel="View destinations for this location"
-          style={styles.linkBanner}
-          onPress={() =>
-            router.push(
-              `/admin/operations/destinations?locationId=${location.id}` as never
-            )
-          }
-        >
-          <Ionicons name="compass-outline" size={16} color={Colors.primary} />
-          <Text style={styles.linkText}>View destinations ({summary.destinations})</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-        </Pressable>
+      <Pressable
+        testID={`location-view-destinations-${location.id}`}
+        accessibilityRole="button"
+        accessibilityLabel="View destinations for this location"
+        style={styles.linkBanner}
+        onPress={() =>
+          router.push(
+            `/admin/operations/destinations?locationId=${location.id}` as never
+          )
+        }
+      >
+        <Ionicons name="compass-outline" size={16} color={Colors.primary} />
+        <Text style={styles.linkText}>View destinations ({summary.destinations})</Text>
+        <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+      </Pressable>
 
-        <View style={styles.statGrid}>
-          <Stat label="Hotels" value={summary.hotels} />
-          <Stat label="Destinations" value={summary.destinations} />
-          <Stat label="Packages" value={summary.tourPackages} />
-          <Stat label="Inquiries" value={summary.inquiries} />
-        </View>
-      </ScrollView>
-    </View>
+      <View style={styles.statGrid}>
+        <Stat label="Hotels" value={summary.hotels} />
+        <Stat label="Destinations" value={summary.destinations} />
+        <Stat label="Packages" value={summary.tourPackages} />
+        <Stat label="Inquiries" value={summary.inquiries} />
+      </View>
+    </AdminScreen>
   );
 }
 
@@ -260,53 +255,17 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.background,
-    gap: Spacing.sm,
-    padding: Spacing.xl,
-  },
-  errText: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text, textAlign: "center" },
-  retry: {
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  retryText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  headerActions: { flexDirection: "row", gap: 4 },
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
   hero: {
     width: "100%",
     height: 200,
     borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
     backgroundColor: Colors.surfaceAlt,
+  },
+  heroPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   card: {
     backgroundColor: Colors.surface,
@@ -315,7 +274,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
     padding: Spacing.md,
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
   },
   row: { gap: 2 },
   rowLabel: {
@@ -334,7 +292,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.primaryLight,
-    marginBottom: Spacing.md,
   },
   linkText: { flex: 1, fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
   statGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },

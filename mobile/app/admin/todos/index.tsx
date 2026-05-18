@@ -3,18 +3,27 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminFilterSheet,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import {
   BorderRadius,
   Colors,
@@ -84,6 +93,13 @@ const PRIORITY_FILTERS: { id: TodoPriority | "ALL"; label: string }[] = [
 
 const PAGE_SIZE = 50;
 
+function emptyStateHint(statusFilter: TodoStatus | "ALL"): string {
+  if (statusFilter === "DONE") return "Completed tasks will appear here.";
+  if (statusFilter === "IN_PROGRESS") return "In-progress tasks will appear here.";
+  if (statusFilter === "ALL") return "Tasks will appear here when created.";
+  return "Create a task to track follow-ups, calls, and reminders.";
+}
+
 export default function TodosScreen() {
   return (
     <PermissionGate permission="todos.read">
@@ -118,10 +134,9 @@ function TodosScreenInner() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  // Staff picker modal
-  const [staffModal, setStaffModal] = useState(false);
-  const [staffSearch, setStaffSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
   const [staffList, setStaffList] = useState<
     { id: string; name: string; email: string }[]
   >([]);
@@ -162,10 +177,28 @@ function TodosScreenInner() {
   }, [authLoading, load]);
 
   const hasActiveFilters =
-    statusFilter !== "TODO" ||
     priorityFilter !== "ALL" ||
     assigneeId !== null ||
     duePreset !== "ANY";
+
+  const displayedItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        (t.description?.toLowerCase().includes(q) ?? false) ||
+        (t.assignedStaff?.name.toLowerCase().includes(q) ?? false)
+    );
+  }, [items, searchQuery]);
+
+  const staffPickerOptions = useMemo(
+    () => [
+      { id: "unassigned", label: "Unassigned", subtitle: "Tasks with no staff assignee" },
+      ...staffList.map((s) => ({ id: s.id, label: s.name, subtitle: s.email })),
+    ],
+    [staffList]
+  );
 
   function clearFilters() {
     setStatusFilter("TODO");
@@ -175,9 +208,8 @@ function TodosScreenInner() {
     setDuePreset("ANY");
   }
 
-  async function openStaffModal() {
-    setStaffModal(true);
-    setStaffSearch("");
+  async function openAssigneePicker() {
+    setAssigneePickerOpen(true);
     setStaffLoading(true);
     try {
       const rows = await fetchActiveOperationalStaff(authRequest);
@@ -192,16 +224,6 @@ function TodosScreenInner() {
       setStaffLoading(false);
     }
   }
-
-  const filteredStaff = useMemo(() => {
-    const q = staffSearch.trim().toLowerCase();
-    if (!q) return staffList;
-    return staffList.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q)
-    );
-  }, [staffList, staffSearch]);
 
   async function completeTodo(todo: Todo) {
     if (todo.status === "DONE" || !canWrite) return;
@@ -247,173 +269,50 @@ function TodosScreenInner() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="todos-screen">
       <Stack.Screen options={{ title: "Tasks", headerShown: false }} />
 
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="todos-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle}>Tasks</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "Loading…" : `${items.length} shown`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="todos-new"
-            accessibilityRole="button"
-            accessibilityLabel="Create a new task"
-            style={styles.newBtn}
-            onPress={() => router.push("/admin/todos/new" as never)}
-          >
-            <Ionicons name="add" size={18} color="#fff" />
-            <Text style={styles.newBtnText}>New</Text>
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminTopBar
+        title="Tasks"
+        subtitle={loading ? "Loading…" : `${displayedItems.length} shown`}
+        onBackPress={() => router.back()}
+        testID="todos-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="todos-new"
+              onPress={() => router.push("/admin/todos/new" as never)}
+            />
+          ) : null
+        }
+      />
 
-      <View style={styles.tabsRow}>
-        {STATUS_TABS.map((tab) => {
-          const active = statusFilter === tab.id;
-          return (
-            <Pressable
-              key={tab.id}
-              testID={`todos-status-${tab.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Filter by ${tab.label}`}
-              style={[styles.tab, active ? styles.tabActive : null]}
-              onPress={() => setStatusFilter(tab.id)}
-            >
-              <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <AdminSegmentedControl
+        options={STATUS_TABS}
+        value={statusFilter}
+        onChange={setStatusFilter}
+        testIDPrefix="todos-status"
+      />
 
-      <View style={styles.priorityRow}>
-        {PRIORITY_FILTERS.map((p) => {
-          const active = priorityFilter === p.id;
-          return (
-            <Pressable
-              key={p.id}
-              testID={`todos-priority-${p.id}`}
-              accessibilityLabel={`Filter by ${p.label}`}
-              style={[styles.priorityChip, active ? styles.priorityChipActive : null]}
-              onPress={() => setPriorityFilter(p.id)}
-            >
-              <Text
-                style={[
-                  styles.priorityChipText,
-                  active ? styles.priorityChipTextActive : null,
-                ]}
-              >
-                {p.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <AdminCommandBar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search tasks"
+        searchTestID="todos-search"
+        onFilterPress={() => setFilterSheetOpen(true)}
+        filterActive={hasActiveFilters}
+        filterAccessibilityLabel="Open task filters"
+        testID="todos-command-bar"
+      />
 
-      <View style={styles.priorityRow}>
-        {DUE_FILTERS.map((d) => {
-          const active = duePreset === d.id;
-          return (
-            <Pressable
-              key={d.id}
-              testID={`todos-due-${d.id}`}
-              accessibilityLabel={`Filter by due ${d.label}`}
-              style={[styles.priorityChip, active ? styles.priorityChipActive : null]}
-              onPress={() => setDuePreset(d.id)}
-            >
-              <Text
-                style={[
-                  styles.priorityChipText,
-                  active ? styles.priorityChipTextActive : null,
-                ]}
-              >
-                {d.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View style={styles.assigneeRow}>
-        <Pressable
-          testID="todos-assignee-picker"
-          accessibilityRole="button"
-          accessibilityLabel="Filter by assignee"
-          style={[
-            styles.assigneeBtn,
-            assigneeId ? styles.assigneeBtnActive : null,
-          ]}
-          onPress={() => void openStaffModal()}
-        >
-          <Ionicons
-            name="person-circle-outline"
-            size={16}
-            color={assigneeId ? Colors.primary : Colors.textSecondary}
-          />
-          <Text
-            style={[
-              styles.assigneeBtnText,
-              assigneeId ? styles.assigneeBtnTextActive : null,
-            ]}
-            numberOfLines={1}
-          >
-            {assigneeName ?? "Any assignee"}
-          </Text>
-          {assigneeId ? (
-            <Pressable
-              testID="todos-assignee-clear"
-              accessibilityLabel="Clear assignee filter"
-              hitSlop={8}
-              onPress={(e) => {
-                e.stopPropagation();
-                setAssigneeId(null);
-                setAssigneeName(null);
-              }}
-            >
-              <Ionicons name="close-circle" size={16} color={Colors.primary} />
-            </Pressable>
-          ) : (
-            <Ionicons name="chevron-down" size={14} color={Colors.textTertiary} />
-          )}
-        </Pressable>
-        {hasActiveFilters ? (
-          <Pressable
-            testID="todos-clear-filters"
-            accessibilityRole="button"
-            accessibilityLabel="Clear all filters"
-            style={styles.clearFiltersBtn}
-            onPress={clearFilters}
-          >
-            <Ionicons name="refresh-outline" size={14} color={Colors.primary} />
-            <Text style={styles.clearFiltersText}>Reset filters</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      {error ? <AdminErrorState message={error} onRetry={() => void load("refresh")} testID="todos-error" /> : null}
 
       <FlatList
-        data={items}
+        data={displayedItems}
         keyExtractor={(t) => t.id}
+        style={styles.list}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: insets.bottom + 24 },
@@ -427,32 +326,27 @@ function TodosScreenInner() {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="checkbox-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No tasks</Text>
-              <Text style={styles.emptyText}>
-                {hasActiveFilters
+            <AdminEmptyState
+              icon="checkbox-outline"
+              title="No tasks"
+              body={
+                hasActiveFilters || searchQuery.trim()
                   ? "No tasks match these filters. Try widening the search or resetting filters."
-                  : statusFilter === "DONE"
-                  ? "Completed tasks will appear here."
-                  : "Create a task to track follow-ups, calls, and reminders."}
-              </Text>
-              {hasActiveFilters ? (
-                <Pressable
-                  testID="todos-empty-reset"
-                  accessibilityRole="button"
-                  accessibilityLabel="Reset filters"
-                  style={styles.emptyResetBtn}
-                  onPress={clearFilters}
-                >
-                  <Text style={styles.emptyResetText}>Reset filters</Text>
-                </Pressable>
-              ) : null}
-            </View>
+                  : emptyStateHint(statusFilter)
+              }
+              actionLabel={hasActiveFilters || searchQuery.trim() ? "Reset filters" : undefined}
+              onActionPress={
+                hasActiveFilters || searchQuery.trim()
+                  ? () => {
+                      clearFilters();
+                      setSearchQuery("");
+                    }
+                  : undefined
+              }
+              testID="todos-empty"
+            />
           )
         }
         renderItem={({ item }) => (
@@ -467,84 +361,86 @@ function TodosScreenInner() {
         )}
       />
 
-      <Modal
-        visible={staffModal}
-        animationType="slide"
-        onRequestClose={() => setStaffModal(false)}
+      <AdminFilterSheet
+        visible={filterSheetOpen}
+        title="Task filters"
+        onClose={() => setFilterSheetOpen(false)}
+        onReset={clearFilters}
+        testID="todos-filter-sheet"
       >
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
-            <Text style={styles.modalTitle}>Filter by assignee</Text>
-            <Pressable
-              testID="todos-staff-modal-close"
-              accessibilityRole="button"
-              accessibilityLabel="Close assignee picker"
-              onPress={() => setStaffModal(false)}
-            >
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            style={styles.modalSearch}
-            value={staffSearch}
-            onChangeText={setStaffSearch}
-            placeholder="Search name or email…"
-            placeholderTextColor={Colors.textTertiary}
-          />
-          {staffLoading ? (
-            <ActivityIndicator style={{ marginTop: 24 }} color={Colors.primary} />
-          ) : (
-            <FlatList
-              style={{ flex: 1 }}
-              data={filteredStaff}
-              keyExtractor={(item) => item.id}
-              keyboardShouldPersistTaps="handled"
-              ListHeaderComponent={
-                <Pressable
-                  testID="todos-staff-option-unassigned"
-                  style={styles.modalRow}
-                  onPress={() => {
-                    setAssigneeId("unassigned");
-                    setAssigneeName("Unassigned");
-                    setStaffModal(false);
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalName}>Unassigned</Text>
-                    <Text style={styles.modalEmail}>Tasks with no staff assignee</Text>
-                  </View>
-                  {assigneeId === "unassigned" ? (
-                    <Ionicons name="checkmark" size={20} color={Colors.primary} />
-                  ) : null}
-                </Pressable>
-              }
-              ListEmptyComponent={
-                <Text style={[styles.emptyText, { padding: 16 }]}>No staff found.</Text>
-              }
-              renderItem={({ item }) => (
-                <Pressable
-                  testID={`todos-staff-option-${item.id}`}
-                  style={styles.modalRow}
-                  onPress={() => {
-                    setAssigneeId(item.id);
-                    setAssigneeName(item.name);
-                    setStaffModal(false);
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalName}>{item.name}</Text>
-                    <Text style={styles.modalEmail}>{item.email}</Text>
-                  </View>
-                  {assigneeId === item.id ? (
-                    <Ionicons name="checkmark" size={20} color={Colors.primary} />
-                  ) : null}
-                </Pressable>
-              )}
-            />
-          )}
+        <Text style={styles.filterLabel}>Priority</Text>
+        <View style={styles.chipRow}>
+          {PRIORITY_FILTERS.map((p) => {
+            const active = priorityFilter === p.id;
+            return (
+              <Pressable
+                key={p.id}
+                testID={`todos-priority-${p.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={p.label}
+                accessibilityState={{ selected: active }}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setPriorityFilter(p.id)}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{p.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
-      </Modal>
-    </View>
+        <Text style={styles.filterLabel}>Due</Text>
+        <View style={styles.chipRow}>
+          {DUE_FILTERS.map((d) => {
+            const active = duePreset === d.id;
+            return (
+              <Pressable
+                key={d.id}
+                testID={`todos-due-${d.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={d.label}
+                accessibilityState={{ selected: active }}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setDuePreset(d.id)}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{d.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.filterLabel}>Assignee</Text>
+        <Pressable
+          testID="todos-assignee-picker"
+          accessibilityRole="button"
+          accessibilityLabel="Choose assignee filter"
+          style={styles.assigneePickerBtn}
+          onPress={() => void openAssigneePicker()}
+        >
+          <Ionicons name="person-circle-outline" size={18} color={Colors.primary} />
+          <Text style={styles.assigneePickerText} numberOfLines={1}>
+            {assigneeName ?? "Any assignee"}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+        </Pressable>
+      </AdminFilterSheet>
+
+      <AdminPickerSheet
+        visible={assigneePickerOpen}
+        title="Assignee"
+        options={staffPickerOptions}
+        selectedId={assigneeId}
+        loading={staffLoading}
+        onClose={() => setAssigneePickerOpen(false)}
+        onSelect={(opt) => {
+          if (opt.id === "unassigned") {
+            setAssigneeId("unassigned");
+            setAssigneeName("Unassigned");
+          } else {
+            setAssigneeId(opt.id);
+            setAssigneeName(opt.label);
+          }
+        }}
+        testID="todos-assignee-sheet"
+      />
+    </AdminScreen>
   );
 }
 
@@ -578,6 +474,7 @@ function TodoRow({
         todo.status === "DONE" ? styles.rowDone : null,
         overdue ? styles.rowOverdue : null,
       ]}
+      accessibilityHint="Opens task details."
       onPress={onOpen}
     >
       <Pressable
@@ -675,110 +572,52 @@ function formatDate(iso: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTextWrap: { flex: 1 },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  newBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  newBtnText: { color: "#fff", fontWeight: "800", fontSize: FontSize.sm },
-  tabsRow: {
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: Spacing.lg,
+  list: { flex: 1 },
+  listContent: { paddingHorizontal: Spacing.lg, flexGrow: 1 },
+  listLoader: { marginTop: Spacing.xxl },
+  filterLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
     marginBottom: Spacing.sm,
   },
-  tab: {
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.xs },
+  chip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
   },
-  tabActive: {
+  chipActive: {
+    borderColor: Colors.primary,
     backgroundColor: Colors.primaryBg,
-    borderColor: Colors.primaryLight,
   },
-  tabText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "700" },
-  tabTextActive: { color: Colors.primary },
-  priorityRow: {
+  chipText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.textSecondary },
+  chipTextActive: { color: Colors.primaryDark },
+  assigneePickerBtn: {
     flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    flexWrap: "wrap",
-  },
-  priorityChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: BorderRadius.full,
-  },
-  priorityChipActive: {
-    backgroundColor: Colors.text,
-  },
-  priorityChipText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "700" },
-  priorityChipTextActive: { color: "#fff" },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  listContent: { paddingHorizontal: Spacing.lg },
-  centered: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
     alignItems: "center",
     gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
   },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text, marginTop: 6 },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-  },
+  assigneePickerText: { flex: 1, fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderSubtle,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    marginHorizontal: -Spacing.lg,
   },
   rowDone: { opacity: 0.65 },
   rowOverdue: { borderColor: Colors.error },

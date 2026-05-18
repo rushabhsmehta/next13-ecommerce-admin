@@ -13,7 +13,8 @@ const memberSchema = z.object({
   role: z.enum(["ADMIN", "OPERATIONS", "TOURIST", "COMPANION"]).default("TOURIST"),
 });
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return NextResponse.json({ error: "Unauthorized", code: "AUTH" }, { status: 401 });
@@ -55,7 +56,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return NextResponse.json({ error: "Unauthorized", code: "AUTH" }, { status: 401 });

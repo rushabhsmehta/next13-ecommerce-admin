@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -15,6 +14,14 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
@@ -86,51 +93,36 @@ function Inner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced, activeOnly]);
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title: "Operational staff", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Operational staff</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${items.length} shown`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="staff-new"
-            accessibilityRole="button"
-            accessibilityLabel="New staff"
-            onPress={() => router.push("/admin/operations/staff/new" as never)}
-            style={styles.newBtn}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
+  const subtitle = loading ? "Loading..." : `${items.length} shown`;
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="staff-search"
-          accessibilityLabel="Search staff"
-          style={styles.searchInput}
-          placeholder="Search by name or email"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-      </View>
+  return (
+    <AdminScreen scroll={false} testID="staff-screen">
+      <Stack.Screen options={{ title: "Operational staff", headerShown: false }} />
+
+      <AdminTopBar
+        title="Operational staff"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="staff-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="staff-new"
+              onPress={() => router.push("/admin/operations/staff/new" as never)}
+            />
+          ) : null
+        }
+      />
+
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name or email"
+        searchTestID="staff-search"
+        testID="staff-command-bar"
+      />
 
       <View style={styles.filterRow}>
         <Pressable
@@ -150,13 +142,15 @@ function Inner() {
       </View>
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debounced)}
+          testID="staff-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(s) => s.id}
         contentContainerStyle={[
@@ -172,17 +166,14 @@ function Inner() {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="people-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No staff</Text>
-              <Text style={styles.emptyText}>
-                {debounced ? "Try a different search." : "Tap + to add one."}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="people-outline"
+              title="No staff"
+              body={debounced ? "Try a different search." : "Tap + to add one."}
+              testID="staff-empty"
+            />
           )
         }
         renderItem={({ item }) => (
@@ -227,11 +218,13 @@ function Inner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     paddingTop: Spacing.xxl,

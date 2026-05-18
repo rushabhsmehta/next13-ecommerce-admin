@@ -141,7 +141,9 @@ export default function PackageDetailScreen() {
     );
   }
 
-  const images: { id?: string; url?: string }[] = pkg.images || [];
+  const images: { id?: string; url?: string }[] = (pkg.images || []).filter((img) =>
+    img.url?.trim()
+  );
   const itineraries: any[] = pkg.itineraries || [];
   const displayPrice = pkg.pricePerAdult || pkg.price;
   const formattedPrice = displayPrice
@@ -438,9 +440,13 @@ export default function PackageDetailScreen() {
               ) : (
                 itineraries.map((day, index) => {
                   const isExpanded = expandedDays.has(index);
-                  const dayImages = day.itineraryImages || [];
+                  const dayImages = (day.itineraryImages || []).filter((img: any) =>
+                    img.url?.trim()
+                  );
                   const hotel = day.hotel;
-                  const hotelImages = hotel?.images || [];
+                  const hotelImages = (hotel?.images || []).filter((img: any) =>
+                    img.url?.trim()
+                  );
                   const activities = day.activities || [];
                   const titleParts = extractDistanceDuration(day.itineraryTitle);
                   const description = extractPlainText(day.itineraryDescription);
@@ -615,7 +621,9 @@ export default function PackageDetailScreen() {
                                 <Text style={styles.sectionLabelText}>Activities</Text>
                               </View>
                               {activities.map((act: any) => {
-                                const actImages = act.activityImages || [];
+                const actImages = (act.activityImages || []).filter((img: any) =>
+                  img.url?.trim()
+                );
                                 const actDesc = extractPlainText(act.activityDescription);
                                 const actTitle = extractPlainText(act.activityTitle);
                                 return (

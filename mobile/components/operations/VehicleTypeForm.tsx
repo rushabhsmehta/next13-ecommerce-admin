@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -13,9 +8,14 @@ import {
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
 import {
@@ -41,7 +41,6 @@ interface Props {
 /** Shared vehicle-type form for create and edit flows. */
 export function VehicleTypeForm({ mode, vehicleTypeId, initial }: Props) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -58,6 +57,7 @@ export function VehicleTypeForm({ mode, vehicleTypeId, initial }: Props) {
   const [isActive, setIsActive] = useState(seed.isActive);
   const [submitting, setSubmitting] = useState(false);
 
+  const screenTitle = mode === "create" ? "New vehicle type" : "Edit vehicle type";
   const canSubmit = name.trim().length > 0 && !submitting;
 
   async function submit() {
@@ -93,60 +93,57 @@ export function VehicleTypeForm({ mode, vehicleTypeId, initial }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AdminScreen
+      keyboardAvoiding
+      testID={mode === "create" ? "vehicle-type-new-screen" : "vehicle-type-edit-screen"}
+      footer={
+        <AdminBottomActionBar
+          primaryLabel={mode === "create" ? "Create vehicle type" : "Save changes"}
+          primaryIcon={mode === "create" ? "add-circle-outline" : "save-outline"}
+          primaryTestID="vehicle-type-form-submit"
+          primaryDisabled={!canSubmit}
+          disabledReason={
+            !name.trim() ? "Enter a vehicle type name." : submitting ? "Saving…" : undefined
+          }
+          onPrimaryPress={submit}
+        />
+      }
     >
-      <Stack.Screen
-        options={{
-          title: mode === "create" ? "New vehicle type" : "Edit vehicle type",
-          headerShown: false,
-        }}
+      <Stack.Screen options={{ title: screenTitle, headerShown: false }} />
+
+      <AdminTopBar
+        title={screenTitle}
+        subtitle="Vehicle type"
+        onBackPress={() => router.back()}
+        testID="vehicle-type-form"
       />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="vehicle-type-form-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>
-          {mode === "create" ? "New vehicle type" : "Edit vehicle type"}
-        </Text>
-      </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.label}>Name *</Text>
-        <TextInput
-          testID="vehicle-type-form-name"
-          accessibilityLabel="Vehicle type name"
-          style={styles.input}
-          placeholder="e.g. Innova Crysta"
-          placeholderTextColor={Colors.textTertiary}
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-          maxLength={200}
-        />
-
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          testID="vehicle-type-form-description"
-          accessibilityLabel="Description"
-          style={[styles.input, styles.textarea]}
-          placeholder="Optional"
-          placeholderTextColor={Colors.textTertiary}
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
-
+      <AdminFormSection title="Details" testID="vehicle-type-form-details">
+        <AdminFormField label="Name" required>
+          <TextInput
+            testID="vehicle-type-form-name"
+            accessibilityLabel="Vehicle type name"
+            style={styles.input}
+            placeholder="e.g. Innova Crysta"
+            placeholderTextColor={Colors.textTertiary}
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            maxLength={200}
+          />
+        </AdminFormField>
+        <AdminFormField label="Description">
+          <TextInput
+            testID="vehicle-type-form-description"
+            accessibilityLabel="Description"
+            style={[styles.input, styles.textarea]}
+            placeholder="Optional"
+            placeholderTextColor={Colors.textTertiary}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+          />
+        </AdminFormField>
         {mode === "edit" ? (
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Active</Text>
@@ -158,66 +155,17 @@ export function VehicleTypeForm({ mode, vehicleTypeId, initial }: Props) {
             />
           </View>
         ) : null}
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          testID="vehicle-type-form-submit"
-          accessibilityRole="button"
-          accessibilityLabel={mode === "create" ? "Create vehicle type" : "Save changes"}
-          disabled={!canSubmit}
-          style={[styles.submit, !canSubmit ? styles.submitDisabled : null]}
-          onPress={submit}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>
-                {mode === "create" ? "Create vehicle type" : "Save changes"}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+      </AdminFormSection>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, gap: 4 },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.md,
-    marginBottom: 4,
-  },
   input: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSize.md,
@@ -228,26 +176,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: Spacing.lg,
     paddingVertical: Spacing.sm,
   },
   switchLabel: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
-    backgroundColor: Colors.background,
-  },
-  submit: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
 });

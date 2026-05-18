@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -18,7 +15,14 @@ import DateTimePicker, {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
 import {
@@ -26,8 +30,6 @@ import {
   type TransportPricingInput,
   type TransportType,
 } from "@/lib/operations";
-import { LookupPickerModal } from "@/components/inquiry/LookupPickerModal";
-import type { InquiryLookupOption } from "@/lib/inquiry-lookups";
 
 interface InitialValues {
   locationId: string;
@@ -85,7 +87,6 @@ interface Props {
 /** Shared transport-pricing form for create and edit flows. */
 export function TransportPricingForm({ mode, pricingId, initial }: Props) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -110,8 +111,12 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
   const [isActive, setIsActive] = useState(seed.isActive);
   const [submitting, setSubmitting] = useState(false);
 
-  const [locationOptions, setLocationOptions] = useState<InquiryLookupOption[]>([]);
-  const [vehicleOptions, setVehicleOptions] = useState<InquiryLookupOption[]>([]);
+  const [locationOptions, setLocationOptions] = useState<{ id: string; label: string }[]>(
+    []
+  );
+  const [vehicleOptions, setVehicleOptions] = useState<{ id: string; label: string }[]>(
+    []
+  );
   const [pickersLoading, setPickersLoading] = useState(true);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
@@ -126,12 +131,8 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
         ),
         client.listVehicleTypes({ activeOnly: true }),
       ]);
-      setLocationOptions(
-        locRes.items.map((l) => ({ id: l.id, label: l.name }))
-      );
-      setVehicleOptions(
-        vtRes.items.map((v) => ({ id: v.id, label: v.name }))
-      );
+      setLocationOptions(locRes.items.map((l) => ({ id: l.id, label: l.name })));
+      setVehicleOptions(vtRes.items.map((v) => ({ id: v.id, label: v.name })));
     } catch {
       // Pickers may still work if user already has values from initial.
     } finally {
@@ -143,6 +144,8 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
     void loadPickers();
   }, [loadPickers]);
 
+  const screenTitle =
+    mode === "create" ? "New transport pricing" : "Edit transport pricing";
   const canSubmit =
     locationId.length > 0 &&
     vehicleTypeId.length > 0 &&
@@ -178,9 +181,7 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
       };
       if (mode === "create") {
         const saved = await client.createTransportPricing(payload);
-        router.replace(
-          `/admin/operations/transport-pricing/${saved.id}` as never
-        );
+        router.replace(`/admin/operations/transport-pricing/${saved.id}` as never);
       } else if (pricingId) {
         await client.updateTransportPricing(pricingId, payload);
         router.back();
@@ -198,122 +199,132 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Stack.Screen
-        options={{
-          title: mode === "create" ? "New transport pricing" : "Edit transport pricing",
-          headerShown: false,
-        }}
-      />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="transport-pricing-form-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>
-          {mode === "create" ? "New transport pricing" : "Edit transport pricing"}
-        </Text>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.label}>Location *</Text>
-        <Pressable
-          testID="transport-pricing-form-location"
-          accessibilityRole="button"
-          accessibilityLabel="Choose location"
-          style={styles.pickerBtn}
-          onPress={() => setShowLocationPicker(true)}
-          disabled={pickersLoading}
-        >
-          <Text style={locationId ? styles.pickerValue : styles.pickerPlaceholder}>
-            {locationLabel || "Select location…"}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
-        </Pressable>
-
-        <Text style={styles.label}>Vehicle type *</Text>
-        <Pressable
-          testID="transport-pricing-form-vehicle"
-          accessibilityRole="button"
-          accessibilityLabel="Choose vehicle type"
-          style={styles.pickerBtn}
-          onPress={() => setShowVehiclePicker(true)}
-          disabled={pickersLoading}
-        >
-          <Text style={vehicleTypeId ? styles.pickerValue : styles.pickerPlaceholder}>
-            {vehicleTypeName || "Select vehicle type…"}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
-        </Pressable>
-
-        <Text style={styles.label}>Transport type *</Text>
-        <View style={styles.chipRow}>
-          {(["PerDay", "PerTrip"] as const).map((t) => {
-            const active = transportType === t;
-            return (
-              <Pressable
-                key={t}
-                testID={`transport-pricing-form-type-${t}`}
-                accessibilityRole="button"
-                accessibilityLabel={t === "PerDay" ? "Per day" : "Per trip"}
-                style={[styles.chip, active ? styles.chipActive : null]}
-                onPress={() => setTransportType(t)}
-              >
-                <Text style={[styles.chipText, active ? styles.chipTextActive : null]}>
-                  {t === "PerDay" ? "Per day" : "Per trip"}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.label}>Price (INR) *</Text>
-        <TextInput
-          testID="transport-pricing-form-price"
-          accessibilityLabel="Price in rupees"
-          style={styles.input}
-          placeholder="0"
-          placeholderTextColor={Colors.textTertiary}
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="decimal-pad"
+    <AdminScreen
+      keyboardAvoiding
+      testID={
+        mode === "create" ? "transport-pricing-new-screen" : "transport-pricing-edit-screen"
+      }
+      footer={
+        <AdminBottomActionBar
+          primaryLabel={mode === "create" ? "Create pricing" : "Save changes"}
+          primaryIcon={mode === "create" ? "add-circle-outline" : "save-outline"}
+          primaryTestID="transport-pricing-form-submit"
+          primaryDisabled={!canSubmit}
+          disabledReason={
+            !locationId
+              ? "Select a location."
+              : !vehicleTypeId
+                ? "Select a vehicle type."
+                : !price.trim() || Number.isNaN(Number(price))
+                  ? "Enter a valid price."
+                  : submitting
+                    ? "Saving…"
+                    : undefined
+          }
+          onPrimaryPress={submit}
         />
+      }
+    >
+      <Stack.Screen options={{ title: screenTitle, headerShown: false }} />
 
-        <Text style={styles.label}>Start date *</Text>
-        <Pressable
-          testID="transport-pricing-form-start-date"
-          accessibilityRole="button"
-          accessibilityLabel="Choose start date"
-          style={styles.pickerBtn}
-          onPress={() => setDateField("start")}
-        >
-          <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-          <Text style={styles.pickerValue}>{fmtDateLabel(startDate)}</Text>
-        </Pressable>
+      <AdminTopBar
+        title={screenTitle}
+        subtitle="Transport pricing"
+        onBackPress={() => router.back()}
+        testID="transport-pricing-form"
+      />
 
-        <Text style={styles.label}>End date *</Text>
-        <Pressable
-          testID="transport-pricing-form-end-date"
-          accessibilityRole="button"
-          accessibilityLabel="Choose end date"
-          style={styles.pickerBtn}
-          onPress={() => setDateField("end")}
-        >
-          <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-          <Text style={styles.pickerValue}>{fmtDateLabel(endDate)}</Text>
-        </Pressable>
+      <AdminFormSection title="Route" testID="transport-pricing-form-route">
+        <AdminFormField label="Location" required>
+          <Pressable
+            testID="transport-pricing-form-location"
+            accessibilityRole="button"
+            accessibilityLabel="Choose location"
+            style={styles.pickerBtn}
+            onPress={() => setShowLocationPicker(true)}
+            disabled={pickersLoading}
+          >
+            <Text style={locationId ? styles.pickerValue : styles.pickerPlaceholder}>
+              {locationLabel || "Select location…"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+        <AdminFormField label="Vehicle type" required>
+          <Pressable
+            testID="transport-pricing-form-vehicle"
+            accessibilityRole="button"
+            accessibilityLabel="Choose vehicle type"
+            style={styles.pickerBtn}
+            onPress={() => setShowVehiclePicker(true)}
+            disabled={pickersLoading}
+          >
+            <Text style={vehicleTypeId ? styles.pickerValue : styles.pickerPlaceholder}>
+              {vehicleTypeName || "Select vehicle type…"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+      </AdminFormSection>
 
+      <AdminFormSection title="Pricing" testID="transport-pricing-form-pricing">
+        <AdminFormField label="Transport type" required>
+          <View style={styles.chipRow}>
+            {(["PerDay", "PerTrip"] as const).map((t) => {
+              const active = transportType === t;
+              return (
+                <Pressable
+                  key={t}
+                  testID={`transport-pricing-form-type-${t}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t === "PerDay" ? "Per day" : "Per trip"}
+                  style={[styles.chip, active ? styles.chipActive : null]}
+                  onPress={() => setTransportType(t)}
+                >
+                  <Text style={[styles.chipText, active ? styles.chipTextActive : null]}>
+                    {t === "PerDay" ? "Per day" : "Per trip"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </AdminFormField>
+        <AdminFormField label="Price (INR)" required>
+          <TextInput
+            testID="transport-pricing-form-price"
+            accessibilityLabel="Price in rupees"
+            style={styles.input}
+            placeholder="0"
+            placeholderTextColor={Colors.textTertiary}
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="decimal-pad"
+          />
+        </AdminFormField>
+        <AdminFormField label="Start date" required>
+          <Pressable
+            testID="transport-pricing-form-start-date"
+            accessibilityRole="button"
+            accessibilityLabel="Choose start date"
+            style={styles.pickerBtn}
+            onPress={() => setDateField("start")}
+          >
+            <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+            <Text style={styles.pickerValue}>{fmtDateLabel(startDate)}</Text>
+          </Pressable>
+        </AdminFormField>
+        <AdminFormField label="End date" required>
+          <Pressable
+            testID="transport-pricing-form-end-date"
+            accessibilityRole="button"
+            accessibilityLabel="Choose end date"
+            style={styles.pickerBtn}
+            onPress={() => setDateField("end")}
+          >
+            <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+            <Text style={styles.pickerValue}>{fmtDateLabel(endDate)}</Text>
+          </Pressable>
+        </AdminFormField>
         {dateField ? (
           <DateTimePicker
             value={dateField === "start" ? startDate : endDate}
@@ -322,19 +333,18 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
             onChange={onDateChange}
           />
         ) : null}
-
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          testID="transport-pricing-form-description"
-          accessibilityLabel="Description"
-          style={[styles.input, styles.textarea]}
-          placeholder="Optional"
-          placeholderTextColor={Colors.textTertiary}
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
-
+        <AdminFormField label="Description">
+          <TextInput
+            testID="transport-pricing-form-description"
+            accessibilityLabel="Description"
+            style={[styles.input, styles.textarea]}
+            placeholder="Optional"
+            placeholderTextColor={Colors.textTertiary}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+          />
+        </AdminFormField>
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Active</Text>
           <Switch
@@ -344,93 +354,44 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
             onValueChange={setIsActive}
           />
         </View>
-      </ScrollView>
+      </AdminFormSection>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          testID="transport-pricing-form-submit"
-          accessibilityRole="button"
-          accessibilityLabel={
-            mode === "create" ? "Create transport pricing" : "Save changes"
-          }
-          disabled={!canSubmit}
-          style={[styles.submit, !canSubmit ? styles.submitDisabled : null]}
-          onPress={submit}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>
-                {mode === "create" ? "Create pricing" : "Save changes"}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-
-      <LookupPickerModal
+      <AdminPickerSheet
         visible={showLocationPicker}
         title="Location"
         options={locationOptions}
-        testID="transport-pricing-location-picker"
+        selectedId={locationId}
+        loading={pickersLoading}
         onClose={() => setShowLocationPicker(false)}
-        onSelect={(id) => {
-          const opt = locationOptions.find((o) => o.id === id);
-          setLocationId(id);
-          setLocationLabel(opt?.label ?? "");
+        onSelect={(opt) => {
+          setLocationId(opt.id);
+          setLocationLabel(opt.label);
         }}
+        testID="transport-pricing-location-picker"
       />
-      <LookupPickerModal
+      <AdminPickerSheet
         visible={showVehiclePicker}
         title="Vehicle type"
         options={vehicleOptions}
-        testID="transport-pricing-vehicle-picker"
+        selectedId={vehicleTypeId}
+        loading={pickersLoading}
         onClose={() => setShowVehiclePicker(false)}
-        onSelect={(id) => {
-          const opt = vehicleOptions.find((o) => o.id === id);
-          setVehicleTypeId(id);
-          setVehicleTypeName(opt?.label ?? "");
+        onSelect={(opt) => {
+          setVehicleTypeId(opt.id);
+          setVehicleTypeName(opt.label);
         }}
+        testID="transport-pricing-vehicle-picker"
       />
-    </KeyboardAvoidingView>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, gap: 4 },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.md,
-    marginBottom: 4,
-  },
   input: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSize.md,
@@ -442,15 +403,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.sm,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
   },
-  pickerValue: { flex: 1, fontSize: FontSize.md, color: Colors.text },
+  pickerValue: { flex: 1, fontSize: FontSize.md, color: Colors.text, fontWeight: "600" },
   pickerPlaceholder: { flex: 1, fontSize: FontSize.md, color: Colors.textTertiary },
-  chipRow: { flexDirection: "row", gap: Spacing.sm, marginTop: 4 },
+  chipRow: { flexDirection: "row", gap: Spacing.sm },
   chip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
@@ -466,26 +427,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: Spacing.lg,
     paddingVertical: Spacing.sm,
   },
   switchLabel: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
-    backgroundColor: Colors.background,
-  },
-  submit: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
 });

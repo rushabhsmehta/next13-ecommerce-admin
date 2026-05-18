@@ -1,21 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   createOperationsClient,
@@ -49,7 +51,6 @@ export default function TransportPricingDetailScreen() {
 
 function Inner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { permissions } = useCurrentUser();
   const canWrite = permissions.includes("operations.write");
@@ -148,92 +149,79 @@ function Inner() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AdminLoadingState
+        label="Loading transport pricing…"
+        testID="transport-pricing-detail-loading"
+      />
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errText}>{error ?? "Not found"}</Text>
-        <Pressable style={styles.retry} onPress={() => void load()}>
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="transport-pricing-detail-error">
+        <Stack.Screen options={{ title: "Transport pricing", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Transport pricing not found"}
+          onRetry={() => void load()}
+          testID="transport-pricing-detail-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   const p = data.transportPricing;
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="transport-pricing-detail-screen"
+      bottomInset={Spacing.xl}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+    >
       <Stack.Screen options={{ title: p.locationLabel, headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {p.locationLabel}
-        </Text>
-        {canWrite ? (
-          <>
-            <Pressable
-              testID={`transport-pricing-edit-${p.id}`}
-              accessibilityRole="button"
-              accessibilityLabel="Edit transport pricing"
-              style={styles.iconBtn}
-              onPress={() => setEditing(true)}
-            >
-              <Ionicons name="create-outline" size={20} color={Colors.text} />
-            </Pressable>
-            <Pressable
-              testID={`transport-pricing-delete-${p.id}`}
-              accessibilityRole="button"
-              accessibilityLabel="Delete transport pricing"
-              style={styles.iconBtn}
-              disabled={busy}
-              onPress={confirmDelete}
-            >
-              <Ionicons name="trash-outline" size={20} color={Colors.error} />
-            </Pressable>
-          </>
-        ) : null}
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{
-          padding: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
+      <AdminTopBar
+        title={p.locationLabel}
+        subtitle={p.vehicleTypeName ?? undefined}
+        onBackPress={() => router.back()}
+        testID="transport-pricing-detail-header"
+        rightSlot={
+          canWrite ? (
+            <View style={styles.headerActions}>
+              <AdminTopBarIconButton
+                icon="create-outline"
+                label="Edit transport pricing"
+                testID={`transport-pricing-edit-${p.id}`}
+                onPress={() => setEditing(true)}
+              />
+              <AdminTopBarIconButton
+                icon="trash-outline"
+                label="Delete transport pricing"
+                testID={`transport-pricing-delete-${p.id}`}
+                disabled={busy}
+                onPress={confirmDelete}
+              />
+            </View>
+          ) : null
         }
-      >
-        <View style={styles.card}>
-          <Row label="Vehicle" value={p.vehicleTypeName ?? "—"} />
-          <Row
-            label="Type"
-            value={p.transportType === "PerDay" ? "Per day" : "Per trip"}
-          />
-          <Row label="Price" value={inr(p.price)} />
-          <Row label="Period" value={`${fmtDate(p.startDate)} – ${fmtDate(p.endDate)}`} />
-          <Row label="Status" value={p.isActive ? "Active" : "Inactive"} />
-          {p.description ? <Row label="Notes" value={p.description} /> : null}
-        </View>
-      </ScrollView>
-    </View>
+      />
+      <View style={styles.card}>
+        <Row label="Vehicle" value={p.vehicleTypeName ?? "—"} />
+        <Row
+          label="Type"
+          value={p.transportType === "PerDay" ? "Per day" : "Per trip"}
+        />
+        <Row label="Price" value={inr(p.price)} />
+        <Row label="Period" value={`${fmtDate(p.startDate)} – ${fmtDate(p.endDate)}`} />
+        <Row label="Status" value={p.isActive ? "Active" : "Inactive"} />
+        {p.description ? <Row label="Notes" value={p.description} /> : null}
+      </View>
+    </AdminScreen>
   );
 }
 
@@ -247,47 +235,8 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.background,
-    gap: Spacing.sm,
-    padding: Spacing.xl,
-  },
-  errText: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text, textAlign: "center" },
-  retry: {
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  retryText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  headerActions: { flexDirection: "row", gap: 4 },
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
   card: {
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,

@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,7 +11,6 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
@@ -24,8 +20,15 @@ import {
   type OpsItineraryInput,
   type OpsItineraryMaster,
 } from "@/lib/operations";
-import { LookupPickerModal } from "@/components/inquiry/LookupPickerModal";
 import type { InquiryLookupOption } from "@/lib/inquiry-lookups";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 
 type Mode = "create" | "edit";
 type Kind = "itinerary" | "activity";
@@ -44,7 +47,6 @@ function titleFor(kind: Kind, mode: Mode) {
 
 export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -130,44 +132,50 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
     }
   }
 
+  const locationOptions = useMemo(
+    () => locations.map((l) => ({ id: l.id, label: l.label })),
+    [locations]
+  );
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AdminScreen
+      keyboardAvoiding
+      testID={`${kind}-form-screen`}
+      footer={
+        <AdminBottomActionBar
+          primaryLabel="Save"
+          primaryIcon="save-outline"
+          primaryTestID={`${kind}-form-submit`}
+          primaryDisabled={!canSubmit}
+          disabledReason={!locationId ? "Select a location." : !title.trim() ? "Enter a title." : submitting ? "Saving…" : undefined}
+          onPrimaryPress={submit}
+        />
+      }
     >
       <Stack.Screen options={{ title: titleFor(kind, mode), headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          testID={`${kind}-form-back`}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>{titleFor(kind, mode)}</Text>
-      </View>
+      <AdminTopBar
+        title={titleFor(kind, mode)}
+        onBackPress={() => router.back()}
+        testID={`${kind}-form-back`}
+      />
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.label}>Location *</Text>
-        <Pressable
-          testID={`${kind}-form-location`}
-          accessibilityRole="button"
-          accessibilityLabel="Choose location"
-          style={styles.pickerBtn}
-          onPress={() => setPickerOpen(true)}
-        >
-          <Text style={locationId ? styles.pickerValue : styles.pickerPlaceholder}>
-            {locationLabel || "Select location"}
-          </Text>
-          <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
-        </Pressable>
+      <AdminFormSection title="Details" testID={`${kind}-form-details`}>
+        <AdminFormField label="Location" required>
+          <Pressable
+            testID={`${kind}-form-location`}
+            accessibilityRole="button"
+            accessibilityLabel="Choose location"
+            style={styles.pickerBtn}
+            onPress={() => setPickerOpen(true)}
+          >
+            <Text style={locationId ? styles.pickerValue : styles.pickerPlaceholder}>
+              {locationLabel || "Select location"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
 
-        <Text style={styles.label}>Title *</Text>
+        <AdminFormField label="Title" required>
         <TextInput
           testID={`${kind}-form-title`}
           accessibilityLabel="Title"
@@ -177,8 +185,9 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
           placeholder={kind === "itinerary" ? "Day in Goa" : "Dudhsagar Falls"}
           placeholderTextColor={Colors.textTertiary}
         />
+        </AdminFormField>
 
-        <Text style={styles.label}>Description *</Text>
+        <AdminFormField label="Description" required>
         <TextInput
           testID={`${kind}-form-description`}
           accessibilityLabel="Description"
@@ -189,6 +198,7 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
           placeholderTextColor={Colors.textTertiary}
           multiline
         />
+        </AdminFormField>
 
         {kind === "itinerary" ? (
           <View style={styles.inlineRow}>
@@ -220,7 +230,7 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
           </View>
         ) : null}
 
-        <Text style={styles.label}>Image URL</Text>
+        <AdminFormField label="Image URL">
         <TextInput
           testID={`${kind}-form-image-url`}
           accessibilityLabel="Image URL"
@@ -231,41 +241,22 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
           placeholderTextColor={Colors.textTertiary}
           autoCapitalize="none"
         />
-      </ScrollView>
+        </AdminFormField>
+      </AdminFormSection>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          testID={`${kind}-form-submit`}
-          accessibilityRole="button"
-          accessibilityLabel="Save"
-          disabled={!canSubmit}
-          style={[styles.submit, !canSubmit ? styles.submitDisabled : null]}
-          onPress={submit}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>Save</Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-
-      <LookupPickerModal
+      <AdminPickerSheet
         visible={pickerOpen}
         title="Location"
-        options={locations}
-        testID={`${kind}-location-picker`}
+        options={locationOptions}
+        selectedId={locationId}
         onClose={() => setPickerOpen(false)}
-        onSelect={(id) => {
-          const opt = locations.find((o) => o.id === id);
-          setLocationId(id);
-          setLocationLabel(opt?.label ?? "");
+        onSelect={(opt) => {
+          setLocationId(opt.id);
+          setLocationLabel(opt.label);
         }}
+        testID={`${kind}-location-picker`}
       />
-    </KeyboardAvoidingView>
+    </AdminScreen>
   );
 }
 

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -13,9 +12,15 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate, OfflineGate } from "@/components/auth/PermissionGate";
+import { DateField } from "@/components/ui/DateField";
+import {
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminWorkflowRail,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   createAiWizardsClient,
@@ -54,7 +59,6 @@ export default function AiWizardsScreen() {
 
 function AiWizardsInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -206,28 +210,30 @@ function AiWizardsInner() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="ai-wizards-screen"
+      bottomInset={Spacing.xl}
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: "AI Wizards", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.iconButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>AI Wizards</Text>
-          <Text style={styles.headerSubtitle}>Generate, refine, review, save</Text>
-        </View>
-      </View>
+      <AdminTopBar
+        title="AI Wizards"
+        subtitle="Generate, refine, review, save"
+        onBackPress={() => router.back()}
+        testID="ai-wizards-header"
+      />
+      <AdminWorkflowRail
+        testID="ai-step-rail"
+        steps={[
+          { id: "generate", label: "Generate", done: canGenerate, active: !draft },
+          { id: "review", label: "Review", done: !!draft, active: !!draft },
+          { id: "save", label: "Save", done: !!draft && !!locationId, active: !!draft },
+        ]}
+      />
 
-      <ScrollView
-        testID="ai-wizards-screen"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      {error ? (
+        <AdminErrorState message={error} testID="ai-wizards-error" />
+      ) : null}
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>Output</Text>
           <View style={styles.twoCol}>
@@ -305,13 +311,17 @@ function AiWizardsInner() {
                 onChangeText={setCustomerName}
                 placeholder="Customer name"
               />
-              <Field
-                testID="ai-start-date"
-                label="Start date"
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder="YYYY-MM-DD"
-              />
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Start date</Text>
+                <DateField
+                  testID="ai-start-date"
+                  accessibilityLabel="Start date"
+                  style={styles.input}
+                  value={startDate}
+                  onChange={setStartDate}
+                  placeholder="Choose start date"
+                />
+              </View>
               <View style={styles.twoCol}>
                 <Field
                   testID="ai-adults"
@@ -455,8 +465,7 @@ function AiWizardsInner() {
             </Pressable>
           </View>
         ) : null}
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 
@@ -672,4 +681,3 @@ const styles = StyleSheet.create({
   dayTitle: { fontSize: FontSize.sm, fontWeight: "900", color: Colors.text },
   dayDescription: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
 });
-

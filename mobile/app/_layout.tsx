@@ -258,7 +258,7 @@ export default function RootLayout() {
               options={{ headerTitle: "Customers", headerBackTitle: "Admin" }}
             />
             <Stack.Screen
-              name="admin/customers/[id]"
+              name="admin/customers/[id]/index"
               options={{ headerTitle: "Customer", headerBackTitle: "Customers" }}
             />
             <Stack.Screen
@@ -266,7 +266,7 @@ export default function RootLayout() {
               options={{ headerTitle: "Tour Queries", headerBackTitle: "Admin" }}
             />
             <Stack.Screen
-              name="admin/tour-queries/[id]"
+              name="admin/tour-queries/[id]/index"
               options={{ headerTitle: "Tour Query", headerBackTitle: "Queries" }}
             />
             <Stack.Screen

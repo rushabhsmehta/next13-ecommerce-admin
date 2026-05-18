@@ -222,6 +222,10 @@ export function RoomAllocationsEditor({ lookups, rows, onChangeRows }: Props) {
   );
 }
 
+export default function RoomAllocationsEditorRoutePlaceholder() {
+  return null;
+}
+
 const styles = StyleSheet.create({
   wrap: { marginTop: Spacing.md, gap: 4 },
   sectionTitle: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
@@ -268,6 +272,7 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 64, textAlignVertical: "top" },
   addSaved: {
     marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
     backgroundColor: Colors.surfaceAlt,
     borderRadius: BorderRadius.full,
     alignItems: "center",

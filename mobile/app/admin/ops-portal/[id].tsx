@@ -6,7 +6,6 @@ import {
   Linking,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,9 +14,16 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { DateField } from "@/components/ui/DateField";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { createOpsPortalClient, type OpsPortalInquiry } from "@/lib/ops-portal";
 
@@ -55,7 +61,6 @@ export default function OpsPortalDetailScreen() {
 
 function OpsPortalDetailInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -149,66 +154,51 @@ function OpsPortalDetailInner() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading inquiry…" testID="ops-portal-loading" />;
   }
 
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errorTitle}>{error ?? "Inquiry not found"}</Text>
-        <Pressable style={styles.retryBtn} onPress={() => void load()}>
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="ops-portal-error">
+        <Stack.Screen options={{ title: "Inquiry", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Inquiry not found"}
+          onRetry={() => void load()}
+          testID="ops-portal-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="ops-portal-detail-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: data.customerName, headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {data.customerName}
-          </Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {data.location?.label ?? "Assigned inquiry"}
-          </Text>
-        </View>
-        <Pressable
-          testID="ops-portal-call"
-          accessibilityRole="button"
-          accessibilityLabel="Call customer"
-          style={styles.iconBtn}
-          onPress={() => Linking.openURL(`tel:${data.customerMobileNumber}`)}
-        >
-          <Ionicons name="call-outline" size={20} color={Colors.text} />
-        </Pressable>
-      </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
+      <AdminTopBar
+        title={data.customerName}
+        subtitle={data.location?.label ?? "Assigned inquiry"}
+        onBackPress={() => router.back()}
+        testID="ops-portal-detail-header"
+        rightSlot={
+          <AdminTopBarIconButton
+            icon="call-outline"
+            label="Call customer"
+            testID="ops-portal-call"
+            onPress={() => Linking.openURL(`tel:${data.customerMobileNumber}`)}
           />
         }
-      >
+      />
         <Section title="Inquiry">
           <Info label="Mobile" value={data.customerMobileNumber} />
           <Info label="Journey" value={fmtDate(data.journeyDate)} />
@@ -246,13 +236,17 @@ function OpsPortalDetailInner() {
               );
             })}
           </View>
-          <Field
-            testID="ops-portal-next-follow-up"
-            label="Next follow-up"
-            value={nextFollowUpDate}
-            onChangeText={setNextFollowUpDate}
-            placeholder="YYYY-MM-DD"
-          />
+          <View style={styles.fieldWrap}>
+            <Text style={styles.label}>Next follow-up</Text>
+            <DateField
+              testID="ops-portal-next-follow-up"
+              accessibilityLabel="Next follow-up date"
+              style={styles.input}
+              value={nextFollowUpDate}
+              onChange={setNextFollowUpDate}
+              placeholder="Choose follow-up date"
+            />
+          </View>
           <Field
             testID="ops-portal-remarks"
             label="Remarks"
@@ -346,8 +340,7 @@ function OpsPortalDetailInner() {
             <Text style={styles.muted}>No tour queries linked.</Text>
           )}
         </Section>
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 
@@ -394,40 +387,6 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: Spacing.xl,
-    gap: Spacing.sm,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
   section: { gap: Spacing.sm },
   sectionTitle: { fontSize: FontSize.lg, fontWeight: "900", color: Colors.text },
@@ -504,13 +463,4 @@ const styles = StyleSheet.create({
   queryRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   queryTitle: { fontSize: FontSize.sm, color: Colors.text, fontWeight: "900" },
   muted: { fontSize: FontSize.xs, color: Colors.textTertiary },
-  errorTitle: { fontSize: FontSize.md, color: Colors.text, fontWeight: "800", textAlign: "center" },
-  retryBtn: {
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  retryText: { color: "#fff", fontWeight: "900" },
 });

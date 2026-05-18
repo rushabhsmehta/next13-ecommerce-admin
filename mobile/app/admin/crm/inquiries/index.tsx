@@ -8,13 +8,22 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminFilterSheet,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import {
   BorderRadius,
   Colors,
@@ -135,6 +144,9 @@ function AdminInquiriesList({
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
+  const hasAdvancedFilters = periodFilter !== "ALL" || followUpsOnly;
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 300);
@@ -221,98 +233,50 @@ function AdminInquiriesList({
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="crm-inquiries-screen">
       <Stack.Screen options={{ title: "CRM Inquiries", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="crm-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle}>Inquiries</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "Loading…" : `${filtered.length} shown`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="crm-new-inquiry"
-            accessibilityRole="button"
-            accessibilityLabel="Create new inquiry"
-            style={styles.newBtn}
-            onPress={() => router.push("/admin/crm/inquiries/new" as never)}
-          >
-            <Ionicons name="add" size={18} color="#fff" />
-            <Text style={styles.newBtnText}>New</Text>
-          </Pressable>
-        ) : null}
-      </View>
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="crm-search-input"
-          accessibilityLabel="Search inquiries"
-          style={styles.searchInput}
-          placeholder="Name, phone, location, associate…"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminTopBar
+        title="Inquiries"
+        subtitle={loading ? "Loading…" : `${filtered.length} shown`}
+        onBackPress={() => router.back()}
+        testID="crm-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="crm-new-inquiry"
+              onPress={() => router.push("/admin/crm/inquiries/new" as never)}
+            />
+          ) : null
+        }
+      />
 
-      <FilterChips
-        testIdPrefix="crm-status"
-        active={statusFilter}
+      <AdminSegmentedControl
         options={STATUS_FILTERS}
+        value={statusFilter}
         onChange={setStatusFilter}
-      />
-      <FilterChips
-        testIdPrefix="crm-period"
-        active={periodFilter}
-        options={PERIOD_FILTERS}
-        onChange={setPeriodFilter}
+        testIDPrefix="crm-status"
       />
 
-      <View style={styles.toggleRow}>
-        <Pressable
-          testID="crm-follow-ups-only"
-          accessibilityRole="button"
-          accessibilityLabel="Toggle follow-ups due filter"
-          onPress={() => setFollowUpsOnly((v) => !v)}
-          style={[styles.toggle, followUpsOnly ? styles.toggleOn : null]}
-        >
-          <Ionicons
-            name={followUpsOnly ? "alarm" : "alarm-outline"}
-            size={14}
-            color={followUpsOnly ? "#fff" : Colors.textSecondary}
-          />
-          <Text style={[styles.toggleText, followUpsOnly ? styles.toggleTextOn : null]}>
-            Follow-ups due only
-          </Text>
-        </Pressable>
-      </View>
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Name, phone, location, associate…"
+        searchTestID="crm-search-input"
+        onFilterPress={() => setFilterSheetOpen(true)}
+        filterActive={hasAdvancedFilters}
+        filterAccessibilityLabel="Inquiry filters"
+        testID="crm-command-bar"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState message={error} onRetry={() => void load("refresh")} testID="crm-error" />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={filtered}
         keyExtractor={(row) => row.id}
         contentContainerStyle={[
@@ -328,17 +292,24 @@ function AdminInquiriesList({
         }
         ListEmptyComponent={
           loading ? (
-            <View style={styles.emptyWrap}>
-              <ActivityIndicator color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} color={Colors.primary} />
           ) : (
-            <View style={styles.emptyWrap}>
-              <Ionicons name="people-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No inquiries match</Text>
-              <Text style={styles.emptyText}>
-                Adjust filters or clear the search box to see more results.
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="people-outline"
+              title="No inquiries match"
+              body="Adjust filters or clear the search box to see more results."
+              actionLabel={hasAdvancedFilters || search.trim() ? "Reset filters" : undefined}
+              onActionPress={
+                hasAdvancedFilters || search.trim()
+                  ? () => {
+                      setPeriodFilter("ALL");
+                      setFollowUpsOnly(false);
+                      setSearch("");
+                    }
+                  : undefined
+              }
+              testID="crm-empty"
+            />
           )
         }
         renderItem={({ item }) => (
@@ -362,41 +333,55 @@ function AdminInquiriesList({
           />
         )}
       />
-    </View>
-  );
-}
 
-function FilterChips({
-  testIdPrefix,
-  active,
-  options,
-  onChange,
-}: {
-  testIdPrefix: string;
-  active: string;
-  options: { id: string; label: string }[];
-  onChange: (id: string) => void;
-}) {
-  return (
-    <View style={styles.chipsRow}>
-      {options.map((opt) => {
-        const isActive = active === opt.id;
-        return (
-          <Pressable
-            key={opt.id}
-            testID={`${testIdPrefix}-${opt.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Filter ${opt.label}`}
-            onPress={() => onChange(opt.id)}
-            style={[styles.chip, isActive ? styles.chipActive : null]}
-          >
-            <Text style={[styles.chipText, isActive ? styles.chipTextActive : null]}>
-              {opt.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+      <AdminFilterSheet
+        visible={filterSheetOpen}
+        title="Inquiry filters"
+        onClose={() => setFilterSheetOpen(false)}
+        onReset={() => {
+          setPeriodFilter("ALL");
+          setFollowUpsOnly(false);
+        }}
+        testID="crm-filter-sheet"
+      >
+        <Text style={styles.filterLabel}>Period</Text>
+        <View style={styles.chipRow}>
+          {PERIOD_FILTERS.map((opt) => {
+            const active = periodFilter === opt.id;
+            return (
+              <Pressable
+                key={opt.id}
+                testID={`crm-period-${opt.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={opt.label}
+                accessibilityState={{ selected: active }}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setPeriodFilter(opt.id)}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Pressable
+          testID="crm-follow-ups-only"
+          accessibilityRole="button"
+          accessibilityLabel="Follow-ups due only"
+          accessibilityState={{ selected: followUpsOnly }}
+          onPress={() => setFollowUpsOnly((v) => !v)}
+          style={[styles.followToggle, followUpsOnly && styles.followToggleOn]}
+        >
+          <Ionicons
+            name={followUpsOnly ? "alarm" : "alarm-outline"}
+            size={16}
+            color={followUpsOnly ? Colors.textInverse : Colors.textSecondary}
+          />
+          <Text style={[styles.followToggleText, followUpsOnly && styles.followToggleTextOn]}>
+            Follow-ups due only
+          </Text>
+        </Pressable>
+      </AdminFilterSheet>
+    </AdminScreen>
   );
 }
 
@@ -424,6 +409,7 @@ function InquiryCard({
       accessibilityLabel={`Open inquiry for ${row.customerName}`}
       style={styles.card}
       onPress={onOpen}
+      accessibilityHint="Opens inquiry details."
     >
       <View style={styles.cardHeader}>
         <Text style={styles.cardName} numberOfLines={1}>
@@ -506,123 +492,47 @@ function InquiryCard({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTextWrap: { flex: 1 },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  newBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  newBtnText: { color: "#fff", fontWeight: "800", fontSize: FontSize.sm },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: {
-    flex: 1,
+  list: { flex: 1 },
+  listContent: { paddingHorizontal: Spacing.lg, flexGrow: 1 },
+  listLoader: { marginTop: Spacing.xxl },
+  filterLabel: {
     fontSize: FontSize.sm,
-    color: Colors.text,
-    paddingVertical: 0,
-  },
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    paddingHorizontal: Spacing.lg,
+    fontWeight: "800",
+    color: Colors.textSecondary,
     marginBottom: Spacing.sm,
   },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.xs, marginBottom: Spacing.md },
   chip: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
   },
-  chipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryLight },
-  chipText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
-  chipTextActive: { color: Colors.primary },
-  toggleRow: {
+  chipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryBg },
+  chipText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.textSecondary },
+  chipTextActive: { color: Colors.primaryDark },
+  followToggle: {
     flexDirection: "row",
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  toggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: BorderRadius.full,
-  },
-  toggleOn: { backgroundColor: Colors.primary },
-  toggleText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "700" },
-  toggleTextOn: { color: "#fff" },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  listContent: { paddingHorizontal: Spacing.lg },
-  emptyWrap: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
     alignItems: "center",
     gap: Spacing.sm,
-  },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text, marginTop: 6 },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
     padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+  },
+  followToggleOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  followToggleText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.textSecondary },
+  followToggleTextOn: { color: Colors.textInverse },
+  card: {
+    backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderSubtle,
+    paddingVertical: Spacing.md,
+    marginHorizontal: -Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     gap: 4,
   },
   cardHeader: {

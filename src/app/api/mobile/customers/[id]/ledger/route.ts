@@ -14,10 +14,8 @@ export const dynamic = "force-dynamic";
  * the dashboard ledger at `/customers/[customerId]/ledger` but trimmed to the
  * fields a mobile screen needs.
  */
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });

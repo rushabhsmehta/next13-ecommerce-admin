@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -16,6 +15,14 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type OpsDestination } from "@/lib/operations";
@@ -103,42 +110,34 @@ function Inner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced, locationFilter]);
 
+  const subtitle = loading ? "Loading..." : `${total} total`;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="destinations-screen">
       <Stack.Screen options={{ title: "Destinations", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Destinations</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${total} total`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="destinations-new"
-            accessibilityRole="button"
-            accessibilityLabel="New destination"
-            onPress={() =>
-              router.push(
-                locationFilter
-                  ? (`/admin/operations/destinations/new?locationId=${locationFilter}` as never)
-                  : ("/admin/operations/destinations/new" as never)
-              )
-            }
-            style={styles.newBtn}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
+
+      <AdminTopBar
+        title="Destinations"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="destinations-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="destinations-new"
+              onPress={() =>
+                router.push(
+                  locationFilter
+                    ? (`/admin/operations/destinations/new?locationId=${locationFilter}` as never)
+                    : ("/admin/operations/destinations/new" as never)
+                )
+              }
+            />
+          ) : null
+        }
+      />
 
       {locationFilter ? (
         <Pressable
@@ -153,34 +152,24 @@ function Inner() {
         </Pressable>
       ) : null}
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="destinations-search"
-          accessibilityLabel="Search destinations"
-          style={styles.searchInput}
-          placeholder="Search by name or location"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name or location"
+        searchTestID="destinations-search"
+        testID="destinations-command-bar"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debounced)}
+          testID="destinations-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(r) => r.id}
         contentContainerStyle={[
@@ -202,17 +191,14 @@ function Inner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="compass-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No destinations</Text>
-              <Text style={styles.emptyText}>
-                {debounced ? "Try a different search." : "Tap + to add one."}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="compass-outline"
+              title="No destinations"
+              body={debounced ? "Try a different search." : "Tap + to add one."}
+              testID="destinations-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -232,8 +218,8 @@ function Inner() {
               router.push(`/admin/operations/destinations/${item.id}` as never)
             }
           >
-            {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
+            {item.imageUrl?.trim() ? (
+              <Image source={{ uri: item.imageUrl.trim() }} style={styles.thumb} />
             ) : (
               <View style={[styles.thumb, styles.thumbPlaceholder]}>
                 <Ionicons name="compass" size={18} color={Colors.textTertiary} />
@@ -255,11 +241,13 @@ function Inner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     paddingTop: Spacing.xxl,

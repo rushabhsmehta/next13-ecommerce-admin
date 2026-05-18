@@ -29,6 +29,7 @@ import {
 } from "@/lib/chat/api";
 import { MemberList } from "@/components/chat/MemberList";
 import { AddMemberSheet } from "@/components/chat/AddMemberSheet";
+import { DateField } from "@/components/ui/DateField";
 
 const ROLE_OPTIONS: ChatRole[] = ["TOURIST", "COMPANION", "OPERATIONS", "ADMIN"];
 const ROLE_LABEL: Record<ChatRole, string> = {
@@ -252,24 +253,22 @@ export default function ChatSettingsScreen() {
             keyboardType="url"
             accessibilityLabel="Group image URL"
           />
-          <Text style={styles.fieldLabel}>Tour start date (YYYY-MM-DD)</Text>
-          <TextInput
+          <Text style={styles.fieldLabel}>Tour start date</Text>
+          <DateField
             style={styles.input}
             value={tourStartDate}
-            onChangeText={setTourStartDate}
-            placeholder="2026-06-15"
-            placeholderTextColor={Colors.textTertiary}
-            keyboardType="numbers-and-punctuation"
+            onChange={setTourStartDate}
+            placeholder="Choose start date"
+            testID="chat-settings-start-date"
             accessibilityLabel="Tour start date"
           />
-          <Text style={styles.fieldLabel}>Tour end date (YYYY-MM-DD)</Text>
-          <TextInput
+          <Text style={styles.fieldLabel}>Tour end date</Text>
+          <DateField
             style={styles.input}
             value={tourEndDate}
-            onChangeText={setTourEndDate}
-            placeholder="2026-06-20"
-            placeholderTextColor={Colors.textTertiary}
-            keyboardType="numbers-and-punctuation"
+            onChange={setTourEndDate}
+            placeholder="Choose end date"
+            testID="chat-settings-end-date"
             accessibilityLabel="Tour end date"
           />
           <TouchableOpacity

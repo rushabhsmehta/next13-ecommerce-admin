@@ -95,8 +95,8 @@ export default function AllDestinationsScreen() {
           accessibilityLabel={`Open ${item.label}`}
         >
           <View style={styles.thumbWrap}>
-            {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
+            {item.imageUrl?.trim() ? (
+              <Image source={{ uri: item.imageUrl.trim() }} style={styles.thumb} />
             ) : (
               <LinearGradient colors={[Colors.gradient1, Colors.gradient2]} style={styles.thumb} />
             )}

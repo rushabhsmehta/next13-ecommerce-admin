@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,11 +10,18 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
-import { AdminHeader } from "@/components/admin/AdminHeader";
+import { DateField } from "@/components/ui/DateField";
+import {
+  AdminBottomActionBar,
+  AdminErrorState,
+  AdminFormSection,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import {
   createTourQueryEditClient,
   type TourQueryEditInput,
@@ -105,7 +108,6 @@ export default function EditTourQueryScreen() {
 
 function EditTourQueryScreenInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -301,44 +303,63 @@ function EditTourQueryScreenInner() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AdminLoadingState label="Loading trip…" testID="trip-edit-loading" />
     );
   }
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errText}>{error}</Text>
-      </View>
+      <AdminScreen testID="trip-edit-error">
+        <Stack.Screen options={{ title: "Edit trip", headerShown: false }} />
+        <AdminErrorState message={error} testID="trip-edit-error-state" />
+      </AdminScreen>
     );
   }
 
+  const saveDisabledReason = saving
+    ? "Saving…"
+    : datesOrderWarning
+      ? "End date cannot be before start date."
+      : !datesOk
+        ? "Choose valid dates."
+        : !dirty
+          ? "Change a field to enable save."
+          : undefined;
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <AdminScreen
+      keyboardAvoiding
+      testID="trip-edit-screen"
+      footer={
+        <AdminBottomActionBar
+          primaryLabel="Save changes"
+          primaryIcon="save-outline"
+          primaryTestID="tq-edit-save"
+          primaryDisabled={saveBlocked}
+          primaryHint={
+            datesOrderWarning
+              ? "Fix date order before saving."
+              : !dirty
+                ? "Enable after you change a field."
+                : "Writes updates to this trip."
+          }
+          disabledReason={saveDisabledReason}
+          onPrimaryPress={save}
+        />
+      }
     >
       <Stack.Screen options={{ title: "Edit trip", headerShown: false }} />
-      <AdminHeader
+      <AdminTopBar
         title="Edit trip"
         subtitle={dirty ? "Unsaved changes" : "All changes saved"}
         onBackPress={() => router.back()}
         testID="tq-edit-header"
       />
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 110 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.sectionHeading}>Basics</Text>
-        <View testID="trip-edit-section-basics">
+        <AdminFormSection title="Basics" testID="trip-edit-section-basics">
           <Field label="Trip name" value={name} onChange={setName} />
-        </View>
+        </AdminFormSection>
 
-        <Text style={styles.sectionHeading}>Guests and dates</Text>
-        <View testID="trip-edit-section-guests">
+        <AdminFormSection title="Guests and dates" testID="trip-edit-section-guests">
           <Field
             label="Customer name"
             value={customerName}
@@ -374,40 +395,44 @@ function EditTourQueryScreenInner() {
             />
           </View>
           <View style={styles.row2}>
-            <Field
-              label="Start date"
-              value={startsFrom}
-              onChange={setStartsFrom}
-              flex
-              placeholder="YYYY-MM-DD"
-            />
-            <Field
-              label="End date"
-              value={endsOn}
-              onChange={setEndsOn}
-              flex
-              placeholder="YYYY-MM-DD"
-            />
+            <View style={styles.flexField}>
+              <Text style={styles.label}>Start date</Text>
+              <DateField
+                testID="trip-edit-start-date"
+                accessibilityLabel="Start date"
+                style={styles.input}
+                value={startsFrom}
+                onChange={setStartsFrom}
+                placeholder="Choose start date"
+              />
+            </View>
+            <View style={styles.flexField}>
+              <Text style={styles.label}>End date</Text>
+              <DateField
+                testID="trip-edit-end-date"
+                accessibilityLabel="End date"
+                style={styles.input}
+                value={endsOn}
+                onChange={setEndsOn}
+                placeholder="Choose end date"
+              />
+            </View>
           </View>
-          {!datesOk ? (
-            <Text style={styles.helpErr}>Use YYYY-MM-DD for dates.</Text>
-          ) : null}
           {datesOrderWarning ?
             (
               <Text style={styles.helpErr}>End date cannot be before start date.</Text>
             )
             : null}
-        </View>
+        </AdminFormSection>
 
-        <Text style={styles.sectionHeading}>Remarks</Text>
-        <View testID="trip-edit-section-remarks">
+        <AdminFormSection title="Remarks" testID="trip-edit-section-remarks">
           <Field
             label="Trip remarks"
             value={remarks}
             onChange={setRemarks}
             multiline
           />
-        </View>
+        </AdminFormSection>
 
         <Pressable
           testID="trip-edit-section-policies-toggle"
@@ -470,7 +495,7 @@ function EditTourQueryScreenInner() {
           </View>
         ) : null}
 
-        <View testID="trip-edit-section-itinerary">
+        <AdminFormSection title="Itinerary" testID="trip-edit-section-itinerary">
         {itineraries.length === 0 ? (
           <Text style={styles.help}>
             This trip has no itinerary yet. Use the web hotel editor to add stays and transport.
@@ -489,36 +514,8 @@ function EditTourQueryScreenInner() {
             />
           ))
         )}
-        </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          testID="tq-edit-save"
-          accessibilityRole="button"
-          accessibilityLabel="Save trip changes"
-          accessibilityHint={
-            datesOrderWarning
-              ? "Fix date order before saving."
-              : !dirty
-                ? "Enable after you change a field."
-                : "Writes updates to this trip."
-          }
-          disabled={saveBlocked}
-          style={[styles.submit, saveBlocked ? styles.submitDisabled : null]}
-          onPress={save}
-        >
-          {saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>Save changes</Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+        </AdminFormSection>
+    </AdminScreen>
   );
 }
 
@@ -707,6 +704,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   textarea: { minHeight: 90, textAlignVertical: "top" },
+  flexField: { flex: 1 },
   row2: { flexDirection: "row", gap: Spacing.md },
   row3: { flexDirection: "row", gap: Spacing.sm },
   help: { color: Colors.textTertiary, fontSize: FontSize.xs, marginTop: 4 },

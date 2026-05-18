@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -13,9 +9,14 @@ import {
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
 import {
@@ -45,7 +46,6 @@ interface Props {
 
 export function StaffForm({ mode, staffId, initial }: Props) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -64,13 +64,13 @@ export function StaffForm({ mode, staffId, initial }: Props) {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const screenTitle = mode === "create" ? "New staff" : "Edit staff";
   const emailOk = /\S+@\S+\.\S+/.test(email.trim());
   const pwOk =
     mode === "create"
       ? password.trim().length >= 6
       : password.length === 0 || password.trim().length >= 6;
-  const canSubmit =
-    name.trim().length > 0 && emailOk && pwOk && !submitting;
+  const canSubmit = name.trim().length > 0 && emailOk && pwOk && !submitting;
 
   async function submit() {
     if (!canSubmit) return;
@@ -108,87 +108,95 @@ export function StaffForm({ mode, staffId, initial }: Props) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Stack.Screen
-        options={{
-          title: mode === "create" ? "New staff" : "Edit staff",
-          headerShown: false,
-        }}
-      />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="staff-form-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>
-          {mode === "create" ? "New staff" : "Edit staff"}
-        </Text>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.label}>Full name *</Text>
-        <TextInput
-          testID="staff-form-name"
-          accessibilityLabel="Staff name"
-          style={styles.input}
-          placeholder="e.g. Priya Sharma"
-          placeholderTextColor={Colors.textTertiary}
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-          maxLength={200}
-        />
-
-        <Text style={styles.label}>Email *</Text>
-        <TextInput
-          testID="staff-form-email"
-          accessibilityLabel="Email"
-          style={styles.input}
-          placeholder="staff@example.com"
-          placeholderTextColor={Colors.textTertiary}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {!emailOk && email.length > 0 ? (
-          <Text style={styles.helpErr}>Enter a valid email.</Text>
-        ) : null}
-
-        <Text style={styles.label}>
-          {mode === "create" ? "Password *" : "New password (optional)"}
-        </Text>
-        <TextInput
-          testID="staff-form-password"
-          accessibilityLabel="Password"
-          style={styles.input}
-          placeholder={
-            mode === "create" ? "Min 6 characters" : "Leave blank to keep current"
+    <AdminScreen
+      keyboardAvoiding
+      testID={mode === "create" ? "staff-new-screen" : "staff-edit-screen"}
+      footer={
+        <AdminBottomActionBar
+          primaryLabel={mode === "create" ? "Create staff" : "Save changes"}
+          primaryIcon={mode === "create" ? "add-circle-outline" : "save-outline"}
+          primaryTestID="staff-form-submit"
+          primaryDisabled={!canSubmit}
+          disabledReason={
+            !name.trim()
+              ? "Enter a full name."
+              : !emailOk
+                ? "Enter a valid email."
+                : !pwOk
+                  ? "Password must be at least 6 characters."
+                  : submitting
+                    ? "Saving…"
+                    : undefined
           }
-          placeholderTextColor={Colors.textTertiary}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
+          onPrimaryPress={submit}
         />
-        {!pwOk ? (
-          <Text style={styles.helpErr}>Password must be at least 6 characters.</Text>
-        ) : null}
+      }
+    >
+      <Stack.Screen options={{ title: screenTitle, headerShown: false }} />
 
-        <Text style={styles.label}>Role</Text>
+      <AdminTopBar
+        title={screenTitle}
+        subtitle="Operational staff"
+        onBackPress={() => router.back()}
+        testID="staff-form"
+      />
+
+      <AdminFormSection title="Account" testID="staff-form-account">
+        <AdminFormField label="Full name" required>
+          <TextInput
+            testID="staff-form-name"
+            accessibilityLabel="Staff name"
+            style={styles.input}
+            placeholder="e.g. Priya Sharma"
+            placeholderTextColor={Colors.textTertiary}
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            maxLength={200}
+          />
+        </AdminFormField>
+        <AdminFormField
+          label="Email"
+          required
+          error={!emailOk && email.length > 0 ? "Enter a valid email." : undefined}
+        >
+          <TextInput
+            testID="staff-form-email"
+            accessibilityLabel="Email"
+            style={styles.input}
+            placeholder="staff@example.com"
+            placeholderTextColor={Colors.textTertiary}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </AdminFormField>
+        <AdminFormField
+          label={mode === "create" ? "Password" : "New password"}
+          required={mode === "create"}
+          hint={mode === "edit" ? "Leave blank to keep current." : "Min 6 characters."}
+          error={!pwOk ? "Password must be at least 6 characters." : undefined}
+        >
+          <TextInput
+            testID="staff-form-password"
+            accessibilityLabel="Password"
+            style={styles.input}
+            placeholder={
+              mode === "create" ? "Min 6 characters" : "Leave blank to keep current"
+            }
+            placeholderTextColor={Colors.textTertiary}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </AdminFormField>
+      </AdminFormSection>
+
+      <AdminFormSection title="Role" testID="staff-form-role">
         <View style={styles.roleRow}>
           {(["OPERATIONS", "ADMIN"] as OperationalStaffRole[]).map((r) => {
             const active = role === r;
@@ -199,19 +207,13 @@ export function StaffForm({ mode, staffId, initial }: Props) {
                 style={[styles.roleChip, active ? styles.roleChipActive : null]}
                 onPress={() => setRole(r)}
               >
-                <Text
-                  style={[
-                    styles.roleText,
-                    active ? styles.roleTextActive : null,
-                  ]}
-                >
+                <Text style={[styles.roleText, active ? styles.roleTextActive : null]}>
                   {r === "OPERATIONS" ? "Operations" : "Admin"}
                 </Text>
               </Pressable>
             );
           })}
         </View>
-
         <View style={styles.toggleRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.toggleLabel}>Active</Text>
@@ -226,74 +228,24 @@ export function StaffForm({ mode, staffId, initial }: Props) {
             accessibilityLabel="Toggle active status"
           />
         </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}>
-        <Pressable
-          testID="staff-form-submit"
-          accessibilityRole="button"
-          accessibilityLabel={mode === "create" ? "Create staff" : "Save changes"}
-          disabled={!canSubmit}
-          style={[styles.submit, !canSubmit ? styles.submitDisabled : null]}
-          onPress={submit}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.submitText}>
-                {mode === "create" ? "Create staff" : "Save changes"}
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+      </AdminFormSection>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, gap: 4 },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.md,
-    marginBottom: 4,
-  },
   input: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
   },
   help: { color: Colors.textTertiary, fontSize: FontSize.xs, marginTop: 4 },
-  helpErr: { color: Colors.error, fontSize: FontSize.xs, marginTop: 4 },
-  roleRow: { flexDirection: "row", gap: Spacing.sm, marginTop: 4 },
+  roleRow: { flexDirection: "row", gap: Spacing.sm },
   roleChip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
@@ -312,7 +264,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
@@ -320,22 +272,4 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   toggleLabel: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
-  footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderSubtle,
-    backgroundColor: Colors.background,
-  },
-  submit: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
 });

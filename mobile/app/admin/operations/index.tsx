@@ -5,10 +5,8 @@ import {
   Image,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -16,7 +14,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
-import { AdminHeader } from "@/components/admin";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -124,217 +130,133 @@ export default function OperationsHubScreen() {
   }, [authLoading, tab, debouncedSearch]);
 
   if (authLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading operations…" />;
   }
 
   if (!canUseAdmin) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="shield-outline" size={42} color={Colors.textTertiary} />
-        <Text style={styles.emptyTitle}>Admin access required</Text>
-        <Text style={styles.emptyText}>
-          Operations data is only visible to authorized staff.
-        </Text>
-      </View>
+      <AdminScreen scroll={false} testID="operations-access-denied">
+        <AdminEmptyState
+          icon="shield-outline"
+          title="Admin access required"
+          body="Operations data is only visible to authorized staff."
+          testID="operations-access-empty"
+        />
+      </AdminScreen>
     );
   }
 
   const currentTab = TABS.find((t) => t.id === tab)!;
+  const segmentOptions = TABS.map((t) => ({ id: t.id, label: t.label }));
+
+  const listHeader = (
+    <View style={styles.listHeader}>
+      {tab === "suppliers" ? (
+        <OpsManageLink
+          testID="operations-manage-suppliers"
+          label="Manage suppliers"
+          icon="construct-outline"
+          onPress={() => router.push("/admin/operations/suppliers" as never)}
+        />
+      ) : tab === "locations" ? (
+        <OpsManageLink
+          testID="operations-manage-locations"
+          label="Manage locations"
+          icon="earth-outline"
+          onPress={() => router.push("/admin/operations/locations" as never)}
+        />
+      ) : tab === "destinations" ? (
+        <OpsManageLink
+          testID="operations-manage-destinations"
+          label="Manage destinations"
+          icon="compass-outline"
+          onPress={() => router.push("/admin/operations/destinations" as never)}
+        />
+      ) : tab === "hotels" ? (
+        <OpsManageLink
+          testID="operations-manage-hotels"
+          label="Manage hotels"
+          icon="bed-outline"
+          onPress={() => router.push("/admin/operations/hotels" as never)}
+        />
+      ) : tab === "itineraries" ? (
+        <>
+          <OpsManageLink
+            testID="operations-manage-itineraries"
+            label="Manage itinerary masters"
+            icon="list-outline"
+            onPress={() => router.push("/admin/operations/itineraries" as never)}
+          />
+          <OpsManageLink
+            testID="operations-manage-activities"
+            label="Manage activity masters"
+            icon="walk-outline"
+            onPress={() => router.push("/admin/operations/activities" as never)}
+          />
+        </>
+      ) : null}
+      <OpsManageLink
+        testID="operations-manage-transport-pricing"
+        label="Transport pricing & vehicles"
+        icon="car-outline"
+        onPress={() => router.push("/admin/operations/transport-pricing" as never)}
+      />
+      <OpsManageLink
+        testID="operations-manage-location-suppliers"
+        label="Location-supplier links"
+        icon="git-network-outline"
+        onPress={() => router.push("/admin/operations/location-suppliers" as never)}
+      />
+      {error ? (
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", tab, debouncedSearch)}
+          testID="operations-error"
+        />
+      ) : null}
+    </View>
+  );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="operations-hub-screen">
       <Stack.Screen options={{ title: "Operations", headerShown: false }} />
 
-      <AdminHeader
+      <AdminTopBar
         title="Operations"
         subtitle={loading ? "…" : `${total} · ${currentTab.label}`}
         onBackPress={() => router.back()}
-        showAccent
         testID="operations-admin-header"
       />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabRow}
-      >
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <Pressable
-              key={t.id}
-              testID={`operations-tab-${t.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={t.label}
-              style={[styles.segment, active ? styles.segmentActive : null]}
-              onPress={() => {
-                setTab(t.id);
-                setSearch("");
-                setDebouncedSearch("");
-              }}
-            >
-              <Ionicons
-                name={t.icon}
-                size={14}
-                color={active ? Colors.textInverse : Colors.textSecondary}
-              />
-              <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
-                {t.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <AdminSegmentedControl
+        options={segmentOptions}
+        value={tab}
+        onChange={(next) => {
+          setTab(next);
+          setSearch("");
+          setDebouncedSearch("");
+        }}
+        testIDPrefix="operations-tab"
+      />
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="operations-search-input"
-          accessibilityLabel="Search operations"
-          style={styles.searchInput}
-          placeholder={`Search ${currentTab.label.toLowerCase()}…`}
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
-
-      {tab === "suppliers" ? (
-        <Pressable
-          testID="operations-manage-suppliers"
-          accessibilityRole="button"
-          accessibilityLabel="Manage suppliers — add, edit, delete"
-          style={styles.manageBanner}
-          onPress={() => router.push("/admin/operations/suppliers" as never)}
-        >
-          <Ionicons name="construct-outline" size={16} color={Colors.primary} />
-          <Text style={styles.manageText}>Manage suppliers (add / edit / delete)</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-        </Pressable>
-      ) : tab === "locations" ? (
-        <Pressable
-          testID="operations-manage-locations"
-          accessibilityRole="button"
-          accessibilityLabel="Manage locations — add, edit, delete"
-          style={styles.manageBanner}
-          onPress={() => router.push("/admin/operations/locations" as never)}
-        >
-          <Ionicons name="earth-outline" size={16} color={Colors.primary} />
-          <Text style={styles.manageText}>Manage locations (add / edit / delete)</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-        </Pressable>
-      ) : tab === "destinations" ? (
-        <Pressable
-          testID="operations-manage-destinations"
-          accessibilityRole="button"
-          accessibilityLabel="Manage destinations — add, edit, delete"
-          style={styles.manageBanner}
-          onPress={() => router.push("/admin/operations/destinations" as never)}
-        >
-          <Ionicons name="compass-outline" size={16} color={Colors.primary} />
-          <Text style={styles.manageText}>Manage destinations (add / edit / delete)</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-        </Pressable>
-      ) : tab === "hotels" ? (
-        <Pressable
-          testID="operations-manage-hotels"
-          accessibilityRole="button"
-          accessibilityLabel="Manage hotels — add, edit, delete"
-          style={styles.manageBanner}
-          onPress={() => router.push("/admin/operations/hotels" as never)}
-        >
-          <Ionicons name="bed-outline" size={16} color={Colors.primary} />
-          <Text style={styles.manageText}>Manage hotels (add / edit / delete)</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-        </Pressable>
-      ) : tab === "itineraries" ? (
-        <>
-          <Pressable
-            testID="operations-manage-itineraries"
-            accessibilityRole="button"
-            accessibilityLabel="Manage itinerary masters"
-            style={styles.manageBanner}
-            onPress={() => router.push("/admin/operations/itineraries" as never)}
-          >
-            <Ionicons name="list-outline" size={16} color={Colors.primary} />
-            <Text style={styles.manageText}>Manage itinerary masters</Text>
-            <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-          </Pressable>
-          <Pressable
-            testID="operations-manage-activities"
-            accessibilityRole="button"
-            accessibilityLabel="Manage activity masters"
-            style={styles.manageBanner}
-            onPress={() => router.push("/admin/operations/activities" as never)}
-          >
-            <Ionicons name="walk-outline" size={16} color={Colors.primary} />
-            <Text style={styles.manageText}>Manage activity masters</Text>
-            <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-          </Pressable>
-        </>
-      ) : (
-        <Pressable
-          testID="operations-manage-staff"
-          accessibilityRole="button"
-          accessibilityLabel="Manage operational staff — add, edit, deactivate"
-          style={styles.manageBanner}
-          onPress={() => router.push("/admin/operations/staff" as never)}
-        >
-          <Ionicons name="people-outline" size={16} color={Colors.primary} />
-          <Text style={styles.manageText}>Manage operational staff</Text>
-          <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-        </Pressable>
-      )}
-
-      <Pressable
-        testID="operations-manage-transport-pricing"
-        accessibilityRole="button"
-        accessibilityLabel="Manage transport pricing and vehicle types"
-        style={styles.manageBanner}
-        onPress={() =>
-          router.push("/admin/operations/transport-pricing" as never)
-        }
-      >
-        <Ionicons name="car-outline" size={16} color={Colors.primary} />
-        <Text style={styles.manageText}>
-          Manage transport pricing & vehicle types
-        </Text>
-        <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-      </Pressable>
-
-      <Pressable
-        testID="operations-manage-location-suppliers"
-        accessibilityRole="button"
-        accessibilityLabel="Manage location supplier relationships"
-        style={styles.manageBanner}
-        onPress={() => router.push("/admin/operations/location-suppliers" as never)}
-      >
-        <Ionicons name="git-network-outline" size={16} color={Colors.primary} />
-        <Text style={styles.manageText}>Manage location-supplier links</Text>
-        <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-      </Pressable>
-
-      {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder={`Search ${currentTab.label.toLowerCase()}…`}
+        searchTestID="operations-search-input"
+        testID="operations-command-bar"
+      />
 
       <FlatList
+        style={styles.list}
         data={items}
+        ListHeaderComponent={listHeader}
         keyExtractor={(it) => `${tab}-${it.id}`}
+        keyboardDismissMode="on-drag"
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+        removeClippedSubviews
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: insets.bottom + 32 },
@@ -354,17 +276,18 @@ export default function OperationsHubScreen() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centeredInList}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centeredInList}>
-              <Text style={styles.emptyBody}>
-                {debouncedSearch
+            <AdminEmptyState
+              icon={currentTab.icon}
+              title={`No ${currentTab.label.toLowerCase()}`}
+              body={
+                debouncedSearch
                   ? `No results for "${debouncedSearch}".`
-                  : `No ${currentTab.label.toLowerCase()} found.`}
-              </Text>
-            </View>
+                  : `No ${currentTab.label.toLowerCase()} found.`
+              }
+              testID="operations-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -381,8 +304,8 @@ export default function OperationsHubScreen() {
               : item.subtitle ?? item.meta ?? null;
           return (
             <View testID={`operations-row-${item.id}`} style={styles.row}>
-              {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
+              {item.imageUrl?.trim() ? (
+                <Image source={{ uri: item.imageUrl.trim() }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbPlaceholder]} accessibilityElementsHidden>
                   <Ionicons name={currentTab.icon} size={20} color={Colors.textTertiary} />
@@ -402,105 +325,64 @@ export default function OperationsHubScreen() {
           );
         }}
       />
-    </View>
+    </AdminScreen>
+  );
+}
+
+function OpsManageLink({
+  testID,
+  label,
+  icon,
+  onPress,
+}: {
+  testID: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.manageLink, pressed && styles.manageLinkPressed]}
+    >
+      <Ionicons name={icon} size={16} color={Colors.primary} accessibilityElementsHidden />
+      <Text style={styles.manageLinkText}>{label}</Text>
+      <Ionicons name="chevron-forward" size={14} color={Colors.textTertiary} accessibilityElementsHidden />
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    flex: 1,
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.lg },
+  listHeader: { gap: Spacing.xs, marginBottom: Spacing.sm },
+  manageLink: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xl,
     gap: Spacing.sm,
-    backgroundColor: Colors.background,
-  },
-  centeredInList: {
-    paddingTop: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-    alignItems: "center",
-  },
-  tabRow: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.xs,
-    paddingVertical: Spacing.xs,
-    marginHorizontal: Spacing.lg,
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
-  },
-  segment: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  segmentActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primaryDark,
-  },
-  segmentText: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.textSecondary },
-  segmentTextActive: { color: Colors.textInverse },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
-  searchInput: { flex: 1, fontSize: FontSize.sm, color: Colors.text, paddingVertical: 0 },
-  manageBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    backgroundColor: Colors.primaryBg,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.primaryLight,
-  },
-  manageText: { flex: 1, fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  listContent: { paddingHorizontal: Spacing.lg, paddingTop: 2 },
+  manageLinkPressed: { backgroundColor: Colors.surfaceAlt },
+  manageLinkText: { flex: 1, fontSize: FontSize.sm, fontWeight: "700", color: Colors.text },
+  listContent: { paddingHorizontal: Spacing.lg, paddingTop: 2, flexGrow: 1 },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    marginBottom: Spacing.xs,
+    backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderSubtle,
+    paddingVertical: Spacing.md,
+    marginHorizontal: -Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   thumb: {
     width: 44,
@@ -517,18 +399,5 @@ const styles = StyleSheet.create({
   rowTextCol: { flex: 1, gap: 2 },
   rowTitle: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
   rowSubtitle: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "600" },
-  emptyBody: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    fontWeight: "600",
-  },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-  },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
 });

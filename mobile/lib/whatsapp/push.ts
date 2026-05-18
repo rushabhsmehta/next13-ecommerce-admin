@@ -4,7 +4,8 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { API_BASE_URL } from "@/constants/api";
 
-const WA_CHANNEL_ID = "whatsapp";
+// Bump the channel id so Android will pick up the updated channel config.
+const WA_CHANNEL_ID = "whatsapp-v2";
 
 let configured = false;
 
@@ -18,7 +19,6 @@ export function configureWhatsAppNotificationChannel(): void {
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#25D366",
-      sound: "default",
     }).catch(() => {});
   }
 }

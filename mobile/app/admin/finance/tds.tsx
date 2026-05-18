@@ -17,6 +17,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { OfflineGate } from "@/components/auth/PermissionGate";
+import {
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+  AdminTopBarIconButton,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { createFinanceClient } from "@/lib/finance";
 
 type Tab = "tds" | "challans" | "credit-notes" | "supplier-credits";
@@ -74,9 +83,37 @@ function Inner() {
   const [challanSubmitting, setChallanSubmitting] = useState(false);
   const [depositing, setDepositing] = useState(false);
 
+  const load = useCallback(
+    async (t: Tab) => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (t === "tds") {
+          const r = await client.listTds();
+          setRows(r.transactions);
+        } else if (t === "challans") {
+          const r = await client.listChallans();
+          setRows(r.challans);
+        } else if (t === "credit-notes") {
+          const r = await client.listSaleReturns(true);
+          setRows(r.saleReturns);
+        } else {
+          const r = await client.listPurchaseReturns(true);
+          setRows(r.purchaseReturns);
+        }
+      } catch (err) {
+        setError(
+          err instanceof ApiError ? err.message : "Could not load data."
+        );
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [client]
+  );
+
   const depositPending = useCallback(async () => {
-    // Deposit = the web tds/deposit flow: dated challan + mark the loaded
-    // pending TDS transactions deposited. No bank/cash movement (mirrors web).
     const pendingIds = rows
       .filter((r) => r && r.status === "pending" && r.id)
       .map((r) => r.id as string);
@@ -116,36 +153,6 @@ function Inner() {
       ]
     );
   }, [rows, client, load]);
-
-  const load = useCallback(
-    async (t: Tab) => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (t === "tds") {
-          const r = await client.listTds();
-          setRows(r.transactions);
-        } else if (t === "challans") {
-          const r = await client.listChallans();
-          setRows(r.challans);
-        } else if (t === "credit-notes") {
-          const r = await client.listSaleReturns(true);
-          setRows(r.saleReturns);
-        } else {
-          const r = await client.listPurchaseReturns(true);
-          setRows(r.purchaseReturns);
-        }
-      } catch (err) {
-        setError(
-          err instanceof ApiError ? err.message : "Could not load data."
-        );
-        setRows([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [client]
-  );
 
   useEffect(() => {
     void load(tab);
@@ -246,92 +253,77 @@ function Inner() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="finance-tds-screen">
       <Stack.Screen options={{ title: "TDS & Credits", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>TDS & Credits</Text>
-        {tab === "tds" ? (
-          <Pressable
-            testID="tds-deposit"
-            accessibilityRole="button"
-            accessibilityLabel="Record TDS deposit for pending transactions"
-            style={[styles.newBtn, depositing ? { opacity: 0.5 } : null]}
-            disabled={depositing}
-            onPress={() => void depositPending()}
-          >
-            {depositing ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-            )}
-          </Pressable>
-        ) : null}
-        {tab === "challans" ? (
-          <Pressable
-            testID="tds-new-challan"
-            accessibilityRole="button"
-            accessibilityLabel="New challan"
-            style={styles.newBtn}
-            onPress={() => setChallanModal(true)}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
 
-      <View style={styles.tabRow}>
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <Pressable
-              key={t.id}
-              testID={`tds-tab-${t.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={t.label}
-              style={[styles.tab, active ? styles.tabActive : null]}
-              onPress={() => setTab(t.id)}
-            >
-              <Text
-                style={[styles.tabText, active ? styles.tabTextActive : null]}
-              >
-                {t.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <AdminTopBar
+        title="TDS & Credits"
+        onBackPress={() => router.back()}
+        testID="finance-tds-header"
+        rightSlot={
+          <>
+            {tab === "tds" ? (
+              depositing ? (
+                <View style={styles.headerSpinner}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                </View>
+              ) : (
+                <AdminTopBarIconButton
+                  icon="cloud-upload-outline"
+                  label="Record TDS deposit for pending transactions"
+                  testID="tds-deposit"
+                  onPress={() => void depositPending()}
+                />
+              )
+            ) : null}
+            {tab === "challans" ? (
+              <AdminTopBarPrimaryButton
+                label="New"
+                icon="add"
+                testID="tds-new-challan"
+                onPress={() => setChallanModal(true)}
+              />
+            ) : null}
+          </>
+        }
+      />
+
+      <AdminSegmentedControl
+        options={TABS}
+        value={tab}
+        onChange={setTab}
+        testIDPrefix="tds-tab"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load(tab)}
+          testID="finance-tds-error"
+        />
       ) : null}
 
       <FlatList
         data={rows}
         keyExtractor={(r) => r.id}
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-        }}
+        style={styles.list}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: insets.bottom + 24 },
+        ]}
         ListEmptyComponent={
           loading ? (
             <ActivityIndicator
               size="large"
               color={Colors.primary}
-              style={{ marginTop: Spacing.xxl }}
+              style={styles.listLoader}
             />
           ) : (
-            <Text style={styles.muted}>Nothing here yet.</Text>
+            <AdminEmptyState
+              icon="document-text-outline"
+              title="Nothing here yet"
+              testID="finance-tds-empty"
+            />
           )
         }
         renderItem={renderItem}
@@ -405,72 +397,19 @@ function Inner() {
           </View>
         </View>
       </Modal>
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  backBtn: {
+  list: { flex: 1 },
+  listContent: { paddingHorizontal: Spacing.lg },
+  listLoader: { marginTop: Spacing.xxl },
+  headerSpinner: {
     width: 36,
     height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  newBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tabRow: {
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    flexWrap: "wrap",
-  },
-  tab: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-  },
-  tabActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryLight },
-  tabText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
-  tabTextActive: { color: Colors.primary },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  muted: {
-    fontSize: FontSize.sm,
-    color: Colors.textTertiary,
-    textAlign: "center",
-    marginTop: Spacing.xxl,
   },
   row: {
     flexDirection: "row",

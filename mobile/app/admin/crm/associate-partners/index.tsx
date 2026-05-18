@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -17,6 +16,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import {
   createAssociatePartnersClient,
   type AssociatePartnerOption,
@@ -103,74 +110,56 @@ function AssociatePartnersListScreenInner() {
   }, [debouncedSearch, activeOnly]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="associate-partners-screen">
       <Stack.Screen options={{ title: "Associate Partners", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.headerTitle}>Associate Partners</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${total} total`}
-          </Text>
-        </View>
-        <Pressable
-          testID="partners-new"
-          accessibilityRole="button"
-          accessibilityLabel="New partner"
-          onPress={() => router.push("/admin/crm/associate-partners/new" as never)}
-          style={styles.newBtn}
-        >
-          <Ionicons name="add" size={20} color="#fff" />
-        </Pressable>
-      </View>
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="partners-search-input"
-          accessibilityLabel="Search partners"
-          style={styles.searchInput}
-          placeholder="Search by name or email"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+      <AdminTopBar
+        title="Associate Partners"
+        subtitle={loading ? "…" : `${total} total`}
+        onBackPress={() => router.back()}
+        testID="partners-header"
+        rightSlot={
+          <AdminTopBarPrimaryButton
+            label="New"
+            icon="add"
+            testID="partners-new"
+            onPress={() => router.push("/admin/crm/associate-partners/new" as never)}
+          />
+        }
+      />
+
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name or email"
+        searchTestID="partners-search-input"
+        testID="partners-command-bar"
+        trailing={
+          <Pressable
+            testID="partners-filter-active"
+            onPress={() => setActiveOnly((v) => !v)}
+            style={[styles.filterChip, activeOnly ? styles.filterChipActive : null]}
+            accessibilityRole="button"
+            accessibilityLabel="Active only"
+            accessibilityState={{ selected: activeOnly }}
+          >
+            <Text style={[styles.filterChipText, activeOnly ? styles.filterChipTextActive : null]}>
+              Active only
+            </Text>
           </Pressable>
-        ) : null}
-      </View>
-
-      <View style={styles.filterRow}>
-        <Pressable
-          testID="partners-filter-active"
-          onPress={() => setActiveOnly((v) => !v)}
-          style={[styles.filterChip, activeOnly ? styles.filterChipActive : null]}
-        >
-          <Text style={[styles.filterChipText, activeOnly ? styles.filterChipTextActive : null]}>
-            Active only
-          </Text>
-        </Pressable>
-      </View>
+        }
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debouncedSearch)}
+          testID="partners-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(p) => p.id}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
@@ -189,19 +178,22 @@ function AssociatePartnersListScreenInner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centeredInList}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator
+              style={styles.listLoader}
+              size="large"
+              color={Colors.primary}
+            />
           ) : (
-            <View style={styles.centeredInList}>
-              <Ionicons name="briefcase-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No partners</Text>
-              <Text style={styles.emptyText}>
-                {debouncedSearch
+            <AdminEmptyState
+              icon="briefcase-outline"
+              title="No partners"
+              body={
+                debouncedSearch
                   ? "Try a different search term."
-                  : "Tap + to add an associate partner."}
-              </Text>
-            </View>
+                  : "Tap + to add an associate partner."
+              }
+              testID="partners-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -267,75 +259,20 @@ function AssociatePartnersListScreenInner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centeredInList: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTextWrap: { flex: 1 },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  newBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    color: Colors.text,
-    paddingVertical: 0,
-  },
-  filterRow: {
-    flexDirection: "row",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
+  listContent: { paddingHorizontal: Spacing.lg },
   filterChip: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.sm,
     backgroundColor: Colors.surface,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
   },
   filterChipActive: {
@@ -344,20 +281,6 @@ const styles = StyleSheet.create({
   },
   filterChipText: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textSecondary },
   filterChipTextActive: { color: Colors.primary },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  listContent: { paddingHorizontal: Spacing.lg },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -399,11 +322,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-  },
 });

@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -16,7 +15,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
-import { AdminHeader, AdminHeaderIconButton } from "@/components/admin/AdminHeader";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { TripFocusCard, TripMiniMetric, TripStatusPill } from "@/components/admin/trips";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -53,18 +60,12 @@ interface TourQueryListResponse {
 
 const PAGE_SIZE = 25;
 
-const STATUS_SEGMENTS: { api: ApiStatusFilter; label: string; testSuffix: string; hint?: string }[] =
-  [
-    {
-      api: "all",
-      label: "Active",
-      testSuffix: "active",
-      hint: "Shows non-archived work by default. Archived stays in its own tab.",
-    },
-    { api: "confirmed", label: "Confirmed", testSuffix: "confirmed" },
-    { api: "draft", label: "Draft", testSuffix: "draft" },
-    { api: "archived", label: "Archived", testSuffix: "archived" },
-  ];
+const STATUS_SEGMENTS: { id: ApiStatusFilter; label: string }[] = [
+  { id: "all", label: "Active" },
+  { id: "confirmed", label: "Confirmed" },
+  { id: "draft", label: "Draft" },
+  { id: "archived", label: "Archived" },
+];
 
 function formatDate(s: string | null | undefined): string {
   if (!s) return "—";
@@ -221,92 +222,58 @@ function TourQueriesListScreenInner() {
   const subtitle = loading ? "Loading..." : `${total} trip${total === 1 ? "" : "s"}`;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="tour-queries-screen">
       <Stack.Screen options={{ title: "Trips", headerShown: false }} />
 
-      <AdminHeader
+      <AdminTopBar
         title="Trips"
         subtitle={subtitle}
         onBackPress={() => router.back()}
-        showAccent
+        testID="tour-queries-header"
         rightSlot={
           canWriteSales ? (
-            <AdminHeaderIconButton
-              testID="tour-queries-new"
+            <AdminTopBarPrimaryButton
+              label="New"
               icon="add"
-              label="Create new trip"
-              hint="Opens the screen to choose inquiry, package, or copy."
+              testID="tour-queries-new"
               onPress={() => router.push("/admin/tour-queries/create" as never)}
             />
           ) : null
         }
       />
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="tour-queries-search-input"
-          accessibilityRole="search"
-          accessibilityLabel="Search trips by query number, name, or customer"
-          style={styles.searchInput}
-          placeholder="Customer, query # or trip name"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable
-            onPress={() => setSearch("")}
-            accessibilityRole="button"
-            accessibilityLabel="Clear search"
-            accessibilityHint="Clears the search field."
-          >
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminSegmentedControl
+        options={STATUS_SEGMENTS}
+        value={status}
+        onChange={setStatus}
+        testIDPrefix="trips-status-filter"
+        scrollable={false}
+      />
 
-      <View style={styles.segmentWrap}>
-        {STATUS_SEGMENTS.map((seg) => {
-          const active = status === seg.api;
-          return (
-            <Pressable
-              key={seg.api}
-              testID={`trips-status-filter-${seg.testSuffix}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={`Show ${seg.label} trips`}
-              accessibilityHint={seg.hint}
-              style={[styles.segment, active ? styles.segmentActive : null]}
-              onPress={() => setStatus(seg.api)}
-            >
-              <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
-                {seg.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Customer, query # or trip name"
+        searchTestID="tour-queries-search-input"
+        testID="tour-queries-command-bar"
+      />
 
       {focusProps ? (
         <View style={styles.focusInset}>
-          <TripFocusCard
-            {...focusProps}
-            testID="trips-focus-card"
-          />
+          <TripFocusCard {...focusProps} testID="trips-focus-card" />
         </View>
       ) : null}
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debouncedSearch, status)}
+          testID="tour-queries-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(q) => q.id}
         contentContainerStyle={[
@@ -328,19 +295,18 @@ function TourQueriesListScreenInner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centeredInList}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centeredInList}>
-              <Ionicons name="map-outline" size={36} color={Colors.textTertiary} accessibilityElementsHidden />
-              <Text style={styles.emptyTitle}>No trips</Text>
-              <Text style={styles.emptyText}>
-                {debouncedSearch
+            <AdminEmptyState
+              icon="map-outline"
+              title="No trips"
+              body={
+                debouncedSearch
                   ? "Try customer name or mobile number."
-                  : "Converted inquiries will show up here under Active."}
-              </Text>
-            </View>
+                  : "Converted inquiries will show up here under Active."
+              }
+              testID="tour-queries-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -378,6 +344,7 @@ function TourQueriesListScreenInner() {
               testID={`tour-query-row-${item.id}`}
               accessibilityRole="button"
               accessibilityLabel={`Open trip ${displayName}`}
+              accessibilityHint={`Next step: ${rowNextHint(item)}`}
               style={styles.row}
               onPress={() => router.push(`/admin/tour-queries/${item.id}` as never)}
             >
@@ -417,90 +384,23 @@ function TourQueriesListScreenInner() {
           );
         }}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centeredInList: {
-    paddingTop: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    color: Colors.text,
-    paddingVertical: 0,
-  },
-  segmentWrap: {
-    flexDirection: "row",
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-    overflow: "hidden",
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 9,
-    alignItems: "center",
-    backgroundColor: Colors.surfaceAlt,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: Colors.borderSubtle,
-  },
-  segmentActive: {
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
-  },
-  segmentText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: Colors.textSecondary,
-  },
-  segmentTextActive: { color: Colors.text },
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xxl },
   focusInset: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm },
-  errorCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  listContent: { paddingHorizontal: Spacing.lg, paddingTop: 2 },
+  listContent: { paddingHorizontal: Spacing.lg, paddingTop: 2, flexGrow: 1 },
   row: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    backgroundColor: Colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderSubtle,
+    paddingVertical: Spacing.md,
+    marginHorizontal: -Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     gap: 6,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   rowTop: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   rowTitle: {
@@ -516,11 +416,4 @@ const styles = StyleSheet.create({
   readinessDot: { width: 8, height: 8, borderRadius: 4 },
   hintText: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "600", flex: 1 },
   footerLoader: { paddingVertical: Spacing.lg, alignItems: "center" },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  emptyText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-  },
 });

@@ -147,10 +147,8 @@ async function applyPricingSplit(input: {
 }
 
 /** Hotel pricing rows — list (read). Mirrors web GET /api/hotels/[hotelId]/pricing. */
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
@@ -213,10 +211,8 @@ export async function GET(
 }
 
 /** Hotel pricing rows - create with optional overlap splitting. */
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });

@@ -82,7 +82,7 @@
       "<rootDir>/__tests__/setup.ts"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!(react-native|@react-native|expo|@expo|expo-router|expo-.*|@react-navigation|react-native-.*)/)"
+      "node_modules/(?!(react-native|@react-native|@react-native-community/datetimepicker|expo|@expo|expo-router|expo-.*|@react-navigation|react-native-.*)/)"
     ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"

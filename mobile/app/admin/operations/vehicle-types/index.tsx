@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -15,6 +14,14 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type VehicleType } from "@/lib/operations";
@@ -82,65 +89,47 @@ function Inner() {
     void load();
   }, [load]);
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title: "Vehicle types", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Vehicle types</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${total} total`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="vehicle-types-new"
-            accessibilityRole="button"
-            accessibilityLabel="New vehicle type"
-            onPress={() => router.push("/admin/operations/vehicle-types/new" as never)}
-            style={styles.newBtn}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
+  const subtitle = loading ? "Loading..." : `${total} total`;
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="vehicle-types-search"
-          accessibilityLabel="Search vehicle types"
-          style={styles.searchInput}
-          placeholder="Search by name"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+  return (
+    <AdminScreen scroll={false} testID="vehicle-types-screen">
+      <Stack.Screen options={{ title: "Vehicle types", headerShown: false }} />
+
+      <AdminTopBar
+        title="Vehicle types"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="vehicle-types-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="vehicle-types-new"
+              onPress={() => router.push("/admin/operations/vehicle-types/new" as never)}
+            />
+          ) : null
+        }
+      />
+
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name"
+        searchTestID="vehicle-types-search"
+        testID="vehicle-types-command-bar"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh")}
+          testID="vehicle-types-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(v) => v.id}
         contentContainerStyle={[
@@ -156,17 +145,14 @@ function Inner() {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="car-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No vehicle types</Text>
-              <Text style={styles.emptyText}>
-                {debounced ? "Try a different search." : "Tap + to add one."}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="car-outline"
+              title="No vehicle types"
+              body={debounced ? "Try a different search." : "Tap + to add one."}
+              testID="vehicle-types-empty"
+            />
           )
         }
         renderItem={({ item }) => (
@@ -199,11 +185,13 @@ function Inner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     paddingTop: Spacing.xxl,

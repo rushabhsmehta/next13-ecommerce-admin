@@ -88,6 +88,9 @@ function DeliveryTick({ status }: { status: string | null }) {
 function ImagePreview({ url }: { url: string }) {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const imageUrl = url.trim();
+  if (!imageUrl) return null;
+
   return (
     <>
       <TouchableOpacity
@@ -98,7 +101,7 @@ function ImagePreview({ url }: { url: string }) {
       >
         <View style={styles.imageThumb}>
           <Image
-            source={{ uri: url }}
+            source={{ uri: imageUrl }}
             style={styles.image}
             onLoad={() => setLoaded(true)}
             resizeMode="cover"
@@ -112,7 +115,7 @@ function ImagePreview({ url }: { url: string }) {
       </TouchableOpacity>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.lightboxBackdrop} onPress={() => setOpen(false)}>
-          <Image source={{ uri: url }} style={styles.lightboxImage} resizeMode="contain" />
+          <Image source={{ uri: imageUrl }} style={styles.lightboxImage} resizeMode="contain" />
         </Pressable>
       </Modal>
     </>

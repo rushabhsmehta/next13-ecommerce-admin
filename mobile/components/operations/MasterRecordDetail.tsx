@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,9 +12,14 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   createOperationsClient,
@@ -40,7 +45,6 @@ export function MasterRecordDetail({ kind }: { kind: Kind }) {
 
 function Inner({ kind }: { kind: Kind }) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id, mode } = useLocalSearchParams<{ id: string; mode?: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -96,23 +100,7 @@ function Inner({ kind }: { kind: Kind }) {
     }
   }
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={Colors.primary} />
-      </View>
-    );
-  }
-
-  if (error || !record) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{error ?? "Record not found"}</Text>
-      </View>
-    );
-  }
-
-  if (String(mode ?? "") === "edit") {
+  if (String(mode ?? "") === "edit" && record && id) {
     return (
       <PermissionGate permission="operations.write">
         <MasterRecordForm kind={kind} mode="edit" recordId={id} initial={record} />
@@ -120,138 +108,197 @@ function Inner({ kind }: { kind: Kind }) {
     );
   }
 
+  if (loading) {
+    return <AdminLoadingState label="Loading record…" testID={`${kind}-detail-loading`} />;
+  }
+
+  if (error || !record) {
+    return (
+      <AdminScreen testID={`${kind}-detail-error`}>
+        <Stack.Screen options={{ title: "Record", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Record not found"}
+          onRetry={() => void load()}
+          testID={`${kind}-detail-error-state`}
+        />
+      </AdminScreen>
+    );
+  }
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID={`${kind}-detail-screen`}
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: record.title ?? "Record", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+      <AdminTopBar
+        title={record.title || "Untitled"}
+        subtitle={record.locationLabel || "No location"}
+        onBackPress={() => router.back()}
+        testID={`${kind}-detail-header`}
+      />
+
+      <View style={styles.hero}>
+        <View style={styles.heroIcon}>
+          <Ionicons
+            name={kind === "itinerary" ? "list" : "walk"}
+            size={22}
+            color={Colors.primary}
+          />
+        </View>
+        <Text style={styles.heroTitle} numberOfLines={2}>
           {record.title || "Untitled"}
         </Text>
+        <Text style={styles.heroSub} numberOfLines={1}>
+          {record.locationLabel || "No location"}
+        </Text>
       </View>
-      <ScrollView
-        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: insets.bottom + 32 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
-        }
-      >
-        <View style={styles.card}>
-          <Text style={styles.label}>Location</Text>
-          <Text style={styles.value}>{record.locationLabel || "No location"}</Text>
-          {"dayNumber" in record && record.dayNumber != null ? (
-            <>
-              <Text style={styles.label}>Day</Text>
-              <Text style={styles.value}>{record.dayNumber}</Text>
-            </>
-          ) : null}
-          <Text style={styles.label}>Description</Text>
+
+      <Section title="Details">
+        {"dayNumber" in record && record.dayNumber != null ? (
+          <Info label="Day" value={String(record.dayNumber)} />
+        ) : null}
+        <Info label="Location" value={record.locationLabel || "No location"} />
+        <View style={styles.descBlock}>
+          <Text style={styles.infoLabel}>Description</Text>
           <Text style={styles.body}>{record.description || "No description"}</Text>
         </View>
-        <View style={styles.actionRow}>
-          <Pressable
-            testID={`${kind}-detail-edit`}
-            accessibilityRole="button"
-            accessibilityLabel="Edit record"
-            style={styles.primaryAction}
-            onPress={() => router.push(`${routeFor(kind)}/${id}?mode=edit` as never)}
-          >
-            <Ionicons name="create-outline" size={16} color="#fff" />
-            <Text style={styles.primaryActionText}>Edit</Text>
-          </Pressable>
-          <Pressable
-            testID={`${kind}-detail-delete`}
-            accessibilityRole="button"
-            accessibilityLabel="Delete record"
-            disabled={deleting}
-            style={[styles.dangerAction, deleting ? styles.disabled : null]}
-            onPress={() =>
-              Alert.alert("Delete record?", "This removes the selected master record.", [
-                { text: "Cancel", style: "cancel" },
-                { text: "Delete", style: "destructive", onPress: () => void deleteRecord() },
-              ])
-            }
-          >
-            {deleting ? (
-              <ActivityIndicator color={Colors.error} />
-            ) : (
-              <>
-                <Ionicons name="trash-outline" size={16} color={Colors.error} />
-                <Text style={styles.dangerActionText}>Delete</Text>
-              </>
-            )}
-          </Pressable>
-        </View>
-      </ScrollView>
+      </Section>
+
+      <View style={styles.footerActions}>
+        <Pressable
+          testID={`${kind}-detail-edit`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit record"
+          style={styles.primaryBtn}
+          onPress={() => router.push(`${routeFor(kind)}/${id}?mode=edit` as never)}
+        >
+          <Ionicons name="create-outline" size={18} color="#fff" />
+          <Text style={styles.primaryBtnText}>Edit</Text>
+        </Pressable>
+        <Pressable
+          testID={`${kind}-detail-delete`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete record"
+          disabled={deleting}
+          style={[styles.deleteBtn, deleting ? styles.disabled : null]}
+          onPress={() =>
+            Alert.alert("Delete record?", "This removes the selected master record.", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Delete", style: "destructive", onPress: () => void deleteRecord() },
+            ])
+          }
+        >
+          {deleting ? (
+            <ActivityIndicator color={Colors.error} />
+          ) : (
+            <>
+              <Ionicons name="trash-outline" size={18} color={Colors.error} />
+              <Text style={styles.deleteText}>Delete</Text>
+            </>
+          )}
+        </Pressable>
+      </View>
+    </AdminScreen>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionBody}>{children}</View>
+    </View>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.xl },
-  errorText: { color: Colors.error, textAlign: "center" },
-  header: {
-    flexDirection: "row",
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  hero: {
     alignItems: "center",
     gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  backBtn: { padding: Spacing.xs },
-  headerTitle: { flex: 1, fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  card: {
-    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+    padding: Spacing.lg,
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primaryBg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "900",
+    color: Colors.text,
+    textAlign: "center",
+  },
+  heroSub: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "700" },
+  section: { gap: Spacing.sm },
+  sectionTitle: { fontSize: FontSize.lg, fontWeight: "900", color: Colors.text },
+  sectionBody: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
     padding: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.sm,
-  },
-  value: { fontSize: FontSize.md, color: Colors.text, fontWeight: "700", marginTop: 4 },
-  body: { fontSize: FontSize.md, color: Colors.text, lineHeight: 22, marginTop: 4 },
-  actionRow: { flexDirection: "row", gap: Spacing.sm },
-  primaryAction: {
-    flex: 1,
+  infoRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
+    justifyContent: "space-between",
+    gap: Spacing.md,
+    paddingVertical: 2,
+  },
+  infoLabel: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "700" },
+  infoValue: { flex: 1, textAlign: "right", fontSize: FontSize.sm, color: Colors.text },
+  descBlock: { gap: 4, paddingTop: Spacing.xs },
+  body: { fontSize: FontSize.md, color: Colors.text, lineHeight: 22 },
+  footerActions: { flexDirection: "row", gap: Spacing.sm },
+  primaryBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: BorderRadius.md,
     backgroundColor: Colors.primary,
-  },
-  primaryActionText: { color: "#fff", fontWeight: "800", fontSize: FontSize.sm },
-  dangerAction: {
-    flex: 1,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
+    flexDirection: "row",
+    gap: Spacing.xs,
+  },
+  primaryBtnText: { color: "#fff", fontSize: FontSize.sm, fontWeight: "900" },
+  deleteBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "#fff1f2",
     borderWidth: 1,
     borderColor: "#fecdd3",
-    backgroundColor: "#fff1f2",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: Spacing.xs,
   },
-  dangerActionText: { color: Colors.error, fontWeight: "800", fontSize: FontSize.sm },
+  deleteText: { color: Colors.error, fontSize: FontSize.sm, fontWeight: "900" },
   disabled: { opacity: 0.6 },
 });

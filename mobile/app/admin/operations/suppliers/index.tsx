@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -16,6 +15,14 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type Supplier } from "@/lib/operations";
@@ -98,65 +105,47 @@ function SuppliersListScreenInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title: "Suppliers", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Suppliers</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${total} total`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="suppliers-new"
-            accessibilityRole="button"
-            accessibilityLabel="New supplier"
-            onPress={() => router.push("/admin/operations/suppliers/new" as never)}
-            style={styles.newBtn}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
+  const subtitle = loading ? "Loading..." : `${total} total`;
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="suppliers-search"
-          accessibilityLabel="Search suppliers"
-          style={styles.searchInput}
-          placeholder="Search by name, phone, or email"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+  return (
+    <AdminScreen scroll={false} testID="suppliers-screen">
+      <Stack.Screen options={{ title: "Suppliers", headerShown: false }} />
+
+      <AdminTopBar
+        title="Suppliers"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="suppliers-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="suppliers-new"
+              onPress={() => router.push("/admin/operations/suppliers/new" as never)}
+            />
+          ) : null
+        }
+      />
+
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name, phone, or email"
+        searchTestID="suppliers-search"
+        testID="suppliers-command-bar"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debounced)}
+          testID="suppliers-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(s) => s.id}
         contentContainerStyle={[
@@ -178,17 +167,14 @@ function SuppliersListScreenInner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="business-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No suppliers</Text>
-              <Text style={styles.emptyText}>
-                {debounced ? "Try a different search." : "Tap + to add one."}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="business-outline"
+              title="No suppliers"
+              body={debounced ? "Try a different search." : "Tap + to add one."}
+              testID="suppliers-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -240,11 +226,13 @@ function SuppliersListScreenInner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     paddingTop: Spacing.xxl,

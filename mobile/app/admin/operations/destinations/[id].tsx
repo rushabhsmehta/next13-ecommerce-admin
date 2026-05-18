@@ -1,22 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
-  Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type DestinationDetail } from "@/lib/operations";
 import { DestinationForm } from "@/components/operations/DestinationForm";
@@ -31,7 +33,6 @@ export default function DestinationDetailScreen() {
 
 function Inner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { permissions } = useCurrentUser();
   const canWrite = permissions.includes("operations.write");
@@ -133,99 +134,84 @@ function Inner() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AdminLoadingState label="Loading destination…" testID="destination-detail-loading" />
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errText}>{error ?? "Not found"}</Text>
-        <Pressable style={styles.retry} onPress={() => void load()}>
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="destination-detail-error">
+        <Stack.Screen options={{ title: "Destination", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Destination not found"}
+          onRetry={() => void load()}
+          testID="destination-detail-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   const { destination, summary } = data;
+  const destinationImageUrl = destination.imageUrl?.trim();
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="destination-detail-screen"
+      bottomInset={Spacing.xl}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+    >
       <Stack.Screen options={{ title: destination.name, headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {destination.name}
-        </Text>
-        {canWrite ? (
-          <>
-            <Pressable
-              testID={`destination-edit-${destination.id}`}
-              accessibilityRole="button"
-              accessibilityLabel="Edit destination"
-              style={styles.iconBtn}
-              onPress={() => setEditing(true)}
-            >
-              <Ionicons name="create-outline" size={20} color={Colors.text} />
-            </Pressable>
-            <Pressable
-              testID={`destination-delete-${destination.id}`}
-              accessibilityRole="button"
-              accessibilityLabel="Delete destination"
-              style={styles.iconBtn}
-              disabled={busy}
-              onPress={confirmDelete}
-            >
-              <Ionicons name="trash-outline" size={20} color={Colors.error} />
-            </Pressable>
-          </>
+      <AdminTopBar
+        title={destination.name}
+        subtitle={destination.locationLabel}
+        onBackPress={() => router.back()}
+        testID="destination-detail-header"
+        rightSlot={
+          canWrite ? (
+            <View style={styles.headerActions}>
+              <AdminTopBarIconButton
+                icon="create-outline"
+                label="Edit destination"
+                testID={`destination-edit-${destination.id}`}
+                onPress={() => setEditing(true)}
+              />
+              <AdminTopBarIconButton
+                icon="trash-outline"
+                label="Delete destination"
+                testID={`destination-delete-${destination.id}`}
+                disabled={busy}
+                onPress={confirmDelete}
+              />
+            </View>
+          ) : null
+        }
+      />
+      {destinationImageUrl ? (
+        <Image
+          source={{ uri: destinationImageUrl }}
+          style={styles.hero}
+          accessibilityIgnoresInvertColors
+        />
+      ) : null}
+      <View style={styles.card}>
+        <Row label="Location" value={destination.locationLabel} />
+        <Row label="Status" value={destination.isActive ? "Active" : "Inactive"} />
+        {destination.description ? (
+          <Row label="Description" value={destination.description} />
         ) : null}
       </View>
-
-      <ScrollView
-        contentContainerStyle={{
-          padding: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
-        }
-      >
-        {destination.imageUrl ? (
-          <Image
-            source={{ uri: destination.imageUrl }}
-            style={styles.hero}
-            accessibilityIgnoresInvertColors
-          />
-        ) : null}
-        <View style={styles.card}>
-          <Row label="Location" value={destination.locationLabel} />
-          <Row label="Status" value={destination.isActive ? "Active" : "Inactive"} />
-          {destination.description ? (
-            <Row label="Description" value={destination.description} />
-          ) : null}
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{summary.hotelCount}</Text>
-          <Text style={styles.statLabel}>Linked hotels</Text>
-        </View>
-      </ScrollView>
-    </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{summary.hotelCount}</Text>
+        <Text style={styles.statLabel}>Linked hotels</Text>
+      </View>
+    </AdminScreen>
   );
 }
 
@@ -239,52 +225,12 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.background,
-    gap: Spacing.sm,
-    padding: Spacing.xl,
-  },
-  errText: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text, textAlign: "center" },
-  retry: {
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  retryText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  headerActions: { flexDirection: "row", gap: 4 },
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
   hero: {
     width: "100%",
     height: 200,
     borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
     backgroundColor: Colors.surfaceAlt,
   },
   card: {
@@ -294,7 +240,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
     padding: Spacing.md,
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
   },
   row: { gap: 2 },
   rowLabel: {

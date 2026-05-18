@@ -3,24 +3,22 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Stack, useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BorderRadius,
   Colors,
   FontSize,
-  Shadows,
   Spacing,
 } from "@/constants/theme";
 import { ApiError } from "@/lib/api";
 import { PermissionGate, OfflineGate } from "@/components/auth/PermissionGate";
+import { AdminScreen, AdminSection, AdminTopBar } from "@/components/admin";
 import { downloadAndShareExport, ExportKind } from "@/lib/exports";
 
 const EXPORTS: Array<{
@@ -56,7 +54,7 @@ export default function ExportsScreen() {
 }
 
 function ExportsScreenInner() {
-  const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { getToken } = useAuth();
   const [busy, setBusy] = useState<ExportKind | null>(null);
 
@@ -76,26 +74,17 @@ function ExportsScreenInner() {
   }
 
   return (
-    <ScrollView
-      testID="exports-screen"
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 48 }]}
-    >
-      <LinearGradient
-        colors={[Colors.gradient1, Colors.gradient2]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <Text style={styles.kicker}>CRM exports</Text>
-        <Text style={styles.heroTitle}>Pull contacts to share</Text>
-        <Text style={styles.heroSubtitle}>
-          Generates the same CSV the web admin produces, with full RBAC checks
-          and an audit log row for every mobile-initiated download.
-        </Text>
-      </LinearGradient>
+    <AdminScreen testID="exports-screen" contentContainerStyle={styles.content}>
+      <Stack.Screen options={{ title: "Exports", headerShown: false }} />
 
-      <View style={styles.section}>
+      <AdminTopBar
+        title="CRM exports"
+        subtitle="Generates the same CSV as web admin, with RBAC checks and audit logging."
+        onBackPress={() => router.back()}
+        testID="exports-header"
+      />
+
+      <AdminSection title="Pull contacts to share" testID="exports-section">
         {EXPORTS.map((opt) => {
           const isBusy = busy === opt.id;
           return (
@@ -124,46 +113,22 @@ function ExportsScreenInner() {
             </Pressable>
           );
         })}
+      </AdminSection>
 
-        <View style={styles.safetyCard}>
-          <Ionicons name="shield-checkmark-outline" size={18} color={Colors.primary} />
-          <Text style={styles.safetyText}>
-            Every export is recorded with your user, timestamp, row count, and
-            byte size so the team can audit who pulled data and when.
-          </Text>
-        </View>
+      <View style={styles.safetyCard}>
+        <Ionicons name="shield-checkmark-outline" size={18} color={Colors.primary} />
+        <Text style={styles.safetyText}>
+          Every export is recorded with your user, timestamp, row count, and
+          byte size so the team can audit who pulled data and when.
+        </Text>
       </View>
-    </ScrollView>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingTop: Spacing.lg },
-  hero: {
-    marginHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    ...Shadows.medium,
-  },
-  kicker: {
-    color: "rgba(255,255,255,0.84)",
-    fontSize: FontSize.sm,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  heroTitle: { color: "#fff", fontSize: FontSize.xxxl, fontWeight: "900", marginTop: 4 },
-  heroSubtitle: {
-    color: "rgba(255,255,255,0.88)",
-    fontSize: FontSize.md,
-    lineHeight: 21,
-    marginTop: Spacing.md,
-  },
-  section: {
-    marginTop: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
+  content: {
+    paddingTop: Spacing.sm,
   },
   card: {
     flexDirection: "row",
@@ -174,7 +139,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
-    ...Shadows.light,
+    marginBottom: Spacing.sm,
   },
   cardDisabled: { opacity: 0.5 },
   cardIcon: {
@@ -193,6 +158,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: Spacing.sm,
     padding: Spacing.md,
+    marginHorizontal: Spacing.lg,
     backgroundColor: Colors.primaryBg,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,

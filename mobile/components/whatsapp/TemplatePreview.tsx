@@ -86,7 +86,7 @@ function HeaderBlock({
 
   if (fmt === "IMAGE") {
     const exampleHandle = (header.example?.header_handle as string[] | undefined)?.[0];
-    const uri = headerMediaUri ?? exampleHandle;
+    const uri = (headerMediaUri ?? exampleHandle)?.trim();
     if (uri) {
       return <Image source={{ uri }} style={styles.headerImage} resizeMode="cover" />;
     }

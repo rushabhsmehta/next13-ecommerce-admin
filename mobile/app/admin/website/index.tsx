@@ -19,6 +19,15 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate, OfflineGate } from "@/components/auth/PermissionGate";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import { API_BASE_URL, getTravelPackageUrl } from "@/constants/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -252,73 +261,38 @@ function WebsiteManagementInner() {
   const subtitle = loading ? "Loading..." : `${items.length} package${items.length === 1 ? "" : "s"}`;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="website-management-screen">
       <Stack.Screen options={{ title: "Website", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.iconButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Website</Text>
-          <Text style={styles.headerSubtitle}>{subtitle}</Text>
-        </View>
-        <Pressable
-          testID="website-refresh"
-          accessibilityRole="button"
-          accessibilityLabel="Refresh website packages"
-          style={styles.iconButton}
-          onPress={() => void load("refresh")}
-        >
-          <Ionicons name="refresh" size={20} color={Colors.text} />
-        </Pressable>
-      </View>
+      <AdminTopBar
+        title="Website"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="website-header"
+        rightSlot={
+          <AdminTopBarIconButton
+            icon="refresh"
+            label="Refresh website packages"
+            testID="website-refresh"
+            onPress={() => void load("refresh")}
+          />
+        }
+      />
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="website-search"
-          accessibilityRole="search"
-          accessibilityLabel="Search website packages"
-          style={styles.searchInput}
-          placeholder="Package, type, category, location"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setSearch("")}>
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminSegmentedControl
+        options={STATUSES}
+        value={status}
+        onChange={setStatus}
+        testIDPrefix="website-status"
+        scrollable={false}
+      />
 
-      <View style={styles.segmentRail}>
-        {STATUSES.map((option) => {
-          const active = status === option.id;
-          return (
-            <Pressable
-              key={option.id}
-              testID={`website-status-${option.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Show ${option.label} packages`}
-              accessibilityState={{ selected: active }}
-              style={[styles.segment, active ? styles.segmentActive : null]}
-              onPress={() => setStatus(option.id)}
-            >
-              <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Package, type, category, location"
+        searchTestID="website-search"
+        testID="website-command-bar"
+      />
 
       <ScrollView
         horizontal
@@ -355,13 +329,15 @@ function WebsiteManagementInner() {
       </ScrollView>
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh")}
+          testID="website-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
@@ -370,15 +346,14 @@ function WebsiteManagementInner() {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="globe-outline" size={38} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No packages</Text>
-              <Text style={styles.emptyText}>Try another location, status, or search term.</Text>
-            </View>
+            <AdminEmptyState
+              icon="globe-outline"
+              title="No packages"
+              body="Try another location, status, or search term."
+              testID="website-empty"
+            />
           )
         }
         renderItem={({ item }) => {
@@ -509,7 +484,7 @@ function WebsiteManagementInner() {
           );
         }}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
@@ -545,6 +520,8 @@ function ActionButton({
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row",

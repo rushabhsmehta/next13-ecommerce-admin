@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -15,6 +14,14 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type TransportPricing } from "@/lib/operations";
@@ -113,38 +120,30 @@ function Inner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
 
+  const subtitle = loading ? "Loading..." : `${total} total`;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen scroll={false} testID="transport-pricing-screen">
       <Stack.Screen options={{ title: "Transport pricing", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Transport pricing</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${total} total`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="transport-pricing-new"
-            accessibilityRole="button"
-            accessibilityLabel="New transport pricing"
-            onPress={() =>
-              router.push("/admin/operations/transport-pricing/new" as never)
-            }
-            style={styles.newBtn}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
+
+      <AdminTopBar
+        title="Transport pricing"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="transport-pricing-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="transport-pricing-new"
+              onPress={() =>
+                router.push("/admin/operations/transport-pricing/new" as never)
+              }
+            />
+          ) : null
+        }
+      />
 
       <Pressable
         testID="transport-pricing-manage-vehicles"
@@ -158,34 +157,24 @@ function Inner() {
         <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
       </Pressable>
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="transport-pricing-search"
-          accessibilityLabel="Search transport pricing"
-          style={styles.searchInput}
-          placeholder="Search location, vehicle, or type"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search location, vehicle, or type"
+        searchTestID="transport-pricing-search"
+        testID="transport-pricing-command-bar"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debounced)}
+          testID="transport-pricing-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(r) => r.id}
         contentContainerStyle={[
@@ -207,17 +196,14 @@ function Inner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="car-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No transport pricing</Text>
-              <Text style={styles.emptyText}>
-                {debounced ? "Try a different search." : "Tap + to add one."}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="car-outline"
+              title="No transport pricing"
+              body={debounced ? "Try a different search." : "Tap + to add one."}
+              testID="transport-pricing-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -263,11 +249,13 @@ function Inner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     paddingTop: Spacing.xxl,

@@ -18,7 +18,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
-import { AdminHeader } from "@/components/admin/AdminHeader";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { API_BASE_URL } from "@/constants/api";
 import { absoluteAdminUrl, tourQueryHotelUpdatePath } from "@/lib/tour-queries-web-urls";
 import {
@@ -140,7 +145,9 @@ function TourQueryVariantsScreenInner() {
   }, [data, cheapest]);
 
   const [compareA, compareB] =
-    data && data.variants.length ? pickComparePair(data.variants, cheapest) : [null, null];
+    data && data.variants.length
+      ? pickComparePair(data.variants, cheapest ?? null)
+      : [null, null];
 
   const openHotelsWeb = () => {
     if (!hotelEditUrl) return;
@@ -150,43 +157,43 @@ function TourQueryVariantsScreenInner() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading variants…" testID="trip-variants-loading" />;
   }
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errText}>{error ?? "Variants not found"}</Text>
-        <Pressable style={styles.retry} onPress={() => void load()}>
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="trip-variants-error">
+        <Stack.Screen options={{ title: "Variants", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Variants not found"}
+          onRetry={() => void load()}
+          testID="trip-variants-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="trip-variants-screen"
+      contentContainerStyle={{
+        paddingHorizontal: Spacing.lg,
+        gap: Spacing.md,
+      }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+    >
       <Stack.Screen options={{ title: "Variants", headerShown: false }} />
-      <AdminHeader title="Variants" subtitle={`${data.variants.length} options${data.hasPricing ? "" : " · pricing not computed"}`} onBackPress={() => router.back()} />
-
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-          gap: Spacing.md,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
-        }
-      >
+      <AdminTopBar
+        title="Variants"
+        subtitle={`${data.variants.length} options${data.hasPricing ? "" : " · pricing not computed"}`}
+        onBackPress={() => router.back()}
+        testID="trip-variants-header"
+      />
         <View style={styles.decisionCard} testID="trip-variant-decision-summary">
           <View style={[styles.dot, decision.tone === "high" ? styles.dotGreen : decision.tone === "medium" ? styles.dotWarn : styles.dotMuted]} accessibilityElementsHidden />
           <Text style={styles.decisionTitle}>{decision.title}</Text>
@@ -338,8 +345,7 @@ function TourQueryVariantsScreenInner() {
             </View>
           ))
         )}
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 

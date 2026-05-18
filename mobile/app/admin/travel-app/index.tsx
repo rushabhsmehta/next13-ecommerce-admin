@@ -4,7 +4,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,9 +12,15 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate, OfflineGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   createTravelAppAdminClient,
@@ -25,6 +30,12 @@ import {
 } from "@/lib/travel-app-admin";
 
 type TabKey = "users" | "chats" | "access";
+
+const TAB_SEGMENTS: { id: TabKey; label: string }[] = [
+  { id: "users", label: "Users" },
+  { id: "chats", label: "Chats" },
+  { id: "access", label: "Access" },
+];
 
 export default function TravelAppAdminScreen() {
   return (
@@ -38,7 +49,6 @@ export default function TravelAppAdminScreen() {
 
 function TravelAppAdminInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -170,59 +180,46 @@ function TravelAppAdminInner() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="travel-app-admin-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: "Travel App Admin", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.iconButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Travel App</Text>
-          <Text style={styles.headerSubtitle}>
-            {data ? `${data.users.length} users - ${data.chatGroups.length} groups` : "Loading..."}
-          </Text>
-        </View>
-      </View>
+      <AdminTopBar
+        title="Travel App"
+        subtitle={
+          data
+            ? `${data.users.length} users · ${data.chatGroups.length} groups`
+            : loading
+              ? "Loading…"
+              : "—"
+        }
+        onBackPress={() => router.back()}
+        testID="travel-app-header"
+      />
 
-      <View style={styles.segmentRail}>
-        {(["users", "chats", "access"] as TabKey[]).map((key) => (
-          <Pressable
-            key={key}
-            testID={`travel-admin-tab-${key}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Show ${key}`}
-            accessibilityState={{ selected: tab === key }}
-            style={[styles.segment, tab === key ? styles.segmentActive : null]}
-            onPress={() => setTab(key)}
-          >
-            <Text style={[styles.segmentText, tab === key ? styles.segmentTextActive : null]}>
-              {key === "users" ? "Users" : key === "chats" ? "Chats" : "Access"}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <AdminSegmentedControl
+        options={TAB_SEGMENTS}
+        value={tab}
+        onChange={setTab}
+        testIDPrefix="travel-admin-tab"
+        scrollable={false}
+      />
 
-      <ScrollView
-        testID="travel-app-admin-screen"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} />}
-      >
-        {error ? (
-          <View style={styles.errorCard}>
-            <Ionicons name="warning-outline" size={16} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-        {loading && !data ? (
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        ) : data ? (
+      {error ? (
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh")}
+          testID="travel-app-error"
+        />
+      ) : null}
+      {loading && !data ? (
+        <AdminLoadingState label="Loading travel app…" testID="travel-app-loading" />
+      ) : data ? (
           <>
             {tab === "users" ? (
               <>
@@ -352,8 +349,7 @@ function TravelAppAdminInner() {
             ) : null}
           </>
         ) : null}
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 

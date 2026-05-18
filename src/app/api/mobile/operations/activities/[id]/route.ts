@@ -32,7 +32,8 @@ function format(row: any) {
   };
 }
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
@@ -51,7 +52,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
@@ -104,7 +106,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });

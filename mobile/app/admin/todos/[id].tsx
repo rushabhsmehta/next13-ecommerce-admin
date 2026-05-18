@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +13,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  AdminBottomActionBar,
+  AdminDangerZone,
+  AdminErrorState,
+  AdminFormField,
+  AdminFormSection,
+  AdminLoadingState,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminSegmentedControl,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
+import {
   BorderRadius,
   Colors,
   FontSize,
@@ -24,6 +34,7 @@ import {
 import { ApiError, withAuth } from "@/lib/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { DateField } from "@/components/ui/DateField";
 import { fetchActiveOperationalStaff } from "@/lib/operational-staff";
 import {
   createTodosClient,
@@ -55,7 +66,6 @@ export default function TodoDetailScreen() {
 
 function TodoDetailScreenInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
   const { permissions } = useCurrentUser();
@@ -75,12 +85,11 @@ function TodoDetailScreenInner() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [staffModal, setStaffModal] = useState(false);
+  const [staffPickerOpen, setStaffPickerOpen] = useState(false);
   const [staffList, setStaffList] = useState<
     { id: string; name: string; email: string }[]
   >([]);
   const [staffLoading, setStaffLoading] = useState(false);
-  const [staffSearch, setStaffSearch] = useState("");
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -126,10 +135,9 @@ function TodoDetailScreenInner() {
     }
   }
 
-  async function openStaffModal() {
+  async function openStaffPicker() {
     if (!canWrite) return;
-    setStaffModal(true);
-    setStaffSearch("");
+    setStaffPickerOpen(true);
     setStaffLoading(true);
     try {
       const rows = await fetchActiveOperationalStaff(authRequest);
@@ -145,15 +153,10 @@ function TodoDetailScreenInner() {
     }
   }
 
-  const filteredStaff = useMemo(() => {
-    const q = staffSearch.trim().toLowerCase();
-    if (!q) return staffList;
-    return staffList.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q)
-    );
-  }, [staffList, staffSearch]);
+  const staffOptions = useMemo(
+    () => staffList.map((s) => ({ id: s.id, label: s.name, subtitle: s.email })),
+    [staffList]
+  );
 
   function confirmClearStaff() {
     if (!todo || !canWrite) return;
@@ -203,66 +206,61 @@ function TodoDetailScreenInner() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading task…" testID="todo-detail-loading" />;
   }
 
   if (error || !todo) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={36} color={Colors.error} />
-        <Text style={styles.emptyTitle}>{error ?? "Task not found"}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Retry loading task"
-          onPress={() => void load()}
-          style={styles.retryBtn}
-        >
-          <Text style={styles.retryBtnText}>Retry</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="todo-detail-error">
+        <AdminErrorState
+          message={error ?? "Task not found"}
+          onRetry={() => void load()}
+          testID="todo-detail-error-state"
+        />
+      </AdminScreen>
     );
   }
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title: todo.title, headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="todo-detail-back"
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.headerBody}>
-          <Text style={styles.kicker}>Task</Text>
-          <Text style={styles.headerTitle} numberOfLines={2}>
-            {todo.title}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="todo-detail-delete"
-            accessibilityRole="button"
-            accessibilityLabel="Delete task"
-            onPress={deleteTodo}
-            style={styles.deleteBtn}
-          >
-            <Ionicons name="trash-outline" size={18} color={Colors.error} />
-          </Pressable>
-        ) : null}
-      </View>
+  const completeFooter =
+    todo.status !== "DONE" && canWrite ? (
+      <AdminBottomActionBar
+        primaryLabel="Mark complete"
+        primaryIcon="checkmark-circle-outline"
+        primaryTestID="todo-detail-complete"
+        primaryDisabled={saving}
+        disabledReason={saving ? "Saving changes…" : undefined}
+        onPrimaryPress={completeNow}
+        primaryHint="Marks this task done with completion metadata."
+      />
+    ) : null;
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 120 }]}
-        keyboardShouldPersistTaps="handled"
-      >
+  return (
+    <AdminScreen
+      keyboardAvoiding
+      testID="todo-detail-screen"
+      bottomInset={completeFooter ? 0 : Spacing.md}
+      footer={completeFooter}
+    >
+      <Stack.Screen options={{ title: todo.title, headerShown: false }} />
+
+      <AdminTopBar
+        title={todo.title}
+        subtitle="Task"
+        onBackPress={() => router.back()}
+        testID="todo-detail-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarIconButton
+              testID="todo-detail-delete"
+              icon="trash-outline"
+              label="Delete task"
+              onPress={deleteTodo}
+            />
+          ) : null
+        }
+      />
+
+      <AdminFormSection title="Details" testID="todo-detail-details">
         <DetailField
           label="Title"
           value={todo.title}
@@ -276,79 +274,60 @@ function TodoDetailScreenInner() {
           multiline
           onSubmit={(v) => void patch({ description: v })}
         />
-        <DetailField
-          label="Due date (YYYY-MM-DD)"
-          value={todo.dueDate ? todo.dueDate.slice(0, 10) : ""}
-          editable={canWrite}
-          onSubmit={(v) => void patch({ dueDate: v || null })}
-        />
+        <AdminFormField label="Due date">
+          <DateField
+            testID="todo-detail-due"
+            accessibilityLabel="Due date"
+            style={styles.input}
+            value={todo.dueDate ? todo.dueDate.slice(0, 10) : ""}
+            onChange={(v) => void patch({ dueDate: v || null })}
+            placeholder="No due date"
+            disabled={!canWrite || saving}
+          />
+        </AdminFormField>
+      </AdminFormSection>
 
-        <Text style={styles.sectionLabel}>Status</Text>
-        <View style={styles.row}>
-          {STATUS_CHOICES.map((s) => {
-            const active = todo.status === s.id;
-            return (
-              <Pressable
-                key={s.id}
-                testID={`todo-status-${s.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Set status to ${s.label}`}
-                disabled={!canWrite || saving}
-                style={[styles.choice, active ? styles.choiceActive : null]}
-                onPress={() => void patch({ status: s.id })}
-              >
-                <Text style={[styles.choiceText, active ? styles.choiceTextActive : null]}>
-                  {s.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+      <AdminFormSection title="Status & priority" testID="todo-detail-status">
+        <AdminFormField label="Status">
+          <AdminSegmentedControl
+            options={STATUS_CHOICES}
+            value={todo.status}
+            onChange={(id) => {
+              if (canWrite && !saving) void patch({ status: id });
+            }}
+            testIDPrefix="todo-status"
+            scrollable={false}
+          />
+        </AdminFormField>
+        <AdminFormField label="Priority">
+          <AdminSegmentedControl
+            options={PRIORITIES}
+            value={todo.priority}
+            onChange={(id) => {
+              if (canWrite && !saving) void patch({ priority: id });
+            }}
+            testIDPrefix="todo-priority"
+            scrollable={false}
+          />
+        </AdminFormField>
+      </AdminFormSection>
 
-        <Text style={styles.sectionLabel}>Priority</Text>
-        <View style={styles.row}>
-          {PRIORITIES.map((p) => {
-            const active = todo.priority === p.id;
-            return (
-              <Pressable
-                key={p.id}
-                testID={`todo-priority-${p.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Set priority to ${p.label}`}
-                disabled={!canWrite || saving}
-                style={[styles.choice, active ? styles.choiceActive : null]}
-                onPress={() => void patch({ priority: p.id })}
-              >
-                <Text style={[styles.choiceText, active ? styles.choiceTextActive : null]}>
-                  {p.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.sectionLabel}>Operational staff</Text>
+      <AdminFormSection title="Assignment" testID="todo-detail-assignee">
         <View style={styles.staffRow}>
           <Text style={styles.staffSummary} numberOfLines={2}>
-            {todo.assignedStaff
-              ? todo.assignedStaff.name
-              : "Not assigned"}
+            {todo.assignedStaff ? todo.assignedStaff.name : "Not assigned"}
           </Text>
           {canWrite ? (
             <View style={styles.staffActions}>
               <Pressable
                 testID="todo-detail-staff-assign"
                 accessibilityRole="button"
-                accessibilityLabel={
-                  todo.assignedStaff ? "Change staff assignment" : "Assign staff"
-                }
+                accessibilityLabel={todo.assignedStaff ? "Change staff assignment" : "Assign staff"}
                 style={styles.staffLinkBtn}
                 disabled={saving}
-                onPress={() => void openStaffModal()}
+                onPress={() => void openStaffPicker()}
               >
-                <Text style={styles.staffLinkText}>
-                  {todo.assignedStaff ? "Change" : "Assign"}
-                </Text>
+                <Text style={styles.staffLinkText}>{todo.assignedStaff ? "Change" : "Assign"}</Text>
               </Pressable>
               {todo.assignedStaff ? (
                 <Pressable
@@ -365,90 +344,55 @@ function TodoDetailScreenInner() {
             </View>
           ) : null}
         </View>
+      </AdminFormSection>
 
-        {todo.status !== "DONE" && canWrite ? (
-          <Pressable
-            testID="todo-detail-complete"
-            accessibilityRole="button"
-            accessibilityLabel="Mark task complete"
-            disabled={saving}
-            style={[styles.completeBtn, saving ? styles.disabled : null]}
-            onPress={completeNow}
-          >
-            <Ionicons name="checkmark-circle" size={18} color="#fff" />
-            <Text style={styles.completeBtnText}>Mark complete</Text>
-          </Pressable>
-        ) : null}
-
-        {todo.completedAt ? (
-          <View style={styles.metaCard}>
-            <Ionicons name="checkmark-done" size={16} color={Colors.success} />
-            <Text style={styles.metaText}>
-              Completed on {new Date(todo.completedAt).toLocaleString("en-IN")}
-              {todo.completedByName ? ` by ${todo.completedByName}` : ""}
-            </Text>
-          </View>
-        ) : null}
-      </ScrollView>
-
-      <Modal
-        visible={staffModal}
-        animationType="slide"
-        onRequestClose={() => setStaffModal(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
-            <Text style={styles.modalTitle}>Assign to staff</Text>
-            <Pressable
-              testID="todo-detail-staff-modal-close"
-              accessibilityRole="button"
-              accessibilityLabel="Close staff picker"
-              onPress={() => setStaffModal(false)}
-            >
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
-          </View>
-          <TextInput
-            style={styles.modalSearch}
-            value={staffSearch}
-            onChangeText={setStaffSearch}
-            placeholder="Search name or email…"
-            placeholderTextColor={Colors.textTertiary}
-          />
-          {staffLoading ? (
-            <ActivityIndicator style={{ marginTop: 24 }} color={Colors.primary} />
-          ) : (
-            <FlatList
-              style={{ flex: 1 }}
-              data={filteredStaff}
-              keyExtractor={(item) => item.id}
-              keyboardShouldPersistTaps="handled"
-              ListEmptyComponent={
-                <Text style={[styles.emptyHint, { padding: 16 }]}>No staff found.</Text>
-              }
-              renderItem={({ item }) => (
-                <Pressable
-                  testID={`todo-detail-staff-option-${item.id}`}
-                  style={styles.modalRow}
-                  onPress={() => {
-                    void patch({ assignedToStaffId: item.id });
-                    setStaffModal(false);
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalName}>{item.name}</Text>
-                    <Text style={styles.modalEmail}>{item.email}</Text>
-                  </View>
-                  {todo.assignedStaff?.id === item.id ? (
-                    <Ionicons name="checkmark" size={20} color={Colors.primary} />
-                  ) : null}
-                </Pressable>
-              )}
-            />
-          )}
+      {todo.completedAt ? (
+        <View style={styles.metaCard}>
+          <Ionicons name="checkmark-done" size={16} color={Colors.success} />
+          <Text style={styles.metaText}>
+            Completed on {new Date(todo.completedAt).toLocaleString("en-IN")}
+            {todo.completedByName ? ` by ${todo.completedByName}` : ""}
+          </Text>
         </View>
-      </Modal>
-    </View>
+      ) : null}
+
+      {canWrite ? (
+        <AdminDangerZone
+          actions={[
+            {
+              id: "delete",
+              label: "Delete task",
+              hint: "Permanently removes this task.",
+              onPress: deleteTodo,
+              testID: "todo-detail-delete-zone",
+            },
+          ]}
+        />
+      ) : null}
+
+      {todo.status !== "DONE" && canWrite ? (
+        <AdminBottomActionBar
+          primaryLabel="Mark complete"
+          primaryIcon="checkmark-circle-outline"
+          primaryTestID="todo-detail-complete"
+          primaryDisabled={saving}
+          disabledReason={saving ? "Saving changes…" : undefined}
+          onPrimaryPress={completeNow}
+          primaryHint="Marks this task done with completion metadata."
+        />
+      ) : null}
+
+      <AdminPickerSheet
+        visible={staffPickerOpen}
+        title="Assign to staff"
+        options={staffOptions}
+        selectedId={todo.assignedStaff?.id ?? null}
+        loading={staffLoading}
+        onClose={() => setStaffPickerOpen(false)}
+        onSelect={(opt) => void patch({ assignedToStaffId: opt.id })}
+        testID="todo-detail-staff-sheet"
+      />
+    </AdminScreen>
   );
 }
 
@@ -472,8 +416,7 @@ function DetailField({
   const dirty = draft !== value;
 
   return (
-    <View style={{ marginTop: Spacing.md }}>
-      <Text style={styles.sectionLabel}>{label}</Text>
+    <AdminFormField label={label}>
       <TextInput
         accessibilityLabel={label}
         style={[styles.input, multiline ? styles.textarea : null]}
@@ -504,65 +447,11 @@ function DetailField({
           </Pressable>
         </View>
       ) : null}
-    </View>
+    </AdminFormField>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.background,
-    gap: Spacing.sm,
-  },
-  retryBtn: {
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  retryBtnText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text, textAlign: "center" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerBody: { flex: 1 },
-  kicker: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text, marginTop: 2 },
-  deleteBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: "#fff1f2",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scroll: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-  },
   sectionLabel: {
     fontSize: FontSize.xs,
     color: Colors.textTertiary,

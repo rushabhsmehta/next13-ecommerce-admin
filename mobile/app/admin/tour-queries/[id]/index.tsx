@@ -5,7 +5,6 @@ import {
   Linking,
   Pressable,
   RefreshControl,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -14,12 +13,17 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { API_BASE_URL } from "@/constants/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
-import { AdminHeader } from "@/components/admin/AdminHeader";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import {
   TripActionMenu,
   buildDetailReadinessItems,
@@ -250,7 +254,6 @@ export default function TourQueryDetailScreen() {
 
 function TourQueryDetailScreenInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
 
@@ -657,27 +660,20 @@ function TourQueryDetailScreenInner() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AdminLoadingState label="Loading trip…" testID="trip-detail-loading" />
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="warning-outline" size={36} color={Colors.error} />
-        <Text style={styles.emptyTitle}>{error ?? "Trip not found"}</Text>
-        <Pressable
-          style={styles.primaryBtn}
-          onPress={() => void load("initial")}
-          accessibilityRole="button"
-          accessibilityLabel="Retry"
-          accessibilityHint="Reloads trip details."
-        >
-          <Text style={styles.primaryBtnText}>Retry</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="trip-detail-error">
+        <Stack.Screen options={{ title: "Trip", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Trip not found"}
+          onRetry={() => void load("initial")}
+          testID="trip-detail-error-state"
+        />
+      </AdminScreen>
     );
   }
 
@@ -762,35 +758,34 @@ function TourQueryDetailScreenInner() {
   const policiesCount = policyBlocks.length;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="trip-detail-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={styles.scroll}
+    >
       <Stack.Screen options={{ title: "Trip", headerShown: false }} />
-      <AdminHeader
+      <AdminTopBar
         title={data.tourPackageQueryName?.trim() || "Trip"}
         subtitle={data.tourPackageQueryNumber ?? undefined}
         onBackPress={() => router.back()}
+        testID="trip-detail-header"
         rightSlot={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Share trip link"
-            accessibilityHint="Opens the native share sheet with the web viewer link."
-            style={styles.headerIconMirror}
+          <AdminTopBarIconButton
+            icon="share-outline"
+            label="Share trip link"
+            hint="Opens the native share sheet with the web viewer link."
+            testID="trip-detail-share"
             onPress={handleShareTrip}
-          >
-            <Ionicons name="share-outline" size={18} color={Colors.text} />
-          </Pressable>
-        }
-      />
-
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + Spacing.xl }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
           />
         }
-      >
+      />
         {successNote ? (
           <View style={styles.successBanner}>
             <Ionicons name="checkmark-circle" size={16} color={Colors.success ?? "#16a34a"} />
@@ -1225,8 +1220,7 @@ function TourQueryDetailScreenInner() {
         <Text style={styles.metaFoot}>
           Updated {formatDate(data.updatedAt)} · Created {formatDate(data.createdAt)}
         </Text>
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 
@@ -1341,6 +1335,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   primaryCtaDisabled: { opacity: 0.55 },
+  primaryCtaPressed: { opacity: 0.88 },
   primaryCtaText: { color: "#fff", fontSize: FontSize.md, fontWeight: "800" },
   secondaryRow: { flexDirection: "row", gap: Spacing.xs, marginBottom: Spacing.sm },
   secondaryBtn: {

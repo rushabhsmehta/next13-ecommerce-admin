@@ -61,18 +61,27 @@ export default function DestinationDetailScreen() {
     }
   }, [id]);
 
-  const renderPackage = ({ item }: { item: any }) => (
-    <Pressable
-      style={styles.card}
-      onPress={() => router.push(`/packages/${item.slug || item.id}`)}
-      accessibilityRole="button"
-      accessibilityLabel={`View package ${item.tourPackageName || "Tour Package"}`}
-    >
-      <Image
-        source={{ uri: item.images?.[0]?.url }}
-        style={styles.cardImage}
-        accessibilityLabel={item.images?.[0]?.url ? "Package image" : undefined}
-      />
+  const renderPackage = ({ item }: { item: any }) => {
+    const imageUrl = item.images?.[0]?.url?.trim();
+
+    return (
+      <Pressable
+        style={styles.card}
+        onPress={() => router.push(`/packages/${item.slug || item.id}`)}
+        accessibilityRole="button"
+        accessibilityLabel={`View package ${item.tourPackageName || "Tour Package"}`}
+      >
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.cardImage}
+            accessibilityLabel="Package image"
+          />
+        ) : (
+          <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
+            <Ionicons name="image-outline" size={24} color={Colors.textTertiary} />
+          </View>
+        )}
       <View style={styles.cardBody}>
         <Text style={styles.name} numberOfLines={2}>
           {item.tourPackageName || "Tour Package"}
@@ -89,8 +98,9 @@ export default function DestinationDetailScreen() {
           </Text>
         )}
       </View>
-    </Pressable>
-  );
+      </Pressable>
+    );
+  };
 
   if (loading) {
     return (
@@ -164,7 +174,8 @@ const styles = StyleSheet.create({
     elevation: 2,
     flexDirection: "row",
   },
-  cardImage: { width: 120, height: 120 },
+  cardImage: { width: 120, height: 120, backgroundColor: Colors.surfaceAlt },
+  cardImagePlaceholder: { alignItems: "center", justifyContent: "center" },
   cardBody: { flex: 1, padding: Spacing.md, justifyContent: "center" },
   name: { fontSize: FontSize.md, fontWeight: "600", color: Colors.text, marginBottom: 4 },
   duration: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: 4 },

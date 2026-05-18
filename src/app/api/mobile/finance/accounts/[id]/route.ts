@@ -28,10 +28,8 @@ async function requireFinanceRead(userId: string) {
  * Account detail: authoritative balance + recent transactions (most recent
  * 25). `?kind=bank|cash` selects the account type. Read-only.
  */
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });

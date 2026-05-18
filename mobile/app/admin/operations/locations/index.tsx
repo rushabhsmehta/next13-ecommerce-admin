@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -16,6 +15,14 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import {
+  AdminCommandBar,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarPrimaryButton,
+} from "@/components/admin";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type OpsLocation } from "@/lib/operations";
@@ -94,65 +101,47 @@ function Inner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Stack.Screen options={{ title: "Locations", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Locations</Text>
-          <Text style={styles.headerSubtitle}>
-            {loading ? "…" : `${total} total`}
-          </Text>
-        </View>
-        {canWrite ? (
-          <Pressable
-            testID="locations-new"
-            accessibilityRole="button"
-            accessibilityLabel="New location"
-            onPress={() => router.push("/admin/operations/locations/new" as never)}
-            style={styles.newBtn}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </Pressable>
-        ) : null}
-      </View>
+  const subtitle = loading ? "Loading..." : `${total} total`;
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="locations-search"
-          accessibilityLabel="Search locations"
-          style={styles.searchInput}
-          placeholder="Search by label or slug"
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        {search.length ? (
-          <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-          </Pressable>
-        ) : null}
-      </View>
+  return (
+    <AdminScreen scroll={false} testID="locations-screen">
+      <Stack.Screen options={{ title: "Locations", headerShown: false }} />
+
+      <AdminTopBar
+        title="Locations"
+        subtitle={subtitle}
+        onBackPress={() => router.back()}
+        testID="locations-header"
+        rightSlot={
+          canWrite ? (
+            <AdminTopBarPrimaryButton
+              label="New"
+              icon="add"
+              testID="locations-new"
+              onPress={() => router.push("/admin/operations/locations/new" as never)}
+            />
+          ) : null
+        }
+      />
+
+      <AdminCommandBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by label or slug"
+        searchTestID="locations-search"
+        testID="locations-command-bar"
+      />
 
       {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", debounced)}
+          testID="locations-error"
+        />
       ) : null}
 
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(r) => r.id}
         contentContainerStyle={[
@@ -174,17 +163,14 @@ function Inner() {
         }}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
           ) : (
-            <View style={styles.centered}>
-              <Ionicons name="earth-outline" size={36} color={Colors.textTertiary} />
-              <Text style={styles.emptyTitle}>No locations</Text>
-              <Text style={styles.emptyText}>
-                {debounced ? "Try a different search." : "Tap + to add one."}
-              </Text>
-            </View>
+            <AdminEmptyState
+              icon="earth-outline"
+              title="No locations"
+              body={debounced ? "Try a different search." : "Tap + to add one."}
+              testID="locations-empty"
+            />
           )
         }
         ListFooterComponent={
@@ -202,7 +188,13 @@ function Inner() {
             style={styles.row}
             onPress={() => router.push(`/admin/operations/locations/${item.id}` as never)}
           >
-            <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
+            {item.imageUrl.trim() ? (
+              <Image source={{ uri: item.imageUrl.trim() }} style={styles.thumb} />
+            ) : (
+              <View style={[styles.thumb, styles.thumbPlaceholder]}>
+                <Ionicons name="map" size={18} color={Colors.textTertiary} />
+              </View>
+            )}
             <View style={{ flex: 1 }}>
               <Text style={styles.rowName} numberOfLines={1}>
                 {item.label}
@@ -223,11 +215,13 @@ function Inner() {
           </Pressable>
         )}
       />
-    </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
+  listLoader: { marginTop: Spacing.xl },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: {
     paddingTop: Spacing.xxl,
@@ -304,6 +298,10 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: BorderRadius.md,
     backgroundColor: Colors.surfaceAlt,
+  },
+  thumbPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   rowName: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
   rowMeta: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },

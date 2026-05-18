@@ -3,10 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,8 +12,14 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
+import { DateField } from "@/components/ui/DateField";
+import {
+  AdminBottomActionBar,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   createFlightTicketsClient,
@@ -70,7 +73,6 @@ function displayQuery(q: FlightTicketTourQueryOption): string {
 
 export function FlightTicketForm({ mode, initial, pnr: routePnr }: Props) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -121,6 +123,7 @@ export function FlightTicketForm({ mode, initial, pnr: routePnr }: Props) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [queryPickerOpen, setQueryPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!querySearch.trim() || querySearch.trim().length < 2) {
@@ -145,6 +148,44 @@ export function FlightTicketForm({ mode, initial, pnr: routePnr }: Props) {
     const tax = parseMoney(taxAmount) ?? 0;
     return fare || tax ? String(fare + tax) : "";
   }, [fareAmount, taxAmount]);
+
+  const queryOptions = useMemo(
+    () =>
+      queryResults.map((q) => ({
+        id: q.id,
+        label: displayQuery(q),
+        subtitle: q.tourPackageQueryNumber ?? q.id.slice(0, 8),
+      })),
+    [queryResults]
+  );
+
+  const validationError = useMemo(() => {
+    if (mode === "create" && !pnr.trim()) return "PNR is required.";
+    if (!airline.trim()) return "Airline is required.";
+    if (!flightNumber.trim()) return "Flight number is required.";
+    if (!departureAirport.trim() || !arrivalAirport.trim()) {
+      return "Departure and arrival airports are required.";
+    }
+    if (!departureTime.trim() || !arrivalTime.trim()) {
+      return "Departure and arrival dates are required.";
+    }
+    if (!ticketClass.trim()) return "Ticket class is required.";
+    if (!passengers.length || passengers.some((p) => !p.name.trim())) {
+      return "Add at least one passenger name.";
+    }
+    return null;
+  }, [
+    mode,
+    pnr,
+    airline,
+    flightNumber,
+    departureAirport,
+    arrivalAirport,
+    departureTime,
+    arrivalTime,
+    ticketClass,
+    passengers,
+  ]);
 
   const setPassenger = useCallback(
     (index: number, patch: Partial<FlightPassenger>) => {
@@ -236,46 +277,31 @@ export function FlightTicketForm({ mode, initial, pnr: routePnr }: Props) {
   const title = mode === "create" ? "New ticket" : "Edit ticket";
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={[styles.container, { paddingTop: insets.top }]}
+    <AdminScreen
+      keyboardAvoiding
+      testID={mode === "create" ? "flight-ticket-new-screen" : "flight-ticket-edit-screen"}
+      contentContainerStyle={styles.content}
+      footer={
+        <AdminBottomActionBar
+          primaryLabel={mode === "create" ? "Create ticket" : "Save changes"}
+          primaryIcon={mode === "create" ? "add-circle-outline" : "save-outline"}
+          primaryTestID="flight-ticket-save"
+          primaryDisabled={!!validationError || saving}
+          disabledReason={validationError ?? (saving ? "Saving…" : undefined)}
+          onPrimaryPress={() => void submit()}
+        />
+      }
     >
       <Stack.Screen options={{ title, headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{title}</Text>
-          <Text style={styles.headerSubtitle}>
-            {mode === "create" ? "PNR, passengers, fare and query link" : initial?.pnr}
-          </Text>
-        </View>
-        <Pressable
-          testID="flight-ticket-save"
-          accessibilityRole="button"
-          accessibilityLabel="Save flight ticket"
-          disabled={saving}
-          style={[styles.saveBtn, saving ? styles.disabled : null]}
-          onPress={() => void submit()}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Ionicons name="checkmark" size={20} color="#fff" />
-          )}
-        </Pressable>
-      </View>
 
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 36 }]}
-      >
+      <AdminTopBar
+        title={title}
+        subtitle={
+          mode === "create" ? "PNR, passengers, fare and query link" : (initial?.pnr ?? routePnr)
+        }
+        onBackPress={() => router.back()}
+        testID="flight-ticket-form-header"
+      />
         {error ? (
           <View style={styles.errorCard}>
             <Ionicons name="warning-outline" size={16} color={Colors.error} />
@@ -325,21 +351,19 @@ export function FlightTicketForm({ mode, initial, pnr: routePnr }: Props) {
           </View>
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Field
+              <DateOnlyField
                 testID="flight-ticket-departure-date"
                 label="Departure date"
                 value={departureTime}
-                onChangeText={setDepartureTime}
-                placeholder="YYYY-MM-DD"
+                onChange={setDepartureTime}
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Field
+              <DateOnlyField
                 testID="flight-ticket-arrival-date"
                 label="Arrival date"
                 value={arrivalTime}
-                onChangeText={setArrivalTime}
-                placeholder="YYYY-MM-DD"
+                onChange={setArrivalTime}
               />
             </View>
           </View>
@@ -479,27 +503,27 @@ export function FlightTicketForm({ mode, initial, pnr: routePnr }: Props) {
             }}
             placeholder="Customer, query number, or trip name"
           />
-          {queryLoading ? (
-            <ActivityIndicator color={Colors.primary} />
-          ) : queryResults.length ? (
-            <View style={styles.resultsBox}>
-              {queryResults.map((q) => (
-                <Pressable
-                  key={q.id}
-                  testID={`flight-ticket-query-option-${q.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Link ticket to ${displayQuery(q)}`}
-                  style={styles.queryOption}
-                  onPress={() => selectQuery(q)}
-                >
-                  <Text style={styles.queryTitle} numberOfLines={1}>
-                    {displayQuery(q)}
-                  </Text>
-                  <Text style={styles.queryMeta}>{q.tourPackageQueryNumber ?? q.id.slice(0, 8)}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
+          <Pressable
+            testID="flight-ticket-query-picker"
+            accessibilityRole="button"
+            accessibilityLabel="Choose tour query from search results"
+            style={styles.secondaryBtn}
+            disabled={queryLoading || queryResults.length === 0}
+            onPress={() => setQueryPickerOpen(true)}
+          >
+            {queryLoading ? (
+              <ActivityIndicator color={Colors.primary} />
+            ) : (
+              <>
+                <Ionicons name="search" size={18} color={Colors.primary} />
+                <Text style={styles.secondaryBtnText}>
+                  {queryResults.length
+                    ? `Choose from ${queryResults.length} result${queryResults.length === 1 ? "" : "s"}`
+                    : "Search to see trip options"}
+                </Text>
+              </>
+            )}
+          </Pressable>
           {tourPackageQueryId ? (
             <View style={styles.linkedPill}>
               <Ionicons name="link-outline" size={15} color={Colors.primary} />
@@ -520,8 +544,23 @@ export function FlightTicketForm({ mode, initial, pnr: routePnr }: Props) {
             </View>
           ) : null}
         </Section>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+      <AdminPickerSheet
+        visible={queryPickerOpen}
+        title="Link tour query"
+        options={queryOptions}
+        selectedId={tourPackageQueryId || null}
+        loading={queryLoading}
+        onClose={() => setQueryPickerOpen(false)}
+        onSelect={(opt) => {
+          const found = queryResults.find((q) => q.id === opt.id);
+          if (found) selectQuery(found);
+        }}
+        searchPlaceholder="Filter results…"
+        emptyLabel="No trips match your search."
+        testID="flight-ticket-query"
+      />
+    </AdminScreen>
   );
 }
 
@@ -559,6 +598,33 @@ function Field({
         accessibilityLabel={label}
         style={styles.input}
         placeholderTextColor={Colors.textTertiary}
+      />
+    </View>
+  );
+}
+
+function DateOnlyField({
+  label,
+  testID,
+  value,
+  onChange,
+}: {
+  label: string;
+  testID: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <View style={styles.fieldWrap}>
+      <Text style={styles.label}>{label}</Text>
+      <DateField
+        testID={testID}
+        accessibilityLabel={label}
+        style={styles.input}
+        value={value}
+        onChange={onChange}
+        placeholder="Choose date"
+        allowClear={false}
       />
     </View>
   );
@@ -605,33 +671,6 @@ function Segmented({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
-  saveBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disabled: { opacity: 0.65 },
   content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
   section: { gap: Spacing.sm },
   sectionTitle: {
@@ -716,19 +755,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBg,
   },
   secondaryBtnText: { color: Colors.primary, fontSize: FontSize.sm, fontWeight: "900" },
-  resultsBox: {
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    overflow: "hidden",
-  },
-  queryOption: {
-    padding: Spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderSubtle,
-  },
-  queryTitle: { fontSize: FontSize.sm, color: Colors.text, fontWeight: "800" },
-  queryMeta: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   linkedPill: {
     flexDirection: "row",
     alignItems: "center",

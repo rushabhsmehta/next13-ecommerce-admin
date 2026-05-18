@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -11,10 +10,15 @@ import {
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { OfflineGate } from "@/components/auth/PermissionGate";
+import {
+  AdminEmptyState,
+  AdminErrorState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { createFinanceClient, type FinanceAccount } from "@/lib/finance";
 
 function formatINR(n: number): string {
@@ -32,7 +36,6 @@ export default function FinanceAccountsScreen() {
 
 function FinanceAccountsScreenInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -75,121 +78,103 @@ function FinanceAccountsScreenInner() {
   }, [load]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="finance-accounts-screen"
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+    >
       <Stack.Screen options={{ title: "Accounts", headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Accounts</Text>
+
+      <AdminTopBar
+        title="Accounts"
+        subtitle={loading ? "…" : `Total ${formatINR(totalBalance)}`}
+        onBackPress={() => router.back()}
+        testID="finance-accounts-header"
+      />
+
+      <View style={styles.totalCard}>
+        <Text style={styles.totalLabel}>Total balance</Text>
+        <Text style={styles.totalValue}>
+          {loading ? "…" : formatINR(totalBalance)}
+        </Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{
-          padding: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
-        }
-      >
-        <View style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Total balance</Text>
-          <Text style={styles.totalValue}>
-            {loading ? "…" : formatINR(totalBalance)}
-          </Text>
-        </View>
+      {error ? (
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh")}
+          testID="finance-accounts-error"
+        />
+      ) : null}
 
-        {error ? (
-          <View style={styles.errorCard}>
-            <Ionicons name="warning-outline" size={16} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        {loading ? (
-          <ActivityIndicator
-            size="large"
-            color={Colors.primary}
-            style={{ marginTop: Spacing.xl }}
-          />
-        ) : accounts.length === 0 ? (
-          <Text style={styles.muted}>No active accounts.</Text>
-        ) : (
-          accounts.map((a) => (
-            <Pressable
-              key={`${a.kind}-${a.id}`}
-              testID={`account-${a.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${a.name}`}
-              style={styles.row}
-              onPress={() =>
-                router.push(
-                  `/admin/finance/accounts/${a.id}?kind=${a.kind}` as never
-                )
-              }
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={Colors.primary}
+          style={styles.loader}
+        />
+      ) : accounts.length === 0 ? (
+        <AdminEmptyState
+          icon="wallet-outline"
+          title="No active accounts"
+          body="Bank and cash accounts configured on the web will appear here."
+          testID="finance-accounts-empty"
+        />
+      ) : (
+        accounts.map((a) => (
+          <Pressable
+            key={`${a.kind}-${a.id}`}
+            testID={`account-${a.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${a.name}`}
+            style={styles.row}
+            onPress={() =>
+              router.push(
+                `/admin/finance/accounts/${a.id}?kind=${a.kind}` as never
+              )
+            }
+          >
+            <View
+              style={[
+                styles.iconCircle,
+                {
+                  backgroundColor: a.kind === "bank" ? "#dbeafe" : "#dcfce7",
+                },
+              ]}
             >
-              <View
-                style={[
-                  styles.iconCircle,
-                  {
-                    backgroundColor:
-                      a.kind === "bank" ? "#dbeafe" : "#dcfce7",
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={a.kind === "bank" ? "card-outline" : "cash-outline"}
-                  size={18}
-                  color={a.kind === "bank" ? "#2563eb" : "#16a34a"}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowName} numberOfLines={1}>
-                  {a.name}
-                </Text>
-                <Text style={styles.rowSub} numberOfLines={1}>
-                  {a.subtitle}
-                </Text>
-              </View>
-              <Text style={styles.rowBalance}>
-                {formatINR(a.currentBalance)}
+              <Ionicons
+                name={a.kind === "bank" ? "card-outline" : "cash-outline"}
+                size={18}
+                color={a.kind === "bank" ? "#2563eb" : "#16a34a"}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowName} numberOfLines={1}>
+                {a.name}
               </Text>
-            </Pressable>
-          ))
-        )}
-      </ScrollView>
-    </View>
+              <Text style={styles.rowSub} numberOfLines={1}>
+                {a.subtitle}
+              </Text>
+            </View>
+            <Text style={styles.rowBalance}>{formatINR(a.currentBalance)}</Text>
+          </Pressable>
+        ))
+      )}
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
+  scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingTop: Spacing.sm,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
   totalCard: {
     backgroundColor: Colors.primaryBg,
     borderRadius: BorderRadius.lg,
@@ -205,24 +190,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginTop: 4,
   },
-  errorCard: {
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  muted: {
-    fontSize: FontSize.sm,
-    color: Colors.textTertiary,
-    textAlign: "center",
-    marginTop: Spacing.xl,
-  },
+  loader: { marginTop: Spacing.xl },
   row: {
     flexDirection: "row",
     alignItems: "center",

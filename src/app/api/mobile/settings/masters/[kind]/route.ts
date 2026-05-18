@@ -109,7 +109,8 @@ async function createMaster(kind: string, v: z.infer<typeof createSchema>) {
   }
 }
 
-export async function POST(req: Request, { params }: { params: { kind: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ kind: string }> }) {
+  const params = await props.params;
   try {
     const userId = await verifyMobileBearerUserId(req);
     if (!userId) return NextResponse.json({ error: "Unauthorized", code: "AUTH" }, { status: 401 });

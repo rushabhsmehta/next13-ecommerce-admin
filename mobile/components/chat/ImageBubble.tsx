@@ -22,8 +22,9 @@ const THUMB_SIZE = 220;
 export function ImageBubble({ fileUrl, uploading }: Props) {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const imageUrl = fileUrl?.trim();
 
-  if (!fileUrl) {
+  if (!imageUrl) {
     return (
       <View style={[styles.thumb, styles.thumbPlaceholder]}>
         <Ionicons name="image-outline" size={32} color={Colors.textTertiary} />
@@ -41,7 +42,7 @@ export function ImageBubble({ fileUrl, uploading }: Props) {
       >
         <View style={styles.thumb}>
           <Image
-            source={{ uri: fileUrl }}
+            source={{ uri: imageUrl }}
             style={styles.image}
             onLoad={() => setLoaded(true)}
             resizeMode="cover"
@@ -61,7 +62,7 @@ export function ImageBubble({ fileUrl, uploading }: Props) {
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.lightboxBackdrop} onPress={() => setOpen(false)}>
-          <Image source={{ uri: fileUrl }} style={styles.lightboxImage} resizeMode="contain" />
+          <Image source={{ uri: imageUrl }} style={styles.lightboxImage} resizeMode="contain" />
           <View style={styles.lightboxClose}>
             <Ionicons name="close" size={28} color="#fff" />
           </View>

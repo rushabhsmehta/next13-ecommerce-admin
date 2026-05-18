@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -16,9 +15,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { REPORT_KINDS, REPORT_LABELS, type ReportKind } from "@/lib/reports";
 import {
-  AdminHeader,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
   AdminMetricCard,
+  AdminScreen,
   AdminSection,
+  AdminSegmentedControl,
+  AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -44,6 +48,11 @@ const WINDOWS: { id: number; label: string }[] = [
   { id: 90, label: "90d" },
   { id: 365, label: "1y" },
 ];
+
+const WINDOW_SEGMENTS = WINDOWS.map((w) => ({
+  id: String(w.id),
+  label: w.label,
+}));
 
 function formatINR(n: number): string {
   if (!Number.isFinite(n)) return "—";
@@ -108,78 +117,66 @@ export default function ReportsHubScreen() {
   }, [authLoading, days, load]);
 
   if (authLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading…" testID="reports-auth-loading" />;
   }
 
   if (!allowed) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="shield-outline" size={42} color={Colors.textTertiary} />
-        <Text style={styles.emptyTitle}>Reports access required</Text>
-        <Text style={styles.emptyText}>This view is restricted to admin/finance staff.</Text>
-      </View>
+      <AdminScreen testID="reports-forbidden">
+        <Stack.Screen options={{ title: "Reports", headerShown: false }} />
+        <AdminEmptyState
+          icon="shield-outline"
+          title="Reports access required"
+          body="This view is restricted to admin and finance staff."
+          testID="reports-forbidden-empty"
+        />
+      </AdminScreen>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="reports-hub-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh", days)}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={styles.scroll}
+    >
       <Stack.Screen options={{ title: "Reports", headerShown: false }} />
 
-      <AdminHeader
+      <AdminTopBar
         title="Reports"
         subtitle={data ? `Last ${data.windowDays} days` : "…"}
         onBackPress={() => router.back()}
-        showAccent
         testID="reports-admin-header"
       />
 
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 32 }]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh", days)} tintColor={Colors.primary} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.segmentRail, { marginHorizontal: Spacing.lg }]}>
-          {WINDOWS.map((w) => {
-            const active = days === w.id;
-            return (
-              <Pressable
-                key={w.id}
-                testID={`reports-window-${w.id}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Reporting window ${w.label}`}
-                accessibilityHint="Changes KPI window for this dashboard."
-                style={[styles.segment, active ? styles.segmentActive : null]}
-                onPress={() => setDays(w.id)}
-              >
-                <Text
-                  style={[styles.segmentLabel, active ? styles.segmentLabelActive : null]}
-                  allowFontScaling={false}
-                >
-                  {w.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+      <View style={styles.segmentInset}>
+        <AdminSegmentedControl
+          options={WINDOW_SEGMENTS}
+          value={String(days)}
+          onChange={(v) => setDays(Number(v))}
+          testIDPrefix="reports-window"
+          scrollable={false}
+        />
+      </View>
 
-        {error ? (
-          <View style={[styles.errorCard, { marginHorizontal: Spacing.lg }]}>
-            <Ionicons name="warning-outline" size={16} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
+      {error ? (
+        <AdminErrorState
+          message={error}
+          onRetry={() => void load("refresh", days)}
+          testID="reports-error"
+        />
+      ) : null}
 
-        {loading && !data ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        ) : data ? (
+      {loading && !data ? (
+        <ActivityIndicator style={styles.loadingBox} size="large" color={Colors.primary} />
+      ) : data ? (
           <>
             <AdminSection title="Liquidity" testID="reports-balances-section">
               <View
@@ -378,8 +375,7 @@ export default function ReportsHubScreen() {
             </AdminSection>
           </>
         ) : null}
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 
@@ -394,6 +390,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   scroll: { paddingHorizontal: 0, paddingTop: Spacing.sm, gap: Spacing.sm },
+  segmentInset: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm },
   segmentRail: {
     flexDirection: "row",
     flexWrap: "wrap",

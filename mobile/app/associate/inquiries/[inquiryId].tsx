@@ -14,6 +14,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { withAuth } from "@/lib/api";
 import { createAssociateInquiryClient, type AssociateInquiry } from "@/lib/associate-inquiries";
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
+import { DateField } from "@/components/ui/DateField";
 
 const STATUSES = ["PENDING", "HOT_QUERY", "QUERY_SENT", "CONFIRMED", "CANCELLED"] as const;
 
@@ -157,8 +158,15 @@ export default function AssociateInquiryDetailScreen() {
       <Text style={styles.sectionTitle}>Edit details</Text>
       <Text style={styles.label}>Status</Text>
       <TextInput style={styles.input} value={statusDraft} onChangeText={setStatusDraft} />
-      <Text style={styles.label}>Next follow-up date (YYYY-MM-DD)</Text>
-      <TextInput style={styles.input} value={nextFollowUpDate} onChangeText={setNextFollowUpDate} />
+      <Text style={styles.label}>Next follow-up date</Text>
+      <DateField
+        style={styles.input}
+        value={nextFollowUpDate}
+        onChange={setNextFollowUpDate}
+        placeholder="Choose follow-up date"
+        testID="associate-inquiry-follow-up"
+        accessibilityLabel="Next follow-up date"
+      />
       <Text style={styles.label}>Remarks</Text>
       <TextInput
         style={[styles.input, styles.textArea]}

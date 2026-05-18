@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -12,9 +11,15 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   createReportsClient,
@@ -56,7 +61,6 @@ export default function ReportDetailScreen() {
 
 function ReportDetailInner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { kind: rawKind } = useLocalSearchParams<{ kind: string }>();
   const kind: ReportKind = isReportKind(rawKind ?? "")
     ? (rawKind as ReportKind)
@@ -103,62 +107,46 @@ function ReportDetailInner() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading report…" testID="report-detail-loading" />;
   }
 
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errorTitle}>{error ?? "Report not found"}</Text>
-        <Pressable style={styles.retryBtn} onPress={() => void load()}>
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="report-detail-error">
+        <Stack.Screen options={{ title: REPORT_LABELS[kind], headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Report not found"}
+          onRetry={() => void load()}
+          testID="report-detail-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <AdminScreen
+      testID="report-detail-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: data.title, headerShown: false }} />
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {REPORT_LABELS[kind]}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {new Date(data.generatedAt).toLocaleString("en-IN")}
-          </Text>
-        </View>
-        <Pressable
-          testID="report-share"
-          accessibilityRole="button"
-          accessibilityLabel="Share report"
-          style={styles.iconBtn}
-          onPress={() => void shareReport()}
-        >
-          <Ionicons name="share-outline" size={20} color={Colors.text} />
-        </Pressable>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} />
+      <AdminTopBar
+        title={REPORT_LABELS[kind]}
+        subtitle={new Date(data.generatedAt).toLocaleString("en-IN")}
+        onBackPress={() => router.back()}
+        testID="report-detail-header"
+        rightSlot={
+          <AdminTopBarIconButton
+            icon="share-outline"
+            label="Share report"
+            testID="report-share"
+            onPress={() => void shareReport()}
+          />
         }
-      >
+      />
         <View style={styles.summaryGrid}>
           {data.summary.map((s) => (
             <View key={s.label} style={styles.summaryCard}>
@@ -193,8 +181,7 @@ function ReportDetailInner() {
             <Text style={styles.emptyText}>No rows for this report.</Text>
           )}
         </View>
-      </ScrollView>
-    </View>
+    </AdminScreen>
   );
 }
 

@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,10 +9,16 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+  AdminTopBarIconButton,
+} from "@/components/admin";
 import {
   createOperationsClient,
   type HotelPricingDetailResponse,
@@ -57,7 +60,6 @@ export default function HotelPricingDetailScreen() {
 
 function Inner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id: hotelId, pricingId, mode } = useLocalSearchParams<{
     id: string;
     pricingId: string;
@@ -121,21 +123,20 @@ function Inner() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <AdminLoadingState label="Loading pricing…" testID="hotel-pricing-detail-loading" />
     );
   }
 
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errText}>{error ?? "Not found"}</Text>
-        <Pressable style={styles.retry} onPress={() => void load()}>
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="hotel-pricing-detail-error">
+        <Stack.Screen options={{ title: "Pricing detail", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Pricing row not found"}
+          onRetry={() => void load()}
+          testID="hotel-pricing-detail-error-state"
+        />
+      </AdminScreen>
     );
   }
 
@@ -168,168 +169,92 @@ function Inner() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="hotel-pricing-detail"
+      bottomInset={Spacing.xl}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+    >
       <Stack.Screen options={{ title: "Pricing detail", headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Pricing detail
+      <AdminTopBar
+        title="Pricing detail"
+        subtitle={hotel.name}
+        onBackPress={() => router.back()}
+        testID="hotel-pricing-detail-header"
+        rightSlot={
+          <View style={styles.headerActions}>
+            <AdminTopBarIconButton
+              icon="create-outline"
+              label="Edit hotel pricing"
+              testID="hotel-pricing-edit"
+              onPress={() =>
+                router.push(
+                  `/admin/operations/hotels/${hotelId}/pricing/${pricingId}?mode=edit` as never
+                )
+              }
+            />
+            <AdminTopBarIconButton
+              icon="trash-outline"
+              label="Delete hotel pricing"
+              testID="hotel-pricing-delete"
+              disabled={deleting}
+              onPress={() =>
+                Alert.alert("Delete pricing?", "This removes the selected pricing period.", [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Delete", style: "destructive", onPress: () => void deletePricing() },
+                ])
+              }
+            />
+          </View>
+        }
+      />
+      <View style={styles.priceHero}>
+        <Text style={styles.priceLabel}>Nightly rate</Text>
+        <Text style={styles.priceValue}>{inr(p.price)}</Text>
+        <Text style={styles.dateRange}>
+          {fmtDate(p.startDate)} – {fmtDate(p.endDate)}
         </Text>
       </View>
 
-      <ScrollView
-        testID="hotel-pricing-detail"
-        contentContainerStyle={{
-          padding: Spacing.lg,
-          paddingBottom: insets.bottom + Spacing.xl,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
-        }
-      >
-        <Text style={styles.hotelName}>{hotel.name}</Text>
-        <View style={styles.priceHero}>
-          <Text style={styles.priceLabel}>Nightly rate</Text>
-          <Text style={styles.priceValue}>{inr(p.price)}</Text>
-          <Text style={styles.dateRange}>
-            {fmtDate(p.startDate)} – {fmtDate(p.endDate)}
-          </Text>
-        </View>
+      <View style={styles.card}>
+        <Row label="Room type" value={p.roomTypeName ?? "—"} />
+        {p.roomTypeDescription ? (
+          <Row label="Room notes" value={p.roomTypeDescription} />
+        ) : null}
+        <Row label="Occupancy" value={p.occupancyTypeName ?? "—"} />
+        {p.occupancyMaxPersons != null ? (
+          <Row label="Max guests" value={String(p.occupancyMaxPersons)} />
+        ) : null}
+        <Row label="Meal plan" value={meal} />
+        <Row label="Status" value={p.isActive ? "Active" : "Inactive"} />
+      </View>
 
-        <View style={styles.actionRow}>
-          <Pressable
-            testID="hotel-pricing-edit"
-            accessibilityRole="button"
-            accessibilityLabel="Edit hotel pricing"
-            style={styles.primaryAction}
-            onPress={() =>
-              router.push(
-                `/admin/operations/hotels/${hotelId}/pricing/${pricingId}?mode=edit` as never
-              )
-            }
-          >
-            <Ionicons name="create-outline" size={16} color="#fff" />
-            <Text style={styles.primaryActionText}>Edit</Text>
-          </Pressable>
-          <Pressable
-            testID="hotel-pricing-delete"
-            accessibilityRole="button"
-            accessibilityLabel="Delete hotel pricing"
-            disabled={deleting}
-            style={[styles.dangerAction, deleting ? styles.disabled : null]}
-            onPress={() =>
-              Alert.alert("Delete pricing?", "This removes the selected pricing period.", [
-                { text: "Cancel", style: "cancel" },
-                { text: "Delete", style: "destructive", onPress: () => void deletePricing() },
-              ])
-            }
-          >
-            {deleting ? (
-              <ActivityIndicator color={Colors.error} />
-            ) : (
-              <>
-                <Ionicons name="trash-outline" size={16} color={Colors.error} />
-                <Text style={styles.dangerActionText}>Delete</Text>
-              </>
-            )}
-          </Pressable>
-        </View>
-
-        <View style={styles.card}>
-          <Row label="Room type" value={p.roomTypeName ?? "—"} />
-          {p.roomTypeDescription ? (
-            <Row label="Room notes" value={p.roomTypeDescription} />
-          ) : null}
-          <Row label="Occupancy" value={p.occupancyTypeName ?? "—"} />
-          {p.occupancyMaxPersons != null ? (
-            <Row label="Max guests" value={String(p.occupancyMaxPersons)} />
-          ) : null}
-          <Row label="Meal plan" value={meal} />
-          <Row label="Status" value={p.isActive ? "Active" : "Inactive"} />
-        </View>
-
-        <View style={styles.noteCard}>
-          <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
-          <Text style={styles.noteText}>
-            New overlapping ranges are split automatically to preserve non-overlapping dates.
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
+      <View style={styles.noteCard}>
+        <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
+        <Text style={styles.noteText}>
+          New overlapping ranges are split automatically to preserve non-overlapping dates.
+        </Text>
+      </View>
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  backBtn: { padding: Spacing.xs },
-  headerTitle: { flex: 1, fontSize: FontSize.lg, fontWeight: "700", color: Colors.text },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.xl },
-  errText: { marginTop: Spacing.md, color: Colors.error, textAlign: "center" },
-  retry: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-  },
-  retryText: { color: "#fff", fontWeight: "600" },
-  hotelName: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
+  headerActions: { flexDirection: "row", gap: 4 },
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
   priceHero: {
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
-    marginBottom: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  actionRow: { flexDirection: "row", gap: Spacing.sm, marginBottom: Spacing.md },
-  primaryAction: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  primaryActionText: { color: "#fff", fontWeight: "800", fontSize: FontSize.sm },
-  dangerAction: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    backgroundColor: "#fff1f2",
-  },
-  dangerActionText: { color: Colors.error, fontWeight: "800", fontSize: FontSize.sm },
-  disabled: { opacity: 0.6 },
   priceLabel: { fontSize: FontSize.sm, color: Colors.textSecondary },
   priceValue: {
     fontSize: 28,
@@ -370,7 +295,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: Spacing.sm,
-    marginTop: Spacing.lg,
     padding: Spacing.md,
     backgroundColor: Colors.primaryBg,
     borderRadius: BorderRadius.md,

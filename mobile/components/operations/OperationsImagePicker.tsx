@@ -33,6 +33,7 @@ export function OperationsImagePicker({
   accessibilityLabel,
 }: Props) {
   const [uploading, setUploading] = useState(false);
+  const previewUrl = value.trim();
 
   async function pickImage() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -42,9 +43,10 @@ export function OperationsImagePicker({
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
+      quality: 0.72,
       allowsEditing: true,
       aspect: [1, 1],
+      exif: false,
     });
     if (result.canceled || !result.assets[0]) return;
 
@@ -78,8 +80,8 @@ export function OperationsImagePicker({
         onPress={pickImage}
         disabled={uploading}
       >
-        {value ? (
-          <Image source={{ uri: value }} style={styles.preview} accessibilityIgnoresInvertColors />
+        {previewUrl ? (
+          <Image source={{ uri: previewUrl }} style={styles.preview} accessibilityIgnoresInvertColors />
         ) : (
           <View style={styles.placeholder}>
             <Ionicons name="image-outline" size={32} color={Colors.textTertiary} />
@@ -94,7 +96,7 @@ export function OperationsImagePicker({
           </View>
         ) : null}
       </Pressable>
-      {value ? (
+      {previewUrl ? (
         <Pressable
           testID={testID ? `${testID}-remove` : undefined}
           accessibilityRole="button"

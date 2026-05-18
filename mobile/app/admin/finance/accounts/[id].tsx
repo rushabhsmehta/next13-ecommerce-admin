@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -11,8 +8,13 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
+import {
+  AdminErrorState,
+  AdminLoadingState,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { OfflineGate } from "@/components/auth/PermissionGate";
 import {
@@ -46,7 +48,6 @@ export default function FinanceAccountDetailScreen() {
 
 function Inner() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id, kind } = useLocalSearchParams<{ id: string; kind?: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -90,152 +91,104 @@ function Inner() {
   }, [load]);
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <AdminLoadingState label="Loading account…" testID="finance-account-loading" />;
   }
   if (error || !data) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={42} color={Colors.error} />
-        <Text style={styles.errText}>{error ?? "Account not found"}</Text>
-        <Pressable style={styles.retry} onPress={() => void load()}>
-          <Text style={styles.retryText}>Try again</Text>
-        </Pressable>
-      </View>
+      <AdminScreen testID="finance-account-error">
+        <Stack.Screen options={{ title: "Account", headerShown: false }} />
+        <AdminErrorState
+          message={error ?? "Account not found"}
+          onRetry={() => void load()}
+          testID="finance-account-error-state"
+        />
+      </AdminScreen>
     );
   }
 
   const { account, transactions } = data;
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+    <AdminScreen
+      testID="finance-account-detail-screen"
+      bottomInset={Spacing.xl}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => void load("refresh")}
+          tintColor={Colors.primary}
+        />
+      }
+      contentContainerStyle={styles.content}
+    >
       <Stack.Screen options={{ title: account.name, headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {account.name}
+
+      <AdminTopBar
+        title={account.name}
+        subtitle={kind === "cash" ? "Cash account" : "Bank account"}
+        onBackPress={() => router.back()}
+        testID="finance-account-header"
+      />
+
+      <View style={styles.balanceCard}>
+        <Text style={styles.balanceLabel}>Current balance</Text>
+        <Text style={styles.balanceValue}>{formatINR(account.currentBalance)}</Text>
+        <Text style={styles.openingText}>
+          Opening: {formatINR(account.openingBalance)}
         </Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{
-          padding: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => void load("refresh")}
-            tintColor={Colors.primary}
-          />
-        }
-      >
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Current balance</Text>
-          <Text style={styles.balanceValue}>
-            {formatINR(account.currentBalance)}
-          </Text>
-          <Text style={styles.openingText}>
-            Opening: {formatINR(account.openingBalance)}
-          </Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Recent transactions</Text>
-        {transactions.length === 0 ? (
-          <Text style={styles.muted}>No transactions yet.</Text>
-        ) : (
-          transactions.map((t) => (
-            <View key={t.id} style={styles.txRow}>
-              <View
-                style={[
-                  styles.txIcon,
-                  {
-                    backgroundColor: t.isInflow ? "#dcfce7" : "#fee2e2",
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={t.isInflow ? "arrow-down" : "arrow-up"}
-                  size={15}
-                  color={t.isInflow ? "#16a34a" : "#dc2626"}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.txDesc} numberOfLines={1}>
-                  {t.description || t.type}
-                </Text>
-                <Text style={styles.txMeta}>
-                  {formatDate(t.date)} · {t.type}
-                </Text>
-              </View>
-              <Text
-                style={[
-                  styles.txAmount,
-                  { color: t.isInflow ? "#16a34a" : "#dc2626" },
-                ]}
-              >
-                {t.isInflow ? "+" : "-"}
-                {formatINR(t.amount)}
+      <Text style={styles.sectionTitle}>Recent transactions</Text>
+      {transactions.length === 0 ? (
+        <Text style={styles.muted}>No transactions yet.</Text>
+      ) : (
+        transactions.map((t) => (
+          <View key={t.id} style={styles.txRow}>
+            <View
+              style={[
+                styles.txIcon,
+                { backgroundColor: t.isInflow ? "#dcfce7" : "#fee2e2" },
+              ]}
+            >
+              <Ionicons
+                name={t.isInflow ? "arrow-down" : "arrow-up"}
+                size={15}
+                color={t.isInflow ? "#16a34a" : "#dc2626"}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.txDesc} numberOfLines={1}>
+                {t.description || t.type}
+              </Text>
+              <Text style={styles.txMeta}>
+                {formatDate(t.date)} · {t.type}
               </Text>
             </View>
-          ))
-        )}
-      </ScrollView>
-    </View>
+            <Text
+              style={[
+                styles.txAmount,
+                { color: t.isInflow ? "#16a34a" : "#dc2626" },
+              ]}
+            >
+              {t.isInflow ? "+" : "-"}
+              {formatINR(t.amount)}
+            </Text>
+          </View>
+        ))
+      )}
+    </AdminScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.background,
-    gap: Spacing.sm,
-    padding: Spacing.xl,
-  },
-  errText: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text, textAlign: "center" },
-  retry: {
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary,
-  },
-  retryText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
+  content: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
   balanceCard: {
     backgroundColor: Colors.primaryBg,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.primaryLight,
     padding: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   balanceLabel: { fontSize: FontSize.xs, color: Colors.primary, fontWeight: "800" },
   balanceValue: {
@@ -254,6 +207,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: Colors.text,
     marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   muted: { fontSize: FontSize.sm, color: Colors.textTertiary },
   txRow: {

@@ -64,6 +64,11 @@ export default function CustomersListScreen() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
+  const requestIdRef = useRef(0);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -80,13 +85,14 @@ export default function CustomersListScreen() {
         setLoading(false);
         return;
       }
+      const reqId = ++requestIdRef.current;
       if (mode === "more") setLoadingMore(true);
       else if (mode === "refresh") setRefreshing(true);
       else setLoading(true);
       setError(null);
 
       try {
-        const nextOffset = mode === "more" ? offset : 0;
+        const nextOffset = mode === "more" ? offsetRef.current : 0;
         const qs = new URLSearchParams();
         qs.set("limit", String(PAGE_SIZE));
         qs.set("offset", String(nextOffset));
@@ -95,21 +101,25 @@ export default function CustomersListScreen() {
           `/api/mobile/customers?${qs.toString()}`,
           { retries: 1 }
         );
+        if (requestIdRef.current !== reqId) return;
         setHasMore(data.hasMore);
         setOffset(data.nextOffset);
         setTotal(data.total);
         setItems((prev) => (mode === "more" ? [...prev, ...data.customers] : data.customers));
       } catch (err) {
+        if (requestIdRef.current !== reqId) return;
         const message =
           err instanceof ApiError ? err.message : "Could not load customers.";
         setError(message);
       } finally {
-        setLoading(false);
-        setRefreshing(false);
-        setLoadingMore(false);
+        if (requestIdRef.current === reqId) {
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
       }
     },
-    [canUseAdmin, request, offset]
+    [canUseAdmin, request]
   );
 
   useEffect(() => {

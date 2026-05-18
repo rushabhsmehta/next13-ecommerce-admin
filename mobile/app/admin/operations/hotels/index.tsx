@@ -62,6 +62,11 @@ function Inner() {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
+  const requestIdRef = useRef(0);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -76,31 +81,36 @@ function Inner() {
 
   const load = useCallback(
     async (mode: "initial" | "refresh" | "more", term: string) => {
+      const reqId = ++requestIdRef.current;
       if (mode === "more") setLoadingMore(true);
       else if (mode === "refresh") setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        const nextOffset = mode === "more" ? offset : 0;
+        const nextOffset = mode === "more" ? offsetRef.current : 0;
         const res = await client.listHotels({
           search: term || undefined,
           locationId: locationFilter,
           limit: PAGE_SIZE,
           offset: nextOffset,
         });
+        if (requestIdRef.current !== reqId) return;
         setHasMore(res.hasMore);
         setOffset(res.nextOffset);
         setTotal(res.total);
         setItems((prev) => (mode === "more" ? [...prev, ...res.items] : res.items));
       } catch (err) {
+        if (requestIdRef.current !== reqId) return;
         setError(err instanceof ApiError ? err.message : "Could not load hotels.");
       } finally {
-        setLoading(false);
-        setRefreshing(false);
-        setLoadingMore(false);
+        if (requestIdRef.current === reqId) {
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
       }
     },
-    [client, offset, locationFilter]
+    [client, locationFilter]
   );
 
   useEffect(() => {

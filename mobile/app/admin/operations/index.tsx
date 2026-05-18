@@ -78,6 +78,11 @@ export default function OperationsHubScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
+  const requestIdRef = useRef(0);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -93,13 +98,14 @@ export default function OperationsHubScreen() {
         setLoading(false);
         return;
       }
+      const reqId = ++requestIdRef.current;
       if (mode === "more") setLoadingMore(true);
       else if (mode === "refresh") setRefreshing(true);
       else setLoading(true);
       setError(null);
 
       try {
-        const nextOffset = mode === "more" ? offset : 0;
+        const nextOffset = mode === "more" ? offsetRef.current : 0;
         const qs = new URLSearchParams();
         qs.set("type", type);
         qs.set("limit", String(PAGE_SIZE));
@@ -109,19 +115,23 @@ export default function OperationsHubScreen() {
           `/api/mobile/operations/list?${qs.toString()}`,
           { retries: 1 }
         );
+        if (requestIdRef.current !== reqId) return;
         setHasMore(data.hasMore);
         setOffset(data.nextOffset);
         setTotal(data.total);
         setItems((prev) => (mode === "more" ? [...prev, ...data.items] : data.items));
       } catch (err) {
+        if (requestIdRef.current !== reqId) return;
         setError(err instanceof ApiError ? err.message : "Could not load data.");
       } finally {
-        setLoading(false);
-        setRefreshing(false);
-        setLoadingMore(false);
+        if (requestIdRef.current === reqId) {
+          setLoading(false);
+          setRefreshing(false);
+          setLoadingMore(false);
+        }
       }
     },
-    [canUseAdmin, request, offset]
+    [canUseAdmin, request]
   );
 
   useEffect(() => {

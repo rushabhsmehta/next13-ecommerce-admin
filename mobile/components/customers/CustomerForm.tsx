@@ -35,6 +35,13 @@ import {
 } from "@/lib/associate-partners";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidPhone(value: string): boolean {
+  if (!/^[0-9+\s()-]+$/.test(value)) return false;
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
 
 interface InitialValues {
   name: string;
@@ -99,8 +106,21 @@ export function CustomerForm({ mode, customerId, initial, title }: Props) {
   const screenTitle = title ?? (mode === "create" ? "New customer" : "Edit customer");
   const birthdateOk = !birthdate || ISO_DATE.test(birthdate);
   const anniversaryOk = !marriageAnniversary || ISO_DATE.test(marriageAnniversary);
+  const emailError =
+    email.trim().length > 0 && !EMAIL_RE.test(email.trim())
+      ? "Enter a valid email address."
+      : undefined;
+  const contactError =
+    contact.trim().length > 0 && !isValidPhone(contact.trim())
+      ? "Enter a valid phone number."
+      : undefined;
   const canSubmit =
-    name.trim().length > 0 && birthdateOk && anniversaryOk && !submitting;
+    name.trim().length > 0 &&
+    birthdateOk &&
+    anniversaryOk &&
+    !emailError &&
+    !contactError &&
+    !submitting;
 
   const partnerOptions = useMemo(
     () =>
@@ -178,11 +198,15 @@ export function CustomerForm({ mode, customerId, initial, title }: Props) {
           disabledReason={
             !name.trim()
               ? "Enter a name to save."
-              : !birthdateOk || !anniversaryOk
-                ? "Choose valid dates."
-                : submitting
-                  ? "Saving…"
-                  : undefined
+              : contactError
+                ? contactError
+                : emailError
+                  ? emailError
+                  : !birthdateOk || !anniversaryOk
+                    ? "Choose valid dates."
+                    : submitting
+                      ? "Saving…"
+                      : undefined
           }
           onPrimaryPress={submit}
         />
@@ -211,7 +235,10 @@ export function CustomerForm({ mode, customerId, initial, title }: Props) {
             maxLength={200}
           />
         </AdminFormField>
-        <AdminFormField label="Mobile number">
+        <AdminFormField
+          label="Mobile number"
+          error={contact.trim().length > 0 ? contactError : undefined}
+        >
           <TextInput
             testID="customer-form-contact"
             accessibilityLabel="Mobile number"
@@ -224,7 +251,10 @@ export function CustomerForm({ mode, customerId, initial, title }: Props) {
             autoCorrect={false}
           />
         </AdminFormField>
-        <AdminFormField label="Email">
+        <AdminFormField
+          label="Email"
+          error={email.trim().length > 0 ? emailError : undefined}
+        >
           <TextInput
             testID="customer-form-email"
             accessibilityLabel="Email"

@@ -33,6 +33,15 @@ const EMPTY: InitialValues = {
   address: "",
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
+function isValidPhone(value: string): boolean {
+  if (!/^[0-9+\s()-]+$/.test(value)) return false;
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 interface Props {
   mode: "create" | "edit";
   supplierId?: string;
@@ -61,7 +70,34 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   const screenTitle = mode === "create" ? "New supplier" : "Edit supplier";
-  const canSubmit = name.trim().length > 0 && !submitting;
+
+  const nameError = name.trim().length === 0 ? "Enter a supplier name." : undefined;
+  const emailError =
+    email.trim().length > 0 && !EMAIL_RE.test(email.trim())
+      ? "Enter a valid email address."
+      : undefined;
+  const contactError =
+    contact.trim().length > 0 && !isValidPhone(contact.trim())
+      ? "Enter a valid phone number."
+      : undefined;
+  const gstError =
+    gstNumber.trim().length > 0 && !GSTIN_RE.test(gstNumber.trim().toUpperCase())
+      ? "Enter a valid 15-character GSTIN."
+      : undefined;
+
+  const disabledReason = nameError
+    ? nameError
+    : emailError
+      ? emailError
+      : contactError
+        ? contactError
+        : gstError
+          ? gstError
+          : submitting
+            ? "Saving…"
+            : undefined;
+  const canSubmit =
+    !nameError && !emailError && !contactError && !gstError && !submitting;
 
   async function submit() {
     if (!canSubmit) return;
@@ -103,9 +139,7 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
           primaryIcon={mode === "create" ? "add-circle-outline" : "save-outline"}
           primaryTestID="supplier-form-submit"
           primaryDisabled={!canSubmit}
-          disabledReason={
-            !name.trim() ? "Enter a supplier name." : submitting ? "Saving…" : undefined
-          }
+          disabledReason={disabledReason}
           onPrimaryPress={submit}
         />
       }
@@ -133,7 +167,10 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
             maxLength={200}
           />
         </AdminFormField>
-        <AdminFormField label="Contact number">
+        <AdminFormField
+          label="Contact number"
+          error={contact.trim().length > 0 ? contactError : undefined}
+        >
           <TextInput
             testID="supplier-form-contact"
             accessibilityLabel="Contact number"
@@ -146,7 +183,10 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
             autoCorrect={false}
           />
         </AdminFormField>
-        <AdminFormField label="Email">
+        <AdminFormField
+          label="Email"
+          error={email.trim().length > 0 ? emailError : undefined}
+        >
           <TextInput
             testID="supplier-form-email"
             accessibilityLabel="Email"
@@ -160,7 +200,10 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
             autoCorrect={false}
           />
         </AdminFormField>
-        <AdminFormField label="GST number">
+        <AdminFormField
+          label="GST number"
+          error={gstNumber.trim().length > 0 ? gstError : undefined}
+        >
           <TextInput
             testID="supplier-form-gst"
             accessibilityLabel="GST number"

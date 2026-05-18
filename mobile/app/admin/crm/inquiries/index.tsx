@@ -398,6 +398,16 @@ const STATUS_PILL: Record<string, { variant: AdminStatusPillVariant; label: stri
   cancelled: { variant: "muted", label: "Cancelled" },
 };
 
+// Date-only fields (nextFollowUpDate) arrive as ISO strings, often UTC
+// midnight (e.g. 2026-05-19T00:00:00.000Z). Running them through
+// `new Date(...).toLocaleDateString()` shifts the day by ±1 on devices in a
+// non-UTC timezone. Format the date-only portion directly from the string.
+function formatDateOnly(iso: string): string {
+  const m = iso.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
 function statusPill(status: string): { variant: AdminStatusPillVariant; label: string } {
   return (
     STATUS_PILL[status?.toLowerCase()] ?? {
@@ -459,7 +469,7 @@ function InquiryCard({
           <View style={styles.followRow}>
             <Ionicons name="alarm-outline" size={12} color={Colors.warning} />
             <Text style={styles.cardFollowUp} numberOfLines={1}>
-              Follow-up {new Date(row.nextFollowUpDate).toLocaleDateString("en-IN")}
+              Follow-up {formatDateOnly(row.nextFollowUpDate)}
             </Text>
           </View>
         ) : null}

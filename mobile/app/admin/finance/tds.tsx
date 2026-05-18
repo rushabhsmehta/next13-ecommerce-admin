@@ -4,7 +4,6 @@ import {
   Alert,
   FlatList,
   Modal,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -18,8 +17,11 @@ import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { OfflineGate } from "@/components/auth/PermissionGate";
 import {
+  AdminBottomActionBar,
   AdminEmptyState,
   AdminErrorState,
+  AdminFormField,
+  AdminFormSection,
   AdminScreen,
   AdminSegmentedControl,
   AdminTopBar,
@@ -305,7 +307,7 @@ function Inner() {
 
       <FlatList
         data={rows}
-        keyExtractor={(r) => r.id}
+        keyExtractor={(r, idx) => `${tab}-${r?.id ?? idx}`}
         style={styles.list}
         contentContainerStyle={[
           styles.listContent,
@@ -334,68 +336,70 @@ function Inner() {
         animationType="slide"
         onRequestClose={() => setChallanModal(false)}
       >
-        <View style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 8 }]}>
-            <Text style={styles.modalTitle}>New TDS challan</Text>
-            <Pressable
-              testID="tds-challan-close"
-              accessibilityLabel="Close"
-              onPress={() => setChallanModal(false)}
-            >
-              <Text style={styles.modalClose}>Close</Text>
-            </Pressable>
-          </View>
-          <View style={{ padding: Spacing.lg }}>
-            <Text style={styles.label}>BSR code</Text>
-            <TextInput
-              testID="tds-challan-bsr"
-              style={styles.input}
-              value={bsr}
-              onChangeText={setBsr}
-              placeholder="Optional"
-              placeholderTextColor={Colors.textTertiary}
-            />
-            <Text style={styles.label}>Challan serial no.</Text>
-            <TextInput
-              testID="tds-challan-serial"
-              style={styles.input}
-              value={serial}
-              onChangeText={setSerial}
-              placeholder="Optional"
-              placeholderTextColor={Colors.textTertiary}
-            />
-            <Text style={styles.label}>Bank name</Text>
-            <TextInput
-              testID="tds-challan-bank"
-              style={styles.input}
-              value={bank}
-              onChangeText={setBank}
-              placeholder="Optional"
-              placeholderTextColor={Colors.textTertiary}
-            />
-            <Text style={styles.help}>
-              Records a challan dated today. Linking specific TDS transactions
-              and the government deposit (bank movement) stays on the web.
-            </Text>
-            <Pressable
-              testID="tds-challan-submit"
-              accessibilityRole="button"
-              accessibilityLabel="Create challan"
-              disabled={challanSubmitting}
-              style={[
-                styles.submit,
-                challanSubmitting ? styles.submitDisabled : null,
-              ]}
-              onPress={createChallan}
+        <AdminScreen
+          keyboardAvoiding
+          testID="tds-challan-screen"
+          footer={
+            <AdminBottomActionBar
+              primaryLabel="Create challan"
+              primaryIcon="save-outline"
+              primaryTestID="tds-challan-submit"
+              primaryDisabled={challanSubmitting}
+              disabledReason={challanSubmitting ? "Saving…" : undefined}
+              onPrimaryPress={createChallan}
             >
               {challanSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitText}>Create challan</Text>
-              )}
-            </Pressable>
-          </View>
-        </View>
+                <ActivityIndicator color={Colors.primary} />
+              ) : null}
+            </AdminBottomActionBar>
+          }
+        >
+          <AdminTopBar
+            title="New TDS challan"
+            onBackPress={() => setChallanModal(false)}
+            testID="tds-challan-header"
+          />
+
+          <AdminFormSection
+            title="Challan details"
+            description="Records a challan dated today. Linking specific TDS transactions and the government deposit (bank movement) stays on the web."
+            testID="tds-challan-section"
+          >
+            <AdminFormField label="BSR code">
+              <TextInput
+                testID="tds-challan-bsr"
+                accessibilityLabel="BSR code"
+                style={styles.input}
+                value={bsr}
+                onChangeText={setBsr}
+                placeholder="Optional"
+                placeholderTextColor={Colors.textTertiary}
+              />
+            </AdminFormField>
+            <AdminFormField label="Challan serial no.">
+              <TextInput
+                testID="tds-challan-serial"
+                accessibilityLabel="Challan serial number"
+                style={styles.input}
+                value={serial}
+                onChangeText={setSerial}
+                placeholder="Optional"
+                placeholderTextColor={Colors.textTertiary}
+              />
+            </AdminFormField>
+            <AdminFormField label="Bank name">
+              <TextInput
+                testID="tds-challan-bank"
+                accessibilityLabel="Bank name"
+                style={styles.input}
+                value={bank}
+                onChangeText={setBank}
+                placeholder="Optional"
+                placeholderTextColor={Colors.textTertiary}
+              />
+            </AdminFormField>
+          </AdminFormSection>
+        </AdminScreen>
       </Modal>
     </AdminScreen>
   );
@@ -432,49 +436,14 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: 10, fontWeight: "800", color: Colors.textSecondary },
   amount: { fontSize: FontSize.md, fontWeight: "900", color: Colors.text },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  modalTitle: { fontSize: FontSize.lg, fontWeight: "800", color: Colors.text },
-  modalClose: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginTop: Spacing.md,
-    marginBottom: 4,
-  },
   input: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSize.md,
     color: Colors.text,
   },
-  help: {
-    color: Colors.textTertiary,
-    fontSize: FontSize.xs,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  submit: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.md,
-  },
-  submitDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
 });

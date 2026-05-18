@@ -141,12 +141,16 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
   }, [loadLookups]);
 
   const screenTitle = mode === "create" ? "New hotel pricing" : "Edit hotel pricing";
+  const priceValid =
+    price.trim().length > 0 &&
+    !Number.isNaN(Number(price)) &&
+    Number(price) >= 0;
+  const datesValid = endDate >= startDate;
   const canSubmit =
     !!roomTypeId &&
     !!occupancyTypeId &&
-    price.trim().length > 0 &&
-    Number(price) >= 0 &&
-    !Number.isNaN(Number(price)) &&
+    priceValid &&
+    datesValid &&
     !submitting;
 
   const pickerOptions =
@@ -200,10 +204,6 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
 
   async function submit() {
     if (!canSubmit) return;
-    if (endDate < startDate) {
-      Alert.alert("Invalid dates", "End date must be on or after the start date.");
-      return;
-    }
 
     if (mode === "create") {
       try {
@@ -241,11 +241,13 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
               ? "Select a room type."
               : !occupancyTypeId
                 ? "Select an occupancy."
-                : !price.trim() || Number.isNaN(Number(price))
+                : !priceValid
                   ? "Enter a valid price."
-                  : submitting
-                    ? "Saving…"
-                    : undefined
+                  : !datesValid
+                    ? "End date must be on or after the start date."
+                    : submitting
+                      ? "Saving…"
+                      : undefined
           }
           onPrimaryPress={submit}
         />
@@ -310,7 +312,11 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
             onPress={() => setDateField("start")}
           />
         </AdminFormField>
-        <AdminFormField label="End date" required>
+        <AdminFormField
+          label="End date"
+          required
+          error={!datesValid ? "Must be on or after the start date." : undefined}
+        >
           <DateButton
             testID="hotel-pricing-form-end-date"
             label={fmtDateLabel(endDate)}

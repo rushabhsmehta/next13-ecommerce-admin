@@ -42,6 +42,14 @@ interface ChatGroup {
     createdAt: string;
     sender: { name: string } | null;
   } | null;
+  unreadCount?: number;
+  notificationsMuted?: boolean;
+  latestPinnedAnnouncement?: {
+    id: string;
+    content: string | null;
+    messageType: string;
+    isImportant: boolean;
+  } | null;
 }
 
 function relativeTime(dateStr: string): string {
@@ -131,8 +139,10 @@ export default function ChatTab() {
           fetched.map(async (g) => {
             const state = await chatCache.getGroupState(g.id);
             const latestId = g.lastMessage?.id ?? null;
+            const serverUnread =
+              typeof g.unreadCount === "number" ? g.unreadCount : undefined;
             const isUnread = !!latestId && latestId !== state.lastSeenMessageId;
-            setUnread(g.id, isUnread ? Math.max(state.unreadCount, 1) : 0);
+            setUnread(g.id, serverUnread ?? (isUnread ? Math.max(state.unreadCount, 1) : 0));
           })
         );
       }
@@ -298,6 +308,12 @@ export default function ChatTab() {
                 {dateRange ? (
                   <Text style={styles.groupDates} numberOfLines={1}>{dateRange}</Text>
                 ) : null}
+                {item.latestPinnedAnnouncement ? (
+                  <Text style={styles.pinnedPreview} numberOfLines={1}>
+                    {item.latestPinnedAnnouncement.isImportant ? "Important: " : "Pinned: "}
+                    {item.latestPinnedAnnouncement.content || item.latestPinnedAnnouncement.messageType}
+                  </Text>
+                ) : null}
                 <Text style={styles.lastMessage} numberOfLines={1}>
                   {lastMessagePreview(item.lastMessage)}
                 </Text>
@@ -312,6 +328,18 @@ export default function ChatTab() {
                     <Text style={styles.memberCount}>{item.members.length}</Text>
                   </View>
                 )}
+                <View style={styles.groupBadgeRow}>
+                  {item.notificationsMuted ? (
+                    <Ionicons name="notifications-off-outline" size={14} color={Colors.textTertiary} />
+                  ) : null}
+                  {(item.unreadCount ?? 0) > 0 ? (
+                    <View style={styles.unreadBadge}>
+                      <Text style={styles.unreadText}>
+                        {(item.unreadCount ?? 0) > 99 ? "99+" : item.unreadCount}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
             </TouchableOpacity>
           );
@@ -448,11 +476,23 @@ const styles = StyleSheet.create({
   groupInfo: { flex: 1, gap: 2 },
   groupName: { fontSize: 15, fontWeight: "700", color: Colors.text },
   groupDates: { fontSize: 12, color: Colors.primary, fontWeight: "500" },
+  pinnedPreview: { fontSize: 12, color: "#92400E", fontWeight: "700" },
   lastMessage: { fontSize: 13, color: Colors.textTertiary },
   groupMeta: { alignItems: "flex-end", gap: 4 },
   timeText: { fontSize: 11, color: Colors.textTertiary },
   memberBadge: { flexDirection: "row", alignItems: "center", gap: 3 },
   memberCount: { fontSize: 11, color: Colors.textTertiary },
+  groupBadgeRow: { minHeight: 20, flexDirection: "row", alignItems: "center", gap: 6 },
+  unreadBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.primary,
+  },
+  unreadText: { color: "#fff", fontSize: 11, fontWeight: "900" },
   fab: {
     position: "absolute",
     bottom: 24,

@@ -7,6 +7,10 @@ import {
   changeMemberRole,
   leaveGroup,
   searchTravelUsers,
+  inviteGroupMember,
+  cancelGroupInvite,
+  setGroupNotificationsMuted,
+  createChatGroup,
 } from "../../lib/chat/api";
 
 const tok = async () => "test-token";
@@ -249,6 +253,98 @@ describe("chat group + member API helpers", () => {
       const [url] = (global.fetch as jest.Mock).mock.calls[0];
       expect(String(url)).toContain("groupId=g%201");
       expect(String(url)).toContain("q=Goa%20%26%20Kerala");
+    });
+  });
+
+  describe("inviteGroupMember", () => {
+    it("POSTs a pending invite payload", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            invite: {
+              id: "inv1",
+              invitedName: "Traveller",
+              invitedEmail: "t@example.com",
+              invitedPhone: null,
+              role: "TOURIST",
+              status: "PENDING",
+              createdAt: "x",
+            },
+          }),
+      });
+      const invite = await inviteGroupMember({
+        groupId: "g1",
+        invitedName: "Traveller",
+        invitedEmail: "t@example.com",
+        role: "TOURIST",
+        getToken: tok,
+      });
+      expect(invite.id).toBe("inv1");
+      const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(String(url)).toContain("/api/chat/groups/g1/members");
+      expect(init.method).toBe("POST");
+      expect(JSON.parse(init.body)).toEqual({
+        invitedName: "Traveller",
+        invitedEmail: "t@example.com",
+        invitedPhone: null,
+        role: "TOURIST",
+      });
+    });
+  });
+
+  describe("cancelGroupInvite", () => {
+    it("DELETEs with inviteId query param", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(""),
+      });
+      await cancelGroupInvite({ groupId: "g1", inviteId: "inv1", getToken: tok });
+      const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(String(url)).toContain("/api/chat/groups/g1/members?inviteId=inv1");
+      expect(init.method).toBe("DELETE");
+    });
+  });
+
+  describe("setGroupNotificationsMuted", () => {
+    it("PATCHes the current member notification preference", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ member: { notificationsMuted: true } }),
+      });
+      const muted = await setGroupNotificationsMuted({
+        groupId: "g1",
+        notificationsMuted: true,
+        getToken: tok,
+      });
+      expect(muted).toBe(true);
+      const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(String(url)).toContain("/api/chat/groups/g1/members/me/notifications");
+      expect(init.method).toBe("PATCH");
+      expect(JSON.parse(init.body)).toEqual({ notificationsMuted: true });
+    });
+  });
+
+  describe("createChatGroup", () => {
+    it("POSTs a trip-linked group", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: "g2", name: "Trip", tourPackageQueryId: "tpq1" }),
+      });
+      const group = await createChatGroup({
+        name: "Trip",
+        tourPackageQueryId: "tpq1",
+        tourStartDate: "2026-01-01",
+        tourEndDate: "2026-01-05",
+        getToken: tok,
+      });
+      expect(group.id).toBe("g2");
+      const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(init.method).toBe("POST");
+      expect(JSON.parse(init.body)).toMatchObject({
+        name: "Trip",
+        tourPackageQueryId: "tpq1",
+      });
     });
   });
 });

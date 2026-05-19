@@ -70,6 +70,10 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
             id: true,
             content: true,
             messageType: true,
+            isAnnouncement: true,
+            isImportant: true,
+            isPinned: true,
+            pinnedAt: true,
             isDeleted: true,
             sender: { select: { id: true, name: true } },
           },
@@ -149,6 +153,9 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
       contactPhone,
       tourPackageId,
       replyToId,
+      isAnnouncement = false,
+      isPinned = false,
+      isImportant = false,
     } = body;
 
     // If replyToId is provided, ensure it points at a non-deleted message in this group.
@@ -186,6 +193,15 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
         break;
     }
 
+    const canAnnounce = ["ADMIN", "OPERATIONS"].includes(membership.role);
+    const announcementRequested = Boolean(isAnnouncement || isPinned || isImportant);
+    if (announcementRequested && !canAnnounce) {
+      return jsonError("Only admins and operations staff can send announcements", 403);
+    }
+    const messageIsAnnouncement = canAnnounce && Boolean(isAnnouncement || isPinned || isImportant);
+    const messageIsPinned = canAnnounce && Boolean(isPinned || isImportant);
+    const messageIsImportant = canAnnounce && Boolean(isImportant);
+
     const message = await prismadb.chatMessage.create({
       data: {
         chatGroupId: params.groupId,
@@ -201,6 +217,11 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
         contactPhone,
         tourPackageId,
         replyToId: validReplyToId,
+        isAnnouncement: messageIsAnnouncement,
+        isPinned: messageIsPinned,
+        isImportant: messageIsImportant,
+        pinnedAt: messageIsPinned ? new Date() : undefined,
+        pinnedById: messageIsPinned ? travelUser.id : undefined,
       },
       include: {
         sender: {
@@ -211,6 +232,10 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
             id: true,
             content: true,
             messageType: true,
+            isAnnouncement: true,
+            isImportant: true,
+            isPinned: true,
+            pinnedAt: true,
             isDeleted: true,
             sender: { select: { id: true, name: true } },
           },
@@ -234,7 +259,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
         messageId: message.id,
         senderName: message.sender?.name ?? travelUser.name,
         groupName: group.name,
-        preview: previewForPush(messageType, content),
+        preview: `${messageIsImportant ? "Important: " : ""}${previewForPush(messageType, content)}`,
       },
     }).catch((err) => console.error("[CHAT_MESSAGE_PUSH] failed", err));
 

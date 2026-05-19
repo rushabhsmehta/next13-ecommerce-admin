@@ -128,7 +128,7 @@ export async function sendChatMessagePush(opts: {
       travelAppUserId: { not: excludeTravelAppUserId },
       travelAppUser: {
         chatMemberships: {
-          some: { chatGroupId: groupId, isActive: true },
+          some: { chatGroupId: groupId, isActive: true, notificationsMuted: false },
         },
       },
     },

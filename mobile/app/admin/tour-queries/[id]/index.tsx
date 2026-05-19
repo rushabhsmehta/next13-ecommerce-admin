@@ -46,6 +46,7 @@ import {
   type TourQueryLifecycleAction,
 } from "@/lib/tour-query-lifecycle";
 import { downloadAndSharePdf } from "@/lib/pdf-download";
+import { createChatGroup, findChatGroupByTrip } from "@/lib/chat/api";
 
 interface FlightDetail {
   id: string;
@@ -282,6 +283,7 @@ function TourQueryDetailScreenInner() {
   const [policiesOpen, setPoliciesOpen] = useState(false);
   const [flightsOpen, setFlightsOpen] = useState(false);
   const [successNote, setSuccessNote] = useState<string | null>(null);
+  const [chatBusy, setChatBusy] = useState(false);
 
   useEffect(() => {
     if (!successNote) return;
@@ -424,6 +426,45 @@ function TourQueryDetailScreenInner() {
     await handleShareTrip();
   }, [handleShareTrip]);
 
+  const openTripChat = useCallback(async () => {
+    if (!id || !data) return;
+    setChatBusy(true);
+    try {
+      const existing = await findChatGroupByTrip({
+        tourPackageQueryId: id,
+        getToken: () => getTokenRef.current(),
+      });
+      if (existing) {
+        router.push(`/chat/${existing.id}` as never);
+        return;
+      }
+      if (!canWriteSales) {
+        Alert.alert("No chat group yet", "Ask an admin or operations user to create this trip group.");
+        return;
+      }
+      const title =
+        data.tourPackageQueryName?.trim() ||
+        data.tourPackageQueryNumber ||
+        "Trip group";
+      const created = await createChatGroup({
+        name: title,
+        description: data.location?.label
+          ? `${data.location.label} trip group`
+          : "Trip group chat",
+        tourPackageQueryId: id,
+        tourStartDate: data.tourStartsFrom,
+        tourEndDate: data.tourEndsOn,
+        getToken: () => getTokenRef.current(),
+      });
+      router.push(`/chat/${created.id}` as never);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not open trip chat.";
+      Alert.alert("Trip chat unavailable", message);
+    } finally {
+      setChatBusy(false);
+    }
+  }, [id, data, router, canWriteSales]);
+
   const runLifecycle = useCallback(
     async (action: TourQueryLifecycleAction) => {
       if (!id) return;
@@ -511,6 +552,21 @@ function TourQueryDetailScreenInner() {
           icon: "globe-outline",
           accessibilityHint: "Shares this trip viewer link using the native share sheet.",
           onPress: () => void shareWebLink(),
+        },
+      ],
+    });
+
+    base.push({
+      title: "Communication",
+      rows: [
+        {
+          id: "trip-chat",
+          label: chatBusy ? "Opening chat..." : "Trip group chat",
+          icon: "chatbubbles-outline",
+          testID: "tour-query-trip-chat",
+          accessibilityHint: "Opens or creates the mobile group chat linked to this trip.",
+          onPress: () => void openTripChat(),
+          disabled: chatBusy,
         },
       ],
     });
@@ -656,6 +712,8 @@ function TourQueryDetailScreenInner() {
     runLifecycle,
     lifecycleBusy,
     pdfBusy,
+    chatBusy,
+    openTripChat,
   ]);
 
   if (loading) {

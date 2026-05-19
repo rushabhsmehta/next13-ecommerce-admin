@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   Modal,
+  Switch,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
@@ -18,13 +19,16 @@ import { Colors } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   fetchGroupDetail,
-  fetchGroupMembers,
+  fetchGroupMemberSummary,
   updateGroup,
   removeGroupMember,
   changeMemberRole,
   leaveGroup,
+  cancelGroupInvite,
+  setGroupNotificationsMuted,
   type ChatGroupDetail,
   type ChatRole,
+  type ChatGroupInvite,
   type GroupMember,
 } from "@/lib/chat/api";
 import { MemberList } from "@/components/chat/MemberList";
@@ -61,6 +65,7 @@ export default function ChatSettingsScreen() {
   const [group, setGroup] = useState<ChatGroupDetail | null>(null);
   const [myRole, setMyRole] = useState<ChatRole>("TOURIST");
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<ChatGroupInvite[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [tourStartDate, setTourStartDate] = useState("");
@@ -69,6 +74,7 @@ export default function ChatSettingsScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [roleEditTarget, setRoleEditTarget] = useState<GroupMember | null>(null);
   const [memberAction, setMemberAction] = useState<GroupMember | null>(null);
+  const [notificationsMuted, setNotificationsMuted] = useState(false);
 
   const isAdmin = myRole === "ADMIN";
   const canManage = myRole === "ADMIN" || myRole === "OPERATIONS";
@@ -84,11 +90,13 @@ export default function ChatSettingsScreen() {
     try {
       const [detail, membersList] = await Promise.all([
         fetchGroupDetail({ groupId, getToken }),
-        fetchGroupMembers({ groupId, getToken }),
+        fetchGroupMemberSummary({ groupId, getToken }),
       ]);
       setGroup(detail.group);
       setMyRole(detail.myRole);
-      setMembers(membersList);
+      setMembers(membersList.members);
+      setPendingInvites(membersList.pendingInvites);
+      setNotificationsMuted(!!(detail.notificationsMuted ?? membersList.notificationsMuted));
       setName(detail.group.name);
       setDescription(detail.group.description ?? "");
       setTourStartDate(formatDateInput(detail.group.tourStartDate));
@@ -132,6 +140,46 @@ export default function ChatSettingsScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function onToggleMute(next: boolean) {
+    if (!groupId) return;
+    const previous = notificationsMuted;
+    setNotificationsMuted(next);
+    try {
+      const saved = await setGroupNotificationsMuted({
+        groupId,
+        notificationsMuted: next,
+        getToken,
+      });
+      setNotificationsMuted(saved);
+    } catch (err: any) {
+      setNotificationsMuted(previous);
+      Alert.alert("Couldn't update notifications", err?.message ?? "Please try again.");
+    }
+  }
+
+  function onCancelInvite(invite: ChatGroupInvite) {
+    if (!groupId) return;
+    Alert.alert(
+      "Cancel invite?",
+      `${invite.invitedName} will no longer be able to join from this invite.`,
+      [
+        { text: "Keep", style: "cancel" },
+        {
+          text: "Cancel invite",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelGroupInvite({ groupId, inviteId: invite.id, getToken });
+              void reload();
+            } catch (err: any) {
+              Alert.alert("Couldn't cancel invite", err?.message ?? "Please try again.");
+            }
+          },
+        },
+      ]
+    );
   }
 
   function onPressMember(m: GroupMember) {
@@ -297,6 +345,24 @@ export default function ChatSettingsScreen() {
       )}
 
       <View style={styles.section}>
+        <View style={styles.settingRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionLabel}>Notifications</Text>
+            <Text style={styles.settingCaption}>
+              {notificationsMuted
+                ? "Muted for this trip group."
+                : "New messages send WhatsApp-like push alerts."}
+            </Text>
+          </View>
+          <Switch
+            value={!notificationsMuted}
+            onValueChange={(enabled) => void onToggleMute(!enabled)}
+            accessibilityLabel="Trip chat notifications"
+          />
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionLabel}>
             Members ({members.length})
@@ -320,6 +386,39 @@ export default function ChatSettingsScreen() {
           canChangeRoles={canChangeRoles}
           onPressMember={onPressMember}
         />
+        {pendingInvites.length > 0 ? (
+          <View style={styles.pendingInvites}>
+            <Text style={styles.pendingInvitesTitle}>
+              Pending invites ({pendingInvites.length})
+            </Text>
+            {pendingInvites.map((invite) => (
+              <TouchableOpacity
+                key={invite.id}
+                style={styles.pendingInviteRow}
+                onPress={() => canManage && onCancelInvite(invite)}
+                disabled={!canManage}
+                accessibilityRole={canManage ? "button" : undefined}
+                accessibilityLabel={`Pending invite for ${invite.invitedName}`}
+              >
+                <View style={styles.pendingInviteAvatar}>
+                  <Text style={styles.pendingInviteAvatarText}>
+                    {invite.invitedName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pendingInviteName}>{invite.invitedName}</Text>
+                  <Text style={styles.pendingInviteMeta} numberOfLines={1}>
+                    {invite.invitedEmail || invite.invitedPhone || "Invite pending"}
+                  </Text>
+                </View>
+                <Text style={styles.pendingInviteRole}>{ROLE_LABEL[invite.role]}</Text>
+                {canManage ? (
+                  <Ionicons name="close-circle-outline" size={20} color={Colors.error} />
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.section}>
@@ -459,6 +558,19 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     marginBottom: 4,
   },
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  settingCaption: {
+    paddingTop: 6,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -509,6 +621,39 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     paddingBottom: 16,
   },
+  pendingInvites: {
+    paddingTop: 8,
+    paddingBottom: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  pendingInvitesTitle: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    fontSize: 12,
+    fontWeight: "900",
+    color: Colors.textTertiary,
+    textTransform: "uppercase",
+  },
+  pendingInviteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  pendingInviteAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FEF3C7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pendingInviteAvatarText: { color: "#92400E", fontSize: 14, fontWeight: "900" },
+  pendingInviteName: { color: Colors.text, fontSize: 14, fontWeight: "800" },
+  pendingInviteMeta: { color: Colors.textTertiary, fontSize: 12, marginTop: 2 },
+  pendingInviteRole: { color: Colors.primary, fontSize: 11, fontWeight: "900" },
   leaveBtn: {
     flexDirection: "row",
     alignItems: "center",

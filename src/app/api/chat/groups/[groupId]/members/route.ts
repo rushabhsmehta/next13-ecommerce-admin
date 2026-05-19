@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
+import { normalizeInviteEmail, normalizeInvitePhone } from "@/lib/chat-invites";
 
 export const dynamic = "force-dynamic";
+
+const VALID_ROLES = ["ADMIN", "OPERATIONS", "TOURIST", "COMPANION"] as const;
+
+function safeRole(role: unknown, canPromoteToAdmin = false) {
+  if (typeof role !== "string" || !VALID_ROLES.includes(role as any)) return "TOURIST";
+  if (role === "ADMIN" && !canPromoteToAdmin) return "TOURIST";
+  return role;
+}
 
 // GET /api/chat/groups/[groupId]/members - List group members
 export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
@@ -32,27 +41,60 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
       return jsonError("Not a member of this group", 403);
     }
 
-    const members = await prismadb.chatGroupMember.findMany({
-      where: {
-        chatGroupId: params.groupId,
-        isActive: true,
-      },
-      include: {
-        travelAppUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            avatarUrl: true,
-            isApproved: true,
+    const [group, members, pendingInvites] = await Promise.all([
+      prismadb.chatGroup.findUnique({
+        where: { id: params.groupId },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          imageUrl: true,
+          tourPackageQueryId: true,
+          tourStartDate: true,
+          tourEndDate: true,
+        },
+      }),
+      prismadb.chatGroupMember.findMany({
+        where: {
+          chatGroupId: params.groupId,
+          isActive: true,
+        },
+        include: {
+          travelAppUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              avatarUrl: true,
+              isApproved: true,
+            },
           },
         },
-      },
-      orderBy: { joinedAt: "asc" },
-    });
+        orderBy: { joinedAt: "asc" },
+      }),
+      prismadb.chatGroupInvite.findMany({
+        where: { chatGroupId: params.groupId, status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          invitedName: true,
+          invitedEmail: true,
+          invitedPhone: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+    ]);
 
-    return NextResponse.json({ members });
+    return NextResponse.json({
+      group,
+      members,
+      pendingInvites,
+      myRole: membership.role,
+      notificationsMuted: membership.notificationsMuted,
+    });
   });
 }
 
@@ -87,10 +129,39 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
     }
 
     const body = await req.json();
-    const { travelAppUserId, role = "TOURIST" } = body;
+    const {
+      travelAppUserId,
+      role = "TOURIST",
+      invitedName,
+      invitedEmail,
+      invitedPhone,
+    } = body;
+
+    if (!travelAppUserId && !invitedName) {
+      return jsonError("travelAppUserId or invitedName is required", 400);
+    }
+
+    const resolvedRole = safeRole(role, requestorMembership.role === "ADMIN") as any;
 
     if (!travelAppUserId) {
-      return jsonError("travelAppUserId is required", 400);
+      const email = normalizeInviteEmail(invitedEmail);
+      const phone = normalizeInvitePhone(invitedPhone);
+      if (!email && !phone) {
+        return jsonError("A valid email or phone number is required for invites", 400);
+      }
+
+      const invite = await prismadb.chatGroupInvite.create({
+        data: {
+          chatGroupId: params.groupId,
+          invitedName: String(invitedName).trim(),
+          invitedEmail: email,
+          invitedPhone: phone,
+          role: resolvedRole,
+          invitedBy: userId,
+        },
+      });
+
+      return NextResponse.json({ invite }, { status: 201 });
     }
 
     const member = await prismadb.chatGroupMember.upsert({
@@ -104,17 +175,34 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
         isActive: true,
         leftAt: null,
         // Only ADMIN can change roles on re-addition
-        ...(requestorMembership.role === "ADMIN" ? { role } : {}),
+        ...(requestorMembership.role === "ADMIN" ? { role: resolvedRole } : {}),
       },
       create: {
         chatGroupId: params.groupId,
         travelAppUserId,
-        role,
+        role: resolvedRole,
       },
       include: {
         travelAppUser: {
-          select: { id: true, name: true, avatarUrl: true },
+          select: { id: true, name: true, email: true, phone: true, avatarUrl: true },
         },
+      },
+    });
+
+    await prismadb.chatGroupInvite.updateMany({
+      where: {
+        chatGroupId: params.groupId,
+        status: "PENDING",
+        acceptedTravelAppUserId: null,
+        OR: [
+          { invitedEmail: normalizeInviteEmail(member.travelAppUser.email) ?? "" },
+          { invitedPhone: normalizeInvitePhone(member.travelAppUser.phone) ?? "" },
+        ],
+      },
+      data: {
+        status: "ACCEPTED",
+        acceptedTravelAppUserId: travelAppUserId,
+        acceptedAt: new Date(),
       },
     });
 
@@ -150,6 +238,18 @@ export async function DELETE(req: Request, props: { params: Promise<{ groupId: s
     }
 
     const { searchParams } = new URL(req.url);
+    const inviteId = searchParams.get("inviteId");
+    if (inviteId) {
+      if (!["ADMIN", "OPERATIONS"].includes(requestorMembership.role)) {
+        return jsonError("Only admins and operations staff can cancel invites", 403);
+      }
+      await prismadb.chatGroupInvite.updateMany({
+        where: { id: inviteId, chatGroupId: params.groupId, status: "PENDING" },
+        data: { status: "CANCELLED", cancelledAt: new Date() },
+      });
+      return NextResponse.json({ success: true });
+    }
+
     const memberId = searchParams.get("memberId") ?? travelUser.id;
 
     const isSelfLeave = memberId === travelUser.id;

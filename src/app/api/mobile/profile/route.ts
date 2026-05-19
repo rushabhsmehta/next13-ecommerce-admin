@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { claimPendingChatInvitesForTravelUser } from "@/lib/chat-invites";
 import {
   verifyMobileBearerUserId,
   isMobileDevBypassRequest,
@@ -48,10 +49,18 @@ export async function PATCH(req: Request) {
         name: name.trim(),
         phone: phone?.trim() || null,
       },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, email: true, phone: true, isApproved: true },
     });
 
-    return NextResponse.json(travelUser);
+    const acceptedInviteCount = await claimPendingChatInvitesForTravelUser(travelUser.id);
+    const refreshed = acceptedInviteCount
+      ? await prismadb.travelAppUser.findUnique({
+          where: { id: travelUser.id },
+          select: { id: true, name: true, email: true, phone: true, isApproved: true },
+        })
+      : travelUser;
+
+    return NextResponse.json({ ...(refreshed ?? travelUser), acceptedInviteCount });
   } catch (error) {
     console.log("[MOBILE_PROFILE_PATCH]", error);
     return new NextResponse("Internal error", { status: 500 });
@@ -104,7 +113,15 @@ export async function POST(req: Request) {
       select: { id: true, name: true, email: true, phone: true, isApproved: true },
     });
 
-    return NextResponse.json(travelUser, { status: 201 });
+    const acceptedInviteCount = await claimPendingChatInvitesForTravelUser(travelUser.id);
+    const refreshed = acceptedInviteCount
+      ? await prismadb.travelAppUser.findUnique({
+          where: { id: travelUser.id },
+          select: { id: true, name: true, email: true, phone: true, isApproved: true },
+        })
+      : travelUser;
+
+    return NextResponse.json({ ...(refreshed ?? travelUser), acceptedInviteCount }, { status: 201 });
   } catch (error) {
     console.log("[MOBILE_PROFILE_POST]", error);
     return new NextResponse("Internal error", { status: 500 });

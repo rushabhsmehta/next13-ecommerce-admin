@@ -11,6 +11,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build:android": "eas build --platform android",
+    "build:aab": "powershell -ExecutionPolicy Bypass -File ./scripts/build-aab.ps1",
     "build:ios": "eas build --platform ios",
     "submit:android": "eas submit --platform android",
     "submit:ios": "eas submit --platform ios",

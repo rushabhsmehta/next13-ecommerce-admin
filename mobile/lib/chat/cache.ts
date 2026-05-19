@@ -6,6 +6,10 @@ export interface CachedReplyTo {
   id: string;
   content: string | null;
   messageType: string;
+  isAnnouncement?: boolean;
+  isImportant?: boolean;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
   isDeleted: boolean;
   sender: { id: string; name: string } | null;
 }
@@ -22,11 +26,18 @@ export interface CachedMessage {
   fileSize?: number | null;
   latitude?: number | null;
   longitude?: number | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
   replyToId?: string | null;
   replyTo?: CachedReplyTo | null;
   editedAt?: string | null;
   deletedAt?: string | null;
   isDeleted?: boolean;
+  isAnnouncement?: boolean;
+  isPinned?: boolean;
+  isImportant?: boolean;
+  pinnedAt?: string | null;
+  pinnedById?: string | null;
   readsCount?: number;
 }
 

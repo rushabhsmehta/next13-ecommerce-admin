@@ -2,7 +2,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, Pressable } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 
-export type AttachmentKind = "camera" | "photo" | "file" | "location";
+export type AttachmentKind = "camera" | "photo" | "file" | "location" | "contact";
 
 interface Props {
   visible: boolean;
@@ -20,6 +20,7 @@ const OPTIONS: {
   { kind: "photo", label: "Photo", icon: "image-outline", color: "#10B981" },
   { kind: "file", label: "File / PDF", icon: "document-attach-outline", color: "#F59E0B" },
   { kind: "location", label: "Location", icon: "location-outline", color: "#EF4444" },
+  { kind: "contact", label: "Contact", icon: "person-outline", color: "#8B5CF6" },
 ];
 
 export function AttachmentSheet({ visible, onClose, onPick }: Props) {

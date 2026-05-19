@@ -46,7 +46,7 @@ jest.mock("@/lib/chat/cache", () => ({
 
 jest.mock("@/lib/chat/outbox", () => {
   const enqueue = jest.fn(
-    async (groupId: string, payload: { messageType: string; content?: string | null }) => ({
+    async (groupId: string, payload: any) => ({
       clientId: "cid-test",
       groupId,
       payload,
@@ -125,6 +125,8 @@ function setupFetch() {
         json: async () => ({
           group: { name: "Test Trip" },
           members: [],
+          myRole: "OPERATIONS",
+          notificationsMuted: false,
         }),
       });
     }
@@ -173,6 +175,36 @@ describe("Trips chat room (composer)", () => {
           expect.objectContaining({
             messageType: "TEXT",
             content: "Hello from Trips",
+          })
+        );
+      },
+      { timeout: 8000 }
+    );
+  });
+
+  it("marks staff composer messages as pinned announcements", async () => {
+    render(<ChatRoom />);
+
+    await waitFor(
+      () => {
+        expect(screen.getByLabelText("Toggle announcement")).toBeTruthy();
+      },
+      { timeout: 8000 }
+    );
+
+    fireEvent.press(screen.getByLabelText("Toggle announcement"));
+    fireEvent.changeText(screen.getByTestId("chat-composer-input"), "Meet at the lobby");
+    fireEvent.press(screen.getByTestId("chat-send-button"));
+
+    await waitFor(
+      () => {
+        expect(enqueueMock).toHaveBeenCalledWith(
+          "g1",
+          expect.objectContaining({
+            messageType: "TEXT",
+            content: "Meet at the lobby",
+            isAnnouncement: true,
+            isPinned: true,
           })
         );
       },

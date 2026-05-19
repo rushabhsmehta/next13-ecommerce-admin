@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 type MemberCtx = {
   travelUserId: string;
   role: string;
+  notificationsMuted: boolean;
 };
 
 async function loadMembership(
@@ -35,7 +36,14 @@ async function loadMembership(
     return { ok: false, res: jsonError("Not a member of this group", 403) };
   }
 
-  return { ok: true, ctx: { travelUserId: travelUser.id, role: membership.role } };
+  return {
+    ok: true,
+    ctx: {
+      travelUserId: travelUser.id,
+      role: membership.role,
+      notificationsMuted: membership.notificationsMuted,
+    },
+  };
 }
 
 export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
@@ -44,25 +52,56 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
     const loaded = await loadMembership(req, params.groupId);
     if (!loaded.ok) return loaded.res;
 
-    const group = await prismadb.chatGroup.findUnique({
-      where: { id: params.groupId },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        imageUrl: true,
-        tourPackageQueryId: true,
-        tourStartDate: true,
-        tourEndDate: true,
-        isActive: true,
-        createdBy: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const [group, latestPinnedAnnouncement, unreadCount] = await Promise.all([
+      prismadb.chatGroup.findUnique({
+        where: { id: params.groupId },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          imageUrl: true,
+          tourPackageQueryId: true,
+          tourStartDate: true,
+          tourEndDate: true,
+          isActive: true,
+          createdBy: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      prismadb.chatMessage.findFirst({
+        where: { chatGroupId: params.groupId, isPinned: true, isDeleted: false },
+        orderBy: { pinnedAt: "desc" },
+        select: {
+          id: true,
+          content: true,
+          messageType: true,
+          isAnnouncement: true,
+          isImportant: true,
+          isPinned: true,
+          pinnedAt: true,
+          createdAt: true,
+          sender: { select: { id: true, name: true } },
+        },
+      }),
+      prismadb.chatMessage.count({
+        where: {
+          chatGroupId: params.groupId,
+          isDeleted: false,
+          senderId: { not: loaded.ctx.travelUserId },
+          reads: { none: { travelAppUserId: loaded.ctx.travelUserId } },
+        },
+      }),
+    ]);
     if (!group) return jsonError("Group not found", 404);
 
-    return NextResponse.json({ group, myRole: loaded.ctx.role });
+    return NextResponse.json({
+      group,
+      myRole: loaded.ctx.role,
+      notificationsMuted: loaded.ctx.notificationsMuted,
+      unreadCount,
+      latestPinnedAnnouncement,
+    });
   });
 }
 

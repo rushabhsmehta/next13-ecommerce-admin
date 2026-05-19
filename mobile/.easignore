@@ -1,33 +1,69 @@
+# EAS upload archive — keep this small (exclude local Gradle/NDK output and dev-only files).
+# Patterns use forward slashes (gitignore syntax). See: https://docs.expo.dev/build-reference/easignore/
+
 node_modules/
 .expo/
 dist/
+web-build/
 
-# Bare workflow: native android/ios must upload. Only exclude local machine state:
-# - .gradle is locked by the daemon during `eas build` on Windows (EBUSY copyfile)
-# - app/build + .cxx are multi‑GB locally; EAS regenerates them (explicit paths + globs)
+# --- Android native build cache (often 3GB+ under android/app/build) ---
 android/.gradle/
 android/build/
+android/local.properties
 android/app/build/
-android/app/build/**
 android/app/.cxx/
-android/app/.cxx/**
 android/**/build/
-android/**/build/**
 android/**/.cxx/
-android/**/.cxx/**
 android/**/intermediates/
-
-# Gradle / JVM crash dumps sometimes appear under android/ — never needed remotely
+android/**/generated/
+android/**/kotlin/
+android/**/tmp/
 android/**/*.log
 android/**/replay_pid*
 android/**/hs_err_pid*
-ios/Pods/
-ios/build/
 
+# --- iOS (not built on Android EAS workers) ---
+ios/
+ios/**
+
+# --- Secrets & signing ---
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
 google-service-account-key.json
+android/keystore.properties
+
+# --- Dev / QA (not needed for production bundle) ---
 marketing/
+scripts/take-screenshots.mjs
+qa-screenshots/
+**/*-screenshot*.png
+**/*-sim-screenshot.png
+home-sim-screenshot.png
+expo-web.log
+expo-web.err.log
+
+# --- Tests & E2E ---
+__tests__/
+coverage/
+e2e/
+artifacts/
+detox/
+*.test.ts
+*.test.tsx
+
+# --- Env (use eas.json env for builds) ---
+.env
+.env.local
+.env.*.local
+
+# --- Editor / tooling ---
+.git/
+.idea/
+.vscode/
+.claude/
+.cursor/
+*.orig.*

@@ -16,6 +16,7 @@ import { Colors } from "@/constants/theme";
 import {
   searchTravelUsers,
   addGroupMember,
+  inviteGroupMember,
   type ChatRole,
   type UserSearchResult,
 } from "@/lib/chat/api";
@@ -51,6 +52,10 @@ export function AddMemberSheet({
   const [loading, setLoading] = useState(false);
   const [pendingUser, setPendingUser] = useState<UserSearchResult | null>(null);
   const [adding, setAdding] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteContact, setInviteContact] = useState("");
+  const [inviteRole, setInviteRole] = useState<ChatRole>("TOURIST");
+  const [inviting, setInviting] = useState(false);
   const reqRef = useRef(0);
 
   useEffect(() => {
@@ -59,6 +64,9 @@ export function AddMemberSheet({
       setResults([]);
       setLoading(false);
       setPendingUser(null);
+      setInviteName("");
+      setInviteContact("");
+      setInviteRole("TOURIST");
     }
   }, [visible]);
 
@@ -98,6 +106,34 @@ export function AddMemberSheet({
     } finally {
       setAdding(false);
       setPendingUser(null);
+    }
+  }
+
+  async function sendInvite() {
+    const name = inviteName.trim();
+    const contact = inviteContact.trim();
+    if (!name || !contact) {
+      Alert.alert("Invite details needed", "Enter the traveller name and phone or email.");
+      return;
+    }
+    setInviting(true);
+    try {
+      await inviteGroupMember({
+        groupId,
+        invitedName: name,
+        invitedEmail: contact.includes("@") ? contact : null,
+        invitedPhone: contact.includes("@") ? null : contact,
+        role: inviteRole,
+        getToken,
+      });
+      onAdded();
+      setInviteName("");
+      setInviteContact("");
+      onClose();
+    } catch (err: any) {
+      Alert.alert("Couldn't send invite", err?.message ?? "Please try again.");
+    } finally {
+      setInviting(false);
     }
   }
 
@@ -178,6 +214,64 @@ export function AddMemberSheet({
             )}
           />
         )}
+
+        <View style={styles.inviteCard}>
+          <Text style={styles.inviteTitle}>Invite traveller</Text>
+          <TextInput
+            style={styles.inviteInput}
+            value={inviteName}
+            onChangeText={setInviteName}
+            placeholder="Full name"
+            placeholderTextColor={Colors.textTertiary}
+            accessibilityLabel="Invite traveller name"
+          />
+          <TextInput
+            style={styles.inviteInput}
+            value={inviteContact}
+            onChangeText={setInviteContact}
+            placeholder="Phone or email"
+            placeholderTextColor={Colors.textTertiary}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            accessibilityLabel="Invite traveller phone or email"
+          />
+          <View style={styles.roleChips}>
+            {roles.map((r) => (
+              <TouchableOpacity
+                key={r}
+                style={[styles.roleChip, inviteRole === r && styles.roleChipActive]}
+                onPress={() => setInviteRole(r)}
+                accessibilityRole="button"
+                accessibilityLabel={`Invite as ${ROLE_LABEL[r]}`}
+              >
+                <Text
+                  style={[
+                    styles.roleChipText,
+                    inviteRole === r && styles.roleChipTextActive,
+                  ]}
+                >
+                  {ROLE_LABEL[r]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity
+            style={[styles.inviteButton, inviting && styles.inviteButtonDisabled]}
+            onPress={sendInvite}
+            disabled={inviting}
+            accessibilityRole="button"
+            accessibilityLabel="Send traveller invite"
+          >
+            {inviting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="mail-outline" size={18} color="#fff" />
+                <Text style={styles.inviteButtonText}>Send invite</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
 
         <Modal
           visible={pendingUser !== null}
@@ -291,4 +385,47 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
   },
   roleSheetLabel: { fontSize: 16, color: Colors.text, fontWeight: "500" },
+  inviteCard: {
+    margin: 16,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    gap: 10,
+  },
+  inviteTitle: { fontSize: 14, fontWeight: "800", color: Colors.text },
+  inviteInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.text,
+    backgroundColor: Colors.background,
+  },
+  roleChips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  roleChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+  },
+  roleChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  roleChipText: { fontSize: 12, fontWeight: "800", color: Colors.textSecondary },
+  roleChipTextActive: { color: "#fff" },
+  inviteButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  inviteButtonDisabled: { opacity: 0.65 },
+  inviteButtonText: { color: "#fff", fontSize: 14, fontWeight: "800" },
 });

@@ -13,6 +13,7 @@ import {
   Alert,
   AppState,
   AppStateStatus,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +32,7 @@ import { AttachmentSheet, type AttachmentKind } from "@/components/chat/Attachme
 import { ImageBubble } from "@/components/chat/ImageBubble";
 import { FileBubble } from "@/components/chat/FileBubble";
 import { LocationBubble } from "@/components/chat/LocationBubble";
+import { ContactBubble } from "@/components/chat/ContactBubble";
 import { MessageActions, type MessageAction } from "@/components/chat/MessageActions";
 import { ReplyPreview } from "@/components/chat/ReplyPreview";
 import { SearchSheet } from "@/components/chat/SearchSheet";
@@ -49,6 +51,8 @@ interface DisplayMessage extends Message {
 interface GroupInfo {
   name: string;
   members: { id: string; travelAppUser: { name: string } }[];
+  myRole: string;
+  notificationsMuted: boolean;
 }
 
 function formatTime(dateStr: string): string {
@@ -142,6 +146,15 @@ function MessageBubble({
         />
       );
       break;
+    case "CONTACT":
+      body = (
+        <ContactBubble
+          contactName={msg.contactName ?? null}
+          contactPhone={msg.contactPhone ?? null}
+          isMine={isMine}
+        />
+      );
+      break;
     case "TEXT":
     default:
       body = (
@@ -156,6 +169,7 @@ function MessageBubble({
     ? [
         styles.bubble,
         isMine ? styles.bubbleMine : styles.bubbleOther,
+        msg.isAnnouncement && styles.bubbleAnnouncement,
         failed && styles.bubbleFailed,
         sending && styles.bubbleSending,
       ]
@@ -186,6 +200,23 @@ function MessageBubble({
           accessibilityHint="Long-press for message actions"
         >
           <View style={innerStyle}>
+            {msg.isAnnouncement ? (
+              <View style={[styles.announcementTag, isMine && styles.announcementTagMine]}>
+                <Ionicons
+                  name={msg.isImportant ? "alert-circle" : "megaphone-outline"}
+                  size={12}
+                  color={isMine ? "#fff" : "#92400E"}
+                />
+                <Text
+                  style={[
+                    styles.announcementTagText,
+                    isMine && styles.announcementTagTextMine,
+                  ]}
+                >
+                  {msg.isImportant ? "Important" : "Announcement"}
+                </Text>
+              </View>
+            ) : null}
             {reply && (
               <TouchableOpacity
                 onPress={() => onJumpToReply?.(reply.id)}
@@ -386,7 +417,13 @@ function mergeMessages(
       fileSize: o.payload.fileSize ?? null,
       latitude: o.payload.latitude ?? null,
       longitude: o.payload.longitude ?? null,
+      contactName: o.payload.contactName ?? null,
+      contactPhone: o.payload.contactPhone ?? null,
       replyToId: o.payload.replyToId ?? null,
+      isAnnouncement: o.payload.isAnnouncement ?? false,
+      isPinned: o.payload.isPinned ?? false,
+      isImportant: o.payload.isImportant ?? false,
+      pinnedAt: o.payload.isPinned ? new Date(o.createdAt).toISOString() : null,
       outboxStatus: o.status === "sent" ? undefined : (o.status as DisplayMessage["outboxStatus"]),
     };
     byId.set(o.clientId, display);
@@ -420,6 +457,11 @@ export default function ChatRoom() {
   const [editTarget, setEditTarget] = useState<DisplayMessage | null>(null);
   const [actionsTarget, setActionsTarget] = useState<DisplayMessage | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [announcementMode, setAnnouncementMode] = useState(false);
+  const [importantMode, setImportantMode] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMoreOlder, setHasMoreOlder] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -548,7 +590,12 @@ export default function ChatRoom() {
         const data = await res.json();
         const name = data.group?.name ?? "Chat";
         const members = data.members ?? [];
-        setGroupInfo({ name, members });
+        setGroupInfo({
+          name,
+          members,
+          myRole: data.myRole ?? "TOURIST",
+          notificationsMuted: !!data.notificationsMuted,
+        });
         navigation.setOptions({
           headerTitle: name,
           headerRight: () => (
@@ -744,7 +791,12 @@ export default function ChatRoom() {
       messageType: "TEXT",
       content: trimmed,
       replyToId: replyId,
+      isAnnouncement: announcementMode || importantMode,
+      isPinned: announcementMode || importantMode,
+      isImportant: importantMode,
     });
+    setAnnouncementMode(false);
+    setImportantMode(false);
     await refreshOutbox();
     void flushOutbox();
   }
@@ -830,6 +882,23 @@ export default function ChatRoom() {
     void flushOutbox();
   }
 
+  async function sendContactCard() {
+    const name = contactName.trim();
+    const phone = contactPhone.trim();
+    if (!name || !groupId) {
+      Alert.alert("Contact name needed", "Enter a name for this contact card.");
+      return;
+    }
+    await enqueueAttachmentMessage({
+      messageType: "CONTACT",
+      contactName: name,
+      contactPhone: phone || null,
+    });
+    setContactName("");
+    setContactPhone("");
+    setContactOpen(false);
+  }
+
   async function uploadAndSend(uri: string, kind: UploadKind, fileName?: string, contentType?: string) {
     if (!groupId) return;
     setUploading(true);
@@ -859,7 +928,9 @@ export default function ChatRoom() {
 
   async function handleAttachmentPick(kind: AttachmentKind) {
     if (!groupId) return;
-    if (kind === "camera") {
+    if (kind === "contact") {
+      setContactOpen(true);
+    } else if (kind === "camera") {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
         Alert.alert("Permission needed", "Camera access is required to take a photo.");
@@ -923,6 +994,10 @@ export default function ChatRoom() {
   }
 
   const myId = travelUser?.id ?? "";
+  const canAnnounce = groupInfo?.myRole === "ADMIN" || groupInfo?.myRole === "OPERATIONS";
+  const latestPinned = [...messages]
+    .reverse()
+    .find((m) => m.isPinned && !m.isDeleted) ?? null;
 
   if (loading) {
     return (
@@ -944,6 +1019,30 @@ export default function ChatRoom() {
           <Text style={styles.connectionText}>Connection issue. Retrying…</Text>
         </View>
       )}
+
+      {latestPinned ? (
+        <TouchableOpacity
+          style={styles.pinnedBar}
+          onPress={() => jumpToMessage(latestPinned.id)}
+          accessibilityRole="button"
+          accessibilityLabel="Open pinned announcement"
+        >
+          <Ionicons
+            name={latestPinned.isImportant ? "alert-circle" : "megaphone-outline"}
+            size={17}
+            color="#92400E"
+          />
+          <View style={styles.pinnedTextWrap}>
+            <Text style={styles.pinnedTitle}>
+              {latestPinned.isImportant ? "Important announcement" : "Pinned announcement"}
+            </Text>
+            <Text style={styles.pinnedText} numberOfLines={1}>
+              {latestPinned.content || latestPinned.messageType}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="#92400E" />
+        </TouchableOpacity>
+      ) : null}
 
       <FlatList
         ref={flatListRef}
@@ -1035,6 +1134,53 @@ export default function ChatRoom() {
             </TouchableOpacity>
           </View>
         )}
+        {canAnnounce && !editTarget ? (
+          <View style={styles.announceComposer}>
+            <TouchableOpacity
+              style={[styles.announceChip, announcementMode && styles.announceChipActive]}
+              onPress={() => setAnnouncementMode((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle announcement"
+            >
+              <Ionicons
+                name="megaphone-outline"
+                size={15}
+                color={announcementMode ? "#fff" : Colors.primary}
+              />
+              <Text
+                style={[
+                  styles.announceChipText,
+                  announcementMode && styles.announceChipTextActive,
+                ]}
+              >
+                Announcement
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.announceChip, importantMode && styles.importantChipActive]}
+              onPress={() => {
+                setImportantMode((v) => !v);
+                setAnnouncementMode(true);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Toggle important announcement"
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={15}
+                color={importantMode ? "#fff" : "#B45309"}
+              />
+              <Text
+                style={[
+                  styles.announceChipText,
+                  importantMode && styles.announceChipTextActive,
+                ]}
+              >
+                Important
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
         <View style={[styles.inputBar, { paddingBottom: insets.bottom + 10 }]}>
           <TouchableOpacity
             style={styles.attachBtn}
@@ -1084,6 +1230,58 @@ export default function ChatRoom() {
         onClose={() => setAttachmentSheetOpen(false)}
         onPick={handleAttachmentPick}
       />
+
+      <Modal
+        visible={contactOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setContactOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setContactOpen(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.contactSheet} onPress={() => {}}>
+            <Text style={styles.contactSheetTitle}>Share contact</Text>
+            <TextInput
+              style={styles.contactInput}
+              value={contactName}
+              onChangeText={setContactName}
+              placeholder="Name"
+              placeholderTextColor={Colors.textTertiary}
+              accessibilityLabel="Contact name"
+            />
+            <TextInput
+              style={styles.contactInput}
+              value={contactPhone}
+              onChangeText={setContactPhone}
+              placeholder="Phone number"
+              placeholderTextColor={Colors.textTertiary}
+              keyboardType="phone-pad"
+              accessibilityLabel="Contact phone"
+            />
+            <View style={styles.contactActions}>
+              <TouchableOpacity
+                style={styles.contactCancel}
+                onPress={() => setContactOpen(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel contact"
+              >
+                <Text style={styles.contactCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.contactSend}
+                onPress={sendContactCard}
+                accessibilityRole="button"
+                accessibilityLabel="Send contact"
+              >
+                <Text style={styles.contactSendText}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <MessageActions
         visible={actionsTarget !== null}
@@ -1138,6 +1336,19 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontWeight: "600",
   },
+  pinnedBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: "#FEF3C7",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#F59E0B",
+  },
+  pinnedTextWrap: { flex: 1, gap: 1 },
+  pinnedTitle: { fontSize: 11, fontWeight: "900", color: "#92400E" },
+  pinnedText: { fontSize: 13, fontWeight: "600", color: Colors.text },
   messageList: { paddingVertical: 12, paddingHorizontal: 12, gap: 4 },
   bubbleRow: { flexDirection: "row", alignItems: "flex-end", marginVertical: 2 },
   bubbleRowLeft: { justifyContent: "flex-start" },
@@ -1180,6 +1391,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 2,
   },
+  bubbleAnnouncement: {
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+  },
+  announcementTag: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "#FEF3C7",
+    marginBottom: 6,
+  },
+  announcementTagMine: { backgroundColor: "rgba(255,255,255,0.22)" },
+  announcementTagText: { fontSize: 10, fontWeight: "900", color: "#92400E" },
+  announcementTagTextMine: { color: "#fff" },
   bubbleSending: { opacity: 0.7 },
   bubbleFailed: {
     borderWidth: 1,
@@ -1236,6 +1465,31 @@ const styles = StyleSheet.create({
   },
   editTitle: { fontSize: 12, fontWeight: "700", color: "#92400E" },
   editPreview: { fontSize: 13, color: Colors.text, marginTop: 2 },
+  announceComposer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: Colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  announceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceAlt,
+  },
+  announceChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  importantChipActive: { backgroundColor: "#B45309", borderColor: "#B45309" },
+  announceChipText: { fontSize: 12, fontWeight: "800", color: Colors.textSecondary },
+  announceChipTextActive: { color: "#fff" },
   bubbleAttachment: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
@@ -1295,4 +1549,42 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sendBtnDisabled: { opacity: 0.4 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  contactSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 34,
+    gap: 12,
+  },
+  contactSheetTitle: { fontSize: 16, fontWeight: "900", color: Colors.text },
+  contactInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  contactActions: { flexDirection: "row", gap: 10, justifyContent: "flex-end" },
+  contactCancel: {
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 999,
+    backgroundColor: Colors.surfaceAlt,
+  },
+  contactCancelText: { color: Colors.textSecondary, fontWeight: "800" },
+  contactSend: {
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 999,
+    backgroundColor: Colors.primary,
+  },
+  contactSendText: { color: "#fff", fontWeight: "900" },
 });

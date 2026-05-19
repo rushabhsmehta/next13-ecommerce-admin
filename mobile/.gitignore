@@ -4,6 +4,7 @@ dist/
 expo-web.log
 expo-web.err.log
 *.jks
+android/keystore.properties
 *.p8
 *.p12
 *.key

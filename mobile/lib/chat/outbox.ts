@@ -17,6 +17,9 @@ export interface OutboxPayload {
   contactPhone?: string | null;
   tourPackageId?: string | null;
   replyToId?: string | null;
+  isAnnouncement?: boolean;
+  isPinned?: boolean;
+  isImportant?: boolean;
 }
 
 export interface OutboxEntry {

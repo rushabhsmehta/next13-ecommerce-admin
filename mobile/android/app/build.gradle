@@ -81,10 +81,33 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
-def releaseStoreFile = System.getenv("AAGAM_UPLOAD_STORE_FILE")
-def releaseStorePassword = System.getenv("AAGAM_UPLOAD_STORE_PASSWORD")
-def releaseKeyAlias = System.getenv("AAGAM_UPLOAD_KEY_ALIAS")
-def releaseKeyPassword = System.getenv("AAGAM_UPLOAD_KEY_PASSWORD")
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+// Env vars override android/keystore.properties (paths relative to android/ unless absolute).
+def releaseStoreFile =
+    System.getenv("AAGAM_UPLOAD_STORE_FILE") ?: keystoreProperties.getProperty("storeFile")
+def releaseStorePassword =
+    System.getenv("AAGAM_UPLOAD_STORE_PASSWORD") ?: keystoreProperties.getProperty("storePassword")
+def releaseKeyAlias =
+    System.getenv("AAGAM_UPLOAD_KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
+def releaseKeyPassword =
+    System.getenv("AAGAM_UPLOAD_KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+
+def resolveReleaseStoreFile = { String raw ->
+    if (!raw) return null
+    def path = raw.trim()
+    if ((path.startsWith('"') && path.endsWith('"')) || (path.startsWith("'") && path.endsWith("'"))) {
+        path = path.substring(1, path.length() - 1)
+    }
+    // Windows paths must use / or escaped \\ in .properties — bare \n in \next13… breaks parsing.
+    path = path.replace('\\', '/')
+    def f = new File(path)
+    return f.isAbsolute() ? f : rootProject.file(path)
+}
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -97,7 +120,7 @@ android {
         applicationId 'com.aagamholidays.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 32
+        versionCode 33
         versionName "1.0.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -110,7 +133,8 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile releaseStoreFile ? file(releaseStoreFile) : null
+            def store = resolveReleaseStoreFile(releaseStoreFile)
+            storeFile store
             storePassword releaseStorePassword
             keyAlias releaseKeyAlias
             keyPassword releaseKeyPassword

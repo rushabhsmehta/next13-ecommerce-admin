@@ -13,8 +13,12 @@ import {
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
+import * as DocumentPicker from "expo-document-picker";
 import { Colors } from "@/constants/theme";
+import { API_BASE_URL } from "@/constants/api";
 import { ApiError, withAuth } from "@/lib/api";
+import { downloadAndShareFile } from "@/lib/file-download";
+import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 
 const PAGE_LIMIT = 30;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -67,11 +71,24 @@ export default function WhatsAppCustomersList() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [ioBusy, setIoBusy] = useState<"export" | "import" | null>(null);
 
   useEffect(() => {
     navigation.setOptions({
       headerTitle: "Customers",
       headerBackTitle: "Back",
+      headerRight: () => (
+        <TouchableOpacity
+          testID="wa-customers-io"
+          accessibilityRole="button"
+          accessibilityLabel="Import or export customers"
+          onPress={() => setShowImportExport((v) => !v)}
+          style={{ paddingHorizontal: 12 }}
+        >
+          <Ionicons name="swap-vertical-outline" size={22} color="#25D366" />
+        </TouchableOpacity>
+      ),
     });
   }, [navigation]);
 
@@ -146,6 +163,86 @@ export default function WhatsAppCustomersList() {
     setRefreshing(false);
   }
 
+  async function exportCsv() {
+    setIoBusy("export");
+    try {
+      const qs = new URLSearchParams();
+      if (debouncedSearch) qs.set("search", debouncedSearch);
+      if (activeTag) qs.set("tags", activeTag);
+      if (optFilter === "in") qs.set("isOptedIn", "true");
+      if (optFilter === "out") qs.set("isOptedIn", "false");
+      const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 12);
+      await downloadAndShareFile({
+        endpoint: `/api/mobile/whatsapp/customers/export${
+          qs.toString() ? `?${qs}` : ""
+        }`,
+        fileName: `whatsapp-customers-${stamp}`,
+        extension: "csv",
+        mimeType: "text/csv",
+        getToken: () => getToken(),
+        dialogTitle: "Share WhatsApp customer export",
+      });
+    } catch (err) {
+      Alert.alert(
+        "Export failed",
+        err instanceof ApiError ? err.message : "Could not export customers."
+      );
+    } finally {
+      setIoBusy(null);
+    }
+  }
+
+  async function importCsv() {
+    try {
+      const picked = await DocumentPicker.getDocumentAsync({
+        type: ["text/csv", "text/comma-separated-values", "application/vnd.ms-excel"],
+        copyToCacheDirectory: true,
+      });
+      if (picked.canceled || !picked.assets?.[0]) return;
+      const asset = picked.assets[0];
+      const token = await resolveMobileAuthToken(() => getToken());
+      if (!token) {
+        Alert.alert("Not signed in", "Please sign in again and retry.");
+        return;
+      }
+      setIoBusy("import");
+      const form = new FormData();
+      form.append("file", {
+        uri: asset.uri,
+        name: asset.name ?? "import.csv",
+        type: "text/csv",
+      } as unknown as Blob);
+      const res = await fetch(
+        `${API_BASE_URL}/api/mobile/whatsapp/customers/import`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        }
+      );
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.error ?? `Import failed (HTTP ${res.status}).`);
+      }
+      const s = payload?.summary;
+      Alert.alert(
+        "Import complete",
+        s
+          ? `Created ${s.created}, updated ${s.updated}. ` +
+              `(${s.skippedRows} skipped, ${s.failed} failed.)`
+          : "Customers imported."
+      );
+      await fetchPage(1, { silent: true });
+    } catch (err) {
+      Alert.alert(
+        "Import failed",
+        err instanceof Error ? err.message : "Could not import customers."
+      );
+    } finally {
+      setIoBusy(null);
+    }
+  }
+
   const tagChips = useMemo(() => tags.slice(0, 12), [tags]);
 
   if (loading) {
@@ -158,6 +255,41 @@ export default function WhatsAppCustomersList() {
 
   return (
     <View style={styles.container}>
+      {showImportExport ? (
+        <View style={styles.ioPanel} testID="wa-customers-io-panel">
+          <TouchableOpacity
+            testID="wa-customers-export"
+            accessibilityRole="button"
+            accessibilityLabel="Export customers as CSV"
+            disabled={ioBusy !== null}
+            style={[styles.ioBtn, ioBusy !== null ? styles.ioBtnDisabled : null]}
+            onPress={() => void exportCsv()}
+          >
+            {ioBusy === "export" ? (
+              <ActivityIndicator color="#25D366" size="small" />
+            ) : (
+              <Ionicons name="download-outline" size={16} color="#25D366" />
+            )}
+            <Text style={styles.ioBtnText}>Export CSV</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="wa-customers-import"
+            accessibilityRole="button"
+            accessibilityLabel="Import customers from CSV"
+            disabled={ioBusy !== null}
+            style={[styles.ioBtn, ioBusy !== null ? styles.ioBtnDisabled : null]}
+            onPress={() => void importCsv()}
+          >
+            {ioBusy === "import" ? (
+              <ActivityIndicator color="#25D366" size="small" />
+            ) : (
+              <Ionicons name="cloud-upload-outline" size={16} color="#25D366" />
+            )}
+            <Text style={styles.ioBtnText}>Import CSV</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={18} color={Colors.textTertiary} />
         <TextInput
@@ -327,6 +459,26 @@ export default function WhatsAppCustomersList() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  ioPanel: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  ioBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "rgba(37,211,102,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(37,211,102,0.4)",
+  },
+  ioBtnDisabled: { opacity: 0.45 },
+  ioBtnText: { fontSize: 13, fontWeight: "700", color: "#25D366" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",

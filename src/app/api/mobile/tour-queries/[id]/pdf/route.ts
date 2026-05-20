@@ -17,10 +17,12 @@ export const maxDuration = 60;
  * Why server-render instead of letting mobile open a web link: per the
  * parity decision, PDFs are produced server-side and the device downloads +
  * shares them. We reuse the existing public PDF/display pages
- * (`/tourPackageQueryPDFGenerator/[id]`, `/tourPackageQueryDisplay/[id]`) via
- * `generatePDFFromUrl`, so there is no duplicate HTML composition.
+ * (`/tourPackageQueryPDFGenerator/[id]`, `/tourPackageQueryDisplay/[id]`,
+ * `/tourPackageQueryVoucherDisplay/[id]`) via `generatePDFFromUrl`, so there
+ * is no duplicate HTML composition.
  *
  * `?variant=1` renders the with-variants generator page.
+ * `?voucher=1` renders the booking-confirmation voucher (takes precedence).
  */
 export async function GET(
   req: Request,
@@ -54,25 +56,29 @@ export async function GET(
     }
 
     const { searchParams } = new URL(req.url);
-    const withVariants = searchParams.get("variant") === "1";
+    const isVoucher = searchParams.get("voucher") === "1";
+    const withVariants = !isVoucher && searchParams.get("variant") === "1";
 
     const base = (
       process.env.NEXT_PUBLIC_APP_URL || "https://admin.aagamholidays.com"
     ).replace(/\/$/, "");
-    const pagePath = withVariants
-      ? `/tourPackageQueryPDFGeneratorWithVariants/${encodeURIComponent(id)}`
-      : `/tourPackageQueryPDFGenerator/${encodeURIComponent(id)}`;
+    const pagePath = isVoucher
+      ? `/tourPackageQueryVoucherDisplay/${encodeURIComponent(id)}`
+      : withVariants
+        ? `/tourPackageQueryPDFGeneratorWithVariants/${encodeURIComponent(id)}`
+        : `/tourPackageQueryPDFGenerator/${encodeURIComponent(id)}`;
     const pageUrl = `${base}${pagePath}`;
 
     const pdf = await generatePDFFromUrl(pageUrl, { waitMs: 1500 });
 
     await recordMobileAudit({
       userId,
-      entityType: "TourPackageQueryPdf",
+      entityType: isVoucher ? "TourPackageQueryVoucherPdf" : "TourPackageQueryPdf",
       entityId: id,
       action: "READ",
       metadata: {
         withVariants,
+        voucher: isVoucher,
         number: existing.tourPackageQueryNumber,
         bytes: pdf.length,
       },
@@ -86,12 +92,12 @@ export async function GET(
         .replace(/[^a-zA-Z0-9_-]+/g, "-")
         .slice(0, 60) || "tour-query";
 
+    const suffix = isVoucher ? "-voucher" : withVariants ? "-variants" : "";
+
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${safeName}${
-          withVariants ? "-variants" : ""
-        }.pdf"`,
+        "Content-Disposition": `attachment; filename="${safeName}${suffix}.pdf"`,
         "Cache-Control": "no-store, max-age=0",
       },
     });

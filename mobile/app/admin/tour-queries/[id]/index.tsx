@@ -39,6 +39,7 @@ import {
   tourQueryHotelUpdatePath,
   tourQueryPdfPath,
   tourQueryPdfWithVariantsPath,
+  tourQueryVoucherPath,
 } from "@/lib/tour-queries-web-urls";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
@@ -276,7 +277,7 @@ function TourQueryDetailScreenInner() {
   const [lifecycleBusy, setLifecycleBusy] = useState<TourQueryLifecycleAction | null>(
     null
   );
-  const [pdfBusy, setPdfBusy] = useState<"plain" | "variants" | null>(null);
+  const [pdfBusy, setPdfBusy] = useState<"plain" | "variants" | "voucher" | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [itineraryExpanded, setItineraryExpanded] = useState(false);
   const [policiesOpen, setPoliciesOpen] = useState(false);
@@ -327,6 +328,10 @@ function TourQueryDetailScreenInner() {
     if (!id) return "";
     return absoluteAdminUrl(getAdminBase(), tourQueryPdfWithVariantsPath(id));
   }, [id]);
+  const voucherUrl = useMemo(() => {
+    if (!id) return "";
+    return absoluteAdminUrl(getAdminBase(), tourQueryVoucherPath(id));
+  }, [id]);
   const hotelEditUrl = useMemo(() => {
     if (!id) return "";
     return absoluteAdminUrl(getAdminBase(), tourQueryHotelUpdatePath(id));
@@ -371,20 +376,24 @@ function TourQueryDetailScreenInner() {
   }, [data, shareUrl]);
 
   const sharePdf = useCallback(
-    async (variant: boolean, fallbackWebUrl: string) => {
+    async (mode: "plain" | "variants" | "voucher", fallbackWebUrl: string) => {
       if (!id) return;
-      setPdfBusy(variant ? "variants" : "plain");
+      setPdfBusy(mode);
       try {
         const name =
           data?.tourPackageQueryNumber ||
           data?.tourPackageQueryName ||
           "trip";
+        const query =
+          mode === "voucher" ? "?voucher=1" : mode === "variants" ? "?variant=1" : "";
+        const suffix =
+          mode === "voucher" ? "-voucher" : mode === "variants" ? "-variants" : "";
         await downloadAndSharePdf({
-          endpoint: `/api/mobile/tour-queries/${encodeURIComponent(id)}/pdf${variant ? "?variant=1" : ""
-            }`,
-          fileName: variant ? `${name}-variants` : name,
+          endpoint: `/api/mobile/tour-queries/${encodeURIComponent(id)}/pdf${query}`,
+          fileName: `${name}${suffix}`,
           getToken: () => getTokenRef.current(),
-          dialogTitle: "Share trip PDF",
+          dialogTitle:
+            mode === "voucher" ? "Share booking voucher" : "Share trip PDF",
         });
       } catch (err) {
         const message =
@@ -406,12 +415,16 @@ function TourQueryDetailScreenInner() {
   );
 
   const openPdf = useCallback(() => {
-    void sharePdf(false, pdfUrl);
+    void sharePdf("plain", pdfUrl);
   }, [sharePdf, pdfUrl]);
 
   const openPdfVariants = useCallback(() => {
-    void sharePdf(true, pdfVariantsUrl);
+    void sharePdf("variants", pdfVariantsUrl);
   }, [sharePdf, pdfVariantsUrl]);
+
+  const openPdfVoucher = useCallback(() => {
+    void sharePdf("voucher", voucherUrl);
+  }, [sharePdf, voucherUrl]);
 
   const openHotelEditor = useCallback(() => {
     if (!hotelEditUrl) return;
@@ -503,6 +516,16 @@ function TourQueryDetailScreenInner() {
           accessibilityHint:
             "Generates a PDF that includes variants and opens your device share sheet.",
           onPress: openPdfVariants,
+          disabled: pdfBusy !== null,
+        },
+        {
+          id: "pdf-voucher",
+          label: "Booking voucher",
+          icon: "ribbon-outline",
+          testID: "tour-query-web-pdf-voucher",
+          accessibilityHint:
+            "Generates the booking confirmation voucher and opens your device share sheet.",
+          onPress: openPdfVoucher,
           disabled: pdfBusy !== null,
         },
         {
@@ -649,6 +672,7 @@ function TourQueryDetailScreenInner() {
     data,
     id,
     openPdfVariants,
+    openPdfVoucher,
     openHotelEditor,
     router,
     shareWebLink,

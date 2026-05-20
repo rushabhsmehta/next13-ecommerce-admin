@@ -14,6 +14,10 @@ export function tourQueryPdfWithVariantsPath(id: string): string {
   return `/tourPackageQueryPDFGeneratorWithVariants/${encodeURIComponent(id)}`;
 }
 
+export function tourQueryVoucherPath(id: string): string {
+  return `/tourPackageQueryVoucherDisplay/${encodeURIComponent(id)}`;
+}
+
 export function tourQueryFinancialSummaryPath(id: string): string {
   return `/fetchaccounts/${encodeURIComponent(id)}`;
 }

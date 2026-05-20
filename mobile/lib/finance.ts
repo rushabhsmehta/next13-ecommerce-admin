@@ -424,7 +424,10 @@ export function createFinanceClient(request: FinanceRequest) {
     },
 
     /** Path for the server-rendered voucher PDF; download via pdf-download. */
-    voucherEndpoint(type: "sale" | "purchase", id: string): string {
+    voucherEndpoint(
+      type: "sale" | "purchase" | "receipt" | "payment" | "income" | "expense",
+      id: string
+    ): string {
       return `/api/mobile/finance/vouchers/${type}/${encodeURIComponent(id)}`;
     },
   };

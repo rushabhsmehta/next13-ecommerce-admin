@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    const [packages, total, categoryGroups, featuredPackageCount] = await Promise.all([
+    const [packages, total] = await Promise.all([
       prismadb.tourPackage.findMany({
         where,
         select: {
@@ -51,20 +51,31 @@ export async function GET(req: Request) {
         skip: offset,
       }),
       prismadb.tourPackage.count({ where }),
-      prismadb.tourPackage.groupBy({
-        by: ["tourCategory"],
-        where: {
-          ...baseWhere,
-          tourCategory: { not: null },
-        },
-      }),
-      prismadb.tourPackage.count({ where: baseWhere }),
     ]);
 
-    const categories = categoryGroups
-      .map((g) => g.tourCategory)
-      .filter((c): c is string => Boolean(c))
-      .sort((a, b) => a.localeCompare(b));
+    // Fetch categories and featured count separately so a failure here
+    // doesn't break the main package listing.
+    let categories: string[] = [];
+    let featuredPackageCount = 0;
+    try {
+      const [categoryGroups, count] = await Promise.all([
+        prismadb.tourPackage.groupBy({
+          by: ["tourCategory"],
+          where: {
+            ...baseWhere,
+            tourCategory: { not: null },
+          },
+        }),
+        prismadb.tourPackage.count({ where: baseWhere }),
+      ]);
+      categories = categoryGroups
+        .map((g) => g.tourCategory)
+        .filter((c): c is string => Boolean(c))
+        .sort((a, b) => a.localeCompare(b));
+      featuredPackageCount = count;
+    } catch (err) {
+      console.log("[TRAVEL_PACKAGES_GET] categories/count fetch failed:", err);
+    }
 
     return NextResponse.json({
       packages,

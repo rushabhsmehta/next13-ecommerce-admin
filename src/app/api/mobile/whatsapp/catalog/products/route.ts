@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
+import { createTourPackage } from "@/lib/whatsapp-catalog";
 import { validateClerkAdmin } from "@/app/api/mobile/lib/auth";
+import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +11,42 @@ const MAX_LIMIT = 100;
 
 const VALID_STATUSES = new Set(["draft", "active", "archived"]);
 const VALID_SYNC = new Set(["pending", "syncing", "synced", "failed"]);
+
+export async function POST(req: Request) {
+  try {
+    const admin = await validateClerkAdmin(req);
+    if (!admin) return new NextResponse("Unauthorized", { status: 401 });
+
+    const body = await req.json();
+    if (!body?.title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    const tourPackage = await createTourPackage(body);
+
+    await recordMobileAudit({
+      userId: admin.userId,
+      entityType: "WhatsAppTourPackage",
+      entityId: tourPackage.id,
+      action: "CREATE",
+      metadata: { title: tourPackage.title },
+    });
+
+    return NextResponse.json({ tourPackage }, { status: 201 });
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return NextResponse.json(
+        { error: "A catalog entry for this product already exists" },
+        { status: 409 }
+      );
+    }
+    console.log("[MOBILE_WA_CATALOG_PRODUCT_CREATE]", error);
+    return NextResponse.json(
+      { error: error?.message || "Failed to create catalog entry" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function GET(req: Request) {
   try {

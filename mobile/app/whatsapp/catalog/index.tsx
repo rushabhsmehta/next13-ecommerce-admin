@@ -122,8 +122,20 @@ export default function WhatsAppCatalog() {
     navigation.setOptions({
       headerTitle: "Catalog",
       headerBackTitle: phone ? "Chat" : "Back",
+      headerRight: () =>
+        phone ? null : (
+          <TouchableOpacity
+            testID="wa-catalog-new"
+            accessibilityRole="button"
+            accessibilityLabel="New catalog product"
+            onPress={() => router.push("/whatsapp/catalog/new")}
+            style={{ paddingHorizontal: 12 }}
+          >
+            <Ionicons name="add" size={26} color="#25D366" />
+          </TouchableOpacity>
+        ),
     });
-  }, [navigation, phone]);
+  }, [navigation, phone, router]);
 
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedSearch(search.trim()), SEARCH_DEBOUNCE_MS);

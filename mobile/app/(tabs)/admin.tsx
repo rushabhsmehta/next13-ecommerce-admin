@@ -189,7 +189,7 @@ function resolveAttentionRoute(statId: string, isAssociate: boolean): string | n
     case "open-todos":
       return isAssociate ? null : "/admin/todos";
     case "unread-notifications":
-      return null;
+      return isAssociate ? null : "/admin/notifications";
     default:
       return null;
   }
@@ -206,6 +206,8 @@ function resolveMetricRoute(statId: string, isAssociate: boolean): string | null
       return isAssociate ? null : "/admin/todos";
     case "receipts-payments":
       return isAssociate ? null : "/admin/finance";
+    case "unread-notifications":
+      return isAssociate ? null : "/admin/notifications";
     default:
       return null;
   }
@@ -306,6 +308,7 @@ function buildFocus(primaryStat: AdminStat | null): FocusPick | null {
         stat: primaryStat,
         title: "Unread alerts",
         detail: `${countLabel} waiting`,
+        actionLabel: "Open notifications",
         tone: "medium",
       };
     default:

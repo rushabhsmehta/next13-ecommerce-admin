@@ -240,13 +240,14 @@ export default function WhatsAppTab() {
   }, [navigation]);
 
   function openMenuRoute(
-    target: "templates" | "customers" | "campaigns" | "catalog" | "flows",
+    target: "templates" | "customers" | "campaigns" | "catalog" | "flows" | "media",
   ) {
     setShowMenu(false);
     if (target === "templates") router.push("/whatsapp/templates");
     else if (target === "customers") router.push("/whatsapp/customers");
     else if (target === "campaigns") router.push("/whatsapp/campaigns");
     else if (target === "catalog") router.push("/whatsapp/catalog");
+    else if (target === "media") router.push("/whatsapp/media");
     else router.push("/whatsapp/flows");
   }
 
@@ -403,6 +404,12 @@ export default function WhatsAppTab() {
               label="Catalog"
               hint="Browse tour packages and send products"
               onPress={() => openMenuRoute("catalog")}
+            />
+            <MenuRow
+              icon="images-outline"
+              label="Media library"
+              hint="Reusable images and PDFs"
+              onPress={() => openMenuRoute("media")}
             />
             <MenuRow
               icon="flash-outline"

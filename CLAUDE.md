@@ -53,7 +53,7 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
 
 ```
 /
-├── schema.prisma            # Main MySQL schema (~1,800 lines, 77 models)
+├── schema.prisma            # Main MySQL schema (~1,800 lines, 82 models)
 ├── prisma/
 │   └── whatsapp-schema.prisma   # PostgreSQL WhatsApp schema
 ├── mcp-server/              # Custom MCP server for Claude integrations
@@ -66,21 +66,19 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
 └── src/
     ├── app/
     │   ├── (auth)/          # Sign-in/sign-up routes (Clerk)
-    │   ├── (dashboard)/     # Admin dashboard (51 modules)
+    │   ├── (dashboard)/     # Admin dashboard (52 modules)
     │   │   ├── (routes)/    # Route group sub-container
     │   │   │   ├── associate-partners/
     │   │   │   ├── audit-logs/
     │   │   │   ├── bank-book/       # Bank reconciliation
     │   │   │   ├── cash-book/       # Cash reconciliation
     │   │   │   ├── export-contacts/
-    │   │   │   ├── follow-ups/      # Follow-up management
     │   │   │   ├── inquiries/       # Inquiry management & follow-ups
     │   │   │   ├── operational-staff/
     │   │   │   ├── settings/        # Config: meal-plans, room-types, vehicle-types,
     │   │   │   │                    #   occupancy-types, pricing-attributes, pricing-components
     │   │   │   ├── tourpackagequeryfrominquiry/  # Convert inquiry to tour query
     │   │   │   │   └── associate/   # Associate partner version (tabbed form)
-    │   │   │   ├── website-management/  # Website content management
     │   │   │   └── transport-pricing/
     │   │   └── Direct dashboard modules:
     │   │       ├── accounts/        # Financial overview (bank/cash balances)
@@ -104,6 +102,7 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
     │   │       ├── reports/
     │   │       ├── suppliers/
     │   │       ├── tds/               # Tax deducted at source
+    │   │       ├── todos/             # Todo / task management
     │   │       ├── tourPackages/
     │   │       ├── tourPackageCreateCopy/ & tourPackageQueryCreateCopy/
     │   │       ├── tourPackageDisplay/ & tourPackageQuery/
@@ -118,13 +117,18 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
     │   │       ├── viewpdfpage/
     │   │       └── whatsapp/
     │   ├── (root)/          # Public homepage
-    │   ├── api/             # API routes (75 top-level endpoints)
-    │   │   └── mcp/         # MCP gateway + OAuth + 18 handler modules
+    │   ├── access-denied/   # RBAC access-denied page
+    │   ├── api/             # API routes (74 top-level endpoints)
+    │   │   ├── mcp/         # MCP gateway + 18 handler modules
+    │   │   ├── mobile/      # Mobile (Expo) admin/ops/travel API surface
+    │   │   ├── associate/   # Associate partner API (auth, inquiries, me)
+    │   │   ├── travel-auth/ # Travel-app user auth + profile
+    │   │   └── todos/       # Todo CRUD
     │   ├── mcp/             # MCP authorization routes (OAuth PKCE)
-    │   ├── ops/             # Operations staff routes
-    │   └── travel/          # Public-facing travel app (destinations, packages, chat)
+    │   ├── ops/             # Operations staff routes (inquiry workflow)
+    │   └── travel/          # Public-facing travel app (destinations, packages, chat, account)
     ├── components/
-    │   ├── ui/              # Shadcn UI components (57 components)
+    │   ├── ui/              # Shadcn UI components (58 components)
     │   ├── forms/           # Transaction form dialogs (expense, receipt, payment)
     │   ├── tour-package-query/  # Tour query UI (variants, pricing, itinerary)
     │   ├── ai/              # AI wizard components
@@ -133,16 +137,24 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
     │   ├── notifications/   # Notification components
     │   ├── whatsapp/        # WhatsApp UI components
     │   ├── app-sidebar.tsx  # Main navigation sidebar
+    │   ├── app-shell.tsx    # Dashboard shell layout
+    │   ├── main-nav.tsx / user-nav.tsx / settings-nav.tsx  # Top-bar nav
     │   ├── GenerateMyPDF.tsx / ViewMyPDF.tsx   # PDF generation/viewing
     │   ├── voucher-layout.tsx / voucher-actions.tsx  # Voucher UI
     │   └── financial-summary-panel.tsx
     ├── lib/                 # Utilities
     │   ├── prismadb.ts      # Main Prisma client singleton
     │   ├── whatsapp-prismadb.ts  # WhatsApp Prisma client
+    │   ├── prisma-client.js     # JS shim re-exporting prismadb for tests
     │   ├── utils.ts         # formatPrice(), formatSafeDate(), cn()
     │   ├── timezone-utils.ts    # dateToUtc() for UTC date handling
     │   ├── phone-utils.ts       # normalizePhoneNumber()
     │   ├── authz.ts             # getUserOrgRole(), roleAtLeast(), requireFinanceOrAdmin()
+    │   ├── clerk-request-user.ts # Resolve current user from request (bearer + cookie)
+    │   ├── crm-route-access.ts / crm-route-access-rules.ts # CRM/dashboard route gating + Puppeteer bypass
+    │   ├── inquiry-access.ts    # Inquiry visibility rules per role/associate
+    │   ├── mobile-admin-access.ts # Mobile admin module visibility/status (incl. "in-development")
+    │   ├── expo-push.ts         # Expo push-notification dispatch
     │   ├── rate-limit.ts        # Rate limiting utility
     │   ├── pricing-calculator.ts    # Variant pricing calculation service
     │   ├── gst-utils.ts             # GST calculation helpers
@@ -158,6 +170,7 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
     │   ├── transaction-service.ts       # Financial transaction processing
     │   ├── transaction-schemas.ts       # Zod schemas for financial transactions
     │   ├── tour-package-query-accounting*.ts  # Accounting module (schema, helpers, persistence, route)
+    │   ├── tour-package-query-finance-summary.ts  # Per-query financial roll-up
     │   ├── ai/                  # AI utility modules
     │   ├── pdf/                 # PDF generation utilities
     │   │   ├── branding.ts      # PDF branding utilities
@@ -364,39 +377,61 @@ The same Next.js app serves three audiences distinguished by hostname:
 
 The Clerk proxy skips `auth.protect()` for ignored routes (e.g. `/api/whatsapp/webhook`) and for paths matched by `isPublicRoute` / `isIgnoredRoute` in `src/proxy.ts`. Internal PDF automation relaxes **org RBAC** (not Clerk at the edge) when the user-agent matches HeadlessChrome/Puppeteer — see `isCrmPdfAutomationRequest()` in `src/lib/crm-route-access.ts`. Test permission/navigation changes on both admin and associate domains.
 
+### Per-route access rules
+
+- `src/lib/crm-route-access-rules.ts` — client-safe path-to-roles map plus `canAccessDashboardPath()`. Imported by `app-sidebar.tsx` (via `useCrmOrgRole()` from `src/providers/crm-role-provider.tsx`) so the sidebar hides items the user can't reach.
+- `src/lib/crm-route-access.ts` — server-only counterpart used by API routes; also exports `isCrmPdfAutomationRequest()`.
+- `src/lib/inquiry-access.ts` — narrows inquiry queries per role / associate partner.
+- `src/lib/mobile-admin-access.ts` — drives the mobile admin module list, including the `in-development` status that hides modules from production users.
+- `src/lib/clerk-request-user.ts` — resolves the current user from either a Clerk session cookie or a bearer token (mobile/Expo).
+
+### Mobile API surface
+
+The Expo mobile app calls `/api/mobile/*` rather than the dashboard routes. The surface is segmented by audience:
+
+- `admin/`, `operations/`, `ops-portal/`, `travel-app-admin/` — role-gated screens for staff
+- `me/`, `profile/`, `auth-status/`, `users/` — auth/session
+- `customers/`, `enquiry/`, `my-inquiries/`, `tour-queries/`, `tour-packages/`, `flight-tickets/`, `todos/` — core CRM
+- `finance/`, `reports/` — read-only financial views
+- `push/` — Expo push registration / dispatch (`src/lib/expo-push.ts`)
+- `whatsapp/`, `ai/`, `website/`, `settings/`, `associate-partners/` — feature endpoints
+
 ## MCP Tools (travel-admin)
 
-**102 tools** available via the custom MCP server:
+**~133 tools** registered via the custom MCP server (count with `grep -rn 'server\.tool(' mcp-server/src/tools/`).
 
 ### Architecture (Modular)
 - **`src/app/api/mcp/route.ts`** — Slim gateway: auth via `x-mcp-api-secret` header, dispatch, error handling
-- **`src/app/api/mcp/handlers/`** — 18 handler modules + index.ts dispatcher (2200+ lines of Prisma queries)
+- **`src/app/api/mcp/handlers/`** — 18 handler modules + `index.ts` dispatcher (Prisma queries by category)
 - **`src/app/api/mcp/lib/`** — Shared utilities: `errors.ts`, `schemas.ts`, `resolve-account.ts`, `resolve-entity.ts`, `date-filter.ts`
-- **`mcp-server/src/tools/`** — 17 tool registration modules (2100+ lines of MCP tool definitions)
-- **`mcp-server/src/server.ts`** — Slim orchestrator (45 lines)
-- **`mcp-server/src/http.ts`** — HTTP transport with OAuth 2.0 PKCE (17KB)
+- **`mcp-server/src/tools/`** — 17 tool registration modules (one per category)
+- **`mcp-server/src/server.ts`** — Slim orchestrator that wires all tool modules
+- **`mcp-server/src/http.ts`** — HTTP transport with OAuth 2.0 PKCE
+- **`mcp-server/src/api-client.ts`** — HTTP client that calls the Next.js MCP gateway
+- **`mcp-server/src/helpers.ts`** — Shared helpers used by tool modules
 - **`mcp-server/src/contracts/`** — Shared type contracts between MCP server and Next.js app
 
-### Tools by Category
+### Tools by Category (module → representative tools)
 
-| Category | Count | Tools |
-|----------|-------|-------|
-| **Locations & Setup** | 4 | `search_locations`, `list_tour_packages`, `list_hotels`, `list_destinations` |
-| **Inquiries & Follow-ups** | 13 | `create_inquiry`, `list_inquiries`, `get_inquiry`, `update_inquiry_status`, `add_inquiry_note`, `assign_inquiry_staff`, `unassign_inquiry_staff`, `set_inquiry_follow_up`, `get_inquiry_actions`, `update_inquiry`, `delete_inquiry`, `list_follow_ups_due`, `get_inquiry_summary` |
-| **Tour Queries & Lifecycle** | 7 | `create_tour_query`, `list_tour_queries`, `get_tour_query`, `confirm_tour_query`, `get_query_financial_summary`, `update_tour_query`, `archive_tour_query` |
-| **Customers & Suppliers** | 10 | `list_customers`, `get_customer`, `create_customer`, `get_customer_outstanding`, `list_customer_sales`, `list_suppliers`, `get_supplier`, `create_supplier`, `get_supplier_outstanding`, `list_supplier_purchases` |
-| **Sales & Purchases** | 8 | `list_sales`, `get_sale`, `create_sale`, `get_sale_balance`, `list_purchases`, `get_purchase`, `create_purchase`, `get_purchase_balance` |
-| **Financial Transactions** | 13 | `list_accounts`, `get_account_transactions`, `get_financial_summary`, `create_payment`, `create_receipt`, `create_transfer`, `allocate_receipt_to_sale`, `allocate_payment_to_purchase`, `list_receipts`, `list_payments`, `list_transfers`, `get_outstanding_receivables`, `get_outstanding_payables` |
-| **Expenses & Income** | 9 | `create_expense`, `delete_expense`, `create_income`, `list_expenses`, `list_incomes`, `list_expense_categories`, `list_income_categories`, `create_accrued_expense`, `pay_accrued_expense` |
-| **Returns & Adjustments** | 4 | `create_sale_return`, `list_sale_returns`, `create_purchase_return`, `list_purchase_returns` |
-| **Reporting & Analytics** | 10 | `get_profit_loss`, `get_customer_statement`, `get_supplier_statement`, `get_cash_book`, `get_bank_book`, `get_tds_summary`, `get_gst_summary`, `get_expense_breakdown`, `get_revenue_by_location`, `get_daily_collection_report` |
-| **Configuration Lookups** | 4 | `list_room_types`, `list_meal_plans`, `list_vehicle_types`, `list_occupancy_types` |
-| **Staff & Operations** | 2 | `list_operational_staff`, `list_associate_partners` |
-| **Flights & Bookings** | 3 | `get_flight_ticket`, `list_flight_tickets`, `create_flight_ticket` |
-| **Notifications** | 2 | `create_notification`, `list_notifications` |
-| **Pricing Lookups** | 2 | `get_hotel_pricing`, `get_transport_pricing` |
-| **WhatsApp Integration** | 13 | `send_whatsapp_message`, `send_whatsapp_template`, `upload_whatsapp_template_media`, `send_whatsapp_product_message`, `send_whatsapp_product_list`, `list_whatsapp_campaigns`, `get_whatsapp_campaign_stats`, `list_whatsapp_customers`, `create_whatsapp_customer`, `list_whatsapp_templates`, `list_whatsapp_messages`, `send_whatsapp_campaign`, `get_whatsapp_database_health` |
-| **AI & Dashboard** | 2 | `generate_itinerary`, `get_stats` |
+| Module (`mcp-server/src/tools/*.ts`) | Sample tools |
+|--------------------------------------|--------------|
+| `ai.ts` | `generate_itinerary` |
+| `config.ts` | `list_room_types`, `list_meal_plans`, `list_vehicle_types`, `list_occupancy_types` |
+| `customers.ts` | `list_customers`, `get_customer`, `create_customer`, `get_customer_outstanding`, `list_customer_sales` |
+| `suppliers.ts` | `list_suppliers`, `get_supplier`, `create_supplier`, `get_supplier_outstanding`, `list_supplier_purchases` |
+| `sales.ts` | `list_sales`, `get_sale`, `create_sale`, `get_sale_balance` |
+| `purchases.ts` | `list_purchases`, `get_purchase`, `create_purchase`, `get_purchase_balance` |
+| `finance.ts` | `list_accounts`, `get_account_transactions`, `get_financial_summary`, `create_payment`, `create_receipt`, `create_transfer`, `allocate_receipt_to_sale`, `allocate_payment_to_purchase`, `list_payments`, `list_receipts`, `list_transfers`, `get_outstanding_receivables`, `get_outstanding_payables` |
+| `expenses-income.ts` | `create_expense`, `delete_expense`, `list_expenses`, `list_expense_categories`, `create_income`, `list_incomes`, `list_income_categories`, `create_accrued_expense`, `pay_accrued_expense` |
+| `returns.ts` | `create_sale_return`, `list_sale_returns`, `create_purchase_return`, `list_purchase_returns` |
+| `reporting.ts` | `get_profit_loss`, `get_customer_statement`, `get_supplier_statement`, `get_cash_book`, `get_bank_book`, `get_tds_summary`, `get_gst_summary`, `get_expense_breakdown`, `get_revenue_by_location`, `get_daily_collection_report` |
+| `inquiries.ts` | `create_inquiry`, `list_inquiries`, `get_inquiry`, `update_inquiry_status`, `add_inquiry_note`, `assign_inquiry_staff`, `get_inquiry_actions`, `get_inquiry_summary`, `delete_inquiry` |
+| `tour-queries.ts` | `create_tour_query`, `list_tour_queries`, `get_tour_query`, `update_tour_query`, `confirm_tour_query`, `archive_tour_query`, `add_tour_query_variant`, `get_query_financial_summary`, `get_tour_query_pdf` |
+| `locations.ts` | `search_locations`, `list_destinations`, `list_tour_packages`, `get_tour_package`, `list_hotels`, `get_hotel_pricing`, `create_hotel_pricing`, `update_hotel_pricing`, `delete_hotel_pricing`, `get_transport_pricing`, `create_transport_pricing`, `update_transport_pricing`, `delete_transport_pricing` |
+| `flights.ts` | `get_flight_ticket`, `list_flight_tickets`, `create_flight_ticket` |
+| `staff.ts` | `list_operational_staff`, `list_associate_partners` |
+| `stats.ts` | `get_stats` |
+| `whatsapp.ts` | `send_whatsapp_message`, `send_whatsapp_template`, `send_whatsapp_media`, `send_whatsapp_product_message`, `send_whatsapp_product_list`, `send_whatsapp_campaign`, `list_whatsapp_campaigns`, `get_whatsapp_campaign_stats`, `list_whatsapp_customers`, `create_whatsapp_customer`, `list_whatsapp_templates`, `list_whatsapp_template_schema`, `create_whatsapp_template`, `delete_whatsapp_template`, `generate_whatsapp_template_example`, `preview_whatsapp_template`, `preview_whatsapp_template_from_components`, `preview_whatsapp_template_from_saved`, `validate_whatsapp_template`, `upload_whatsapp_media`, `upload_whatsapp_template_media`, `list_whatsapp_messages`, `search_whatsapp_messages`, `get_whatsapp_conversation`, `get_whatsapp_conversation_summary`, `get_whatsapp_database_health`, `get_whatsapp_catalog`, `sync_whatsapp_catalog`, `list_whatsapp_catalog_packages`, `get_whatsapp_catalog_package`, `create_whatsapp_catalog_package`, `update_whatsapp_catalog_package`, `delete_whatsapp_catalog_package`, `sync_whatsapp_catalog_package`, `send_whatsapp_catalog_package`, `send_whatsapp_catalog_packages`, `send_whatsapp_packages_by_location`, `list_catalogue_packages_by_location`, `sync_tour_package_to_catalogue` |
 
 ## Key Patterns
 
@@ -415,21 +450,19 @@ Top-level routes in `src/app/api/`:
 |----------|---------|
 | `activities/`, `activitiesMaster/` | Activity management |
 | `ai/` | AI-powered features (itinerary generation, etc.) |
+| `associate/` | Associate-domain auth/inquiries/me endpoints |
 | `associate-partners/`, `associate-performance/` | Partner management |
 | `audit-logs/` | Audit trail |
 | `bank-accounts/`, `cash-accounts/` | Account management |
 | `chat/` | Chat functionality |
 | `config/` | Application configuration |
 | `credit-notes/` | Credit note management |
-| `cron/` | Cron job endpoints |
 | `customers/` | Customer CRUD (includes `[id]/open-sales/`) |
-| `debug/` | Debug endpoints |
 | `destinations/` | Destination management |
 | `expense-categories/`, `expenses/` | Expense management (includes `expenses/accrued/`) |
 | `export/` | Data export endpoints |
 | `financial-records/` | Financial record management |
 | `flight-tickets/` | Flight ticket CRUD |
-| `follow-ups/` | Follow-up management API |
 | `generate-pdf/` | PDF generation endpoint |
 | `hotel-pricing/` | Hotel pricing config |
 | `hotels/` | Hotel CRUD |
@@ -441,6 +474,7 @@ Top-level routes in `src/app/api/`:
 | `mcp/` | MCP gateway (auth + dispatch) |
 | `me/` | Current user info |
 | `meal-plans/`, `occupancy-types/`, `room-types/`, `vehicle-types/` | Config lookups |
+| `mobile/` | Mobile (Expo) API surface: `admin/`, `ai/`, `associate-partners/`, `auth-status/`, `customers/`, `enquiry/`, `finance/`, `flight-tickets/`, `me/`, `my-inquiries/`, `operations/`, `ops-portal/`, `profile/`, `push/`, `reports/`, `settings/`, `todos/`, `tour-packages/`, `tour-queries/`, `travel-app-admin/`, `users/`, `website/`, `whatsapp/` |
 | `notifications/` | Notification system |
 | `operational-staff/` | Staff management |
 | `ops/` | Operations staff endpoints |
@@ -456,16 +490,16 @@ Top-level routes in `src/app/api/`:
 | `supplier-credits/` | Supplier credit management |
 | `suppliers/` | Supplier CRUD |
 | `tds/` | Tax deducted at source |
-| `test-twilio/` | Twilio integration testing |
+| `todos/` | Todo / task CRUD |
 | `tourPackages/`, `tourPackagesForWebsite/`, `tourPackageBySlug/` | Tour packages |
 | `tourPackageQuery/` | Tour inquiries/quotes |
 | `transport-detail/` | Transport detail API |
 | `transport-pricing/` | Transport pricing |
 | `travel/` | Public-facing travel API |
+| `travel-auth/` | Travel-app user auth + profile |
 | `travel-users/` | Travel app user management |
 | `uploads/` | File upload endpoints |
 | `vehicle-types/` | Vehicle type lookup API (standalone) |
-| `website-inquiry/` | Website inquiry endpoint |
 | `whatsapp/` | WhatsApp messages, campaigns, catalogs |
 
 ## Sidebar Structure (Finance Section)

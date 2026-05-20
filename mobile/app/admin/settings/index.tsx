@@ -47,6 +47,8 @@ const MASTER_KINDS: { id: SettingsMasterKind; label: string }[] = [
   { id: "pricing-attributes", label: "Attributes" },
   { id: "pricing-components", label: "Components" },
   { id: "tds-sections", label: "TDS" },
+  { id: "income-categories", label: "Income Cat" },
+  { id: "expense-categories", label: "Expense Cat" },
 ];
 
 export default function SettingsAuditScreen() {
@@ -194,7 +196,13 @@ function SettingsAuditInner() {
   }
 
   async function removeMaster(row: any) {
-    if (kind !== "pricing-components" && kind !== "tds-sections") return;
+    if (
+      kind !== "pricing-components" &&
+      kind !== "tds-sections" &&
+      kind !== "income-categories" &&
+      kind !== "expense-categories"
+    )
+      return;
     setBusy(row.id);
     try {
       await client.deleteMaster(kind, row.id);
@@ -206,7 +214,7 @@ function SettingsAuditInner() {
     }
   }
 
-  const rows = data?.masters?.[kind === "pricing-attributes" ? "pricingAttributes" : kind === "tax-slabs" ? "taxSlabs" : kind === "meal-plans" ? "mealPlans" : kind === "room-types" ? "roomTypes" : kind === "occupancy-types" ? "occupancyTypes" : kind === "vehicle-types" ? "vehicleTypes" : kind === "pricing-components" ? "pricingComponents" : kind === "tds-sections" ? "tdsSections" : "units"] ?? [];
+  const rows = data?.masters?.[kind === "pricing-attributes" ? "pricingAttributes" : kind === "tax-slabs" ? "taxSlabs" : kind === "meal-plans" ? "mealPlans" : kind === "room-types" ? "roomTypes" : kind === "occupancy-types" ? "occupancyTypes" : kind === "vehicle-types" ? "vehicleTypes" : kind === "pricing-components" ? "pricingComponents" : kind === "tds-sections" ? "tdsSections" : kind === "income-categories" ? "incomeCategories" : kind === "expense-categories" ? "expenseCategories" : "units"] ?? [];
 
   return (
     <AdminScreen
@@ -306,7 +314,8 @@ function SettingsAuditInner() {
                       >
                         <Text style={styles.smallButtonText}>{row.isActive ? "Active" : "Inactive"}</Text>
                       </Pressable>
-                    ) : kind === "pricing-components" || kind === "tds-sections" ? (
+                    ) : null}
+                    {kind === "pricing-components" || kind === "tds-sections" || kind === "income-categories" || kind === "expense-categories" ? (
                       <Pressable
                         testID={`settings-master-delete-${row.id}`}
                         accessibilityRole="button"

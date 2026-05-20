@@ -9,7 +9,9 @@ export type SettingsMasterKind =
   | "vehicle-types"
   | "pricing-attributes"
   | "pricing-components"
-  | "tds-sections";
+  | "tds-sections"
+  | "income-categories"
+  | "expense-categories";
 
 export interface SettingsSummary {
   organization: Record<string, any> | null;

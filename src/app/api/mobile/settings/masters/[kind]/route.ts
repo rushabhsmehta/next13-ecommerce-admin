@@ -104,6 +104,16 @@ async function createMaster(kind: string, v: z.infer<typeof createSchema>) {
           isIncomeTaxTds: v.isIncomeTaxTds ?? true,
         },
       });
+    case "income-categories":
+      if (!v.name) throw new Error("Name is required");
+      return prismadb.incomeCategory.create({
+        data: { name: v.name, description: v.description ?? null, isActive: v.isActive ?? true },
+      });
+    case "expense-categories":
+      if (!v.name) throw new Error("Name is required");
+      return prismadb.expenseCategory.create({
+        data: { name: v.name, description: v.description ?? null, isActive: v.isActive ?? true },
+      });
     default:
       throw new Error("Unknown settings kind");
   }

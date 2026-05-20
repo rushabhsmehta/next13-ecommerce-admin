@@ -30,7 +30,12 @@ function clean(data: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
 }
 
-const DELETABLE_KINDS = new Set(["pricing-components", "tds-sections"]);
+const DELETABLE_KINDS = new Set([
+  "pricing-components",
+  "tds-sections",
+  "income-categories",
+  "expense-categories",
+]);
 
 async function deleteMaster(kind: string, id: string) {
   switch (kind) {
@@ -38,6 +43,20 @@ async function deleteMaster(kind: string, id: string) {
       return prismadb.pricingComponent.delete({ where: { id } });
     case "tds-sections":
       return prismadb.tDSMaster.delete({ where: { id } });
+    case "income-categories": {
+      const linked = await prismadb.incomeDetail.count({ where: { incomeCategoryId: id } });
+      if (linked > 0) {
+        throw new Error(`Cannot delete category — ${linked} income record(s) reference it`);
+      }
+      return prismadb.incomeCategory.delete({ where: { id } });
+    }
+    case "expense-categories": {
+      const linked = await prismadb.expenseDetail.count({ where: { expenseCategoryId: id } });
+      if (linked > 0) {
+        throw new Error(`Cannot delete category — ${linked} expense record(s) reference it`);
+      }
+      return prismadb.expenseCategory.delete({ where: { id } });
+    }
     default:
       throw new Error("Delete not supported for this settings kind");
   }
@@ -63,6 +82,10 @@ async function updateMaster(kind: string, id: string, data: Record<string, unkno
       return prismadb.pricingComponent.update({ where: { id }, data });
     case "tds-sections":
       return prismadb.tDSMaster.update({ where: { id }, data });
+    case "income-categories":
+      return prismadb.incomeCategory.update({ where: { id }, data });
+    case "expense-categories":
+      return prismadb.expenseCategory.update({ where: { id }, data });
     default:
       throw new Error("Unknown settings kind");
   }

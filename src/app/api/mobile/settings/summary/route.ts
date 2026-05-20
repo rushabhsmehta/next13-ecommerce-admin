@@ -60,6 +60,8 @@ export async function GET(req: Request) {
       pricingAttributes,
       pricingComponents,
       tdsSections,
+      incomeCategories,
+      expenseCategories,
       auditLogs,
     ] = await Promise.all([
       prismadb.organization.findFirst({ orderBy: { createdAt: "asc" } }),
@@ -76,6 +78,8 @@ export async function GET(req: Request) {
         take: 50,
       }),
       prismadb.tDSMaster.findMany({ orderBy: [{ sectionCode: "asc" }, { effectiveFrom: "desc" }] }),
+      prismadb.incomeCategory.findMany({ orderBy: { name: "asc" } }),
+      prismadb.expenseCategory.findMany({ orderBy: { name: "asc" } }),
       prismadb.auditLog.findMany({ where: auditWhere, orderBy: { createdAt: "desc" }, take: 50 }),
     ]);
 
@@ -99,6 +103,8 @@ export async function GET(req: Request) {
           createdAt: iso(row.createdAt),
         })),
         tdsSections,
+        incomeCategories,
+        expenseCategories,
       },
       auditLogs: auditLogs.map(auditFormat),
     });

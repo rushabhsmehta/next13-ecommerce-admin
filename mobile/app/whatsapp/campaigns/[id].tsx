@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   FlatList,
   StyleSheet,
@@ -116,6 +117,10 @@ export default function WhatsAppCampaignDetail() {
   const [recipientCursor, setRecipientCursor] = useState<string | null>(null);
   const [recipientFilter, setRecipientFilter] = useState<string>("all");
   const [loadingRecipients, setLoadingRecipients] = useState(false);
+  const [phonesDraft, setPhonesDraft] = useState("");
+  const [recipientBusy, setRecipientBusy] = useState<"add" | "import" | string | null>(
+    null
+  );
 
   useEffect(() => {
     navigation.setOptions({
@@ -226,6 +231,113 @@ export default function WhatsAppCampaignDetail() {
     );
   }
 
+  const isEditable =
+    campaign?.status === "draft" || campaign?.status === "scheduled";
+
+  async function addRecipientsFromPaste() {
+    if (!campaign) return;
+    const phones = phonesDraft
+      .split(/[\s,;\n]+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (phones.length === 0) {
+      Alert.alert(
+        "Nothing to add",
+        "Paste one or more phone numbers (comma-separated or one per line)."
+      );
+      return;
+    }
+    setRecipientBusy("add");
+    try {
+      const res = await api<{ added: number; totalRecipients: number }>(
+        `/api/mobile/whatsapp/campaigns/${encodeURIComponent(campaign.id)}/recipients`,
+        {
+          method: "POST",
+          body: {
+            recipients: phones.map((phoneNumber) => ({ phoneNumber })),
+          },
+        }
+      );
+      setPhonesDraft("");
+      Alert.alert(
+        "Recipients added",
+        `${res.added} of ${phones.length} added. Total now ${res.totalRecipients}.`
+      );
+      await Promise.all([fetchCampaign({ silent: true }), fetchRecipientsPage(null)]);
+    } catch (error) {
+      Alert.alert(
+        "Could not add recipients",
+        error instanceof ApiError ? error.message : "Failed to add recipients."
+      );
+    } finally {
+      setRecipientBusy(null);
+    }
+  }
+
+  async function importFromOptedInCustomers() {
+    if (!campaign) return;
+    Alert.alert(
+      "Import opted-in customers?",
+      "This adds every WhatsApp customer who has opted in. Existing recipients are skipped.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Import",
+          onPress: async () => {
+            setRecipientBusy("import");
+            try {
+              const res = await api<{ added: number; totalRecipients: number }>(
+                `/api/mobile/whatsapp/campaigns/${encodeURIComponent(campaign.id)}/recipients`,
+                {
+                  method: "POST",
+                  body: {
+                    importFromCustomers: true,
+                    customerFilter: { hasOptedIn: true },
+                  },
+                }
+              );
+              Alert.alert(
+                "Imported",
+                `${res.added} new recipient(s) added. Total ${res.totalRecipients}.`
+              );
+              await Promise.all([
+                fetchCampaign({ silent: true }),
+                fetchRecipientsPage(null),
+              ]);
+            } catch (error) {
+              Alert.alert(
+                "Import failed",
+                error instanceof ApiError ? error.message : "Could not import customers."
+              );
+            } finally {
+              setRecipientBusy(null);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  async function removeRecipient(recipient: Recipient) {
+    if (!campaign) return;
+    setRecipientBusy(recipient.id);
+    try {
+      await api<{ removed: number; totalRecipients: number }>(
+        `/api/mobile/whatsapp/campaigns/${encodeURIComponent(campaign.id)}/recipients?ids=${encodeURIComponent(recipient.id)}`,
+        { method: "DELETE" }
+      );
+      setRecipients((prev) => prev.filter((r) => r.id !== recipient.id));
+      await fetchCampaign({ silent: true });
+    } catch (error) {
+      Alert.alert(
+        "Could not remove",
+        error instanceof ApiError ? error.message : "Failed to remove recipient."
+      );
+    } finally {
+      setRecipientBusy(null);
+    }
+  }
+
   async function launch() {
     if (!campaign) return;
     setLaunching(true);
@@ -321,6 +433,63 @@ export default function WhatsAppCampaignDetail() {
         </View>
 
         <Text style={styles.section}>Recipients</Text>
+
+        {isEditable ? (
+          <View style={styles.editorBox} testID="wa-campaign-add-recipients">
+            <Text style={styles.editorLabel}>Add by phone number</Text>
+            <TextInput
+              testID="wa-campaign-recipient-phones"
+              accessibilityLabel="Recipient phone numbers"
+              style={styles.editorInput}
+              value={phonesDraft}
+              onChangeText={setPhonesDraft}
+              placeholder="+91 99999 99999, +91 88888 88888"
+              placeholderTextColor="#9aa0a6"
+              multiline
+              autoCapitalize="none"
+              keyboardType="phone-pad"
+            />
+            <View style={styles.editorActions}>
+              <TouchableOpacity
+                testID="wa-campaign-recipient-add"
+                accessibilityRole="button"
+                accessibilityLabel="Add recipients"
+                disabled={recipientBusy !== null}
+                style={[
+                  styles.editorButton,
+                  recipientBusy !== null ? styles.editorDisabled : null,
+                ]}
+                onPress={() => void addRecipientsFromPaste()}
+              >
+                {recipientBusy === "add" ? (
+                  <ActivityIndicator color="#25D366" size="small" />
+                ) : (
+                  <Ionicons name="add-circle-outline" size={16} color="#25D366" />
+                )}
+                <Text style={styles.editorButtonText}>Add phones</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="wa-campaign-recipient-import"
+                accessibilityRole="button"
+                accessibilityLabel="Import opted-in customers"
+                disabled={recipientBusy !== null}
+                style={[
+                  styles.editorButton,
+                  recipientBusy !== null ? styles.editorDisabled : null,
+                ]}
+                onPress={() => void importFromOptedInCustomers()}
+              >
+                {recipientBusy === "import" ? (
+                  <ActivityIndicator color="#25D366" size="small" />
+                ) : (
+                  <Ionicons name="cloud-download-outline" size={16} color="#25D366" />
+                )}
+                <Text style={styles.editorButtonText}>Import opted-in</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+
         <FlatList
           data={RECIPIENT_FILTERS}
           keyExtractor={(s) => s.value}
@@ -373,6 +542,25 @@ export default function WhatsAppCampaignDetail() {
                   {r.status}
                 </Text>
               </View>
+              {isEditable ? (
+                <TouchableOpacity
+                  testID={`wa-campaign-recipient-remove-${r.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove recipient"
+                  disabled={recipientBusy !== null}
+                  style={[
+                    styles.removeButton,
+                    recipientBusy !== null ? styles.editorDisabled : null,
+                  ]}
+                  onPress={() => void removeRecipient(r)}
+                >
+                  {recipientBusy === r.id ? (
+                    <ActivityIndicator color="#dc2626" size="small" />
+                  ) : (
+                    <Ionicons name="close" size={14} color="#dc2626" />
+                  )}
+                </TouchableOpacity>
+              ) : null}
             </View>
           ))
         )}
@@ -444,6 +632,51 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
     padding: 24,
+  },
+  editorBox: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  editorLabel: { fontSize: 12, fontWeight: "700", color: Colors.textSecondary },
+  editorInput: {
+    minHeight: 60,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: Colors.text,
+    textAlignVertical: "top",
+  },
+  editorActions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  editorButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(37,211,102,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(37,211,102,0.4)",
+  },
+  editorButtonText: { fontSize: 12, fontWeight: "700", color: "#25D366" },
+  editorDisabled: { opacity: 0.45 },
+  removeButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(220,38,38,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.3)",
+    marginLeft: 6,
   },
   emptyText: { fontSize: 14, color: Colors.textTertiary, textAlign: "center" },
   scroll: { padding: 16, gap: 16 },

@@ -67,8 +67,20 @@ export default function WhatsAppTemplateList() {
     navigation.setOptions({
       headerTitle: "Send a template",
       headerBackTitle: phone ? "Chat" : "Back",
+      headerRight: () =>
+        phone ? null : (
+          <TouchableOpacity
+            testID="wa-templates-new"
+            accessibilityRole="button"
+            accessibilityLabel="Create template"
+            onPress={() => router.push("/whatsapp/templates/new")}
+            style={{ paddingHorizontal: 12 }}
+          >
+            <Ionicons name="add" size={26} color="#25D366" />
+          </TouchableOpacity>
+        ),
     });
-  }, [navigation, phone]);
+  }, [navigation, phone, router]);
 
   const fetchTemplates = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {

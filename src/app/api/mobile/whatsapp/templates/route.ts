@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { listWhatsAppTemplates } from "@/lib/whatsapp";
+import { createTemplate, type CreateTemplateRequest } from "@/lib/whatsapp-templates";
 import { validateClerkAdmin } from "@/app/api/mobile/lib/auth";
+import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
+import { requireMobileAdminPermission } from "@/app/api/mobile/lib/assert-mobile-admin-permission";
+import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +72,84 @@ async function getTemplates(): Promise<{ templates: MobileTemplate[]; fetchedAt:
     return cache.entry;
   } finally {
     inflight = null;
+  }
+}
+
+function invalidateCache() {
+  cache.entry = null;
+}
+
+export async function POST(req: Request) {
+  try {
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized", code: "AUTH" }, { status: 401 });
+    }
+    const guard = await requireMobileAdminPermission(userId, "communications.write");
+    if (!guard.ok) return guard.response;
+
+    const body = (await req.json()) as CreateTemplateRequest;
+
+    if (!body?.name || !body?.language || !body?.category || !Array.isArray(body?.components)) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing required fields: name, language, category, components",
+        },
+        { status: 400 }
+      );
+    }
+    if (!/^[a-z0-9_]+$/.test(body.name)) {
+      return NextResponse.json(
+        {
+          error:
+            "Template name must be lowercase letters, digits, and underscores only",
+        },
+        { status: 400 }
+      );
+    }
+    if (body.components.length === 0) {
+      return NextResponse.json(
+        { error: "At least one component is required" },
+        { status: 400 }
+      );
+    }
+    if (!body.components.some((c) => c.type === "BODY")) {
+      return NextResponse.json(
+        { error: "Template must include a BODY component" },
+        { status: 400 }
+      );
+    }
+
+    const result = await createTemplate(body);
+    invalidateCache();
+
+    await recordMobileAudit({
+      userId,
+      entityType: "WhatsAppTemplate",
+      entityId: (result as any)?.id ?? body.name,
+      action: "CREATE",
+      metadata: {
+        name: body.name,
+        language: body.language,
+        category: body.category,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+      message: "Template created and submitted for review",
+    });
+  } catch (error: any) {
+    console.log("[MOBILE_WA_TEMPLATE_CREATE]", error);
+    return NextResponse.json(
+      {
+        error: error?.message || "Failed to create template",
+        details: error?.response?.data ?? null,
+      },
+      { status: error?.status || 500 }
+    );
   }
 }
 

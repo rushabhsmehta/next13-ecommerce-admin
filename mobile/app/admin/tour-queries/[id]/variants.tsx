@@ -15,9 +15,11 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TextInput } from "react-native";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   AdminErrorState,
   AdminLoadingState,
@@ -90,6 +92,10 @@ function TourQueryVariantsScreenInner() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingVariantId, setPendingVariantId] = useState<string | null>(null);
+  const [markupDraft, setMarkupDraft] = useState<Record<string, string>>({});
+  const { permissions } = useCurrentUser();
+  const canWriteSales = permissions.includes("salesTrips.write");
 
   const load = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -112,6 +118,55 @@ function TourQueryVariantsScreenInner() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleConfirm = useCallback(
+    async (variantId: string | null) => {
+      if (!id) return;
+      setPendingVariantId(variantId ?? "__clear__");
+      try {
+        await client.confirm(id, variantId);
+        await load("refresh");
+      } catch (err) {
+        Alert.alert(
+          "Could not confirm",
+          err instanceof ApiError ? err.message : "Failed to confirm variant."
+        );
+      } finally {
+        setPendingVariantId(null);
+      }
+    },
+    [client, id, load]
+  );
+
+  const handleRecalculate = useCallback(
+    async (variantId: string) => {
+      if (!id) return;
+      const raw = markupDraft[variantId] ?? "";
+      const markup = Number.parseFloat(raw);
+      if (!Number.isFinite(markup) || markup < 0) {
+        Alert.alert("Invalid markup", "Enter a non-negative number (e.g. 12.5).");
+        return;
+      }
+      setPendingVariantId(variantId);
+      try {
+        await client.recalculate(id, variantId, markup);
+        setMarkupDraft((prev) => {
+          const next = { ...prev };
+          delete next[variantId];
+          return next;
+        });
+        await load("refresh");
+      } catch (err) {
+        Alert.alert(
+          "Recalculate failed",
+          err instanceof ApiError ? err.message : "Could not recompute pricing."
+        );
+      } finally {
+        setPendingVariantId(null);
+      }
+    },
+    [client, id, markupDraft, load]
+  );
 
   const cheapest = useMemo(
     () =>
@@ -339,9 +394,90 @@ function TourQueryVariantsScreenInner() {
                 )
                 : (
                   <Text style={styles.shortNoPricing}>
-                    Pricing pending. Refresh after editing on web.
+                    Pricing pending. Set hotel and pricing on web, or recalculate below.
                   </Text>
                 )}
+
+              {canWriteSales ? (
+                <View style={styles.actionsRow}>
+                  <View style={styles.markupCol}>
+                    <Text style={styles.actionLabel}>Markup %</Text>
+                    <TextInput
+                      testID={`variant-markup-${v.id}`}
+                      accessibilityLabel="Markup percentage"
+                      keyboardType="decimal-pad"
+                      style={styles.markupInput}
+                      value={markupDraft[v.id] ?? ""}
+                      placeholder={
+                        v.pricing?.markupPercentage != null
+                          ? String(v.pricing.markupPercentage)
+                          : "0"
+                      }
+                      placeholderTextColor={Colors.textTertiary}
+                      onChangeText={(text) =>
+                        setMarkupDraft((prev) => ({ ...prev, [v.id]: text }))
+                      }
+                    />
+                  </View>
+                  <Pressable
+                    testID={`variant-recalc-${v.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Recalculate pricing"
+                    disabled={pendingVariantId !== null}
+                    style={[
+                      styles.actionBtn,
+                      pendingVariantId === v.id ? styles.actionBtnBusy : null,
+                      pendingVariantId !== null && pendingVariantId !== v.id
+                        ? styles.actionBtnDisabled
+                        : null,
+                    ]}
+                    onPress={() => void handleRecalculate(v.id)}
+                  >
+                    {pendingVariantId === v.id ? (
+                      <ActivityIndicator color={Colors.primary} size="small" />
+                    ) : (
+                      <Ionicons name="calculator-outline" size={14} color={Colors.primary} />
+                    )}
+                    <Text style={styles.actionBtnText}>Recalc</Text>
+                  </Pressable>
+                  <Pressable
+                    testID={`variant-confirm-${v.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={v.isConfirmed ? "Unconfirm variant" : "Confirm variant"}
+                    disabled={pendingVariantId !== null}
+                    style={[
+                      styles.actionBtn,
+                      v.isConfirmed ? styles.actionBtnDanger : null,
+                      pendingVariantId !== null && pendingVariantId !== (v.isConfirmed ? "__clear__" : v.id)
+                        ? styles.actionBtnDisabled
+                        : null,
+                    ]}
+                    onPress={() => void handleConfirm(v.isConfirmed ? null : v.id)}
+                  >
+                    {(v.isConfirmed && pendingVariantId === "__clear__") ||
+                    (!v.isConfirmed && pendingVariantId === v.id) ? (
+                      <ActivityIndicator
+                        color={v.isConfirmed ? Colors.error : Colors.primary}
+                        size="small"
+                      />
+                    ) : (
+                      <Ionicons
+                        name={v.isConfirmed ? "close-circle-outline" : "checkmark-circle-outline"}
+                        size={14}
+                        color={v.isConfirmed ? Colors.error : Colors.primary}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.actionBtnText,
+                        v.isConfirmed ? styles.actionBtnTextDanger : null,
+                      ]}
+                    >
+                      {v.isConfirmed ? "Unconfirm" : "Confirm"}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
           ))
         )}
@@ -474,6 +610,50 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 19,
   },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: Spacing.md,
+  },
+  markupCol: { flex: 1, gap: 4 },
+  actionLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.textSecondary,
+  },
+  markupInput: {
+    minHeight: 38,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surfaceAlt,
+    paddingHorizontal: 10,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryBg,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+  },
+  actionBtnBusy: { opacity: 0.85 },
+  actionBtnDisabled: { opacity: 0.4 },
+  actionBtnDanger: {
+    backgroundColor: "#fff1f2",
+    borderColor: "#fecaca",
+  },
+  actionBtnText: { fontSize: FontSize.xs, fontWeight: "900", color: Colors.primary },
+  actionBtnTextDanger: { color: Colors.error },
   emptyPricingBanner: {
     borderRadius: BorderRadius.md,
     borderWidth: StyleSheet.hairlineWidth,

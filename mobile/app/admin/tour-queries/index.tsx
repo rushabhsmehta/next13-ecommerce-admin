@@ -242,6 +242,18 @@ function TourQueriesListScreenInner() {
         }
       />
 
+      <Pressable
+        testID="tour-queries-open-packages"
+        accessibilityRole="button"
+        accessibilityLabel="Open tour package library"
+        style={tpqStyles.packagesLink}
+        onPress={() => router.push("/admin/tour-packages" as never)}
+      >
+        <Ionicons name="library-outline" size={16} color={Colors.primary} />
+        <Text style={tpqStyles.packagesLinkText}>Tour package library</Text>
+        <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+      </Pressable>
+
       <AdminSegmentedControl
         options={STATUS_SEGMENTS}
         value={status}
@@ -387,6 +399,28 @@ function TourQueriesListScreenInner() {
     </AdminScreen>
   );
 }
+
+const tpqStyles = StyleSheet.create({
+  packagesLink: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 9,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryBg,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+  },
+  packagesLinkText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.primary,
+  },
+});
 
 const styles = StyleSheet.create({
   list: { flex: 1 },

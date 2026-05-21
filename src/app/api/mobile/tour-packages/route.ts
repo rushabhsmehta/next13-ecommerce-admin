@@ -25,7 +25,13 @@ export async function GET(req: Request) {
     const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 30, 1), 100);
     const offset = Math.max(Number.isFinite(offsetRaw) ? offsetRaw : 0, 0);
 
-    const where: Prisma.TourPackageWhereInput = { isArchived: false };
+    const includeArchived = searchParams.get("includeArchived") === "1";
+    const featuredOnly = searchParams.get("featuredOnly") === "1";
+
+    const where: Prisma.TourPackageWhereInput = includeArchived
+      ? {}
+      : { isArchived: false };
+    if (featuredOnly) where.isFeatured = true;
     if (search) {
       where.OR = [{ tourPackageName: { contains: search } }];
     }
@@ -39,6 +45,9 @@ export async function GET(req: Request) {
           tourPackageType: true,
           numDaysNight: true,
           price: true,
+          isFeatured: true,
+          isArchived: true,
+          updatedAt: true,
           location: { select: { id: true, label: true } },
         },
         orderBy: { createdAt: "desc" },

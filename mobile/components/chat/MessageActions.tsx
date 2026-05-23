@@ -2,7 +2,15 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, Pressable } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 
-export type MessageAction = "reply" | "copy" | "edit" | "delete";
+export type MessageAction =
+  | "reply"
+  | "copy"
+  | "edit"
+  | "delete"
+  | "pin"
+  | "unpin"
+  | "important"
+  | "unimportant";
 
 interface Props {
   visible: boolean;
@@ -10,6 +18,9 @@ interface Props {
   onAction: (action: MessageAction) => void;
   canEdit: boolean;
   canDelete: boolean;
+  canModerate: boolean;
+  isPinned: boolean;
+  isImportant: boolean;
   hasContent: boolean;
 }
 
@@ -19,6 +30,9 @@ export function MessageActions({
   onAction,
   canEdit,
   canDelete,
+  canModerate,
+  isPinned,
+  isImportant,
   hasContent,
 }: Props) {
   type Item = {
@@ -33,6 +47,18 @@ export function MessageActions({
       { kind: "reply", label: "Reply", icon: "arrow-undo-outline", show: true },
       { kind: "copy", label: "Copy", icon: "copy-outline", show: hasContent },
       { kind: "edit", label: "Edit", icon: "create-outline", show: canEdit },
+      {
+        kind: isPinned ? "unpin" : "pin",
+        label: isPinned ? "Unpin message" : "Pin message",
+        icon: isPinned ? "pin-outline" : "pin",
+        show: canModerate,
+      },
+      {
+        kind: isImportant ? "unimportant" : "important",
+        label: isImportant ? "Remove important" : "Mark important",
+        icon: "alert-circle-outline",
+        show: canModerate,
+      },
       { kind: "delete", label: "Delete", icon: "trash-outline", show: canDelete, danger: true },
     ] satisfies Item[]
   ).filter((i) => i.show);

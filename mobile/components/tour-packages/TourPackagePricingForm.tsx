@@ -1,0 +1,520 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Alert,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import { Stack, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@clerk/clerk-expo";
+import {
+  AdminBottomActionBar,
+  AdminFormField,
+  AdminFormSection,
+  AdminPickerSheet,
+  AdminScreen,
+  AdminTopBar,
+} from "@/components/admin";
+import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { ApiError, withAuth } from "@/lib/api";
+import {
+  createTourPackagesClient,
+  type PricingComponentInput,
+  type TourPackagePricingInput,
+} from "@/lib/tour-packages";
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function fmtDateLabel(d: Date): string {
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function asDate(value?: string | Date | null): Date {
+  if (value instanceof Date) return value;
+  const d = value ? new Date(value) : new Date();
+  return Number.isFinite(d.getTime()) ? d : new Date();
+}
+
+interface Props {
+  packageId: string;
+  locationId: string;
+  mode: "create" | "edit";
+  pricingId?: string;
+  initial?: {
+    startDate: Date;
+    endDate: Date;
+    mealPlanId: string;
+    mealPlanName: string;
+    numberOfRooms: string;
+    packageVariantId: string;
+    packageVariantName: string;
+    vehicleTypeId: string;
+    vehicleTypeName: string;
+    locationSeasonalPeriodId: string;
+    seasonalPeriodName: string;
+    description: string;
+    isGroupPricing: boolean;
+    isActive: boolean;
+    components: { pricingAttributeId: string; price: string; purchasePrice: string }[];
+  };
+}
+
+export function TourPackagePricingForm({
+  packageId,
+  locationId,
+  mode,
+  pricingId,
+  initial,
+}: Props) {
+  const router = useRouter();
+  const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+  const client = useMemo(
+    () => createTourPackagesClient(withAuth(() => getTokenRef.current())),
+    []
+  );
+
+  const [startDate, setStartDate] = useState(asDate(initial?.startDate));
+  const [endDate, setEndDate] = useState(
+    initial?.endDate ? asDate(initial.endDate) : addDays(new Date(), 30)
+  );
+  const [mealPlanId, setMealPlanId] = useState(initial?.mealPlanId ?? "");
+  const [mealPlanName, setMealPlanName] = useState(initial?.mealPlanName ?? "");
+  const [numberOfRooms, setNumberOfRooms] = useState(initial?.numberOfRooms ?? "1");
+  const [packageVariantId, setPackageVariantId] = useState(initial?.packageVariantId ?? "");
+  const [packageVariantName, setPackageVariantName] = useState(
+    initial?.packageVariantName ?? ""
+  );
+  const [vehicleTypeId, setVehicleTypeId] = useState(initial?.vehicleTypeId ?? "");
+  const [vehicleTypeName, setVehicleTypeName] = useState(initial?.vehicleTypeName ?? "");
+  const [seasonalPeriodId, setSeasonalPeriodId] = useState(
+    initial?.locationSeasonalPeriodId ?? ""
+  );
+  const [seasonalPeriodName, setSeasonalPeriodName] = useState(
+    initial?.seasonalPeriodName ?? ""
+  );
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [isGroupPricing, setIsGroupPricing] = useState(initial?.isGroupPricing ?? false);
+  const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [componentPrices, setComponentPrices] = useState<
+    Record<string, { price: string; purchasePrice: string }>
+  >(() => {
+    const map: Record<string, { price: string; purchasePrice: string }> = {};
+    for (const c of initial?.components ?? []) {
+      map[c.pricingAttributeId] = {
+        price: c.price,
+        purchasePrice: c.purchasePrice,
+      };
+    }
+    return map;
+  });
+
+  const [mealPlans, setMealPlans] = useState<{ id: string; label: string }[]>([]);
+  const [variants, setVariants] = useState<{ id: string; label: string }[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<{ id: string; label: string }[]>([]);
+  const [seasonalPeriods, setSeasonalPeriods] = useState<{ id: string; label: string }[]>([]);
+  const [pricingAttributes, setPricingAttributes] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [picker, setPicker] = useState<
+    "meal" | "variant" | "vehicle" | "season" | null
+  >(null);
+  const [dateField, setDateField] = useState<"start" | "end" | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadLookups = useCallback(async () => {
+    try {
+      const [lookups, variantRes] = await Promise.all([
+        client.getLookups(locationId),
+        client.listVariants(packageId),
+      ]);
+      setMealPlans(lookups.mealPlans.map((m) => ({ id: m.id, label: `${m.code} - ${m.name}` })));
+      setVehicleTypes([
+        { id: "__none", label: "No vehicle type" },
+        ...lookups.vehicleTypes.map((v) => ({ id: v.id, label: v.name })),
+      ]);
+      setSeasonalPeriods([
+        { id: "__none", label: "No seasonal period" },
+        ...lookups.seasonalPeriods.map((s) => ({ id: s.id, label: s.name })),
+      ]);
+      setPricingAttributes(lookups.pricingAttributes);
+      setVariants([
+        { id: "__none", label: "All variants (global)" },
+        ...variantRes.variants.map((v) => ({ id: v.id, label: v.name })),
+      ]);
+      setComponentPrices((prev) => {
+        const next = { ...prev };
+        for (const attr of lookups.pricingAttributes) {
+          if (!next[attr.id]) next[attr.id] = { price: "", purchasePrice: "" };
+        }
+        return next;
+      });
+    } catch {
+      /* ignore */
+    }
+  }, [client, locationId, packageId]);
+
+  useEffect(() => {
+    void loadLookups();
+  }, [loadLookups]);
+
+  const hasComponents = pricingAttributes.some(
+    (a) => Number(componentPrices[a.id]?.price) >= 0 && componentPrices[a.id]?.price !== ""
+  );
+  const canSubmit = !!mealPlanId && hasComponents && !submitting;
+  const screenTitle = mode === "create" ? "New seasonal pricing" : "Edit seasonal pricing";
+
+  function onDateChange(event: DateTimePickerEvent, selected?: Date) {
+    if (Platform.OS !== "ios") setDateField(null);
+    if (event.type === "dismissed" || !selected) return;
+    if (dateField === "start") setStartDate(selected);
+    if (dateField === "end") setEndDate(selected);
+  }
+
+  function buildPayload(): TourPackagePricingInput {
+    const components: PricingComponentInput[] = pricingAttributes
+      .map((attr) => ({
+        pricingAttributeId: attr.id,
+        price: Number(componentPrices[attr.id]?.price || 0),
+        purchasePrice: componentPrices[attr.id]?.purchasePrice
+          ? Number(componentPrices[attr.id].purchasePrice)
+          : null,
+      }))
+      .filter((c) => c.price > 0 || c.purchasePrice);
+
+    return {
+      startDate: toIsoDate(startDate),
+      endDate: toIsoDate(endDate),
+      mealPlanId,
+      numberOfRooms: Number(numberOfRooms) || 1,
+      packageVariantId: packageVariantId || null,
+      vehicleTypeId: vehicleTypeId || null,
+      locationSeasonalPeriodId: seasonalPeriodId || null,
+      description: description.trim() || null,
+      isGroupPricing,
+      isActive,
+      pricingComponents: components,
+    };
+  }
+
+  async function submit() {
+    if (!canSubmit) return;
+    if (endDate < startDate) {
+      Alert.alert("Invalid dates", "End date must be on or after start date.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      if (mode === "create") {
+        await client.createPricing(packageId, buildPayload());
+      } else if (pricingId) {
+        await client.updatePricing(packageId, pricingId, buildPayload());
+      }
+      router.replace(`/admin/operations/tour-packages/${packageId}/pricing` as never);
+    } catch (err) {
+      Alert.alert(
+        "Save failed",
+        err instanceof ApiError ? err.message : "Could not save pricing."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const pickerOptions =
+    picker === "meal"
+      ? mealPlans
+      : picker === "variant"
+        ? variants
+        : picker === "vehicle"
+          ? vehicleTypes
+          : seasonalPeriods;
+  const pickerTitle =
+    picker === "meal"
+      ? "Meal plan"
+      : picker === "variant"
+        ? "Variant"
+        : picker === "vehicle"
+          ? "Vehicle type"
+          : "Seasonal period";
+  const pickerSelectedId =
+    picker === "meal"
+      ? mealPlanId || null
+      : picker === "variant"
+        ? packageVariantId || "__none"
+        : picker === "vehicle"
+          ? vehicleTypeId || "__none"
+          : seasonalPeriodId || "__none";
+
+  return (
+    <AdminScreen
+      keyboardAvoiding
+      testID={mode === "create" ? "tour-pricing-new-screen" : "tour-pricing-edit-screen"}
+      footer={
+        <AdminBottomActionBar
+          primaryLabel={mode === "create" ? "Create pricing" : "Save changes"}
+          primaryIcon={mode === "create" ? "add-circle-outline" : "save-outline"}
+          primaryTestID="tour-pricing-form-submit"
+          primaryDisabled={!canSubmit}
+          disabledReason={
+            !mealPlanId
+              ? "Select a meal plan."
+              : !hasComponents
+                ? "Enter at least one component price."
+                : submitting
+                  ? "Saving…"
+                  : undefined
+          }
+          onPrimaryPress={submit}
+        />
+      }
+    >
+      <Stack.Screen options={{ title: screenTitle, headerShown: false }} />
+      <AdminTopBar
+        title={screenTitle}
+        subtitle="Seasonal pricing"
+        onBackPress={() => router.back()}
+        testID="tour-pricing-form-header"
+      />
+
+      <AdminFormSection title="Period" testID="tour-pricing-form-period">
+        <AdminFormField label="Start date" required>
+          <Pressable style={styles.pickerBtn} onPress={() => setDateField("start")}>
+            <Text style={styles.pickerValue}>{fmtDateLabel(startDate)}</Text>
+            <Ionicons name="calendar-outline" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+        <AdminFormField label="End date" required>
+          <Pressable style={styles.pickerBtn} onPress={() => setDateField("end")}>
+            <Text style={styles.pickerValue}>{fmtDateLabel(endDate)}</Text>
+            <Ionicons name="calendar-outline" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+        <AdminFormField label="Meal plan" required>
+          <Pressable style={styles.pickerBtn} onPress={() => setPicker("meal")}>
+            <Text style={mealPlanId ? styles.pickerValue : styles.pickerPlaceholder}>
+              {mealPlanName || "Select meal plan"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+        <AdminFormField label="Number of rooms" required>
+          <TextInput
+            style={styles.input}
+            value={numberOfRooms}
+            onChangeText={setNumberOfRooms}
+            keyboardType="number-pad"
+          />
+        </AdminFormField>
+        <AdminFormField label="Variant">
+          <Pressable style={styles.pickerBtn} onPress={() => setPicker("variant")}>
+            <Text style={styles.pickerValue}>
+              {packageVariantName || "All variants (global)"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+        <AdminFormField label="Vehicle type">
+          <Pressable style={styles.pickerBtn} onPress={() => setPicker("vehicle")}>
+            <Text style={styles.pickerValue}>
+              {vehicleTypeName || "No vehicle type"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+        <AdminFormField label="Seasonal period">
+          <Pressable style={styles.pickerBtn} onPress={() => setPicker("season")}>
+            <Text style={styles.pickerValue}>
+              {seasonalPeriodName || "No seasonal period"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormField>
+        <AdminFormField label="Description">
+          <TextInput
+            style={[styles.input, styles.textarea]}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            placeholder="Optional"
+            placeholderTextColor={Colors.textTertiary}
+          />
+        </AdminFormField>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Group pricing</Text>
+          <Switch value={isGroupPricing} onValueChange={setIsGroupPricing} />
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Active</Text>
+          <Switch value={isActive} onValueChange={setIsActive} />
+        </View>
+      </AdminFormSection>
+
+      <AdminFormSection title="Pricing components" testID="tour-pricing-form-components">
+        {pricingAttributes.length === 0 ? (
+          <Text style={styles.hint}>No pricing attributes configured.</Text>
+        ) : (
+          pricingAttributes.map((attr) => (
+            <View key={attr.id} style={styles.componentCard}>
+              <Text style={styles.componentTitle}>{attr.name}</Text>
+              <AdminFormField label="Sell price (INR)">
+                <TextInput
+                  style={styles.input}
+                  value={componentPrices[attr.id]?.price ?? ""}
+                  onChangeText={(text) =>
+                    setComponentPrices((prev) => ({
+                      ...prev,
+                      [attr.id]: { ...prev[attr.id], price: text },
+                    }))
+                  }
+                  keyboardType="decimal-pad"
+                  placeholder="0"
+                  placeholderTextColor={Colors.textTertiary}
+                />
+              </AdminFormField>
+              <AdminFormField label="Purchase price (INR)">
+                <TextInput
+                  style={styles.input}
+                  value={componentPrices[attr.id]?.purchasePrice ?? ""}
+                  onChangeText={(text) =>
+                    setComponentPrices((prev) => ({
+                      ...prev,
+                      [attr.id]: { ...(prev[attr.id] ?? { price: "" }), purchasePrice: text },
+                    }))
+                  }
+                  keyboardType="decimal-pad"
+                  placeholder="Optional"
+                  placeholderTextColor={Colors.textTertiary}
+                />
+              </AdminFormField>
+            </View>
+          ))
+        )}
+      </AdminFormSection>
+
+      {dateField ? (
+        <DateTimePicker
+          value={dateField === "start" ? startDate : endDate}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={onDateChange}
+        />
+      ) : null}
+
+      <AdminPickerSheet
+        visible={picker !== null}
+        title={pickerTitle}
+        options={pickerOptions}
+        selectedId={pickerSelectedId}
+        onSelect={(opt) => {
+          if (picker === "meal") {
+            setMealPlanId(opt.id);
+            setMealPlanName(opt.label);
+          } else if (picker === "variant") {
+            if (opt.id === "__none") {
+              setPackageVariantId("");
+              setPackageVariantName("");
+            } else {
+              setPackageVariantId(opt.id);
+              setPackageVariantName(opt.label);
+            }
+          } else if (picker === "vehicle") {
+            if (opt.id === "__none") {
+              setVehicleTypeId("");
+              setVehicleTypeName("");
+            } else {
+              setVehicleTypeId(opt.id);
+              setVehicleTypeName(opt.label);
+            }
+          } else if (picker === "season") {
+            if (opt.id === "__none") {
+              setSeasonalPeriodId("");
+              setSeasonalPeriodName("");
+            } else {
+              setSeasonalPeriodId(opt.id);
+              setSeasonalPeriodName(opt.label);
+            }
+          }
+          setPicker(null);
+        }}
+        onClose={() => setPicker(null)}
+        testID="tour-pricing-picker"
+      />
+    </AdminScreen>
+  );
+}
+
+const styles = StyleSheet.create({
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: FontSize.md,
+    color: Colors.text,
+    backgroundColor: Colors.surface,
+  },
+  textarea: { minHeight: 72, textAlignVertical: "top" },
+  pickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+  },
+  pickerValue: { flex: 1, fontSize: FontSize.md, color: Colors.text },
+  pickerPlaceholder: { flex: 1, fontSize: FontSize.md, color: Colors.textTertiary },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.sm,
+  },
+  switchLabel: { fontSize: FontSize.md, color: Colors.text },
+  hint: { fontSize: FontSize.sm, color: Colors.textTertiary },
+  componentCard: {
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  componentTitle: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+});

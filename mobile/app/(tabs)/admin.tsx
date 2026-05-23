@@ -119,6 +119,13 @@ const QUICK_ACTIONS: {
     visible: ({ permissions }) => permissions.includes("operations.write"),
   },
   {
+    id: "new-package",
+    title: "Package",
+    icon: "map-outline",
+    route: "/admin/operations/tour-packages/new",
+    visible: ({ permissions }) => permissions.includes("operations.write"),
+  },
+  {
     id: "ai-draft",
     title: "AI draft",
     icon: "sparkles-outline",

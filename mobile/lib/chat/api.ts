@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { API_BASE_URL } from "@/constants/api";
 
 export type ChatRole = "ADMIN" | "OPERATIONS" | "TOURIST" | "COMPANION";
 
@@ -20,6 +20,7 @@ export interface GroupMember {
   id: string;
   role: ChatRole;
   isActive: boolean;
+  notificationsMuted?: boolean;
   travelAppUser: {
     id: string;
     name: string;
@@ -43,12 +44,26 @@ export interface EditResult {
   id: string;
   content: string;
   editedAt: string;
+  isPinned?: boolean;
+  isImportant?: boolean;
+  isAnnouncement?: boolean;
+}
+
+export interface ChatGroupInvite {
+  id: string;
+  invitedName: string;
+  invitedEmail: string | null;
+  invitedPhone: string | null;
+  role: ChatRole;
+  status: "PENDING" | "ACCEPTED" | "CANCELLED";
+  createdAt: string;
+  invitedByUser?: { id: string; name: string };
 }
 
 export async function fetchGroupDetail(opts: {
   groupId: string;
   getToken: () => Promise<string | null>;
-}): Promise<{ group: ChatGroupDetail; myRole: ChatRole }> {
+}): Promise<{ group: ChatGroupDetail; myRole: ChatRole; notificationsMuted: boolean }> {
   const token = await opts.getToken();
   const res = await fetch(`${API_BASE_URL}/api/chat/groups/${opts.groupId}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -57,7 +72,11 @@ export async function fetchGroupDetail(opts: {
     const txt = await res.text().catch(() => "");
     throw new Error(`Load group failed: HTTP ${res.status} ${txt.slice(0, 200)}`);
   }
-  return (await res.json()) as { group: ChatGroupDetail; myRole: ChatRole };
+  return (await res.json()) as {
+    group: ChatGroupDetail;
+    myRole: ChatRole;
+    notificationsMuted: boolean;
+  };
 }
 
 export async function updateGroup(opts: {
@@ -281,4 +300,121 @@ export async function markMessagesRead(opts: {
   if (!res.ok) return 0;
   const data = await res.json().catch(() => ({}));
   return typeof data.marked === "number" ? data.marked : 0;
+}
+
+export async function setNotificationsMuted(opts: {
+  groupId: string;
+  notificationsMuted: boolean;
+  getToken: () => Promise<string | null>;
+}): Promise<boolean> {
+  const token = await opts.getToken();
+  const res = await fetch(
+    `${API_BASE_URL}/api/chat/groups/${opts.groupId}/members/me/notifications`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ notificationsMuted: opts.notificationsMuted }),
+    }
+  );
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Mute update failed: HTTP ${res.status} ${txt.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  return data.notificationsMuted === true;
+}
+
+export async function fetchGroupInvites(opts: {
+  groupId: string;
+  getToken: () => Promise<string | null>;
+}): Promise<ChatGroupInvite[]> {
+  const token = await opts.getToken();
+  const res = await fetch(
+    `${API_BASE_URL}/api/chat/groups/${opts.groupId}/invites`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.invites ?? []) as ChatGroupInvite[];
+}
+
+export async function createGroupInvite(opts: {
+  groupId: string;
+  invitedName: string;
+  invitedEmail?: string;
+  invitedPhone?: string;
+  role: ChatRole;
+  getToken: () => Promise<string | null>;
+}): Promise<void> {
+  const token = await opts.getToken();
+  const res = await fetch(
+    `${API_BASE_URL}/api/chat/groups/${opts.groupId}/invites`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        invitedName: opts.invitedName,
+        invitedEmail: opts.invitedEmail?.trim() || undefined,
+        invitedPhone: opts.invitedPhone?.trim() || undefined,
+        role: opts.role,
+      }),
+    }
+  );
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Invite failed: HTTP ${res.status} ${txt.slice(0, 200)}`);
+  }
+}
+
+export async function cancelGroupInvite(opts: {
+  groupId: string;
+  inviteId: string;
+  getToken: () => Promise<string | null>;
+}): Promise<void> {
+  const token = await opts.getToken();
+  const res = await fetch(
+    `${API_BASE_URL}/api/chat/groups/${opts.groupId}/invites/${opts.inviteId}`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Cancel invite failed: HTTP ${res.status} ${txt.slice(0, 200)}`);
+  }
+}
+
+export async function updateMessageFlags(opts: {
+  groupId: string;
+  messageId: string;
+  patch: Partial<{
+    isPinned: boolean;
+    isImportant: boolean;
+    isAnnouncement: boolean;
+  }>;
+  getToken: () => Promise<string | null>;
+}): Promise<void> {
+  const token = await opts.getToken();
+  const res = await fetch(
+    `${API_BASE_URL}/api/chat/groups/${opts.groupId}/messages/${opts.messageId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(opts.patch),
+    }
+  );
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Update message failed: HTTP ${res.status} ${txt.slice(0, 200)}`);
+  }
 }

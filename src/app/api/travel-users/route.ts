@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { getUserOrgRole, roleAtLeast } from "@/lib/authz";
+import { acceptMatchingChatInvites } from "@/lib/chat-invites";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,10 @@ export async function POST(req: Request) {
         isApproved,
       },
     });
+
+    void acceptMatchingChatInvites(prismadb, user.id).catch((err) =>
+      console.error("[CHAT_INVITES_ACCEPT]", err)
+    );
 
     return NextResponse.json(user, { status: 201 });
   });

@@ -10,8 +10,12 @@ import {
   Users,
   UserPlus,
   Shield,
+  Mail,
+  X,
 } from "lucide-react";
 import Link from "next/link";
+import { format } from "date-fns";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -19,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface TravelUser {
   id: string;
@@ -41,6 +46,16 @@ interface Member {
   };
 }
 
+interface PendingInvite {
+  id: string;
+  invitedName: string;
+  invitedEmail: string | null;
+  invitedPhone: string | null;
+  role: string;
+  createdAt: Date | string;
+  invitedByUser: { id: string; name: string };
+}
+
 interface ChatGroup {
   id: string;
   name: string;
@@ -56,11 +71,20 @@ interface ChatGroup {
 interface ChatGroupDetailClientProps {
   group: ChatGroup | null;
   travelUsers: TravelUser[];
+  pendingInvites: PendingInvite[];
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: "Admin",
+  OPERATIONS: "Operations",
+  TOURIST: "Tourist",
+  COMPANION: "Companion",
+};
 
 export function ChatGroupDetailClient({
   group,
   travelUsers,
+  pendingInvites,
 }: ChatGroupDetailClientProps) {
   const router = useRouter();
   const isNew = !group;
@@ -84,6 +108,12 @@ export function ChatGroupDetailClient({
   const [selectedRole, setSelectedRole] = useState("TOURIST");
   const [saving, setSaving] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePhone, setInvitePhone] = useState("");
+  const [inviteRole, setInviteRole] = useState("TOURIST");
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [cancellingInviteId, setCancellingInviteId] = useState<string | null>(null);
 
   const handleSaveGroup = async () => {
     if (!name.trim()) return;
@@ -135,7 +165,11 @@ export function ChatGroupDetailClient({
       });
       if (res.ok) {
         setSelectedUserId("");
+        toast.success("Member added to group.");
         router.refresh();
+      } else {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error ?? "Failed to add member.");
       }
     } catch (error) {
       console.error("Failed to add member:", error);
@@ -149,14 +183,96 @@ export function ChatGroupDetailClient({
     if (!confirm("Remove this member from the group?")) return;
 
     try {
-      await fetch(
+      const res = await fetch(
         `/api/chat/groups/${group.id}/members?memberId=${memberId}`,
         { method: "DELETE" }
       );
-      router.refresh();
+      if (res.ok) {
+        toast.success("Member removed.");
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error ?? "Failed to remove member.");
+      }
     } catch (error) {
       console.error("Failed to remove member:", error);
+      toast.error("Failed to remove member.");
     }
+  };
+
+  const handleSendInvite = async () => {
+    if (!group) return;
+    const name = inviteName.trim();
+    const email = inviteEmail.trim();
+    const phone = invitePhone.trim();
+    if (!name) {
+      toast.error("Invitee name is required.");
+      return;
+    }
+    if (!email && !phone) {
+      toast.error("Enter an email or phone number for the invite.");
+      return;
+    }
+
+    setSendingInvite(true);
+    try {
+      const res = await fetch(`/api/chat/groups/${group.id}/invites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invitedName: name,
+          invitedEmail: email || undefined,
+          invitedPhone: phone || undefined,
+          role: inviteRole,
+        }),
+      });
+      if (res.ok) {
+        setInviteName("");
+        setInviteEmail("");
+        setInvitePhone("");
+        setInviteRole("TOURIST");
+        toast.success("Invite sent. They will join when they sign up with that contact.");
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error ?? "Failed to send invite.");
+      }
+    } catch (error) {
+      console.error("Failed to send invite:", error);
+      toast.error("Failed to send invite.");
+    } finally {
+      setSendingInvite(false);
+    }
+  };
+
+  const handleCancelInvite = async (inviteId: string, invitedName: string) => {
+    if (!group) return;
+    if (!confirm(`Cancel invite for ${invitedName}?`)) return;
+
+    setCancellingInviteId(inviteId);
+    try {
+      const res = await fetch(
+        `/api/chat/groups/${group.id}/invites/${inviteId}`,
+        { method: "PATCH" }
+      );
+      if (res.ok) {
+        toast.success("Invite cancelled.");
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error ?? "Failed to cancel invite.");
+      }
+    } catch (error) {
+      console.error("Failed to cancel invite:", error);
+      toast.error("Failed to cancel invite.");
+    } finally {
+      setCancellingInviteId(null);
+    }
+  };
+
+  const formatInviteContact = (invite: PendingInvite) => {
+    const parts = [invite.invitedEmail, invite.invitedPhone].filter(Boolean);
+    return parts.length > 0 ? parts.join(" · ") : "No contact details";
   };
 
   const existingMemberIds = group?.members.map((m) => m.travelAppUser.id) || [];
@@ -182,7 +298,11 @@ export function ChatGroupDetailClient({
             <p className="text-sm text-muted-foreground">
               {isNew
                 ? "Set up a new tour group chat"
-                : `${group._count.messages} messages • ${group.members.length} members`}
+                : `${group._count.messages} messages • ${group.members.length} members${
+                    pendingInvites.length > 0
+                      ? ` • ${pendingInvites.length} pending invite${pendingInvites.length === 1 ? "" : "s"}`
+                      : ""
+                  }`}
             </p>
           </div>
         </div>
@@ -360,6 +480,131 @@ export function ChatGroupDetailClient({
             </div>
           )}
         </div>
+
+        {!isNew && (
+          <div className="space-y-4 rounded-lg border p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Mail className="w-5 h-5" /> Guest Invites
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Invite someone who is not yet in the app. They are added automatically when
+                  they register with the matching email or phone.
+                </p>
+              </div>
+              {pendingInvites.length > 0 && (
+                <Badge variant="secondary">{pendingInvites.length} pending</Badge>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Name *</label>
+                <input
+                  type="text"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  placeholder="Guest name"
+                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Phone</label>
+                <input
+                  type="text"
+                  value={invitePhone}
+                  onChange={(e) => setInvitePhone(e.target.value)}
+                  placeholder="+91…"
+                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Role</label>
+                <div className="flex gap-2">
+                  <Select value={inviteRole} onValueChange={setInviteRole}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TOURIST">Tourist</SelectItem>
+                      <SelectItem value="COMPANION">Companion</SelectItem>
+                      <SelectItem value="OPERATIONS">Operations</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <button
+                    onClick={handleSendInvite}
+                    disabled={sendingInvite || !inviteName.trim()}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {sendingInvite ? "Sending…" : "Send"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              At least one of email or phone is required.
+            </p>
+
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Pending invites</h4>
+              {pendingInvites.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg bg-muted/20">
+                  No pending invites for this group.
+                </p>
+              ) : (
+                <div className="rounded-md border divide-y">
+                  {pendingInvites.map((invite) => (
+                    <div
+                      key={invite.id}
+                      className="flex items-center justify-between gap-4 p-4"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium">{invite.invitedName}</p>
+                          <Badge variant="outline" className="capitalize">
+                            {ROLE_LABEL[invite.role] ?? invite.role.toLowerCase()}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {formatInviteContact(invite)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Invited by {invite.invitedByUser.name} on{" "}
+                          {format(new Date(invite.createdAt), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          handleCancelInvite(invite.id, invite.invitedName)
+                        }
+                        disabled={cancellingInviteId === invite.id}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 rounded-md disabled:opacity-50"
+                        title="Cancel invite"
+                      >
+                        <X className="w-4 h-4" />
+                        {cancellingInviteId === invite.id ? "Cancelling…" : "Cancel"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

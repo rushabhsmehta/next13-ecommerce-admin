@@ -16,6 +16,7 @@ import { Colors } from "@/constants/theme";
 import {
   searchTravelUsers,
   addGroupMember,
+  createGroupInvite,
   type ChatRole,
   type UserSearchResult,
 } from "@/lib/chat/api";
@@ -51,6 +52,11 @@ export function AddMemberSheet({
   const [loading, setLoading] = useState(false);
   const [pendingUser, setPendingUser] = useState<UserSearchResult | null>(null);
   const [adding, setAdding] = useState(false);
+  const [mode, setMode] = useState<"search" | "invite">("search");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePhone, setInvitePhone] = useState("");
+  const [inviteRole, setInviteRole] = useState<ChatRole>("TOURIST");
   const reqRef = useRef(0);
 
   useEffect(() => {
@@ -59,6 +65,11 @@ export function AddMemberSheet({
       setResults([]);
       setLoading(false);
       setPendingUser(null);
+      setMode("search");
+      setInviteName("");
+      setInviteEmail("");
+      setInvitePhone("");
+      setInviteRole("TOURIST");
     }
   }, [visible]);
 
@@ -101,6 +112,36 @@ export function AddMemberSheet({
     }
   }
 
+  async function submitInvite() {
+    const name = inviteName.trim();
+    if (!name) {
+      Alert.alert("Name required", "Enter the invitee's name.");
+      return;
+    }
+    if (!inviteEmail.trim() && !invitePhone.trim()) {
+      Alert.alert("Contact required", "Enter an email or phone number.");
+      return;
+    }
+    setAdding(true);
+    try {
+      await createGroupInvite({
+        groupId,
+        invitedName: name,
+        invitedEmail: inviteEmail.trim() || undefined,
+        invitedPhone: invitePhone.trim() || undefined,
+        role: inviteRole,
+        getToken,
+      });
+      Alert.alert("Invite sent", "They will join automatically when they sign up.");
+      onAdded();
+      onClose();
+    } catch (err: any) {
+      Alert.alert("Couldn't send invite", err?.message ?? "Please try again.");
+    } finally {
+      setAdding(false);
+    }
+  }
+
   const roles = canPromoteToAdmin
     ? ROLE_OPTIONS
     : ROLE_OPTIONS.filter((r) => r !== "ADMIN");
@@ -116,6 +157,93 @@ export function AddMemberSheet({
           <View style={{ width: 24 }} />
         </View>
 
+        <View style={styles.modeRow}>
+          <TouchableOpacity
+            style={[styles.modeBtn, mode === "search" && styles.modeBtnActive]}
+            onPress={() => setMode("search")}
+            accessibilityRole="button"
+            accessibilityLabel="Search existing users"
+          >
+            <Text style={[styles.modeBtnText, mode === "search" && styles.modeBtnTextActive]}>
+              Existing user
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeBtn, mode === "invite" && styles.modeBtnActive]}
+            onPress={() => setMode("invite")}
+            accessibilityRole="button"
+            accessibilityLabel="Invite by email or phone"
+          >
+            <Text style={[styles.modeBtnText, mode === "invite" && styles.modeBtnTextActive]}>
+              Invite guest
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {mode === "invite" ? (
+          <View style={styles.inviteForm}>
+            <Text style={styles.fieldLabel}>Name *</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={inviteName}
+              onChangeText={setInviteName}
+              placeholder="Guest name"
+              placeholderTextColor={Colors.textTertiary}
+            />
+            <Text style={styles.fieldLabel}>Email</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              placeholder="email@example.com"
+              placeholderTextColor={Colors.textTertiary}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <Text style={styles.fieldLabel}>Phone</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={invitePhone}
+              onChangeText={setInvitePhone}
+              placeholder="+91…"
+              placeholderTextColor={Colors.textTertiary}
+              keyboardType="phone-pad"
+            />
+            <Text style={styles.fieldLabel}>Role</Text>
+            <View style={styles.roleChips}>
+              {roles.map((r) => (
+                <TouchableOpacity
+                  key={r}
+                  style={[styles.roleChip, inviteRole === r && styles.roleChipActive]}
+                  onPress={() => setInviteRole(r)}
+                >
+                  <Text
+                    style={[
+                      styles.roleChipText,
+                      inviteRole === r && styles.roleChipTextActive,
+                    ]}
+                  >
+                    {ROLE_LABEL[r]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={[styles.inviteBtn, adding && styles.inviteBtnDisabled]}
+              onPress={() => void submitInvite()}
+              disabled={adding}
+              accessibilityRole="button"
+              accessibilityLabel="Send invite"
+            >
+              {adding ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.inviteBtnText}>Send invite</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color={Colors.textTertiary} />
           <TextInput
@@ -179,6 +307,9 @@ export function AddMemberSheet({
           />
         )}
 
+        </>
+        )}
+
         <Modal
           visible={pendingUser !== null}
           transparent
@@ -231,6 +362,62 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   title: { fontSize: 17, fontWeight: "700", color: Colors.text },
+  modeRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+  },
+  modeBtnActive: {
+    borderColor: Colors.primary,
+    backgroundColor: "rgba(59,130,246,0.08)",
+  },
+  modeBtnText: { fontSize: 13, fontWeight: "600", color: Colors.textTertiary },
+  modeBtnTextActive: { color: Colors.primary },
+  inviteForm: { paddingHorizontal: 16, paddingBottom: 24, gap: 4 },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.textTertiary,
+    marginTop: 10,
+  },
+  fieldInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: Colors.text,
+  },
+  roleChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  roleChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  roleChipActive: { borderColor: Colors.primary, backgroundColor: "rgba(59,130,246,0.08)" },
+  roleChipText: { fontSize: 13, color: Colors.textTertiary, fontWeight: "600" },
+  roleChipTextActive: { color: Colors.primary },
+  inviteBtn: {
+    marginTop: 16,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  inviteBtnDisabled: { opacity: 0.6 },
+  inviteBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",

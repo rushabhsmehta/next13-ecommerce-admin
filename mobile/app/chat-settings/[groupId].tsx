@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   Modal,
+  Switch,
 } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
@@ -19,6 +20,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   fetchGroupDetail,
   fetchGroupMembers,
+  fetchGroupInvites,
+  cancelGroupInvite,
+  setNotificationsMuted,
   updateGroup,
   removeGroupMember,
   changeMemberRole,
@@ -26,10 +30,12 @@ import {
   type ChatGroupDetail,
   type ChatRole,
   type GroupMember,
+  type ChatGroupInvite,
 } from "@/lib/chat/api";
 import { MemberList } from "@/components/chat/MemberList";
 import { AddMemberSheet } from "@/components/chat/AddMemberSheet";
 import { DateField } from "@/components/ui/DateField";
+import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 
 const ROLE_OPTIONS: ChatRole[] = ["TOURIST", "COMPANION", "OPERATIONS", "ADMIN"];
 const ROLE_LABEL: Record<ChatRole, string> = {
@@ -54,6 +60,10 @@ export default function ChatSettingsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { getToken } = useAuth();
+  const getAuthToken = useCallback(
+    () => resolveMobileAuthToken(() => getToken()),
+    [getToken]
+  );
   const { travelUser } = useCurrentUser();
 
   const [loading, setLoading] = useState(true);
@@ -61,6 +71,9 @@ export default function ChatSettingsScreen() {
   const [group, setGroup] = useState<ChatGroupDetail | null>(null);
   const [myRole, setMyRole] = useState<ChatRole>("TOURIST");
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [invites, setInvites] = useState<ChatGroupInvite[]>([]);
+  const [notificationsMuted, setNotificationsMutedState] = useState(false);
+  const [muteSaving, setMuteSaving] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [tourStartDate, setTourStartDate] = useState("");
@@ -82,13 +95,18 @@ export default function ChatSettingsScreen() {
     if (!groupId) return;
     setLoading(true);
     try {
-      const [detail, membersList] = await Promise.all([
-        fetchGroupDetail({ groupId, getToken }),
-        fetchGroupMembers({ groupId, getToken }),
+      const detail = await fetchGroupDetail({ groupId, getToken: getAuthToken });
+      const canLoadInvites =
+        detail.myRole === "ADMIN" || detail.myRole === "OPERATIONS";
+      const [membersList, pendingInvites] = await Promise.all([
+        fetchGroupMembers({ groupId, getToken: getAuthToken }),
+        canLoadInvites ? fetchGroupInvites({ groupId, getToken: getAuthToken }) : Promise.resolve([]),
       ]);
       setGroup(detail.group);
       setMyRole(detail.myRole);
       setMembers(membersList);
+      setInvites(pendingInvites);
+      setNotificationsMutedState(detail.notificationsMuted);
       setName(detail.group.name);
       setDescription(detail.group.description ?? "");
       setTourStartDate(formatDateInput(detail.group.tourStartDate));
@@ -100,7 +118,47 @@ export default function ChatSettingsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [groupId, getToken, router]);
+  }, [groupId, getAuthToken, router]);
+
+  async function onToggleMute(next: boolean) {
+    if (!groupId) return;
+    setMuteSaving(true);
+    try {
+      const muted = await setNotificationsMuted({
+        groupId,
+        notificationsMuted: next,
+        getToken: getAuthToken,
+      });
+      setNotificationsMutedState(muted);
+    } catch (err: any) {
+      Alert.alert("Couldn't update notifications", err?.message ?? "Please try again.");
+    } finally {
+      setMuteSaving(false);
+    }
+  }
+
+  function onCancelInvite(invite: ChatGroupInvite) {
+    if (!groupId) return;
+    Alert.alert(
+      "Cancel invite?",
+      `${invite.invitedName} will no longer be invited.`,
+      [
+        { text: "Keep", style: "cancel" },
+        {
+          text: "Cancel invite",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelGroupInvite({ groupId, inviteId: invite.id, getToken: getAuthToken });
+              void reload();
+            } catch (err: any) {
+              Alert.alert("Couldn't cancel invite", err?.message ?? "Please try again.");
+            }
+          },
+        },
+      ]
+    );
+  }
 
   useEffect(() => {
     void reload();
@@ -123,7 +181,7 @@ export default function ChatSettingsScreen() {
           tourStartDate: tourStartDate.trim() || null,
           tourEndDate: tourEndDate.trim() || null,
         },
-        getToken,
+        getToken: getAuthToken,
       });
       Alert.alert("Saved", "Group settings updated.");
       void reload();
@@ -147,7 +205,7 @@ export default function ChatSettingsScreen() {
         groupId,
         travelAppUserId: m.travelAppUser.id,
         role,
-        getToken,
+        getToken: getAuthToken,
       });
       void reload();
     } catch (err: any) {
@@ -170,7 +228,7 @@ export default function ChatSettingsScreen() {
               await removeGroupMember({
                 groupId,
                 travelAppUserId: m.travelAppUser.id,
-                getToken,
+                getToken: getAuthToken,
               });
               void reload();
             } catch (err: any) {
@@ -194,7 +252,7 @@ export default function ChatSettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await leaveGroup({ groupId, getToken });
+              await leaveGroup({ groupId, getToken: getAuthToken });
               router.replace("/(tabs)/chat");
             } catch (err: any) {
               Alert.alert("Couldn't leave", err?.message ?? "Please try again.");
@@ -297,6 +355,50 @@ export default function ChatSettingsScreen() {
       )}
 
       <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Notifications</Text>
+        <View style={styles.muteRow}>
+          <View style={styles.muteCopy}>
+            <Text style={styles.muteTitle}>Mute notifications</Text>
+            <Text style={styles.muteHint}>
+              You will still see messages in the app, but push alerts are paused.
+            </Text>
+          </View>
+          <Switch
+            value={notificationsMuted}
+            onValueChange={(value) => void onToggleMute(value)}
+            disabled={muteSaving}
+            accessibilityLabel="Mute group notifications"
+          />
+        </View>
+      </View>
+
+      {canManage && invites.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Pending invites ({invites.length})</Text>
+          {invites.map((invite) => (
+            <View key={invite.id} style={styles.inviteRow}>
+              <View style={styles.inviteCopy}>
+                <Text style={styles.inviteName}>{invite.invitedName}</Text>
+                <Text style={styles.inviteMeta} numberOfLines={1}>
+                  {[invite.invitedEmail, invite.invitedPhone].filter(Boolean).join(" · ") ||
+                    "No contact details"}
+                  {" · "}
+                  {ROLE_LABEL[invite.role]}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => onCancelInvite(invite)}
+                accessibilityRole="button"
+                accessibilityLabel={`Cancel invite for ${invite.invitedName}`}
+              >
+                <Ionicons name="close-circle-outline" size={22} color={Colors.error} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionLabel}>
             Members ({members.length})
@@ -340,7 +442,7 @@ export default function ChatSettingsScreen() {
         canPromoteToAdmin={isAdmin}
         onClose={() => setAddOpen(false)}
         onAdded={() => void reload()}
-        getToken={getToken}
+        getToken={getAuthToken}
       />
 
       {/* Member action sheet (Change role / Remove) */}
@@ -509,6 +611,29 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     paddingBottom: 16,
   },
+  muteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  muteCopy: { flex: 1 },
+  muteTitle: { fontSize: 15, fontWeight: "600", color: Colors.text },
+  muteHint: { fontSize: 12, color: Colors.textTertiary, marginTop: 4 },
+  inviteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+    gap: 12,
+  },
+  inviteCopy: { flex: 1 },
+  inviteName: { fontSize: 15, fontWeight: "600", color: Colors.text },
+  inviteMeta: { fontSize: 12, color: Colors.textTertiary, marginTop: 2 },
   leaveBtn: {
     flexDirection: "row",
     alignItems: "center",

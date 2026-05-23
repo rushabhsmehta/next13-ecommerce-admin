@@ -1,6 +1,6 @@
 import { getDb } from "../cache";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { API_BASE_URL } from "@/constants/api";
 const MAX_ATTEMPTS = 5;
 
 export type OutboxStatus = "pending" | "sending" | "failed" | "sent";

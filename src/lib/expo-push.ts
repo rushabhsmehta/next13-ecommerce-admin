@@ -121,14 +121,18 @@ export async function sendChatMessagePush(opts: {
 }): Promise<void> {
   const { groupId, excludeTravelAppUserId, payload } = opts;
 
-  // Recipients: active members of this group, except the sender, who have an active push token.
+  // Recipients: active members of this group (not muted), except the sender.
   const tokens = await prismadb.mobilePushToken.findMany({
     where: {
       isActive: true,
       travelAppUserId: { not: excludeTravelAppUserId },
       travelAppUser: {
         chatMemberships: {
-          some: { chatGroupId: groupId, isActive: true },
+          some: {
+            chatGroupId: groupId,
+            isActive: true,
+            notificationsMuted: false,
+          },
         },
       },
     },

@@ -1,7 +1,7 @@
 import prismadb from "@/lib/prismadb";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Plus, Users, MessageCircle, Calendar } from "lucide-react";
+import { Plus, Users, MessageCircle, Calendar, Mail } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +10,10 @@ export default async function ChatManagementPage() {
     include: {
       _count: {
         select: { members: true, messages: true },
+      },
+      invites: {
+        where: { status: "PENDING" },
+        select: { id: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -52,6 +56,9 @@ export default async function ChatManagementPage() {
                   Tour Dates
                 </th>
                 <th className="h-12 px-4 text-left text-sm font-medium text-muted-foreground">
+                  Invites
+                </th>
+                <th className="h-12 px-4 text-left text-sm font-medium text-muted-foreground">
                   Status
                 </th>
                 <th className="h-12 px-4 text-left text-sm font-medium text-muted-foreground">
@@ -63,7 +70,7 @@ export default async function ChatManagementPage() {
               {groups.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center py-8 text-muted-foreground"
                   >
                     No chat groups created yet.
@@ -107,6 +114,16 @@ export default async function ChatManagementPage() {
                         </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {group.invites.length > 0 ? (
+                        <div className="flex items-center gap-1 text-sm text-amber-700">
+                          <Mail className="w-4 h-4" />
+                          {group.invites.length} pending
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="p-4">

@@ -179,7 +179,14 @@ export default function OperationsHubScreen() {
           icon="bed-outline"
           onPress={() => router.push("/admin/operations/hotels" as never)}
         />
-      ) : tab === "itineraries" ? (
+      ) : null}
+      <OpsManageLink
+        testID="operations-manage-tour-packages"
+        label="Manage tour packages"
+        icon="map-outline"
+        onPress={() => router.push("/admin/operations/tour-packages" as never)}
+      />
+      {tab === "itineraries" ? (
         <>
           <OpsManageLink
             testID="operations-manage-itineraries"

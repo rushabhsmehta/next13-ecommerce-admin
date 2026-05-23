@@ -17,7 +17,7 @@ export default async function ChatGroupDetailPage(
       select: { id: true, name: true, email: true, isApproved: true },
       orderBy: { name: "asc" },
     });
-    return <ChatGroupDetailClient group={null} travelUsers={travelUsers} />;
+    return <ChatGroupDetailClient group={null} travelUsers={travelUsers} pendingInvites={[]} />;
   }
 
   const group = await prismadb.chatGroup.findUnique({
@@ -38,6 +38,19 @@ export default async function ChatGroupDetailPage(
         },
         orderBy: { joinedAt: "asc" },
       },
+      invites: {
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          invitedName: true,
+          invitedEmail: true,
+          invitedPhone: true,
+          role: true,
+          createdAt: true,
+          invitedByUser: { select: { id: true, name: true } },
+        },
+      },
       _count: { select: { messages: true } },
     },
   });
@@ -50,5 +63,13 @@ export default async function ChatGroupDetailPage(
     orderBy: { name: "asc" },
   });
 
-  return <ChatGroupDetailClient group={group} travelUsers={travelUsers} />;
+  const { invites, ...groupData } = group;
+
+  return (
+    <ChatGroupDetailClient
+      group={groupData}
+      travelUsers={travelUsers}
+      pendingInvites={invites}
+    />
+  );
 }

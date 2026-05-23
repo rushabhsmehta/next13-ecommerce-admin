@@ -3,6 +3,7 @@ import prismadb from "@/lib/prismadb";
 import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { sendChatMessagePush } from "@/lib/expo-push";
+import { acceptMatchingChatInvites } from "@/lib/chat-invites";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,10 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
     });
 
     if (!travelUser) return jsonError("User not found", 404);
+
+    void acceptMatchingChatInvites(prismadb, travelUser.id).catch((err) =>
+      console.error("[CHAT_INVITES_ACCEPT]", err)
+    );
 
     // Verify user is a member of this group
     const membership = await prismadb.chatGroupMember.findUnique({
@@ -149,7 +154,11 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
       contactPhone,
       tourPackageId,
       replyToId,
+      isAnnouncement = false,
     } = body;
+
+    const isStaff = membership.role === "ADMIN" || membership.role === "OPERATIONS";
+    const announcement = isAnnouncement === true && isStaff;
 
     // If replyToId is provided, ensure it points at a non-deleted message in this group.
     let validReplyToId: string | null = null;
@@ -201,6 +210,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
         contactPhone,
         tourPackageId,
         replyToId: validReplyToId,
+        isAnnouncement: announcement,
       },
       include: {
         sender: {

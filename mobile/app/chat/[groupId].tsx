@@ -34,10 +34,10 @@ import { LocationBubble } from "@/components/chat/LocationBubble";
 import { MessageActions, type MessageAction } from "@/components/chat/MessageActions";
 import { ReplyPreview } from "@/components/chat/ReplyPreview";
 import { SearchSheet } from "@/components/chat/SearchSheet";
-import { editMessage, deleteMessage, markMessagesRead } from "@/lib/chat/api";
+import { editMessage, deleteMessage, markMessagesRead, fetchGroupDetail, updateMessageFlags, type ChatRole } from "@/lib/chat/api";
+import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
+import { API_BASE_URL } from "@/constants/api";
 import * as Clipboard from "expo-clipboard";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
 
 type Message = CachedMessage;
 
@@ -156,6 +156,8 @@ function MessageBubble({
     ? [
         styles.bubble,
         isMine ? styles.bubbleMine : styles.bubbleOther,
+        msg.isAnnouncement ? styles.bubbleAnnouncement : null,
+        msg.isImportant ? styles.bubbleImportant : null,
         failed && styles.bubbleFailed,
         sending && styles.bubbleSending,
       ]
@@ -177,7 +179,11 @@ function MessageBubble({
       )}
       <View style={styles.bubbleWrap}>
         {!isMine && showSender && msg.sender && (
-          <Text style={styles.senderName}>{msg.sender.name}</Text>
+          <Text style={styles.senderName}>
+            {msg.sender.name}
+            {msg.isAnnouncement ? " · Announcement" : null}
+            {msg.isImportant ? " · Important" : null}
+          </Text>
         )}
         <TouchableOpacity
           activeOpacity={0.85}
@@ -404,6 +410,10 @@ export default function ChatRoom() {
   const navigation = useNavigation();
   const router = useRouter();
   const { getToken } = useAuth();
+  const getAuthToken = useCallback(
+    () => resolveMobileAuthToken(() => getToken()),
+    [getToken]
+  );
   const { travelUser } = useCurrentUser();
   const { clear: clearUnread } = useUnread();
   const insets = useSafeAreaInsets();
@@ -420,6 +430,7 @@ export default function ChatRoom() {
   const [editTarget, setEditTarget] = useState<DisplayMessage | null>(null);
   const [actionsTarget, setActionsTarget] = useState<DisplayMessage | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [myRole, setMyRole] = useState<ChatRole>("TOURIST");
   const [oldestCursor, setOldestCursor] = useState<string | null>(null);
   const [hasMoreOlder, setHasMoreOlder] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -459,7 +470,7 @@ export default function ChatRoom() {
     async (initial = false) => {
       if (!groupId) return;
       try {
-        const token = await getToken();
+        const token = await getAuthToken();
         const res = await fetch(
           `${API_BASE_URL}/api/chat/groups/${groupId}/messages?limit=50`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -501,7 +512,7 @@ export default function ChatRoom() {
         if (initial) setLoading(false);
       }
     },
-    [getToken, groupId, persistLastSeen]
+    [getAuthToken, groupId, persistLastSeen]
   );
 
   const loadEarlier = useCallback(async () => {
@@ -510,7 +521,7 @@ export default function ChatRoom() {
     if (!cursor) return;
     setLoadingOlder(true);
     try {
-      const token = await getToken();
+      const token = await getAuthToken();
       const res = await fetch(
         `${API_BASE_URL}/api/chat/groups/${groupId}/messages?limit=50&cursor=${encodeURIComponent(cursor)}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -535,20 +546,25 @@ export default function ChatRoom() {
     } finally {
       setLoadingOlder(false);
     }
-  }, [groupId, hasMoreOlder, loadingOlder, oldestCursor, getToken]);
+  }, [groupId, hasMoreOlder, loadingOlder, oldestCursor, getAuthToken]);
 
   const fetchGroupInfo = useCallback(async () => {
     if (!groupId) return;
     try {
-      const token = await getToken();
-      const res = await fetch(`${API_BASE_URL}/api/chat/groups/${groupId}/members`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const name = data.group?.name ?? "Chat";
-        const members = data.members ?? [];
-        setGroupInfo({ name, members });
+      const [detail, membersRes] = await Promise.all([
+        fetchGroupDetail({ groupId, getToken: getAuthToken }),
+        fetch(`${API_BASE_URL}/api/chat/groups/${groupId}/members`, {
+          headers: { Authorization: `Bearer ${await getAuthToken()}` },
+        }),
+      ]);
+      setMyRole(detail.myRole);
+      let members: GroupInfo["members"] = [];
+      if (membersRes.ok) {
+        const data = await membersRes.json();
+        members = data.members ?? [];
+      }
+      const name = detail.group.name;
+      setGroupInfo({ name, members });
         navigation.setOptions({
           headerTitle: name,
           headerRight: () => (
@@ -576,9 +592,8 @@ export default function ChatRoom() {
             </View>
           ),
         });
-      }
     } catch {}
-  }, [getToken, groupId, navigation, router]);
+  }, [getAuthToken, groupId, navigation, router]);
 
   // Mark messages as read when they become visible. We only mark messages from
   // other users that we haven't already reported as read this session.
@@ -597,13 +612,13 @@ export default function ChatRoom() {
       }
       if (toMark.length === 0) return;
       try {
-        await markMessagesRead({ groupId, messageIds: toMark, getToken });
+        await markMessagesRead({ groupId, messageIds: toMark, getToken: getAuthToken });
       } catch {
         // Best-effort; remove from set so we can retry on next viewability event.
         toMark.forEach((id) => markedReadIdsRef.current.delete(id));
       }
     },
-    [groupId, travelUser?.id, serverMessages, getToken]
+    [groupId, travelUser?.id, serverMessages, getAuthToken]
   );
 
   const onViewableItemsChanged = useRef(
@@ -649,14 +664,14 @@ export default function ChatRoom() {
   // Adaptive polling (also triggers an immediate flush attempt)
   const flushOutbox = useCallback(async () => {
     if (!groupId) return;
-    const result = await chatOutbox.flush({ groupId, getToken });
+    const result = await chatOutbox.flush({ groupId, getToken: getAuthToken });
     if (result.sentClientIds.length > 0) {
       await refreshOutbox();
       await fetchMessages();
     } else if (result.failedClientIds.length > 0) {
       await refreshOutbox();
     }
-  }, [groupId, getToken, refreshOutbox, fetchMessages]);
+  }, [groupId, getAuthToken, refreshOutbox, fetchMessages]);
 
   const { setIsVisible } = useAdaptivePolling(
     () => {
@@ -722,7 +737,7 @@ export default function ChatRoom() {
           groupId,
           messageId: editing.id,
           content: trimmed,
-          getToken,
+          getToken: getAuthToken,
         });
         await fetchMessages();
       } catch (err: any) {
@@ -795,8 +810,7 @@ export default function ChatRoom() {
               style: "destructive",
               onPress: async () => {
                 try {
-                  await deleteMessage({ groupId, messageId: msg.id, getToken });
-                  // Optimistic local update so the deleted state shows immediately
+                  await deleteMessage({ groupId, messageId: msg.id, getToken: getAuthToken });
                   setServerMessages((prev) =>
                     prev.map((m) =>
                       m.id === msg.id
@@ -812,6 +826,34 @@ export default function ChatRoom() {
             },
           ]
         );
+        break;
+      case "pin":
+      case "unpin":
+        try {
+          await updateMessageFlags({
+            groupId,
+            messageId: msg.id,
+            patch: { isPinned: action === "pin" },
+            getToken: getAuthToken,
+          });
+          await fetchMessages();
+        } catch (err: any) {
+          Alert.alert("Pin failed", err?.message ?? "Could not update pin.");
+        }
+        break;
+      case "important":
+      case "unimportant":
+        try {
+          await updateMessageFlags({
+            groupId,
+            messageId: msg.id,
+            patch: { isImportant: action === "important" },
+            getToken: getAuthToken,
+          });
+          await fetchMessages();
+        } catch (err: any) {
+          Alert.alert("Update failed", err?.message ?? "Could not update message.");
+        }
         break;
     }
   }
@@ -840,7 +882,7 @@ export default function ChatRoom() {
         kind,
         fileName,
         contentType,
-        getToken,
+            getToken: getAuthToken,
       });
       const messageType =
         kind === "image" ? "IMAGE" : kind === "pdf" ? "PDF" : "FILE";
@@ -923,6 +965,8 @@ export default function ChatRoom() {
   }
 
   const myId = travelUser?.id ?? "";
+  const canModerate = myRole === "ADMIN" || myRole === "OPERATIONS";
+  const pinnedMessage = [...serverMessages].reverse().find((m) => m.isPinned && !m.isDeleted) ?? null;
 
   if (loading) {
     return (
@@ -944,6 +988,22 @@ export default function ChatRoom() {
           <Text style={styles.connectionText}>Connection issue. Retrying…</Text>
         </View>
       )}
+
+      {pinnedMessage ? (
+        <TouchableOpacity
+          style={styles.pinnedBanner}
+          onPress={() => jumpToMessage(pinnedMessage.id)}
+          accessibilityRole="button"
+          accessibilityLabel="Jump to pinned message"
+        >
+          <Ionicons name="pin" size={16} color={Colors.primary} />
+          <Text style={styles.pinnedBannerText} numberOfLines={1}>
+            {pinnedMessage.messageType === "TEXT"
+              ? pinnedMessage.content ?? "Pinned message"
+              : "Pinned message"}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
 
       <FlatList
         ref={flatListRef}
@@ -1096,6 +1156,9 @@ export default function ChatRoom() {
           !actionsTarget.isDeleted
         }
         canDelete={!!actionsTarget && actionsTarget.senderId === myId && !actionsTarget.isDeleted}
+        canModerate={canModerate}
+        isPinned={!!actionsTarget?.isPinned}
+        isImportant={!!actionsTarget?.isImportant}
         hasContent={
           !!actionsTarget && actionsTarget.messageType === "TEXT" && !!actionsTarget.content
         }
@@ -1109,7 +1172,7 @@ export default function ChatRoom() {
           setSearchOpen(false);
           setTimeout(() => jumpToMessage(messageId), 250);
         }}
-        getToken={getToken}
+        getToken={getAuthToken}
       />
     </KeyboardAvoidingView>
   );
@@ -1180,6 +1243,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 2,
   },
+  bubbleAnnouncement: {
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+  },
+  bubbleImportant: {
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  pinnedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#EFF6FF",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  pinnedBannerText: { flex: 1, fontSize: 13, color: Colors.text, fontWeight: "600" },
   bubbleSending: { opacity: 0.7 },
   bubbleFailed: {
     borderWidth: 1,

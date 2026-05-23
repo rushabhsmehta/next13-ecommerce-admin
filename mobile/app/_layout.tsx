@@ -266,12 +266,64 @@ export default function RootLayout() {
               options={{ headerTitle: "Tour Queries", headerBackTitle: "Admin" }}
             />
             <Stack.Screen
+              name="admin/tour-queries/create"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="admin/tour-queries/[id]/index"
               options={{ headerTitle: "Tour Query", headerBackTitle: "Queries" }}
             />
             <Stack.Screen
+              name="admin/tour-queries/[id]/edit"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/tour-queries/[id]/variants"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/tour-queries/[id]/finance"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="admin/operations/index"
               options={{ headerTitle: "Operations", headerBackTitle: "Admin" }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/new"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/[id]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/[id]/variants/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/[id]/variants/new"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/[id]/variants/[variantId]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/[id]/pricing/index"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/[id]/pricing/new"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/[id]/pricing/[pricingId]"
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="admin/flight-tickets/index"

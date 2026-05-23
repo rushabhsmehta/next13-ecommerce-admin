@@ -103,6 +103,7 @@ export async function POST(req: Request, props: { params: Promise<{ tourPackageI
       numberOfRooms,
       vehicleTypeId,
       locationSeasonalPeriodId,
+      packageVariantId,
       description,
       pricingComponents,
       isGroupPricing
@@ -137,6 +138,7 @@ export async function POST(req: Request, props: { params: Promise<{ tourPackageI
         numberOfRooms,
         vehicleTypeId: vehicleTypeId || null,
         locationSeasonalPeriodId: locationSeasonalPeriodId || null,
+        packageVariantId: packageVariantId || null,
         description: description || null,
         isGroupPricing: isGroupPricing || false,
         isActive: true,

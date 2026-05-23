@@ -27,6 +27,10 @@ export interface CachedMessage {
   editedAt?: string | null;
   deletedAt?: string | null;
   isDeleted?: boolean;
+  isAnnouncement?: boolean;
+  isImportant?: boolean;
+  isPinned?: boolean;
+  pinnedAt?: string | null;
   readsCount?: number;
 }
 

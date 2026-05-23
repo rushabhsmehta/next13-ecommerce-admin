@@ -143,6 +143,7 @@ export default function ChatTab() {
 
   useEffect(() => {
     if (userLoading) return;
+    if (!isSignedIn && !travelUser) return;
     void fetchGroups();
   }, [isSignedIn, userLoading, travelUser?.id]);
 
@@ -182,7 +183,7 @@ export default function ChatTab() {
     setCreating(false);
   }
 
-  if (!isSignedIn) {
+  if (!isSignedIn && !travelUser && !userLoading) {
     return (
       <View testID="chat-login-prompt" style={styles.emptyContainer}>
         <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />

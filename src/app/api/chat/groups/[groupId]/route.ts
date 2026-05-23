@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 type MemberCtx = {
   travelUserId: string;
   role: string;
+  notificationsMuted: boolean;
 };
 
 async function loadMembership(
@@ -35,7 +36,14 @@ async function loadMembership(
     return { ok: false, res: jsonError("Not a member of this group", 403) };
   }
 
-  return { ok: true, ctx: { travelUserId: travelUser.id, role: membership.role } };
+  return {
+    ok: true,
+    ctx: {
+      travelUserId: travelUser.id,
+      role: membership.role,
+      notificationsMuted: membership.notificationsMuted,
+    },
+  };
 }
 
 export async function GET(req: Request, props: { params: Promise<{ groupId: string }> }) {
@@ -62,7 +70,11 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
     });
     if (!group) return jsonError("Group not found", 404);
 
-    return NextResponse.json({ group, myRole: loaded.ctx.role });
+    return NextResponse.json({
+      group,
+      myRole: loaded.ctx.role,
+      notificationsMuted: loaded.ctx.notificationsMuted,
+    });
   });
 }
 

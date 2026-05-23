@@ -346,7 +346,12 @@ function TourQueriesListScreenInner() {
               accessibilityLabel={`Open trip ${displayName}`}
               accessibilityHint={`Next step: ${rowNextHint(item)}`}
               style={styles.row}
-              onPress={() => router.push(`/admin/tour-queries/${item.id}` as never)}
+              onPress={() =>
+                router.push({
+                  pathname: "/admin/tour-queries/[id]",
+                  params: { id: item.id },
+                } as never)
+              }
             >
               <View style={styles.rowTop}>
                 <Text style={styles.rowTitle} numberOfLines={1}>

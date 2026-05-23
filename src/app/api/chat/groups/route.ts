@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import { handleApi, jsonError } from "@/lib/api-response";
+import { acceptMatchingChatInvites } from "@/lib/chat-invites";
 import { getUserOrgRole, roleAtLeast } from "@/lib/authz";
 import { dateToUtc } from "@/lib/timezone-utils";
 
@@ -58,6 +59,10 @@ export async function GET(req: Request) {
     if (!travelUser) {
       return NextResponse.json({ groups: [] });
     }
+
+    void acceptMatchingChatInvites(prismadb, travelUser.id).catch((err) =>
+      console.error("[CHAT_INVITES_ACCEPT]", err)
+    );
 
     const memberships = await prismadb.chatGroupMember.findMany({
       where: {

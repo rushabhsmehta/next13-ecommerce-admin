@@ -1,6 +1,6 @@
 import * as FileSystem from "expo-file-system";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { API_BASE_URL } from "@/constants/api";
 
 export type UploadKind = "image" | "pdf" | "file";
 

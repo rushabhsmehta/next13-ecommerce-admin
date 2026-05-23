@@ -64,33 +64,80 @@ export async function PATCH(
   return handleApi(async () => {
     const loaded = await loadContext(req, params.groupId, params.messageId);
     if (!loaded.ok) return loaded.res;
-    const { message, isOwner, isAdmin } = loaded.ctx;
+    const { message, isOwner, isAdmin, travelUserId } = loaded.ctx;
     if (!message) return jsonError("Message not found", 404);
 
     if (message.isDeleted) return jsonError("Message has been deleted", 410);
-    if (!isOwner && !isAdmin) {
-      return jsonError("You can only edit your own messages", 403);
+
+    const body = await req.json().catch(() => ({}));
+
+    const hasContentEdit = typeof body.content === "string";
+    const hasPinEdit = typeof body.isPinned === "boolean";
+    const hasImportantEdit = typeof body.isImportant === "boolean";
+    const hasAnnouncementEdit = typeof body.isAnnouncement === "boolean";
+
+    if (!hasContentEdit && !hasPinEdit && !hasImportantEdit && !hasAnnouncementEdit) {
+      return jsonError("No editable fields provided", 400);
     }
-    if (message.messageType !== "TEXT") {
-      return jsonError("Only text messages can be edited", 400);
+
+    const data: Record<string, unknown> = {};
+
+    if (hasContentEdit) {
+      if (!isOwner && !isAdmin) {
+        return jsonError("You can only edit your own messages", 403);
+      }
+      if (message.messageType !== "TEXT") {
+        return jsonError("Only text messages can be edited", 400);
+      }
+      if (!isAdmin) {
+        const age = Date.now() - message.createdAt.getTime();
+        if (age > EDIT_WINDOW_MS) {
+          return jsonError("Edit window has expired", 403);
+        }
+      }
+      const content = body.content.trim();
+      if (!content) return jsonError("content is required", 400);
+      if (content.length > 2000) return jsonError("content too long", 400);
+      data.content = content;
+      data.editedAt = new Date();
     }
-    if (!isAdmin) {
-      const age = Date.now() - message.createdAt.getTime();
-      if (age > EDIT_WINDOW_MS) {
-        return jsonError("Edit window has expired", 403);
+
+    if (hasPinEdit || hasImportantEdit || hasAnnouncementEdit) {
+      if (!isAdmin) {
+        return jsonError("Only admins and operations staff can moderate messages", 403);
       }
     }
 
-    const body = await req.json().catch(() => ({}));
-    const content = typeof body.content === "string" ? body.content.trim() : null;
-    if (!content) return jsonError("content is required", 400);
-    if (content.length > 2000) return jsonError("content too long", 400);
+    if (hasPinEdit) {
+      if (body.isPinned) {
+        await prismadb.chatMessage.updateMany({
+          where: { chatGroupId: params.groupId, isPinned: true },
+          data: { isPinned: false, pinnedAt: null, pinnedById: null },
+        });
+        data.isPinned = true;
+        data.pinnedAt = new Date();
+        data.pinnedById = travelUserId;
+      } else {
+        data.isPinned = false;
+        data.pinnedAt = null;
+        data.pinnedById = null;
+      }
+    }
+
+    if (hasImportantEdit) {
+      data.isImportant = body.isImportant;
+    }
+
+    if (hasAnnouncementEdit) {
+      data.isAnnouncement = body.isAnnouncement;
+    }
 
     const updated = await prismadb.chatMessage.update({
       where: { id: message.id },
-      data: { content, editedAt: new Date() },
+      data,
       include: {
         sender: { select: { id: true, name: true, avatarUrl: true } },
+        pinnedBy: { select: { id: true, name: true } },
         replyTo: {
           select: {
             id: true,

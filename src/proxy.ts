@@ -13,6 +13,8 @@ const isPublicRoute = createRouteMatcher([
   "/tourPackageQueryVariantDisplay/(.*)",
   "/tourPackageQueryPDFGenerator/(.*)",
   "/tourPackageQueryPDFGeneratorWithVariants/(.*)",
+  "/tourPackagePDFGenerator/(.*)",
+  "/tourPackagePDFGeneratorWithVariants/(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/auth/(.*)",
@@ -34,6 +36,8 @@ const isPublicRoute = createRouteMatcher([
 
 const isIgnoredRoute = createRouteMatcher([
   "/api/whatsapp/webhook",
+  "/api/mobile/(.*)",
+  "/api/chat/(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

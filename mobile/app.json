@@ -78,7 +78,7 @@
         "projectId": "f6e23049-3b76-47ee-8194-9c9ad6de731a"
       },
       "apiBaseUrl": "https://admin.aagamholidays.com",
-      "apiBaseUrlDev": "https://admin.aagamholidays.com",
+      "apiBaseUrlDev": "http://127.0.0.1:3000",
       "websiteUrl": "https://aagamholidays.com",
       "websiteUrlDev": "https://aagamholidays.com",
       "whatsappBusinessNumber": "919724444701"

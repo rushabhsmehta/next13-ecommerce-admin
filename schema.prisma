@@ -86,19 +86,19 @@ model LocationSeasonalPeriod {
 }
 
 model Hotel {
-  id                   String                @id @default(uuid())
-  locationId           String
-  name                 String
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  link                 String?               @db.Text
-  destinationId        String?
-  images               Images[]
-  location             Location              @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  destination          TourDestination?      @relation(fields: [destinationId], references: [id], onDelete: SetNull)
-  itineraries          Itinerary[]           @relation("ItineraryToHotel")
-  itinerariesMaster    ItineraryMaster[]     @relation("ItineraryMasterToHotel")
-  seasonalPricing      HotelPricing[]
+  id                    String                      @id @default(uuid())
+  locationId            String
+  name                  String
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  link                  String?                     @db.Text
+  destinationId         String?
+  images                Images[]
+  location              Location                    @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  destination           TourDestination?            @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+  itineraries           Itinerary[]                 @relation("ItineraryToHotel")
+  itinerariesMaster     ItineraryMaster[]           @relation("ItineraryMasterToHotel")
+  seasonalPricing       HotelPricing[]
   variantHotelMappings  VariantHotelMapping[]
   variantHotelSnapshots QueryVariantHotelSnapshot[]
 
@@ -242,7 +242,7 @@ model TourPackageQuery {
   inquiryId                        String?
   associatePartnerId               String?
   pricingSection                   Json?
-  pricingCalculationMethod         String?   // 'manual' | 'autoHotelTransport' | 'autoTourPackage'
+  pricingCalculationMethod         String? // 'manual' | 'autoHotelTransport' | 'autoTourPackage'
   selectedTemplateId               String?
   selectedTemplateType             String?
   tourPackageTemplateName          String?
@@ -372,14 +372,14 @@ model QueryVariantPricingComponentSnapshot {
 }
 
 model PurchaseDetail {
-  id                 String           @id @default(uuid())
+  id                 String                      @id @default(uuid())
   tourPackageQueryId String
   supplierId         String?
   purchaseDate       DateTime
   price              Float
-  description        String?          @db.Text
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  description        String?                     @db.Text
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
   billDate           DateTime?
   billNumber         String?
   dueDate            DateTime?
@@ -387,23 +387,23 @@ model PurchaseDetail {
   gstPercentage      Float?
   referenceNumber    String?
   stateOfSupply      String?
-  status             String?          @default("pending")
+  status             String?                     @default("pending")
   netPayable         Float?
   tdsAmount          Float?
   tdsChallanId       String?
   tdsMasterId        String?
-  isGst              Boolean          @default(true)
+  isGst              Boolean                     @default(true)
   cgstAmount         Float?
   sgstAmount         Float?
   igstAmount         Float?
   gstin              String?
   hsnCode            String?
-  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  tourPackageQuery   TourPackageQuery            @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  supplier           Supplier?                   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   items              PurchaseItem[]
   purchaseReturns    PurchaseReturn[]
-  tdsMaster          TDSMaster?       @relation(fields: [tdsMasterId], references: [id])
-  tdsChallan         TDSChallan?      @relation(fields: [tdsChallanId], references: [id])
+  tdsMaster          TDSMaster?                  @relation(fields: [tdsMasterId], references: [id])
+  tdsChallan         TDSChallan?                 @relation(fields: [tdsChallanId], references: [id])
   tdsTransactions    TDSTransaction[]
   paymentAllocations PaymentPurchaseAllocation[]
   linkedSales        SalePurchaseLink[]
@@ -442,34 +442,34 @@ model PurchaseItem {
 }
 
 model PaymentDetail {
-  id                 String           @id @default(uuid())
-  tourPackageQueryId String
-  paymentDate        DateTime
-  amount             Float
-  method             String?
-  transactionId      String?
-  note               String?          @db.Text
-  supplierId         String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  bankAccountId      String?
-  cashAccountId      String?
-  customerId         String?
-  paymentType        String?          @default("supplier_payment")
-  saleReturnId       String?
-  purchaseReturnId   String?
-  tdsCertificateNo   String?
-  tdsDeductedAmount  Float?
-  tdsTransactionId   String?          @unique
-  images             Images[]
-  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  saleReturn         SaleReturn?      @relation(fields: [saleReturnId], references: [id], onDelete: SetNull)
-  purchaseReturn     PurchaseReturn?  @relation("SupplierCreditPayments", fields: [purchaseReturnId], references: [id], onDelete: SetNull)
-  bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
-  cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
-  tdsTransaction      TDSTransaction?  @relation(fields: [tdsTransactionId], references: [id], onDelete: SetNull)
+  id                  String                      @id @default(uuid())
+  tourPackageQueryId  String
+  paymentDate         DateTime
+  amount              Float
+  method              String?
+  transactionId       String?
+  note                String?                     @db.Text
+  supplierId          String?
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  bankAccountId       String?
+  cashAccountId       String?
+  customerId          String?
+  paymentType         String?                     @default("supplier_payment")
+  saleReturnId        String?
+  purchaseReturnId    String?
+  tdsCertificateNo    String?
+  tdsDeductedAmount   Float?
+  tdsTransactionId    String?                     @unique
+  images              Images[]
+  tourPackageQuery    TourPackageQuery            @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  supplier            Supplier?                   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  customer            Customer?                   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  saleReturn          SaleReturn?                 @relation(fields: [saleReturnId], references: [id], onDelete: SetNull)
+  purchaseReturn      PurchaseReturn?             @relation("SupplierCreditPayments", fields: [purchaseReturnId], references: [id], onDelete: SetNull)
+  bankAccount         BankAccount?                @relation(fields: [bankAccountId], references: [id])
+  cashAccount         CashAccount?                @relation(fields: [cashAccountId], references: [id])
+  tdsTransaction      TDSTransaction?             @relation(fields: [tdsTransactionId], references: [id], onDelete: SetNull)
   purchaseAllocations PaymentPurchaseAllocation[]
 
   @@index([bankAccountId])
@@ -484,29 +484,29 @@ model PaymentDetail {
 }
 
 model SaleDetail {
-  id                 String           @id @default(uuid())
+  id                 String                  @id @default(uuid())
   tourPackageQueryId String
   customerId         String?
   saleDate           DateTime
   salePrice          Float
-  description        String?          @db.Text
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
+  description        String?                 @db.Text
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @default(now())
   dueDate            DateTime?
   gstAmount          Float?
   gstPercentage      Float?
   invoiceDate        DateTime?
   invoiceNumber      String?
   stateOfSupply      String?
-  status             String?          @default("pending")
-  isGst              Boolean          @default(true)
+  status             String?                 @default("pending")
+  isGst              Boolean                 @default(true)
   cgstAmount         Float?
   sgstAmount         Float?
   igstAmount         Float?
   gstin              String?
   hsnCode            String?
-  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tourPackageQuery   TourPackageQuery        @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  customer           Customer?               @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items              SaleItem[]
   saleReturns        SaleReturn[]
   receiptAllocations ReceiptSaleAllocation[]
@@ -544,29 +544,29 @@ model SaleItem {
 }
 
 model ReceiptDetail {
-  id                 String           @id @default(uuid())
+  id                 String                  @id @default(uuid())
   tourPackageQueryId String
   receiptDate        DateTime
   amount             Float
   reference          String?
-  note               String?          @db.Text
+  note               String?                 @db.Text
   customerId         String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @default(now())
   bankAccountId      String?
   cashAccountId      String?
   purchaseReturnId   String?
   saleReturnId       String?
-  receiptType        String?          @default("customer_receipt")
+  receiptType        String?                 @default("customer_receipt")
   supplierId         String?
   images             Images[]
-  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  purchaseReturn     PurchaseReturn?  @relation(fields: [purchaseReturnId], references: [id], onDelete: SetNull)
-  saleReturn         SaleReturn?      @relation("CreditNoteReceipts", fields: [saleReturnId], references: [id], onDelete: SetNull)
-  bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
-  cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
+  tourPackageQuery   TourPackageQuery        @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  customer           Customer?               @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  supplier           Supplier?               @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  purchaseReturn     PurchaseReturn?         @relation(fields: [purchaseReturnId], references: [id], onDelete: SetNull)
+  saleReturn         SaleReturn?             @relation("CreditNoteReceipts", fields: [saleReturnId], references: [id], onDelete: SetNull)
+  bankAccount        BankAccount?            @relation(fields: [bankAccountId], references: [id])
+  cashAccount        CashAccount?            @relation(fields: [cashAccountId], references: [id])
   saleAllocations    ReceiptSaleAllocation[]
 
   @@index([bankAccountId])
@@ -941,7 +941,7 @@ model Customer {
   saleDetails         SaleDetail[]
   receiptDetails      ReceiptDetail[]
   refundPayments      PaymentDetail[]
-  saleReturns         SaleReturn[]     @relation("SaleReturnCustomer")
+  saleReturns         SaleReturn[]      @relation("SaleReturnCustomer")
   associatePartner    AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
   tdsTransactions     TDSTransaction[]
 
@@ -970,7 +970,7 @@ model Supplier {
   purchaseDetails PurchaseDetail[]
   paymentDetails  PaymentDetail[]
   refundReceipts  ReceiptDetail[]
-  purchaseReturns PurchaseReturn[] @relation("PurchaseReturnSupplier")
+  purchaseReturns PurchaseReturn[]   @relation("PurchaseReturnSupplier")
   defaultTds      TDSMaster?         @relation(fields: [defaultTdsId], references: [id])
   tdsTransactions TDSTransaction[]
 
@@ -1520,15 +1520,15 @@ model RoomAllocation {
 }
 
 model ExtraBed {
-  id               String         @id @default(uuid())
+  id               String   @id @default(uuid())
   roomAllocationId String
   occupancyTypeId  String
-  quantity         Int            @default(1)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  quantity         Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  roomAllocation   RoomAllocation @relation(fields: [roomAllocationId], references: [id], onDelete: Cascade)
-  occupancyType    OccupancyType  @relation(fields: [occupancyTypeId], references: [id])
+  roomAllocation RoomAllocation @relation(fields: [roomAllocationId], references: [id], onDelete: Cascade)
+  occupancyType  OccupancyType  @relation(fields: [occupancyTypeId], references: [id])
 
   @@index([roomAllocationId])
   @@index([occupancyTypeId])
@@ -1732,22 +1732,25 @@ enum OperationalStaffRole {
 // =============================================
 
 model TravelAppUser {
-  id                String             @id @default(uuid())
-  name              String
-  email             String             @unique
-  phone             String?
-  avatarUrl         String?
-  isApproved        Boolean            @default(false)
-  isActive          Boolean            @default(true)
-  clerkUserId       String?            @unique
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  chatMemberships   ChatGroupMember[]
-  chatMessages      ChatMessage[]
-  chatMessageReads  ChatMessageRead[]
-  pushSubscriptions PushSubscription[]
-  mobilePushTokens  MobilePushToken[]
-  savedPackages     SavedPackage[]
+  id                  String             @id @default(uuid())
+  name                String
+  email               String             @unique
+  phone               String?
+  avatarUrl           String?
+  isApproved          Boolean            @default(false)
+  isActive            Boolean            @default(true)
+  clerkUserId         String?            @unique
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  chatMemberships     ChatGroupMember[]
+  chatMessages        ChatMessage[]
+  chatMessagesPinned  ChatMessage[]      @relation("ChatMessagePinnedBy")
+  chatMessageReads    ChatMessageRead[]
+  chatInvitesSent     ChatGroupInvite[]  @relation("ChatInvitesSent")
+  chatInvitesAccepted ChatGroupInvite[]  @relation("ChatInvitesAccepted")
+  pushSubscriptions   PushSubscription[]
+  mobilePushTokens    MobilePushToken[]
+  savedPackages       SavedPackage[]
 
   @@index([email])
   @@index([clerkUserId])
@@ -1768,6 +1771,7 @@ model ChatGroup {
   updatedAt          DateTime          @updatedAt
   members            ChatGroupMember[]
   messages           ChatMessage[]
+  invites            ChatGroupInvite[]
 
   @@index([tourPackageQueryId])
   @@index([isActive])
@@ -1781,16 +1785,48 @@ enum ChatMemberRole {
   COMPANION
 }
 
+enum ChatInviteStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+}
+
+model ChatGroupInvite {
+  id                      String           @id @default(uuid())
+  chatGroupId             String
+  invitedName             String
+  invitedEmail            String?
+  invitedPhone            String?
+  role                    ChatMemberRole   @default(TOURIST)
+  status                  ChatInviteStatus @default(PENDING)
+  invitedBy               String
+  acceptedTravelAppUserId String?
+  acceptedAt              DateTime?
+  cancelledAt             DateTime?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  chatGroup               ChatGroup        @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
+  invitedByUser           TravelAppUser    @relation("ChatInvitesSent", fields: [invitedBy], references: [id])
+  acceptedTravelAppUser   TravelAppUser?   @relation("ChatInvitesAccepted", fields: [acceptedTravelAppUserId], references: [id])
+
+  @@index([chatGroupId])
+  @@index([chatGroupId, status])
+  @@index([invitedEmail])
+  @@index([invitedPhone])
+  @@index([acceptedTravelAppUserId])
+}
+
 model ChatGroupMember {
-  id              String         @id @default(uuid())
-  chatGroupId     String
-  travelAppUserId String
-  role            ChatMemberRole @default(TOURIST)
-  isActive        Boolean        @default(true)
-  joinedAt        DateTime       @default(now())
-  leftAt          DateTime?
-  chatGroup       ChatGroup      @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
-  travelAppUser   TravelAppUser  @relation(fields: [travelAppUserId], references: [id], onDelete: Cascade)
+  id                 String         @id @default(uuid())
+  chatGroupId        String
+  travelAppUserId    String
+  role               ChatMemberRole @default(TOURIST)
+  isActive           Boolean        @default(true)
+  notificationsMuted Boolean        @default(false)
+  joinedAt           DateTime       @default(now())
+  leftAt             DateTime?
+  chatGroup          ChatGroup      @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
+  travelAppUser      TravelAppUser  @relation(fields: [travelAppUserId], references: [id], onDelete: Cascade)
 
   @@unique([chatGroupId, travelAppUserId])
   @@index([chatGroupId])
@@ -1808,35 +1844,42 @@ enum ChatMessageType {
 }
 
 model ChatMessage {
-  id            String            @id @default(uuid())
-  chatGroupId   String
-  senderId      String
-  messageType   ChatMessageType   @default(TEXT)
-  content       String?           @db.Text
-  fileUrl       String?           @db.Text
-  fileName      String?
-  fileSize      Int?
-  latitude      Float?
-  longitude     Float?
-  contactName   String?
-  contactPhone  String?
-  tourPackageId String?
-  replyToId     String?
-  editedAt      DateTime?
-  deletedAt     DateTime?
-  isDeleted     Boolean           @default(false)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  chatGroup     ChatGroup         @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
-  sender        TravelAppUser     @relation(fields: [senderId], references: [id])
-  replyTo       ChatMessage?      @relation("ChatMessageReply", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  replies       ChatMessage[]     @relation("ChatMessageReply")
-  reads         ChatMessageRead[]
+  id             String            @id @default(uuid())
+  chatGroupId    String
+  senderId       String
+  messageType    ChatMessageType   @default(TEXT)
+  content        String?           @db.Text
+  fileUrl        String?           @db.Text
+  fileName       String?
+  fileSize       Int?
+  latitude       Float?
+  longitude      Float?
+  contactName    String?
+  contactPhone   String?
+  tourPackageId  String?
+  replyToId      String?
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  isDeleted      Boolean           @default(false)
+  isAnnouncement Boolean           @default(false)
+  isImportant    Boolean           @default(false)
+  isPinned       Boolean           @default(false)
+  pinnedAt       DateTime?
+  pinnedById     String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  chatGroup      ChatGroup         @relation(fields: [chatGroupId], references: [id], onDelete: Cascade)
+  sender         TravelAppUser     @relation(fields: [senderId], references: [id])
+  pinnedBy       TravelAppUser?    @relation("ChatMessagePinnedBy", fields: [pinnedById], references: [id])
+  replyTo        ChatMessage?      @relation("ChatMessageReply", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies        ChatMessage[]     @relation("ChatMessageReply")
+  reads          ChatMessageRead[]
 
   @@index([chatGroupId])
   @@index([senderId])
   @@index([createdAt])
   @@index([replyToId])
+  @@index([chatGroupId, isPinned, createdAt])
 }
 
 model ChatMessageRead {

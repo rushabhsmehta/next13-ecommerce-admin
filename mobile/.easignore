@@ -1,33 +1,70 @@
+# Dependencies & Expo cache (EAS installs fresh node_modules)
 node_modules/
+node_modules/**/android/build
+node_modules/**/android/.cxx
 .expo/
 dist/
+web-build/
 
-# Bare workflow: native android/ios must upload. Only exclude local machine state:
-# - .gradle is locked by the daemon during `eas build` on Windows (EBUSY copyfile)
-# - app/build + .cxx are multi‑GB locally; EAS regenerates them (explicit paths + globs)
-android/.gradle/
-android/build/
+# Native Android build outputs — often multi-GB locally; EAS rebuilds from source
+android/app/build
 android/app/build/
-android/app/build/**
+android/app/.cxx
 android/app/.cxx/
-android/app/.cxx/**
+android/.gradle
+android/.gradle/
+android/build
+android/build/
+android/**/build
 android/**/build/
-android/**/build/**
+android/**/.cxx
 android/**/.cxx/
-android/**/.cxx/**
+android/**/intermediates
 android/**/intermediates/
-
-# Gradle / JVM crash dumps sometimes appear under android/ — never needed remotely
+android/**/outputs
+android/**/outputs/
+android/**/*.apk
+android/**/*.aab
 android/**/*.log
 android/**/replay_pid*
 android/**/hs_err_pid*
+
+# iOS local build artifacts
 ios/Pods/
 ios/build/
+ios/**/build/
+ios/DerivedData/
 
+# Dev, test, and CI artifacts (not needed to compile the app)
+__tests__/
+e2e/
+test-results/
+coverage/
+artifacts/
+*.log
+tmp-*.log
+dev-*.out.log
+
+# Store marketing assets & docs (upload separately to Play Console)
+marketing/
+*.md
+
+# Secrets & local env
+.env
+.env.*
+google-service-account-key.json
+google-services.json
+
+# Signing keys & provisioning
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
-google-service-account-key.json
-marketing/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

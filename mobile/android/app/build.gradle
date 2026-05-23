@@ -81,10 +81,23 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
-def releaseStoreFile = System.getenv("AAGAM_UPLOAD_STORE_FILE")
-def releaseStorePassword = System.getenv("AAGAM_UPLOAD_STORE_PASSWORD")
-def releaseKeyAlias = System.getenv("AAGAM_UPLOAD_KEY_ALIAS")
-def releaseKeyPassword = System.getenv("AAGAM_UPLOAD_KEY_PASSWORD")
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def releaseStoreFile =
+    System.getenv("AAGAM_UPLOAD_STORE_FILE") ?: keystoreProperties["storeFile"]
+def releaseStorePassword =
+    System.getenv("AAGAM_UPLOAD_STORE_PASSWORD") ?: keystoreProperties["storePassword"]
+def releaseKeyAlias =
+    System.getenv("AAGAM_UPLOAD_KEY_ALIAS") ?: keystoreProperties["keyAlias"]
+def releaseKeyPassword =
+    System.getenv("AAGAM_UPLOAD_KEY_PASSWORD") ?: keystoreProperties["keyPassword"]
+
+def hasReleaseSigning =
+    releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -97,7 +110,7 @@ android {
         applicationId 'com.aagamholidays.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 32
+        versionCode 34
         versionName "1.0.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -110,10 +123,12 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile releaseStoreFile ? file(releaseStoreFile) : null
-            storePassword releaseStorePassword
-            keyAlias releaseKeyAlias
-            keyPassword releaseKeyPassword
+            if (hasReleaseSigning) {
+                storeFile rootProject.file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
         }
     }
     buildTypes {
@@ -121,6 +136,12 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
+            if (!hasReleaseSigning) {
+                throw new GradleException(
+                    "Release signing not configured. Create mobile/android/keystore.properties " +
+                    "(see keystore.properties.example) or set AAGAM_UPLOAD_* environment variables."
+                )
+            }
             signingConfig signingConfigs.release
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()

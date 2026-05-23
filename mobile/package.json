@@ -1,6 +1,6 @@
 {
   "name": "aagam-holidays-mobile",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -11,8 +11,11 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build:android": "eas build --platform android",
+    "build:android:production": "eas build --platform android --profile production",
+    "build:aab:local": "powershell -ExecutionPolicy Bypass -File ./scripts/build-aab.ps1",
     "build:ios": "eas build --platform ios",
     "submit:android": "eas submit --platform android",
+    "submit:android:production": "eas submit --platform android --profile production --latest",
     "submit:ios": "eas submit --platform ios",
     "update:production": "EXPO_PUBLIC_API_BASE_URL=https://admin.aagamholidays.com EXPO_PUBLIC_WEBSITE_URL=https://aagamholidays.com EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_bWFueS1mbGFtaW5nby02LmNsZXJrLmFjY291bnRzLmRldiQ eas update --channel production --environment production",
     "update:preview": "EXPO_PUBLIC_API_BASE_URL=https://admin.aagamholidays.com EXPO_PUBLIC_WEBSITE_URL=https://aagamholidays.com EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_bWFueS1mbGFtaW5nby02LmNsZXJrLmFjY291bnRzLmRldiQ eas update --channel preview --environment preview",

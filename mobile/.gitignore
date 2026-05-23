@@ -12,6 +12,7 @@ expo-web.err.log
 web-build/
 google-services.json
 google-service-account-key.json
+android/keystore.properties
 .env
 .env.local
 

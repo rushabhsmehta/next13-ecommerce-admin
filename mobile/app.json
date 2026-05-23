@@ -2,7 +2,7 @@
   "expo": {
     "name": "Aagam Holidays",
     "slug": "aagam-holidays",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "scheme": "aagamholidays",
     "userInterfaceStyle": "light",
@@ -84,7 +84,7 @@
       "whatsappBusinessNumber": "919724444701"
     },
     "owner": "rushabh2310",
-    "runtimeVersion": "1.0.1",
+    "runtimeVersion": "1.0.2",
     "updates": {
       "url": "https://u.expo.dev/f6e23049-3b76-47ee-8194-9c9ad6de731a"
     }

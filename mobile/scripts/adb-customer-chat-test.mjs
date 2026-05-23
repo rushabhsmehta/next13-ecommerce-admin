@@ -48,8 +48,10 @@ function tapText(xml, label) {
   const re = new RegExp(`text="${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*bounds="\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"`);
   const m = xml.match(re);
   if (!m) return false;
-  const x = Math.round((+m[1] + +m[3]) / 2);
-  const y = Math.round((+m[2] + +m[4]) / 2);
+  const [x1, y1, x2, y2] = m.slice(1).map(Number);
+  if (x2 <= x1 || y2 <= y1) return false;
+  const x = Math.round((x1 + x2) / 2);
+  const y = Math.round((y1 + y2) / 2);
   adb(`shell input tap ${x} ${y}`);
   return true;
 }
@@ -72,7 +74,9 @@ function pasteIntoFocusedField() {
 function tapBounds(bounds) {
   const m = bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
   if (!m) return;
-  adb(`shell input tap ${Math.round((+m[1] + +m[3]) / 2)} ${Math.round((+m[2] + +m[4]) / 2)}`);
+  const [x1, y1, x2, y2] = m.slice(1).map(Number);
+  if (x2 <= x1 || y2 <= y1) return;
+  adb(`shell input tap ${Math.round((x1 + x2) / 2)} ${Math.round((y1 + y2) / 2)}`);
 }
 
 async function ensureTestGroup() {
@@ -140,6 +144,8 @@ async function main() {
   xml = dump("03-login");
 
   if (!tapText(xml, "Developer sign-in (bypass Clerk)")) {
+    adb("shell input keyevent KEYCODE_BACK");
+    sleep(500);
     const scroll = adb("shell input swipe 540 1800 540 600 500");
     void scroll;
     sleep(1000);
@@ -153,13 +159,11 @@ async function main() {
   if (tokenField) tapBounds(tokenField[1]);
   else adb("shell input tap 540 900");
   sleep(400);
-  if (setClipboard(BYPASS)) {
-    pasteIntoFocusedField();
-  } else {
-    adb("shell input keyevent KEYCODE_MOVE_END");
-    for (let i = 0; i < 40; i++) adb("shell input keyevent KEYCODE_DEL");
-    adb(`shell input text "${BYPASS.replace(/-/g, "\\-")}"`);
-  }
+  adb("shell input keyevent KEYCODE_MOVE_END");
+  for (let i = 0; i < 80; i++) adb("shell input keyevent KEYCODE_DEL");
+  adb(`shell input text "${BYPASS.replace(/-/g, "\\-")}"`);
+  sleep(800);
+  adb("shell input keyevent KEYCODE_BACK");
   sleep(800);
 
   xml = dump("04b-bypass");

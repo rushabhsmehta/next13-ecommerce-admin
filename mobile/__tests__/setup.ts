@@ -7,6 +7,10 @@ jest.mock("expo-constants", () => ({
   },
 }));
 
+jest.mock("expo-device", () => ({
+  isDevice: true,
+}));
+
 jest.mock("expo-secure-store", () => ({
   getItemAsync: jest.fn(() => Promise.resolve(null)),
   setItemAsync: jest.fn(() => Promise.resolve()),

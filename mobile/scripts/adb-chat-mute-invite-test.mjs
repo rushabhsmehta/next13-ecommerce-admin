@@ -49,14 +49,18 @@ function tapText(xml, label) {
   );
   const m = xml.match(re);
   if (!m) return false;
-  adb(`shell input tap ${Math.round((+m[1] + +m[3]) / 2)} ${Math.round((+m[2] + +m[4]) / 2)}`);
+  const [x1, y1, x2, y2] = m.slice(1).map(Number);
+  if (x2 <= x1 || y2 <= y1) return false;
+  adb(`shell input tap ${Math.round((x1 + x2) / 2)} ${Math.round((y1 + y2) / 2)}`);
   return true;
 }
 
 function tapBounds(bounds) {
   const m = bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
   if (!m) return;
-  adb(`shell input tap ${Math.round((+m[1] + +m[3]) / 2)} ${Math.round((+m[2] + +m[4]) / 2)}`);
+  const [x1, y1, x2, y2] = m.slice(1).map(Number);
+  if (x2 <= x1 || y2 <= y1) return;
+  adb(`shell input tap ${Math.round((x1 + x2) / 2)} ${Math.round((y1 + y2) / 2)}`);
 }
 
 function setClipboard(text) {
@@ -72,6 +76,22 @@ function setClipboard(text) {
 
 function pasteIntoFocusedField() {
   adb("shell input keyevent 279");
+}
+
+function ensureMetroConnected() {
+  let xml = dump("launch");
+  if (xml.includes("Development Build") || xml.includes("Connect")) {
+    if (tapText(xml, "Connect")) {
+      sleep(4000);
+      xml = dump("after-connect");
+    } else if (xml.includes("exp://127.0.0.1:8081")) {
+      const m = xml.match(/text="exp:\/\/127\.0\.0\.1:8081[^"]*"[^>]*bounds="(\[[^\]]+\]\[[^\]]+\])"/);
+      if (m) tapBounds(m[1]);
+      sleep(4000);
+      xml = dump("after-connect");
+    }
+  }
+  return xml;
 }
 
 async function ensureGroup() {
@@ -91,10 +111,22 @@ async function ensureGroup() {
 }
 
 async function devBypassLogin() {
-  adb(`shell am start -a android.intent.action.VIEW -d "aagamholidays://login"`);
-  sleep(4000);
-  let xml = dump("login");
+  let xml = "";
+  for (let attempt = 0; attempt < 6; attempt++) {
+    adb(`shell am start -a android.intent.action.VIEW -d "aagamholidays://login"`);
+    sleep(3000);
+    xml = dump(attempt === 0 ? "login" : `login-wait-${attempt}`);
+    if (
+      hasText(xml, "Developer sign-in (bypass Clerk)") ||
+      hasText(xml, "Welcome back") ||
+      xml.includes("login-dev-bypass-toggle")
+    ) {
+      break;
+    }
+  }
   if (!tapText(xml, "Developer sign-in (bypass Clerk)")) {
+    adb("shell input keyevent KEYCODE_BACK");
+    sleep(500);
     adb("shell input swipe 540 1800 540 600 500");
     sleep(800);
     xml = dump("login-scroll");
@@ -106,15 +138,22 @@ async function devBypassLogin() {
   if (tokenField) tapBounds(tokenField[1]);
   else adb("shell input tap 540 900");
   sleep(300);
-  if (setClipboard(BYPASS)) pasteIntoFocusedField();
-  else adb(`shell input text "${BYPASS.replace(/-/g, "\\-")}"`);
+  adb("shell input keyevent KEYCODE_MOVE_END");
+  for (let i = 0; i < 80; i++) adb("shell input keyevent KEYCODE_DEL");
+  adb(`shell input text "${BYPASS.replace(/-/g, "\\-")}"`);
   sleep(600);
+  adb("shell input keyevent KEYCODE_BACK");
+  sleep(800);
   xml = dump("bypass-filled");
   if (!tapText(xml, "Continue with bypass token")) {
     const btn = xml.match(/resource-id="login-dev-bypass-continue"[^>]*bounds="(\[[^\]]+\]\[[^\]]+\])"/);
     if (btn) tapBounds(btn[1]);
   }
-  sleep(5000);
+  for (let attempt = 0; attempt < 8; attempt++) {
+    sleep(1000);
+    xml = dump(attempt === 0 ? "after-bypass" : `after-bypass-wait-${attempt}`);
+    if (hasText(xml, "Home") || hasText(xml, "Trips") || hasText(xml, "Signed in")) break;
+  }
 }
 
 async function openSettings(groupId) {
@@ -125,6 +164,10 @@ async function openSettings(groupId) {
     if (hasText(xml, "Mute notifications") || xml.includes("Couldn't load settings")) break;
     sleep(2000);
     xml = dump(`settings-wait-${i}`);
+  }
+  if (xml.includes("Couldn't load settings")) {
+    tapText(xml, "OK");
+    sleep(500);
   }
   return xml;
 }
@@ -151,6 +194,7 @@ async function main() {
   sleep(400);
   adb(`shell monkey -p ${PKG} -c android.intent.category.LAUNCHER 1`);
   sleep(4000);
+  ensureMetroConnected();
 
   await devBypassLogin();
 
@@ -222,11 +266,14 @@ async function main() {
   adb(`shell input text "${guestName.replace(/ /g, "%s")}"`);
   sleep(400);
 
-  adb("shell input tap 540 720");
+  adb("shell input tap 540 790");
   sleep(300);
-  if (setClipboard(guestEmail)) pasteIntoFocusedField();
-  else adb(`shell input text "${guestEmail.replace(/@/g, "\\@")}"`);
+  adb("shell input keyevent KEYCODE_MOVE_END");
+  for (let i = 0; i < 60; i++) adb("shell input keyevent KEYCODE_DEL");
+  adb(`shell input text "${guestEmail.replace(/-/g, "\\-").replace(/@/g, "\\@")}"`);
   sleep(600);
+  adb("shell input keyevent KEYCODE_BACK");
+  sleep(800);
 
   xml = dump("invite-filled");
   if (tapText(xml, "Send invite")) {
@@ -237,12 +284,22 @@ async function main() {
   }
 
   xml = dump("after-invite");
+  for (let attempt = 0; attempt < 6 && !hasText(xml, guestName); attempt++) {
+    adb("shell input swipe 540 1800 540 700 500");
+    sleep(800);
+    xml = dump(`after-invite-scroll-${attempt}`);
+  }
   if (hasText(xml, "Pending invites") && hasText(xml, guestName)) {
     pass("Pending invite visible in settings", guestName);
   } else if (hasText(xml, "Invite sent")) {
-    adb("shell input tap 540 1400");
+    tapText(xml, "OK") || adb("shell input tap 540 1400");
     sleep(2000);
     xml = await openSettings(group.id);
+    for (let attempt = 0; attempt < 6 && !hasText(xml, guestName); attempt++) {
+      adb("shell input swipe 540 1800 540 700 500");
+      sleep(800);
+      xml = dump(`after-invite-reload-scroll-${attempt}`);
+    }
     if (hasText(xml, guestName)) pass("Pending invite visible in settings", guestName);
     else fail("Pending invite visible in settings", texts(xml).slice(0, 10).join(", "));
   } else {
@@ -251,6 +308,11 @@ async function main() {
 
   // Cancel invite
   xml = dump("before-cancel");
+  for (let attempt = 0; attempt < 6 && !hasText(xml, guestName); attempt++) {
+    adb("shell input swipe 540 1800 540 700 500");
+    sleep(800);
+    xml = dump(`before-cancel-scroll-${attempt}`);
+  }
   if (tapText(xml, guestName)) {
     // name row not cancel — look for close icon near guest
   }

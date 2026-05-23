@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -60,9 +60,10 @@ export default function ChatSettingsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
   const getAuthToken = useCallback(
-    () => resolveMobileAuthToken(() => getToken()),
-    [getToken]
+    () => resolveMobileAuthToken(() => getTokenRef.current()),
+    []
   );
   const { travelUser } = useCurrentUser();
 
@@ -91,8 +92,15 @@ export default function ChatSettingsScreen() {
     navigation.setOptions({ headerTitle: "Group settings", headerBackTitle: "Back" });
   }, [navigation]);
 
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+
   const reload = useCallback(async () => {
-    if (!groupId) return;
+    if (!groupId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const detail = await fetchGroupDetail({ groupId, getToken: getAuthToken });

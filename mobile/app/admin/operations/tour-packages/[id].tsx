@@ -19,6 +19,7 @@ import { API_BASE_URL } from "@/constants/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
+  AdminDangerZone,
   AdminErrorState,
   AdminLoadingState,
   AdminScreen,
@@ -72,6 +73,7 @@ function Inner() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [pdfBusy, setPdfBusy] = useState<"plain" | "variants" | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const pdfWebUrl = useMemo(
     () => (id ? absoluteAdminUrl(API_BASE_URL, tourPackagePdfPath(id)) : ""),
@@ -138,6 +140,36 @@ function Inner() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleDelete = useCallback(async () => {
+    if (!id) return;
+    Alert.alert(
+      "Delete package",
+      "Are you sure you want to delete this tour package? This will permanently delete the package and all its itineraries, pricing, and variants.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await client.delete(id);
+              Alert.alert("Success", "Tour package deleted successfully.");
+              router.replace("/admin/operations/tour-packages" as never);
+            } catch (err) {
+              Alert.alert(
+                "Delete failed",
+                err instanceof ApiError ? err.message : "Could not delete package."
+              );
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [id, client, router]);
 
   if (loading && !data) {
     return <AdminLoadingState label="Loading package…" testID="tour-package-detail-loading" />;
@@ -384,6 +416,22 @@ function Inner() {
               <Text style={styles.actionText}>Create sales trip from package</Text>
             </Pressable>
           </View>
+        ) : null}
+
+        {canWrite ? (
+          <AdminDangerZone
+            testID="tour-package-danger-zone"
+            actions={[
+              {
+                id: "delete-package",
+                label: "Delete tour package",
+                hint: "Permanently deletes this tour package from the system",
+                onPress: handleDelete,
+                disabled: deleting || pdfBusy !== null,
+                testID: "tour-package-delete-btn",
+              },
+            ]}
+          />
         ) : null}
       </ScrollView>
     </AdminScreen>

@@ -146,7 +146,7 @@ export default function EnquiryScreen() {
 
   if (submitted) {
     return (
-      <View style={styles.successContainer}>
+      <View style={styles.successContainer} testID="enquiry-success-screen">
         <LinearGradient
           colors={[Colors.gradient1, Colors.gradient2]}
           style={styles.successIconCircle}
@@ -158,12 +158,17 @@ export default function EnquiryScreen() {
           Our team will reach out to you at {phone} within 24 hours.
         </Text>
         <TouchableOpacity
+          testID="enquiry-track-button"
           style={styles.successButton}
           onPress={() => router.push("/profile/inquiries")}
         >
           <Text style={styles.successButtonText}>Track My Enquiries</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.successSecondary} onPress={() => router.back()}>
+        <TouchableOpacity
+          testID="enquiry-back-to-package"
+          style={styles.successSecondary}
+          onPress={() => router.back()}
+        >
           <Text style={styles.successSecondaryText}>Back to Package</Text>
         </TouchableOpacity>
       </View>
@@ -180,6 +185,7 @@ export default function EnquiryScreen() {
 
   return (
     <KeyboardAvoidingView
+      testID="enquiry-screen"
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
@@ -206,6 +212,7 @@ export default function EnquiryScreen() {
 
         <FieldLabel required>Full Name</FieldLabel>
         <TextInput
+          testID="enquiry-name-input"
           style={styles.input}
           value={name}
           onChangeText={setName}
@@ -217,6 +224,7 @@ export default function EnquiryScreen() {
 
         <FieldLabel required>Phone Number</FieldLabel>
         <TextInput
+          testID="enquiry-phone-input"
           style={styles.input}
           value={phone}
           onChangeText={(value) => setPhone(value.replace(/[^0-9]/g, "").slice(0, 10))}
@@ -229,6 +237,7 @@ export default function EnquiryScreen() {
 
         <FieldLabel>Preferred Travel Date</FieldLabel>
         <TouchableOpacity
+          testID="enquiry-date-button"
           style={styles.dateButton}
           onPress={() => setShowDatePicker(true)}
           accessibilityRole="button"
@@ -244,6 +253,7 @@ export default function EnquiryScreen() {
           </Text>
           {journeyDate ? (
             <TouchableOpacity
+              testID="enquiry-date-clear"
               hitSlop={8}
               onPress={() => setJourneyDate(null)}
               accessibilityRole="button"
@@ -255,6 +265,7 @@ export default function EnquiryScreen() {
         </TouchableOpacity>
         {showDatePicker ? (
           <DateTimePicker
+            testID="enquiry-date-picker"
             value={journeyDate ?? new Date()}
             mode="date"
             display={Platform.OS === "ios" ? "spinner" : "default"}
@@ -266,6 +277,7 @@ export default function EnquiryScreen() {
         <FieldLabel>Number of Adults</FieldLabel>
         <View style={styles.stepper}>
           <TouchableOpacity
+            testID="enquiry-adults-decrease"
             style={styles.stepperBtn}
             onPress={() => setNumAdults((n) => Math.max(1, n - 1))}
           >
@@ -273,6 +285,7 @@ export default function EnquiryScreen() {
           </TouchableOpacity>
           <Text style={styles.stepperValue}>{numAdults}</Text>
           <TouchableOpacity
+            testID="enquiry-adults-increase"
             style={styles.stepperBtn}
             onPress={() => setNumAdults((n) => Math.min(20, n + 1))}
           >
@@ -283,6 +296,7 @@ export default function EnquiryScreen() {
         <FieldLabel>Children (5-11)</FieldLabel>
         <View style={styles.stepper}>
           <TouchableOpacity
+            testID="enquiry-children-decrease"
             style={styles.stepperBtn}
             onPress={() => setNumChildren((n) => Math.max(0, n - 1))}
             accessibilityRole="button"
@@ -292,6 +306,7 @@ export default function EnquiryScreen() {
           </TouchableOpacity>
           <Text style={styles.stepperValue}>{numChildren}</Text>
           <TouchableOpacity
+            testID="enquiry-children-increase"
             style={styles.stepperBtn}
             onPress={() => setNumChildren((n) => Math.min(10, n + 1))}
             accessibilityRole="button"
@@ -304,6 +319,7 @@ export default function EnquiryScreen() {
         <FieldLabel>Infants / Children Below 5</FieldLabel>
         <View style={styles.stepper}>
           <TouchableOpacity
+            testID="enquiry-infants-decrease"
             style={styles.stepperBtn}
             onPress={() => setNumInfants((n) => Math.max(0, n - 1))}
             accessibilityRole="button"
@@ -313,6 +329,7 @@ export default function EnquiryScreen() {
           </TouchableOpacity>
           <Text style={styles.stepperValue}>{numInfants}</Text>
           <TouchableOpacity
+            testID="enquiry-infants-increase"
             style={styles.stepperBtn}
             onPress={() => setNumInfants((n) => Math.min(10, n + 1))}
             accessibilityRole="button"
@@ -324,6 +341,7 @@ export default function EnquiryScreen() {
 
         <FieldLabel>Approx Budget</FieldLabel>
         <TextInput
+          testID="enquiry-budget-input"
           style={styles.input}
           value={budget}
           onChangeText={setBudget}
@@ -334,6 +352,7 @@ export default function EnquiryScreen() {
 
         <FieldLabel>Pickup City</FieldLabel>
         <TextInput
+          testID="enquiry-pickup-city-input"
           style={styles.input}
           value={pickupCity}
           onChangeText={setPickupCity}
@@ -350,6 +369,7 @@ export default function EnquiryScreen() {
             return (
               <TouchableOpacity
                 key={category}
+                testID={`enquiry-hotel-category-${category.replace(/\s+/g, "-").toLowerCase()}`}
                 style={[styles.hotelChip, active && styles.hotelChipActive]}
                 onPress={() => setHotelCategory(active ? "" : category)}
                 accessibilityRole="button"
@@ -366,6 +386,7 @@ export default function EnquiryScreen() {
 
         <FieldLabel>Special Requests</FieldLabel>
         <TextInput
+          testID="enquiry-remarks-input"
           style={[styles.input, styles.textArea]}
           value={remarks}
           onChangeText={setRemarks}
@@ -377,6 +398,7 @@ export default function EnquiryScreen() {
         />
 
         <TouchableOpacity
+          testID="enquiry-submit-button"
           style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={submitting}
@@ -400,6 +422,7 @@ export default function EnquiryScreen() {
           <View style={styles.dividerLine} />
         </View>
         <TouchableOpacity
+          testID="enquiry-whatsapp-button"
           style={styles.waButton}
           onPress={() =>
             Linking.openURL(

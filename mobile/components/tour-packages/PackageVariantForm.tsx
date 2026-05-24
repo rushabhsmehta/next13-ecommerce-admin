@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import {
   AdminBottomActionBar,
+  AdminDangerZone,
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
@@ -151,6 +152,35 @@ export function PackageVariantForm({
     }
   }
 
+  function deleteVariant() {
+    if (!variantId) return;
+    Alert.alert(
+      "Delete variant",
+      "This removes the package variant and its hotel mappings.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setSubmitting(true);
+            try {
+              await pkgClient.deleteVariant(packageId, variantId);
+              router.replace(`/admin/operations/tour-packages/${packageId}/variants` as never);
+            } catch (err) {
+              Alert.alert(
+                "Delete failed",
+                err instanceof ApiError ? err.message : "Could not delete variant."
+              );
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
   return (
     <AdminScreen
       keyboardAvoiding
@@ -262,6 +292,22 @@ export function PackageVariantForm({
           })
         )}
       </AdminFormSection>
+
+      {mode === "edit" && variantId ? (
+        <AdminDangerZone
+          testID="variant-danger-zone"
+          actions={[
+            {
+              id: "delete-variant",
+              label: "Delete variant",
+              hint: "Permanently removes this package variant",
+              onPress: deleteVariant,
+              disabled: submitting,
+              testID: "variant-delete-btn",
+            },
+          ]}
+        />
+      ) : null}
 
       <AdminPickerSheet
         visible={pickerDayId !== null}

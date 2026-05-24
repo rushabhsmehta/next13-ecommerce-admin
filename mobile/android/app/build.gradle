@@ -114,6 +114,7 @@ android {
         versionName "1.0.2"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
         debug {
@@ -182,6 +183,15 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.test:core:1.5.0'
+        force 'androidx.test:monitor:1.6.0'
+        force 'androidx.test:runner:1.5.0'
+        force 'androidx.test:rules:1.5.0'
+    }
+}
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
@@ -209,4 +219,6 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    androidTestImplementation('com.wix:detox:+')
 }

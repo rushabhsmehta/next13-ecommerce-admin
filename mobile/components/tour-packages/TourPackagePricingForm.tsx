@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
 import {
   AdminBottomActionBar,
+  AdminDangerZone,
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
@@ -247,6 +248,35 @@ export function TourPackagePricingForm({
     }
   }
 
+  function deletePricing() {
+    if (!pricingId) return;
+    Alert.alert(
+      "Delete pricing",
+      "This removes the selected seasonal pricing period.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setSubmitting(true);
+            try {
+              await client.deletePricing(packageId, pricingId);
+              router.replace(`/admin/operations/tour-packages/${packageId}/pricing` as never);
+            } catch (err) {
+              Alert.alert(
+                "Delete failed",
+                err instanceof ApiError ? err.message : "Could not delete pricing."
+              );
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
   const pickerOptions =
     picker === "meal"
       ? mealPlans
@@ -305,19 +335,37 @@ export function TourPackagePricingForm({
 
       <AdminFormSection title="Period" testID="tour-pricing-form-period">
         <AdminFormField label="Start date" required>
-          <Pressable style={styles.pickerBtn} onPress={() => setDateField("start")}>
+          <Pressable
+            testID="tour-pricing-form-start-date"
+            accessibilityRole="button"
+            accessibilityLabel="Start date"
+            style={styles.pickerBtn}
+            onPress={() => setDateField("start")}
+          >
             <Text style={styles.pickerValue}>{fmtDateLabel(startDate)}</Text>
             <Ionicons name="calendar-outline" size={18} color={Colors.textTertiary} />
           </Pressable>
         </AdminFormField>
         <AdminFormField label="End date" required>
-          <Pressable style={styles.pickerBtn} onPress={() => setDateField("end")}>
+          <Pressable
+            testID="tour-pricing-form-end-date"
+            accessibilityRole="button"
+            accessibilityLabel="End date"
+            style={styles.pickerBtn}
+            onPress={() => setDateField("end")}
+          >
             <Text style={styles.pickerValue}>{fmtDateLabel(endDate)}</Text>
             <Ionicons name="calendar-outline" size={18} color={Colors.textTertiary} />
           </Pressable>
         </AdminFormField>
         <AdminFormField label="Meal plan" required>
-          <Pressable style={styles.pickerBtn} onPress={() => setPicker("meal")}>
+          <Pressable
+            testID="tour-pricing-form-mealplan"
+            accessibilityRole="button"
+            accessibilityLabel="Meal plan"
+            style={styles.pickerBtn}
+            onPress={() => setPicker("meal")}
+          >
             <Text style={mealPlanId ? styles.pickerValue : styles.pickerPlaceholder}>
               {mealPlanName || "Select meal plan"}
             </Text>
@@ -326,6 +374,7 @@ export function TourPackagePricingForm({
         </AdminFormField>
         <AdminFormField label="Number of rooms" required>
           <TextInput
+            testID="tour-pricing-form-rooms"
             style={styles.input}
             value={numberOfRooms}
             onChangeText={setNumberOfRooms}
@@ -333,7 +382,13 @@ export function TourPackagePricingForm({
           />
         </AdminFormField>
         <AdminFormField label="Variant">
-          <Pressable style={styles.pickerBtn} onPress={() => setPicker("variant")}>
+          <Pressable
+            testID="tour-pricing-form-variant"
+            accessibilityRole="button"
+            accessibilityLabel="Variant"
+            style={styles.pickerBtn}
+            onPress={() => setPicker("variant")}
+          >
             <Text style={styles.pickerValue}>
               {packageVariantName || "All variants (global)"}
             </Text>
@@ -341,7 +396,13 @@ export function TourPackagePricingForm({
           </Pressable>
         </AdminFormField>
         <AdminFormField label="Vehicle type">
-          <Pressable style={styles.pickerBtn} onPress={() => setPicker("vehicle")}>
+          <Pressable
+            testID="tour-pricing-form-vehicle"
+            accessibilityRole="button"
+            accessibilityLabel="Vehicle type"
+            style={styles.pickerBtn}
+            onPress={() => setPicker("vehicle")}
+          >
             <Text style={styles.pickerValue}>
               {vehicleTypeName || "No vehicle type"}
             </Text>
@@ -349,7 +410,13 @@ export function TourPackagePricingForm({
           </Pressable>
         </AdminFormField>
         <AdminFormField label="Seasonal period">
-          <Pressable style={styles.pickerBtn} onPress={() => setPicker("season")}>
+          <Pressable
+            testID="tour-pricing-form-season"
+            accessibilityRole="button"
+            accessibilityLabel="Seasonal period"
+            style={styles.pickerBtn}
+            onPress={() => setPicker("season")}
+          >
             <Text style={styles.pickerValue}>
               {seasonalPeriodName || "No seasonal period"}
             </Text>
@@ -358,6 +425,7 @@ export function TourPackagePricingForm({
         </AdminFormField>
         <AdminFormField label="Description">
           <TextInput
+            testID="tour-pricing-form-description"
             style={[styles.input, styles.textarea]}
             value={description}
             onChangeText={setDescription}
@@ -380,11 +448,12 @@ export function TourPackagePricingForm({
         {pricingAttributes.length === 0 ? (
           <Text style={styles.hint}>No pricing attributes configured.</Text>
         ) : (
-          pricingAttributes.map((attr) => (
+          pricingAttributes.map((attr, index) => (
             <View key={attr.id} style={styles.componentCard}>
               <Text style={styles.componentTitle}>{attr.name}</Text>
               <AdminFormField label="Sell price (INR)">
                 <TextInput
+                  testID={`tour-pricing-form-price-${index}`}
                   style={styles.input}
                   value={componentPrices[attr.id]?.price ?? ""}
                   onChangeText={(text) =>
@@ -400,6 +469,7 @@ export function TourPackagePricingForm({
               </AdminFormField>
               <AdminFormField label="Purchase price (INR)">
                 <TextInput
+                  testID={`tour-pricing-form-purchase-price-${index}`}
                   style={styles.input}
                   value={componentPrices[attr.id]?.purchasePrice ?? ""}
                   onChangeText={(text) =>
@@ -417,6 +487,22 @@ export function TourPackagePricingForm({
           ))
         )}
       </AdminFormSection>
+
+      {mode === "edit" && pricingId ? (
+        <AdminDangerZone
+          testID="tour-pricing-danger-zone"
+          actions={[
+            {
+              id: "delete-pricing",
+              label: "Delete pricing",
+              hint: "Permanently removes this seasonal pricing period",
+              onPress: deletePricing,
+              disabled: submitting,
+              testID: "tour-pricing-delete-btn",
+            },
+          ]}
+        />
+      ) : null}
 
       {dateField ? (
         <DateTimePicker

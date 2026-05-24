@@ -65,4 +65,13 @@ describe("createTourPackagesClient", () => {
     await client.getLookups("loc1");
     expect(request.mock.calls[0][0]).toBe("/api/mobile/tour-packages/lookups?locationId=loc1");
   });
+
+  it("delete sends DELETE request to package endpoint", async () => {
+    const request = jest.fn(async () => ({ deleted: true, id: "pkg1" }));
+    const client = createTourPackagesClient(request as any);
+    await client.delete("pkg1");
+    const [endpoint, opts] = request.mock.calls[0];
+    expect(endpoint).toBe("/api/mobile/tour-packages/pkg1");
+    expect(opts.method).toBe("DELETE");
+  });
 });

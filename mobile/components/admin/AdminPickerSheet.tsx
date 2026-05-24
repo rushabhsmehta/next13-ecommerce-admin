@@ -153,11 +153,11 @@ export function AdminPickerSheet({
                 {emptyLabel}
               </Text>
             }
-            renderItem={({ item }) => {
+            renderItem={({ item, index }) => {
               const selected = item.id === selectedId;
               return (
                 <Pressable
-                  testID={`${testID}-option-${item.id}`}
+                  testID={`${testID}-option-${index}`}
                   accessibilityRole="button"
                   accessibilityLabel={item.label}
                   accessibilityState={{ selected }}

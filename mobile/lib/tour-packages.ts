@@ -408,6 +408,13 @@ export function createTourPackagesClient(authRequest: AuthenticatedRequest) {
         { method: "DELETE" }
       );
     },
+
+    delete(id: string): Promise<{ deleted: boolean; id: string }> {
+      return authRequest(
+        `/api/mobile/tour-packages/${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+    },
   };
 }
 

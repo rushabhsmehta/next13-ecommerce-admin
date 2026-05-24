@@ -17,9 +17,25 @@ allprojects {
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
+    maven {
+      // All of Detox's dependencies are located in the npm package
+      url "$rootDir/../node_modules/detox/android"
+    }
   }
   // Help native modules that resolve paths via rootProject.ext (EAS + monorepo-safe).
   ext.REACT_NATIVE_NODE_MODULES_DIR = file("${rootDir}/../node_modules/react-native")
+}
+
+subprojects {
+  afterEvaluate { project ->
+    if (project.hasProperty("android")) {
+      project.android {
+        packagingOptions {
+          pickFirsts += '**/*.so'
+        }
+      }
+    }
+  }
 }
 
 apply plugin: "expo-root-project"

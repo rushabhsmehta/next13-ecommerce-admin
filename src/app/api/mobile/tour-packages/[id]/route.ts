@@ -187,3 +187,42 @@ export async function PATCH(
     return new NextResponse("Internal error", { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: Request,
+  props: { params: Promise<{ id: string }> }
+) {
+  const params = await props.params;
+  try {
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const guard = await requireOperationsWrite(userId);
+    if (!guard.ok) return guard.response;
+
+    const existing = await prismadb.tourPackage.findUnique({
+      where: { id: params.id },
+      select: { id: true, tourPackageName: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Tour package not found" }, { status: 404 });
+    }
+
+    await prismadb.tourPackage.delete({
+      where: { id: params.id },
+    });
+
+    await recordMobileAudit({
+      userId,
+      entityType: "TourPackage",
+      entityId: params.id,
+      action: "DELETE",
+      metadata: { tourPackageName: existing.tourPackageName },
+    });
+
+    return NextResponse.json({ deleted: true, id: params.id });
+  } catch (error) {
+    console.log("[MOBILE_TOUR_PACKAGES_ID_DELETE]", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}

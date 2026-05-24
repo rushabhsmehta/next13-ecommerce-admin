@@ -22,10 +22,7 @@ import {
   createTourQueryCreateClient,
   type TourQueryCreateMode,
 } from "@/lib/tour-query-create";
-import {
-  createAssociateInquiryClient,
-  type AssociateInquiry,
-} from "@/lib/associate-inquiries";
+import { type AssociateInquiry } from "@/lib/associate-inquiries";
 
 type SourceRow = { id: string; title: string; subtitle: string };
 
@@ -76,11 +73,6 @@ function CreateTourQueryScreenInner() {
     () => createTourQueryCreateClient(authRequest),
     [authRequest]
   );
-  const inquiryClient = useMemo(
-    () => createAssociateInquiryClient(authRequest),
-    [authRequest]
-  );
-
   const [mode, setMode] = useState<TourQueryCreateMode>("inquiry");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -100,16 +92,11 @@ function CreateTourQueryScreenInner() {
       setError(null);
       try {
         if (m === "inquiry") {
-          const list: AssociateInquiry[] = await inquiryClient.listInquiries();
-          const filtered = q
-            ? list.filter(
-                (i) =>
-                  i.customerName?.toLowerCase().includes(q.toLowerCase()) ||
-                  !!i.customerMobileNumber?.includes(q)
-              )
-            : list;
+          const list = await authRequest<AssociateInquiry[]>(
+            `/api/mobile/inquiries?limit=50${q ? `&search=${encodeURIComponent(q)}` : ""}`
+          );
           setRows(
-            filtered.slice(0, 50).map((i) => ({
+            list.map((i) => ({
               id: i.id,
               title: i.customerName || "Inquiry",
               subtitle: `${i.location?.label ?? "—"} · ${i.status ?? "open"}`,
@@ -159,7 +146,7 @@ function CreateTourQueryScreenInner() {
         setLoading(false);
       }
     },
-    [authRequest, inquiryClient]
+    [authRequest]
   );
 
   useEffect(() => {

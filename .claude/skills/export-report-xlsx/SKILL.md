@@ -14,38 +14,37 @@ Generate a branded Excel spreadsheet for any financial or operational report.
 
 ## Input
 
-- **$0** — Report type (e.g., "sales-ledger", "customer-statement", "gst-summary")
+- **$0** — Report type (e.g., `sales-ledger`, `customer-statement`, `gst-summary`, `inquiry-export`)
 - **$1** — Date range or filters (optional)
 
 ## Live Project State
 
 Existing export functions:
 ```
-!`grep -rn "downloadAsExcel\|exportToCSV\|XLSX\." src/ --include="*.ts" --include="*.tsx" -l 2>/dev/null`
+!`grep -rn "downloadAsExcel\|exportToCSV\|XLSX\." src/ --include="*.ts" --include="*.tsx" -l 2>/dev/null | head -20`
 ```
 
-Available report pages:
+Report / ledger pages:
 ```
-!`ls -d src/app/\(dashboard\)/reports/*/ src/app/\(dashboard\)/sales/ledger/ src/app/\(dashboard\)/purchases/ledger/ src/app/\(dashboard\)/customers/ledger/ 2>/dev/null`
+!`ls -d src/app/\(dashboard\)/reports/*/ src/app/\(dashboard\)/*/ledger/ 2>/dev/null | head -20`
 ```
 
 ## Steps
 
-1. Identify the report type and check if an existing export function already exists for it
-2. Read the existing export pattern from `src/app/(dashboard)/(routes)/inquiries/components/download-utils.ts`
-3. Read the relevant data source page/component to understand the Prisma queries and data shape
-4. Create the XLSX export function following this structure:
-   - **Rows 1-7:** Organization header (name, address, phone, email, website, GST no., PAN no.)
-   - **Row 8:** Report title + `"Generated on: " + format(new Date(), "dd/MM/yyyy HH:mm")`
-   - **Row 9:** Empty spacer
-   - **Row 10:** Column headers (bold)
-   - **Row 11+:** Data rows with formatted values
-   - **Last rows:** Summary/totals if applicable
-5. Set column widths with `worksheet['!cols'] = [{ wch: 20 }, ...]`
-6. Merge title cells with `worksheet['!merges']`
-7. Wire the export to a "Download Excel" button using Shadcn `Button` + `Download` icon from `lucide-react`
-8. Use `xlsx` library: `XLSX.utils.book_new()`, `XLSX.utils.sheet_add_aoa()`, `XLSX.writeFile()`
+1. Check for an existing export on the target page before adding a duplicate
+2. Read reference export: `src/app/(dashboard)/(routes)/inquiries/components/download-utils.ts` (org header pattern)
+3. Read the page's Prisma queries / formatted row shape
+4. Build workbook:
+   - **Rows 1–7:** Organization header (name, address, phone, email, website, GST, PAN)
+   - **Row 8:** Report title + `Generated on: ` + `format(new Date(), "dd/MM/yyyy HH:mm")`
+   - **Row 9:** Spacer
+   - **Row 10:** Bold column headers
+   - **Row 11+:** Data (`formatPrice()` for money, `formatSafeDate()` for dates)
+   - **Footer rows:** Totals / summary when applicable
+5. `worksheet['!cols']`, `worksheet['!merges']` as needed
+6. Wire **Download Excel** with Shadcn `Button` + `Download` icon; `XLSX.writeFile()` client-side
+7. For large datasets, consider server-side generation via `src/app/api/export/` instead of blocking the browser
 
 ## Additional resources
 
-- For the canonical XLSX pattern, see [references/xlsx-pattern.md](references/xlsx-pattern.md)
+- [references/xlsx-pattern.md](references/xlsx-pattern.md)

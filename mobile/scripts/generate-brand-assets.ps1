@@ -190,9 +190,9 @@ function New-MainIcon {
 
     if (Test-Path -LiteralPath $logoPath) {
         $logo = [System.Drawing.Image]::FromFile($logoPath)
-        $logoSize = 700
+        $logoSize = [int]($bmp.Width * 0.54)
         $logoX = [int](($bmp.Width - $logoSize) / 2)
-        $logoY = 118
+        $logoY = [int](($bmp.Height - $logoSize) / 2)
         $gfx.DrawImage($logo, $logoX, $logoY, $logoSize, $logoSize)
         $logo.Dispose()
     } else {
@@ -249,9 +249,9 @@ function New-AdaptiveForeground {
 
     if (Test-Path -LiteralPath $logoPath) {
         $logo = [System.Drawing.Image]::FromFile($logoPath)
-        $logoSize = 760
+        $logoSize = [int]($bmp.Width * 0.50)
         $logoX = [int](($bmp.Width - $logoSize) / 2)
-        $logoY = 100
+        $logoY = [int](($bmp.Height - $logoSize) / 2)
         $gfx.DrawImage($logo, $logoX, $logoY, $logoSize, $logoSize)
         $logo.Dispose()
     } else {

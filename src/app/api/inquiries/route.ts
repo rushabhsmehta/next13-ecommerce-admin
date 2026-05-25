@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestClerkUserId, getClerkPrimaryEmailByUserId } from "@/lib/clerk-request-user";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc, formatLocalDate } from "@/lib/timezone-utils";
@@ -184,22 +184,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Location is required (provide locationId or locationName)" }, { status: 400 });
     }
 
-    // Determine user role (ADMIN or ASSOCIATE)
-    const userEmail = (await getClerkPrimaryEmailByUserId(userId)) || "";
-    let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
-
-    if (userEmail) {
-      const associatePartner = await prismadb.associatePartner.findFirst({
-        where: {
-          OR: [
-            { email: userEmail },
-            { gmail: userEmail }
-          ]
-        }
-      });
-
-      userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
-    }
+    const userRole: "ADMIN" | "ASSOCIATE" = accessContext.isAssociate ? "ASSOCIATE" : "ADMIN";
 
     const inquiry = await prismadb.inquiry.create({
       data: {
@@ -272,10 +257,21 @@ export async function POST(req: Request) {
       const userAgent = headersList.get("user-agent") || "";
       const requestUrl = req.url;
 
+      let actorEmail: string | undefined;
+      if (accessContext.isAdminLike) {
+        const member = await prismadb.organizationMember.findFirst({
+          where: { userId, isActive: true },
+          select: { email: true },
+        });
+        actorEmail = member?.email ?? undefined;
+      } else if (accessContext.associatePartner?.email) {
+        actorEmail = accessContext.associatePartner.email;
+      }
+
       await sendMetaEvent("Lead", {
         ip,
         userAgent,
-        email: userEmail || undefined,
+        email: actorEmail,
         phone: customerMobileNumber,
         fbc: fbc || null,
         fbp: fbp || null,

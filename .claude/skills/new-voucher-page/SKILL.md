@@ -9,7 +9,7 @@ argument-hint: <voucher-type>
 
 # Scaffold a Voucher View Page
 
-Create a complete financial voucher view page with print and PDF download capabilities.
+Create a complete financial voucher view page with print and PDF download.
 
 **Leverages:** `anthropic-skills:pdf`
 
@@ -24,27 +24,22 @@ Existing voucher pages:
 !`find src/app/\(dashboard\) -path "*/voucher/page.tsx" 2>/dev/null`
 ```
 
-VoucherLayout props:
+Public PDF paths (proxy):
 ```
-!`grep -A 20 "interface VoucherLayoutProps" src/components/voucher-layout.tsx 2>/dev/null | head -25`
+!`grep -n "voucher\|viewpdf" src/proxy.ts 2>/dev/null | head -15`
 ```
 
 ## Steps
 
-1. Read `src/components/voucher-layout.tsx` for the component contract
-2. Read `src/components/voucher-actions.tsx` for the PDF generation flow
-3. Read the relevant Prisma model from `schema.prisma` to determine includes
-4. Check if a voucher page already exists for this type
-5. Create the route folder:
-   - `src/app/(dashboard)/<type>s/[<type>Id]/voucher/page.tsx`
-   - `src/app/(dashboard)/<type>s/[<type>Id]/voucher/components/voucher-client.tsx`
-6. **Server component** (`page.tsx`): Auth check, Prisma fetch with includes, pass to client
-7. **Client component** (`voucher-client.tsx`):
-   - Map record data to `VoucherLayoutProps`
-   - Set `data-pdf-footer-*` attributes from organization data
-   - Render `VoucherActions` + `VoucherLayout` with line items table as `children`
-   - Use `formatPrice()` for amounts, `format()` for dates
+1. Read `src/components/voucher-layout.tsx` and `src/components/voucher-actions.tsx`
+2. Read Prisma model + includes; check for an existing voucher route
+3. Create:
+   - `src/app/(dashboard)/<type>s/[<type>Id]/voucher/page.tsx` — server: auth, `requireFinanceOrAdmin` if needed, Prisma fetch
+   - `.../voucher/components/voucher-client.tsx` — client: map to `VoucherLayoutProps`, `VoucherActions`, line items as `children`
+4. Set `data-pdf-footer-*` attributes from organization branding
+5. Register path in `crm-route-access-rules.ts` if role-restricted
+6. For PDF content changes, see `generate-voucher-pdf` skill
 
 ## Additional resources
 
-- For voucher component contracts, see [references/voucher-components.md](references/voucher-components.md)
+- [references/voucher-components.md](references/voucher-components.md)

@@ -2,7 +2,7 @@
 name: check
 description: Run lint, type-check, and build to verify the project compiles without errors.
 disable-model-invocation: true
-allowed-tools: Bash(npm run lint*), Bash(npx tsc*), Bash(npm run build*)
+allowed-tools: Bash(npm run lint*), Bash(npx tsc*), Bash(npm run build*), Bash(npm run test*)
 ---
 
 # Run Project Checks
@@ -17,18 +17,22 @@ Run lint and build checks to verify the project compiles without errors.
 
 ## Steps
 
-1. **Run ESLint**: `npm run lint`
-   - Fix any linting errors found
-   - Report warnings but don't fail on them
-2. **Run TypeScript type-check**: `npx tsc --noEmit`
-   - This checks types without generating output files
-   - Fix any type errors found
-3. **Run build** (if requested or if lint/types pass): `npm run build`
-   - This also generates both Prisma clients
-   - Report any build errors
+1. **Run ESLint** (repo root): `npm run lint`
+   - Fix linting errors; report warnings without failing the task
+2. **Run TypeScript**: `npx tsc --noEmit`
+   - Root `tsconfig.json` excludes `mobile/`, `scripts/`, `prisma/`
+3. **Run build** (when requested or after lint/tsc pass): `npm run build`
+   - Regenerates both Prisma clients, then `next build --webpack`
+4. **Targeted tests** (when relevant):
+   - `npm run test:accounts` — accounting module
+   - `npm run test:mobile-inquiry-crud` — inquiry API CRUD (needs dev server + `MOBILE_DEV_AUTH_BYPASS_*` in `.env.local`)
+5. **Mobile** (if mobile files changed and `mobile/node_modules` exists):
+   - `cd mobile && npm run test:staff` (or `:public` / `:finance` by variant)
+   - `cd mobile && npm run lint` if configured
 
 ## Notes
 
-- The build command runs `prisma generate` for both schemas before `next build`
-- If Prisma schema has changed, the build will regenerate clients automatically
-- Report a clear summary at the end: what passed, what failed, what was fixed
+- Build runs `prisma generate` for MySQL + WhatsApp schemas before Next.js compile
+- MCP changes: also `cd mcp-server && npm run build`
+- Report a clear summary: what passed, what failed, what was fixed
+- Do not run destructive Prisma commands as part of "check"

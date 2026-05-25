@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestClerkUserId, getClerkPrimaryEmailByUserId } from "@/lib/clerk-request-user";
+import { getRequestClerkUserId } from "@/lib/clerk-request-user";
 import prismadb from "@/lib/prismadb";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
@@ -260,25 +260,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    // Determine user role (ADMIN or ASSOCIATE)
-    // Check if user email matches any associate partner's email
-    const userEmail = (await getClerkPrimaryEmailByUserId(userId)) || "";
-    let isAssociate = false;
-    let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
-
-    if (userEmail) {
-      const associatePartner = await prismadb.associatePartner.findFirst({
-        where: {
-          OR: [
-            { email: userEmail },
-            { gmail: userEmail }
-          ]
-        }
-      });
-
-      isAssociate = !!associatePartner;
-      userRole = isAssociate ? "ASSOCIATE" : "ADMIN";
-    }
+    const isAssociate = accessContext.isAssociate;
+    const userRole: "ADMIN" | "ASSOCIATE" = isAssociate ? "ASSOCIATE" : "ADMIN";
 
     // Create the updated data object  
     const { roomAllocations, transportDetails, ...mainFields } = body;
@@ -535,22 +518,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ inquiryId:
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    // Determine user role (ADMIN or ASSOCIATE)
-    const userEmail = (await getClerkPrimaryEmailByUserId(userId)) || "";
-    let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
-
-    if (userEmail) {
-      const associatePartner = await prismadb.associatePartner.findFirst({
-        where: {
-          OR: [
-            { email: userEmail },
-            { gmail: userEmail }
-          ]
-        }
-      });
-
-      userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
-    }
+    const userRole: "ADMIN" | "ASSOCIATE" = accessContext.isAssociate ? "ASSOCIATE" : "ADMIN";
 
     // Process deletion as before
     // Log the related records for debugging

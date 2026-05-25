@@ -8,7 +8,7 @@ argument-hint: <voucher-type> [transaction-id]
 
 # Generate Voucher PDF
 
-Generate a downloadable PDF voucher for any financial transaction using the project's branding system and Puppeteer-based PDF pipeline.
+Generate a downloadable PDF voucher for any financial transaction.
 
 **Leverages:** `anthropic-skills:pdf`
 
@@ -19,37 +19,31 @@ Generate a downloadable PDF voucher for any financial transaction using the proj
 
 ## Live Project State
 
-Current branding profiles:
+Branding:
 ```
-!`grep -A 3 "companyInfo" src/lib/pdf/branding.ts | head -10`
-```
-
-VoucherLayout props interface:
-```
-!`grep -A 20 "interface VoucherLayoutProps" src/components/voucher-layout.tsx 2>/dev/null || grep -A 20 "VoucherLayoutProps" src/components/voucher-layout.tsx | head -25`
+!`head -30 src/lib/pdf/branding.ts 2>/dev/null`
 ```
 
-Existing voucher types:
+Voucher components:
 ```
-!`grep -o "type.*VoucherType" src/components/voucher-layout.tsx | head -5`
+!`grep -A 15 "VoucherLayoutProps" src/components/voucher-layout.tsx 2>/dev/null | head -20`
+```
+
+PDF pipeline:
+```
+!`ls src/utils/generatepdf.ts src/lib/pdf/ 2>/dev/null`
 ```
 
 ## Steps
 
-1. Read the relevant financial model from `schema.prisma` for the voucher type
-2. Read `src/components/voucher-layout.tsx` to understand the `VoucherLayoutProps` interface
-3. Read `src/components/voucher-actions.tsx` to understand the HTML capture and PDF generation flow
-4. Read `src/lib/pdf/branding.ts` for company info and brand colors
-5. Generate the voucher following the `VoucherLayout` structure:
-   - Organization header with logo and details
-   - Voucher title, number, and date
-   - Left info panel (customer/supplier details) + Right info panel (account/method details)
-   - Line items table as `children`
-   - Total amount, notes, and signature blocks
-6. Ensure all currency values use `formatPrice()` from `@/lib/utils`
-7. Ensure dates use `format()` from `date-fns`
+1. Read the Prisma model and relations for the voucher type
+2. Read `src/components/voucher-layout.tsx` (`VoucherLayoutProps`) and `src/components/voucher-actions.tsx` (HTML capture → PDF)
+3. Read `src/lib/pdf/branding.ts` and `src/lib/pdf/styles.ts`
+4. Compose voucher: org header, title/number/date, info panels, line items table, totals, signatures
+5. Use `formatPrice()` and `format()` / `formatSafeDate()` for display
+6. **Production PDF:** `src/utils/generatepdf.ts` uses `@sparticuz/chromium-min` on Vercel; use `inlineImagesInHtml()` for remote header/footer images in margin templates
+7. **Automation:** Puppeteer/HeadlessChrome may call voucher routes with relaxed org RBAC via `isCrmPdfAutomationRequest()` in `src/lib/crm-route-access.ts` — user-facing routes still require normal auth
 
 ## Additional resources
 
-- For branding details, see [references/branding.md](references/branding.md)
-- For voucher component contracts, see [references/voucher-components.md](references/voucher-components.md)
+- [references/voucher-components.md](references/voucher-components.md)

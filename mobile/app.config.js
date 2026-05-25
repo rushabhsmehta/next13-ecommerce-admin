@@ -20,6 +20,7 @@ const variants = {
     splashColor: "#e8612d",
     icon: "./assets/icon.png",
     adaptiveIcon: "./assets/adaptive-icon.png",
+    notificationColor: "#e8612d",
   },
   staff: {
     name: "Aagam Operations",
@@ -31,8 +32,9 @@ const variants = {
     runtimeVersion: `${VERSION}-staff`,
     easProjectId: STAFF_EAS_PROJECT_ID,
     splashColor: "#1f6feb",
-    icon: "./assets/icon.png",
-    adaptiveIcon: "./assets/adaptive-icon.png",
+    icon: "./assets/icon-staff.png",
+    adaptiveIcon: "./assets/adaptive-icon-staff.png",
+    notificationColor: "#1f6feb",
   },
   finance: {
     name: "Aagam Accounts",
@@ -44,8 +46,9 @@ const variants = {
     runtimeVersion: `${VERSION}-finance`,
     easProjectId: FINANCE_EAS_PROJECT_ID,
     splashColor: "#047857",
-    icon: "./assets/icon.png",
-    adaptiveIcon: "./assets/adaptive-icon.png",
+    icon: "./assets/icon-finance.png",
+    adaptiveIcon: "./assets/adaptive-icon-finance.png",
+    notificationColor: "#047857",
   },
 };
 
@@ -142,7 +145,7 @@ module.exports = () => {
         [
           "expo-notifications",
           {
-            color: variant.splashColor,
+            color: variant.notificationColor ?? variant.splashColor,
           },
         ],
         ...tripMediaPlugins,

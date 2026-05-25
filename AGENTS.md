@@ -2,204 +2,177 @@
 
 ## Project Overview
 
-Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer for managing tour packages, customer inquiries, hotel bookings, and financial transactions. Built on Next.js 13 App Router.
+Travel & tourism admin platform: CMS, admin dashboard, and API layer for tour packages, inquiries, hotel bookings, and financial transactions. Built on **Next.js 16** App Router with **Clerk** org RBAC, a custom **MCP** server (~133 tools), and three **Expo** mobile apps from one `mobile/` codebase.
 
 ## Tech Stack
 
-- **Framework:** Next.js 13.5.7 (App Router), React 18, TypeScript
-- **Database:** MySQL (main) + PostgreSQL (WhatsApp) via Prisma ORM
-- **Auth:** Clerk (`@clerk/nextjs`)
-- **UI:** Shadcn/Radix UI + Tailwind CSS
-- **State:** Zustand
-- **Forms:** React Hook Form + Zod validation
-- **Media:** Cloudinary, Cloudflare R2 (S3-compatible)
-- **Payments:** Stripe
-- **AI:** OpenAI, Google Gemini
-- **PDF:** jsPDF, @react-pdf/renderer, Puppeteer
-
-## Mobile App (Expo)
-
-Located in `mobile/` directory:
-
-- **Framework:** Expo SDK 55, React Native 0.83, Expo Router
-- **Auth:** `@clerk/clerk-expo`
-- **Testing:** Jest + Testing Library (unit), Detox (E2E Android)
-- **State:** React hooks + Context
-- **Storage:** `expo-secure-store` (auth), `expo-sqlite` (cache)
-
-### Mobile App Variants
-
-The mobile project builds three separately installed apps from one shared `mobile/` codebase. Use `APP_VARIANT=public|staff|finance`; the npm scripts below set it automatically.
-
-| Variant | App name | Package / bundle ID | Scheme | Router root |
-|---------|----------|---------------------|--------|-------------|
-| `public` | Aagam Holidays | `com.aagamholidays.app` | `aagamholidays` | `mobile/apps/public` |
-| `staff` | Aagam Operations | `com.aagamholidays.staff` | `aagamstaff` | `mobile/apps/staff` |
-| `finance` | Aagam Accounts | `com.aagamholidays.finance` | `aagamfinance` | `mobile/apps/finance` |
-
-Variant implementation notes:
-
-- Expo config is dynamic in `mobile/app.config.js`; the old static `mobile/app.json` is intentionally removed.
-- Shared app providers and push setup live in `mobile/components/app/`; variant helpers live in `mobile/lib/app-variant.ts`.
-- Backend RBAC remains the source of truth. Client-side filtering only limits route surface, navigation, and UX exposure.
-- Mobile API requests may include `X-Mobile-App-Variant` for audit/observability only; never authorize from that header.
-- Public registers trip chat push only. Staff registers trip chat plus admin WhatsApp push when permitted. Finance registers no chat/WhatsApp push in v1.
-- Android uses `publicApp` as the internal Gradle flavor name because `public` is a Groovy keyword; externally the variant is still `public`.
-- Staff and Finance EAS project IDs are environment-driven (`EXPO_STAFF_EAS_PROJECT_ID`, `EXPO_FINANCE_EAS_PROJECT_ID`) and must be real before production releases.
-
-### Mobile Commands
-
-```bash
-cd mobile
-npm start                 # Start public Expo dev server
-npm run start:public      # Start public app
-npm run start:staff       # Start staff app
-npm run start:finance     # Start finance app
-
-npm run android:public    # Run public Android flavor
-npm run android:staff     # Run staff Android flavor
-npm run android:finance   # Run finance Android flavor
-
-npm run ios:public        # Run public iOS app
-npm run ios:staff         # Run staff iOS app
-npm run ios:finance       # Run finance iOS app
-
-npm test                  # Run public unit tests
-npm run test:public       # Run public unit tests
-npm run test:staff        # Run staff unit tests
-npm run test:finance      # Run finance unit tests
-npm run test:coverage     # Run public coverage
-
-npm run e2e:build         # Build public Detox test APK
-npm run e2e:test          # Run public Detox E2E tests on emulator
-npm run e2e:build:staff   # Build staff Detox test APK
-npm run e2e:test:staff    # Run staff Detox E2E tests
-npm run e2e:build:finance # Build finance Detox test APK
-npm run e2e:test:finance  # Run finance Detox E2E tests
-
-npm run build:android:public
-npm run build:android:staff
-npm run build:android:finance
-npm run build:ios:public
-npm run build:ios:staff
-npm run build:ios:finance
-```
-
-### Mobile Testing Strategy
-
-| Test Type | Tool | Coverage Target | Location |
-|-----------|------|-----------------|----------|
-| Unit | Jest + Testing Library | API utilities, formatters | `mobile/__tests__/lib/` |
-| Component | Jest + Testing Library | Shared UI components | `mobile/__tests__/components/` |
-| E2E | Detox | Critical user paths | `mobile/e2e/` |
-
-**Critical E2E Paths:**
-1. Browse packages → filter → package detail → enquiry CTA
-2. Login → chat → send message
-3. Login → profile → sign out
-
-4. Staff: login as admin/operations/associate, open allowed CRM/operations/associate/WhatsApp paths, confirm finance routes are absent
-5. Finance: login as finance/admin/owner, open finance hub/accounts/receipt/payment/invoice/return/TDS flows, confirm public/chat/WhatsApp/CRM/operations routes are absent
-
-### Mobile Key Patterns
-
-- All interactive elements must have `testID` props for E2E
-- `accessibilityRole`, `accessibilityLabel`, `accessibilityHint` required for WCAG compliance
-- API calls use `lib/api.ts` with built-in retry/timeout
-- Offline cache via `lib/cache/index.ts` (expo-sqlite, 5-min TTL)
-- Chat uses adaptive polling: 3s active, 10s inactive, 30s background
-- OAuth redirects must use the active app scheme from `lib/app-variant.ts`; do not hardcode `aagamholidays`
-- Aagam Accounts app must not expose chat, WhatsApp, CRM, operations, or public browse routes
-- Aagam Operations app must not expose finance money-write screens or finance-only navigation
-- Keep route wrappers under `mobile/apps/*` aligned with the intended app surface when adding mobile screens
+| Layer | Stack |
+|-------|--------|
+| Web | Next.js 16, React 19, TypeScript 5.9 |
+| Database | MySQL (`schema.prisma`) + PostgreSQL WhatsApp (`prisma/whatsapp-schema.prisma`) |
+| Auth | Clerk (`@clerk/nextjs`) — org roles in `OrganizationMember` |
+| UI | Shadcn/Radix, Tailwind 3.4 |
+| Mobile | Expo SDK 55, React Native 0.83, Expo Router, `@clerk/clerk-expo` |
+| Forms | React Hook Form + Zod |
+| PDF / Excel | Puppeteer, jsPDF, xlsx |
+| AI / MCP | OpenAI, Gemini; `mcp-server/` + `src/app/api/mcp/` |
 
 ## Commands
 
 ```bash
-npm run dev          # Start dev server
-npm run build        # Generate Prisma clients + Next.js build
-npm run lint         # ESLint (next/core-web-vitals)
-npm start            # Production server
+# Web (repo root)
+npm run dev                              # Next.js dev server (:3000)
+npm run build                            # Prisma generate (both schemas) + next build
+npm run lint
+npm run test:accounts                    # Accounting module tests
+npm run test:mobile-inquiry-crud         # Inquiry API CRUD smoke test (dev bypass)
+
+# Mobile (cd mobile — run npm install first)
+npm run start:public                     # Metro :8081
+npm run start:staff                      # Metro :8082 — Aagam Operations
+npm run start:finance                    # Metro :8083 — Aagam Accounts
+npm run android:staff / ios:staff
+npm run test:staff
+npm run generate:icons                   # Regenerate launcher icons (all variants)
+npm run test:inquiry:adb                 # USB inquiry create/edit/delete (needs adb)
 ```
+
+## Mobile App Variants
+
+Three installed apps; set `APP_VARIANT=public|staff|finance` (npm scripts set it). Config: `mobile/app.config.js`.
+
+| Variant | App name | Package | Scheme | Router root | Metro port |
+|---------|----------|---------|--------|-------------|------------|
+| `public` | Aagam Holidays | `com.aagamholidays.app` | `aagamholidays` | `mobile/apps/public` | 8081 |
+| `staff` | Aagam Operations | `com.aagamholidays.staff` | `aagamstaff` | `mobile/apps/staff` | 8082 |
+| `finance` | Aagam Accounts | `com.aagamholidays.finance` | `aagamfinance` | `mobile/apps/finance` | 8083 |
+
+**Variant rules**
+
+- Shared screens live under `mobile/app/`; variant route roots re-export in `mobile/apps/{public,staff,finance}/`.
+- `mobile/lib/app-variant.ts` — scheme, home route, nav filtering (UX only; **backend RBAC is source of truth**).
+- `X-Mobile-App-Variant` header is audit-only — never authorize from it.
+- **Staff:** CRM (`/admin/crm/inquiries`), operations hub, WhatsApp when permitted — no finance write screens.
+- **Finance:** `/admin/finance/*` only — no chat, WhatsApp, public browse, or full CRM.
+- **Public:** packages, chat, profile — no admin CRM.
+- Android Gradle flavor for public is `publicApp` (Groovy keyword).
+- Icons: shared `logo-emblem-source.png` on cream; staff/finance add corner badges (`#c23a5e`, `#9b3a8d`). Regenerate: `npm run generate:icons` in `mobile/`.
+
+**Mobile dev bypass (physical device / Detox / adb scripts)**
+
+Server `.env.local`:
+
+```env
+MOBILE_DEV_AUTH_BYPASS_ENABLED=1
+MOBILE_DEV_AUTH_BYPASS_TOKEN=<secret>
+MOBILE_DEV_AUTH_BYPASS_USER_ID=user_xxxxxxxx   # real Clerk id, ADMIN/OWNER for staff CRM
+```
+
+USB: `adb reverse tcp:8082 tcp:8082` and `adb reverse tcp:3000 tcp:3000` (match active variant port). See `mobile/README.md` and `mobile/docs/app-variants.md`.
 
 ## Project Structure
 
 ```
 src/
   app/
-    (auth)/              # Sign-in/sign-up routes
-    (dashboard)/         # Admin dashboard (50+ modules)
-      accounts/          # Financial accounts
-      customers/         # Customer management
-      hotels/            # Hotel management
-      tourPackages/      # Tour package management
-      tourPackageQuery/  # Tour inquiry management
-      payments/          # Payment tracking
-      expenses/          # Expense tracking
-      reports/           # Analytics & reporting
-    (root)/              # Public homepage
-    api/                 # API routes (60+ endpoints)
-    travel/              # Public-facing travel app
-    ops/                 # Operations staff routes
+    (auth)/                 # Clerk sign-in
+    (dashboard)/            # Admin modules (50+)
+    api/                    # REST + mobile/* + mcp/
+    travel/                 # Public travel site
+    ops/                    # Ops staff (ops.* host)
   components/
-    ui/                  # Shadcn UI components
-    forms/               # Form components
-    whatsapp/            # WhatsApp UI components
-  lib/                   # Utilities (pricing, GST, phone, PDF, etc.)
-  hooks/                 # React hooks
-  providers/             # Context providers (theme, modal, toast)
-  types/                 # TypeScript type definitions
-  proxy.ts               # Clerk auth & host-based routing (Next.js 16)
-schema.prisma            # Main MySQL schema (~1,700 lines)
-prisma/
-  whatsapp-schema.prisma # PostgreSQL WhatsApp schema
+  lib/                      # authz, prismadb, api-response, inquiry-access, …
+  proxy.ts                  # Clerk + host routing; bearer /api/inquiries
 mobile/
-  app.config.js           # Variant-aware Expo config
-  apps/
-    public/               # Public app route root
-    staff/                # Staff app route root
-    finance/              # Finance app route root
-  app/                    # Shared source screens wrapped by variant route roots
-  components/app/         # Shared mobile root providers, stacks, push controller
-  lib/app-variant.ts      # Active variant, scheme, redirects, permission filtering
-  docs/app-variants.md    # Variant command and release notes
+  app.config.js
+  apps/{public,staff,finance}/
+  app/                      # Shared screens
+  components/inquiries/     # CreateInquiryForm
+  scripts/                  # adb-*, generate-app-icons.mjs
+mcp-server/
+schema.prisma
+prisma/whatsapp-schema.prisma
+tools/test-mobile-inquiry-crud.mjs
+.agents/skills/             # Cursor agent skills (mirrored in .claude/skills/)
 ```
 
 ## Database
 
-Two Prisma schemas with separate clients:
+- **Main:** `@prisma/client` — tours, inquiries, finance, customers, org members.
+- **WhatsApp:** `@prisma/whatsapp-client` — messages, campaigns, catalogs.
 
-- **`schema.prisma`** (MySQL) - Main business data: tour packages, hotels, itineraries, financial transactions, customers, inquiries. Client: `@prisma/client`
-- **`prisma/whatsapp-schema.prisma`** (PostgreSQL) - WhatsApp messages, campaigns, catalogs, orders. Client: `@prisma/whatsapp-client`
-
-Both clients are generated during `npm run build` and `postinstall`.
-
-## Path Aliases
-
-`@/*` maps to `./src/*` (configured in tsconfig.json).
+Never run destructive Prisma commands against production. Schema changes → `prisma migrate dev` only with user confirmation.
 
 ## Key Patterns
 
-- **Domain-based access:** Main domain = full admin, `ops.*` = operations, `associate.*` = limited partner access (host checks in `src/proxy.ts`)
-- **Roles:** OWNER, ADMIN, FINANCE, OPERATIONS, VIEWER (organization-based)
-- **API routes** are in `src/app/api/` following Next.js App Router conventions
-- **Server components** are the default; client components use `"use client"` directive
+### Web dashboard
+
+- **Server → client:** `page.tsx` fetches with Prisma; `components/*-client.tsx` for tables/forms.
+- **New API routes:** Prefer `handleApi()` from `@/lib/api-response.ts`; `export const dynamic = "force-dynamic"` for mutable data.
+- **Legacy routes:** `auth()` + try/catch + `console.log("[PREFIX]", error)`.
+- **Dates:** `dateToUtc()` / `formatSafeDate()` from `@/lib/timezone-utils.ts`.
+- **Currency:** INR via `formatPrice()` from `@/lib/utils`.
+
+### Auth & routing (`src/proxy.ts`)
+
+- Hosts: main = full admin, `associate.*` = partner, `ops.*` = operations portal.
+- `/api/mobile/*` and `/api/chat/*` skip Clerk session middleware.
+- **`/api/inquiries*` with valid mobile Bearer** (Clerk JWT or dev bypass) skips session redirect — native apps have no cookies.
+- Org roles: `OWNER` > `ADMIN` > `FINANCE` > `OPERATIONS` > `VIEWER` (`src/lib/authz.ts`).
+
+### Inquiries (CRM + mobile staff)
+
+- List/create/edit/delete: `src/app/api/inquiries/` (used by `mobile/lib/associate-inquiries.ts` and dashboard).
+- Access: `src/lib/inquiry-access.ts` — org members resolved from DB first; associates via partner email.
+- Mobile UI: `mobile/app/admin/crm/inquiries/`, `CreateInquiryForm` with `testID`s (`inquiry-create-*`, `inquiry-save-profile`, `inquiry-delete-*`).
+- Mobile picker list: `GET /api/mobile/inquiries` (bearer-only; avoids middleware redirect).
+
+### Financial
+
+- Balances on `BankAccount` / `CashAccount` updated in payment/receipt/transfer routes.
+- Allocations: `ReceiptSaleAllocation`, `PaymentPurchaseAllocation`.
+- See skill `financial-context` before finance changes.
+
+### MCP
+
+- Gateway: `src/app/api/mcp/route.ts`; tools in `mcp-server/src/tools/*.ts`.
+- Auth: `x-mcp-api-secret` header.
+
+## Agent Skills
+
+Skills live in `.agents/skills/` (and `.claude/skills/`). Invoke by name when relevant.
+
+| Skill | Use when |
+|-------|----------|
+| `new-api-route` | Adding `src/app/api/*` routes |
+| `new-page` | Dashboard server/client pages |
+| `new-form` | RHF + Zod forms |
+| `financial-context` | Sales, purchases, receipts, payments, ledgers |
+| `generate-voucher-pdf` | PDF vouchers |
+| `new-voucher-page` | Voucher view pages |
+| `export-report-xlsx` | Branded Excel exports |
+| `new-mcp-tool` | MCP tool + gateway handler |
+| `prisma-migrate` | Schema migrations |
+| `schedule-report` | Cron report endpoints |
+| `check` | lint, tsc, build |
+| `mobile-variant` | Expo variant apps, icons, adb/USB testing |
 
 ## Environment Variables
 
-Required variables (see `.env` for full list):
+See `.env` / `.env.local`. Notable:
 
-- `DATABASE_URL` - MySQL connection string
-- `WHATSAPP_DATABASE_URL` - PostgreSQL connection string
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` - Auth
-- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` - Image hosting
-- `STRIPE_API_KEY` / `STRIPE_WEBHOOK_SECRET` - Payments
-- `OPENAI_API_KEY` - AI tour generation
-- `META_WHATSAPP_PHONE_NUMBER_ID` / `META_WHATSAPP_ACCESS_TOKEN` - WhatsApp
-- `EXPO_STAFF_EAS_PROJECT_ID` / `EXPO_FINANCE_EAS_PROJECT_ID` - Staff/Finance mobile EAS project IDs for OTA/native builds
+- `DATABASE_URL`, `WHATSAPP_DATABASE_URL`
+- `CLERK_*`, `MCP_API_SECRET`, `CRON_SECRET`
+- `MOBILE_DEV_AUTH_BYPASS_*` — dev only, never production
+- `EXPO_STAFF_EAS_PROJECT_ID`, `EXPO_FINANCE_EAS_PROJECT_ID` — separate EAS projects for staff/finance builds
 
-## Linting & TypeScript
+## Linting & Git
 
-- ESLint extends `next/core-web-vitals`
-- TypeScript strict mode enabled
-- No Prettier config; formatting relies on ESLint
+- ESLint: `next/core-web-vitals`; TypeScript strict.
+- Develop on feature branches; do not commit directly to `main`.
+- Commit only when the user asks.
+
+## Critical Safety
+
+- No `prisma migrate reset`, `db push --force-reset`, or DROP against prod.
+- Confirm schema migrations with the user before `prisma migrate dev`.

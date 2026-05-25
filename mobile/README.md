@@ -163,8 +163,10 @@ Before building, add these image assets to the `assets/` directory:
 
 | File | Size | Description |
 |------|------|-------------|
-| `icon.png` | 1024×1024 | App icon |
-| `adaptive-icon.png` | 1024×1024 | Android adaptive icon foreground |
+| `icon.png` | 1024×1024 | Aagam Holidays app icon |
+| `icon-staff.png` / `icon-finance.png` | 1024×1024 | Same Aagam emblem + corner badge (ops / accounts) |
+| `badge-staff.svg` / `badge-finance.svg` | vector | Corner badges for staff/finance icons |
+| `adaptive-icon.png` (+ staff/finance) | 1024×1024 | Android adaptive icon foreground |
 | `splash.png` | 1284×2778 | Splash screen |
 | `favicon.png` | 48×48 | Web favicon |
 | `notification-icon.png` | 96×96 | Android notification icon |

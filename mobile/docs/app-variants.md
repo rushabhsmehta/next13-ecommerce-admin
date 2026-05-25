@@ -85,6 +85,7 @@ Public keeps the existing EAS project ID. Staff and Finance need real EAS projec
 - Set `EXPO_FINANCE_EAS_PROJECT_ID`.
 - Replace the placeholder App Store Connect IDs in `eas.json`.
 - Configure separate Android and iOS credentials for Staff and Finance.
-- Add distinct Staff and Finance icon assets in `app.config.js` when final branding is ready (variants currently share the public placeholder icons).
+- Regenerate launcher icons after editing sources: `npm run generate:icons` (from `mobile/`).
+- All variants share the Aagam Holidays emblem (`logo-emblem-source.png`) on cream with ~54% scale; Operations and Accounts add a small corner badge in brand colors (`#c23a5e` / `#9b3a8d` from `theme.ts`).
 
 Backend RBAC remains the source of truth. The mobile split only limits build identity, routes, navigation, permissions, push registration, and distribution.

@@ -11,9 +11,11 @@ argument-hint: <module-name> [prisma-model]
 
 Create a new dashboard page module at `src/app/(dashboard)/$0/`.
 
+For **mobile staff/finance screens**, use the `mobile-variant` skill — shared UI under `mobile/app/`, re-exported from `mobile/apps/{staff,finance}/`.
+
 ## Input
 
-- **$0** — Module name (e.g., "transfers", "suppliers") — becomes the route folder name
+- **$0** — Module name (e.g., `transfers`, `suppliers`) — becomes the route folder name
 - **$1** — Prisma model name (optional — check `schema.prisma` if not provided)
 
 ## Live Project State
@@ -21,6 +23,11 @@ Create a new dashboard page module at `src/app/(dashboard)/$0/`.
 Existing dashboard modules:
 ```
 !`ls -d src/app/\(dashboard\)/*/ 2>/dev/null | sed 's|.*/\(dashboard\)/||' | head -30`
+```
+
+Route access rules (sidebar gating):
+```
+!`head -40 src/lib/crm-route-access-rules.ts 2>/dev/null`
 ```
 
 ## Steps
@@ -36,23 +43,20 @@ Existing dashboard modules:
    - **`client.tsx`** — `"use client"` component that receives formatted data as props, renders a `Heading` + `Separator` + `DataTable` using Shadcn components
    - **`columns.tsx`** — Column definitions for the DataTable using `ColumnDef<>` from `@tanstack/react-table`
    - **`cell-action.tsx`** — Row actions dropdown with Copy ID, Edit, Delete (with `AlertModal` confirmation)
-4. **Verify** the Prisma model exists in `schema.prisma` and includes are correct
+4. **RBAC** — If the module is finance-only or role-restricted, add path rules in `src/lib/crm-route-access-rules.ts` and server checks in API routes (`requireFinanceOrAdmin`, `getUserOrgRole`)
+5. **Verify** the Prisma model exists in `schema.prisma` and includes are correct
 
 ## Patterns to include based on complexity
 
 **Simple list page** (default): `Heading` + `DataTable` with search + columns + cell actions
 
-**Page with filters** (if data needs filtering): Add `useState` + `useMemo` filtering:
-- Search input, date range pickers, dropdown selects
-- `useMemo` to filter data based on state
-- "Clear filters" button
+**Page with filters**: `useState` + `useMemo` filtering, date range pickers, "Clear filters"
 
-**Page with exports** (if data is exportable): Add toolbar with CSV/Excel download buttons:
-- `toolbar` prop passed to `DataTable`
-- `useMemo` to compute `exportRows`
-- Use `xlsx` library for Excel, `exportToCSV` from `@/lib/utils/csv-export.ts` for CSV
+**Page with exports**: toolbar with CSV/Excel — see `export-report-xlsx` skill
 
-**Page with tabs** (if data has categories): Wrap DataTable in `Tabs` / `TabsList` / `TabsContent` for segmentation
+**Page with tabs**: `Tabs` / `TabsList` / `TabsContent` for segmentation
+
+**Voucher view**: use `new-voucher-page` skill (`VoucherLayout` + `VoucherActions`)
 
 ## Conventions
 
@@ -61,8 +65,9 @@ Existing dashboard modules:
 - Format currency with `formatPrice()` from `@/lib/utils`
 - Computed fields (balances, payment status) go in the client component, not pre-computed in server
 - Error logging uses `console.log("[MODULE_NAME]", error)` pattern
+- PDF automation: Puppeteer requests may bypass org RBAC via `isCrmPdfAutomationRequest()` — do not rely on this for user-facing auth
 
 ## Additional resources
 
-- For page/client/columns templates, see [references/page-template.md](references/page-template.md)
-- For cell-action and advanced patterns, see [references/advanced-patterns.md](references/advanced-patterns.md)
+- [references/page-template.md](references/page-template.md)
+- [references/advanced-patterns.md](references/advanced-patterns.md)

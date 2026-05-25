@@ -20,9 +20,14 @@ The user will also describe fields, types, validation rules, and whether it's a 
 
 ## Live Project State
 
-Existing form components:
+Dashboard transaction forms:
 ```
 !`find src/components/forms -name "*.tsx" 2>/dev/null | head -15`
+```
+
+Mobile inquiry form (reference for testIDs + API):
+```
+!`ls mobile/components/inquiries/ 2>/dev/null`
 ```
 
 ## Steps
@@ -39,7 +44,7 @@ Existing form components:
    - `"use client"` directive
    - `useForm()` with `zodResolver(formSchema)`
    - Loading state: `const [loading, setLoading] = useState(false)`
-   - Submit handler using `axios.post()` / `axios.patch()`
+   - Submit handler using `axios.post()` / `axios.patch()` (dashboard) or `mobile/lib/api.ts` (Expo — retries, bearer token)
    - Success: `toast.success()` + `router.refresh()` or `onSuccess?.()`
    - Error: `toast.error("Something went wrong")`
 
@@ -51,14 +56,21 @@ Existing form components:
 
 4. **For dialog forms**: wrap in `<Dialog>` / `<Sheet>` from Shadcn
 
+## Mobile-specific conventions
+
+- Every interactive control needs a stable **`testID`** (Detox / adb scripts)
+- Add `accessibilityRole`, `accessibilityLabel`, `accessibilityHint` on pressables
+- Example inquiry form: `mobile/components/inquiries/CreateInquiryForm.tsx` — IDs like `inquiry-create-name`, `inquiry-save-profile`, `inquiry-delete-confirm`
+- CRM mutations call `/api/inquiries` (not only `/api/mobile/*`); ensure server accepts bearer auth
+
 ## Conventions
 
 - Import from `@/components/ui/*` for Shadcn components
 - Use `@/lib/utils` for `formatPrice()` and `cn()`
-- Use `axios` for API calls (already in project dependencies)
-- Use `react-hot-toast` for notifications (`toast.success()`, `toast.error()`)
-- Date fields should use `DatePickerField` component if available, or Shadcn Popover + Calendar
+- Use `axios` for dashboard API calls
+- Use `react-hot-toast` for notifications
+- Date fields: `createDatePickerValue()` / `dateToUtc()` from `@/lib/timezone-utils` when persisting date-only values
 
 ## Additional resources
 
-- For the form template, see [references/form-template.md](references/form-template.md)
+- [references/form-template.md](references/form-template.md)

@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
+import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 
 function nextWithCrmPathname(req: NextRequest): NextResponse {
   const pathname = req.nextUrl.pathname;
@@ -40,10 +41,20 @@ const isIgnoredRoute = createRouteMatcher([
   "/api/chat/(.*)",
 ]);
 
+/** Native app uses Bearer on these routes; Clerk session cookies are not sent. */
+const isMobileBearerInquiryRoute = createRouteMatcher(["/api/inquiries(.*)"]);
+
 export default clerkMiddleware(async (auth, req) => {
   // Skip authentication entirely for webhook
   if (isIgnoredRoute(req)) {
     return nextWithCrmPathname(req);
+  }
+
+  if (isMobileBearerInquiryRoute(req)) {
+    const mobileUserId = await verifyMobileBearerUserId(req);
+    if (mobileUserId) {
+      return nextWithCrmPathname(req);
+    }
   }
 
   // Check if the request is from an associate domain

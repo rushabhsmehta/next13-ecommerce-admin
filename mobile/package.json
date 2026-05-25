@@ -65,7 +65,9 @@
     "e2e:test:finance": "detox test --configuration android.emu.finance.debug",
     "e2e:test:attached": "detox test --configuration android.att.debug",
     "e2e:build-release": "detox build --configuration android.emu.release",
-    "e2e:test-release": "detox test --configuration android.emu.release"
+    "e2e:test-release": "detox test --configuration android.emu.release",
+    "generate:icons": "node ./scripts/generate-app-icons.mjs",
+    "test:inquiry:adb": "node ./scripts/adb-inquiry-crud-test.mjs"
   },
   "dependencies": {
     "@clerk/clerk-expo": "^2.19.31",

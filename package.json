@@ -20,7 +20,8 @@
         "process-whatsapp-campaigns": "ts-node --transpile-only --compiler-options \"{\\\"module\\\":\\\"commonjs\\\",\\\"moduleResolution\\\":\\\"node\\\"}\" scripts/process-whatsapp-campaigns.ts",
         "check-db-health": "node scripts/check-db-health.js",
         "test-runpod": "node scripts/tests/test-runpod-image-gen.js",
-        "test:accounts": "node --test src/lib/tour-package-query-accounting*.test.cjs"
+        "test:accounts": "node --test src/lib/tour-package-query-accounting*.test.cjs",
+        "test:mobile-inquiry-crud": "node tools/test-mobile-inquiry-crud.mjs"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.995.0",

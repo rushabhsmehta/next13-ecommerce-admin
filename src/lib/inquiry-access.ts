@@ -30,17 +30,33 @@ function clerkEmailsLowercased(user: {
 export async function resolveInquiryAccessContext(
   userId: string
 ): Promise<InquiryAccessContext> {
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
-  const emails = clerkEmailsLowercased(user);
+  const membership = await prismadb.organizationMember.findFirst({
+    where: { userId, isActive: true },
+    select: { id: true },
+  });
 
-  const [membership, associatePartner] = await Promise.all([
-    prismadb.organizationMember.findFirst({
-      where: { userId, isActive: true },
-      select: { id: true },
-    }),
-    emails.length
-      ? prismadb.associatePartner.findFirst({
+  if (membership) {
+    return {
+      userId,
+      isAdminLike: true,
+      isAssociate: false,
+      associatePartnerId: null,
+      associatePartner: null,
+    };
+  }
+
+  let emails: string[] = [];
+  try {
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
+    emails = clerkEmailsLowercased(user);
+  } catch (error) {
+    console.log("[INQUIRY_ACCESS] Clerk user lookup failed", error);
+  }
+
+  const associatePartner =
+    emails.length > 0
+      ? await prismadb.associatePartner.findFirst({
           where: {
             isActive: true,
             OR: emails.flatMap((email) => [{ email }, { gmail: email }]),
@@ -52,15 +68,13 @@ export async function resolveInquiryAccessContext(
             mobileNumber: true,
           },
         })
-      : Promise.resolve(null),
-  ]);
+      : null;
 
-  const isAdminLike = !!membership;
-  const isAssociate = !isAdminLike && !!associatePartner;
+  const isAssociate = !!associatePartner;
 
   return {
     userId,
-    isAdminLike,
+    isAdminLike: false,
     isAssociate,
     associatePartnerId: isAssociate ? associatePartner!.id : null,
     associatePartner: isAssociate ? associatePartner : null,

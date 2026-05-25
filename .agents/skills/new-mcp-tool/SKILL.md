@@ -1,6 +1,6 @@
 ---
 name: new-mcp-tool
-description: Add a new tool to the travel-admin MCP server across all 3 layers — server definition, API client, and gateway handler.
+description: Add a new tool to the travel-admin MCP server across all 3 layers — tool module, API gateway handler, and optional contracts.
 disable-model-invocation: true
 context: fork
 agent: general-purpose
@@ -9,41 +9,46 @@ argument-hint: <tool-name> [description]
 
 # Add New MCP Tool
 
-Add a new tool to the travel-admin MCP server across all 3 layers.
+Add a new tool to the travel-admin MCP server (modular layout, ~133 tools).
 
 **Leverages:** `anthropic-skills:mcp-builder`
 
 ## Input
 
-- **$0** — Tool name in snake_case (e.g., `list_customers`, `get_sale_details`)
-- **$1** — Description of what the tool should do (optional)
+- **$0** — Tool name in snake_case (e.g., `list_customers`, `get_sale_balance`)
+- **$1** — What the tool should do (optional)
 
 ## Live Project State
 
-Current tool count and names:
+Tool registrations by module:
 ```
-!`grep -c "server.tool(" mcp-server/src/server.ts 2>/dev/null`
-```
-
-```
-!`grep "server.tool(" mcp-server/src/server.ts | sed 's/.*server.tool("\([^"]*\)".*/\1/' 2>/dev/null`
+!`grep -rn "server.tool(" mcp-server/src/tools/ --include="*.ts" | wc -l`
 ```
 
-Gateway route size:
 ```
-!`wc -l src/app/api/mcp/route.ts 2>/dev/null`
+!`grep -roh 'server.tool("[^"]*"' mcp-server/src/tools/ | sed 's/server.tool("//;s/"$//' | head -40`
+```
+
+Gateway:
+```
+!`ls src/app/api/mcp/handlers/ 2>/dev/null`
 ```
 
 ## Steps
 
-1. Read `mcp-server/src/server.ts` to find the exact insertion point (add after related tools)
-2. Read `src/app/api/mcp/route.ts` to find the dispatch section for the tool category
-3. Read the relevant Prisma model from `schema.prisma` to understand fields and relations
-4. **Add the tool definition** in `mcp-server/src/server.ts`
-5. **Add the gateway handler** in `src/app/api/mcp/route.ts`
-6. **Build and verify:** Run `npm run build` in `mcp-server/` directory
-7. **Update tool count** in AGENTS.md MCP Tools section if needed
+1. Pick the **category module** under `mcp-server/src/tools/` (e.g., `finance.ts`, `inquiries.ts`, `customers.ts`) — add `server.tool(...)` next to related tools
+2. Add or extend the **gateway handler** in `src/app/api/mcp/handlers/<category>.ts` (dispatched from `src/app/api/mcp/route.ts` + `handlers/index.ts`)
+3. Read the relevant **Prisma model** in `schema.prisma`; reuse helpers in `src/app/api/mcp/lib/` (`resolve-entity`, `date-filter`, `schemas`)
+4. If types are shared with the app, add to `mcp-server/src/contracts/` (webpack resolves `.js` → `.ts`)
+5. **Build:** `cd mcp-server && npm run build`
+6. Smoke-test via MCP client with `x-mcp-api-secret` header
+7. Update tool count in `AGENTS.md` / `CLAUDE.md` if documenting externally
+
+## Do not
+
+- Put all tools in a monolithic `server.ts` — orchestrator is `mcp-server/src/server.ts` wiring `tools/*.ts` only
+- Skip gateway auth — gateway validates `MCP_API_SECRET`
 
 ## Additional resources
 
-- For MCP server patterns, see [references/mcp-patterns.md](references/mcp-patterns.md)
+- [references/mcp-patterns.md](references/mcp-patterns.md)

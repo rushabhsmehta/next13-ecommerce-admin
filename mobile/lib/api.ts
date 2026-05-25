@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "@/constants/api";
 import { cache, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 const DEFAULT_TIMEOUT = 10000;
 const MAX_RETRIES = 3;
@@ -83,6 +84,7 @@ async function request<T = any>(
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...mobileAppVariantHeaders(),
     ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     ...customHeaders,
   };

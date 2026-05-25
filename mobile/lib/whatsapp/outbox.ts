@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/cache";
 import { API_BASE_URL } from "@/constants/api";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 const MAX_ATTEMPTS = 5;
 
@@ -196,6 +197,7 @@ export const whatsappOutbox = {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${jwt}`,
+            ...mobileAppVariantHeaders(),
           },
           body: JSON.stringify({ phone: entry.phone, ...entry.payload }),
         });

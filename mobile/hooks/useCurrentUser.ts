@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/clerk-expo";
 import { API_BASE_URL } from "@/constants/api";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
+import {
+  APP_VARIANT,
+  filterNavigationForAppVariant,
+  filterPermissionsForAppVariant,
+  mobileAppVariantHeaders,
+} from "@/lib/app-variant";
 
 export interface TravelUser {
   id: string;
@@ -91,28 +97,40 @@ export function useCurrentUser(): CurrentUserState {
           return;
         }
         const res = await fetch(`${API_BASE_URL}/api/mobile/auth-status`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...mobileAppVariantHeaders(),
+          },
         });
         if (!res.ok) {
           setState(emptyCurrentUserState(false));
           return;
         }
         const data = await res.json();
+        const permissions = filterPermissionsForAppVariant(
+          Array.isArray(data.permissions) ? data.permissions : [],
+          APP_VARIANT
+        );
+        const rawMobileNavigation: MobileAdminModule[] = Array.isArray(data.mobileNavigation)
+          ? data.mobileNavigation
+          : [];
+        const mobileNavigation = filterNavigationForAppVariant(
+          rawMobileNavigation,
+          APP_VARIANT
+        );
         setState({
           organizationRole: data.organizationRole ?? null,
           organizationId: data.organizationId ?? null,
-          isOwner: data.isOwner ?? false,
-          isAdmin: data.isAdmin ?? false,
-          isFinance: data.isFinance ?? false,
-          isOperations: data.isOperations ?? false,
-          isAssociate: data.isAssociate ?? false,
-          canUseAdmin: data.canUseAdmin ?? false,
-          canUseFinance: data.canUseFinance ?? false,
-          permissions: Array.isArray(data.permissions) ? data.permissions : [],
-          mobileNavigation: Array.isArray(data.mobileNavigation)
-            ? data.mobileNavigation
-            : [],
-          associatePartner: data.associatePartner ?? null,
+          isOwner: APP_VARIANT === "public" ? false : data.isOwner ?? false,
+          isAdmin: APP_VARIANT === "public" ? false : data.isAdmin ?? false,
+          isFinance: APP_VARIANT === "finance" ? data.isFinance ?? false : false,
+          isOperations: APP_VARIANT === "public" ? false : data.isOperations ?? false,
+          isAssociate: APP_VARIANT === "public" ? false : data.isAssociate ?? false,
+          canUseAdmin: APP_VARIANT === "staff" ? Boolean(data.canUseAdmin) : false,
+          canUseFinance: APP_VARIANT === "finance" ? Boolean(data.canUseFinance) : false,
+          permissions,
+          mobileNavigation,
+          associatePartner: APP_VARIANT === "public" ? null : data.associatePartner ?? null,
           travelUser: data.travelUser ?? null,
           isLoading: false,
         });

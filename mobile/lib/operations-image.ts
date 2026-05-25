@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "@/constants/api";
 import { ApiError } from "@/lib/api";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 export interface OperationsImageUploadResult {
   url: string;
@@ -35,7 +36,10 @@ export async function uploadOperationsImage(
 
   const res = await fetch(`${API_BASE_URL}/api/mobile/operations/upload-image`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...mobileAppVariantHeaders(),
+    },
     body: form,
   });
 

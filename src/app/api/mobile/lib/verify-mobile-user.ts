@@ -1,4 +1,5 @@
 import { verifyToken } from "@clerk/nextjs/server";
+import { captureMobileAuditRequestContext } from "@/app/api/mobile/lib/mobile-audit";
 
 function readBearer(req: Request): string | null {
   const header = req.headers.get("Authorization");
@@ -32,6 +33,7 @@ export function isMobileDevBypassRequest(req: Request): boolean {
  * Never set MOBILE_DEV_AUTH_BYPASS_ENABLED in production.
  */
 export async function verifyMobileBearerUserId(req: Request): Promise<string | null> {
+  captureMobileAuditRequestContext(req);
   const bearer = readBearer(req);
   if (!bearer) return null;
 

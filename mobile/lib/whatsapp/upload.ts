@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/constants/api";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 export type WhatsAppUploadKind = "image" | "video" | "audio" | "document";
 
@@ -75,6 +76,7 @@ export async function uploadWhatsAppMedia(opts: UploadOpts): Promise<WhatsAppUpl
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
+      ...mobileAppVariantHeaders(),
     },
     body: formData,
   });

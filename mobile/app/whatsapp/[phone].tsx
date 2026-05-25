@@ -758,6 +758,9 @@ export default function WhatsAppConversation() {
         onAction={onMessageAction}
         canEdit={false}
         canDelete={!!actionTarget}
+        canModerate={false}
+        isPinned={false}
+        isImportant={false}
         hasContent={!!actionTarget?.message}
       />
 

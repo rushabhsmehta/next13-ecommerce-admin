@@ -23,6 +23,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { WHATSAPP_BUSINESS_NUMBER } from "@/constants/whatsapp";
 import { API_BASE_URL } from "@/constants/api";
 import { trackEvent } from "@/lib/analytics";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
 const PHONE_RE = /^[6-9]\d{9}$/;
@@ -70,7 +71,10 @@ export default function EnquiryScreen() {
       try {
         const token = await getToken();
         const res = await fetch(`${API_BASE_URL}/api/mobile/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...mobileAppVariantHeaders(),
+          },
         });
         if (res.ok) {
           const data = await res.json();
@@ -108,6 +112,7 @@ export default function EnquiryScreen() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...mobileAppVariantHeaders(),
         },
         body: JSON.stringify({
           locationId,

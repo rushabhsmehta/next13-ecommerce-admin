@@ -1,5 +1,20 @@
 import prismadb from "@/lib/prismadb";
 import { clerkClient } from "@clerk/nextjs/server";
+import { AsyncLocalStorage } from "async_hooks";
+
+const APP_VARIANTS = new Set(["public", "staff", "finance"]);
+const auditContext = new AsyncLocalStorage<{ appVariant?: string }>();
+
+export function getMobileAppVariantFromRequest(req: Request): string | undefined {
+  const raw = req.headers.get("X-Mobile-App-Variant")?.trim().toLowerCase();
+  return APP_VARIANTS.has(raw ?? "") ? raw : undefined;
+}
+
+export function captureMobileAuditRequestContext(req: Request): void {
+  auditContext.enterWith({
+    appVariant: getMobileAppVariantFromRequest(req),
+  });
+}
 
 /**
  * Whether this request arrived with an Authorization: Bearer ... header.
@@ -64,6 +79,9 @@ export async function recordMobileAudit(params: MobileAuditParams): Promise<void
         userRole,
         metadata: {
           source: "mobile-admin",
+          ...(auditContext.getStore()?.appVariant
+            ? { appVariant: auditContext.getStore()?.appVariant }
+            : {}),
           ...(params.metadata ?? {}),
           generatedAt: new Date().toISOString(),
         },

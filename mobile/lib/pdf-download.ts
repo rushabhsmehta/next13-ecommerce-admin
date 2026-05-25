@@ -12,6 +12,7 @@ import { API_BASE_URL } from "@/constants/api";
 import { ApiError } from "@/lib/api";
 import { refreshNetworkSnapshot } from "@/lib/network";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 export interface DownloadPdfParams {
   /** Endpoint path relative to API_BASE_URL, e.g. /api/mobile/tour-queries/x/pdf */
@@ -66,7 +67,10 @@ export async function downloadAndSharePdf(
   const url = `${API_BASE_URL}${endpoint}`;
 
   const result = await FileSystem.downloadAsync(url, fileUri, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...mobileAppVariantHeaders(),
+    },
   });
 
   if (result.status >= 400) {

@@ -3,6 +3,7 @@ import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { API_BASE_URL } from "@/constants/api";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 // Bump the channel id so Android will pick up the updated channel config.
 const WA_CHANNEL_ID = "whatsapp-v2";
@@ -68,6 +69,7 @@ export async function registerAdminPushToken(
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${jwt}`,
+          ...mobileAppVariantHeaders(),
         },
         body: JSON.stringify({
           expoPushToken,
@@ -93,6 +95,7 @@ export async function unregisterAdminPushToken(
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${jwt}`,
+        ...mobileAppVariantHeaders(),
       },
     });
   } catch {

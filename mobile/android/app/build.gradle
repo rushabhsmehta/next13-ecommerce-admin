@@ -98,6 +98,10 @@ def releaseKeyPassword =
 
 def hasReleaseSigning =
     releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+def staffEasProjectId =
+    System.getenv("EXPO_STAFF_EAS_PROJECT_ID") ?: "00000000-0000-4000-8000-000000000001"
+def financeEasProjectId =
+    System.getenv("EXPO_FINANCE_EAS_PROJECT_ID") ?: "00000000-0000-4000-8000-000000000002"
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -113,8 +117,52 @@ android {
         versionCode 34
         versionName "1.0.2"
 
+        manifestPlaceholders = [
+            appLabel: "Aagam Holidays",
+            appScheme: "aagamholidays",
+            expoScheme: "exp+aagam-holidays",
+            expoRuntimeVersion: "1.0.2",
+            expoUpdateUrl: "https://u.expo.dev/f6e23049-3b76-47ee-8194-9c9ad6de731a"
+        ]
+
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    flavorDimensions "appVariant"
+    productFlavors {
+        publicApp {
+            dimension "appVariant"
+            applicationId "com.aagamholidays.app"
+            manifestPlaceholders = [
+                appLabel: "Aagam Holidays",
+                appScheme: "aagamholidays",
+                expoScheme: "exp+aagam-holidays",
+                expoRuntimeVersion: "1.0.2",
+                expoUpdateUrl: "https://u.expo.dev/f6e23049-3b76-47ee-8194-9c9ad6de731a"
+            ]
+        }
+        staff {
+            dimension "appVariant"
+            applicationId "com.aagamholidays.staff"
+            manifestPlaceholders = [
+                appLabel: "Aagam Operations",
+                appScheme: "aagamstaff",
+                expoScheme: "exp+aagam-staff",
+                expoRuntimeVersion: "1.0.2-staff",
+                expoUpdateUrl: "https://u.expo.dev/${staffEasProjectId}"
+            ]
+        }
+        finance {
+            dimension "appVariant"
+            applicationId "com.aagamholidays.finance"
+            manifestPlaceholders = [
+                appLabel: "Aagam Accounts",
+                appScheme: "aagamfinance",
+                expoScheme: "exp+aagam-finance",
+                expoRuntimeVersion: "1.0.2-finance",
+                expoUpdateUrl: "https://u.expo.dev/${financeEasProjectId}"
+            ]
+        }
     }
     signingConfigs {
         debug {

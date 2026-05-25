@@ -14,8 +14,8 @@ import {
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/clerk-expo";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
+import { API_BASE_URL } from "@/constants/api";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -35,7 +35,10 @@ export default function EditProfileScreen() {
       try {
         const token = await getTokenRef.current();
         const res = await fetch(`${API_BASE_URL}/api/mobile/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...mobileAppVariantHeaders(),
+          },
         });
         if (res.ok) {
           const data = await res.json();
@@ -62,6 +65,7 @@ export default function EditProfileScreen() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...mobileAppVariantHeaders(),
         },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim() }),
       });

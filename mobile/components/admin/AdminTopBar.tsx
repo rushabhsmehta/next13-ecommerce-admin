@@ -71,7 +71,8 @@ export function AdminTopBar({
 
 export function AdminTopBarIconButton(props: {
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
+  label?: string;
+  accessibilityLabel?: string;
   hint?: string;
   testID?: string;
   onPress: () => void;
@@ -81,7 +82,7 @@ export function AdminTopBarIconButton(props: {
     <Pressable
       testID={props.testID}
       accessibilityRole="button"
-      accessibilityLabel={props.label}
+      accessibilityLabel={props.accessibilityLabel ?? props.label ?? "Action"}
       accessibilityHint={props.hint}
       accessibilityState={{ disabled: !!props.disabled }}
       disabled={props.disabled}

@@ -21,6 +21,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { API_BASE_URL } from "@/constants/api";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 import { setDevAuthBypassToken } from "@/lib/dev-auth-bypass";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 interface ProfileData {
   id: string;
@@ -60,7 +61,10 @@ export default function ProfileTab() {
     }
     try {
       const res = await fetch(`${API_BASE_URL}/api/mobile/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...mobileAppVariantHeaders(),
+        },
       });
       if (res.ok) setProfile(await res.json());
     } catch {}

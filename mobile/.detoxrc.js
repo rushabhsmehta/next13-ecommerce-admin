@@ -1,5 +1,12 @@
 /** @type {import('detox').DetoxConfig} */
 const gradlew = process.platform === "win32" ? "gradlew.bat" : "./gradlew";
+const withVariant = (variant, command) =>
+  process.platform === "win32"
+    ? `set APP_VARIANT=${variant}&& ${command}`
+    : `APP_VARIANT=${variant} ${command}`;
+const androidBuild = (variant, tasks) =>
+  `cd android && ${withVariant(variant, `${gradlew} ${tasks}`)}`;
+
 module.exports = {
   logger: {
     level: process.env.CI ? 'debug' : 'trace',
@@ -21,13 +28,35 @@ module.exports = {
   apps: {
     'android.debug': {
       type: 'android.apk',
-      binaryPath: 'android/app/build/outputs/apk/debug/app-debug.apk',
-      build: `cd android && ${gradlew} assembleDebug assembleAndroidTest -DtestBuildType=debug`,
+      binaryPath: 'android/app/build/outputs/apk/publicApp/debug/app-publicApp-debug.apk',
+      build: androidBuild(
+        "public",
+        "assemblePublicAppDebug assemblePublicAppDebugAndroidTest -DtestBuildType=debug"
+      ),
     },
     'android.release': {
       type: 'android.apk',
-      binaryPath: 'android/app/build/outputs/apk/release/app-release.apk',
-      build: `cd android && ${gradlew} assembleRelease assembleAndroidTest -DtestBuildType=release`,
+      binaryPath: 'android/app/build/outputs/apk/publicApp/release/app-publicApp-release.apk',
+      build: androidBuild(
+        "public",
+        "assemblePublicAppRelease assemblePublicAppReleaseAndroidTest -DtestBuildType=release"
+      ),
+    },
+    'android.staff.debug': {
+      type: 'android.apk',
+      binaryPath: 'android/app/build/outputs/apk/staff/debug/app-staff-debug.apk',
+      build: androidBuild(
+        "staff",
+        "assembleStaffDebug assembleStaffDebugAndroidTest -DtestBuildType=debug"
+      ),
+    },
+    'android.finance.debug': {
+      type: 'android.apk',
+      binaryPath: 'android/app/build/outputs/apk/finance/debug/app-finance-debug.apk',
+      build: androidBuild(
+        "finance",
+        "assembleFinanceDebug assembleFinanceDebugAndroidTest -DtestBuildType=debug"
+      ),
     },
   },
   devices: {
@@ -57,6 +86,14 @@ module.exports = {
     'android.att.debug': {
       device: 'attached',
       app: 'android.debug',
+    },
+    'android.emu.staff.debug': {
+      device: 'emulator',
+      app: 'android.staff.debug',
+    },
+    'android.emu.finance.debug': {
+      device: 'emulator',
+      app: 'android.finance.debug',
     },
   },
 };

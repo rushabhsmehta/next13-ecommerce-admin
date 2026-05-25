@@ -6,6 +6,18 @@ A React Native (Expo) mobile app for **iOS** and **Android** that connects to th
 - **Admin CRM**: `admin.aagamholidays.com` (Next.js dashboard)
 - **Mobile App**: This Expo project → Google Play Store + Apple App Store
 
+## App Variants
+
+This codebase builds three installed apps from one Expo project:
+
+| Variant | App | Package / bundle ID | Scheme |
+|---------|-----|---------------------|--------|
+| `public` | Aagam Holidays | `com.aagamholidays.app` | `aagamholidays` |
+| `staff` | Aagam Operations | `com.aagamholidays.staff` | `aagamstaff` |
+| `finance` | Aagam Accounts | `com.aagamholidays.finance` | `aagamfinance` |
+
+Use the variant scripts rather than raw Expo commands, for example `npm run start:staff`, `npm run android:finance`, or `npm run build:android:public`. See `docs/app-variants.md` for the full command list and release setup notes.
+
 ## Tech Stack
 
 | Technology | Purpose |
@@ -171,6 +183,53 @@ The mobile app connects to the same Next.js backend APIs:
 | `POST /api/chat/groups/:id/messages` | Auth | Send a message |
 | `GET /api/chat/me` | Auth | Current user profile |
 | `POST /api/push/subscribe` | Auth | Register push token |
+
+## Local testing without Clerk (dev bypass)
+
+Debug builds can skip Clerk OTP/OAuth and use a static bearer token. The server still resolves a **real** Clerk `user_…` id (org role and permissions come from that user in your database).
+
+### 1. Server (repo root `.env.local`)
+
+```env
+MOBILE_DEV_AUTH_BYPASS_ENABLED=1
+MOBILE_DEV_AUTH_BYPASS_TOKEN=mobile-dev-test-bypass-20260522
+MOBILE_DEV_AUTH_BYPASS_USER_ID=user_xxxxxxxx
+```
+
+- `MOBILE_DEV_AUTH_BYPASS_USER_ID` — copy from [Clerk Dashboard](https://dashboard.clerk.com) → Users → your test account. Use an **OWNER** or **ADMIN** user to exercise Staff + Finance; use a travel customer’s id for public-app-only flows.
+- Never enable this in production (`NODE_ENV=production` ignores bypass).
+
+Restart `npm run dev` after changing env.
+
+### 2. Physical device + USB
+
+Metro and the Next.js API must reach your PC:
+
+Each app variant has its **own Metro port** (so Accounts does not load Operations JS):
+
+| App | Metro port | Start |
+| --- | --- | --- |
+| Holidays | 8081 | `npm run start:public` |
+| Operations | 8082 | `npm run start:staff` |
+| Accounts | 8083 | `npm run start:finance` |
+
+```bash
+# Example: Accounts on USB
+adb reverse tcp:8083 tcp:8083
+adb reverse tcp:3000 tcp:3000
+```
+
+Start the API (`npm run dev` in repo root) and the matching Metro command in `mobile/`.
+
+### 3. On the phone
+
+1. Open **Profile** (or Admin gate) → **Sign in**.
+2. Tap **Developer sign-in (bypass Clerk)**.
+3. Paste the same token as `MOBILE_DEV_AUTH_BYPASS_TOKEN` (e.g. `mobile-dev-test-bypass-20260522`).
+4. Tap **Continue with bypass token**.
+5. If prompted, complete the one-time profile form (name + email for travel users).
+
+Detox and `mobile/scripts/adb-*.mjs` use the same token by default.
 
 ## Chat Features
 

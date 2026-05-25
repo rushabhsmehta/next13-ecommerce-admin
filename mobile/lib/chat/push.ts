@@ -4,6 +4,7 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { API_BASE_URL } from "@/constants/api";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 const CHAT_CHANNEL_ID = "chat-messages";
 
 let configuredHandler = false;
@@ -73,6 +74,7 @@ export async function registerChatPushToken(getToken: () => Promise<string | nul
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${jwt}`,
+        ...mobileAppVariantHeaders(),
       },
       body: JSON.stringify({
         expoPushToken,
@@ -98,6 +100,7 @@ export async function unregisterChatPushToken(
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${jwt}`,
+        ...mobileAppVariantHeaders(),
       },
       body: JSON.stringify(expoPushToken ? { expoPushToken } : {}),
     });

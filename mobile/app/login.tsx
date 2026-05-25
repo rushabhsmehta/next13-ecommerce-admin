@@ -21,6 +21,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
 import { API_BASE_URL } from "@/constants/api";
 import { setDevAuthBypassToken, getDevAuthBypassToken } from "@/lib/dev-auth-bypass";
+import {
+  APP_SCHEME,
+  getPostLoginRoute,
+  mobileAppVariantHeaders,
+} from "@/lib/app-variant";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -78,13 +83,16 @@ export default function LoginScreen() {
     if (!token) throw new Error("Not authenticated");
 
     const res = await fetch(`${API_BASE_URL}/api/mobile/auth-status`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...mobileAppVariantHeaders(),
+      },
     });
     if (!res.ok) throw new Error("Could not verify your account.");
 
     const authStatus = await res.json();
     if (authStatus.travelUser) {
-      router.replace("/(tabs)");
+      router.replace(getPostLoginRoute() as never);
     } else {
       setStep("profile");
     }
@@ -95,7 +103,7 @@ export default function LoginScreen() {
     setError(null);
     try {
       const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: "aagamholidays",
+        scheme: APP_SCHEME,
         path: "oauth-native-callback",
       });
       const { createdSessionId, setActive } = await startSSOFlow({
@@ -124,7 +132,10 @@ export default function LoginScreen() {
     try {
       await setDevAuthBypassToken(trimmed);
       const res = await fetch(`${API_BASE_URL}/api/mobile/auth-status`, {
-        headers: { Authorization: `Bearer ${trimmed}` },
+        headers: {
+          Authorization: `Bearer ${trimmed}`,
+          ...mobileAppVariantHeaders(),
+        },
       });
       if (!res.ok) {
         await setDevAuthBypassToken(null);
@@ -134,7 +145,7 @@ export default function LoginScreen() {
       const authStatus = await res.json();
       if (authStatus.travelUser) {
         setDevBypassActive(false);
-        router.replace("/(tabs)");
+        router.replace(getPostLoginRoute() as never);
       } else {
         setDevBypassActive(true);
         setStep("profile");
@@ -243,12 +254,13 @@ export default function LoginScreen() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...mobileAppVariantHeaders(),
         },
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed to save profile");
       setDevBypassActive(false);
-      router.replace("/(tabs)");
+      router.replace(getPostLoginRoute() as never);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to save profile.");
       setLoading(false);

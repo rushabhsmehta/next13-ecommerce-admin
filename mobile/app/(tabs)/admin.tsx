@@ -30,6 +30,8 @@ import type { OrganizationRole } from "@/hooks/useCurrentUser";
 import { MobileAdminModule, useCurrentUser } from "@/hooks/useCurrentUser";
 import { useNetwork } from "@/lib/network";
 import { ApiError, withAuth } from "@/lib/api";
+import { APP_VARIANT, isStaffApp } from "@/lib/app-variant";
+import { OperationsAdminHub } from "@/components/admin/OperationsAdminHub";
 
 type AdminStat = {
   id: string;
@@ -321,6 +323,13 @@ function buildFocus(primaryStat: AdminStat | null): FocusPick | null {
 }
 
 export default function AdminTab() {
+  if (isStaffApp()) {
+    return <OperationsAdminHub />;
+  }
+  return <LegacyAdminDashboard />;
+}
+
+function LegacyAdminDashboard() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const net = useNetwork();
@@ -429,7 +438,9 @@ export default function AdminTab() {
     void loadOverview();
   }, [authLoading, canUseAdmin, organizationRole, isAssociate, loadOverview]);
 
-  const stats = overview?.stats ?? [];
+  const stats = (overview?.stats ?? []).filter(
+    (stat) => APP_VARIANT !== "staff" || stat.id !== "receipts-payments"
+  );
   const attentionStats = [...stats.filter((s) => s.requiresAttention)].sort(
     (a, b) => attentionSortPriority(a.id) - attentionSortPriority(b.id)
   );

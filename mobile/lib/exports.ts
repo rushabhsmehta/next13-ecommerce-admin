@@ -6,6 +6,7 @@ import { API_BASE_URL } from "@/constants/api";
 import { ApiError } from "@/lib/api";
 import { refreshNetworkSnapshot } from "@/lib/network";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 export type ExportKind = "inquiries-contacts" | "queries-contacts";
 
@@ -65,7 +66,10 @@ export async function downloadAndShareExport(
   const fileUri = `${cacheDir}${fileName}`;
 
   const result = await FileSystem.downloadAsync(url, fileUri, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...mobileAppVariantHeaders(),
+    },
   });
 
   if (result.status >= 400) {

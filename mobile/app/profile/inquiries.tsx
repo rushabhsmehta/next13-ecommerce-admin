@@ -16,8 +16,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { format } from "date-fns";
 import { buildTelUrl, buildWaMeUrl } from "@/constants/whatsapp";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "";
+import { mobileAppVariantHeaders } from "@/lib/app-variant";
+import { API_BASE_URL } from "@/constants/api";
 
 interface Inquiry {
   id: string;
@@ -71,7 +71,10 @@ export default function MyInquiriesScreen() {
     try {
       const token = await getTokenRef.current();
       const res = await fetch(`${API_BASE_URL}/api/mobile/my-inquiries`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...mobileAppVariantHeaders(),
+        },
       });
       if (res.ok) {
         const data = await res.json();

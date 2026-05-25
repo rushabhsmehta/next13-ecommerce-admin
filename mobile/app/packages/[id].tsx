@@ -141,7 +141,7 @@ export default function PackageDetailScreen() {
     );
   }
 
-  const images: { id?: string; url?: string }[] = (pkg.images || []).filter((img) =>
+  const images: { id?: string; url?: string }[] = (pkg.images || []).filter((img: { id?: string; url?: string }) =>
     img.url?.trim()
   );
   const itineraries: any[] = pkg.itineraries || [];

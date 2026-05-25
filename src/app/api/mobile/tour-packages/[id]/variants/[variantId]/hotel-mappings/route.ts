@@ -82,8 +82,8 @@ export async function PUT(
     }
 
     const mappings = parsed.data.mappings;
-    const itineraryIds = [...new Set(mappings.map((m) => m.itineraryId))];
-    const hotelIds = [...new Set(mappings.map((m) => m.hotelId))];
+    const itineraryIds = Array.from(new Set(mappings.map((m) => m.itineraryId)));
+    const hotelIds = Array.from(new Set(mappings.map((m) => m.hotelId)));
 
     const [itineraries, hotels] = await Promise.all([
       prismadb.itinerary.findMany({

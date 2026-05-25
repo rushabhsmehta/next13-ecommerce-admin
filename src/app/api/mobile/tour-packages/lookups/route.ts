@@ -27,7 +27,7 @@ export async function GET(req: Request) {
         }),
         prismadb.vehicleType.findMany({
           where: { isActive: true },
-          select: { id: true, name: true, description: true, capacity: true },
+          select: { id: true, name: true, description: true },
           orderBy: { name: "asc" },
         }),
         prismadb.pricingAttribute.findMany({

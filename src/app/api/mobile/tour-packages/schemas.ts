@@ -228,4 +228,4 @@ export const tourPackageDetailInclude = {
   _count: {
     select: { itineraries: true, packageVariants: true, tourPackagePricings: true },
   },
-} as const;
+};

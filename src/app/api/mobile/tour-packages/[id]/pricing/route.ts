@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
@@ -14,6 +15,15 @@ import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 import { tourPackagePricingWriteSchema } from "@/app/api/mobile/tour-packages/schemas";
 
 export const dynamic = "force-dynamic";
+
+function toAmount(value: number | Prisma.Decimal): number {
+  return typeof value === "number" ? value : Number(value);
+}
+
+function toAmountOrNull(value: number | Prisma.Decimal | null): number | null {
+  if (value == null) return null;
+  return toAmount(value);
+}
 
 function formatPricingRow(row: {
   id: string;
@@ -35,13 +45,13 @@ function formatPricingRow(row: {
   pricingComponents: {
     id: string;
     pricingAttributeId: string;
-    price: number;
-    purchasePrice: number | null;
+    price: number | Prisma.Decimal;
+    purchasePrice: number | Prisma.Decimal | null;
     description: string | null;
     pricingAttribute: { id: string; name: string; sortOrder: number };
   }[];
 }) {
-  const totalPrice = row.pricingComponents.reduce((sum, c) => sum + c.price, 0);
+  const totalPrice = row.pricingComponents.reduce((sum, c) => sum + toAmount(c.price), 0);
   return {
     id: row.id,
     tourPackageId: row.tourPackageId,
@@ -65,8 +75,8 @@ function formatPricingRow(row: {
       id: c.id,
       pricingAttributeId: c.pricingAttributeId,
       pricingAttributeName: c.pricingAttribute.name,
-      price: c.price,
-      purchasePrice: c.purchasePrice,
+      price: toAmount(c.price),
+      purchasePrice: toAmountOrNull(c.purchasePrice),
       description: c.description,
     })),
   };

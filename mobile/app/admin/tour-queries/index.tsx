@@ -103,11 +103,11 @@ function rowReadinessDotClass(item: TourQueryListItem): "confirmed" | "draft_gap
 
 function rowNextHint(item: TourQueryListItem): string {
   if (item.isArchived) return "Restore from detail";
-  if (item.isFeatured && !item.isArchived) return "Open trip";
+  if (item.isFeatured && !item.isArchived) return "Open query";
   /* draft */
   if (!hasPositivePrice(item.totalPrice)) return "Review pricing";
   if (!item.confirmedVariantId) return "Compare variants";
-  return "Open trip";
+  return "Open query";
 }
 
 export default function TourQueriesListScreen() {
@@ -175,7 +175,7 @@ function TourQueriesListScreenInner() {
         setItems((prev) => (mode === "more" ? [...prev, ...data.queries] : data.queries));
       } catch (err) {
         const message =
-          err instanceof ApiError ? err.message : "Could not load trips.";
+          err instanceof ApiError ? err.message : "Could not load tour package queries.";
         setError(message);
       } finally {
         setLoading(false);
@@ -202,31 +202,31 @@ function TourQueriesListScreenInner() {
     : status === "confirmed"
       ? ({
           variant: "strip" as const,
-          title: "Confirmed trips ready for ops and finance",
+          title: "Confirmed queries ready for ops and finance",
           detail: "Use share and PDF when communicating with travelers.",
         })
       : status === "archived"
         ? ({
             variant: "strip" as const,
-            title: "Archived trips are hidden from active work",
-            detail: "Open any trip and restore when you want it visible again.",
+            title: "Archived queries are hidden from active work",
+            detail: "Open any query and restore when you want it visible again.",
           })
         : status === "all" && draftsInLoaded
           ? ({
               variant: "strip" as const,
-              title: "Draft trips need review",
+              title: "Draft queries need review",
               detail: "Check pricing and dates before you share or confirm.",
             })
           : null;
 
-  const subtitle = loading ? "Loading..." : `${total} trip${total === 1 ? "" : "s"}`;
+  const subtitle = loading ? "Loading..." : `${total} quer${total === 1 ? "y" : "ies"}`;
 
   return (
     <AdminScreen scroll={false} testID="tour-queries-screen">
-      <Stack.Screen options={{ title: "Trips", headerShown: false }} />
+      <Stack.Screen options={{ title: "Tour Package Queries", headerShown: false }} />
 
       <AdminTopBar
-        title="Trips"
+        title="Tour Package Queries"
         subtitle={subtitle}
         onBackPress={() => router.back()}
         testID="tour-queries-header"
@@ -253,7 +253,7 @@ function TourQueriesListScreenInner() {
       <AdminCommandBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Customer, query # or trip name"
+        searchPlaceholder="Customer, query # or query name"
         searchTestID="tour-queries-search-input"
         testID="tour-queries-command-bar"
       />
@@ -299,7 +299,7 @@ function TourQueriesListScreenInner() {
           ) : (
             <AdminEmptyState
               icon="map-outline"
-              title="No trips"
+              title="No tour package queries"
               body={
                 debouncedSearch
                   ? "Try customer name or mobile number."
@@ -320,7 +320,7 @@ function TourQueriesListScreenInner() {
           const confirmed = item.isFeatured && !item.isArchived;
           const displayName = item.tourPackageQueryName?.trim()
             ? item.tourPackageQueryName
-            : item.tourPackageQueryNumber ?? "Untitled trip";
+            : item.tourPackageQueryNumber ?? "Untitled query";
           const dot = rowReadinessDotClass(item);
           const dotColor =
             dot === "confirmed"
@@ -343,7 +343,7 @@ function TourQueriesListScreenInner() {
             <Pressable
               testID={`tour-query-row-${item.id}`}
               accessibilityRole="button"
-              accessibilityLabel={`Open trip ${displayName}`}
+              accessibilityLabel={`Open query ${displayName}`}
               accessibilityHint={`Next step: ${rowNextHint(item)}`}
               style={styles.row}
               onPress={() =>

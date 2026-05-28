@@ -303,14 +303,14 @@ function EditTourQueryScreenInner() {
 
   if (loading) {
     return (
-      <AdminLoadingState label="Loading trip…" testID="trip-edit-loading" />
+      <AdminLoadingState label="Loading tour package query…" testID="tq-edit-loading" />
     );
   }
   if (error) {
     return (
-      <AdminScreen testID="trip-edit-error">
-        <Stack.Screen options={{ title: "Edit trip", headerShown: false }} />
-        <AdminErrorState message={error} testID="trip-edit-error-state" />
+      <AdminScreen testID="tq-edit-error">
+        <Stack.Screen options={{ title: "Edit Tour Package Query", headerShown: false }} />
+        <AdminErrorState message={error} testID="tq-edit-error-state" />
       </AdminScreen>
     );
   }
@@ -328,7 +328,7 @@ function EditTourQueryScreenInner() {
   return (
     <AdminScreen
       keyboardAvoiding
-      testID="trip-edit-screen"
+      testID="tq-edit-screen"
       footer={
         <AdminBottomActionBar
           primaryLabel="Save changes"
@@ -340,26 +340,26 @@ function EditTourQueryScreenInner() {
               ? "Fix date order before saving."
               : !dirty
                 ? "Enable after you change a field."
-                : "Writes updates to this trip."
+                : "Writes updates to this query."
           }
           disabledReason={saveDisabledReason}
           onPrimaryPress={save}
         />
       }
     >
-      <Stack.Screen options={{ title: "Edit trip", headerShown: false }} />
+      <Stack.Screen options={{ title: "Edit Tour Package Query", headerShown: false }} />
       <AdminTopBar
-        title="Edit trip"
+        title="Edit Tour Package Query"
         subtitle={dirty ? "Unsaved changes" : "All changes saved"}
         onBackPress={() => router.back()}
         testID="tq-edit-header"
       />
 
-        <AdminFormSection title="Basics" testID="trip-edit-section-basics">
-          <Field label="Trip name" value={name} onChange={setName} />
+        <AdminFormSection title="Basics" testID="tq-edit-section-basics">
+          <Field label="Tour package query name" value={name} onChange={setName} />
         </AdminFormSection>
 
-        <AdminFormSection title="Guests and dates" testID="trip-edit-section-guests">
+        <AdminFormSection title="Guests and dates" testID="tq-edit-section-guests">
           <Field
             label="Customer name"
             value={customerName}
@@ -398,7 +398,7 @@ function EditTourQueryScreenInner() {
             <View style={styles.flexField}>
               <Text style={styles.label}>Start date</Text>
               <DateField
-                testID="trip-edit-start-date"
+                testID="tq-edit-start-date"
                 accessibilityLabel="Start date"
                 style={styles.input}
                 value={startsFrom}
@@ -409,7 +409,7 @@ function EditTourQueryScreenInner() {
             <View style={styles.flexField}>
               <Text style={styles.label}>End date</Text>
               <DateField
-                testID="trip-edit-end-date"
+                testID="tq-edit-end-date"
                 accessibilityLabel="End date"
                 style={styles.input}
                 value={endsOn}
@@ -425,9 +425,9 @@ function EditTourQueryScreenInner() {
             : null}
         </AdminFormSection>
 
-        <AdminFormSection title="Remarks" testID="trip-edit-section-remarks">
+        <AdminFormSection title="Remarks" testID="tq-edit-section-remarks">
           <Field
-            label="Trip remarks"
+            label="Remarks"
             value={remarks}
             onChange={setRemarks}
             multiline
@@ -435,7 +435,7 @@ function EditTourQueryScreenInner() {
         </AdminFormSection>
 
         <Pressable
-          testID="trip-edit-section-policies-toggle"
+          testID="tq-edit-section-policies-toggle"
           accessibilityRole="button"
           accessibilityLabel={policiesOpen ? "Hide policies section" : "Show policies section"}
           style={styles.collapsibleHeading}
@@ -451,7 +451,7 @@ function EditTourQueryScreenInner() {
           />
         </Pressable>
         {policiesOpen ? (
-          <View testID="trip-edit-section-policies" style={styles.policyWrap}>
+          <View testID="tq-edit-section-policies" style={styles.policyWrap}>
             {POLICY_FIELDS.map((f) => {
               const val = policies[f.key as string] ?? "";
               const lines = val.split(/\r?\n/).filter((ln) => ln.trim()).length || 0;
@@ -495,10 +495,10 @@ function EditTourQueryScreenInner() {
           </View>
         ) : null}
 
-        <AdminFormSection title="Itinerary" testID="trip-edit-section-itinerary">
+        <AdminFormSection title="Itinerary" testID="tq-edit-section-itinerary">
         {itineraries.length === 0 ? (
           <Text style={styles.help}>
-            This trip has no itinerary yet. Use the web hotel editor to add stays and transport.
+            This tour package query has no itinerary yet. Use the web hotel editor to add stays and transport.
           </Text>
         ) : (
           itineraries.map((it, idx) => (

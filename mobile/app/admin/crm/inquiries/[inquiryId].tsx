@@ -26,6 +26,7 @@ import {
   type InquiryStatus,
 } from "@/lib/inquiry-statuses";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { createTourQueryCreateClient } from "@/lib/tour-query-create";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   AdminErrorState,
@@ -363,6 +364,51 @@ function AdminInquiryDetailInner() {
     }
   }
 
+  async function handleCreateTourQuery() {
+    if (!inquiryId || !canWrite) return;
+    Alert.alert(
+      "Create tour query",
+      "Do you want to create a new Tour Package Query from this inquiry?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Create",
+          onPress: async () => {
+            setSaving(true);
+            try {
+              const queryClient = createTourQueryCreateClient(authRequest);
+              const result = await queryClient.fromInquiry(inquiryId);
+              Alert.alert(
+                "Success",
+                `Tour Query ${result.tourPackageQueryNumber} created successfully!`,
+                [
+                  {
+                    text: "Open Query",
+                    onPress: () => {
+                      router.push(`/admin/tour-queries/${result.id}` as never);
+                    },
+                  },
+                  {
+                    text: "Dismiss",
+                    onPress: () => {
+                      void refresh();
+                    },
+                  },
+                ]
+              );
+            } catch (err) {
+              const message =
+                err instanceof ApiError ? err.message : "Could not create tour query.";
+              Alert.alert("Create Tour Query failed", message);
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
   async function addNote() {
     if (!inquiryId || !canWrite || !actionRemarks.trim()) return;
     setSaving(true);
@@ -488,24 +534,48 @@ function AdminInquiryDetailInner() {
           )}
         </View>
 
-        {detail.tourPackageQueries && detail.tourPackageQueries.length > 0 ? (
+        {(detail.tourPackageQueries && detail.tourPackageQueries.length > 0) || canWrite ? (
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Tour queries</Text>
-            {detail.tourPackageQueries.map((q) => (
+            <Text style={[styles.sectionTitle, { marginTop: 0 }]}>Tour queries</Text>
+            {detail.tourPackageQueries && detail.tourPackageQueries.length > 0 ? (
+              detail.tourPackageQueries.map((q) => (
+                <Pressable
+                  key={q.id}
+                  testID={`inquiry-open-query-${q.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open tour query"
+                  style={styles.linkRow}
+                  onPress={() =>
+                    router.push(`/admin/tour-queries/${q.id}` as never)
+                  }
+                >
+                  <Text style={styles.linkText}>Open query {q.id.slice(0, 8)}…</Text>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+                </Pressable>
+              ))
+            ) : (
+              <Text style={[styles.muted, { marginBottom: Spacing.sm }]}>No linked tour queries yet.</Text>
+            )}
+
+            {canWrite ? (
               <Pressable
-                key={q.id}
-                testID={`inquiry-open-query-${q.id}`}
+                testID="inquiry-create-tour-query"
                 accessibilityRole="button"
-                accessibilityLabel="Open tour query"
-                style={styles.linkRow}
-                onPress={() =>
-                  router.push(`/admin/tour-queries/${q.id}` as never)
-                }
+                accessibilityLabel="Create tour query from this inquiry"
+                style={[
+                  styles.primaryBtn,
+                  { marginTop: Spacing.sm, backgroundColor: Colors.primary },
+                  saving ? styles.btnDisabled : null,
+                ]}
+                disabled={saving}
+                onPress={() => void handleCreateTourQuery()}
               >
-                <Text style={styles.linkText}>Open query {q.id.slice(0, 8)}…</Text>
-                <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+                <Ionicons name="map-outline" size={18} color="#fff" />
+                <Text style={styles.primaryBtnText}>
+                  {saving ? "Processing…" : "Create Tour Query"}
+                </Text>
               </Pressable>
-            ))}
+            ) : null}
           </View>
         ) : null}
 

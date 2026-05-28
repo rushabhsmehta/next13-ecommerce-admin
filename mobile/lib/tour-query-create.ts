@@ -6,7 +6,7 @@
  */
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
 
-export type TourQueryCreateMode = "inquiry" | "package" | "copy";
+export type TourQueryCreateMode = "inquiry" | "package" | "copy" | "scratch";
 
 export interface TourQueryCreateOverrides {
   tourPackageQueryName?: string;
@@ -65,6 +65,12 @@ export function createTourQueryCreateClient(authRequest: AuthenticatedRequest) {
       overrides?: TourQueryCreateOverrides
     ): Promise<TourQueryCreateResult> {
       return this.create({ mode: "copy", sourceId: queryId, overrides });
+    },
+
+    fromScratch(
+      overrides?: TourQueryCreateOverrides
+    ): Promise<TourQueryCreateResult> {
+      return this.create({ mode: "scratch", sourceId: "scratch", overrides });
     },
   };
 }

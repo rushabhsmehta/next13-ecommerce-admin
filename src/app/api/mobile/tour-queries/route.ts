@@ -21,7 +21,7 @@ function generateTpqNumber(): string {
 }
 
 const createSchema = z.object({
-  mode: z.enum(["inquiry", "package", "copy"]),
+  mode: z.enum(["inquiry", "package", "copy", "scratch"]),
   sourceId: z.string().min(1, "sourceId is required"),
   overrides: z
     .object({
@@ -358,8 +358,11 @@ export async function POST(req: Request) {
           created.id
         );
         return created.id;
+      }, {
+        maxWait: 20000,
+        timeout: 40000,
       });
-    } else {
+    } else if (mode === "copy") {
       // copy
       const src = await prismadb.tourPackageQuery.findUnique({
         where: { id: sourceId },
@@ -458,7 +461,45 @@ export async function POST(req: Request) {
           created.id
         );
         return created.id;
+      }, {
+        maxWait: 20000,
+        timeout: 40000,
       });
+    } else {
+      // scratch
+      const firstLocation = await prismadb.location.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+      });
+      if (!firstLocation) {
+        return new NextResponse("No active locations found to assign to new query", { status: 400 });
+      }
+
+      const created = await prismadb.tourPackageQuery.create({
+        data: {
+          locationId: firstLocation.id,
+          associatePartnerId: assocId,
+          tourPackageQueryNumber: number,
+          tourPackageQueryName:
+            overrides?.tourPackageQueryName ||
+            `New Query – ${number}`,
+          tourPackageQueryType: "Domestic",
+          numAdults: overrides?.numAdults || "0",
+          numChild5to12: overrides?.numChild5to12 || "0",
+          numChild0to5: overrides?.numChild0to5 || "0",
+          tourStartsFrom: overrides?.tourStartsFrom
+            ? new Date(overrides.tourStartsFrom)
+            : null,
+          tourEndsOn: overrides?.tourEndsOn
+            ? new Date(overrides.tourEndsOn)
+            : null,
+          remarks: overrides?.remarks ?? null,
+          isFeatured: false,
+          isArchived: false,
+        },
+        select: { id: true },
+      });
+      createdId = created.id;
     }
 
     await recordMobileAudit({

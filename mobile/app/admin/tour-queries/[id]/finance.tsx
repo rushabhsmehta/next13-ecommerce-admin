@@ -163,7 +163,7 @@ function TourQueryFinanceScreenInner() {
   const title =
     query.tourPackageQueryName ||
     query.tourPackageQueryNumber ||
-    "Trip finance";
+    "Query finance";
   const hasAnyRows = SECTION_META.some((m) => sections[m.key].length > 0);
 
   return (
@@ -247,7 +247,7 @@ function TourQueryFinanceScreenInner() {
         {!hasAnyRows ? (
           <View style={styles.emptyBlock} testID="tour-query-finance-empty">
             <Ionicons name="wallet-outline" size={36} color={Colors.textTertiary} />
-            <Text style={styles.emptyText}>No transactions linked to this trip yet.</Text>
+            <Text style={styles.emptyText}>No transactions linked to this query yet.</Text>
           </View>
         ) : (
           SECTION_META.map((meta) => (

@@ -44,9 +44,15 @@ const MODE_META: Record<
   },
   copy: {
     label: "Copy",
-    helper: "Best for repeating a similar past trip.",
-    emptyTitle: "No matching trips",
+    helper: "Best for repeating a similar past query.",
+    emptyTitle: "No matching queries",
     emptyHint: "Try traveler or query number.",
+  },
+  scratch: {
+    label: "Scratch",
+    helper: "Best for creating a query from no reference.",
+    emptyTitle: "",
+    emptyHint: "",
   },
 };
 
@@ -88,6 +94,10 @@ function CreateTourQueryScreenInner() {
 
   const loadSources = useCallback(
     async (m: TourQueryCreateMode, q: string) => {
+      if (m === "scratch") {
+        setRows([]);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -120,7 +130,7 @@ function CreateTourQueryScreenInner() {
               subtitle: `${p.location?.label ?? "—"}${p.numDaysNight ? ` · ${p.numDaysNight}` : ""}`,
             }))
           );
-        } else {
+        } else if (m === "copy") {
           const res = await authRequest<{
             queries: {
               id: string;
@@ -134,7 +144,7 @@ function CreateTourQueryScreenInner() {
           setRows(
             res.queries.map((qr) => ({
               id: qr.id,
-              title: qr.tourPackageQueryName || qr.tourPackageQueryNumber || "Trip",
+              title: qr.tourPackageQueryName || qr.tourPackageQueryNumber || "Query",
               subtitle: qr.customerName || qr.tourPackageQueryNumber || "—",
             }))
           );
@@ -158,11 +168,15 @@ function CreateTourQueryScreenInner() {
   const confirmCreate = useCallback(
     (row: SourceRow) => {
       if (!canWrite) return;
-      const kind = mode === "inquiry" ? "inquiry" : mode === "package" ? "package" : "trip";
-      Alert.alert("Create trip", `Create a new trip from this ${kind}?`, [
+      const kind = mode === "inquiry" ? "inquiry" : mode === "package" ? "package" : mode === "copy" ? "query" : "scratch";
+      const message = mode === "scratch"
+        ? "Create a new blank tour package query?"
+        : `Create a new tour package query from this ${kind}?`;
+
+      Alert.alert("Create Tour Package Query", message, [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Create trip",
+          text: "Create",
           onPress: async () => {
             setSubmittingId(row.id);
             try {
@@ -174,7 +188,7 @@ function CreateTourQueryScreenInner() {
             } catch (err) {
               Alert.alert(
                 "Create failed",
-                err instanceof ApiError ? err.message : "Could not create the trip."
+                err instanceof ApiError ? err.message : "Could not create the tour package query."
               );
             } finally {
               setSubmittingId(null);
@@ -187,9 +201,9 @@ function CreateTourQueryScreenInner() {
   );
 
   return (
-    <AdminScreen scroll={false} testID="trip-create-screen">
-      <Stack.Screen options={{ title: "New trip", headerShown: false }} />
-      <AdminTopBar title="New trip" subtitle="Choose a source" onBackPress={() => router.back()} testID="trip-create-header" />
+    <AdminScreen scroll={false} testID="tq-create-screen">
+      <Stack.Screen options={{ title: "New Tour Package Query", headerShown: false }} />
+      <AdminTopBar title="New Tour Package Query" subtitle="Choose a source" onBackPress={() => router.back()} testID="tq-create-header" />
 
       <Text style={styles.stepEyebrow}>Step 1 of 1 · Choose a source</Text>
 
@@ -199,11 +213,11 @@ function CreateTourQueryScreenInner() {
           return (
             <Pressable
               key={m}
-              testID={`trip-create-mode-${m}`}
+              testID={`tq-create-mode-${m}`}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               accessibilityLabel={`${MODE_META[m].label}. ${MODE_META[m].helper}`}
-              accessibilityHint={`Select ${MODE_META[m].label} as the trip source.`}
+              accessibilityHint={`Select ${MODE_META[m].label} as the query source.`}
               style={[styles.modeChip, active ? styles.modeChipActive : null]}
               onPress={() => setMode(m)}
             >
@@ -219,100 +233,129 @@ function CreateTourQueryScreenInner() {
         <Text style={styles.helper}>{meta.helper}</Text>
       </View>
 
-      <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Colors.textTertiary} />
-        <TextInput
-          testID="tq-create-search"
-          accessibilityLabel={
-            mode === "inquiry"
-              ? "Search inquiries"
-              : mode === "package"
-                ? "Search packages"
-                : "Search trips to copy"
-          }
-          style={styles.searchInput}
-          placeholder={
-            mode === "inquiry"
-              ? "Search inquiries..."
-              : mode === "package"
-                ? "Search packages..."
-                : "Search trips to copy..."
-          }
-          placeholderTextColor={Colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-      </View>
-
-      {error ? (
-        <View style={styles.errorCard}>
-          <Ionicons name="warning-outline" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
-
-      <FlatList
-        data={rows}
-        keyExtractor={(r) => r.id}
-        ListHeaderComponent={
-          !debounced && !loading ? (
-            <Text style={styles.recentLead}>
-              {mode === "inquiry" ? "Recent inquiries" : mode === "package" ? "Packages" : "Recent trips"}
-            </Text>
-          ) : null
-        }
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.lg,
-          paddingBottom: insets.bottom + 24,
-        }}
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
-          ) : (
-            <AdminEmptyState
-              icon="search-outline"
-              title={meta.emptyTitle}
-              body={meta.emptyHint}
-              testID="tq-create-empty"
-            />
-          )
-        }
-        renderItem={({ item }) => (
+      {mode === "scratch" ? (
+        <View style={styles.scratchContainer}>
+          <Ionicons name="document-text-outline" size={48} color={Colors.primary} style={styles.scratchIcon} />
+          <Text style={styles.scratchTitle}>Blank Tour Package Query</Text>
+          <Text style={styles.scratchText}>
+            Create a fresh tour package query from scratch with no reference. You will be able to customize all details (travelers, locations, and itineraries) in the next steps.
+          </Text>
           <Pressable
-            testID={`tq-create-source-${item.id}`}
+            testID="tq-create-scratch-button"
             accessibilityRole="button"
-            accessibilityLabel={`Create trip from ${item.title}`}
-            accessibilityHint="Asks for confirmation, then creates the trip."
-            style={styles.row}
+            accessibilityLabel="Create Blank Tour Package Query"
+            style={[styles.createButton, submittingId !== null ? styles.createButtonDisabled : null]}
             disabled={submittingId !== null}
-            onPress={() => confirmCreate(item)}
+            onPress={() => confirmCreate({ id: "scratch", title: "Blank Query", subtitle: "" })}
           >
-            <View style={styles.rowText}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <Text style={styles.rowSub} numberOfLines={2}>
-                {item.subtitle}
-              </Text>
-            </View>
-            {submittingId === item.id ?
-              (
-                <View style={styles.createHint}>
-                  <ActivityIndicator size="small" color={Colors.primary} />
-                  <Text style={styles.creatingText}>Creating...</Text>
-                </View>
-              )
-              : (
-                <View style={styles.createHint}>
-                  <Text style={styles.createCta}>Create</Text>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
-                </View>
-              )}
+            {submittingId !== null ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Text style={styles.createButtonText}>Create Blank Query</Text>
+                <Ionicons name="add" size={20} color="#fff" />
+              </>
+            )}
           </Pressable>
-        )}
-      />
+        </View>
+      ) : (
+        <>
+          <View style={styles.searchRow}>
+            <Ionicons name="search" size={16} color={Colors.textTertiary} />
+            <TextInput
+              testID="tq-create-search"
+              accessibilityLabel={
+                mode === "inquiry"
+                  ? "Search inquiries"
+                  : mode === "package"
+                    ? "Search packages"
+                    : "Search queries to copy"
+              }
+              style={styles.searchInput}
+              placeholder={
+                mode === "inquiry"
+                  ? "Search inquiries..."
+                  : mode === "package"
+                    ? "Search packages..."
+                    : "Search queries to copy..."
+              }
+              placeholderTextColor={Colors.textTertiary}
+              value={search}
+              onChangeText={setSearch}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {error ? (
+            <View style={styles.errorCard}>
+              <Ionicons name="warning-outline" size={16} color={Colors.error} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          <FlatList
+            data={rows}
+            keyExtractor={(r) => r.id}
+            ListHeaderComponent={
+              !debounced && !loading ? (
+                <Text style={styles.recentLead}>
+                  {mode === "inquiry" ? "Recent inquiries" : mode === "package" ? "Packages" : "Recent queries"}
+                </Text>
+              ) : null
+            }
+            contentContainerStyle={{
+              paddingHorizontal: Spacing.lg,
+              paddingBottom: insets.bottom + 24,
+            }}
+            ListEmptyComponent={
+              loading ? (
+                <ActivityIndicator style={styles.listLoader} size="large" color={Colors.primary} />
+              ) : (
+                <AdminEmptyState
+                  icon="search-outline"
+                  title={meta.emptyTitle}
+                  body={meta.emptyHint}
+                  testID="tq-create-empty"
+                />
+              )
+            }
+            renderItem={({ item }) => (
+              <Pressable
+                testID={`tq-create-source-${item.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Create query from ${item.title}`}
+                accessibilityHint="Asks for confirmation, then creates the query."
+                style={styles.row}
+                disabled={submittingId !== null}
+                onPress={() => confirmCreate(item)}
+              >
+                <View style={styles.rowText}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.rowSub} numberOfLines={2}>
+                    {item.subtitle}
+                  </Text>
+                </View>
+                {submittingId === item.id ?
+                  (
+                    <View style={styles.createHint}>
+                      <ActivityIndicator size="small" color={Colors.primary} />
+                      <Text style={styles.creatingText}>Creating...</Text>
+                    </View>
+                  )
+                  : (
+                    <View style={styles.createHint}>
+                      <Text style={styles.createCta}>Create</Text>
+                      <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+                    </View>
+                  )}
+              </Pressable>
+            )}
+          />
+        </>
+      )}
     </AdminScreen>
   );
 }
@@ -437,4 +480,49 @@ const styles = StyleSheet.create({
   createHint: { flexDirection: "row", alignItems: "center", gap: 6 },
   createCta: { fontSize: FontSize.sm, fontWeight: "900", color: Colors.primary },
   creatingText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.textTertiary },
+  scratchContainer: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  scratchIcon: {
+    marginBottom: Spacing.xs,
+  },
+  scratchTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "900",
+    color: Colors.text,
+    textAlign: "center",
+  },
+  scratchText: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  createButton: {
+    width: "100%",
+    backgroundColor: Colors.primary,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  createButtonDisabled: {
+    backgroundColor: Colors.primaryLight,
+  },
+  createButtonText: {
+    fontSize: FontSize.md,
+    fontWeight: "900",
+    color: "#fff",
+  },
 });

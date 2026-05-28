@@ -1,4 +1,5 @@
 import {
+  APP_VARIANT,
   filterNavigationForAppVariant,
   filterPermissionsForAppVariant,
   getPostLoginRoute,
@@ -53,7 +54,7 @@ describe("app variant helpers", () => {
 
   it("adds an app variant observability header", () => {
     expect(mobileAppVariantHeaders()).toEqual({
-      "X-Mobile-App-Variant": "public",
+      "X-Mobile-App-Variant": APP_VARIANT,
     });
   });
 });

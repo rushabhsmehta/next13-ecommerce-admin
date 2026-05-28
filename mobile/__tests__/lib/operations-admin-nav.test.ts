@@ -23,7 +23,7 @@ describe("operations-admin-nav", () => {
     });
     const dashboard = sections.find((s) => s.id === "dashboard");
     expect(dashboard?.items.map((i) => i.id)).toEqual(
-      expect.arrayContaining(["inquiries", "new-inquiry", "todos", "tour-queries"])
+      expect.arrayContaining(["inquiries", "todos", "tour-queries"])
     );
   });
 

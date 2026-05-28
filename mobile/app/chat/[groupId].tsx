@@ -477,6 +477,7 @@ export default function ChatRoom() {
         );
         if (!res.ok) {
           setConnectionStatus("error");
+          if (initial) setLoading(false);
           return;
         }
         const data = await res.json();

@@ -26,6 +26,7 @@ import { useUnread } from "@/hooks/useUnread";
 import { chatCache } from "@/lib/chat/cache";
 import { SkeletonListItem } from "@/components/skeleton/SkeletonLoader";
 import { DateField } from "@/components/ui/DateField";
+import { AdminScreen, AdminTopBar } from "@/components/admin";
 
 interface ChatGroup {
   id: string;
@@ -185,43 +186,50 @@ export default function ChatTab() {
 
   if (!isSignedIn && !travelUser && !userLoading) {
     return (
-      <View testID="chat-login-prompt" style={styles.emptyContainer}>
-        <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
-        <Text style={styles.emptyTitle}>Your Trip Chats</Text>
-        <Text style={styles.emptySubtitle}>
-          Login to see your trip group chats and stay connected with your tour.
-        </Text>
-        <TouchableOpacity testID="login-button" style={styles.loginButton} onPress={() => router.push("/login")}>
-          <Text style={styles.loginButtonText}>Login</Text>
-        </TouchableOpacity>
-      </View>
+      <AdminScreen testID="chat-tab-screen" scroll={false} safeAreaTop={true}>
+        <AdminTopBar title="Trips" testID="trips-header" />
+        <View testID="chat-login-prompt" style={styles.emptyContainer}>
+          <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
+          <Text style={styles.emptyTitle}>Your Trip Chats</Text>
+          <Text style={styles.emptySubtitle}>
+            Login to see your trip group chats and stay connected with your tour.
+          </Text>
+          <TouchableOpacity testID="login-button" style={styles.loginButton} onPress={() => router.push("/login")}>
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+      </AdminScreen>
     );
   }
 
   if (userLoading || loading) {
     return (
-      <View style={styles.container}>
+      <AdminScreen testID="chat-tab-screen" scroll={false} safeAreaTop={true}>
+        <AdminTopBar title="Trips" testID="trips-header" />
         <View style={styles.userStripSkeleton}>
           <Animated.View style={[styles.userStripAvatarSkeleton, { opacity: skeletonOpacity }]} />
           <Animated.View style={[styles.userStripNameSkeleton, { opacity: skeletonOpacity }]} />
         </View>
         <SkeletonListItem count={6} />
-      </View>
+      </AdminScreen>
     );
   }
 
   if (!isSignedIn && !travelUser) {
     return (
-      <View testID="chat-login-prompt" style={styles.emptyContainer}>
-        <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
-        <Text style={styles.emptyTitle}>Your Trip Chats</Text>
-        <Text style={styles.emptySubtitle}>
-          Login to see your trip group chats and stay connected with your tour.
-        </Text>
-        <TouchableOpacity testID="login-button" style={styles.loginButton} onPress={() => router.push("/login")}>
-          <Text style={styles.loginButtonText}>Login</Text>
-        </TouchableOpacity>
-      </View>
+      <AdminScreen testID="chat-tab-screen" scroll={false} safeAreaTop={true}>
+        <AdminTopBar title="Trips" testID="trips-header" />
+        <View testID="chat-login-prompt" style={styles.emptyContainer}>
+          <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
+          <Text style={styles.emptyTitle}>Your Trip Chats</Text>
+          <Text style={styles.emptySubtitle}>
+            Login to see your trip group chats and stay connected with your tour.
+          </Text>
+          <TouchableOpacity testID="login-button" style={styles.loginButton} onPress={() => router.push("/login")}>
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+      </AdminScreen>
     );
   }
 
@@ -237,7 +245,8 @@ export default function ChatTab() {
   }
 
   return (
-    <View style={styles.container}>
+    <AdminScreen testID="chat-tab-screen" scroll={false} safeAreaTop={true}>
+      <AdminTopBar title="Trips" testID="trips-header" />
       {(isSignedIn || travelUser) && (
         <View style={styles.userStrip}>
           <View style={styles.userStripAvatar}>
@@ -395,7 +404,7 @@ export default function ChatTab() {
           </View>
         </SafeAreaView>
       </Modal>
-    </View>
+    </AdminScreen>
   );
 }
 

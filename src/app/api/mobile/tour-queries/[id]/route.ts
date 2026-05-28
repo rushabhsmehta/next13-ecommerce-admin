@@ -331,6 +331,9 @@ export async function PATCH(
           }
         }
       }
+    }, {
+      maxWait: 20000,
+      timeout: 40000,
     });
 
     await recordMobileAudit({

@@ -111,6 +111,7 @@ function TabLayoutInner() {
         name="chat"
         options={{
           title: "Trips",
+          headerShown: false,
           tabBarAccessibilityLabel: "tab-trips",
           tabBarIcon: ({ color, focused }) => <ChatTabIcon color={color} focused={focused} />,
         }}

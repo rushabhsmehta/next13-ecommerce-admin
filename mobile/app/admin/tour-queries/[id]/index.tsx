@@ -228,20 +228,20 @@ function derivePrimary(
   const edit = () => router.push(`/admin/tour-queries/${id}/edit` as never);
 
   if (data.isArchived) {
-    if (canWriteSales) return { key: "restore", label: "Restore trip", run: () => {} };
-    return { key: "shareTrip", label: "Share trip", run: () => {} };
+    if (canWriteSales) return { key: "restore", label: "Restore query", run: () => {} };
+    return { key: "shareTrip", label: "Share query", run: () => {} };
   }
   const draft = !data.isFeatured;
   if (draft && data.queryVariantSnapshots.length > 0) {
     return { key: "variants", label: "Compare variants", run: openVariants };
   }
   if (draft && !hasPositiveTotal(data.totalPrice)) {
-    return { key: "edit", label: "Edit trip", run: edit };
+    return { key: "edit", label: "Edit query", run: edit };
   }
   if (draft && hasPositiveTotal(data.totalPrice)) {
     return { key: "sharePdf", label: "Share PDF", run: () => {} };
   }
-  return { key: "shareTrip", label: "Share trip", run: () => {} };
+  return { key: "shareTrip", label: "Share query", run: () => {} };
 }
 
 export default function TourQueryDetailScreen() {
@@ -302,7 +302,7 @@ function TourQueryDetailScreenInner() {
         );
         setData(res);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Could not load trip.");
+        setError(err instanceof ApiError ? err.message : "Could not load query.");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -358,7 +358,7 @@ function TourQueryDetailScreenInner() {
     const title =
       data.tourPackageQueryName ||
       data.tourPackageQueryNumber ||
-      "Trip";
+      "Tour Query";
     try {
       await Share.share({
         title,
@@ -378,13 +378,13 @@ function TourQueryDetailScreenInner() {
         const name =
           data?.tourPackageQueryNumber ||
           data?.tourPackageQueryName ||
-          "trip";
+          "query";
         await downloadAndSharePdf({
           endpoint: `/api/mobile/tour-queries/${encodeURIComponent(id)}/pdf${variant ? "?variant=1" : ""
             }`,
           fileName: variant ? `${name}-variants` : name,
           getToken: () => getTokenRef.current(),
-          dialogTitle: "Share trip PDF",
+          dialogTitle: "Share query PDF",
         });
       } catch (err) {
         const message =
@@ -442,18 +442,18 @@ function TourQueryDetailScreenInner() {
           );
           const msg =
             action === "confirm"
-              ? "Trip marked confirmed."
+              ? "Query marked confirmed."
               : action === "unconfirm"
-                ? "Trip moved to draft."
+                ? "Query moved to draft."
                 : action === "archive"
-                  ? "Trip archived."
+                  ? "Query archived."
                   : action === "unarchive"
-                    ? "Trip restored."
+                    ? "Query restored."
                     : "Updated.";
           setSuccessNote(msg);
         } catch (err) {
           const message =
-            err instanceof ApiError ? err.message : "Could not update this trip.";
+            err instanceof ApiError ? err.message : "Could not update this query.";
           Alert.alert("Update failed", message);
         } finally {
           setLifecycleBusy(null);
@@ -462,8 +462,8 @@ function TourQueryDetailScreenInner() {
 
       if (action === "archive") {
         Alert.alert(
-          "Archive this trip?",
-          "Archived trips stay out of default lists. You can restore from the archived tab.",
+          "Archive this query?",
+          "Archived queries stay out of default lists. You can restore from the archived tab.",
           [
             { text: "Cancel", style: "cancel" },
             { text: "Archive", style: "destructive", onPress: () => void exec() },
@@ -473,8 +473,8 @@ function TourQueryDetailScreenInner() {
       }
       if (action === "unconfirm") {
         Alert.alert(
-          "Move trip to draft?",
-          "Clears confirmation on this trip. Sync related inquiry updates on web if needed.",
+          "Move query to draft?",
+          "Clears confirmation on this query. Sync related inquiry updates on web if needed.",
           [
             { text: "Cancel", style: "cancel" },
             { text: "Move to draft", style: "destructive", onPress: () => void exec() },
@@ -509,7 +509,7 @@ function TourQueryDetailScreenInner() {
           id: "web-link",
           label: "Web link",
           icon: "globe-outline",
-          accessibilityHint: "Shares this trip viewer link using the native share sheet.",
+          accessibilityHint: "Shares this query viewer link using the native share sheet.",
           onPress: () => void shareWebLink(),
         },
       ],
@@ -533,7 +533,7 @@ function TourQueryDetailScreenInner() {
         ? [
             {
               id: "edit-screen",
-              label: "Edit trip",
+              label: "Edit query",
               icon: "create-outline" as const,
               testID: "tour-query-edit",
               accessibilityHint: "Opens itinerary text and booking fields.",
@@ -565,7 +565,7 @@ function TourQueryDetailScreenInner() {
           label: "Finance",
           icon: "wallet-outline",
           testID: "tour-query-finance",
-          accessibilityHint: "Opens the native finance summary for this trip.",
+          accessibilityHint: "Opens the native finance summary for this query.",
           onPress: () =>
             router.push(`/admin/tour-queries/${id}/finance` as never),
         },
@@ -592,10 +592,10 @@ function TourQueryDetailScreenInner() {
         : [
             {
               id: "restore",
-              label: "Restore trip",
+              label: "Restore query",
               icon: "archive-outline" as const,
               testID: "tour-query-unarchive",
-              accessibilityHint: "Unarchives this trip so it appears in active lists.",
+              accessibilityHint: "Unarchives this query so it appears in active lists.",
               onPress: () => void runLifecycle("unarchive"),
               disabled: lifecycleBusy !== null,
             },
@@ -627,11 +627,11 @@ function TourQueryDetailScreenInner() {
               ]),
           {
             id: "archive",
-            label: "Archive trip",
+            label: "Archive query",
             icon: "archive-outline",
             testID: "tour-query-archive",
             accessibilityHint:
-              "Archived trips stay hidden from active work until restored.",
+              "Archived queries stay hidden from active work until restored.",
             onPress: () => void runLifecycle("archive"),
             disabled: lifecycleBusy !== null,
           },
@@ -660,18 +660,18 @@ function TourQueryDetailScreenInner() {
 
   if (loading) {
     return (
-      <AdminLoadingState label="Loading trip…" testID="trip-detail-loading" />
+      <AdminLoadingState label="Loading query…" testID="tq-detail-loading" />
     );
   }
 
   if (error || !data) {
     return (
-      <AdminScreen testID="trip-detail-error">
-        <Stack.Screen options={{ title: "Trip", headerShown: false }} />
+      <AdminScreen testID="tq-detail-error">
+        <Stack.Screen options={{ title: "Tour Package Query", headerShown: false }} />
         <AdminErrorState
-          message={error ?? "Trip not found"}
+          message={error ?? "Query not found"}
           onRetry={() => void load("initial")}
-          testID="trip-detail-error-state"
+          testID="tq-detail-error-state"
         />
       </AdminScreen>
     );
@@ -682,7 +682,7 @@ function TourQueryDetailScreenInner() {
   if (primary.key === "restore") {
     primary = {
       key: "restore",
-      label: "Restore trip",
+      label: "Restore query",
       run: () => void runLifecycle("unarchive"),
     };
   }
@@ -730,10 +730,10 @@ function TourQueryDetailScreenInner() {
     .join(" · ");
 
   const statusContext = data.isArchived
-    ? "Archived trips stay out of active trip lists."
+    ? "Archived queries stay out of active query lists."
     : confirmed
-      ? "Confirmed trips are ready for operations and finance follow-up."
-      : "Draft trips can still be edited before sharing or confirmation.";
+      ? "Confirmed queries are ready for operations and finance follow-up."
+      : "Draft queries can still be edited before sharing or confirmation.";
 
   const itinerarySlice = itineraryExpanded ? data.itineraries : data.itineraries.slice(0, 2);
 
@@ -759,7 +759,7 @@ function TourQueryDetailScreenInner() {
 
   return (
     <AdminScreen
-      testID="trip-detail-screen"
+      testID="tq-detail-screen"
       bottomInset={Spacing.xl}
       refreshControl={
         <RefreshControl
@@ -770,18 +770,18 @@ function TourQueryDetailScreenInner() {
       }
       contentContainerStyle={styles.scroll}
     >
-      <Stack.Screen options={{ title: "Trip", headerShown: false }} />
+      <Stack.Screen options={{ title: "Tour Package Query", headerShown: false }} />
       <AdminTopBar
-        title={data.tourPackageQueryName?.trim() || "Trip"}
+        title={data.tourPackageQueryName?.trim() || "Tour Package Query"}
         subtitle={data.tourPackageQueryNumber ?? undefined}
         onBackPress={() => router.back()}
-        testID="trip-detail-header"
+        testID="tq-detail-header"
         rightSlot={
           <AdminTopBarIconButton
             icon="share-outline"
-            label="Share trip link"
+            label="Share query link"
             hint="Opens the native share sheet with the web viewer link."
-            testID="trip-detail-share"
+            testID="tq-detail-share"
             onPress={handleShareTrip}
           />
         }

@@ -58,3 +58,25 @@ dev-*.out.log
 
 # Claude local settings
 .claude/settings.local.json
+
+# VS Code workspace settings
+.vscode/
+
+# Root-level scratch / debug scripts
+add-variants-to-query.js
+get-all-pricings.js
+get-package-details.js
+get-package-pricings.js
+get-query-details.js
+get-query-details-*.js
+setup-query-variants-and-prices.js
+
+# Root-level UI test screenshots and window dumps (adb / Detox artefacts)
+screenshot.png
+test_screen*.png
+test_window_dump*.xml
+window_dump.xml
+
+# Mobile scratch scripts
+mobile/scratch-*.mjs
+mobile/screen.png

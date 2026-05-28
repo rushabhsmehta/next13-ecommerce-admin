@@ -408,12 +408,12 @@ function Inner() {
             <Pressable
               testID="tour-package-create-trip"
               accessibilityRole="button"
-              accessibilityLabel="Create trip from this package"
+              accessibilityLabel="Create tour query from this package"
               style={styles.actionBtn}
               onPress={() => router.push("/admin/tour-queries/create" as never)}
             >
               <Ionicons name="map-outline" size={18} color={Colors.primary} />
-              <Text style={styles.actionText}>Create sales trip from package</Text>
+              <Text style={styles.actionText}>Create tour query from package</Text>
             </Pressable>
           </View>
         ) : null}

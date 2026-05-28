@@ -183,6 +183,7 @@ async function main() {
   console.log("\n--- Navigate: Inquiries list ---");
   if (
     !tapResource(xml, "admin-hub-section-crm-item-inquiries") &&
+    !tapResource(xml, "admin-hub-section-dashboard-item-inquiries") &&
     !tapResource(xml, "operations-stat-open-inquiries")
   ) {
     throw new Error("Could not open Inquiries from hub");

@@ -22,6 +22,11 @@ import { API_BASE_URL } from "@/constants/api";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 import { setDevAuthBypassToken } from "@/lib/dev-auth-bypass";
 import { mobileAppVariantHeaders } from "@/lib/app-variant";
+import {
+  getAccountDeletionUrl,
+  getPrivacyPolicyUrl,
+  getTermsOfServiceUrl,
+} from "@/lib/legal-urls";
 
 interface ProfileData {
   id: string;
@@ -236,6 +241,28 @@ export default function ProfileTab() {
               "Granular push controls are coming soon. For now, you can manage app notifications from device settings."
             )
           }
+        />
+      </View>
+
+      <View style={styles.sectionTitle}>
+        <Text style={styles.sectionTitleText}>Legal</Text>
+      </View>
+      <View style={styles.section}>
+        <MenuItem
+          icon="shield-checkmark-outline"
+          label="Privacy Policy"
+          onPress={() => Linking.openURL(getPrivacyPolicyUrl())}
+        />
+        <MenuItem
+          icon="document-outline"
+          label="Terms of Service"
+          onPress={() => Linking.openURL(getTermsOfServiceUrl())}
+        />
+        <MenuItem
+          icon="trash-outline"
+          label="Delete My Account"
+          badge="Request account removal"
+          onPress={() => Linking.openURL(getAccountDeletionUrl())}
         />
       </View>
 

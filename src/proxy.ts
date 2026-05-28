@@ -28,6 +28,8 @@ const isPublicRoute = createRouteMatcher([
   "/travel/destinations/(.*)",
   "/travel/account-deletion",
   "/travel/data-deletion",
+  "/travel/privacy",
+  "/travel/terms",
   "/api/travel/packages",
   "/api/travel/destinations",
   "/api/travel/search",

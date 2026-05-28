@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Travel & tourism admin platform: CMS, admin dashboard, and API layer for tour packages, inquiries, hotel bookings, and financial transactions. Built on **Next.js 16** App Router with **Clerk** org RBAC, a custom **MCP** server (~133 tools), and three **Expo** mobile apps from one `mobile/` codebase.
+Travel & tourism admin platform: CMS, admin dashboard, and API layer for tour packages, inquiries, hotel bookings, and financial transactions. Built on **Next.js 16** App Router with **Clerk** org RBAC, a custom **MCP** server (~139 tools), and three **Expo** mobile apps from one `mobile/` codebase.
 
 ## Tech Stack
 
@@ -31,8 +31,9 @@ npm run test:mobile-inquiry-crud         # Inquiry API CRUD smoke test (dev bypa
 npm run start:public                     # Metro :8081
 npm run start:staff                      # Metro :8082 — Aagam Operations
 npm run start:finance                    # Metro :8083 — Aagam Accounts
-npm run android:staff / ios:staff
-npm run test:staff
+npm run android:public / android:staff / android:finance
+npm run ios:public / ios:staff / ios:finance
+npm run test:public / test:staff / test:finance
 npm run generate:icons                   # Regenerate launcher icons (all variants)
 npm run test:inquiry:adb                 # USB inquiry create/edit/delete (needs adb)
 ```
@@ -65,10 +66,10 @@ Server `.env.local`:
 ```env
 MOBILE_DEV_AUTH_BYPASS_ENABLED=1
 MOBILE_DEV_AUTH_BYPASS_TOKEN=<secret>
-MOBILE_DEV_AUTH_BYPASS_USER_ID=user_xxxxxxxx   # real Clerk id, ADMIN/OWNER for staff CRM
+MOBILE_DEV_AUTH_BYPASS_USER_ID=user_xxxxxxxx   # real Clerk id with ADMIN/OWNER for staff CRM or FINANCE/ADMIN/OWNER for finance
 ```
 
-USB: `adb reverse tcp:8082 tcp:8082` and `adb reverse tcp:3000 tcp:3000` (match active variant port). See `mobile/README.md` and `mobile/docs/app-variants.md`.
+USB: `adb reverse tcp:<active-metro-port> tcp:<active-metro-port>` and `adb reverse tcp:3000 tcp:3000` (8081 public, 8082 staff, 8083 finance). See `mobile/README.md` and `mobile/docs/app-variants.md`.
 
 ## Project Structure
 
@@ -135,7 +136,7 @@ Never run destructive Prisma commands against production. Schema changes → `pr
 
 ### MCP
 
-- Gateway: `src/app/api/mcp/route.ts`; tools in `mcp-server/src/tools/*.ts`.
+- Gateway: `src/app/api/mcp/route.ts`; tools in `mcp-server/src/tools/*.ts` (~139 registered tools).
 - Auth: `x-mcp-api-secret` header.
 
 ## Agent Skills

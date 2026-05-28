@@ -2,10 +2,10 @@ const VERSION = "1.0.2";
 const PUBLIC_EAS_PROJECT_ID = "f6e23049-3b76-47ee-8194-9c9ad6de731a";
 const STAFF_EAS_PROJECT_ID =
   process.env.EXPO_STAFF_EAS_PROJECT_ID ??
-  "00000000-0000-4000-8000-000000000001";
+  "69483194-f389-44dd-91bf-38be100d9267";
 const FINANCE_EAS_PROJECT_ID =
   process.env.EXPO_FINANCE_EAS_PROJECT_ID ??
-  "00000000-0000-4000-8000-000000000002";
+  "06fabef9-5b51-4a34-a694-03d21a826bed";
 
 const variants = {
   public: {
@@ -97,7 +97,29 @@ module.exports = () => {
             "We need photo library access to share photos in trip chat.",
         };
 
-  return {
+  const extra = {
+    appVariant,
+    appScheme: variant.scheme,
+    router: {
+      origin: false,
+      root: variant.routerRoot,
+    },
+    apiBaseUrl,
+    apiBaseUrlDev:
+      process.env.EXPO_PUBLIC_API_BASE_URL_DEV ?? "http://127.0.0.1:3000",
+    websiteUrl,
+    websiteUrlDev:
+      process.env.EXPO_PUBLIC_WEBSITE_URL_DEV ?? "https://aagamholidays.com",
+    whatsappBusinessNumber: "919724444701",
+  };
+
+  if (variant.easProjectId) {
+    extra.eas = {
+      projectId: variant.easProjectId,
+    };
+  }
+
+  const config = {
     expo: {
       name: variant.name,
       slug: variant.slug,
@@ -154,29 +176,17 @@ module.exports = () => {
       experiments: {
         typedRoutes: true,
       },
-      extra: {
-        appVariant,
-        appScheme: variant.scheme,
-        router: {
-          origin: false,
-          root: variant.routerRoot,
-        },
-        eas: {
-          projectId: variant.easProjectId,
-        },
-        apiBaseUrl,
-        apiBaseUrlDev:
-          process.env.EXPO_PUBLIC_API_BASE_URL_DEV ?? "http://127.0.0.1:3000",
-        websiteUrl,
-        websiteUrlDev:
-          process.env.EXPO_PUBLIC_WEBSITE_URL_DEV ?? "https://aagamholidays.com",
-        whatsappBusinessNumber: "919724444701",
-      },
+      extra,
       owner: "rushabh2310",
       runtimeVersion: variant.runtimeVersion,
-      updates: {
-        url: `https://u.expo.dev/${variant.easProjectId}`,
-      },
     },
   };
+
+  if (variant.easProjectId) {
+    config.expo.updates = {
+      url: `https://u.expo.dev/${variant.easProjectId}`,
+    };
+  }
+
+  return config;
 };

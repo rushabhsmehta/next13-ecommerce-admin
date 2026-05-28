@@ -1,12 +1,10 @@
 #!/usr/bin/env pwsh
-# Build a signed release AAB locally (Option B — no EAS cloud quota).
+# Build signed release AABs locally for all three app variants (public, staff, finance).
+# Ensures each variant compiles and embeds its own corresponding JS bundle.
 #
 # Prereqs:
 #   - Android SDK + JDK (Android Studio)
 #   - mobile/android/keystore.properties (copy from keystore.properties.example)
-#
-# Output:
-#   mobile/android/app/build/outputs/bundle/release/app-release.aab
 
 $ErrorActionPreference = "Stop"
 $MobileRoot = Split-Path $PSScriptRoot -Parent
@@ -20,7 +18,6 @@ if (-not (Test-Path $KeystoreProps)) {
     Write-Host "and fill in storePassword, keyAlias, keyPassword."
     Write-Host ""
     Write-Host "Keystore file on disk: mobile/@rushabh2310__aagam-holidays.jks"
-    Write-Host "Get credentials: cd mobile; npx eas-cli credentials -p android"
     Write-Host ""
     exit 1
 }
@@ -43,36 +40,73 @@ if ($storeFileLine) {
     }
 }
 
-# Production env baked into the JS bundle at build time
+# Production environment configuration for all variants
 $env:EXPO_PUBLIC_API_BASE_URL = "https://admin.aagamholidays.com"
 $env:EXPO_PUBLIC_WEBSITE_URL = "https://aagamholidays.com"
 $env:EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_bWFueS1mbGFtaW5nby02LmNsZXJrLmFjY291bnRzLmRldiQ"
 
-Write-Host "Building release AAB (1.0.2 / versionCode from build.gradle)..." -ForegroundColor Cyan
+# Clean build artifacts first
+Write-Host "Cleaning gradle project..." -ForegroundColor Cyan
 Push-Location $AndroidDir
 try {
     if (Test-Path ".\gradlew.bat") {
-        & .\gradlew.bat bundleRelease --no-daemon
+        & .\gradlew.bat clean --no-daemon
     } else {
-        & .\gradlew bundleRelease --no-daemon
-    }
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-    $aab = Join-Path $AndroidDir "app\build\outputs\bundle\release\app-release.aab"
-    if (Test-Path $aab) {
-        $sizeMb = [math]::Round((Get-Item $aab).Length / 1MB, 1)
-        Write-Host ""
-        Write-Host "Success: $aab ($sizeMb MB)" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "Upload in Play Console:"
-        Write-Host "  https://play.google.com/console -> Aagam Holidays -> Testing -> Internal testing -> Create release"
-        Write-Host ""
-        Write-Host "Or submit via EAS (uses google-service-account-key.json):"
-        Write-Host "  npx eas-cli submit --platform android --path `"$aab`" --profile production"
-    } else {
-        Write-Host "Build finished but AAB not found at expected path." -ForegroundColor Yellow
-        exit 1
+        & .\gradlew clean --no-daemon
     }
 } finally {
     Pop-Location
 }
+
+$variants = @(
+    @{ name = "public"; flavor = "publicApp"; task = "bundlePublicAppRelease"; outPath = "publicAppRelease/app-publicApp-release.aab"; finalName = "aagam-holidays-public-1.0.2-v42.aab" },
+    @{ name = "staff"; flavor = "staff"; task = "bundleStaffRelease"; outPath = "staffRelease/app-staff-release.aab"; finalName = "aagam-operations-staff-1.0.2-v42.aab" },
+    @{ name = "finance"; flavor = "finance"; task = "bundleFinanceRelease"; outPath = "financeRelease/app-finance-release.aab"; finalName = "aagam-accounts-finance-1.0.2-v42.aab" }
+)
+
+$ArtifactsDir = Join-Path $MobileRoot "artifacts\play-store"
+if (-not (Test-Path $ArtifactsDir)) {
+    New-Item -ItemType Directory -Force -Path $ArtifactsDir | Out-Null
+}
+
+foreach ($v in $variants) {
+    Write-Host ""
+    Write-Host "=========================================================================" -ForegroundColor Green
+    Write-Host " BUILDING APP VARIANT: $($v.name) (flavor: $($v.flavor))" -ForegroundColor Green
+    Write-Host "=========================================================================" -ForegroundColor Green
+    
+    # CRITICAL: Set APP_VARIANT so that the Expo config and React Native bundler
+    # compile the correct JS bundle layout (routes, keys, icons, configuration).
+    $env:APP_VARIANT = $v.name
+    
+    Push-Location $AndroidDir
+    try {
+        if (Test-Path ".\gradlew.bat") {
+            & .\gradlew.bat $($v.task) --no-daemon
+        } else {
+            & .\gradlew $($v.task) --no-daemon
+        }
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Build failed for variant $($v.name)" -ForegroundColor Red
+            exit $LASTEXITCODE
+        }
+        
+        $builtFile = Join-Path $AndroidDir "app\build\outputs\bundle\$($v.outPath)"
+        if (Test-Path $builtFile) {
+            $destFile = Join-Path $ArtifactsDir $v.finalName
+            Copy-Item -Path $builtFile -Destination $destFile -Force
+            $sizeMb = [math]::Round((Get-Item $destFile).Length / 1MB, 1)
+            Write-Host "Success: Created and copied to $destFile ($sizeMb MB)" -ForegroundColor Green
+        } else {
+            Write-Host "Build finished but AAB not found at expected path: $builtFile" -ForegroundColor Red
+            exit 1
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
+Write-Host ""
+Write-Host "All variants built successfully! Output files are located in mobile/artifacts/play-store/:" -ForegroundColor Green
+Get-ChildItem -Path $ArtifactsDir -Filter *v42.aab | Select-Object Name, Length, LastWriteTime
+Write-Host ""

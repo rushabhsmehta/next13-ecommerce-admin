@@ -49,6 +49,9 @@ export function TravelFooter() {
               {[
                 { href: "/travel/packages", label: "Tour Packages" },
                 { href: "/travel/destinations", label: "Destinations" },
+                { href: "/travel/privacy", label: "Privacy Policy" },
+                { href: "/travel/terms", label: "Terms of Service" },
+                { href: "/travel/account-deletion", label: "Delete Account" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link

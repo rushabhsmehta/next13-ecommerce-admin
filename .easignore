@@ -1,0 +1,47 @@
+# Root level EAS ignore file to optimize upload and prevent locking conflicts
+
+# Web dependencies and build outputs
+node_modules/
+.next/
+out/
+build/
+.vercel/
+flow-keys/
+
+# Mobile dependencies & caches
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+
+# Native Android build outputs
+mobile/android/app/build/
+mobile/android/app/.cxx/
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/**/build/
+mobile/android/**/.cxx/
+mobile/android/**/intermediates/
+mobile/android/**/outputs/
+mobile/android/**/*.apk
+mobile/android/**/*.aab
+mobile/android/**/*.log
+mobile/android/**/replay_pid*
+mobile/android/**/hs_err_pid*
+
+# Native iOS build outputs
+mobile/ios/Pods/
+mobile/ios/build/
+mobile/ios/**/build/
+mobile/ios/DerivedData/
+
+# Testing & CI
+mobile/__tests__/
+mobile/e2e/
+mobile/artifacts/
+mobile/test-results/
+coverage/
+
+# Marketing & documentation
+mobile/marketing/
+*.md

@@ -105,6 +105,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const router = useRouter();
   const selectedOptionParam = searchParams?.get("search");
   const selectedOption = selectedOptionParam && selectedOptionParam.length ? selectedOptionParam : "AH";
+  // Print mode: rendered by the server-side PDF pipeline (Puppeteer), which
+  // cannot authenticate `/api/generate-pdf`. Render the composed proposal HTML
+  // inline so the headless browser prints it directly instead of triggering the
+  // client download. See generatePDFFromUrl + /api/mobile/**/pdf routes.
+  const printMode = searchParams?.get("print") === "1";
   const [loading, setLoading] = useState(false);
   const [preparedBy, setPreparedBy] = useState<{ name: string; email: string } | null>(null);
 
@@ -1580,11 +1585,18 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       } catch { }
     })();
 
-    // Generate and download PDF automatically
-    generatePDF();
-  }, [initialData, generatePDF]);
+    // Generate and download PDF automatically — except in print mode, where the
+    // headless renderer prints the inline HTML below (no auth-protected fetch).
+    if (!printMode) generatePDF();
+  }, [initialData, generatePDF, printMode]);
 
   if (!initialData) return <div>No data available</div>;
+
+  // Print mode: render the composed proposal HTML directly so a headless
+  // browser can print it to PDF without calling the authenticated endpoint.
+  if (printMode) {
+    return <div dangerouslySetInnerHTML={{ __html: buildHtmlContent() }} />;
+  }
 
   return (
     <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif", color: "#333" }}>

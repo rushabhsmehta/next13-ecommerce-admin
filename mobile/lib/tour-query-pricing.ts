@@ -37,6 +37,18 @@ export function createTourQueryPricingClient(authRequest: AuthenticatedRequest) 
         `/api/mobile/tour-queries/${encodeURIComponent(tourQueryId)}/variants`
       );
     },
+    confirmVariant(
+      tourQueryId: string,
+      confirmedVariantId: string | null
+    ): Promise<VariantComparisonResponse> {
+      return authRequest<VariantComparisonResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(tourQueryId)}/variants`,
+        {
+          method: "PATCH",
+          body: { confirmedVariantId },
+        }
+      );
+    },
   };
 }
 

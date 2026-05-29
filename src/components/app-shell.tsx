@@ -7,13 +7,32 @@ import { DebugLogPanel } from "@/components/DebugLogPanel";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
+// Public, chrome-less pages: PDF generator + display pages rendered
+// unauthenticated by the internal PDF pipeline (Puppeteer). They must NOT mount
+// the dashboard sidebar, which polls auth-protected APIs and triggers a
+// client-side redirect to /sign-in for the (sessionless) headless browser —
+// previously yielding blank/"damaged" PDFs. Match the public prefixes in
+// `src/proxy.ts` / `CRM_PUBLIC_DASHBOARD_PREFIXES`.
+const CHROMELESS_PREFIXES = [
+  "/tourpackagequerydisplay",
+  "/tourpackagequeryvariantdisplay",
+  "/tourpackagequerypdfgenerator",
+  "/tourpackagequerypdfgeneratorwithvariants",
+  "/tourpackagepdfgenerator",
+  "/tourpackagepdfgeneratorwithvariants",
+];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isTravelRoute = pathname?.startsWith("/travel");
   const isAuthRoute =
     pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up");
+  const lowerPath = (pathname || "").toLowerCase();
+  const isChromelessRoute = CHROMELESS_PREFIXES.some((p) =>
+    lowerPath.startsWith(p)
+  );
 
-  if (isTravelRoute || isAuthRoute) {
+  if (isTravelRoute || isAuthRoute || isChromelessRoute) {
     return <>{children}</>;
   }
 

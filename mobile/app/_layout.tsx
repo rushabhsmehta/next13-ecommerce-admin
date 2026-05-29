@@ -24,6 +24,7 @@ import {
 import { UnreadProvider, useUnread } from "@/hooks/useUnread";
 import { WhatsAppUnreadProvider, useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { setDevAuthBypassToken } from "@/lib/dev-auth-bypass";
 
 const tokenCache = {
   async getToken(key: string) {
@@ -156,6 +157,9 @@ export default function RootLayout() {
     if (!checked.current && !__DEV__) {
       checked.current = true;
       checkForOTAUpdate();
+    }
+    if (__DEV__) {
+      void setDevAuthBypassToken("mobile-dev-test-bypass-20260522");
     }
   }, []);
 

@@ -8,6 +8,7 @@ import {
   requireSalesTripsWrite,
 } from "@/app/api/mobile/lib/assert-sales-trips-access";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import { createVariantSnapshots } from "@/lib/variant-snapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,10 @@ const patchSchema = z.object({
   airlineCancellationPolicy: stringArray,
   termsconditions: stringArray,
   kitchenGroupPolicy: stringArray,
+  selectedTemplateId: z.string().optional().nullable(),
+  selectedTemplateType: z.string().optional().nullable(),
+  tourPackageTemplateName: z.string().optional().nullable(),
+  selectedVariantIds: z.array(z.string()).optional(),
   itineraries: z
     .array(
       z.object({
@@ -139,6 +144,10 @@ export async function GET(
         isArchived: true,
         associatePartnerId: true,
         confirmedVariantId: true,
+        selectedTemplateId: true,
+        selectedTemplateType: true,
+        tourPackageTemplateName: true,
+        selectedVariantIds: true,
         assignedTo: true,
         assignedToMobileNumber: true,
         assignedToEmail: true,
@@ -297,6 +306,7 @@ export async function PATCH(
       select: {
         id: true,
         associatePartnerId: true,
+        selectedTemplateId: true,
         inquiry: { select: { associatePartnerId: true } },
         itineraries: { select: { id: true } },
       },
@@ -319,6 +329,10 @@ export async function PATCH(
       data.tourStartsFrom = v.tourStartsFrom ? new Date(v.tourStartsFrom) : null;
     if (v.tourEndsOn !== undefined)
       data.tourEndsOn = v.tourEndsOn ? new Date(v.tourEndsOn) : null;
+    if (v.selectedTemplateId !== undefined) data.selectedTemplateId = v.selectedTemplateId;
+    if (v.selectedTemplateType !== undefined) data.selectedTemplateType = v.selectedTemplateType;
+    if (v.tourPackageTemplateName !== undefined) data.tourPackageTemplateName = v.tourPackageTemplateName;
+    if (v.selectedVariantIds !== undefined) data.selectedVariantIds = v.selectedVariantIds;
 
     const policyKeys = [
       "inclusions",
@@ -341,6 +355,20 @@ export async function PATCH(
     await prismadb.$transaction(async (tx) => {
       if (Object.keys(data).length > 0) {
         await tx.tourPackageQuery.update({ where: { id }, data });
+      }
+      
+      if (v.selectedVariantIds !== undefined && Array.isArray(v.selectedVariantIds)) {
+        if (v.selectedVariantIds.length > 0) {
+          await createVariantSnapshots(id, v.selectedVariantIds, {
+            overwrite: true,
+            tourPackageId: (v.selectedTemplateId || existing.selectedTemplateId) ?? undefined,
+            tx,
+          });
+        } else {
+          await tx.queryVariantSnapshot.deleteMany({
+            where: { tourPackageQueryId: id },
+          });
+        }
       }
       
       if (v.itineraries !== undefined) {

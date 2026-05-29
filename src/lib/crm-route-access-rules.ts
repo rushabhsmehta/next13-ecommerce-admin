@@ -17,11 +17,22 @@ export function lowerPath(pathname: string): string {
   return normalizePath(pathname).toLowerCase();
 }
 
-/** Public CRM pages under `(dashboard)` (Clerk proxy skips `auth.protect`). */
+/**
+ * Public CRM pages under `(dashboard)` (Clerk proxy skips `auth.protect`).
+ *
+ * Must stay in sync with `isPublicRoute` in `src/proxy.ts`. These are rendered
+ * unauthenticated by the internal PDF pipeline (Puppeteer has no Clerk session),
+ * so the dashboard layout must NOT redirect them to /sign-in. Omitting the
+ * tour-package + with-variants generators previously caused those PDFs to render
+ * the sign-in page → blank/"damaged" downloads.
+ */
 export const CRM_PUBLIC_DASHBOARD_PREFIXES: readonly string[] = [
   "/tourpackagequerydisplay",
   "/tourpackagequeryvariantdisplay",
   "/tourpackagequerypdfgenerator",
+  "/tourpackagequerypdfgeneratorwithvariants",
+  "/tourpackagepdfgenerator",
+  "/tourpackagepdfgeneratorwithvariants",
 ];
 
 export function isPublicDashboardPathname(pathname: string): boolean {

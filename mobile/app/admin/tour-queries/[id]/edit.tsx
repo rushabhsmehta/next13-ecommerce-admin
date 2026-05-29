@@ -69,6 +69,10 @@ interface DetailResponse {
   airlineCancellationPolicyList: string[];
   termsconditionsList: string[];
   kitchenGroupPolicyList: string[];
+  selectedTemplateId: string | null;
+  selectedTemplateType: string | null;
+  tourPackageTemplateName: string | null;
+  selectedVariantIds: string[] | null;
   itineraries: ItineraryRow[];
   inquiry: {
     id: string;
@@ -124,10 +128,17 @@ type BaselinePayload = {
   remarks: string;
   policies: Record<string, string>;
   itineraries: ItineraryRow[];
+  selectedTemplateId: string | null;
+  selectedVariantIds: string[];
 };
 
 function serializeBaseline(p: BaselinePayload): string {
-  return JSON.stringify(p);
+  // Sort the variant IDs so JSON string comparison is order-independent
+  const sorted = {
+    ...p,
+    selectedVariantIds: [...p.selectedVariantIds].sort(),
+  };
+  return JSON.stringify(sorted);
 }
 
 export default function EditTourQueryScreen() {
@@ -182,7 +193,7 @@ function EditTourQueryScreenInner() {
   const [queriesList, setQueriesList] = useState<{ id: string; name: string }[]>([]);
   const [packageVariants, setPackageVariants] = useState<{ id: string; name: string }[]>([]);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedVariantIds, setSelectedVariantIds] = useState<string[]>([]);
   const [selectedCopyQueryId, setSelectedCopyQueryId] = useState<string | null>(null);
 
   interface ActivePickerState {
@@ -193,7 +204,6 @@ function EditTourQueryScreenInner() {
       | "occupancy"
       | "mealPlan"
       | "packageTemplate"
-      | "packageVariant"
       | "copyQuery";
     dayIndex: number;
     allocationIndex?: number;
@@ -256,6 +266,9 @@ function EditTourQueryScreenInner() {
         setOccupancyTypes(pricingRes.occupancyTypes || []);
         setMealPlans(pricingRes.mealPlans || []);
         setInquiry(d.inquiry ?? null);
+        setSelectedPackageId(d.selectedTemplateId || null);
+        const initVariantIds = d.selectedVariantIds || [];
+        setSelectedVariantIds(initVariantIds);
 
         setPackagesList(
           (pkgsRes.packages ?? []).map((p) => ({
@@ -271,6 +284,15 @@ function EditTourQueryScreenInner() {
               name: q.tourPackageQueryName || q.tourPackageQueryNumber || "Untitled Query",
             }))
         );
+
+        if (d.selectedTemplateId) {
+          try {
+            const pkg = await authRequest<any>(`/api/mobile/tour-packages/${encodeURIComponent(d.selectedTemplateId)}`);
+            setPackageVariants(pkg.variants || []);
+          } catch (err) {
+            console.log("Failed to load variants on init", err);
+          }
+        }
 
         const pol: Record<string, string> = {};
         for (const f of POLICY_FIELDS) {
@@ -308,6 +330,8 @@ function EditTourQueryScreenInner() {
           remarks: d.remarks ?? "",
           policies: pol,
           itineraries: itinerariesInit,
+          selectedTemplateId: d.selectedTemplateId || null,
+          selectedVariantIds: initVariantIds,
         });
         setPolicies(pol);
         setItineraries(itinerariesInit);
@@ -379,6 +403,8 @@ function EditTourQueryScreenInner() {
         remarks,
         policies,
         itineraries,
+        selectedTemplateId: selectedPackageId,
+        selectedVariantIds,
       }),
     [
       name,
@@ -392,6 +418,8 @@ function EditTourQueryScreenInner() {
       remarks,
       policies,
       itineraries,
+      selectedPackageId,
+      selectedVariantIds,
     ]
   );
 
@@ -538,8 +566,6 @@ function EditTourQueryScreenInner() {
         return mealPlans.map((mp) => ({ id: mp.id, label: mp.name }));
       case "packageTemplate":
         return packagesList.map((p) => ({ id: p.id, label: p.name }));
-      case "packageVariant":
-        return packageVariants.map((v) => ({ id: v.id, label: v.name }));
       case "copyQuery":
         return queriesList.map((q) => ({ id: q.id, label: q.name }));
       default:
@@ -573,8 +599,6 @@ function EditTourQueryScreenInner() {
         return "Select Meal Plan";
       case "packageTemplate":
         return "Select Tour Package Template";
-      case "packageVariant":
-        return "Select Package Variant";
       case "copyQuery":
         return "Copy from Another Query";
       default:
@@ -585,7 +609,6 @@ function EditTourQueryScreenInner() {
   const pickerSelectedId = useMemo(() => {
     if (!activePicker) return undefined;
     if (activePicker.type === "packageTemplate") return selectedPackageId ?? undefined;
-    if (activePicker.type === "packageVariant") return selectedVariantId ?? undefined;
     if (activePicker.type === "copyQuery") return selectedCopyQueryId ?? undefined;
 
     const day = itineraries[activePicker.dayIndex];
@@ -599,7 +622,7 @@ function EditTourQueryScreenInner() {
     if (activePicker.type === "occupancy") return alloc.occupancyTypeId;
     if (activePicker.type === "mealPlan") return alloc.mealPlanId;
     return undefined;
-  }, [activePicker, itineraries, selectedPackageId, selectedVariantId, selectedCopyQueryId]);
+  }, [activePicker, itineraries, selectedPackageId, selectedCopyQueryId]);
 
   const handlePickerSelect = useCallback(async (option: { id: string; label: string }) => {
     if (!activePicker) return;
@@ -607,13 +630,19 @@ function EditTourQueryScreenInner() {
 
     if (type === "packageTemplate") {
       setSelectedPackageId(option.id);
-      setSelectedVariantId(null);
+      setSelectedVariantIds([]);
       setSelectedCopyQueryId(null);
       setSaving(true);
       try {
         const pkg = await authRequest<any>(`/api/mobile/tour-packages/${encodeURIComponent(option.id)}`);
         setPackageVariants(pkg.variants || []);
         
+        // Auto-select default variant if any
+        const defaultVar = pkg.variants?.find((v: any) => v.isDefault);
+        if (defaultVar) {
+          setSelectedVariantIds([defaultVar.id]);
+        }
+
         const newItineraries = (pkg.itineraries || []).map((it: any) => ({
           id: `temp-${Date.now()}-${Math.random()}`,
           dayNumber: it.dayNumber,
@@ -640,43 +669,10 @@ function EditTourQueryScreenInner() {
       return;
     }
 
-    if (type === "packageVariant") {
-      if (!selectedPackageId) return;
-      setSelectedVariantId(option.id);
-      setSaving(true);
-      try {
-        const res = await authRequest<{ mappings: any[] }>(
-          `/api/mobile/tour-packages/${encodeURIComponent(selectedPackageId)}/variants/${encodeURIComponent(option.id)}/hotel-mappings`
-        );
-        
-        setItineraries((prev) => {
-          const copy = [...prev];
-          for (const mapping of res.mappings || []) {
-            const dIdx = copy.findIndex((d) => d.dayNumber === mapping.dayNumber);
-            if (dIdx !== -1) {
-              copy[dIdx] = {
-                ...copy[dIdx],
-                hotelId: mapping.hotelId,
-              };
-              if (copy[dIdx].locationId) {
-                void loadHotelsForLocation(copy[dIdx].locationId);
-              }
-            }
-          }
-          return copy;
-        });
-      } catch (err) {
-        Alert.alert("Error", "Could not load variant hotel mappings.");
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
-
     if (type === "copyQuery") {
       setSelectedCopyQueryId(option.id);
       setSelectedPackageId(null);
-      setSelectedVariantId(null);
+      setSelectedVariantIds([]);
       setSaving(true);
       try {
         const srcQuery = await authRequest<any>(
@@ -762,6 +758,10 @@ function EditTourQueryScreenInner() {
         tourStartsFrom: startsFrom ? startsFrom : null,
         tourEndsOn: endsOn ? endsOn : null,
         remarks: remarks.trim() || null,
+        selectedTemplateId: selectedPackageId,
+        selectedTemplateType: selectedPackageId ? "TourPackageVariant" : null,
+        tourPackageTemplateName: selectedPackageId ? (packagesList.find((p) => p.id === selectedPackageId)?.name || null) : null,
+        selectedVariantIds: selectedVariantIds,
         itineraries: itineraries.map((it) => ({
           id: it.id.startsWith("temp-") ? undefined : it.id,
           dayNumber: it.dayNumber ?? undefined,
@@ -798,7 +798,6 @@ function EditTourQueryScreenInner() {
     }
   }, [
     id,
-    saving,
     saveBlocked,
     name,
     customerName,
@@ -811,6 +810,9 @@ function EditTourQueryScreenInner() {
     remarks,
     policies,
     itineraries,
+    selectedPackageId,
+    selectedVariantIds,
+    packagesList,
     editClient,
     router,
   ]);
@@ -891,21 +893,77 @@ function EditTourQueryScreenInner() {
             </Pressable>
           </View>
 
-          {selectedPackageId ? (
+          {selectedPackageId && packageVariants.length > 0 ? (
             <View style={{ marginBottom: 12 }}>
-              <Text style={styles.label}>Select Package Variant</Text>
-              <Pressable
-                testID="tq-edit-variant-picker"
-                accessibilityRole="button"
-                accessibilityLabel="Choose package variant"
-                style={styles.pickerBtn}
-                onPress={() => setActivePicker({ type: "packageVariant", dayIndex: -1 })}
-              >
-                <Text style={styles.pickerBtnText} numberOfLines={2}>
-                  {packageVariants.find((v) => v.id === selectedVariantId)?.name ?? "Select package variant..."}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
-              </Pressable>
+              <Text style={styles.label}>Select Variants to Compare</Text>
+              <View style={styles.variantsContainer}>
+                {packageVariants.map((v) => {
+                  const isChecked = selectedVariantIds.includes(v.id);
+                  return (
+                    <View key={v.id} style={styles.variantRow}>
+                      <Pressable
+                        testID={`variant-toggle-${v.id}`}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: isChecked }}
+                        style={styles.variantCheckboxContainer}
+                        onPress={() => {
+                          setSelectedVariantIds((prev) => {
+                            const next = prev.includes(v.id)
+                              ? prev.filter((id) => id !== v.id)
+                              : [...prev, v.id];
+                            return next;
+                          });
+                        }}
+                      >
+                        <Ionicons
+                          name={isChecked ? "checkbox" : "square-outline"}
+                          size={20}
+                          color={isChecked ? Colors.primary : Colors.textTertiary}
+                        />
+                        <Text style={styles.variantLabel} numberOfLines={1}>{v.name}</Text>
+                      </Pressable>
+                      {isChecked ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Apply hotels from ${v.name}`}
+                          style={styles.applyHotelsBtn}
+                          onPress={async () => {
+                            setSaving(true);
+                            try {
+                              const res = await authRequest<{ mappings: any[] }>(
+                                `/api/mobile/tour-packages/${encodeURIComponent(selectedPackageId)}/variants/${encodeURIComponent(v.id)}/hotel-mappings`
+                              );
+                              setItineraries((prev) => {
+                                const copy = [...prev];
+                                for (const mapping of res.mappings || []) {
+                                  const dIdx = copy.findIndex((d) => d.dayNumber === mapping.dayNumber);
+                                  if (dIdx !== -1) {
+                                    copy[dIdx] = {
+                                      ...copy[dIdx],
+                                      hotelId: mapping.hotelId,
+                                    };
+                                    if (copy[dIdx].locationId) {
+                                      void loadHotelsForLocation(copy[dIdx].locationId);
+                                    }
+                                  }
+                                }
+                                return copy;
+                              });
+                              Alert.alert("Success", `Applied hotel mappings from "${v.name}" to itineraries.`);
+                            } catch (err) {
+                              Alert.alert("Error", "Could not load variant hotel mappings.");
+                            } finally {
+                              setSaving(false);
+                            }
+                          }}
+                        >
+                          <Text style={styles.applyHotelsBtnText}>Apply hotels</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
             </View>
           ) : null}
 
@@ -1783,5 +1841,43 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontSize: FontSize.sm,
     color: Colors.text,
+  },
+  variantsContainer: {
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  variantRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    gap: Spacing.sm,
+    justifyContent: "space-between",
+  },
+  variantCheckboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  variantLabel: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.text,
+    flex: 1,
+  },
+  applyHotelsBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primarySoft,
+  },
+  applyHotelsBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.primary,
   },
 });

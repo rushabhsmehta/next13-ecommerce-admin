@@ -90,6 +90,7 @@ function TourQueryVariantsScreenInner() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<string | null>(null);
 
   const load = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -113,13 +114,74 @@ function TourQueryVariantsScreenInner() {
     void load();
   }, [load]);
 
+  const onVariantPress = async (v: VariantComparisonItem) => {
+    if (!id || updating) return;
+
+    if (v.isConfirmed) {
+      Alert.alert(
+        "Clear confirmation?",
+        `Do you want to clear the confirmation for "${v.name}" and return this query to draft status?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Clear",
+            style: "destructive",
+            onPress: async () => {
+              setUpdating(v.id);
+              try {
+                await client.confirmVariant(id, null);
+                const fresh = await client.compare(id);
+                setData(fresh);
+                Alert.alert("Success", "Confirmation cleared successfully.");
+              } catch (err) {
+                Alert.alert(
+                  "Error",
+                  err instanceof ApiError ? err.message : "Could not clear confirmation."
+                );
+              } finally {
+                setUpdating(null);
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Confirm this variant?",
+        `Do you want to confirm "${v.name}" as the chosen variant for this query? This will mark the query as confirmed.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Confirm",
+            onPress: async () => {
+              setUpdating(v.id);
+              try {
+                await client.confirmVariant(id, v.sourceVariantId || v.id);
+                const fresh = await client.compare(id);
+                setData(fresh);
+                Alert.alert("Success", `Variant "${v.name}" confirmed successfully.`);
+              } catch (err) {
+                Alert.alert(
+                  "Error",
+                  err instanceof ApiError ? err.message : "Could not confirm variant."
+                );
+              } finally {
+                setUpdating(null);
+              }
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const cheapest = useMemo(
     () =>
-      data?.variants.reduce<VariantComparisonItem | null>((best, v) => {
+      data?.variants?.reduce<VariantComparisonItem | null>((best, v) => {
         if (!v.pricing) return best;
         if (!best?.pricing || v.pricing.totalCost < best.pricing!.totalCost) return v;
         return best;
-      }, null),
+      }, null) ?? null,
     [data]
   );
 
@@ -288,16 +350,27 @@ function TourQueryVariantsScreenInner() {
           </View>
         ) : (
           data.variants.map((v) => (
-            <View
+            <Pressable
               key={v.id}
               testID={`variant-card-${v.id}`}
-              style={[styles.card, v.isConfirmed ? styles.cardConfirmed : null]}
+              style={({ pressed }) => [
+                styles.card,
+                v.isConfirmed ? styles.cardConfirmed : null,
+                pressed ? { opacity: 0.7 } : null,
+              ]}
+              onPress={() => onVariantPress(v)}
+              disabled={updating !== null}
+              accessibilityRole="button"
+              accessibilityLabel={`Variant ${v.name}, cost ${v.pricing ? formatINR(v.pricing.totalCost) : "pending"}`}
             >
               <View style={styles.cardHead}>
                 <Text style={styles.cardName} numberOfLines={1}>
                   {v.name || "Unnamed"}
                 </Text>
                 <View style={styles.badges}>
+                  {updating === v.id ? (
+                    <ActivityIndicator size="small" color={Colors.primary} style={{ marginRight: 4 }} />
+                  ) : null}
                   {v.isConfirmed ? (
                     <View style={[styles.badge, styles.badgeConfirmed]}>
                       <Text style={styles.badgeConfirmedText}>Confirmed</Text>
@@ -342,7 +415,7 @@ function TourQueryVariantsScreenInner() {
                     Pricing pending. Refresh after editing on web.
                   </Text>
                 )}
-            </View>
+            </Pressable>
           ))
         )}
     </AdminScreen>

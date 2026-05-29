@@ -45,11 +45,12 @@ const INITIAL: NetworkSnapshot = {
 async function probe(): Promise<NetworkSnapshot> {
   try {
     const state = await Network.getNetworkStateAsync();
-    const isConnected = state?.isConnected !== false;
-    const isReachable =
+    const isConnected = __DEV__ ? true : state?.isConnected !== false;
+    const isReachable = __DEV__ ? true : (
       state?.isInternetReachable === null || state?.isInternetReachable === undefined
         ? null
-        : !!state.isInternetReachable;
+        : !!state.isInternetReachable
+    );
     return {
       isOnline: isConnected && isReachable !== false,
       isInternetReachable: isReachable,

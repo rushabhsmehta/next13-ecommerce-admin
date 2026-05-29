@@ -41,6 +41,12 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
   const searchParams = useSearchParams();
   const router = useRouter();
   const selectedParam = searchParams?.get("search");
+  // Print mode: rendered by the server-side PDF pipeline (Puppeteer) which
+  // cannot authenticate the `/api/generate-pdf` endpoint. Instead of triggering
+  // the client download, we render the composed proposal HTML inline so the
+  // headless browser can print it directly. See generatePDFFromUrl + the
+  // /api/mobile/**/pdf routes.
+  const printMode = searchParams?.get("print") === "1";
   const selectedOption = useMemo(() => {
     if (!selectedParam) return "AH";
     if (selectedParam === "Empty") return "Empty";
@@ -824,13 +830,21 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
   }, [buildFooterHtml, buildHtmlContent, initialData, router]);
 
   useEffect(() => {
-    if (initialData) {
+    // In print mode the headless renderer prints the inline HTML below; do not
+    // trigger the (auth-protected) client download flow.
+    if (initialData && !printMode) {
       generatePDF();
     }
-  }, [generatePDF, initialData]);
+  }, [generatePDF, initialData, printMode]);
 
   if (!initialData) {
     return <div>No data available</div>;
+  }
+
+  // Print mode: render the composed proposal HTML directly so a headless
+  // browser can print it to PDF without calling the authenticated endpoint.
+  if (printMode) {
+    return <div dangerouslySetInnerHTML={{ __html: buildHtmlContent() }} />;
   }
 
   return (

@@ -251,7 +251,7 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
  */
 export async function generatePDFFromUrl(
   url: string,
-  options?: GeneratePdfOptions & { waitMs?: number }
+  options?: GeneratePdfOptions & { waitMs?: number; disableJavaScript?: boolean }
 ): Promise<Buffer> {
   if (!url) {
     throw new Error("A page URL is required to generate a PDF.");
@@ -286,11 +286,46 @@ export async function generatePDFFromUrl(
     await page.setUserAgent(
       "Mozilla/5.0 (compatible; HeadlessChrome) AagamMobilePDF"
     );
-    await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
-    await page.evaluateHandle("document.fonts.ready");
-    if (options?.waitMs && options.waitMs > 0) {
-      await new Promise((r) => setTimeout(r, options.waitMs));
+
+    // The generator pages render their full proposal HTML *server-side* (print
+    // mode). Disabling JavaScript means the headless browser prints that SSR
+    // content directly and never runs the client-side dashboard chrome — whose
+    // notification polling + sign-in redirect would otherwise navigate the
+    // sessionless automation browser away to /sign-in, producing a blank /
+    // "damaged" PDF. With JS off there are no long-lived XHR/websocket
+    // connections, so `networkidle0` settles reliably once images/fonts load.
+    const disableJs = options?.disableJavaScript ?? false;
+    if (disableJs) {
+      await page.setJavaScriptEnabled(false);
+      await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
+    } else {
+      // JS-enabled fallback: load the DOM, then wait for fonts + images with
+      // bounded timeouts so a single stalled request can't hang the job.
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await page.evaluateHandle("document.fonts.ready").catch(() => {});
+      await page
+        .evaluate(async () => {
+          const pending = Array.from(document.images).filter((img) => !img.complete);
+          await Promise.race([
+            Promise.all(
+              pending.map(
+                (img) =>
+                  new Promise<void>((resolve) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => resolve();
+                  })
+              )
+            ),
+            new Promise<void>((resolve) => setTimeout(resolve, 20000)),
+          ]);
+        })
+        .catch(() => {});
     }
+
+    // Small buffer for any final layout/paint.
+    await new Promise((r) =>
+      setTimeout(r, options?.waitMs && options.waitMs > 0 ? options.waitMs : 1500)
+    );
 
     const hasHeaderFooter = Boolean(options?.headerHtml || options?.footerHtml);
     const marginDefaults = hasHeaderFooter

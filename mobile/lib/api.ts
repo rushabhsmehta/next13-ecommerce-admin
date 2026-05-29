@@ -4,6 +4,13 @@ import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";
 import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 const DEFAULT_TIMEOUT = 10000;
+// Writes (POST/PATCH/PUT/DELETE) can trigger heavy server work — e.g. tour-query
+// saves that rebuild variant snapshots inside a 30s DB transaction. A 10s client
+// timeout aborted those mid-flight and surfaced a false "Request timed out" even
+// though the server had committed. Give writes a budget that matches the server's
+// transaction ceiling. Writes still default to 0 retries (below) so a slow-but-
+// successful write is never duplicated by a retry.
+const WRITE_TIMEOUT = 30000;
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000];
 
@@ -62,13 +69,17 @@ async function request<T = any>(
   const {
     method = "GET",
     body,
-    timeout = DEFAULT_TIMEOUT,
-    retries = method === "GET" ? MAX_RETRIES : 0,
+    timeout: timeoutOption,
+    retries: retriesOption,
     headers: customHeaders,
     idempotencyKey,
     signal,
     requireOnline = false,
   } = options;
+
+  const isWrite = method !== "GET";
+  const timeout = timeoutOption ?? (isWrite ? WRITE_TIMEOUT : DEFAULT_TIMEOUT);
+  const retries = retriesOption ?? (method === "GET" ? MAX_RETRIES : 0);
 
   if (requireOnline && registeredOfflineChecker) {
     const offline = await registeredOfflineChecker();

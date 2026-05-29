@@ -45,6 +45,10 @@ export interface TourQueryEditInput {
   airlineCancellationPolicy?: string[];
   termsconditions?: string[];
   kitchenGroupPolicy?: string[];
+  selectedTemplateId?: string | null;
+  selectedTemplateType?: string | null;
+  tourPackageTemplateName?: string | null;
+  selectedVariantIds?: string[];
   itineraries?: TourQueryItineraryEdit[];
 }
 

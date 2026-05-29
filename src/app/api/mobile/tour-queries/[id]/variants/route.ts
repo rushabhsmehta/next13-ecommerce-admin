@@ -4,6 +4,7 @@ import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-use
 import {
   associateCanViewTourPackageQuery,
   requireSalesTripsRead,
+  requireSalesTripsWrite,
 } from "@/app/api/mobile/lib/assert-sales-trips-access";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +104,115 @@ export async function GET(
     });
   } catch (error) {
     console.log("[MOBILE_TOUR_QUERY_VARIANTS_GET]", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}
+
+/**
+ * Confirm/unconfirm a specific variant on a tour package query.
+ * Expects JSON body: { confirmedVariantId: string | null }
+ */
+export async function PATCH(
+  req: Request,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const accessResult = await requireSalesTripsWrite(userId);
+    if (!accessResult.ok) return accessResult.response;
+    const { access } = accessResult;
+
+    const params = await props.params;
+    const id = params.id?.trim();
+    if (!id) return new NextResponse("Missing id", { status: 400 });
+
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const { confirmedVariantId } = body;
+
+    const existing = await prismadb.tourPackageQuery.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        isFeatured: true,
+        inquiryId: true,
+        associatePartnerId: true,
+        inquiry: { select: { associatePartnerId: true } },
+        queryVariantSnapshots: {
+          select: { id: true, sourceVariantId: true, name: true },
+        },
+      },
+    });
+
+    if (!existing) return new NextResponse("Not found", { status: 404 });
+    if (!associateCanViewTourPackageQuery(access, existing)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    let targetVariantId: string | null = null;
+    if (confirmedVariantId) {
+      // Validate that the variant exists in the snapshots
+      const matched = existing.queryVariantSnapshots.find(
+        (v) => v.id === confirmedVariantId || v.sourceVariantId === confirmedVariantId
+      );
+      if (!matched) {
+        return NextResponse.json(
+          { error: "Invalid variant ID" },
+          { status: 422 }
+        );
+      }
+      // Store the sourceVariantId if present, else the snapshot id
+      targetVariantId = matched.sourceVariantId || matched.id;
+    }
+
+    const wasFeatured = existing.isFeatured;
+
+    const updated = await prismadb.$transaction(async (tx) => {
+      const row = await tx.tourPackageQuery.update({
+        where: { id },
+        data: {
+          confirmedVariantId: targetVariantId,
+          isFeatured: targetVariantId ? true : false,
+        },
+        select: {
+          id: true,
+          confirmedVariantId: true,
+          isFeatured: true,
+          inquiryId: true,
+        },
+      });
+
+      if (targetVariantId && !wasFeatured && row.inquiryId) {
+        await tx.inquiry.update({
+          where: { id: row.inquiryId },
+          data: { status: "CONFIRMED" },
+        });
+        await tx.inquiryAction.create({
+          data: {
+            inquiryId: row.inquiryId,
+            actionType: "STATUS_CHANGE",
+            remarks: "Status updated to CONFIRMED automatically when variant was confirmed (mobile).",
+          },
+        });
+      }
+
+      return row;
+    });
+
+    return NextResponse.json({
+      tourPackageQueryId: updated.id,
+      confirmedVariantId: updated.confirmedVariantId,
+      isFeatured: updated.isFeatured,
+    });
+  } catch (error) {
+    console.log("[MOBILE_TOUR_QUERY_VARIANTS_PATCH]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }

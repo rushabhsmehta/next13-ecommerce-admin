@@ -4,6 +4,7 @@ import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-use
 import { requireOperationsRead } from "@/app/api/mobile/lib/assert-operations-access";
 import prismadb from "@/lib/prismadb";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import { resolvePdfBaseUrl } from "@/app/api/mobile/lib/pdf-base";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -42,13 +43,15 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const withVariants = searchParams.get("variant") === "1";
 
-    const base = (
-      process.env.NEXT_PUBLIC_APP_URL || "https://admin.aagamholidays.com"
-    ).replace(/\/$/, "");
+    const base = resolvePdfBaseUrl(req);
     const pagePath = withVariants
       ? `/tourPackagePDFGeneratorWithVariants/${encodeURIComponent(id)}`
       : `/tourPackagePDFGenerator/${encodeURIComponent(id)}`;
-    const pageUrl = `${base}${pagePath}`;
+    // `print=1` tells the generator page to render the composed proposal HTML
+    // inline instead of POSTing to the auth-protected `/api/generate-pdf`
+    // (which Puppeteer cannot authenticate — it would otherwise capture a
+    // sign-in HTML page and produce a damaged PDF). `search` selects branding.
+    const pageUrl = `${base}${pagePath}?print=1&search=AH`;
 
     const pdf = await generatePDFFromUrl(pageUrl, { waitMs: 1500 });
 

@@ -59,6 +59,9 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
   const searchParams = useSearchParams();
   const router = useRouter();
   const selectedOption = searchParams?.get("search") || "Empty";
+  // Print mode: server-side PDF pipeline renders inline HTML (no auth-protected
+  // /api/generate-pdf call). See generatePDFFromUrl + /api/mobile/**/pdf routes.
+  const printMode = searchParams?.get("print") === "1";
   const [loading, setLoading] = useState(false);
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
@@ -671,10 +674,14 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
 
   useEffect(() => {
     if (!initialData) return;
-    generatePDF();
-  }, [initialData, generatePDF]);
+    if (!printMode) generatePDF();
+  }, [initialData, generatePDF, printMode]);
 
   if (!initialData) return <div>No data available</div>;
+
+  if (printMode) {
+    return <div dangerouslySetInnerHTML={{ __html: buildHtmlContent() }} />;
+  }
 
   return (
     <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif", color: "#333" }}>

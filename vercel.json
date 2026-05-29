@@ -5,6 +5,9 @@
     },
     "src/app/api/travel/package-brochure/**/*.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/mobile/**/pdf/**/*.ts": {
+      "maxDuration": 60
     }
   },
   "build": {

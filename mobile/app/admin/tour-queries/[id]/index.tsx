@@ -1002,7 +1002,7 @@ function TourQueryDetailScreenInner() {
                         <Text style={styles.dayBadgeText}>D{it.dayNumber ?? "?"}</Text>
                       </View>
                       <Text style={styles.dayTitle} numberOfLines={2}>
-                        {it.itineraryTitle ?? "Untitled"}
+                        {stripHtml(it.itineraryTitle ?? "Untitled")}
                       </Text>
                     </View>
                     {it.hotel?.name ?
@@ -1041,7 +1041,7 @@ function TourQueryDetailScreenInner() {
                       : null}
                     {it.itineraryDescription ?
                       (
-                        <CollapsibleDayDescription text={it.itineraryDescription.replace(/<[^>]+>/g, "")} />
+                        <CollapsibleDayDescription text={stripHtml(it.itineraryDescription)} />
                       )
                       : null}
                   </View>
@@ -1242,6 +1242,19 @@ function Row({ label, value }: { label: string; value: string }) {
       </Text>
     </View>
   );
+}
+
+function stripHtml(html: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
 }
 
 function CollapsibleDayDescription({ text }: { text: string }) {

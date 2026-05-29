@@ -4,11 +4,25 @@
  */
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
 
+export interface RoomAllocationEdit {
+  id?: string;
+  roomTypeId?: string;
+  occupancyTypeId: string;
+  mealPlanId?: string | null;
+  quantity?: number;
+  customRoomType?: string | null;
+}
+
 export interface TourQueryItineraryEdit {
-  id: string;
+  id?: string;
+  dayNumber?: number;
+  days?: string;
+  locationId?: string;
+  hotelId?: string | null;
   itineraryTitle?: string;
   itineraryDescription?: string;
   mealsIncluded?: string;
+  roomAllocations?: RoomAllocationEdit[];
 }
 
 export interface TourQueryEditInput {
@@ -43,6 +57,7 @@ export function createTourQueryEditClient(authRequest: AuthenticatedRequest) {
       return authRequest(`/api/mobile/tour-queries/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: input,
+        timeout: 30000,
       });
     },
   };

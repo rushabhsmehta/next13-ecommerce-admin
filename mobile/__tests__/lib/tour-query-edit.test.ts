@@ -7,13 +7,47 @@ describe("createTourQueryEditClient", () => {
     await client.update("a b", {
       tourPackageQueryName: "New name",
       inclusions: ["one", "two"],
-      itineraries: [{ id: "it1", itineraryTitle: "Day 1" }],
+      itineraries: [
+        {
+          id: "it1",
+          dayNumber: 1,
+          days: "1",
+          locationId: "loc123",
+          hotelId: "hot456",
+          itineraryTitle: "Day 1",
+          roomAllocations: [
+            {
+              roomTypeId: "rt1",
+              occupancyTypeId: "occ2",
+              mealPlanId: "mp3",
+              quantity: 2,
+              customRoomType: "Deluxe Room",
+            },
+          ],
+        },
+      ],
     });
     const [endpoint, opts] = request.mock.calls[0];
     expect(endpoint).toBe("/api/mobile/tour-queries/a%20b");
     expect(opts.method).toBe("PATCH");
     expect(opts.body.tourPackageQueryName).toBe("New name");
     expect(opts.body.inclusions).toEqual(["one", "two"]);
-    expect(opts.body.itineraries[0]).toEqual({ id: "it1", itineraryTitle: "Day 1" });
+    expect(opts.body.itineraries[0]).toEqual({
+      id: "it1",
+      dayNumber: 1,
+      days: "1",
+      locationId: "loc123",
+      hotelId: "hot456",
+      itineraryTitle: "Day 1",
+      roomAllocations: [
+        {
+          roomTypeId: "rt1",
+          occupancyTypeId: "occ2",
+          mealPlanId: "mp3",
+          quantity: 2,
+          customRoomType: "Deluxe Room",
+        },
+      ],
+    });
   });
 });

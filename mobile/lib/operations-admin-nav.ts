@@ -69,8 +69,8 @@ export const OPERATIONS_ADMIN_SECTIONS: OperationsNavSection[] = [
       },
       {
         id: "tour-queries",
-        title: "Tour queries",
-        subtitle: "Quotes & trips",
+        title: "Tour Package Queries",
+        subtitle: "Package quotes & queries",
         icon: "map-outline",
         route: "/admin/tour-queries",
         permission: "salesTrips.read",
@@ -325,8 +325,8 @@ export const ASSOCIATE_OPERATIONS_SECTIONS: OperationsNavSection[] = [
       },
       {
         id: "tour-queries",
-        title: "Tour queries",
-        subtitle: "Quotes & trips",
+        title: "Tour Package Queries",
+        subtitle: "Package quotes & queries",
         icon: "map-outline",
         route: "/admin/tour-queries",
         permission: "salesTrips.read",

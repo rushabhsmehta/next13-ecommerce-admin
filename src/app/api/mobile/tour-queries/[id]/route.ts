@@ -12,6 +12,15 @@ import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 export const dynamic = "force-dynamic";
 
 const stringArray = z.array(z.string()).optional();
+const roomAllocationSchema = z.object({
+  id: z.string().optional(),
+  roomTypeId: z.string().optional(),
+  occupancyTypeId: z.string(),
+  mealPlanId: z.string().optional().nullable(),
+  quantity: z.number().int().optional(),
+  customRoomType: z.string().optional().nullable(),
+});
+
 const patchSchema = z.object({
   tourPackageQueryName: z.string().max(300).optional(),
   customerName: z.string().max(200).optional(),
@@ -34,10 +43,15 @@ const patchSchema = z.object({
   itineraries: z
     .array(
       z.object({
-        id: z.string(),
-        itineraryTitle: z.string().optional(),
-        itineraryDescription: z.string().optional(),
-        mealsIncluded: z.string().optional(),
+        id: z.string().optional(),
+        dayNumber: z.number().int().optional(),
+        days: z.string().optional(),
+        locationId: z.string().optional(),
+        hotelId: z.string().optional().nullable(),
+        itineraryTitle: z.string().optional().nullable(),
+        itineraryDescription: z.string().optional().nullable(),
+        mealsIncluded: z.string().optional().nullable(),
+        roomAllocations: z.array(roomAllocationSchema).optional(),
       })
     )
     .optional(),
@@ -139,6 +153,19 @@ export async function GET(
             customerMobileNumber: true,
             status: true,
             associatePartnerId: true,
+            roomAllocations: {
+              select: {
+                id: true,
+                quantity: true,
+                customRoomType: true,
+                roomTypeId: true,
+                occupancyTypeId: true,
+                mealPlanId: true,
+                roomType: { select: { id: true, name: true } },
+                occupancyType: { select: { id: true, name: true } },
+                mealPlan: { select: { id: true, name: true } },
+              },
+            },
           },
         },
         flightDetails: {
@@ -169,6 +196,7 @@ export async function GET(
             id: true,
             dayNumber: true,
             days: true,
+            locationId: true,
             itineraryTitle: true,
             itineraryDescription: true,
             mealsIncluded: true,
@@ -178,9 +206,12 @@ export async function GET(
                 id: true,
                 quantity: true,
                 customRoomType: true,
-                roomType: { select: { name: true } },
-                occupancyType: { select: { name: true } },
-                mealPlan: { select: { name: true } },
+                roomTypeId: true,
+                occupancyTypeId: true,
+                mealPlanId: true,
+                roomType: { select: { id: true, name: true } },
+                occupancyType: { select: { id: true, name: true } },
+                mealPlan: { select: { id: true, name: true } },
               },
             },
             transportDetails: {
@@ -307,29 +338,126 @@ export async function PATCH(
       }
     }
 
-    const validItineraryIds = new Set(existing.itineraries.map((i) => i.id));
-
     await prismadb.$transaction(async (tx) => {
       if (Object.keys(data).length > 0) {
         await tx.tourPackageQuery.update({ where: { id }, data });
       }
-      if (v.itineraries?.length) {
+      
+      if (v.itineraries !== undefined) {
+        // Step 1: Find existing itineraries for this tourPackageQuery
+        const existingItins = await tx.itinerary.findMany({
+          where: { tourPackageQueryId: id },
+          select: { id: true }
+        });
+        const existingIds = new Set(existingItins.map((item: any) => item.id));
+
+        // Step 2: Determine which ones to delete
+        const incomingItinsWithIds = v.itineraries.filter((it: any) => it.id && existingIds.has(it.id));
+        const incomingIds = new Set(incomingItinsWithIds.map((it: any) => it.id));
+        const idsToDelete = Array.from(existingIds).filter((exId) => !incomingIds.has(exId));
+
+        if (idsToDelete.length > 0) {
+          await tx.itinerary.deleteMany({
+            where: { id: { in: idsToDelete } }
+          });
+        }
+
+        // Step 3: Process incoming itineraries
         for (const it of v.itineraries) {
-          if (!validItineraryIds.has(it.id)) continue;
-          const itData: Record<string, unknown> = {};
-          if (it.itineraryTitle !== undefined)
-            itData.itineraryTitle = it.itineraryTitle;
-          if (it.itineraryDescription !== undefined)
-            itData.itineraryDescription = it.itineraryDescription;
-          if (it.mealsIncluded !== undefined)
-            itData.mealsIncluded = it.mealsIncluded;
-          if (Object.keys(itData).length > 0) {
+          if (it.id && existingIds.has(it.id)) {
+            // Update existing day
             await tx.itinerary.update({
               where: { id: it.id },
-              data: itData,
+              data: {
+                dayNumber: it.dayNumber,
+                days: it.days || (it.dayNumber ? String(it.dayNumber) : undefined),
+                locationId: it.locationId,
+                hotelId: it.hotelId,
+                itineraryTitle: it.itineraryTitle,
+                itineraryDescription: it.itineraryDescription,
+                mealsIncluded: it.mealsIncluded,
+              }
             });
+
+            // Recreate room allocations
+            await tx.roomAllocation.deleteMany({
+              where: { itineraryId: it.id }
+            });
+
+            if (it.roomAllocations && it.roomAllocations.length > 0) {
+              for (const ra of it.roomAllocations) {
+                await tx.roomAllocation.create({
+                  data: {
+                    itineraryId: it.id,
+                    roomTypeId: ra.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea",
+                    occupancyTypeId: ra.occupancyTypeId,
+                    mealPlanId: ra.mealPlanId,
+                    quantity: ra.quantity ?? 1,
+                    customRoomType: ra.customRoomType || ""
+                  }
+                });
+              }
+            }
+          } else {
+            // Create new day
+            // Fallback locationId to query locationId if not provided
+            let targetLocationId = it.locationId;
+            if (!targetLocationId) {
+              const query = await tx.tourPackageQuery.findUnique({
+                where: { id },
+                select: { locationId: true }
+              });
+              targetLocationId = query?.locationId;
+            }
+            if (!targetLocationId) {
+              throw new Error("locationId is required for itinerary days");
+            }
+
+            const createdItinerary = await tx.itinerary.create({
+              data: {
+                tourPackageQueryId: id,
+                dayNumber: it.dayNumber,
+                days: it.days || (it.dayNumber ? String(it.dayNumber) : undefined),
+                locationId: targetLocationId,
+                hotelId: it.hotelId,
+                itineraryTitle: it.itineraryTitle || "",
+                itineraryDescription: it.itineraryDescription || "",
+                mealsIncluded: it.mealsIncluded || "",
+              }
+            });
+
+            if (it.roomAllocations && it.roomAllocations.length > 0) {
+              for (const ra of it.roomAllocations) {
+                await tx.roomAllocation.create({
+                  data: {
+                    itineraryId: createdItinerary.id,
+                    roomTypeId: ra.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea",
+                    occupancyTypeId: ra.occupancyTypeId,
+                    mealPlanId: ra.mealPlanId,
+                    quantity: ra.quantity ?? 1,
+                    customRoomType: ra.customRoomType || ""
+                  }
+                });
+              }
+            }
           }
         }
+
+        // Step 4: Re-calculate and update numDaysNight on the query
+        const finalItins = await tx.itinerary.findMany({
+          where: { tourPackageQueryId: id },
+          select: { id: true }
+        });
+        const numDays = finalItins.length;
+        const numNights = Math.max(0, numDays - 1);
+        const durationString = `${numNights}N-${numDays}D`;
+        
+        await tx.tourPackageQuery.update({
+          where: { id },
+          data: {
+            numDaysNight: durationString
+          }
+        });
       }
     }, {
       maxWait: 20000,

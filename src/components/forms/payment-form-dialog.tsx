@@ -32,7 +32,7 @@ import { FormErrorSummary } from "@/components/ui/form-error-summary";
 import ImageUpload from "@/components/ui/image-upload";
 import { DatePickerField } from "@/components/forms/shared/DatePickerField";
 import { SearchableFormSelect } from "@/components/forms/shared/SearchableFormSelect";
-import { extractFormErrors } from "@/lib/transaction-schemas";
+import { extractFormErrors, getAxiosErrorMessage, resolveAccountIds, serializeFormDate } from "@/lib/transaction-schemas";
 import { PurchaseAllocationPanel } from "@/components/forms/purchase-allocation-panel";
 
 const formSchema = z.object({
@@ -197,10 +197,8 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
         images: string[]
       }> = {
         ...data,
-        // Convert the local date to UTC for database storage
-        paymentDate: dateToUtc(data.paymentDate) || data.paymentDate,
-        bankAccountId: data.accountType === 'bank' ? data.accountId : null,
-        cashAccountId: data.accountType === 'cash' ? data.accountId : null,
+        paymentDate: serializeFormDate(dateToUtc(data.paymentDate) || data.paymentDate),
+        ...resolveAccountIds(data.accountType, data.accountId),
         images: data.images || []
       };
       delete apiData.accountId;
@@ -228,7 +226,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       toast.success(paymentData.id ? "Payment updated." : "Payment created.");
       onSuccess();
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || "Something went wrong";
+      const errorMessage = getAxiosErrorMessage(error);
       toast.error(errorMessage);
       setFormErrors([errorMessage]);
     } finally {
@@ -441,10 +439,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-gray-700">Account</FormLabel>
                       <Select
+                        key={accountTypeWatch || "none"}
                         disabled={loading || !accountTypeWatch}
                         onValueChange={field.onChange}
                         value={field.value}
-                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">

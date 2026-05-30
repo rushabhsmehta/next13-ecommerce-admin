@@ -6,16 +6,20 @@ import { requireFinanceOrAdmin } from '@/lib/authz';
 import { jsonError, handleApi, noStore } from '@/lib/api-response';
 import { z } from 'zod';
 
+const cleanEmptyString = (val: unknown) =>
+  val === '' || val === undefined ? undefined : val;
+
 const paymentPatchSchema = z.object({
-  supplierId: z.string().uuid().optional(),
-  tourPackageQueryId: z.string().uuid().optional(),
+  supplierId: z.preprocess(cleanEmptyString, z.string().uuid().optional()),
+  customerId: z.preprocess(cleanEmptyString, z.string().uuid().optional()),
+  tourPackageQueryId: z.preprocess(cleanEmptyString, z.string().uuid().optional()),
   paymentDate: z.string().datetime(),
   amount: z.number().positive(),
-  method: z.string().max(50).optional(),
-  transactionId: z.string().max(100).optional(),
-  note: z.string().max(1000).optional(),
-  bankAccountId: z.string().uuid().nullable().optional(),
-  cashAccountId: z.string().uuid().nullable().optional(),
+  method: z.preprocess(cleanEmptyString, z.string().max(50).optional()),
+  transactionId: z.preprocess(cleanEmptyString, z.string().max(100).optional()),
+  note: z.preprocess(cleanEmptyString, z.string().max(1000).optional()),
+  bankAccountId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
+  cashAccountId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
   images: z.array(z.string().url()).optional()
 }).refine(d => d.bankAccountId || d.cashAccountId, { message: 'Either bankAccountId or cashAccountId required', path: ['bankAccountId'] });
 

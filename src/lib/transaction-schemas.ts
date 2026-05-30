@@ -140,6 +140,35 @@ export function recalculateLineItems(
 /**
  * Extract form validation error messages from react-hook-form errors object.
  */
+/** Map form accountType + accountId to API bank/cash account fields (null when unset). */
+export function resolveAccountIds(
+  accountType: string,
+  accountId: string | undefined | null
+): { bankAccountId: string | null; cashAccountId: string | null } {
+  const id = typeof accountId === "string" ? accountId.trim() : "";
+  if (!id) {
+    return { bankAccountId: null, cashAccountId: null };
+  }
+  return accountType === "bank"
+    ? { bankAccountId: id, cashAccountId: null }
+    : { bankAccountId: null, cashAccountId: id };
+}
+
+/** Serialize a form date for API Zod `.datetime()` validation. */
+export function serializeFormDate(date: Date | string): string {
+  if (date instanceof Date) {
+    return date.toISOString();
+  }
+  return new Date(date).toISOString();
+}
+
+/** Read message from handleApi/jsonError axios responses. */
+export function getAxiosErrorMessage(error: unknown, fallback = "Something went wrong"): string {
+  const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+  const data = err?.response?.data;
+  return data?.error || data?.message || err?.message || fallback;
+}
+
 export function extractFormErrors(errors: Record<string, any>): string[] {
   const errorMessages: string[] = [];
   Object.entries(errors).forEach(([key, value]: [string, any]) => {

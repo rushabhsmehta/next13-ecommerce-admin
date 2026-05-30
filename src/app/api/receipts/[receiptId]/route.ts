@@ -2,23 +2,61 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
 import { dateToUtc } from '@/lib/timezone-utils';
+import { requireFinanceOrAdmin } from '@/lib/authz';
+import { jsonError, handleApi, noStore } from '@/lib/api-response';
+import { z } from 'zod';
+
+const cleanEmptyString = (val: unknown) =>
+  val === '' || val === undefined ? undefined : val;
+
+const saleAllocationItemSchema = z.object({
+  saleDetailId: z.string().uuid(),
+  allocatedAmount: z.number().positive(),
+  note: z.preprocess(cleanEmptyString, z.string().nullable().optional())
+});
+
+const receiptPatchSchema = z.object({
+  customerId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
+  supplierId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
+  receiptType: z.string().min(1).optional(),
+  tourPackageQueryId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
+  receiptDate: z.string().datetime(),
+  amount: z.number().positive(),
+  reference: z.preprocess(cleanEmptyString, z.string().max(100).nullable().optional()),
+  transactionId: z.preprocess(cleanEmptyString, z.string().max(100).nullable().optional()),
+  note: z.preprocess(cleanEmptyString, z.string().max(1000).nullable().optional()),
+  bankAccountId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
+  cashAccountId: z.preprocess(cleanEmptyString, z.string().uuid().nullable().optional()),
+  images: z.array(z.string().url()).optional(),
+  saleAllocations: z.array(saleAllocationItemSchema).optional()
+}).refine(d => d.bankAccountId || d.cashAccountId, {
+  message: 'Either bankAccountId or cashAccountId required',
+  path: ['bankAccountId']
+}).refine(d => {
+  if (!d.saleAllocations?.length) return true;
+  const allocTotal = d.saleAllocations.reduce((s, a) => s + a.allocatedAmount, 0);
+  return allocTotal <= d.amount + 0.01;
+}, {
+  message: 'Total allocated amount cannot exceed receipt amount',
+  path: ['saleAllocations']
+});
 
 export async function GET(req: Request, props: { params: Promise<{ receiptId: string }> }) {
   const params = await props.params;
-  try {
+  return handleApi(async () => {
     const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
+    await requireFinanceOrAdmin(userId);
 
     if (!params.receiptId) {
-      return new NextResponse("Receipt ID is required", { status: 400 });
-    }    const receipt = await prismadb.receiptDetail.findUnique({
-      where: {
-        id: params.receiptId
-      },
+      return jsonError('Receipt ID is required', 400, 'VALIDATION');
+    }
+
+    const receipt = await prismadb.receiptDetail.findUnique({
+      where: { id: params.receiptId },
       include: {
         customer: true,
+        supplier: true,
         bankAccount: true,
         cashAccount: true,
         images: true,
@@ -29,41 +67,41 @@ export async function GET(req: Request, props: { params: Promise<{ receiptId: st
     });
 
     if (!receipt) {
-      return new NextResponse("Receipt not found", { status: 404 });
+      return jsonError('Receipt not found', 404, 'NOT_FOUND');
     }
 
-    return NextResponse.json(receipt);
-  } catch (error) {
-    console.error('[RECEIPT_GET]', error);
-    return new NextResponse("Internal error", { status: 500 });
-  }
+    return noStore(NextResponse.json(receipt));
+  });
 }
 
 export async function PATCH(req: Request, props: { params: Promise<{ receiptId: string }> }) {
   const params = await props.params;
-  try {
+  return handleApi(async () => {
     const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
+    await requireFinanceOrAdmin(userId);
 
     if (!params.receiptId) {
-      return new NextResponse("Receipt ID is required", { status: 400 });
-    }    const body = await req.json();
+      return jsonError('Receipt ID is required', 400, 'VALIDATION');
+    }
+
+    const parsed = receiptPatchSchema.parse(await req.json());
     const {
       customerId,
+      supplierId,
+      receiptType,
       tourPackageQueryId,
       receiptDate,
       amount,
       reference,
+      transactionId,
       note,
       bankAccountId,
       cashAccountId,
       images,
       saleAllocations
-    } = body;
+    } = parsed;
 
-    // Get existing receipt to revert account balances
     const existingReceipt = await prismadb.receiptDetail.findUnique({
       where: { id: params.receiptId },
       include: {
@@ -73,39 +111,43 @@ export async function PATCH(req: Request, props: { params: Promise<{ receiptId: 
     });
 
     if (!existingReceipt) {
-      return new NextResponse("Receipt not found", { status: 404 });
+      return jsonError('Receipt not found', 404, 'NOT_FOUND');
     }
 
     // Revert previous account balance
-    if (existingReceipt.bankAccountId) {
+    if (existingReceipt.bankAccountId && existingReceipt.bankAccount) {
       await prismadb.bankAccount.update({
         where: { id: existingReceipt.bankAccountId },
         data: {
-          currentBalance: existingReceipt.bankAccount!.currentBalance - existingReceipt.amount
+          currentBalance: existingReceipt.bankAccount.currentBalance - existingReceipt.amount
         }
       });
-    } else if (existingReceipt.cashAccountId) {
+    } else if (existingReceipt.cashAccountId && existingReceipt.cashAccount) {
       await prismadb.cashAccount.update({
         where: { id: existingReceipt.cashAccountId },
         data: {
-          currentBalance: existingReceipt.cashAccount!.currentBalance - existingReceipt.amount
+          currentBalance: existingReceipt.cashAccount.currentBalance - existingReceipt.amount
         }
       });
-    }    // Update receipt detail
+    }
+
     const updatedReceipt = await prismadb.receiptDetail.update({
-      where: {
-        id: params.receiptId
-      },      data: {
-        customerId,
+      where: { id: params.receiptId },
+      data: {
+        customerId: customerId ?? existingReceipt.customerId,
+        supplierId: supplierId ?? existingReceipt.supplierId,
+        receiptType: receiptType ?? existingReceipt.receiptType,
+        tourPackageQueryId: tourPackageQueryId ?? existingReceipt.tourPackageQueryId,
         receiptDate: dateToUtc(receiptDate)!,
-        amount: parseFloat(amount.toString()),
-        reference: reference || null,
-        note: note || null,
-        bankAccountId: bankAccountId || null,
-        cashAccountId: cashAccountId || null,
+        amount,
+        reference: transactionId ?? reference ?? null,
+        note: note ?? null,
+        bankAccountId: bankAccountId ?? null,
+        cashAccountId: cashAccountId ?? null,
       },
       include: {
         customer: true,
+        supplier: true,
         bankAccount: true,
         cashAccount: true,
         images: true
@@ -122,7 +164,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ receiptId: 
         await prismadb.bankAccount.update({
           where: { id: bankAccountId },
           data: {
-            currentBalance: bankAccount.currentBalance + parseFloat(amount.toString())
+            currentBalance: bankAccount.currentBalance + amount
           }
         });
       }
@@ -135,22 +177,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ receiptId: 
         await prismadb.cashAccount.update({
           where: { id: cashAccountId },
           data: {
-            currentBalance: cashAccount.currentBalance + parseFloat(amount.toString())
+            currentBalance: cashAccount.currentBalance + amount
           }
         });
       }
     }
 
-    // Handle image updates if provided
     if (images) {
-      // First, delete all existing images for this receipt
       await prismadb.images.deleteMany({
-        where: {
-          receiptDetailsId: params.receiptId
-        }
+        where: { receiptDetailsId: params.receiptId }
       });
 
-      // Then create new images if any
       if (images.length > 0) {
         for (const url of images) {
           await prismadb.images.create({
@@ -163,14 +200,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ receiptId: 
       }
     }
 
-    // Update sale allocations if provided
     if (saleAllocations !== undefined) {
-      // Delete existing allocations for this receipt
       await prismadb.receiptSaleAllocation.deleteMany({
         where: { receiptDetailId: params.receiptId }
       });
-      // Create new allocations
-      if (Array.isArray(saleAllocations) && saleAllocations.length > 0) {
+
+      if (saleAllocations.length > 0) {
         for (const alloc of saleAllocations) {
           if (Number(alloc.allocatedAmount) > 0) {
             await prismadb.receiptSaleAllocation.create({
@@ -186,26 +221,21 @@ export async function PATCH(req: Request, props: { params: Promise<{ receiptId: 
       }
     }
 
-    return NextResponse.json(updatedReceipt);
-  } catch (error) {
-    console.error('[RECEIPT_PATCH]', error);
-    return new NextResponse("Internal error", { status: 500 });
-  }
+    return noStore(NextResponse.json(updatedReceipt));
+  });
 }
 
 export async function DELETE(req: Request, props: { params: Promise<{ receiptId: string }> }) {
   const params = await props.params;
-  try {
+  return handleApi(async () => {
     const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    if (!userId) return jsonError('Unauthenticated', 403, 'AUTH');
+    await requireFinanceOrAdmin(userId);
 
     if (!params.receiptId) {
-      return new NextResponse("Receipt ID is required", { status: 400 });
+      return jsonError('Receipt ID is required', 400, 'VALIDATION');
     }
 
-    // Get receipt to revert account balances
     const receipt = await prismadb.receiptDetail.findUnique({
       where: { id: params.receiptId },
       include: {
@@ -215,36 +245,29 @@ export async function DELETE(req: Request, props: { params: Promise<{ receiptId:
     });
 
     if (!receipt) {
-      return new NextResponse("Receipt not found", { status: 404 });
+      return jsonError('Receipt not found', 404, 'NOT_FOUND');
     }
 
-    // Revert account balance
-    if (receipt.bankAccountId) {
+    if (receipt.bankAccountId && receipt.bankAccount) {
       await prismadb.bankAccount.update({
         where: { id: receipt.bankAccountId },
         data: {
-          currentBalance: receipt.bankAccount!.currentBalance - receipt.amount
+          currentBalance: receipt.bankAccount.currentBalance - receipt.amount
         }
       });
-    } else if (receipt.cashAccountId) {
+    } else if (receipt.cashAccountId && receipt.cashAccount) {
       await prismadb.cashAccount.update({
         where: { id: receipt.cashAccountId },
         data: {
-          currentBalance: receipt.cashAccount!.currentBalance - receipt.amount
+          currentBalance: receipt.cashAccount.currentBalance - receipt.amount
         }
       });
     }
 
-    // Delete the receipt
     await prismadb.receiptDetail.delete({
-      where: {
-        id: params.receiptId
-      }
+      where: { id: params.receiptId }
     });
 
-    return NextResponse.json({ message: "Receipt deleted successfully" });
-  } catch (error) {
-    console.error('[RECEIPT_DELETE]', error);
-    return new NextResponse("Internal error", { status: 500 });
-  }
+    return noStore(NextResponse.json({ message: 'Receipt deleted successfully' }));
+  });
 }

@@ -32,7 +32,7 @@ import { FormErrorSummary } from "@/components/ui/form-error-summary";
 import ImageUpload from "@/components/ui/image-upload";
 import { DatePickerField } from "@/components/forms/shared/DatePickerField";
 import { SearchableFormSelect } from "@/components/forms/shared/SearchableFormSelect";
-import { extractFormErrors } from "@/lib/transaction-schemas";
+import { extractFormErrors, getAxiosErrorMessage, resolveAccountIds, serializeFormDate } from "@/lib/transaction-schemas";
 import { SaleAllocationPanel } from "@/components/forms/sale-allocation-panel";
 
 const saleAllocationItemSchema = z.object({
@@ -220,12 +220,12 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
         images: string[]
       }> = {
         ...data,
-        // Convert the local date to UTC for database storage
-        receiptDate: dateToUtc(data.receiptDate) || data.receiptDate,
-        bankAccountId: data.accountType === 'bank' ? data.accountId : null,
-        cashAccountId: data.accountType === 'cash' ? data.accountId : null,
+        receiptDate: serializeFormDate(dateToUtc(data.receiptDate) || data.receiptDate),
+        transactionId: data.reference || null,
+        ...resolveAccountIds(data.accountType, data.accountId),
         images: data.images || []
       };
+      delete (apiData as any).reference;
       delete apiData.accountId;
       delete apiData.accountType;
 
@@ -259,7 +259,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       toast.success(receiptData.id ? "Receipt updated." : "Receipt created.");
       onSuccess();
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || "Something went wrong";
+      const errorMessage = getAxiosErrorMessage(error);
       toast.error(errorMessage);
       setFormErrors([errorMessage]);
     } finally {
@@ -474,10 +474,10 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-gray-700">Account</FormLabel>
                       <Select
+                        key={form.watch("accountType") || "none"}
                         disabled={loading || !form.watch("accountType")}
                         onValueChange={field.onChange}
                         value={field.value}
-                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20">

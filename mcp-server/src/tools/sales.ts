@@ -42,7 +42,7 @@ export function registerSalesTools(server: McpServer) {
 
   server.tool(
     "create_sale",
-    "Create a customer invoice (sale). The tour query must be confirmed first.",
+    "Create a customer invoice (sale). The tour query must be confirmed first. IMPORTANT: tourPackageQueryId is REQUIRED. Use list_tour_queries to search by customer name and find the confirmed tour query ID first.",
     {
       tourPackageQueryId: z.string().describe("The confirmed tour query ID"),
       customerId: z.string().describe("The customer ID"),

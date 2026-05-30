@@ -151,7 +151,7 @@ NOTES:
 
   server.tool(
     "list_tour_queries",
-    "List existing tour package queries (quotes). Filter by customer name or location.",
+    "List or search existing tour package queries (quotes). ALWAYS use this first when you need to find a tour query ID but only have the customer's name. Search by customerName (partial name works, e.g. 'Vrunda'). Do NOT ask the user for a tour query ID; find it yourself using this tool.",
     {
       locationId: z.string().optional().describe("Filter by location ID"),
       customerName: z.string().optional().describe("Search by customer name"),

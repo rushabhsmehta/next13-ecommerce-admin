@@ -42,7 +42,7 @@ export function registerPurchaseTools(server: McpServer) {
 
   server.tool(
     "create_purchase",
-    "Record a supplier bill (purchase). The tour query must be confirmed first.",
+    "Record a supplier bill (purchase). The tour query must be confirmed first. IMPORTANT: tourPackageQueryId is REQUIRED. Use list_tour_queries to search by customer name and find the confirmed tour query ID first.",
     {
       tourPackageQueryId: z.string().describe("The confirmed tour query ID"),
       supplierId: z.string().describe("The supplier ID"),

@@ -60,7 +60,7 @@ export function registerFinanceTools(server: McpServer) {
     "create_payment",
     `Record an outgoing payment from a bank or cash account. Automatically updates the account balance.
     IMPORTANT: tourPackageQueryId is REQUIRED and the tour query must be confirmed before you can record a payment.
-    Use list_tour_queries to find the confirmed tour query ID first.
+    Use list_tour_queries to search by customer name and find the confirmed tour query ID first.
     You can specify the account by ID (bankAccountId/cashAccountId) or by name (bankAccountName/cashAccountName).
     Example: "Pay 5000 to supplier from HDFC account on 2026-03-10 for tour query TPQ-20260301-XYZ"`,
     {
@@ -97,7 +97,7 @@ export function registerFinanceTools(server: McpServer) {
     "create_receipt",
     `Record an incoming receipt/payment received into a bank or cash account. Automatically updates the account balance.
     IMPORTANT: tourPackageQueryId is REQUIRED and the tour query must be confirmed before you can record a receipt.
-    Use list_tour_queries to find the confirmed tour query ID first.
+    Use list_tour_queries to search by customer name and find the confirmed tour query ID first.
     You can specify the account by ID or by name.
     Example: "Record receipt of 15000 from customer into SBI account on 2026-03-09 for tour query TPQ-20260301-XYZ"`,
     {

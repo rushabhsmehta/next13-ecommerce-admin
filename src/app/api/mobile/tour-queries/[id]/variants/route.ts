@@ -10,12 +10,32 @@ import {
 export const dynamic = "force-dynamic";
 
 type VariantPricing = {
+  calculationMethod?: string;
+  components?: Array<Record<string, unknown>>;
+  remarks?: string;
   totalCost?: number;
   basePrice?: number;
   appliedMarkup?: { percentage?: number; amount?: number };
   breakdown?: { accommodation?: number; transport?: number };
+  itineraryBreakdown?: unknown;
+  transportDetails?: unknown;
+  perPersonRates?: unknown;
   calculatedAt?: string;
 };
+
+function normalizePricingComponents(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> =>
+      item != null && typeof item === "object" && !Array.isArray(item)
+    )
+    .map((item) => ({
+      ...item,
+      name: item.name == null ? "" : String(item.name),
+      price: item.price == null ? "" : String(item.price),
+      description: item.description == null ? "" : String(item.description),
+    }));
+}
 
 /**
  * Variant comparison for a tour query. Returns each variant snapshot paired
@@ -84,12 +104,22 @@ export async function GET(
             tpq.confirmedVariantId === snap.sourceVariantId),
         pricing: pricing
           ? {
+              calculationMethod:
+                typeof pricing.calculationMethod === "string"
+                  ? pricing.calculationMethod
+                  : null,
+              components: normalizePricingComponents(pricing.components),
+              remarks:
+                typeof pricing.remarks === "string" ? pricing.remarks : null,
               totalCost: Number(pricing.totalCost ?? 0),
               basePrice: Number(pricing.basePrice ?? 0),
               markupPercentage: Number(pricing.appliedMarkup?.percentage ?? 0),
               markupAmount: Number(pricing.appliedMarkup?.amount ?? 0),
               accommodation: Number(pricing.breakdown?.accommodation ?? 0),
               transport: Number(pricing.breakdown?.transport ?? 0),
+              itineraryBreakdown: pricing.itineraryBreakdown ?? null,
+              transportDetails: pricing.transportDetails ?? null,
+              perPersonRates: pricing.perPersonRates ?? null,
               calculatedAt: pricing.calculatedAt ?? null,
             }
           : null,

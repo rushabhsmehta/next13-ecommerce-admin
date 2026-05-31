@@ -82,6 +82,13 @@ interface TransportDetailItem {
   vehicleType: { name: string } | null;
 }
 
+interface PricingItem {
+  name: string | null;
+  price: string | null;
+  description: string | null;
+  [key: string]: unknown;
+}
+
 interface ItineraryItem {
   id: string;
   dayNumber: number | null;
@@ -118,6 +125,10 @@ interface TourQueryDetail {
   pricePerChild5to12YearsNoBed: string | null;
   pricePerChildwithSeatBelow5Years: string | null;
   totalPrice: string | null;
+  pricingSection: PricingItem[];
+  pricingCalculationMethod: string | null;
+  selectedMealPlanId: string | null;
+  variantPricingData: Record<string, unknown>;
   remarks: string | null;
   isFeatured: boolean;
   isArchived: boolean;
@@ -177,6 +188,15 @@ function hasPositiveTotal(price: string | null | undefined): boolean {
   if (!price) return false;
   const n = Number.parseFloat(price);
   return Number.isFinite(n) && n > 0;
+}
+
+function pricingMethodLabel(method: string | null | undefined): string {
+  if (method === "manual") return "Manual pricing";
+  if (method === "autoHotelTransport") return "Hotel + transport";
+  if (method === "autoTourPackage" || method === "useTourPackagePricing") {
+    return "Package pricing";
+  }
+  return "Pricing";
 }
 
 function buildRoomLabel(r: RoomAllocationDetail): string {
@@ -541,6 +561,19 @@ function TourQueryDetailScreenInner() {
             },
           ]
         : []),
+      ...(canWriteSales
+        ? [
+            {
+              id: "pricing-screen",
+              label: "Pricing",
+              icon: "calculator-outline" as const,
+              testID: "tour-query-pricing",
+              accessibilityHint: "Opens native quote pricing rows and total.",
+              onPress: () =>
+                router.push(`/admin/tour-queries/${id}/pricing` as never),
+            },
+          ]
+        : []),
       {
         id: "hotels-web",
         label: "Hotels (web)",
@@ -744,6 +777,20 @@ function TourQueryDetailScreenInner() {
     ["Per child under 5", data.pricePerChildwithSeatBelow5Years],
   ];
   const visiblePricing = pricingLines.filter(([, v]) => v && String(v).trim());
+  const pricingItems = Array.isArray(data.pricingSection)
+    ? data.pricingSection.filter((item) =>
+        Boolean(
+          item &&
+            (String(item.name ?? "").trim() ||
+              String(item.price ?? "").trim() ||
+              String(item.description ?? "").trim())
+        )
+      )
+    : [];
+  const pricingItemTotal = pricingItems.reduce((sum, item) => {
+    const n = Number.parseFloat(String(item.price ?? ""));
+    return Number.isFinite(n) ? sum + n : sum;
+  }, 0);
   const policyBlocks = [
     { title: "Inclusions", items: data.inclusionsList },
     { title: "Exclusions", items: data.exclusionsList },
@@ -1065,14 +1112,55 @@ function TourQueryDetailScreenInner() {
 
         {/* Pricing */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitleStatic}>Pricing</Text>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Pricing</Text>
+            {canWriteSales ? (
+              <Pressable
+                testID="tour-query-pricing-edit"
+                accessibilityRole="button"
+                accessibilityLabel="Edit pricing"
+                accessibilityHint="Opens native quote pricing rows and total."
+                style={styles.sectionHeaderAction}
+                onPress={() => router.push(`/admin/tour-queries/${id}/pricing` as never)}
+              >
+                <Ionicons name="calculator-outline" size={15} color={Colors.primary} />
+                <Text style={styles.sectionHeaderActionText}>Edit</Text>
+              </Pressable>
+            ) : null}
+          </View>
           <View style={styles.sectionBody}>
             <Text style={styles.pricingTotal}>
               {hasPositiveTotal(data.totalPrice) ? formatINR(data.totalPrice) : "No total yet"}
             </Text>
             <Text style={styles.pricingNote}>
-              {hasPositiveTotal(data.totalPrice) ? "Pricing available" : "No pricing yet"}
+              {hasPositiveTotal(data.totalPrice)
+                ? pricingMethodLabel(data.pricingCalculationMethod)
+                : "No pricing yet"}
             </Text>
+            {pricingItems.length ? (
+              <View style={styles.pricingItems}>
+                {pricingItems.map((item, index) => (
+                  <View key={`pricing-item-${index}`} style={styles.pricingItemRow}>
+                    <View style={styles.pricingItemText}>
+                      <Text style={styles.pricingItemName} numberOfLines={1}>
+                        {item.name || "Pricing item"}
+                      </Text>
+                      {item.description ? (
+                        <Text style={styles.pricingItemDescription} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.pricingItemPrice}>{formatINR(item.price)}</Text>
+                  </View>
+                ))}
+                {!hasPositiveTotal(data.totalPrice) && pricingItemTotal > 0 ? (
+                  <Text style={styles.pricingNote}>
+                    Item total {formatINR(pricingItemTotal)}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             {data.price ?
               <Text style={styles.priceSummaryLine} numberOfLines={3}>
                 {data.price}
@@ -1377,6 +1465,30 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     paddingHorizontal: 2,
   },
+  sectionHeaderInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: 2,
+  },
+  sectionHeaderAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: BorderRadius.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+  },
+  sectionHeaderActionText: {
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.primary,
+  },
   sectionTitle: {
     fontSize: FontSize.xs,
     fontWeight: "900",
@@ -1459,6 +1571,32 @@ const styles = StyleSheet.create({
   showAllText: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
   pricingTotal: { fontSize: FontSize.xxl, fontWeight: "900", color: Colors.text },
   pricingNote: { fontSize: FontSize.xs, fontWeight: "700", color: Colors.textTertiary },
+  pricingItems: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  pricingItemRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
+  pricingItemText: { flex: 1, minWidth: 0 },
+  pricingItemName: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
+  pricingItemDescription: {
+    marginTop: 2,
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    lineHeight: 16,
+  },
+  pricingItemPrice: {
+    flexShrink: 0,
+    fontSize: FontSize.sm,
+    fontWeight: "900",
+    color: Colors.text,
+  },
   priceSummaryLine: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
   perPersonRow: {
     flexDirection: "row",

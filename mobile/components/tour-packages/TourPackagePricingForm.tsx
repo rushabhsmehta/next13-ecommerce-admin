@@ -29,6 +29,7 @@ import { ApiError, withAuth } from "@/lib/api";
 import {
   createTourPackagesClient,
   type PricingComponentInput,
+  type TourPackagePricingRow,
   type TourPackagePricingInput,
 } from "@/lib/tour-packages";
 
@@ -59,6 +60,29 @@ function asDate(value?: string | Date | null): Date {
   return Number.isFinite(d.getTime()) ? d : new Date();
 }
 
+interface SeasonalPeriodOption {
+  id: string;
+  label: string;
+  startMonth?: number;
+  startDay?: number;
+  endMonth?: number;
+  endDay?: number;
+  description?: string | null;
+}
+
+function datesForSeason(period: SeasonalPeriodOption, reference: Date) {
+  if (!period.startMonth || !period.startDay || !period.endMonth || !period.endDay) {
+    return null;
+  }
+  const year = reference.getFullYear();
+  const start = new Date(year, period.startMonth - 1, period.startDay);
+  let end = new Date(year, period.endMonth - 1, period.endDay);
+  if (end < start) {
+    end = new Date(year + 1, period.endMonth - 1, period.endDay);
+  }
+  return { start, end };
+}
+
 interface Props {
   packageId: string;
   locationId: string;
@@ -79,7 +103,12 @@ interface Props {
     description: string;
     isGroupPricing: boolean;
     isActive: boolean;
-    components: { pricingAttributeId: string; price: string; purchasePrice: string }[];
+    components: {
+      pricingAttributeId: string;
+      price: string;
+      purchasePrice: string;
+      description: string;
+    }[];
   };
 }
 
@@ -124,13 +153,14 @@ export function TourPackagePricingForm({
   const [isGroupPricing, setIsGroupPricing] = useState(initial?.isGroupPricing ?? false);
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
   const [componentPrices, setComponentPrices] = useState<
-    Record<string, { price: string; purchasePrice: string }>
+    Record<string, { price: string; purchasePrice: string; description: string }>
   >(() => {
-    const map: Record<string, { price: string; purchasePrice: string }> = {};
+    const map: Record<string, { price: string; purchasePrice: string; description: string }> = {};
     for (const c of initial?.components ?? []) {
       map[c.pricingAttributeId] = {
         price: c.price,
         purchasePrice: c.purchasePrice,
+        description: c.description,
       };
     }
     return map;
@@ -139,21 +169,23 @@ export function TourPackagePricingForm({
   const [mealPlans, setMealPlans] = useState<{ id: string; label: string }[]>([]);
   const [variants, setVariants] = useState<{ id: string; label: string }[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<{ id: string; label: string }[]>([]);
-  const [seasonalPeriods, setSeasonalPeriods] = useState<{ id: string; label: string }[]>([]);
+  const [seasonalPeriods, setSeasonalPeriods] = useState<SeasonalPeriodOption[]>([]);
+  const [copySources, setCopySources] = useState<TourPackagePricingRow[]>([]);
   const [pricingAttributes, setPricingAttributes] = useState<
     { id: string; name: string }[]
   >([]);
   const [picker, setPicker] = useState<
-    "meal" | "variant" | "vehicle" | "season" | null
+    "meal" | "variant" | "vehicle" | "season" | "copy" | null
   >(null);
   const [dateField, setDateField] = useState<"start" | "end" | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const loadLookups = useCallback(async () => {
     try {
-      const [lookups, variantRes] = await Promise.all([
+      const [lookups, variantRes, pricingRes] = await Promise.all([
         client.getLookups(locationId),
         client.listVariants(packageId),
+        client.listPricing(packageId),
       ]);
       setMealPlans(lookups.mealPlans.map((m) => ({ id: m.id, label: `${m.code} - ${m.name}` })));
       setVehicleTypes([
@@ -162,8 +194,19 @@ export function TourPackagePricingForm({
       ]);
       setSeasonalPeriods([
         { id: "__none", label: "No seasonal period" },
-        ...lookups.seasonalPeriods.map((s) => ({ id: s.id, label: s.name })),
+        ...lookups.seasonalPeriods.map((s) => ({
+          id: s.id,
+          label: s.name,
+          startMonth: s.startMonth,
+          startDay: s.startDay,
+          endMonth: s.endMonth,
+          endDay: s.endDay,
+          description: s.description,
+        })),
       ]);
+      setCopySources(
+        pricingRes.items.filter((item) => item.id !== pricingId)
+      );
       setPricingAttributes(lookups.pricingAttributes);
       setVariants([
         { id: "__none", label: "All variants (global)" },
@@ -172,14 +215,14 @@ export function TourPackagePricingForm({
       setComponentPrices((prev) => {
         const next = { ...prev };
         for (const attr of lookups.pricingAttributes) {
-          if (!next[attr.id]) next[attr.id] = { price: "", purchasePrice: "" };
+          if (!next[attr.id]) next[attr.id] = { price: "", purchasePrice: "", description: "" };
         }
         return next;
       });
     } catch {
       /* ignore */
     }
-  }, [client, locationId, packageId]);
+  }, [client, locationId, packageId, pricingId]);
 
   useEffect(() => {
     void loadLookups();
@@ -190,6 +233,32 @@ export function TourPackagePricingForm({
   );
   const canSubmit = !!mealPlanId && hasComponents && !submitting;
   const screenTitle = mode === "create" ? "New seasonal pricing" : "Edit seasonal pricing";
+
+  function applyPricingCopy(source: TourPackagePricingRow) {
+    setMealPlanId(source.mealPlanId);
+    setMealPlanName(`${source.mealPlanCode} - ${source.mealPlanName}`);
+    setNumberOfRooms(String(source.numberOfRooms || 1));
+    setPackageVariantId(source.packageVariantId ?? "");
+    setPackageVariantName(source.packageVariantName ?? "");
+    setVehicleTypeId(source.vehicleTypeId ?? "");
+    setVehicleTypeName(source.vehicleTypeName ?? "");
+    setIsGroupPricing(source.isGroupPricing);
+    if (!description.trim() && source.description) {
+      setDescription(source.description);
+    }
+    setComponentPrices((prev) => {
+      const next = { ...prev };
+      for (const component of source.pricingComponents) {
+        next[component.pricingAttributeId] = {
+          price: String(component.price ?? ""),
+          purchasePrice:
+            component.purchasePrice != null ? String(component.purchasePrice) : "",
+          description: component.description ?? "",
+        };
+      }
+      return next;
+    });
+  }
 
   function onDateChange(event: DateTimePickerEvent, selected?: Date) {
     if (Platform.OS !== "ios") setDateField(null);
@@ -206,8 +275,9 @@ export function TourPackagePricingForm({
         purchasePrice: componentPrices[attr.id]?.purchasePrice
           ? Number(componentPrices[attr.id].purchasePrice)
           : null,
+        description: componentPrices[attr.id]?.description?.trim() || null,
       }))
-      .filter((c) => c.price > 0 || c.purchasePrice);
+      .filter((c) => c.price > 0 || c.purchasePrice || c.description);
 
     return {
       startDate: toIsoDate(startDate),
@@ -284,6 +354,13 @@ export function TourPackagePricingForm({
         ? variants
         : picker === "vehicle"
           ? vehicleTypes
+          : picker === "copy"
+            ? copySources.map((item) => ({
+                id: item.id,
+                label: `${fmtDateLabel(asDate(item.startDate))} - ${fmtDateLabel(
+                  asDate(item.endDate)
+                )} - ${item.mealPlanName}`,
+              }))
           : seasonalPeriods;
   const pickerTitle =
     picker === "meal"
@@ -292,6 +369,8 @@ export function TourPackagePricingForm({
         ? "Variant"
         : picker === "vehicle"
           ? "Vehicle type"
+          : picker === "copy"
+            ? "Copy from period"
           : "Seasonal period";
   const pickerSelectedId =
     picker === "meal"
@@ -300,6 +379,8 @@ export function TourPackagePricingForm({
         ? packageVariantId || "__none"
         : picker === "vehicle"
           ? vehicleTypeId || "__none"
+          : picker === "copy"
+            ? null
           : seasonalPeriodId || "__none";
 
   return (
@@ -423,6 +504,22 @@ export function TourPackagePricingForm({
             <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
           </Pressable>
         </AdminFormField>
+        {copySources.length > 0 ? (
+          <AdminFormField label="Copy from period">
+            <Pressable
+              testID="tour-pricing-form-copy"
+              accessibilityRole="button"
+              accessibilityLabel="Copy from existing pricing period"
+              style={styles.pickerBtn}
+              onPress={() => setPicker("copy")}
+            >
+              <Text style={styles.pickerPlaceholder}>
+                Copy meal, rooms, vehicle, and components
+              </Text>
+              <Ionicons name="copy-outline" size={18} color={Colors.textTertiary} />
+            </Pressable>
+          </AdminFormField>
+        ) : null}
         <AdminFormField label="Description">
           <TextInput
             testID="tour-pricing-form-description"
@@ -459,7 +556,10 @@ export function TourPackagePricingForm({
                   onChangeText={(text) =>
                     setComponentPrices((prev) => ({
                       ...prev,
-                      [attr.id]: { ...prev[attr.id], price: text },
+                      [attr.id]: {
+                        ...(prev[attr.id] ?? { purchasePrice: "", description: "" }),
+                        price: text,
+                      },
                     }))
                   }
                   keyboardType="decimal-pad"
@@ -475,10 +575,32 @@ export function TourPackagePricingForm({
                   onChangeText={(text) =>
                     setComponentPrices((prev) => ({
                       ...prev,
-                      [attr.id]: { ...(prev[attr.id] ?? { price: "" }), purchasePrice: text },
+                      [attr.id]: {
+                        ...(prev[attr.id] ?? { price: "", description: "" }),
+                        purchasePrice: text,
+                      },
                     }))
                   }
                   keyboardType="decimal-pad"
+                  placeholder="Optional"
+                  placeholderTextColor={Colors.textTertiary}
+                />
+              </AdminFormField>
+              <AdminFormField label="Description">
+                <TextInput
+                  testID={`tour-pricing-form-component-description-${index}`}
+                  style={[styles.input, styles.textarea]}
+                  value={componentPrices[attr.id]?.description ?? ""}
+                  onChangeText={(text) =>
+                    setComponentPrices((prev) => ({
+                      ...prev,
+                      [attr.id]: {
+                        ...(prev[attr.id] ?? { price: "", purchasePrice: "" }),
+                        description: text,
+                      },
+                    }))
+                  }
+                  multiline
                   placeholder="Optional"
                   placeholderTextColor={Colors.textTertiary}
                 />
@@ -545,7 +667,19 @@ export function TourPackagePricingForm({
             } else {
               setSeasonalPeriodId(opt.id);
               setSeasonalPeriodName(opt.label);
+              const period = seasonalPeriods.find((item) => item.id === opt.id);
+              const range = period ? datesForSeason(period, startDate) : null;
+              if (range) {
+                setStartDate(range.start);
+                setEndDate(range.end);
+              }
+              if (!description.trim() && period?.description) {
+                setDescription(period.description);
+              }
             }
+          } else if (picker === "copy") {
+            const source = copySources.find((item) => item.id === opt.id);
+            if (source) applyPricingCopy(source);
           }
           setPicker(null);
         }}

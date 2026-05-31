@@ -7,6 +7,13 @@ export type AuthenticatedRequest = <T = any>(
     timeout?: number;
     retries?: number;
     headers?: Record<string, string>;
+    idempotencyKey?: string;
+    signal?: AbortSignal;
+    cacheKey?: string;
+    cacheTtlSeconds?: number;
+    dedupe?: boolean;
+    staleOnError?: boolean;
+    requireOnline?: boolean;
   }
 ) => Promise<T>;
 
@@ -32,6 +39,11 @@ export interface AssociateInquiry {
   location?: { id: string; label: string } | null;
   associatePartner?: { id: string; name: string } | null;
   actions?: InquiryActionItem[];
+}
+
+interface AssociateInquiryListResponse {
+  items?: AssociateInquiry[];
+  inquiries?: AssociateInquiry[];
 }
 
 export interface InquiryRoomAllocationPayload {
@@ -97,12 +109,24 @@ export function createAssociateInquiryClient(
       timeout?: number;
       retries?: number;
       headers?: Record<string, string>;
+      idempotencyKey?: string;
+      signal?: AbortSignal;
+      cacheKey?: string;
+      cacheTtlSeconds?: number;
+      dedupe?: boolean;
+      staleOnError?: boolean;
+      requireOnline?: boolean;
     }
   ) => Promise<T>
 ) {
   return {
-    listInquiries(): Promise<AssociateInquiry[]> {
-      return authRequest<AssociateInquiry[]>("/api/inquiries");
+    async listInquiries(): Promise<AssociateInquiry[]> {
+      const response = await authRequest<AssociateInquiry[] | AssociateInquiryListResponse>(
+        "/api/mobile/crm/inquiries?limit=100",
+        { retries: 1, cacheTtlSeconds: 20, dedupe: true, staleOnError: true }
+      );
+      if (Array.isArray(response)) return response;
+      return response.items ?? response.inquiries ?? [];
     },
     getInquiry(inquiryId: string): Promise<AssociateInquiry | null> {
       return authRequest<AssociateInquiry | null>(`/api/inquiries/${inquiryId}`);

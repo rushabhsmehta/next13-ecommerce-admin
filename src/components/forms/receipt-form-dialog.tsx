@@ -214,7 +214,9 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       setFormErrors([]);
 
       // Prepare the API data with correct account type field and timezone-safe date conversion
-      const apiData: Partial<ReceiptFormValues & {
+      const apiData: Partial<Omit<ReceiptFormValues, "receiptDate" | "reference"> & {
+        receiptDate: string;
+        transactionId: string | null;
         bankAccountId: string | null,
         cashAccountId: string | null,
         images: string[]

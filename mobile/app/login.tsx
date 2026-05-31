@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Constants from "expo-constants";
 import {
   View,
   Text,
@@ -28,6 +29,13 @@ import {
 } from "@/lib/app-variant";
 
 WebBrowser.maybeCompleteAuthSession();
+
+function suggestedDevBypassToken(): string {
+  const fromExtra = (
+    Constants.expoConfig?.extra as { mobileDevAuthBypassToken?: string } | undefined
+  )?.mobileDevAuthBypassToken?.trim();
+  return fromExtra || "mobile-dev-test-bypass-20260522";
+}
 
 type Step = "email" | "otp" | "profile";
 type FlowType = "signIn" | "signUp";
@@ -378,7 +386,15 @@ export default function LoginScreen() {
                   testID="login-dev-bypass-toggle"
                   accessibilityRole="button"
                   accessibilityLabel="Show developer sign-in options"
-                  onPress={() => setShowDevBypass((v) => !v)}
+                  onPress={() => {
+                    setShowDevBypass((open) => {
+                      const next = !open;
+                      if (next && !devBypassTokenInput.trim()) {
+                        setDevBypassTokenInput(suggestedDevBypassToken());
+                      }
+                      return next;
+                    });
+                  }}
                 >
                   <Text style={styles.devToggleText}>
                     {showDevBypass ? "Hide developer sign-in" : "Developer sign-in (bypass Clerk)"}

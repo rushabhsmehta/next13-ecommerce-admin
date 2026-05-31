@@ -194,6 +194,7 @@ export async function GET(req: Request) {
             mealsIncluded: true,
             location: { select: { id: true, label: true } },
             hotel: { select: { id: true, name: true } },
+            itineraryMasterImages: { select: { url: true }, take: 1, orderBy: { createdAt: "asc" } },
           },
           orderBy: { updatedAt: "desc" },
           skip: offset,
@@ -212,6 +213,7 @@ export async function GET(req: Request) {
         ]
           .filter(Boolean)
           .join(" · "),
+        imageUrl: it.itineraryMasterImages?.[0]?.url ?? null,
       }));
       total = count;
     }

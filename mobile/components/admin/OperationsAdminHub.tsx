@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -14,6 +14,7 @@ import {
   AdminLoadingState,
   AdminScreen,
 } from "@/components/admin";
+import type { AdminHubNavItem } from "@/components/admin/AdminHubSection";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
@@ -22,6 +23,19 @@ import {
   ASSOCIATE_OPERATIONS_SECTIONS,
   OPERATIONS_ADMIN_SECTIONS,
 } from "@/lib/operations-admin-nav";
+
+const STAFF_PRIMARY_ITEM_IDS = [
+  "ops-portal",
+  "inquiries",
+  "tour-queries",
+  "tour-packages",
+  "hotels",
+  "transport-pricing",
+  "suppliers",
+  "whatsapp",
+];
+
+const ASSOCIATE_PRIMARY_ITEM_IDS = ["associate-inquiries", "tour-queries"];
 
 function displayRoleLabel(
   role: string | null,
@@ -49,14 +63,49 @@ export function OperationsAdminHub() {
     isLoading: authLoading,
     isOwner,
   } = useCurrentUser();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const navSections = useMemo(() => {
     const base = isAssociate ? ASSOCIATE_OPERATIONS_SECTIONS : OPERATIONS_ADMIN_SECTIONS;
     return filterOperationsNavSections(base, { permissions, isAssociate });
   }, [isAssociate, permissions]);
 
-  function openItem(item: OperationsNavItem) {
-    router.push(item.route as never);
+  const primaryItems = useMemo(() => {
+    const byId = new Map<string, OperationsNavItem>();
+    for (const section of navSections) {
+      for (const item of section.items) {
+        if (!byId.has(item.id)) byId.set(item.id, item);
+      }
+    }
+
+    const ids = isAssociate ? ASSOCIATE_PRIMARY_ITEM_IDS : STAFF_PRIMARY_ITEM_IDS;
+    return ids.map((id) => byId.get(id)).filter((item): item is OperationsNavItem => !!item);
+  }, [isAssociate, navSections]);
+
+  const moreSections = useMemo(() => {
+    const primaryIds = new Set(primaryItems.map((item) => item.id));
+    return navSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => !primaryIds.has(item.id)),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [navSections, primaryItems]);
+
+  const moreCount = moreSections.reduce((sum, section) => sum + section.items.length, 0);
+  const routeByItemId = useMemo(() => {
+    const routes = new Map<string, string>();
+    for (const item of primaryItems) routes.set(item.id, item.route);
+    for (const section of moreSections) {
+      for (const item of section.items) routes.set(item.id, item.route);
+    }
+    return routes;
+  }, [moreSections, primaryItems]);
+
+  function openItem(item: AdminHubNavItem) {
+    const route = routeByItemId.get(item.id);
+    if (!route) return;
+    router.push(route as never);
   }
 
   if (authLoading) {
@@ -106,22 +155,56 @@ export function OperationsAdminHub() {
       <View style={styles.header} testID="operations-hub-header">
         <View style={styles.headerText}>
           <Text style={styles.title}>Operations</Text>
-          <Text style={styles.subtitle}>Same modules as web CRM — tap a card to open</Text>
+          <Text style={styles.subtitle}>Fast access for assigned work and trip operations</Text>
         </View>
         <View style={styles.rolePill}>
           <Text style={styles.rolePillText}>{roleLabel}</Text>
         </View>
       </View>
 
-      {navSections.map((section) => (
+      {primaryItems.length ? (
         <AdminHubSection
-          key={section.id}
-          id={section.id}
-          title={section.title}
-          items={section.items}
+          id="priority"
+          title={isAssociate ? "Quick work" : "Start here"}
+          items={primaryItems}
           onPressItem={openItem}
         />
-      ))}
+      ) : null}
+
+      {moreCount > 0 ? (
+        <>
+          <Pressable
+            testID="operations-more-tools-toggle"
+            accessibilityRole="button"
+            accessibilityLabel={moreOpen ? "Hide more tools" : "Show more tools"}
+            onPress={() => setMoreOpen((open) => !open)}
+            style={({ pressed }) => [styles.moreToggle, pressed && styles.moreTogglePressed]}
+          >
+            <View style={styles.moreToggleTextCol}>
+              <Text style={styles.moreToggleTitle}>More tools</Text>
+              <Text style={styles.moreToggleSubtitle}>{moreCount} admin modules</Text>
+            </View>
+            <Ionicons
+              name={moreOpen ? "chevron-up" : "chevron-down"}
+              size={20}
+              color={Colors.textTertiary}
+              accessibilityElementsHidden
+            />
+          </Pressable>
+
+          {moreOpen
+            ? moreSections.map((section) => (
+                <AdminHubSection
+                  key={section.id}
+                  id={section.id}
+                  title={section.title}
+                  items={section.items}
+                  onPressItem={openItem}
+                />
+              ))
+            : null}
+        </>
+      ) : null}
     </AdminScreen>
   );
 }
@@ -186,5 +269,29 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: "800",
     color: Colors.textSecondary,
+  },
+  moreToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+  },
+  moreTogglePressed: { backgroundColor: Colors.surfaceAlt },
+  moreToggleTextCol: { flex: 1, gap: 2 },
+  moreToggleTitle: {
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.text,
+  },
+  moreToggleSubtitle: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.textTertiary,
   },
 });

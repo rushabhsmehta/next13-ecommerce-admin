@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
@@ -223,7 +223,7 @@ function Inner() {
             onPress={() => router.push(`/admin/operations/hotels/${item.id}` as never)}
           >
             {item.heroImageUrl?.trim() ? (
-              <Image source={{ uri: item.heroImageUrl.trim() }} style={styles.thumb} />
+              <RemoteImage uri={item.heroImageUrl} style={styles.thumb} />
             ) : (
               <View style={[styles.thumb, styles.thumbPlaceholder]}>
                 <Ionicons name="bed" size={18} color={Colors.textTertiary} />

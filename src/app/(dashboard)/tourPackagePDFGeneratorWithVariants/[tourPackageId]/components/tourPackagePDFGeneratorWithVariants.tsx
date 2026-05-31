@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { escapeAttr } from "@/lib/html-escape";
-import { renderItineraryImages } from "@/lib/itinerary-image-html";
+import { renderItineraryImages, renderActivityImages } from "@/lib/itinerary-image-html";
 import {
   Activity,
   FlightDetails,
@@ -406,15 +406,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                           <h5 style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 4px 0;">
                             ${activity.activityTitle || `Activity ${actIdx + 1}`}
                           </h5>
-                          ${activity.activityImages && activity.activityImages.length > 0 ? `
-                            <div style="display: grid; grid-template-columns: repeat(${Math.min(activity.activityImages.length, 3)}, 1fr); gap: 6px; margin: 8px 0; max-height: 120px; overflow: hidden;">
-                              ${activity.activityImages.slice(0, 3).map((img, imgIdx) => `
-                                <div style="height: 120px; overflow: hidden; border-radius: 4px; background: #f3f4f6;">
-                                  <img src="${escapeAttr(img.url)}" alt="${escapeAttr(activity.activityTitle || 'Activity')}" style="width: 100%; height: 100%; object-fit: cover;" />
-                                </div>
-                              `).join('')}
-                            </div>
-                          ` : ''}
+                          ${renderActivityImages(activity.activityImages, activity.activityTitle)}
                           ${activity.activityDescription ? `
                             <p style="font-size: 13px; color: ${brandColors.muted}; margin: 4px 0 0 0; line-height: 1.5;">
                               ${activity.activityDescription}

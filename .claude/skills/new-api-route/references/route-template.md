@@ -84,7 +84,7 @@ export async function GET(req: Request) {
 }
 ```
 
-## Dynamic route (Next.js 15+ async params)
+## Dynamic route (Next.js 16 async params)
 
 ```tsx
 export async function PATCH(

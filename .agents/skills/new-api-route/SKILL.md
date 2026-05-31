@@ -54,7 +54,7 @@ Mobile surface:
 ## Conventions
 
 - Log prefix: `[UPPERCASE_ROUTE_METHOD]` e.g. `[INQUIRIES_POST]`, `[CUSTOMERS_PATCH]`
-- Dynamic routes: `export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> })` (Next.js 15+ async params)
+- Dynamic routes: `export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> })` (Next.js 16 async params)
 - Prefer `select` over heavy `include` on list endpoints
 - Mobile clients may send `X-Mobile-App-Variant` — log only, never authorize from it
 

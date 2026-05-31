@@ -67,6 +67,14 @@ interface InquiryRow {
   tourPackageQueries?: Array<{ id: string }> | null;
 }
 
+interface InquiryListResponse {
+  items?: InquiryRow[];
+  inquiries?: InquiryRow[];
+  total?: number;
+  nextOffset?: number;
+  hasMore?: boolean;
+}
+
 const STATUS_FILTERS: { id: string; label: string }[] = [
   { id: "ALL", label: "All" },
   { id: "pending", label: "Pending" },
@@ -84,6 +92,8 @@ const PERIOD_FILTERS: { id: string; label: string }[] = [
   { id: "THIS_MONTH", label: "This month" },
   { id: "LAST_MONTH", label: "Last month" },
 ];
+
+const PAGE_SIZE = 30;
 
 function AdminCrmInquiriesScreenInner() {
   const router = useRouter();
@@ -135,8 +145,11 @@ function AdminInquiriesList({
   );
 
   const [items, setItems] = useState<InquiryRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [periodFilter, setPeriodFilter] = useState<string>("ALL");
@@ -145,30 +158,65 @@ function AdminInquiriesList({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const pagingRef = useRef({ nextOffset: 0, hasMore: true });
 
   const hasAdvancedFilters = periodFilter !== "ALL" || followUpsOnly;
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 300);
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(t);
   }, [search]);
 
   const load = useCallback(
-    async (mode: "initial" | "refresh") => {
-      if (mode === "refresh") setRefreshing(true);
-      else setLoading(true);
+    async (mode: "initial" | "refresh" | "more") => {
+      const nextOffset = mode === "more" ? pagingRef.current.nextOffset : 0;
+      if (mode === "more") {
+        if (!pagingRef.current.hasMore) return;
+        setLoadingMore(true);
+      } else if (mode === "refresh") {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       try {
         const qs = new URLSearchParams();
+        qs.set("limit", String(PAGE_SIZE));
+        qs.set("offset", String(nextOffset));
         if (statusFilter !== "ALL") qs.set("status", statusFilter);
         if (periodFilter !== "ALL") qs.set("period", periodFilter);
         if (followUpsOnly) qs.set("followUpsOnly", "1");
+        if (debouncedSearch) qs.set("search", debouncedSearch);
         const q = qs.toString();
-        const list = await authRequest<InquiryRow[]>(
-          `/api/inquiries${q ? `?${q}` : ""}`,
-          { retries: 1 }
+        const response = await authRequest<InquiryListResponse | InquiryRow[]>(
+          `/api/mobile/crm/inquiries${q ? `?${q}` : ""}`,
+          {
+            retries: 1,
+            cacheTtlSeconds: mode === "more" ? 0 : 20,
+            dedupe: true,
+            staleOnError: mode !== "more",
+          }
         );
-        setItems(Array.isArray(list) ? list : []);
+        const list = Array.isArray(response)
+          ? response
+          : response.items ?? response.inquiries ?? [];
+        const responseTotal = Array.isArray(response)
+          ? list.length
+          : response.total ?? list.length;
+        const responseNextOffset = Array.isArray(response)
+          ? nextOffset + list.length
+          : response.nextOffset ?? nextOffset + list.length;
+        const responseHasMore = Array.isArray(response)
+          ? false
+          : response.hasMore ?? responseNextOffset < responseTotal;
+
+        setItems((prev) => (mode === "more" ? [...prev, ...list] : list));
+        setTotal(responseTotal);
+        setHasMore(responseHasMore);
+        pagingRef.current = {
+          nextOffset: responseNextOffset,
+          hasMore: responseHasMore,
+        };
       } catch (err) {
         const message =
           err instanceof ApiError ? err.message : "Could not load inquiries.";
@@ -176,30 +224,22 @@ function AdminInquiriesList({
       } finally {
         setLoading(false);
         setRefreshing(false);
+        setLoadingMore(false);
       }
     },
-    [authRequest, statusFilter, periodFilter, followUpsOnly]
+    [authRequest, statusFilter, periodFilter, followUpsOnly, debouncedSearch]
   );
 
   useEffect(() => {
     if (!authLoading) void load("initial");
   }, [authLoading, load]);
 
-  const filtered = useMemo(() => {
-    if (!debouncedSearch) return items;
-    return items.filter((row) => {
-      const haystack = [
-        row.customerName,
-        row.customerMobileNumber,
-        row.location?.label ?? "",
-        row.associatePartner?.name ?? "",
-        row.status,
-      ]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(debouncedSearch);
-    });
-  }, [items, debouncedSearch]);
+  const subtitle =
+    loading && items.length === 0
+      ? "Loading..."
+      : total > 0
+        ? `${items.length} of ${total}`
+        : "0 shown";
 
   function confirmDelete(row: InquiryRow) {
     if (!canWrite) return;
@@ -219,6 +259,7 @@ function AdminInquiriesList({
                 { method: "DELETE" }
               );
               setItems((prev) => prev.filter((i) => i.id !== row.id));
+              setTotal((prev) => Math.max(0, prev - 1));
             } catch (err) {
               const message =
                 err instanceof ApiError ? err.message : "Delete failed.";
@@ -238,7 +279,7 @@ function AdminInquiriesList({
 
       <AdminTopBar
         title="Inquiries"
-        subtitle={loading ? "Loading…" : `${filtered.length} shown`}
+        subtitle={subtitle}
         onBackPress={() => router.back()}
         testID="crm-header"
         rightSlot={
@@ -277,7 +318,7 @@ function AdminInquiriesList({
 
       <FlatList
         style={styles.list}
-        data={filtered}
+        data={items}
         keyExtractor={(row) => row.id}
         contentContainerStyle={[
           styles.listContent,
@@ -302,6 +343,7 @@ function AdminInquiriesList({
               onActionPress={
                 hasAdvancedFilters || search.trim()
                   ? () => {
+                      setStatusFilter("ALL");
                       setPeriodFilter("ALL");
                       setFollowUpsOnly(false);
                       setSearch("");
@@ -332,6 +374,17 @@ function AdminInquiriesList({
             onDelete={() => confirmDelete(item)}
           />
         )}
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator style={styles.footerLoader} color={Colors.primary} />
+          ) : null
+        }
+        onEndReached={() => {
+          if (!loading && !refreshing && !loadingMore && hasMore) {
+            void load("more");
+          }
+        }}
+        onEndReachedThreshold={0.6}
       />
 
       <AdminFilterSheet
@@ -339,8 +392,10 @@ function AdminInquiriesList({
         title="Inquiry filters"
         onClose={() => setFilterSheetOpen(false)}
         onReset={() => {
+          setStatusFilter("ALL");
           setPeriodFilter("ALL");
           setFollowUpsOnly(false);
+          setSearch("");
         }}
         testID="crm-filter-sheet"
       >
@@ -495,6 +550,7 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: { paddingHorizontal: Spacing.lg, flexGrow: 1 },
   listLoader: { marginTop: Spacing.xxl },
+  footerLoader: { paddingVertical: Spacing.lg },
   filterLabel: {
     fontSize: FontSize.sm,
     fontWeight: "800",

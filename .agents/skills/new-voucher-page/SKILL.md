@@ -42,4 +42,4 @@ Public PDF paths (proxy):
 
 ## Additional resources
 
-- [references/voucher-components.md](references/voucher-components.md)
+- [generate-voucher-pdf references](../generate-voucher-pdf/references/voucher-components.md)

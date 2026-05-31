@@ -62,6 +62,13 @@ function query(filters: Record<string, string | number | undefined | null>) {
   return raw ? `?${raw}` : "";
 }
 
+const READ_CACHE = {
+  cacheTtlSeconds: 30,
+  dedupe: true,
+  staleOnError: true,
+  retries: 1,
+} as const;
+
 export function createOpsPortalClient(authRequest: AuthenticatedRequest) {
   return {
     list(
@@ -69,7 +76,7 @@ export function createOpsPortalClient(authRequest: AuthenticatedRequest) {
     ): Promise<OpsPortalListResponse> {
       return authRequest(
         `/api/mobile/ops-portal/my-inquiries${query(filters)}`,
-        { retries: 1 }
+        READ_CACHE
       );
     },
 

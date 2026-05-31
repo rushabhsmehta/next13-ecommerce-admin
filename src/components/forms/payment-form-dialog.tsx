@@ -191,7 +191,8 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       setFormErrors([]);
 
       // Prepare the API data with correct account type field and timezone-safe date conversion
-      const apiData: Partial<PaymentFormValues & {
+      const apiData: Partial<Omit<PaymentFormValues, "paymentDate"> & {
+        paymentDate: string;
         bankAccountId: string | null,
         cashAccountId: string | null,
         images: string[]

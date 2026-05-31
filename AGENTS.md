@@ -141,7 +141,12 @@ Never run destructive Prisma commands against production. Schema changes → `pr
 
 ## Agent Skills
 
-Skills live in `.agents/skills/` (and `.claude/skills/`). Invoke by name when relevant.
+Skills live in `.agents/skills/` (mirrored in `.claude/skills/`). Invoke by name when relevant. After editing skills, sync with:
+
+```bash
+node scripts/sync-agent-skills.mjs
+# or on Windows: robocopy .agents/skills .claude/skills /MIR
+```
 
 | Skill | Use when |
 |-------|----------|

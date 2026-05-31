@@ -10,6 +10,7 @@ describe("createTourQueryCreateClient", () => {
     expect(opts.method).toBe("POST");
     expect(opts.body).toEqual({ mode: "inquiry", sourceId: "inq1", overrides: undefined });
     expect(opts.headers["Idempotency-Key"]).toMatch(/^tq-create-/);
+    expect(opts.timeout).toBe(90000);
   });
 
   it("fromInquiry / fromPackage / copy / fromScratch set the correct mode", async () => {

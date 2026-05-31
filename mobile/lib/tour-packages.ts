@@ -121,6 +121,7 @@ export interface TourPackageDetail {
     itineraryTitle: string | null;
     itineraryDescription: string | null;
     mealsIncluded: string | null;
+    images?: { id: string; url: string }[];
   }[];
   variants: TourPackageVariantSummary[];
   createdAt: string;
@@ -230,6 +231,9 @@ function idemKey(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${rand}`;
 }
 
+const READ_CACHE = { cacheTtlSeconds: 45, dedupe: true, staleOnError: true } as const;
+const LOOKUP_CACHE = { cacheTtlSeconds: 300, dedupe: true, staleOnError: true } as const;
+
 export function createTourPackagesClient(authRequest: AuthenticatedRequest) {
   return {
     list(
@@ -249,7 +253,8 @@ export function createTourPackagesClient(authRequest: AuthenticatedRequest) {
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();
       return authRequest<TourPackageListResponse>(
-        `/api/mobile/tour-packages${q ? `?${q}` : ""}`
+        `/api/mobile/tour-packages${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -262,7 +267,8 @@ export function createTourPackagesClient(authRequest: AuthenticatedRequest) {
     getLookups(locationId?: string): Promise<TourPackageLookups> {
       const qs = locationId ? `?locationId=${encodeURIComponent(locationId)}` : "";
       return authRequest<TourPackageLookups>(
-        `/api/mobile/tour-packages/lookups${qs}`
+        `/api/mobile/tour-packages/lookups${qs}`,
+        LOOKUP_CACHE
       );
     },
 
@@ -287,7 +293,8 @@ export function createTourPackagesClient(authRequest: AuthenticatedRequest) {
 
     listVariants(packageId: string): Promise<{ variants: PackageVariant[]; total: number }> {
       return authRequest(
-        `/api/mobile/tour-packages/${encodeURIComponent(packageId)}/variants`
+        `/api/mobile/tour-packages/${encodeURIComponent(packageId)}/variants`,
+        READ_CACHE
       );
     },
 
@@ -364,7 +371,8 @@ export function createTourPackagesClient(authRequest: AuthenticatedRequest) {
       if (filters.activeOnly === false) qs.set("activeOnly", "false");
       const q = qs.toString();
       return authRequest(
-        `/api/mobile/tour-packages/${encodeURIComponent(packageId)}/pricing${q ? `?${q}` : ""}`
+        `/api/mobile/tour-packages/${encodeURIComponent(packageId)}/pricing${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 

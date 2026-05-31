@@ -1,5 +1,8 @@
 import { createOperationsClient } from "../../lib/operations";
 
+const READ_CACHE = { cacheTtlSeconds: 45, dedupe: true, staleOnError: true };
+const LOOKUP_CACHE = { cacheTtlSeconds: 300, dedupe: true, staleOnError: true };
+
 describe("createOperationsClient", () => {
   it("listSuppliers builds the query string", async () => {
     const request = jest.fn(async () => ({
@@ -11,7 +14,8 @@ describe("createOperationsClient", () => {
     const client = createOperationsClient(request as any);
     await client.listSuppliers({ search: "acme", limit: 10, offset: 20 });
     expect(request).toHaveBeenCalledWith(
-      "/api/mobile/operations/suppliers?search=acme&limit=10&offset=20"
+      "/api/mobile/operations/suppliers?search=acme&limit=10&offset=20",
+      READ_CACHE
     );
   });
 
@@ -24,7 +28,7 @@ describe("createOperationsClient", () => {
     }));
     const client = createOperationsClient(request as any);
     await client.listSuppliers();
-    expect(request).toHaveBeenCalledWith("/api/mobile/operations/suppliers");
+    expect(request).toHaveBeenCalledWith("/api/mobile/operations/suppliers", READ_CACHE);
   });
 
   it("getSupplier encodes the id", async () => {
@@ -63,7 +67,8 @@ describe("createOperationsClient", () => {
     const client = createOperationsClient(request as any);
     await client.listStaff({ search: "priya", activeOnly: true });
     expect(request).toHaveBeenCalledWith(
-      "/api/mobile/operations/staff?search=priya&activeOnly=true"
+      "/api/mobile/operations/staff?search=priya&activeOnly=true",
+      READ_CACHE
     );
   });
 
@@ -112,7 +117,8 @@ describe("createOperationsClient", () => {
     const client = createOperationsClient(request as any);
     await client.listTransportPricing({ search: "goa", limit: 10, offset: 5 });
     expect(request).toHaveBeenCalledWith(
-      "/api/mobile/operations/transport-pricing?search=goa&limit=10&offset=5"
+      "/api/mobile/operations/transport-pricing?search=goa&limit=10&offset=5",
+      READ_CACHE
     );
   });
 
@@ -159,7 +165,8 @@ describe("createOperationsClient", () => {
     const client = createOperationsClient(request as any);
     await client.listVehicleTypes({ search: "innova", activeOnly: true });
     expect(request).toHaveBeenCalledWith(
-      "/api/mobile/operations/vehicle-types?search=innova&activeOnly=true"
+      "/api/mobile/operations/vehicle-types?search=innova&activeOnly=true",
+      READ_CACHE
     );
   });
 
@@ -199,7 +206,8 @@ describe("createOperationsClient", () => {
     const client = createOperationsClient(request as any);
     await client.listLocations({ search: "goa", limit: 20, offset: 5 });
     expect(request).toHaveBeenCalledWith(
-      "/api/mobile/operations/locations?search=goa&limit=20&offset=5"
+      "/api/mobile/operations/locations?search=goa&limit=20&offset=5",
+      READ_CACHE
     );
   });
 
@@ -243,7 +251,8 @@ describe("createOperationsClient", () => {
       limit: 10,
     });
     expect(request).toHaveBeenCalledWith(
-      "/api/mobile/operations/destinations?search=north&locationId=loc1&limit=10"
+      "/api/mobile/operations/destinations?search=north&locationId=loc1&limit=10",
+      READ_CACHE
     );
   });
 
@@ -280,7 +289,8 @@ describe("createOperationsClient", () => {
     const client = createOperationsClient(request as any);
     await client.listHotels({ search: "taj", locationId: "loc1", limit: 15 });
     expect(request).toHaveBeenCalledWith(
-      "/api/mobile/operations/hotels?search=taj&locationId=loc1&limit=15"
+      "/api/mobile/operations/hotels?search=taj&locationId=loc1&limit=15",
+      READ_CACHE
     );
   });
 
@@ -326,7 +336,8 @@ describe("createOperationsClient", () => {
       activeOnly: false,
     });
     expect(request).toHaveBeenCalledWith(
-      "/api/mobile/operations/hotels/h1/pricing?startDate=2026-01-01&endDate=2026-03-31&activeOnly=false"
+      "/api/mobile/operations/hotels/h1/pricing?startDate=2026-01-01&endDate=2026-03-31&activeOnly=false",
+      READ_CACHE
     );
   });
 
@@ -338,7 +349,10 @@ describe("createOperationsClient", () => {
     }));
     const client = createOperationsClient(request as any);
     await client.listHotelPricing("h/x");
-    expect(request).toHaveBeenCalledWith("/api/mobile/operations/hotels/h%2Fx/pricing");
+    expect(request).toHaveBeenCalledWith(
+      "/api/mobile/operations/hotels/h%2Fx/pricing",
+      READ_CACHE
+    );
   });
 
   it("getHotelPricing encodes hotel and pricing ids", async () => {
@@ -361,6 +375,9 @@ describe("createOperationsClient", () => {
     }));
     const client = createOperationsClient(request as any);
     await client.getHotelPricingLookups();
-    expect(request).toHaveBeenCalledWith("/api/mobile/operations/pricing-lookups");
+    expect(request).toHaveBeenCalledWith(
+      "/api/mobile/operations/pricing-lookups",
+      LOOKUP_CACHE
+    );
   });
 });

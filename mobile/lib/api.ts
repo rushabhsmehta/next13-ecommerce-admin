@@ -5,12 +5,14 @@ import { mobileAppVariantHeaders } from "@/lib/app-variant";
 
 const DEFAULT_TIMEOUT = 10000;
 // Writes (POST/PATCH/PUT/DELETE) can trigger heavy server work — e.g. tour-query
-// saves that rebuild variant snapshots inside a 30s DB transaction. A 10s client
-// timeout aborted those mid-flight and surfaced a false "Request timed out" even
-// though the server had committed. Give writes a budget that matches the server's
-// transaction ceiling. Writes still default to 0 retries (below) so a slow-but-
-// successful write is never duplicated by a retry.
+// saves that rebuild variant snapshots inside a 40s DB transaction. A short client
+// timeout aborts those mid-flight and surfaces a false "Request timed out" even
+// though the server may still commit. Give writes a budget that matches the
+// server's transaction ceiling. Writes still default to 0 retries (below) so a
+// slow-but-successful write is never duplicated by a retry.
 const WRITE_TIMEOUT = 30000;
+/** PATCH/POST tour-query routes (variant snapshots + itinerary writes). */
+export const TOUR_QUERY_WRITE_TIMEOUT = 90000;
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000];
 
@@ -36,6 +38,10 @@ type RequestOptions = {
   headers?: Record<string, string>;
   idempotencyKey?: string;
   signal?: AbortSignal;
+  cacheKey?: string;
+  cacheTtlSeconds?: number;
+  dedupe?: boolean;
+  staleOnError?: boolean;
   /**
    * When true, fail fast with a non-retryable `OFFLINE` ApiError if the
    * device is offline. Used by `online_only` modules (finance, exports,
@@ -48,6 +54,8 @@ type RequestOptions = {
 
 type OfflineChecker = () => Promise<boolean>;
 let registeredOfflineChecker: OfflineChecker | null = null;
+const memoryGetCache = new Map<string, { value: unknown; expiresAt: number }>();
+const inFlightGets = new Map<string, Promise<unknown>>();
 
 /**
  * Register a function that resolves to `true` when the device is offline.
@@ -74,6 +82,10 @@ async function request<T = any>(
     headers: customHeaders,
     idempotencyKey,
     signal,
+    cacheKey: explicitCacheKey,
+    cacheTtlSeconds = 0,
+    dedupe = false,
+    staleOnError = false,
     requireOnline = false,
   } = options;
 
@@ -100,50 +112,82 @@ async function request<T = any>(
     ...customHeaders,
   };
 
-  let lastError: Error | undefined;
+  const shouldUseReadCache = method === "GET" && (cacheTtlSeconds > 0 || dedupe);
+  const readCacheKey = shouldUseReadCache
+    ? explicitCacheKey ?? `${headers.Authorization ? "auth" : "anon"}:${endpoint}`
+    : null;
 
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+  if (readCacheKey && cacheTtlSeconds > 0) {
+    const cached = memoryGetCache.get(readCacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value as T;
+    }
+  }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-        signal: signal ?? controller.signal,
-      });
+  if (readCacheKey && dedupe) {
+    const pending = inFlightGets.get(readCacheKey);
+    if (pending) return pending as Promise<T>;
+  }
 
-      clearTimeout(timeoutId);
+  const executeNetwork = async (): Promise<T> => {
+    let lastError: Error | undefined;
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const retryable =
-          res.status >= 500 || res.status === 429 || res.status === 0;
-        throw new ApiError(
-          errorData.error || `Request failed with status ${res.status}`,
-          res.status,
-          retryable,
-          errorData.code,
-          errorData.details
-        );
-      }
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      return res.json();
-    } catch (error: any) {
-      clearTimeout(timeoutId);
+      try {
+        const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+          signal: signal ?? controller.signal,
+        });
 
-      if (error instanceof ApiError) {
-        if (error.retryable && attempt < retries) {
-          lastError = error;
-          await sleep(RETRY_DELAYS[attempt] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1]);
-          continue;
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          const retryable =
+            res.status >= 500 || res.status === 429 || res.status === 0;
+          throw new ApiError(
+            errorData.error || `Request failed with status ${res.status}`,
+            res.status,
+            retryable,
+            errorData.code,
+            errorData.details
+          );
         }
-        throw error;
-      }
 
-      if (error.name === "AbortError") {
-        const apiError = new ApiError("Request timed out", null, true, "TIMEOUT");
+        return res.json();
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+
+        if (error instanceof ApiError) {
+          if (error.retryable && attempt < retries) {
+            lastError = error;
+            await sleep(RETRY_DELAYS[attempt] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1]);
+            continue;
+          }
+          throw error;
+        }
+
+        if (error.name === "AbortError") {
+          const apiError = new ApiError("Request timed out", null, true, "TIMEOUT");
+          if (attempt < retries) {
+            lastError = apiError;
+            await sleep(RETRY_DELAYS[attempt] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1]);
+            continue;
+          }
+          throw apiError;
+        }
+
+        const apiError = new ApiError(
+          error.message || "Network error",
+          null,
+          true,
+          "NETWORK_ERROR"
+        );
         if (attempt < retries) {
           lastError = apiError;
           await sleep(RETRY_DELAYS[attempt] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1]);
@@ -151,23 +195,32 @@ async function request<T = any>(
         }
         throw apiError;
       }
-
-      const apiError = new ApiError(
-        error.message || "Network error",
-        null,
-        true,
-        "NETWORK_ERROR"
-      );
-      if (attempt < retries) {
-        lastError = apiError;
-        await sleep(RETRY_DELAYS[attempt] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1]);
-        continue;
-      }
-      throw apiError;
     }
-  }
 
-  throw lastError || new ApiError("Max retries exceeded", null, true);
+    throw lastError || new ApiError("Max retries exceeded", null, true);
+  };
+
+  const networkPromise = executeNetwork();
+  if (readCacheKey && dedupe) inFlightGets.set(readCacheKey, networkPromise);
+
+  try {
+    const data = await networkPromise;
+    if (readCacheKey && cacheTtlSeconds > 0) {
+      memoryGetCache.set(readCacheKey, {
+        value: data,
+        expiresAt: Date.now() + cacheTtlSeconds * 1000,
+      });
+    }
+    return data;
+  } catch (error) {
+    if (readCacheKey && staleOnError) {
+      const stale = memoryGetCache.get(readCacheKey);
+      if (stale) return stale.value as T;
+    }
+    throw error;
+  } finally {
+    if (readCacheKey && dedupe) inFlightGets.delete(readCacheKey);
+  }
 }
 
 async function cachedRequest<T = any>(

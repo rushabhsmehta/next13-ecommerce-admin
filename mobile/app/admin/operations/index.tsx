@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
@@ -312,7 +312,7 @@ export default function OperationsHubScreen() {
           return (
             <View testID={`operations-row-${item.id}`} style={styles.row}>
               {item.imageUrl?.trim() ? (
-                <Image source={{ uri: item.imageUrl.trim() }} style={styles.thumb} />
+                <RemoteImage uri={item.imageUrl} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbPlaceholder]} accessibilityElementsHidden>
                   <Ionicons name={currentTab.icon} size={20} color={Colors.textTertiary} />

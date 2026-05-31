@@ -58,6 +58,13 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "policies", label: "Policies" },
 ];
 
+function formatTravelPrice(value: unknown): string | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return `₹${n.toLocaleString("en-IN")}`;
+}
+
 export default function PackageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -146,9 +153,15 @@ export default function PackageDetailScreen() {
   );
   const itineraries: any[] = pkg.itineraries || [];
   const displayPrice = pkg.pricePerAdult || pkg.price;
-  const formattedPrice = displayPrice
-    ? `₹${Number(displayPrice).toLocaleString("en-IN")}`
-    : null;
+  const formattedPrice = formatTravelPrice(displayPrice);
+  const pricingDetails = [
+    { label: "Adult", value: pkg.pricePerAdult },
+    { label: "Child with bed", value: pkg.pricePerChildOrExtraBed },
+    { label: "Child 5-12 no bed", value: pkg.pricePerChild5to12YearsNoBed },
+    { label: "Child under 5", value: pkg.pricePerChildwithSeatBelow5Years },
+  ]
+    .map((item) => ({ ...item, formatted: formatTravelPrice(item.value) }))
+    .filter((item) => item.formatted);
 
   const packageUrl = getTravelPackageUrl(pkg.slug, pkg.id);
   const shareMessage = `${nameParts.title} — Aagam Holidays\n${packageUrl}`;
@@ -402,6 +415,18 @@ export default function PackageDetailScreen() {
               </Text>
             </Pressable>
           )}
+
+          {pricingDetails.length > 0 ? (
+            <View style={styles.pricingDetailsPanel}>
+              <Text style={styles.pricingDetailsTitle}>Pricing Details</Text>
+              {pricingDetails.map((item) => (
+                <View key={item.label} style={styles.pricingDetailsRow}>
+                  <Text style={styles.pricingDetailsLabel}>{item.label}</Text>
+                  <Text style={styles.pricingDetailsValue}>{item.formatted}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
 
         {/* Underline tabs */}
@@ -1025,6 +1050,38 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
     lineHeight: 18,
+  },
+  pricingDetailsPanel: {
+    marginTop: Spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.surface,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  pricingDetailsTitle: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  pricingDetailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.md,
+  },
+  pricingDetailsLabel: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: "600",
+  },
+  pricingDetailsValue: {
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    fontWeight: "800",
   },
 
   // Tabs (underline)

@@ -9,6 +9,7 @@ import {
   tourPackageQueryWhereForAssociate,
 } from "@/app/api/mobile/lib/assert-sales-trips-access";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import { copyItineraryMedia } from "@/app/api/mobile/lib/copy-itinerary-media";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,15 @@ async function cloneItineraries(
 ) {
   const itineraries = await tx.itinerary.findMany({
     where: fromWhere,
-    include: { roomAllocations: true, transportDetails: true },
+    include: {
+      roomAllocations: true,
+      transportDetails: true,
+      itineraryImages: { select: { url: true } },
+      activities: {
+        include: { activityImages: { select: { url: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
     orderBy: [{ dayNumber: "asc" }],
   });
   for (const it of itineraries) {
@@ -65,6 +74,7 @@ async function cloneItineraries(
         roomTypeId: it.roomTypeId,
       },
     });
+    await copyItineraryMedia(tx, it, created.id, it.locationId);
     if (it.roomAllocations.length) {
       await tx.roomAllocation.createMany({
         data: it.roomAllocations.map((ra) => ({

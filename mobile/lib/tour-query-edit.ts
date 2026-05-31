@@ -3,6 +3,7 @@
  * and per-day itinerary text. Pairs with PATCH /api/mobile/tour-queries/[id].
  */
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
+import { TOUR_QUERY_WRITE_TIMEOUT } from "@/lib/api";
 
 export interface RoomAllocationEdit {
   id?: string;
@@ -25,6 +26,14 @@ export interface TourQueryItineraryEdit {
   roomAllocations?: RoomAllocationEdit[];
 }
 
+export interface TourQueryPricingItemEdit {
+  name?: string;
+  price?: string;
+  description?: string;
+  derivationFormula?: string;
+  [key: string]: unknown;
+}
+
 export interface TourQueryEditInput {
   tourPackageQueryName?: string;
   customerName?: string;
@@ -32,6 +41,16 @@ export interface TourQueryEditInput {
   numAdults?: string;
   numChild5to12?: string;
   numChild0to5?: string;
+  price?: string | null;
+  pricePerAdult?: string | null;
+  pricePerChildOrExtraBed?: string | null;
+  pricePerChild5to12YearsNoBed?: string | null;
+  pricePerChildwithSeatBelow5Years?: string | null;
+  totalPrice?: string | null;
+  pricingSection?: TourQueryPricingItemEdit[] | null;
+  pricingCalculationMethod?: string | null;
+  selectedMealPlanId?: string | null;
+  variantPricingData?: Record<string, unknown> | null;
   /** ISO date string or null to clear */
   tourStartsFrom?: string | null;
   tourEndsOn?: string | null;
@@ -61,7 +80,7 @@ export function createTourQueryEditClient(authRequest: AuthenticatedRequest) {
       return authRequest(`/api/mobile/tour-queries/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: input,
-        timeout: 30000,
+        timeout: TOUR_QUERY_WRITE_TIMEOUT,
       });
     },
   };

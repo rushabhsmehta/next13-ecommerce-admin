@@ -1,7 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
-import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
-
 function nextWithCrmPathname(req: NextRequest): NextResponse {
   const pathname = req.nextUrl.pathname;
   const h = new Headers(req.headers);
@@ -52,9 +50,13 @@ export default clerkMiddleware(async (auth, req) => {
     return nextWithCrmPathname(req);
   }
 
+  // Native apps send Bearer JWT (no session cookies). When the token is expired
+  // or invalid, auth.protect() below can hang or redirect instead of returning
+  // JSON — the app then shows "Check your connection". Let the route handler
+  // resolve auth via getRequestClerkUserId and return 401/403 JSON.
   if (isMobileBearerInquiryRoute(req)) {
-    const mobileUserId = await verifyMobileBearerUserId(req);
-    if (mobileUserId) {
+    const bearer = req.headers.get("Authorization");
+    if (bearer?.startsWith("Bearer ")) {
       return nextWithCrmPathname(req);
     }
   }

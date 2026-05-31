@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer for managing tour packages, customer inquiries, hotel bookings, and financial transactions. Built on Next.js App Router.
+Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer for managing tour packages, customer inquiries, hotel bookings, and financial transactions. Built on Next.js 16 App Router with Clerk org RBAC, a custom MCP server (~139 tools), and three Expo mobile app variants (`public`, `staff`, `finance`).
 
 ## Tech Stack
 
@@ -53,7 +53,7 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
 
 ```
 /
-├── schema.prisma            # Main MySQL schema (~1,800 lines, 82 models)
+├── schema.prisma            # Main MySQL schema (~1,800 lines, 83 models)
 ├── prisma/
 │   └── whatsapp-schema.prisma   # PostgreSQL WhatsApp schema
 ├── mcp-server/              # Custom MCP server for Claude integrations
@@ -66,7 +66,7 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
 └── src/
     ├── app/
     │   ├── (auth)/          # Sign-in/sign-up routes (Clerk)
-    │   ├── (dashboard)/     # Admin dashboard (52 modules)
+    │   ├── (dashboard)/     # Admin dashboard (53 modules)
     │   │   ├── (routes)/    # Route group sub-container
     │   │   │   ├── associate-partners/
     │   │   │   ├── audit-logs/
@@ -118,7 +118,7 @@ npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
     │   │       └── whatsapp/
     │   ├── (root)/          # Public homepage
     │   ├── access-denied/   # RBAC access-denied page
-    │   ├── api/             # API routes (74 top-level endpoints)
+    │   ├── api/             # API routes (79 top-level endpoints)
     │   │   ├── mcp/         # MCP gateway + 18 handler modules
     │   │   ├── mobile/      # Mobile (Expo) admin/ops/travel API surface
     │   │   ├── associate/   # Associate partner API (auth, inquiries, me)
@@ -398,7 +398,7 @@ The Expo mobile app calls `/api/mobile/*` rather than the dashboard routes. The 
 
 ## MCP Tools (travel-admin)
 
-**~133 tools** registered via the custom MCP server (count with `grep -rn 'server\.tool(' mcp-server/src/tools/`).
+**~139 tools** registered via the custom MCP server (count with `grep -rn 'server\.tool(' mcp-server/src/tools/`).
 
 ### Architecture (Modular)
 - **`src/app/api/mcp/route.ts`** — Slim gateway: auth via `x-mcp-api-secret` header, dispatch, error handling
@@ -539,17 +539,48 @@ Required variables (see `.env` for full list):
 
 ## Mobile App (Expo)
 
-A separate Expo app in `mobile/` (excluded from the root TypeScript project). Stack: Expo SDK 55, RN 0.83, Expo Router, `@clerk/clerk-expo`, Jest + Testing Library (unit), Detox (E2E Android), `expo-secure-store` (auth), `expo-sqlite` (offline cache, 5-min TTL).
+Three installed apps from one `mobile/` codebase (`APP_VARIANT=public|staff|finance`). Excluded from the root TypeScript project. Stack: Expo SDK 55, RN 0.83, Expo Router, `@clerk/clerk-expo`, Jest + Testing Library (unit), Detox (E2E Android), `expo-secure-store` (auth), `expo-sqlite` (offline cache, 5-min TTL).
+
+| Variant | App name | Metro port | Package |
+|---------|----------|------------|---------|
+| `public` | Aagam Holidays | 8081 | `com.aagamholidays.app` |
+| `staff` | Aagam Operations | 8082 | `com.aagamholidays.staff` |
+| `finance` | Aagam Accounts | 8083 | `com.aagamholidays.finance` |
 
 ```bash
-cd mobile
-npm start            # Expo dev server
-npm test             # Unit tests
-npm run e2e:build    # Build Detox APK (debug)
-npm run e2e:test     # Run Detox E2E
+# Web repo root
+npm run test:mobile-inquiry-crud   # Inquiry API CRUD smoke test (dev bypass)
+
+# Mobile (cd mobile — npm install first)
+npm run start:public / start:staff / start:finance
+npm run android:public / android:staff / android:finance
+npm run test:public / test:staff / test:finance
+npm run generate:icons             # Regenerate launcher icons (all variants)
+npm run test:inquiry:adb           # USB inquiry CRUD (needs adb)
 ```
 
-Mobile conventions: every interactive element needs a `testID`; `accessibilityRole`/`accessibilityLabel`/`accessibilityHint` are required; API calls go through `lib/api.ts` (built-in retry/timeout); chat polling is adaptive (3s active / 10s inactive / 30s background).
+Shared screens: `mobile/app/`; variant route roots re-export in `mobile/apps/{public,staff,finance}/`. API calls via `mobile/lib/api.ts` (bearer token, retries). Backend RBAC is authoritative — `X-Mobile-App-Variant` is audit-only. Dev bypass: `MOBILE_DEV_AUTH_BYPASS_*` in server `.env.local` (never production). See `AGENTS.md` and `mobile/docs/app-variants.md` for full variant rules, adb reverse, and testIDs.
+
+Mobile conventions: every interactive element needs a `testID`; `accessibilityRole`/`accessibilityLabel`/`accessibilityHint` are required; chat polling is adaptive (3s active / 10s inactive / 30s background).
+
+## Agent Skills
+
+Skills live in `.agents/skills/` (mirrored in `.claude/skills/`). Invoke by name when relevant. After editing skills, sync: `node scripts/sync-agent-skills.mjs`
+
+| Skill | Use when |
+|-------|----------|
+| `new-api-route` | Adding `src/app/api/*` routes |
+| `new-page` | Dashboard server/client pages |
+| `new-form` | RHF + Zod forms |
+| `financial-context` | Sales, purchases, receipts, payments, ledgers |
+| `generate-voucher-pdf` | PDF vouchers |
+| `new-voucher-page` | Voucher view pages |
+| `export-report-xlsx` | Branded Excel exports |
+| `new-mcp-tool` | MCP tool + gateway handler |
+| `prisma-migrate` | Schema migrations |
+| `schedule-report` | Cron report endpoints |
+| `check` | lint, tsc, build |
+| `mobile-variant` | Expo variant apps, icons, adb/USB testing |
 
 ## Git Workflow
 

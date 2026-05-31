@@ -1,16 +1,29 @@
 /**
- * Typed client for tour-query variant pricing comparison.
- * Read-only: pricing is computed and persisted server-side; mobile compares.
+ * Typed client for tour-query variant pricing comparison and edits.
  */
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
+import { TOUR_QUERY_WRITE_TIMEOUT } from "@/lib/api";
+
+export interface VariantPricingComponent {
+  name: string;
+  price: string;
+  description: string;
+  [key: string]: unknown;
+}
 
 export interface VariantPricingBreakdown {
+  calculationMethod: string | null;
+  components: VariantPricingComponent[];
+  remarks: string | null;
   totalCost: number;
   basePrice: number;
   markupPercentage: number;
   markupAmount: number;
   accommodation: number;
   transport: number;
+  itineraryBreakdown?: unknown;
+  transportDetails?: unknown;
+  perPersonRates?: unknown;
   calculatedAt: string | null;
 }
 
@@ -30,6 +43,43 @@ export interface VariantComparisonResponse {
   variants: VariantComparisonItem[];
 }
 
+export interface VariantPricingDetailResponse {
+  tourPackageQueryId: string;
+  variant: {
+    id: string;
+    sourceVariantId: string | null;
+    name: string;
+    sortOrder: number | null;
+  };
+  pricing: VariantPricingBreakdown | null;
+}
+
+export interface VariantPricingCalculationResponse {
+  calculationMethod: string;
+  pricingSection: VariantPricingComponent[];
+  totalCost: number;
+  basePrice: number;
+  appliedMarkup: { percentage: number; amount: number };
+  breakdown: { accommodation: number; transport: number };
+  itineraryBreakdown?: unknown;
+  transportDetails?: unknown;
+  perPersonRates?: unknown;
+  calculatedAt?: string;
+}
+
+export interface VariantPricingUpdateInput {
+  calculationMethod?: string | null;
+  components?: VariantPricingComponent[];
+  totalCost?: number;
+  basePrice?: number;
+  appliedMarkup?: { percentage?: number; amount?: number };
+  breakdown?: { accommodation?: number; transport?: number };
+  itineraryBreakdown?: unknown;
+  transportDetails?: unknown;
+  perPersonRates?: unknown;
+  remarks?: string | null;
+}
+
 export function createTourQueryPricingClient(authRequest: AuthenticatedRequest) {
   return {
     compare(tourQueryId: string): Promise<VariantComparisonResponse> {
@@ -46,6 +96,48 @@ export function createTourQueryPricingClient(authRequest: AuthenticatedRequest) 
         {
           method: "PATCH",
           body: { confirmedVariantId },
+        }
+      );
+    },
+    getVariantPricing(
+      tourQueryId: string,
+      variantId: string
+    ): Promise<VariantPricingDetailResponse> {
+      return authRequest<VariantPricingDetailResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(
+          tourQueryId
+        )}/variants/${encodeURIComponent(variantId)}/pricing`
+      );
+    },
+    updateVariantPricing(
+      tourQueryId: string,
+      variantId: string,
+      input: VariantPricingUpdateInput
+    ): Promise<VariantPricingDetailResponse> {
+      return authRequest<VariantPricingDetailResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(
+          tourQueryId
+        )}/variants/${encodeURIComponent(variantId)}/pricing`,
+        {
+          method: "PATCH",
+          body: input,
+          timeout: TOUR_QUERY_WRITE_TIMEOUT,
+        }
+      );
+    },
+    calculateVariantPricing(
+      tourQueryId: string,
+      variantId: string,
+      input: { markup?: number }
+    ): Promise<VariantPricingCalculationResponse> {
+      return authRequest<VariantPricingCalculationResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(
+          tourQueryId
+        )}/variants/${encodeURIComponent(variantId)}/pricing`,
+        {
+          method: "POST",
+          body: input,
+          timeout: TOUR_QUERY_WRITE_TIMEOUT,
         }
       );
     },

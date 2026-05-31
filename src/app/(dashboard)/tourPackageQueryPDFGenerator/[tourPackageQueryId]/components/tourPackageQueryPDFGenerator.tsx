@@ -22,7 +22,7 @@ import {
   parsePolicyField,
   renderBulletList,
 } from "@/lib/pdf";
-import { renderItineraryImages } from "@/lib/itinerary-image-html";
+import { renderItineraryImages, renderActivityImages } from "@/lib/itinerary-image-html";
 
 // Variant snapshot types for standard PDF generator
 interface QueryVariantHotelSnapshotForPDF {
@@ -1125,6 +1125,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                       <h5 style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin: 0;">
                         ${activity.activityTitle || `Activity ${actIdx + 1}`}
                       </h5>
+                      ${renderActivityImages(activity.activityImages, activity.activityTitle)}
                       ${activity.activityDescription ? `
                         <p style="font-size: 13px; color: ${brandColors.muted}; margin: 4px 0 0 0; line-height: 1.5;">
                           ${activity.activityDescription}

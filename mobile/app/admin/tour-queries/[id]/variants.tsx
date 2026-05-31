@@ -26,6 +26,7 @@ import {
 } from "@/components/admin";
 import { API_BASE_URL } from "@/constants/api";
 import { absoluteAdminUrl, tourQueryHotelUpdatePath } from "@/lib/tour-queries-web-urls";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   createTourQueryPricingClient,
   type VariantComparisonItem,
@@ -35,6 +36,15 @@ import {
 function formatINR(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "Rs. 0";
   return `₹${Math.round(n).toLocaleString("en-IN")}`;
+}
+
+function methodLabel(method: string | null | undefined): string {
+  if (method === "manual") return "Manual";
+  if (method === "autoHotelTransport") return "Hotel + transport";
+  if (method === "autoTourPackage" || method === "useTourPackagePricing") {
+    return "Package pricing";
+  }
+  return "Pricing";
 }
 
 export default function TourQueryVariantsScreen() {
@@ -75,6 +85,8 @@ function TourQueryVariantsScreenInner() {
     getTokenRef.current = getToken;
   }, [getToken]);
   const authRequest = useMemo(() => withAuth(() => getTokenRef.current()), []);
+  const { permissions } = useCurrentUser();
+  const canWriteSales = permissions.includes("salesTrips.write");
   const client = useMemo(
     () => createTourQueryPricingClient(authRequest),
     [authRequest]
@@ -200,7 +212,7 @@ function TourQueryVariantsScreenInner() {
     if (!data.hasPricing)
       return {
         title: "Pricing not computed yet",
-        subtitle: "Build hotel and pricing on web, then pull to refresh.",
+        subtitle: "Add variant pricing here or calculate from saved rooms and transport.",
         tone: "low" as const,
       };
     return { title: "Compare options", subtitle: "Review totals before confirming.", tone: "medium" as const };
@@ -264,8 +276,23 @@ function TourQueryVariantsScreenInner() {
 
         {!data.hasPricing ? (
           <View style={styles.emptyPricingBanner}>
-            <Text style={styles.emptyPricingTitle}>Pricing has not been computed on web yet.</Text>
-            {hotelEditUrl ?
+            <Text style={styles.emptyPricingTitle}>Variant pricing has not been computed yet.</Text>
+            {canWriteSales && data.variants[0] ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Add pricing for first variant"
+                  accessibilityHint="Opens the native variant pricing editor."
+                  style={styles.emptyPricingBtn}
+                  onPress={() =>
+                    router.push(
+                      `/admin/tour-queries/${id}/variants/${data.variants[0].id}/pricing` as never
+                    )
+                  }
+                >
+                  <Text style={styles.emptyPricingBtnText}>Add variant pricing</Text>
+                  <Ionicons name="calculator-outline" size={16} color="#fff" />
+                </Pressable>
+              ) : hotelEditUrl ?
               (
                 <Pressable
                   accessibilityRole="button"
@@ -358,9 +385,8 @@ function TourQueryVariantsScreenInner() {
                 v.isConfirmed ? styles.cardConfirmed : null,
                 pressed ? { opacity: 0.7 } : null,
               ]}
-              onPress={() => onVariantPress(v)}
+              onPress={undefined}
               disabled={updating !== null}
-              accessibilityRole="button"
               accessibilityLabel={`Variant ${v.name}, cost ${v.pricing ? formatINR(v.pricing.totalCost) : "pending"}`}
             >
               <View style={styles.cardHead}>
@@ -395,7 +421,7 @@ function TourQueryVariantsScreenInner() {
                   <>
                     <Text style={styles.total}>{formatINR(v.pricing.totalCost)}</Text>
                     <Text style={styles.marginHint}>
-                      Markup{" "}
+                      {methodLabel(v.pricing.calculationMethod)} - Markup{" "}
                       {formatINR(v.pricing.markupAmount)} ({v.pricing.markupPercentage}%)
                     </Text>
                     <View style={styles.split}>
@@ -408,6 +434,37 @@ function TourQueryVariantsScreenInner() {
                         <Text style={styles.splitVal}>{formatINR(v.pricing.transport)}</Text>
                       </View>
                     </View>
+                    {v.pricing.components.length ? (
+                      <View style={styles.componentPreview}>
+                        {v.pricing.components.slice(0, 4).map((component, idx) => (
+                          <View key={`${v.id}-component-${idx}`} style={styles.componentRow}>
+                            <View style={styles.componentText}>
+                              <Text style={styles.componentName} numberOfLines={1}>
+                                {component.name || "Pricing item"}
+                              </Text>
+                              {component.description ? (
+                                <Text style={styles.componentDescription} numberOfLines={2}>
+                                  {component.description}
+                                </Text>
+                              ) : null}
+                            </View>
+                            <Text style={styles.componentPrice}>
+                              {formatINR(Number.parseFloat(component.price || "0"))}
+                            </Text>
+                          </View>
+                        ))}
+                        {v.pricing.components.length > 4 ? (
+                          <Text style={styles.moreComponents}>
+                            +{v.pricing.components.length - 4} more pricing items
+                          </Text>
+                        ) : null}
+                      </View>
+                    ) : null}
+                    {v.pricing.remarks ? (
+                      <Text style={styles.remarks} numberOfLines={3}>
+                        {v.pricing.remarks}
+                      </Text>
+                    ) : null}
                   </>
                 )
                 : (
@@ -415,6 +472,43 @@ function TourQueryVariantsScreenInner() {
                     Pricing pending. Refresh after editing on web.
                   </Text>
                 )}
+              {canWriteSales ? (
+                <View style={styles.cardActions}>
+                  <Pressable
+                    testID={`variant-pricing-edit-${v.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${v.pricing ? "Edit" : "Add"} pricing for ${v.name}`}
+                    style={styles.actionButton}
+                    onPress={() =>
+                      router.push(
+                        `/admin/tour-queries/${id}/variants/${v.id}/pricing` as never
+                      )
+                    }
+                  >
+                    <Ionicons name="calculator-outline" size={15} color={Colors.primary} />
+                    <Text style={styles.actionButtonText}>
+                      {v.pricing ? "Edit pricing" : "Add pricing"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    testID={`variant-confirm-${v.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={v.isConfirmed ? `Clear ${v.name}` : `Confirm ${v.name}`}
+                    style={[styles.actionButton, styles.actionButtonPrimary]}
+                    onPress={() => void onVariantPress(v)}
+                    disabled={updating !== null}
+                  >
+                    <Ionicons
+                      name={v.isConfirmed ? "close-circle-outline" : "checkmark-circle-outline"}
+                      size={15}
+                      color={Colors.textInverse}
+                    />
+                    <Text style={styles.actionButtonPrimaryText}>
+                      {v.isConfirmed ? "Clear" : "Confirm"}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </Pressable>
           ))
         )}
@@ -541,6 +635,80 @@ const styles = StyleSheet.create({
   splitCol: { flex: 1 },
   splitLabel: { fontSize: 10, color: Colors.textTertiary, fontWeight: "700" },
   splitVal: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text, marginTop: 4 },
+  componentPreview: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  componentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
+  componentText: { flex: 1, minWidth: 0 },
+  componentName: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.text },
+  componentDescription: {
+    marginTop: 2,
+    fontSize: 10,
+    fontWeight: "600",
+    color: Colors.textTertiary,
+    lineHeight: 14,
+  },
+  componentPrice: {
+    flexShrink: 0,
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.text,
+  },
+  moreComponents: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: Colors.textTertiary,
+  },
+  remarks: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: Spacing.sm,
+    fontSize: FontSize.xs,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    lineHeight: 17,
+  },
+  cardActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: Spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryBg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  actionButtonPrimary: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  actionButtonText: {
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.primary,
+  },
+  actionButtonPrimaryText: {
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.textInverse,
+  },
   shortNoPricing: {
     fontSize: FontSize.sm,
     fontWeight: "600",

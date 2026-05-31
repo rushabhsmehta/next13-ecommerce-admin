@@ -76,6 +76,18 @@ screenshot.png
 test_screen*.png
 test_window_dump*.xml
 window_dump.xml
+ui_dump*.xml
+ui_current.xml
+launch_dump*.xml
+admin_tab.xml
+after_back.xml
+tmp/
+
+# Mobile adb UI dumps
+mobile/ui_dump*.xml
+mobile/ui_current.xml
+mobile/hub_now.xml
+mobile/inquiries_list.xml
 
 # Mobile scratch scripts
 mobile/scratch-*.mjs

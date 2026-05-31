@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Linking,
   Pressable,
   RefreshControl,
@@ -11,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
@@ -273,9 +273,9 @@ function Inner() {
         {data.images.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageRow}>
             {data.images.map((img) => (
-              <Image
+              <RemoteImage
                 key={img.id}
-                source={{ uri: img.url }}
+                uri={img.url}
                 style={styles.heroImage}
                 accessibilityLabel="Package photo"
               />
@@ -305,6 +305,22 @@ function Inner() {
               <View key={day.id} style={styles.dayBlock}>
                 <Text style={styles.dayLabel}>Day {day.dayNumber ?? "—"}</Text>
                 <Text style={styles.dayTitle}>{day.itineraryTitle ?? "Untitled"}</Text>
+                {day.images && day.images.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.dayImageRow}
+                  >
+                    {day.images.map((img) => (
+                      <RemoteImage
+                        key={img.id}
+                        uri={img.url}
+                        style={styles.dayImage}
+                        accessibilityLabel="Itinerary day photo"
+                      />
+                    ))}
+                  </ScrollView>
+                ) : null}
                 {day.itineraryDescription ? (
                   <Text style={styles.dayDesc}>{day.itineraryDescription}</Text>
                 ) : null}
@@ -557,6 +573,13 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
+  },
+  dayImageRow: { marginVertical: Spacing.xs },
+  dayImage: {
+    width: 120,
+    height: 80,
+    borderRadius: BorderRadius.sm,
+    marginRight: Spacing.sm,
   },
   dayLabel: {
     fontSize: FontSize.xs,

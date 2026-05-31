@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef } from "react";
-import { Alert } from "react-native";
+import { Alert, InteractionManager } from "react-native";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as Updates from "expo-updates";
@@ -22,7 +22,7 @@ import {
 } from "@/lib/whatsapp/push";
 import { UnreadProvider, useUnread } from "@/hooks/useUnread";
 import { WhatsAppUnreadProvider, useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { CurrentUserProvider, useCurrentUser } from "@/hooks/useCurrentUser";
 import { APP_VARIANT, type MobileAppVariant } from "@/lib/app-variant";
 import { getVariantDevMismatch } from "@/lib/variant-dev";
 import { VariantDevMismatchScreen } from "@/components/app/VariantDevMismatchScreen";
@@ -86,61 +86,78 @@ function PushController({ variant }: { variant: MobileAppVariant }) {
     if (lastChatRegisteredFor.current === chatPushActive) return;
     lastChatRegisteredFor.current = chatPushActive;
 
-    if (chatPushActive) {
-      void registerChatPushToken(() => getToken());
-    } else {
-      void unregisterChatPushToken(() => getToken());
-    }
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (chatPushActive) {
+        void registerChatPushToken(() => getToken());
+      } else {
+        void unregisterChatPushToken(() => getToken());
+      }
+    });
+
+    return () => task.cancel();
   }, [chatPushActive, getToken]);
 
   useEffect(() => {
     if (lastAdminRegisteredFor.current === adminPushActive) return;
     lastAdminRegisteredFor.current = adminPushActive;
 
-    if (adminPushActive) {
-      void registerAdminPushToken(() => getToken());
-    } else {
-      void unregisterAdminPushToken(() => getToken());
-    }
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (adminPushActive) {
+        void registerAdminPushToken(() => getToken());
+      } else {
+        void unregisterAdminPushToken(() => getToken());
+      }
+    });
+
+    return () => task.cancel();
   }, [adminPushActive, getToken]);
 
   useEffect(() => {
-    if (variant !== "finance") configureChatNotifications();
-    if (variant === "staff") configureWhatsAppNotificationChannel();
+    let cleanup: (() => void) | undefined;
 
-    const tapSub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as
-        | { type?: string; groupId?: string; phone?: string }
-        | undefined;
-      if (variant !== "finance" && data?.type === "chat_message" && data.groupId) {
-        try {
-          router.push(`/chat/${data.groupId}`);
-        } catch {}
-        return;
-      }
-      if (variant === "staff" && data?.type === "whatsapp_message" && data.phone) {
-        try {
-          router.push(`/whatsapp/${encodeURIComponent(data.phone)}`);
-        } catch {}
-      }
-    });
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (variant !== "finance") configureChatNotifications();
+      if (variant === "staff") configureWhatsAppNotificationChannel();
 
-    const receiveSub = Notifications.addNotificationReceivedListener((notification) => {
-      const data = notification.request.content.data as
-        | { type?: string; groupId?: string; phone?: string }
-        | undefined;
-      if (variant !== "finance" && data?.type === "chat_message" && data.groupId) {
-        increment(data.groupId, 1);
-        return;
-      }
-      if (variant === "staff" && data?.type === "whatsapp_message") {
-        incrementWhatsApp(1);
-      }
+      const tapSub = Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data as
+          | { type?: string; groupId?: string; phone?: string }
+          | undefined;
+        if (variant !== "finance" && data?.type === "chat_message" && data.groupId) {
+          try {
+            router.push(`/chat/${data.groupId}`);
+          } catch {}
+          return;
+        }
+        if (variant === "staff" && data?.type === "whatsapp_message" && data.phone) {
+          try {
+            router.push(`/whatsapp/${encodeURIComponent(data.phone)}`);
+          } catch {}
+        }
+      });
+
+      const receiveSub = Notifications.addNotificationReceivedListener((notification) => {
+        const data = notification.request.content.data as
+          | { type?: string; groupId?: string; phone?: string }
+          | undefined;
+        if (variant !== "finance" && data?.type === "chat_message" && data.groupId) {
+          increment(data.groupId, 1);
+          return;
+        }
+        if (variant === "staff" && data?.type === "whatsapp_message") {
+          incrementWhatsApp(1);
+        }
+      });
+
+      cleanup = () => {
+        tapSub.remove();
+        receiveSub.remove();
+      };
     });
 
     return () => {
-      tapSub.remove();
-      receiveSub.remove();
+      task.cancel();
+      cleanup?.();
     };
   }, [increment, incrementWhatsApp, variant]);
 
@@ -161,7 +178,8 @@ export function AppProviders({
   useEffect(() => {
     if (!checked.current && !__DEV__) {
       checked.current = true;
-      checkForOTAUpdate();
+      const timeout = setTimeout(checkForOTAUpdate, 3500);
+      return () => clearTimeout(timeout);
     }
   }, []);
 
@@ -179,16 +197,18 @@ export function AppProviders({
       <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
         <ClerkLoaded>
           <NetworkProvider>
-            <UnreadProvider>
-              <WhatsAppUnreadProvider>
-                <ErrorBoundary>
-                  <PushController variant={variant} />
-                  <OfflineBanner />
-                  <StatusBar style="dark" />
-                  {children}
-                </ErrorBoundary>
-              </WhatsAppUnreadProvider>
-            </UnreadProvider>
+            <CurrentUserProvider>
+              <UnreadProvider>
+                <WhatsAppUnreadProvider>
+                  <ErrorBoundary>
+                    <PushController variant={variant} />
+                    <OfflineBanner />
+                    <StatusBar style="dark" />
+                    {children}
+                  </ErrorBoundary>
+                </WhatsAppUnreadProvider>
+              </UnreadProvider>
+            </CurrentUserProvider>
           </NetworkProvider>
         </ClerkLoaded>
       </ClerkProvider>

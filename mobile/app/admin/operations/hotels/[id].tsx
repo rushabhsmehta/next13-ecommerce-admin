@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  Image,
   Linking,
   Pressable,
   RefreshControl,
@@ -10,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
@@ -198,18 +198,14 @@ function Inner() {
         }
       />
       {hero ? (
-        <Image
-          source={{ uri: hero }}
-          style={styles.hero}
-          accessibilityIgnoresInvertColors
-        />
+        <RemoteImage uri={hero} style={styles.hero} accessibilityIgnoresInvertColors />
       ) : null}
       {galleryImages.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gallery}>
           {galleryImages.map((url, i) => (
-            <Image
+            <RemoteImage
               key={`${url}-${i}`}
-              source={{ uri: url }}
+              uri={url}
               style={styles.galleryThumb}
               accessibilityIgnoresInvertColors
             />

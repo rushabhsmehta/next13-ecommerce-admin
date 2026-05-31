@@ -26,10 +26,22 @@ function isAndroidEmulator(): boolean {
   return Platform.OS === "android" && Device.isDevice !== true;
 }
 
+/** Metro exposes the dev machine IP when a device is connected (USB or LAN). */
+function metroDevHost(): string | null {
+  const hostUri = Constants.expoConfig?.hostUri?.trim();
+  if (!hostUri) return null;
+  const host = hostUri.split(":")[0]?.trim();
+  if (!host || host === "localhost" || host === "127.0.0.1") return null;
+  return host;
+}
+
 function normalizeDevApiBase(configured?: string): string {
+  const metroHost = metroDevHost();
   const fallback = isAndroidEmulator()
     ? `http://${ANDROID_LOOPBACK}:3000`
-    : "http://127.0.0.1:3000";
+    : metroHost
+      ? `http://${metroHost}:3000`
+      : "http://127.0.0.1:3000";
   const raw = (configured?.trim() || fallback).replace(/\/$/, "");
   // app.json often ships Android emulator host — unusable on iOS Simulator
   if (Platform.OS === "ios" && raw.includes(ANDROID_LOOPBACK)) {

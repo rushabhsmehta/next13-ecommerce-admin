@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import { resolveImageUrl } from "@/lib/resolve-image-url";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError } from "@/lib/api";
 import { uploadOperationsImage } from "@/lib/operations-image";
@@ -78,7 +79,7 @@ export function OperationsImageGallery({ images, onChange, getToken, testID }: P
         {visibleImages.map((img) => (
           <View key={`${img.url}-${img.index}`} style={styles.thumbWrap}>
             <Image
-              source={{ uri: img.url }}
+              source={{ uri: resolveImageUrl(img.url) ?? img.url }}
               style={styles.thumb}
               accessibilityIgnoresInvertColors
             />

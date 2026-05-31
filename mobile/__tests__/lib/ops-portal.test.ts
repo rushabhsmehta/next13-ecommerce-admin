@@ -1,5 +1,12 @@
 import { createOpsPortalClient } from "../../lib/ops-portal";
 
+const READ_CACHE = {
+  cacheTtlSeconds: 30,
+  dedupe: true,
+  staleOnError: true,
+  retries: 1,
+};
+
 describe("createOpsPortalClient", () => {
   it("lists assigned inquiries with filters", async () => {
     const request = jest.fn(async () => ({ items: [], total: 0, hasMore: false, nextOffset: 0 }));
@@ -7,7 +14,7 @@ describe("createOpsPortalClient", () => {
     await client.list({ search: "patel", status: "pending", limit: 10, offset: 5 });
     expect(request).toHaveBeenCalledWith(
       "/api/mobile/ops-portal/my-inquiries?search=patel&status=pending&limit=10&offset=5",
-      { retries: 1 }
+      READ_CACHE
     );
   });
 

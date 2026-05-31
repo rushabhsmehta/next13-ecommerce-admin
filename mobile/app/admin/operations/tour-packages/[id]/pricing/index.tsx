@@ -42,6 +42,9 @@ function fmtDate(s: string): string {
   }
 }
 
+type ActiveFilter = "all" | "active" | "inactive";
+type ScopeFilter = "all" | "global" | "variant";
+
 export default function TourPackagePricingListScreen() {
   return (
     <PermissionGate permission="operations.read">
@@ -69,6 +72,8 @@ function Inner() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("all");
 
   const load = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -93,6 +98,18 @@ function Inner() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const filteredItems = useMemo(
+    () =>
+      items.filter((item) => {
+        if (activeFilter === "active" && !item.isActive) return false;
+        if (activeFilter === "inactive" && item.isActive) return false;
+        if (scopeFilter === "global" && item.packageVariantId) return false;
+        if (scopeFilter === "variant" && !item.packageVariantId) return false;
+        return true;
+      }),
+    [activeFilter, items, scopeFilter]
+  );
 
   if (loading) {
     return (
@@ -130,7 +147,7 @@ function Inner() {
         }
       />
       <FlatList
-        data={items}
+        data={filteredItems}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent,
@@ -139,11 +156,41 @@ function Inner() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} />
         }
+        ListHeaderComponent={
+          <View style={styles.filters}>
+            <View style={styles.filterGroup}>
+              {(["all", "active", "inactive"] as ActiveFilter[]).map((filter) => (
+                <FilterPill
+                  key={filter}
+                  label={filter === "all" ? "All" : filter === "active" ? "Active" : "Inactive"}
+                  active={activeFilter === filter}
+                  onPress={() => setActiveFilter(filter)}
+                />
+              ))}
+            </View>
+            <View style={styles.filterGroup}>
+              {(["all", "global", "variant"] as ScopeFilter[]).map((filter) => (
+                <FilterPill
+                  key={filter}
+                  label={
+                    filter === "all" ? "All scopes" : filter === "global" ? "Global" : "Variant"
+                  }
+                  active={scopeFilter === filter}
+                  onPress={() => setScopeFilter(filter)}
+                />
+              ))}
+            </View>
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="pricetag-outline" size={40} color={Colors.textTertiary} />
             <Text style={styles.emptyTitle}>No pricing rows</Text>
-            <Text style={styles.emptySub}>Add seasonal rates with meal plan and components.</Text>
+            <Text style={styles.emptySub}>
+              {items.length
+                ? "No rows match the current filters."
+                : "Add seasonal rates with meal plan and components."}
+            </Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -168,6 +215,23 @@ function Inner() {
                 .join(" · ") || "—"}
             </Text>
             {!item.isActive ? <Text style={styles.inactive}>Inactive</Text> : null}
+            {item.pricingComponents.length ? (
+              <View style={styles.componentsPreview}>
+                {item.pricingComponents.slice(0, 3).map((component) => (
+                  <View key={component.id} style={styles.componentLine}>
+                    <Text style={styles.componentName} numberOfLines={1}>
+                      {component.pricingAttributeName}
+                    </Text>
+                    <Text style={styles.componentPrice}>{inr(component.price)}</Text>
+                  </View>
+                ))}
+                {item.pricingComponents.length > 3 ? (
+                  <Text style={styles.moreComponents}>
+                    +{item.pricingComponents.length - 3} more components
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} style={styles.chevron} />
           </Pressable>
         )}
@@ -176,8 +240,52 @@ function Inner() {
   );
 }
 
+function FilterPill({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      style={[styles.filterPill, active ? styles.filterPillActive : null]}
+      onPress={onPress}
+    >
+      <Text style={[styles.filterPillText, active ? styles.filterPillTextActive : null]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   listContent: { padding: Spacing.lg, flexGrow: 1 },
+  filters: { gap: Spacing.sm, marginBottom: Spacing.md },
+  filterGroup: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.xs },
+  filterPill: {
+    borderRadius: BorderRadius.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+  },
+  filterPillActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+  },
+  filterPillText: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.textSecondary,
+  },
+  filterPillTextActive: { color: Colors.primary },
   empty: {
     flex: 1,
     alignItems: "center",
@@ -209,6 +317,36 @@ const styles = StyleSheet.create({
   cardDates: { flex: 1, fontSize: FontSize.md, fontWeight: "600", color: Colors.text },
   cardPrice: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
   cardSub: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
+  componentsPreview: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    gap: 4,
+    paddingRight: Spacing.xl,
+  },
+  componentLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
+  componentName: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.textSecondary,
+  },
+  componentPrice: {
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.text,
+  },
+  moreComponents: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.textTertiary,
+  },
   inactive: {
     marginTop: Spacing.xs,
     fontSize: FontSize.xs,

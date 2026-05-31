@@ -5,10 +5,12 @@ import {
   Alert,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/clerk-expo";
@@ -147,13 +149,30 @@ function Inner({ kind }: { kind: Kind }) {
       />
 
       <View style={styles.hero}>
-        <View style={styles.heroIcon}>
-          <Ionicons
-            name={kind === "itinerary" ? "list" : "walk"}
-            size={22}
-            color={Colors.primary}
-          />
-        </View>
+        {record.images?.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.heroGallery}
+          >
+            {record.images.map((img, index) => (
+              <RemoteImage
+                key={img.id ?? `${img.url}-${index}`}
+                uri={img.url}
+                style={styles.heroPhoto}
+                accessibilityLabel="Record photo"
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.heroIcon}>
+            <Ionicons
+              name={kind === "itinerary" ? "list" : "walk"}
+              size={22}
+              color={Colors.primary}
+            />
+          </View>
+        )}
         <Text style={styles.heroTitle} numberOfLines={2}>
           {record.title || "Untitled"}
         </Text>
@@ -247,6 +266,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBg,
     alignItems: "center",
     justifyContent: "center",
+  },
+  heroGallery: { gap: Spacing.sm },
+  heroPhoto: {
+    width: 160,
+    height: 110,
+    borderRadius: BorderRadius.md,
   },
   heroTitle: {
     fontSize: FontSize.lg,

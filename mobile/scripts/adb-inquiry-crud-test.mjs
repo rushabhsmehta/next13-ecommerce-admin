@@ -108,18 +108,69 @@ function clearAndType(text) {
   adb(`shell input text "${safe}"`);
 }
 
-function bypassLogin(xml) {
-  if (hasText(xml, "Developer sign-in (bypass Clerk)")) tap(540, 1720);
-  else if (!tapResource(xml, "login-dev-bypass-toggle")) return false;
-  const form = dump("bypass-form");
-  if (!tapResource(form, "login-dev-bypass-token")) tap(540, 1050);
-  for (let i = 0; i < 40; i++) adb("shell input keyevent 67");
-  for (const ch of BYPASS) {
-    if (ch === "-") adb('shell input text "-"');
-    else adb(`shell input text "${ch}"`);
+async function bypassLogin(xml) {
+  if (hasText(xml, "accounts.google.com") || hasText(xml, "Sign in with Google")) {
+    adb("shell input keyevent 4");
+    await sleep(1500);
+    return false;
   }
-  const filled = dump("bypass-filled");
-  if (!tapResource(filled, "login-dev-bypass-continue")) tap(540, 1280);
+  if (hasText(xml, "Hide developer sign-in") || xml.includes("login-dev-bypass-token")) {
+    // Dev form already expanded.
+  } else if (hasText(xml, "Developer sign-in (bypass Clerk)")) {
+    tapResource(xml, "login-dev-bypass-toggle") || tap(540, 1720);
+  } else if (!tapResource(xml, "login-dev-bypass-toggle")) {
+    return false;
+  }
+  await sleep(800);
+  let form = dump("bypass-form");
+  if (!form.includes("login-dev-bypass-token")) {
+    adb("shell input swipe 540 1500 540 600 350");
+    await sleep(500);
+    tapResource(form, "login-dev-bypass-toggle") || tap(540, 1720);
+    await sleep(800);
+    form = dump("bypass-form-retry");
+  }
+  if (!form.includes("login-dev-bypass-token")) {
+    console.warn("[bypassLogin] Dev bypass token field not visible");
+    return false;
+  }
+  if (!tapResource(form, "login-dev-bypass-token")) return false;
+  await sleep(400);
+  let filled = dump("bypass-filled");
+  if (!filled.includes(BYPASS)) {
+    console.warn("[bypassLogin] Token not auto-filled — typing manually (may not update React state)");
+    for (let i = 0; i < 48; i++) adb("shell input keyevent 67");
+    for (const ch of BYPASS) {
+      if (ch === "-") adb('shell input text "-"');
+      else adb(`shell input text "${ch}"`);
+    }
+    await sleep(300);
+    filled = dump("bypass-typed");
+  }
+  if (filled.includes(BYPASS + "g") || !filled.includes(BYPASS)) {
+    console.warn("[bypassLogin] Token field mismatch — retrying entry");
+    if (!tapResource(filled, "login-dev-bypass-token")) tap(540, 1050);
+    for (let i = 0; i < 40; i++) adb("shell input keyevent 67");
+    for (const ch of BYPASS) {
+      if (ch === "-") adb('shell input text "-"');
+      else adb(`shell input text "${ch}"`);
+    }
+    await sleep(300);
+  }
+  let ready = dump("bypass-ready");
+  if (!ready.includes("login-dev-bypass-continue")) {
+    adb("shell input swipe 540 1500 540 600 350");
+    await sleep(500);
+    ready = dump("bypass-scrolled");
+  }
+  if (!tapResource(ready, "login-dev-bypass-continue")) tap(540, 1280);
+  await sleep(3000);
+  const after = dump("bypass-after-continue");
+  if (hasText(after, "accounts.google.com") || hasText(after, "Sign in with Google")) {
+    adb("shell input keyevent 4");
+    await sleep(1500);
+    return false;
+  }
   return true;
 }
 
@@ -142,7 +193,7 @@ async function ensureSignedIn() {
   adb(
     `shell am start -a android.intent.action.VIEW -d "${SCHEME}://expo-development-client/?url=${url}" ${PKG}`
   );
-  await sleep(18000);
+  await sleep(12000);
   let xml = dump("launch");
 
   if (hasText(xml, "Connect") || hasText(xml, "DEVELOPMENT SERVERS")) {
@@ -150,24 +201,82 @@ async function ensureSignedIn() {
     await sleep(12000);
     xml = dump("connected");
   }
-  if (hasText(xml, "Admin access required")) {
-    tap(540, 1245);
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    if (
+      xml.includes("operations-admin-hub") ||
+      xml.includes("operations-hub-sign-in") ||
+      hasText(xml, "Sign in required") ||
+      hasText(xml, "Welcome back") ||
+      hasText(xml, "login-screen") ||
+      hasText(xml, "Admin access required") ||
+      xml.length > 12_000
+    ) {
+      break;
+    }
+    console.log(`[ensureSignedIn] Waiting for app UI (${attempt + 1}/20)...`);
     await sleep(3000);
-    xml = dump("signin-prompt");
+    xml = dump(`launch-wait-${attempt}`);
   }
-  if (hasText(xml, "login-screen") || hasText(xml, "Welcome back")) {
-    adb("shell input swipe 540 1300 540 700 300");
-    await sleep(600);
-    xml = dump("login");
-    if (!bypassLogin(xml)) throw new Error("Dev bypass login failed");
-    await sleep(10000);
-    xml = dump("post-login");
+
+  async function openSignInAndBypass(current) {
+    if (
+      hasText(current, "Admin access required") ||
+      current.includes("operations-hub-sign-in") ||
+      hasText(current, "Sign in required")
+    ) {
+      tapResource(current, "operations-hub-sign-in") ||
+        tapText(current, "Sign in") ||
+        tap(540, 1180);
+      await sleep(4000);
+      current = dump("signin-prompt");
+    }
+    if (hasText(current, "Welcome back") || hasText(current, "login-screen")) {
+      adb("shell input swipe 540 1300 540 700 300");
+      await sleep(600);
+      current = dump("login");
+      if (!(await bypassLogin(current))) {
+        tap(540, 1720);
+        await sleep(800);
+        if (!(await bypassLogin(dump("login-retry")))) {
+          throw new Error("Dev bypass login failed");
+        }
+      }
+      await sleep(12000);
+      current = dump("post-login");
+    }
+    return current;
   }
+
+  xml = await openSignInAndBypass(xml);
+
   if (!xml.includes("operations-admin-hub")) {
-    tapResource(xml, "tab-admin-icon") || tapText(xml, "Menu");
+    tapResource(xml, "tab-admin-icon") || tapText(xml, "Menu") || tapText(xml, "Tools");
     await sleep(4000);
     xml = dump("admin-tab");
   }
+
+  if (
+    !xml.includes("operations-admin-hub") &&
+    (xml.includes("operations-hub-sign-in") || hasText(xml, "Sign in required"))
+  ) {
+    xml = await openSignInAndBypass(xml);
+    if (!xml.includes("operations-admin-hub")) {
+      tapResource(xml, "tab-admin-icon") || tapText(xml, "Menu") || tapText(xml, "Tools");
+      await sleep(4000);
+      xml = dump("admin-tab-after-login");
+    }
+  }
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    if (xml.includes("operations-hub-loading") && !xml.includes("operations-admin-hub")) {
+      await sleep(1500);
+      xml = dump(`hub-loading-${attempt}`);
+    } else {
+      break;
+    }
+  }
+
   if (!xml.includes("operations-admin-hub")) {
     throw new Error("Operations hub not visible — check sign-in and crm permissions");
   }
@@ -182,6 +291,7 @@ async function main() {
 
   console.log("\n--- Navigate: Inquiries list ---");
   if (
+    !tapResource(xml, "admin-hub-section-priority-item-inquiries") &&
     !tapResource(xml, "admin-hub-section-crm-item-inquiries") &&
     !tapResource(xml, "admin-hub-section-dashboard-item-inquiries") &&
     !tapResource(xml, "operations-stat-open-inquiries")

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { escapeAttr, safeUrl } from "@/lib/html-escape";
-import { renderItineraryImages } from "@/lib/itinerary-image-html";
+import { renderItineraryImages, renderActivityImages, resolvePdfImageUrl } from "@/lib/itinerary-image-html";
 import {
   Activity,
   FlightDetails,
@@ -328,9 +328,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
           ${h ? `
             <div style="display: flex; align-items: center; gap: 10px;">
-              ${safeUrl(h.imageUrl) ? `
+              ${resolvePdfImageUrl(h.imageUrl) ? `
                 <div style="flex-shrink: 0; width: 60px; height: 44px; border-radius: 4px; overflow: hidden; background: #f3f4f6;">
-                  <img src="${escapeAttr(safeUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img src="${escapeAttr(resolvePdfImageUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               ` : `
                 <div style="flex-shrink: 0; width: 60px; height: 44px; border-radius: 4px; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); display: flex; align-items: center; justify-content: center;">
@@ -536,9 +536,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         return `<td style="${tdBase} background: ${isEven ? brandColors.white : brandColors.subtlePanel}; padding: 8px 6px;">
           ${h ? `
             <div style="border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; background: white;">
-              ${safeUrl(h.imageUrl) ? `
+              ${resolvePdfImageUrl(h.imageUrl) ? `
                 <div style="height: 120px; overflow: hidden; background: #F3F4F6;">
-                  <img src="${escapeAttr(safeUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
+                  <img src="${escapeAttr(resolvePdfImageUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
                 </div>
               ` : `
                 <div style="height: 90px; background: linear-gradient(135deg, ${brandColors.light} 0%, ${brandColors.lightOrange} 100%); display: flex; align-items: center; justify-content: center;">
@@ -863,7 +863,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     if (!initialData) return "";
 
     // 1. Header Section
-    const firstValidImageUrl = initialData.images?.reduce<string>((found, img) => found || safeUrl(img.url), "");
+    const firstValidImageUrl = initialData.images?.reduce<string>(
+      (found, img) => found || resolvePdfImageUrl(img.url),
+      ""
+    );
     const headerLogoUrl = safeUrl(currentCompany.logo);
     const headerSection = `
       <div style="${cardStyle}; text-align: center; position: relative;">
@@ -1159,19 +1162,22 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 </h4>
                 <div style="display: grid; gap: 12px;">
                   ${itinerary.activities.map((activity, actIdx) => `
-                    <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; display: flex; align-items: flex-start;">
-                      <div style="background: ${brandColors.secondary}; color: ${brandColors.white}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px; flex-shrink: 0;">
-                        ${actIdx + 1}
-                      </div>
-                      <div>
-                        <h5 style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin: 0;">
-                          ${activity.activityTitle || `Activity ${actIdx + 1}`}
-                        </h5>
-                        ${activity.activityDescription ? `
-                          <p style="font-size: 13px; color: ${brandColors.muted}; margin: 4px 0 0 0; line-height: 1.5;">
-                            ${activity.activityDescription}
-                          </p>
-                        ` : ''}
+                    <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; page-break-inside: avoid; break-inside: avoid;">
+                      <div style="display: flex; align-items: flex-start; gap: 12px;">
+                        <div style="background: ${brandColors.secondary}; color: ${brandColors.white}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px;">
+                          ${actIdx + 1}
+                        </div>
+                        <div style="flex: 1;">
+                          <h5 style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 4px 0;">
+                            ${activity.activityTitle || `Activity ${actIdx + 1}`}
+                          </h5>
+                          ${renderActivityImages(activity.activityImages, activity.activityTitle)}
+                          ${activity.activityDescription ? `
+                            <p style="font-size: 13px; color: ${brandColors.muted}; margin: 4px 0 0 0; line-height: 1.5;">
+                              ${activity.activityDescription}
+                            </p>
+                          ` : ''}
+                        </div>
                       </div>
                     </div>
                   `).join("")}

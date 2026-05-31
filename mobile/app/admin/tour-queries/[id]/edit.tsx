@@ -49,6 +49,90 @@ interface ItineraryRow {
   roomAllocations: RoomAllocationRow[];
 }
 
+function parseSelectedVariantIds(value: unknown): string[] {
+  if (value == null) return [];
+  if (Array.isArray(value)) {
+    return value.filter((id): id is string => typeof id === "string" && id.length > 0);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((id): id is string => typeof id === "string" && id.length > 0);
+      }
+    } catch {
+      return [trimmed];
+    }
+  }
+  return [];
+}
+
+function toInt(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, Math.trunc(value));
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = parseInt(value.replace(/[^0-9-]/g, ""), 10);
+    return Number.isFinite(n) ? Math.max(0, n) : fallback;
+  }
+  return fallback;
+}
+
+function formatApiValidationError(err: unknown): string {
+  if (!(err instanceof ApiError) || !err.details || typeof err.details !== "object") {
+    return err instanceof ApiError ? err.message : "Could not save changes.";
+  }
+  const flat = err.details as {
+    fieldErrors?: Record<string, string[] | undefined>;
+    formErrors?: string[];
+  };
+  const parts: string[] = [];
+  for (const msg of flat.formErrors ?? []) {
+    if (msg.trim()) parts.push(msg);
+  }
+  for (const [field, messages] of Object.entries(flat.fieldErrors ?? {})) {
+    if (messages?.length) {
+      const label = field.includes("occupancyTypeId")
+        ? "Room occupancy is required on each itinerary day"
+        : field.includes("itineraries")
+          ? field.replace(/\.\d+\./g, " day ").replace(/\./g, " ")
+          : field;
+      parts.push(`${label}: ${messages[0]}`);
+    }
+  }
+  return parts.length > 0 ? `${err.message}\n${parts.join("\n")}` : err.message;
+}
+
+function defaultRoomAllocationRow(
+  roomTypes: { id: string; name: string }[],
+  occupancyTypes: { id: string; name: string }[],
+  mealPlans: { id: string; name: string }[]
+): RoomAllocationRow {
+  return {
+    roomTypeId: roomTypes[0]?.id || "4ae23712-19f7-4035-9db9-4d0df85d64ea",
+    occupancyTypeId: occupancyTypes[0]?.id || "",
+    mealPlanId: mealPlans[0]?.id || null,
+    quantity: 1,
+    customRoomType: "",
+  };
+}
+
+function ensureItineraryRoomDefaults(
+  days: ItineraryRow[],
+  roomTypes: { id: string; name: string }[],
+  occupancyTypes: { id: string; name: string }[],
+  mealPlans: { id: string; name: string }[]
+): ItineraryRow[] {
+  const fallback = defaultRoomAllocationRow(roomTypes, occupancyTypes, mealPlans);
+  return days.map((day) => {
+    const validAllocs = day.roomAllocations.filter((ra) => ra.occupancyTypeId?.trim());
+    if (validAllocs.length > 0) {
+      return { ...day, roomAllocations: validAllocs };
+    }
+    return { ...day, roomAllocations: [{ ...fallback }] };
+  });
+}
+
 interface DetailResponse {
   id: string;
   tourPackageQueryName: string | null;
@@ -267,7 +351,9 @@ function EditTourQueryScreenInner() {
         setMealPlans(pricingRes.mealPlans || []);
         setInquiry(d.inquiry ?? null);
         setSelectedPackageId(d.selectedTemplateId || null);
-        const initVariantIds = d.selectedVariantIds || [];
+        setPackageVariants([]);
+        setSelectedCopyQueryId(null);
+        const initVariantIds = parseSelectedVariantIds(d.selectedVariantIds);
         setSelectedVariantIds(initVariantIds);
 
         setPackagesList(
@@ -301,19 +387,19 @@ function EditTourQueryScreenInner() {
 
         const itinerariesInit = (d.itineraries ?? []).map((it: any) => ({
           id: it.id,
-          dayNumber: it.dayNumber,
-          days: it.days ?? (it.dayNumber ? String(it.dayNumber) : ""),
+          dayNumber: it.dayNumber != null ? toInt(it.dayNumber, 0) : null,
+          days: it.days != null ? String(it.days) : it.dayNumber != null ? String(it.dayNumber) : "",
           locationId: it.locationId ?? null,
-          hotelId: it.hotelId ?? null,
+          hotelId: it.hotelId ?? it.hotel?.id ?? null,
           itineraryTitle: it.itineraryTitle ?? "",
           itineraryDescription: it.itineraryDescription ?? "",
           mealsIncluded: it.mealsIncluded ?? "",
           roomAllocations: (it.roomAllocations ?? []).map((ra: any) => ({
             id: ra.id,
             roomTypeId: ra.roomTypeId,
-            occupancyTypeId: ra.occupancyTypeId,
+            occupancyTypeId: ra.occupancyTypeId ?? "",
             mealPlanId: ra.mealPlanId ?? null,
-            quantity: ra.quantity ?? 1,
+            quantity: toInt(ra.quantity, 1),
             customRoomType: ra.customRoomType ?? "",
           })),
         }));
@@ -426,7 +512,26 @@ function EditTourQueryScreenInner() {
   const dirty =
     !!baselineSerialized.current && liveSerialized !== baselineSerialized.current;
 
-  const saveBlocked = saving || !datesOk || datesOrderWarning || !dirty;
+  const itineraryValidationError = useMemo(() => {
+    if (selectedPackageId && itineraries.length === 0) {
+      return "Selected template has no itinerary days. Choose another template or add at least one day.";
+    }
+    for (let d = 0; d < itineraries.length; d++) {
+      const day = itineraries[d];
+      if (!day.locationId) {
+        return `Day ${day.dayNumber ?? d + 1}: choose a location.`;
+      }
+      for (let r = 0; r < day.roomAllocations.length; r++) {
+        if (!day.roomAllocations[r].occupancyTypeId?.trim()) {
+          return `Day ${day.dayNumber ?? d + 1}, room ${r + 1}: choose occupancy.`;
+        }
+      }
+    }
+    return null;
+  }, [itineraries, selectedPackageId]);
+
+  const saveBlocked =
+    saving || !datesOk || datesOrderWarning || !dirty || !!itineraryValidationError;
 
   const addDay = useCallback(() => {
     setItineraries((prev) => {
@@ -629,22 +734,11 @@ function EditTourQueryScreenInner() {
     const { type, dayIndex, allocationIndex } = activePicker;
 
     if (type === "packageTemplate") {
-      setSelectedPackageId(option.id);
-      setSelectedVariantIds([]);
-      setSelectedCopyQueryId(null);
       setSaving(true);
       try {
         const pkg = await authRequest<any>(`/api/mobile/tour-packages/${encodeURIComponent(option.id)}`);
-        setPackageVariants(pkg.variants || []);
-        
-        // Auto-select default variant if any
-        const defaultVar = pkg.variants?.find((v: any) => v.isDefault);
-        if (defaultVar) {
-          setSelectedVariantIds([defaultVar.id]);
-        }
-
-        const newItineraries = (pkg.itineraries || []).map((it: any) => ({
-          id: `temp-${Date.now()}-${Math.random()}`,
+        const newItineraries = (pkg.itineraries || []).map((it: any, idx: number) => ({
+          id: `temp-${Date.now()}-${idx}-${Math.random()}`,
           dayNumber: it.dayNumber,
           days: String(it.dayNumber),
           locationId: pkg.locationId || locations[0]?.id || null,
@@ -655,11 +749,36 @@ function EditTourQueryScreenInner() {
           roomAllocations: [],
         }));
 
+        if (newItineraries.length === 0) {
+          Alert.alert(
+            "No itinerary on template",
+            "This tour package has no itinerary days in admin. Add days on the web dashboard or use Add Day below."
+          );
+          setSaving(false);
+          return;
+        }
+
+        setSelectedVariantIds([]);
+        setSelectedCopyQueryId(null);
+        setSelectedPackageId(pkg.id ?? option.id);
+        setPackageVariants(pkg.variants || []);
+
+        // Auto-select default variant if any
+        const defaultVar = pkg.variants?.find((v: any) => v.isDefault);
+        if (defaultVar) {
+          setSelectedVariantIds([defaultVar.id]);
+        }
+
         if (pkg.locationId) {
           void loadHotelsForLocation(pkg.locationId);
         }
 
-        const withRooms = applyInquiryRoomAllocationsToAll(newItineraries);
+        const withRooms = ensureItineraryRoomDefaults(
+          applyInquiryRoomAllocationsToAll(newItineraries),
+          roomTypes,
+          occupancyTypes,
+          mealPlans
+        );
         setItineraries(withRooms);
       } catch (err) {
         Alert.alert("Error", "Could not load package template details.");
@@ -703,7 +822,12 @@ function EditTourQueryScreenInner() {
         }
         setPolicies(pol);
 
-        const withRooms = applyInquiryRoomAllocationsToAll(newItineraries);
+        const withRooms = ensureItineraryRoomDefaults(
+          applyInquiryRoomAllocationsToAll(newItineraries),
+          roomTypes,
+          occupancyTypes,
+          mealPlans
+        );
         setItineraries(withRooms);
       } catch (err) {
         Alert.alert("Error", "Could not load query details to copy.");
@@ -742,10 +866,23 @@ function EditTourQueryScreenInner() {
       copy[dayIndex] = day;
       return copy;
     });
-  }, [activePicker, loadHotelsForLocation, selectedPackageId, locations, authRequest, applyInquiryRoomAllocationsToAll]);
+  }, [activePicker, loadHotelsForLocation, locations, authRequest, applyInquiryRoomAllocationsToAll, roomTypes, occupancyTypes, mealPlans]);
 
   const save = useCallback(async () => {
     if (!id || saveBlocked) return;
+    const allowedVariantIds = new Set(packageVariants.map((v) => v.id));
+    const variantIdsForSave = selectedVariantIds.filter((vid) => allowedVariantIds.has(vid));
+    if (selectedVariantIds.length > 0 && variantIdsForSave.length === 0) {
+      Alert.alert(
+        "Cannot save",
+        "Re-select variants after choosing the tour package template."
+      );
+      return;
+    }
+    if (variantIdsForSave.length > 0 && !selectedPackageId) {
+      Alert.alert("Cannot save", "Choose a tour package template before saving variants.");
+      return;
+    }
     setSaving(true);
     try {
       const payload: TourQueryEditInput = {
@@ -760,8 +897,10 @@ function EditTourQueryScreenInner() {
         remarks: remarks.trim() || null,
         selectedTemplateId: selectedPackageId,
         selectedTemplateType: selectedPackageId ? "TourPackageVariant" : null,
-        tourPackageTemplateName: selectedPackageId ? (packagesList.find((p) => p.id === selectedPackageId)?.name || null) : null,
-        selectedVariantIds: selectedVariantIds,
+        tourPackageTemplateName: selectedPackageId
+          ? packagesList.find((p) => p.id === selectedPackageId)?.name || null
+          : null,
+        selectedVariantIds: variantIdsForSave,
         itineraries: itineraries.map((it) => ({
           id: it.id.startsWith("temp-") ? undefined : it.id,
           dayNumber: it.dayNumber ?? undefined,
@@ -771,13 +910,15 @@ function EditTourQueryScreenInner() {
           itineraryTitle: it.itineraryTitle ?? "",
           itineraryDescription: it.itineraryDescription ?? "",
           mealsIncluded: it.mealsIncluded ?? "",
-          roomAllocations: it.roomAllocations.map((ra) => ({
-            roomTypeId: ra.roomTypeId,
-            occupancyTypeId: ra.occupancyTypeId,
-            mealPlanId: ra.mealPlanId,
-            quantity: ra.quantity || 1,
-            customRoomType: ra.customRoomType || null,
-          })),
+          roomAllocations: it.roomAllocations
+            .filter((ra) => ra.occupancyTypeId?.trim())
+            .map((ra) => ({
+              roomTypeId: ra.roomTypeId,
+              occupancyTypeId: ra.occupancyTypeId.trim(),
+              mealPlanId: ra.mealPlanId,
+              quantity: toInt(ra.quantity, 1) || 1,
+              customRoomType: ra.customRoomType || null,
+            })),
         })),
       };
       for (const f of POLICY_FIELDS) {
@@ -789,10 +930,7 @@ function EditTourQueryScreenInner() {
       await editClient.update(id, payload);
       router.back();
     } catch (err) {
-      Alert.alert(
-        "Save failed",
-        err instanceof ApiError ? err.message : "Could not save changes."
-      );
+      Alert.alert("Save failed", formatApiValidationError(err));
     } finally {
       setSaving(false);
     }
@@ -812,6 +950,7 @@ function EditTourQueryScreenInner() {
     itineraries,
     selectedPackageId,
     selectedVariantIds,
+    packageVariants,
     packagesList,
     editClient,
     router,
@@ -832,14 +971,18 @@ function EditTourQueryScreenInner() {
   }
 
   const saveDisabledReason = saving
-    ? "Saving…"
-    : datesOrderWarning
-      ? "End date cannot be before start date."
-      : !datesOk
-        ? "Choose valid dates."
-        : !dirty
-          ? "Change a field to enable save."
-          : undefined;
+    ? selectedVariantIds.length > 0
+      ? "Saving… variant snapshots can take up to a minute."
+      : "Saving…"
+    : itineraryValidationError
+      ? itineraryValidationError
+      : datesOrderWarning
+        ? "End date cannot be before start date."
+        : !datesOk
+          ? "Choose valid dates."
+          : !dirty
+            ? "Change a field to enable save."
+            : undefined;
 
   return (
     <>
@@ -893,79 +1036,102 @@ function EditTourQueryScreenInner() {
             </Pressable>
           </View>
 
-          {selectedPackageId && packageVariants.length > 0 ? (
-            <View style={{ marginBottom: 12 }}>
-              <Text style={styles.label}>Select Variants to Compare</Text>
-              <View style={styles.variantsContainer}>
-                {packageVariants.map((v) => {
-                  const isChecked = selectedVariantIds.includes(v.id);
-                  return (
-                    <View key={v.id} style={styles.variantRow}>
-                      <Pressable
-                        testID={`variant-toggle-${v.id}`}
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: isChecked }}
-                        style={styles.variantCheckboxContainer}
-                        onPress={() => {
-                          setSelectedVariantIds((prev) => {
-                            const next = prev.includes(v.id)
-                              ? prev.filter((id) => id !== v.id)
-                              : [...prev, v.id];
-                            return next;
-                          });
-                        }}
-                      >
-                        <Ionicons
-                          name={isChecked ? "checkbox" : "square-outline"}
-                          size={20}
-                          color={isChecked ? Colors.primary : Colors.textTertiary}
-                        />
-                        <Text style={styles.variantLabel} numberOfLines={1}>{v.name}</Text>
-                      </Pressable>
-                      {isChecked ? (
+          <View style={{ marginBottom: 12 }}>
+            <Text style={styles.label}>Select variants to compare (2 or more)</Text>
+            {!selectedPackageId ? (
+              <Text style={styles.help}>
+                Choose a tour package template above first. Inquiry-only queries do not have
+                variants until you link a package.
+              </Text>
+            ) : packageVariants.length === 0 ? (
+              <Text style={styles.help}>
+                This package has no variants on the server. Add variants in the web admin, then
+                pull to refresh here.
+              </Text>
+            ) : (
+              <>
+                <Text style={styles.help}>
+                  Tick two or more options, then save. Open the trip Variants screen to compare
+                  pricing after save.
+                </Text>
+                <View style={styles.variantsContainer}>
+                  {packageVariants.map((v) => {
+                    const isChecked = selectedVariantIds.includes(v.id);
+                    return (
+                      <View key={v.id} style={styles.variantRow}>
                         <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={`Apply hotels from ${v.name}`}
-                          style={styles.applyHotelsBtn}
-                          onPress={async () => {
-                            setSaving(true);
-                            try {
-                              const res = await authRequest<{ mappings: any[] }>(
-                                `/api/mobile/tour-packages/${encodeURIComponent(selectedPackageId)}/variants/${encodeURIComponent(v.id)}/hotel-mappings`
-                              );
-                              setItineraries((prev) => {
-                                const copy = [...prev];
-                                for (const mapping of res.mappings || []) {
-                                  const dIdx = copy.findIndex((d) => d.dayNumber === mapping.dayNumber);
-                                  if (dIdx !== -1) {
-                                    copy[dIdx] = {
-                                      ...copy[dIdx],
-                                      hotelId: mapping.hotelId,
-                                    };
-                                    if (copy[dIdx].locationId) {
-                                      void loadHotelsForLocation(copy[dIdx].locationId);
-                                    }
-                                  }
-                                }
-                                return copy;
-                              });
-                              Alert.alert("Success", `Applied hotel mappings from "${v.name}" to itineraries.`);
-                            } catch (err) {
-                              Alert.alert("Error", "Could not load variant hotel mappings.");
-                            } finally {
-                              setSaving(false);
-                            }
+                          testID={`variant-toggle-${v.id}`}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: isChecked }}
+                          style={styles.variantCheckboxContainer}
+                          onPress={() => {
+                            setSelectedVariantIds((prev) => {
+                              const next = prev.includes(v.id)
+                                ? prev.filter((vid) => vid !== v.id)
+                                : [...prev, v.id];
+                              return next;
+                            });
                           }}
                         >
-                          <Text style={styles.applyHotelsBtnText}>Apply hotels</Text>
+                          <Ionicons
+                            name={isChecked ? "checkbox" : "square-outline"}
+                            size={20}
+                            color={isChecked ? Colors.primary : Colors.textTertiary}
+                          />
+                          <Text style={styles.variantLabel} numberOfLines={1}>
+                            {v.name}
+                          </Text>
                         </Pressable>
-                      ) : null}
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          ) : null}
+                        {isChecked ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Apply hotels from ${v.name}`}
+                            style={styles.applyHotelsBtn}
+                            onPress={async () => {
+                              setSaving(true);
+                              try {
+                                const res = await authRequest<{ mappings: any[] }>(
+                                  `/api/mobile/tour-packages/${encodeURIComponent(selectedPackageId)}/variants/${encodeURIComponent(v.id)}/hotel-mappings`
+                                );
+                                setItineraries((prev) => {
+                                  const copy = [...prev];
+                                  for (const mapping of res.mappings || []) {
+                                    const dIdx = copy.findIndex(
+                                      (d) => d.dayNumber === mapping.dayNumber
+                                    );
+                                    if (dIdx !== -1) {
+                                      copy[dIdx] = {
+                                        ...copy[dIdx],
+                                        hotelId: mapping.hotelId,
+                                      };
+                                      if (copy[dIdx].locationId) {
+                                        void loadHotelsForLocation(copy[dIdx].locationId!);
+                                      }
+                                    }
+                                  }
+                                  return copy;
+                                });
+                                Alert.alert(
+                                  "Success",
+                                  `Applied hotel mappings from "${v.name}" to itineraries.`
+                                );
+                              } catch {
+                                Alert.alert("Error", "Could not load variant hotel mappings.");
+                              } finally {
+                                setSaving(false);
+                              }
+                            }}
+                          >
+                            <Text style={styles.applyHotelsBtnText}>Apply hotels</Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+          </View>
 
           <View style={{ marginBottom: 12 }}>
             <Text style={styles.label}>Copy from Another Query</Text>

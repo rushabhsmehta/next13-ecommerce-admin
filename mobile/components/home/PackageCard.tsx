@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { View, Text, Image, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -62,8 +63,8 @@ export function PackageCard({ pkg, onPress, testID, variant = "list" }: Props) {
     >
       <View style={[styles.imageWrap, isCarousel && styles.imageWrapCarousel]}>
         {imageUrl && !imageFailed ? (
-          <Image
-            source={{ uri: imageUrl }}
+          <RemoteImage
+            uri={imageUrl}
             style={[styles.image, isCarousel && styles.imageCarousel]}
             resizeMode="cover"
             onError={() => setImageFailed(true)}

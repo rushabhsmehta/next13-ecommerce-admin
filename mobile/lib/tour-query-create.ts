@@ -5,6 +5,7 @@
  * network error which the screen shows inline.
  */
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
+import { TOUR_QUERY_WRITE_TIMEOUT } from "@/lib/api";
 
 export type TourQueryCreateMode = "inquiry" | "package" | "copy" | "scratch";
 
@@ -43,6 +44,7 @@ export function createTourQueryCreateClient(authRequest: AuthenticatedRequest) {
         method: "POST",
         body: input,
         headers: { "Idempotency-Key": makeIdempotencyKey("tq-create") },
+        timeout: TOUR_QUERY_WRITE_TIMEOUT,
       });
     },
 

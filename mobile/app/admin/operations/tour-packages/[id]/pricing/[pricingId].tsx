@@ -64,6 +64,7 @@ function Inner() {
             pricingAttributeId: c.pricingAttributeId,
             price: String(c.price),
             purchasePrice: c.purchasePrice != null ? String(c.purchasePrice) : "",
+            description: c.description ?? "",
           })),
         });
       } catch (err) {

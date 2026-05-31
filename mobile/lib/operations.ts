@@ -46,6 +46,9 @@ function idemKey(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${rand}`;
 }
 
+const READ_CACHE = { cacheTtlSeconds: 45, dedupe: true, staleOnError: true } as const;
+const LOOKUP_CACHE = { cacheTtlSeconds: 300, dedupe: true, staleOnError: true } as const;
+
 export function createOperationsClient(authRequest: AuthenticatedRequest) {
   return {
     listSuppliers(filters: {
@@ -59,7 +62,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();
       return authRequest<SupplierListResponse>(
-        `/api/mobile/operations/suppliers${q ? `?${q}` : ""}`
+        `/api/mobile/operations/suppliers${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -105,7 +109,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.activeOnly) qs.set("activeOnly", "true");
       const q = qs.toString();
       return authRequest(
-        `/api/mobile/operations/staff${q ? `?${q}` : ""}`
+        `/api/mobile/operations/staff${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -158,7 +163,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();
       return authRequest<TransportPricingListResponse>(
-        `/api/mobile/operations/transport-pricing${q ? `?${q}` : ""}`
+        `/api/mobile/operations/transport-pricing${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -208,7 +214,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.activeOnly) qs.set("activeOnly", "true");
       const q = qs.toString();
       return authRequest<VehicleTypeListResponse>(
-        `/api/mobile/operations/vehicle-types${q ? `?${q}` : ""}`
+        `/api/mobile/operations/vehicle-types${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -255,7 +262,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();
       return authRequest<LocationListResponse>(
-        `/api/mobile/operations/locations${q ? `?${q}` : ""}`
+        `/api/mobile/operations/locations${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -304,7 +312,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();
       return authRequest<DestinationListResponse>(
-        `/api/mobile/operations/destinations${q ? `?${q}` : ""}`
+        `/api/mobile/operations/destinations${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -360,7 +369,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();
       return authRequest<HotelListResponse>(
-        `/api/mobile/operations/hotels${q ? `?${q}` : ""}`
+        `/api/mobile/operations/hotels${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -408,7 +418,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.activeOnly === false) qs.set("activeOnly", "false");
       const q = qs.toString();
       return authRequest<HotelPricingListResponse>(
-        `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/pricing${q ? `?${q}` : ""}`
+        `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/pricing${q ? `?${q}` : ""}`,
+        READ_CACHE
       );
     },
 
@@ -423,7 +434,8 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
 
     getHotelPricingLookups(): Promise<HotelPricingLookups> {
       return authRequest<HotelPricingLookups>(
-        "/api/mobile/operations/pricing-lookups"
+        "/api/mobile/operations/pricing-lookups",
+        LOOKUP_CACHE
       );
     },
 
@@ -480,7 +492,10 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.limit) qs.set("limit", String(filters.limit));
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();
-      return authRequest(`/api/mobile/operations/itineraries${q ? `?${q}` : ""}`);
+      return authRequest(
+        `/api/mobile/operations/itineraries${q ? `?${q}` : ""}`,
+        READ_CACHE
+      );
     },
 
     getItinerary(id: string): Promise<OpsItineraryMaster> {
@@ -516,7 +531,10 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       if (filters.limit) qs.set("limit", String(filters.limit));
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();
-      return authRequest(`/api/mobile/operations/activities${q ? `?${q}` : ""}`);
+      return authRequest(
+        `/api/mobile/operations/activities${q ? `?${q}` : ""}`,
+        READ_CACHE
+      );
     },
 
     getActivity(id: string): Promise<OpsActivityMaster> {
@@ -549,7 +567,10 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       total: number;
       view: string;
     }> {
-      return authRequest(`/api/mobile/operations/location-suppliers?view=${view}`);
+      return authRequest(
+        `/api/mobile/operations/location-suppliers?view=${view}`,
+        READ_CACHE
+      );
     },
 
     createLocationSupplier(input: {

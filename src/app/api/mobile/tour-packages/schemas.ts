@@ -129,6 +129,7 @@ type PackageRow = {
     itineraryTitle: string | null;
     itineraryDescription: string | null;
     mealsIncluded: string | null;
+    itineraryImages?: { id: string; url: string }[];
   }[];
   packageVariants?: {
     id: string;
@@ -184,6 +185,7 @@ export function formatTourPackageDetail(row: PackageRow) {
       itineraryTitle: it.itineraryTitle,
       itineraryDescription: it.itineraryDescription,
       mealsIncluded: it.mealsIncluded,
+      images: (it.itineraryImages ?? []).map((img) => ({ id: img.id, url: img.url })),
     })),
     variants: (row.packageVariants ?? []).map((v) => ({
       id: v.id,
@@ -210,6 +212,7 @@ export const tourPackageDetailInclude = {
       itineraryTitle: true,
       itineraryDescription: true,
       mealsIncluded: true,
+      itineraryImages: { select: { id: true, url: true }, orderBy: { createdAt: "asc" as const } },
     },
     orderBy: [{ dayNumber: "asc" as const }, { days: "asc" as const }],
   },

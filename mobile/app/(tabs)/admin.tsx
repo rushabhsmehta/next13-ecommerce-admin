@@ -32,6 +32,7 @@ import { useNetwork } from "@/lib/network";
 import { ApiError, withAuth } from "@/lib/api";
 import { APP_VARIANT, isStaffApp } from "@/lib/app-variant";
 import { OperationsAdminHub } from "@/components/admin/OperationsAdminHub";
+import { AppVersionFooter } from "@/components/AppVersionFooter";
 
 type AdminStat = {
   id: string;
@@ -654,6 +655,12 @@ function LegacyAdminDashboard() {
         />
       </AdminSection>
 
+      <AppVersionFooter
+        detailed={isStaffApp()}
+        testID="admin-app-version"
+        style={styles.versionFooter}
+      />
+
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open admin safeguards"
@@ -711,6 +718,9 @@ const styles = StyleSheet.create({
   },
   plannedToggleText: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: "700" },
 
+  versionFooter: {
+    marginTop: Spacing.md,
+  },
   footerLink: {
     flexDirection: "row",
     alignItems: "center",

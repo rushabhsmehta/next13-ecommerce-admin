@@ -14,7 +14,7 @@ const mockStartSSOFlow = jest.fn(() =>
     setActive: mockSetActive,
   })
 );
-const mockMakeRedirectUri = jest.fn(() => "aagamholidays://oauth-native-callback");
+const mockRedirectUrl = "aagamholidays://oauth-native-callback";
 
 jest.mock("react-native", () => {
   const React = require("react");
@@ -45,9 +45,8 @@ jest.mock("expo-web-browser", () => ({
   maybeCompleteAuthSession: jest.fn(),
 }));
 
-jest.mock("expo-auth-session", () => ({
-  __esModule: true,
-  makeRedirectUri: mockMakeRedirectUri,
+jest.mock("@/lib/clerk-oauth-redirect", () => ({
+  getClerkOAuthRedirectUrl: jest.fn(() => mockRedirectUrl),
 }));
 
 jest.mock("@/constants/api", () => ({

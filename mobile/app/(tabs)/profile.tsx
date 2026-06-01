@@ -27,6 +27,7 @@ import {
   getPrivacyPolicyUrl,
   getTermsOfServiceUrl,
 } from "@/lib/legal-urls";
+import { AppVersionFooter } from "@/components/AppVersionFooter";
 
 interface ProfileData {
   id: string;
@@ -299,7 +300,7 @@ export default function ProfileTab() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.versionText}>Aagam Holidays · v1.0</Text>
+      <AppVersionFooter detailed style={styles.versionFooter} testID="profile-app-version" />
     </ScrollView>
   );
 }
@@ -434,10 +435,8 @@ const styles = StyleSheet.create({
   menuBadge: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 1 },
   signOutLabel: { flex: 1, fontSize: FontSize.md, fontWeight: "600", color: Colors.error },
 
-  versionText: {
-    textAlign: "center",
-    fontSize: FontSize.xs,
-    color: Colors.textTertiary,
+  versionFooter: {
     marginTop: Spacing.xxl,
+    marginBottom: Spacing.md,
   },
 });

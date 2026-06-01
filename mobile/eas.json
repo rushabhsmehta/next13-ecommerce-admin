@@ -122,7 +122,8 @@
       },
       "android": {
         "image": "latest",
-        "gradleCommand": ":app:bundleStaffRelease"
+        "gradleCommand": ":app:bundleStaffRelease",
+        "credentialsSource": "local"
       },
       "channel": "staff-production",
       "env": {

@@ -13,6 +13,7 @@ web-build/
 google-services.json
 google-service-account-key.json
 android/keystore.properties
+credentials.json
 .env
 .env.local
 

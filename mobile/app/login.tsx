@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import * as AuthSession from "expo-auth-session";
 import { useSignIn, useSignUp, useAuth, useSSO } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,11 +21,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
 import { API_BASE_URL } from "@/constants/api";
 import { setDevAuthBypassToken, getDevAuthBypassToken } from "@/lib/dev-auth-bypass";
-import {
-  APP_SCHEME,
-  getPostLoginRoute,
-  mobileAppVariantHeaders,
-} from "@/lib/app-variant";
+import { getPostLoginRoute, mobileAppVariantHeaders } from "@/lib/app-variant";
+import { getClerkOAuthRedirectUrl } from "@/lib/clerk-oauth-redirect";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -110,10 +106,11 @@ export default function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: APP_SCHEME,
-        path: "oauth-native-callback",
-      });
+      const redirectUrl = getClerkOAuthRedirectUrl();
+      if (!redirectUrl.includes("://")) {
+        setError("Sign-in redirect is not configured for this app build.");
+        return;
+      }
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy,
         redirectUrl,
@@ -171,7 +168,12 @@ export default function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      await signIn!.create({ strategy: "email_code", identifier: email.trim() });
+      const redirectUrl = getClerkOAuthRedirectUrl();
+      await signIn!.create({
+        strategy: "email_code",
+        identifier: email.trim(),
+        redirectUrl,
+      });
       setFlowType("signIn");
       setStep("otp");
       startResendTimer();

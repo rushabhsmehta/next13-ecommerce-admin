@@ -11,6 +11,15 @@ jest.mock("expo-device", () => ({
   isDevice: true,
 }));
 
+jest.mock("expo-linear-gradient", () => {
+  const React = jest.requireActual("react");
+  const { View } = jest.requireActual("react-native");
+  return {
+    LinearGradient: ({ children, ...props }: any) =>
+      React.createElement(View, props, children),
+  };
+});
+
 jest.mock("expo-secure-store", () => ({
   getItemAsync: jest.fn(() => Promise.resolve(null)),
   setItemAsync: jest.fn(() => Promise.resolve()),

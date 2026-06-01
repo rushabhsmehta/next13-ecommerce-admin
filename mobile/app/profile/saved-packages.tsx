@@ -76,7 +76,7 @@ export default function SavedPackagesScreen() {
           style={styles.card}
           accessibilityRole="button"
           accessibilityLabel={`Open ${item.title}`}
-          onPress={() => router.push(`/packages/${item.slug || item.id}`)}
+          onPress={() => router.push(`/packages/${item.slug || item.id}` as never)}
         >
           <View style={styles.cardIcon}>
             <Ionicons name="map-outline" size={20} color={Colors.primary} />

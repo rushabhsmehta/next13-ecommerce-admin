@@ -98,10 +98,12 @@ def releaseKeyPassword =
 
 def hasReleaseSigning =
     releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+def appVersionCode = 44
+def appVersionName = "1.0.3"
 def staffEasProjectId =
-    System.getenv("EXPO_STAFF_EAS_PROJECT_ID") ?: "00000000-0000-4000-8000-000000000001"
+    System.getenv("EXPO_STAFF_EAS_PROJECT_ID") ?: "69483194-f389-44dd-91bf-38be100d9267"
 def financeEasProjectId =
-    System.getenv("EXPO_FINANCE_EAS_PROJECT_ID") ?: "00000000-0000-4000-8000-000000000002"
+    System.getenv("EXPO_FINANCE_EAS_PROJECT_ID") ?: "06fabef9-5b51-4a34-a694-03d21a826bed"
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -114,14 +116,14 @@ android {
         applicationId 'com.aagamholidays.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 43
-        versionName "1.0.2"
+        versionCode appVersionCode
+        versionName appVersionName
 
         manifestPlaceholders = [
             appLabel: "Aagam Holidays",
             appScheme: "aagamholidays",
             expoScheme: "exp+aagam-holidays",
-            expoRuntimeVersion: "1.0.2",
+            expoRuntimeVersion: appVersionName,
             expoUpdateUrl: "https://u.expo.dev/f6e23049-3b76-47ee-8194-9c9ad6de731a"
         ]
 
@@ -137,7 +139,7 @@ android {
                 appLabel: "Aagam Holidays",
                 appScheme: "aagamholidays",
                 expoScheme: "exp+aagam-holidays",
-                expoRuntimeVersion: "1.0.2",
+                expoRuntimeVersion: appVersionName,
                 expoUpdateUrl: "https://u.expo.dev/f6e23049-3b76-47ee-8194-9c9ad6de731a"
             ]
         }
@@ -148,7 +150,7 @@ android {
                 appLabel: "Aagam Operations",
                 appScheme: "aagamstaff",
                 expoScheme: "exp+aagam-staff",
-                expoRuntimeVersion: "1.0.2-staff",
+                expoRuntimeVersion: "${appVersionName}-staff",
                 expoUpdateUrl: "https://u.expo.dev/${staffEasProjectId}"
             ]
         }
@@ -159,7 +161,7 @@ android {
                 appLabel: "Aagam Accounts",
                 appScheme: "aagamfinance",
                 expoScheme: "exp+aagam-finance",
-                expoRuntimeVersion: "1.0.2-finance",
+                expoRuntimeVersion: "${appVersionName}-finance",
                 expoUpdateUrl: "https://u.expo.dev/${financeEasProjectId}"
             ]
         }

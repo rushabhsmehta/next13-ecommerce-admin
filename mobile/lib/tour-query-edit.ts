@@ -24,6 +24,12 @@ export interface TourQueryItineraryEdit {
   itineraryDescription?: string;
   mealsIncluded?: string;
   roomAllocations?: RoomAllocationEdit[];
+  transportDetails?: {
+    id?: string;
+    vehicleTypeId: string;
+    quantity?: number;
+    description?: string | null;
+  }[];
 }
 
 export interface TourQueryPricingItemEdit {
@@ -54,6 +60,10 @@ export interface TourQueryEditInput {
   /** ISO date string or null to clear */
   tourStartsFrom?: string | null;
   tourEndsOn?: string | null;
+  locationId?: string | null;
+  transport?: string | null;
+  pickup_location?: string | null;
+  drop_location?: string | null;
   remarks?: string | null;
   inclusions?: string[];
   exclusions?: string[];

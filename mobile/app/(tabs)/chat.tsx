@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -27,6 +27,9 @@ import { chatCache } from "@/lib/chat/cache";
 import { SkeletonListItem } from "@/components/skeleton/SkeletonLoader";
 import { DateField } from "@/components/ui/DateField";
 import { AdminScreen, AdminTopBar } from "@/components/admin";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { isPublicApp } from "@/lib/app-variant";
 
 interface ChatGroup {
   id: string;
@@ -80,6 +83,43 @@ function GroupAvatar({ name }: { name: string }) {
   return (
     <View style={styles.avatar}>
       <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
+    </View>
+  );
+}
+
+function TripsScreenShell({
+  children,
+  testID,
+}: {
+  children: ReactNode;
+  testID?: string;
+}) {
+  const insets = useSafeAreaInsets();
+  if (!isPublicApp()) {
+    return (
+      <AdminScreen testID={testID} scroll={false} safeAreaTop={true}>
+        <AdminTopBar title="Trips" testID="trips-header" />
+        {children}
+      </AdminScreen>
+    );
+  }
+  return (
+    <View style={styles.container} testID={testID}>
+      <StatusBar style="light" />
+      <LinearGradient
+        colors={[Colors.gradient1, Colors.gradient2]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.publicHeader, { paddingTop: insets.top + 12 }]}
+      >
+        <Text style={styles.publicHeaderTitle} testID="trips-header">
+          Trips
+        </Text>
+        <Text style={styles.publicHeaderSubtitle}>
+          Your tour group chats and updates
+        </Text>
+      </LinearGradient>
+      {children}
     </View>
   );
 }
@@ -186,8 +226,7 @@ export default function ChatTab() {
 
   if (!isSignedIn && !travelUser && !userLoading) {
     return (
-      <AdminScreen testID="chat-tab-screen" scroll={false} safeAreaTop={true}>
-        <AdminTopBar title="Trips" testID="trips-header" />
+      <TripsScreenShell testID="chat-tab-screen">
         <View testID="chat-login-prompt" style={styles.emptyContainer}>
           <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
           <Text style={styles.emptyTitle}>Your Trip Chats</Text>
@@ -198,27 +237,25 @@ export default function ChatTab() {
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
         </View>
-      </AdminScreen>
+      </TripsScreenShell>
     );
   }
 
   if (userLoading || loading) {
     return (
-      <AdminScreen testID="chat-tab-screen" scroll={false} safeAreaTop={true}>
-        <AdminTopBar title="Trips" testID="trips-header" />
+      <TripsScreenShell testID="chat-tab-screen">
         <View style={styles.userStripSkeleton}>
           <Animated.View style={[styles.userStripAvatarSkeleton, { opacity: skeletonOpacity }]} />
           <Animated.View style={[styles.userStripNameSkeleton, { opacity: skeletonOpacity }]} />
         </View>
         <SkeletonListItem count={6} />
-      </AdminScreen>
+      </TripsScreenShell>
     );
   }
 
   if (!isSignedIn && !travelUser) {
     return (
-      <AdminScreen testID="chat-tab-screen" scroll={false} safeAreaTop={true}>
-        <AdminTopBar title="Trips" testID="trips-header" />
+      <TripsScreenShell testID="chat-tab-screen">
         <View testID="chat-login-prompt" style={styles.emptyContainer}>
           <Ionicons name="chatbubbles-outline" size={64} color={Colors.textTertiary} />
           <Text style={styles.emptyTitle}>Your Trip Chats</Text>
@@ -229,7 +266,7 @@ export default function ChatTab() {
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
         </View>
-      </AdminScreen>
+      </TripsScreenShell>
     );
   }
 
@@ -245,8 +282,7 @@ export default function ChatTab() {
   }
 
   return (
-    <AdminScreen testID="chat-tab-screen" scroll={false} safeAreaTop={true}>
-      <AdminTopBar title="Trips" testID="trips-header" />
+    <TripsScreenShell testID="chat-tab-screen">
       {(isSignedIn || travelUser) && (
         <View style={styles.userStrip}>
           <View style={styles.userStripAvatar}>
@@ -404,12 +440,26 @@ export default function ChatTab() {
           </View>
         </SafeAreaView>
       </Modal>
-    </AdminScreen>
+    </TripsScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  publicHeader: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  publicHeaderTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#fff",
+  },
+  publicHeaderSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 4,
+  },
   emptyContainer: {
     flex: 1,
     alignItems: "center",

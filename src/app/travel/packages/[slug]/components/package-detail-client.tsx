@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   MapPin,
   Clock,
@@ -18,6 +18,7 @@ import {
   Plane,
   Hotel,
   Camera,
+  Download,
 } from "lucide-react";
 import { PackageCard } from "../../../components/package-card";
 import { RichHtml } from "@/components/ui/rich-html";
@@ -83,6 +84,41 @@ function formatPrice(value: string | null | undefined) {
   }).format(amount);
 }
 
+const SAVED_PACKAGES_KEY = "travel-saved-packages";
+
+function loadSavedPackageIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SAVED_PACKAGES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map((p) => p.id).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function toggleSavedPackage(pkg: { id: string; slug?: string | null; tourPackageName?: string | null }) {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = localStorage.getItem(SAVED_PACKAGES_KEY);
+    const list: Array<{ id: string; slug?: string | null; name?: string | null }> = raw
+      ? JSON.parse(raw)
+      : [];
+    const idx = list.findIndex((p) => p.id === pkg.id);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+      localStorage.setItem(SAVED_PACKAGES_KEY, JSON.stringify(list));
+      return false;
+    }
+    list.unshift({ id: pkg.id, slug: pkg.slug, name: pkg.tourPackageName });
+    localStorage.setItem(SAVED_PACKAGES_KEY, JSON.stringify(list.slice(0, 50)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function PackageDetailClient({
   tourPackage,
   relatedPackages,
@@ -90,6 +126,102 @@ export function PackageDetailClient({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"itinerary" | "inclusions" | "policies">("itinerary");
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set(["0"]));
+  const [isSaved, setIsSaved] = useState(false);
+  const [showEnquiryForm, setShowEnquiryForm] = useState(false);
+  const [enquiryName, setEnquiryName] = useState("");
+  const [enquiryPhone, setEnquiryPhone] = useState("");
+  const [enquiryAdults, setEnquiryAdults] = useState("2");
+  const [enquiryRemarks, setEnquiryRemarks] = useState("");
+  const [enquirySubmitting, setEnquirySubmitting] = useState(false);
+  const [enquirySuccess, setEnquirySuccess] = useState(false);
+  const [enquiryError, setEnquiryError] = useState<string | null>(null);
+
+  const packageSlug = tourPackage.slug || tourPackage.id;
+  const shareUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/travel/packages/${packageSlug}`
+      : `/travel/packages/${packageSlug}`;
+
+  useEffect(() => {
+    setIsSaved(loadSavedPackageIds().includes(tourPackage.id));
+  }, [tourPackage.id]);
+
+  const handleShare = useCallback(async () => {
+    const title = tourPackage.tourPackageName || "Tour Package";
+    const text = `Check out ${title} on Aagam Holidays`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url: shareUrl });
+        return;
+      }
+      await navigator.clipboard.writeText(shareUrl);
+      alert("Link copied to clipboard");
+    } catch {
+      /* user cancelled share */
+    }
+  }, [shareUrl, tourPackage.tourPackageName]);
+
+  const handleToggleSave = useCallback(() => {
+    const saved = toggleSavedPackage(tourPackage);
+    setIsSaved(saved);
+  }, [tourPackage]);
+
+  const handleEnquirySubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setEnquiryError(null);
+      const phone = enquiryPhone.replace(/\D/g, "");
+      if (!enquiryName.trim()) {
+        setEnquiryError("Please enter your name.");
+        return;
+      }
+      if (!/^[6-9]\d{9}$/.test(phone)) {
+        setEnquiryError("Enter a valid 10-digit Indian mobile number.");
+        return;
+      }
+      if (!tourPackage.locationId) {
+        setEnquiryError("Destination information is missing.");
+        return;
+      }
+      setEnquirySubmitting(true);
+      try {
+        const res = await fetch("/api/travel/enquiry", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locationId: tourPackage.locationId,
+            name: enquiryName.trim(),
+            phone,
+            numAdults: Number(enquiryAdults) || 2,
+            remarks: [
+              enquiryRemarks.trim(),
+              tourPackage.tourPackageName
+                ? `Package: ${tourPackage.tourPackageName}`
+                : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          }),
+        });
+        if (res.ok) {
+          setEnquirySuccess(true);
+        } else {
+          setEnquiryError("Failed to submit enquiry. Please try again.");
+        }
+      } catch {
+        setEnquiryError("Network error. Please try again.");
+      }
+      setEnquirySubmitting(false);
+    },
+    [
+      enquiryAdults,
+      enquiryName,
+      enquiryPhone,
+      enquiryRemarks,
+      tourPackage.locationId,
+      tourPackage.tourPackageName,
+    ]
+  );
 
   const images = tourPackage.images || [];
   const itineraries = tourPackage.itineraries || [];
@@ -138,11 +270,25 @@ export function PackageDetailClient({
               <ArrowLeft className="w-4 h-4" /> Back
             </Link>
             <div className="flex gap-2">
-              <button className="p-2.5 bg-white/15 backdrop-blur-xl rounded-xl text-white hover:bg-white/25 transition-all duration-200" aria-label="Share">
+              <button
+                type="button"
+                onClick={handleShare}
+                className="p-2.5 bg-white/15 backdrop-blur-xl rounded-xl text-white hover:bg-white/25 transition-all duration-200"
+                aria-label="Share"
+              >
                 <Share2 className="w-5 h-5" />
               </button>
-              <button className="p-2.5 bg-white/15 backdrop-blur-xl rounded-xl text-white hover:bg-white/25 transition-all duration-200" aria-label="Save">
-                <Heart className="w-5 h-5" />
+              <button
+                type="button"
+                onClick={handleToggleSave}
+                className={`p-2.5 backdrop-blur-xl rounded-xl transition-all duration-200 ${
+                  isSaved
+                    ? "bg-red-500/80 text-white"
+                    : "bg-white/15 text-white hover:bg-white/25"
+                }`}
+                aria-label={isSaved ? "Remove from saved" : "Save package"}
+              >
+                <Heart className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
               </button>
             </div>
           </div>
@@ -510,8 +656,78 @@ export function PackageDetailClient({
                   rel="noopener noreferrer"
                   className="block w-full py-3.5 bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 text-white text-center rounded-xl font-semibold hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-300 active:scale-[0.98]"
                 >
-                  Enquire Now
+                  Enquire on WhatsApp
                 </a>
+                <button
+                  type="button"
+                  onClick={() => setShowEnquiryForm((v) => !v)}
+                  className="mt-3 block w-full py-3.5 border border-orange-200 text-orange-700 text-center rounded-xl font-semibold hover:bg-orange-50 transition-all duration-200"
+                >
+                  {showEnquiryForm ? "Hide enquiry form" : "Submit enquiry form"}
+                </button>
+                <a
+                  href={`/api/travel/package-brochure/${encodeURIComponent(packageSlug)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-2 w-full py-3 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all duration-200"
+                >
+                  <Download className="w-4 h-4" />
+                  Download PDF brochure
+                </a>
+
+                {showEnquiryForm && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    {enquirySuccess ? (
+                      <p className="text-sm text-green-700 bg-green-50 rounded-lg p-3">
+                        Enquiry submitted! Our team will contact you at {enquiryPhone} within 24 hours.
+                      </p>
+                    ) : (
+                      <form onSubmit={handleEnquirySubmit} className="space-y-3">
+                        <input
+                          type="text"
+                          placeholder="Your name *"
+                          value={enquiryName}
+                          onChange={(e) => setEnquiryName(e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+                          required
+                        />
+                        <input
+                          type="tel"
+                          placeholder="Mobile number *"
+                          value={enquiryPhone}
+                          onChange={(e) => setEnquiryPhone(e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+                          required
+                        />
+                        <input
+                          type="number"
+                          min={1}
+                          placeholder="Adults"
+                          value={enquiryAdults}
+                          onChange={(e) => setEnquiryAdults(e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+                        />
+                        <textarea
+                          placeholder="Any preferences or questions"
+                          value={enquiryRemarks}
+                          onChange={(e) => setEnquiryRemarks(e.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm resize-none"
+                        />
+                        {enquiryError && (
+                          <p className="text-sm text-red-600">{enquiryError}</p>
+                        )}
+                        <button
+                          type="submit"
+                          disabled={enquirySubmitting}
+                          className="w-full py-3 bg-gray-900 text-white rounded-xl font-semibold disabled:opacity-60"
+                        >
+                          {enquirySubmitting ? "Submitting…" : "Submit enquiry"}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-gray-400 text-center mt-3">
                   No payment required. Get a customized quote.
                 </p>

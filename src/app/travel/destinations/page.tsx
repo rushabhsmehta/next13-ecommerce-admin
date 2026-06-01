@@ -1,7 +1,7 @@
 import prismadb from "@/lib/prismadb";
 import { DestinationCard } from "../components/destination-card";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 export const metadata = {
   title: "Destinations | Aagam Holidays",
   description:

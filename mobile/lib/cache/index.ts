@@ -168,6 +168,8 @@ export const CACHE_KEYS = {
   PACKAGES: (params?: Record<string, string>) =>
     `packages:${JSON.stringify(params ?? {})}`,
   DESTINATIONS: "destinations",
+  HOME_FEED: (params?: Record<string, string>) =>
+    `home-feed:${JSON.stringify(params ?? {})}`,
   PACKAGE: (slug: string) => `package:${slug}`,
   DESTINATION: (id: string) => `destination:${id}`,
 };
@@ -175,6 +177,7 @@ export const CACHE_KEYS = {
 export const CACHE_TTL = {
   PACKAGES: 300,
   DESTINATIONS: 300,
+  HOME_FEED: 300,
   PACKAGE: 600,
   DESTINATION: 600,
 };

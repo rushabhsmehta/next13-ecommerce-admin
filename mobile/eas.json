@@ -116,6 +116,7 @@
     },
     "production-staff": {
       "autoIncrement": true,
+      "environment": "production",
       "ios": {
         "image": "latest"
       },
@@ -126,9 +127,9 @@
       "channel": "staff-production",
       "env": {
         "APP_VARIANT": "staff",
+        "EXPO_STAFF_EAS_PROJECT_ID": "69483194-f389-44dd-91bf-38be100d9267",
         "EXPO_PUBLIC_API_BASE_URL": "https://admin.aagamholidays.com",
-        "EXPO_PUBLIC_WEBSITE_URL": "https://aagamholidays.com",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_bWFueS1mbGFtaW5nby02LmNsZXJrLmFjY291bnRzLmRldiQ"
+        "EXPO_PUBLIC_WEBSITE_URL": "https://aagamholidays.com"
       }
     },
     "production-finance": {

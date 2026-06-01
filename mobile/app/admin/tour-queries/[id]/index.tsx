@@ -23,6 +23,7 @@ import {
   AdminScreen,
   AdminTopBar,
   AdminTopBarIconButton,
+  AdminTopBarPrimaryButton,
 } from "@/components/admin";
 import {
   TripActionMenu,
@@ -46,6 +47,10 @@ import {
   type TourQueryLifecycleAction,
 } from "@/lib/tour-query-lifecycle";
 import { downloadAndSharePdf } from "@/lib/pdf-download";
+import { TourQueryTabBar, TourQueryTabPanel } from "@/components/tour-queries/TourQueryTabShell";
+import { TourQueryVariantsPanel } from "@/components/tour-queries/TourQueryVariantsPanel";
+import { parseTourQueryTab } from "@/components/tour-queries/tab-config";
+import type { TourQueryTabId } from "@/components/tour-queries/types";
 
 interface FlightDetail {
   id: string;
@@ -245,7 +250,8 @@ function derivePrimary(
   canWriteSales: boolean
 ): PrimaryAction {
   const openVariants = () => router.push(`/admin/tour-queries/${id}/variants` as never);
-  const edit = () => router.push(`/admin/tour-queries/${id}/edit` as never);
+  const edit = () =>
+    router.push(`/admin/tour-queries/${id}/edit?tab=basic` as never);
 
   if (data.isArchived) {
     if (canWriteSales) return { key: "restore", label: "Restore query", run: () => {} };
@@ -274,7 +280,7 @@ export default function TourQueryDetailScreen() {
 
 function TourQueryDetailScreenInner() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const { getToken } = useAuth();
 
   const getTokenRef = useRef(getToken);
@@ -302,6 +308,11 @@ function TourQueryDetailScreenInner() {
   const [policiesOpen, setPoliciesOpen] = useState(false);
   const [flightsOpen, setFlightsOpen] = useState(false);
   const [successNote, setSuccessNote] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TourQueryTabId>(() => parseTourQueryTab(tab));
+
+  useEffect(() => {
+    if (tab) setActiveTab(parseTourQueryTab(tab));
+  }, [tab]);
 
   useEffect(() => {
     if (!successNote) return;
@@ -510,6 +521,7 @@ function TourQueryDetailScreenInner() {
   const menuSections = useMemo((): TripActionMenuSection[] => {
     if (!data || !id) return [];
     const pk = primaryActionKind(data, canWriteSales);
+    const editAtTop = canWriteSales && !data.isArchived;
     const base: TripActionMenuSection[] = [];
 
     base.push({
@@ -544,12 +556,11 @@ function TourQueryDetailScreenInner() {
               icon: "layers-outline" as const,
               testID: "tour-query-variants",
               accessibilityHint: "Opens native variant comparison.",
-              onPress: () =>
-                router.push(`/admin/tour-queries/${id}/variants` as never),
+              onPress: () => setActiveTab("variants"),
             },
           ]
         : []),
-      ...(pk !== "edit"
+      ...(pk !== "edit" && !editAtTop
         ? [
             {
               id: "edit-screen",
@@ -557,7 +568,8 @@ function TourQueryDetailScreenInner() {
               icon: "create-outline" as const,
               testID: "tour-query-edit",
               accessibilityHint: "Opens itinerary text and booking fields.",
-              onPress: () => router.push(`/admin/tour-queries/${id}/edit` as never),
+              onPress: () =>
+                router.push(`/admin/tour-queries/${id}/edit?tab=${activeTab}` as never),
             },
           ]
         : []),
@@ -569,8 +581,7 @@ function TourQueryDetailScreenInner() {
               icon: "calculator-outline" as const,
               testID: "tour-query-pricing",
               accessibilityHint: "Opens native quote pricing rows and total.",
-              onPress: () =>
-                router.push(`/admin/tour-queries/${id}/pricing` as never),
+              onPress: () => setActiveTab("pricing"),
             },
           ]
         : []),
@@ -681,6 +692,7 @@ function TourQueryDetailScreenInner() {
   }, [
     data,
     id,
+    activeTab,
     openPdfVariants,
     openHotelEditor,
     router,
@@ -711,6 +723,10 @@ function TourQueryDetailScreenInner() {
   }
 
   const confirmed = data.isFeatured && !data.isArchived;
+  const editAtTop = canWriteSales && !data.isArchived;
+  const openEdit = () =>
+    router.push(`/admin/tour-queries/${id}/edit?tab=${activeTab}` as never);
+
   let primary = derivePrimary(data, id!, router, canWriteSales);
   if (primary.key === "restore") {
     primary = {
@@ -724,6 +740,15 @@ function TourQueryDetailScreenInner() {
   }
   if (primary.key === "shareTrip") {
     primary = { ...primary, run: () => void handleShareTrip() };
+  }
+  if (editAtTop && primary.key === "edit") {
+    primary = hasPositiveTotal(data.totalPrice)
+      ? { key: "sharePdf", label: "Share PDF", run: () => void openPdf() }
+      : {
+          key: "shareTrip",
+          label: "Set pricing",
+          run: () => setActiveTab("pricing"),
+        };
   }
 
   const primaryShowsSpinner =
@@ -739,6 +764,8 @@ function TourQueryDetailScreenInner() {
       ? "layers-outline"
       : primary.key === "edit"
         ? "create-outline"
+        : primary.key === "shareTrip" && primary.label === "Set pricing"
+          ? "calculator-outline"
         : primary.key === "shareTrip"
           ? "share-outline"
           : primary.key === "restore"
@@ -824,13 +851,23 @@ function TourQueryDetailScreenInner() {
         onBackPress={() => router.back()}
         testID="tq-detail-header"
         rightSlot={
-          <AdminTopBarIconButton
-            icon="share-outline"
-            label="Share query link"
-            hint="Opens the native share sheet with the web viewer link."
-            testID="tq-detail-share"
-            onPress={handleShareTrip}
-          />
+          <View style={styles.topBarActions}>
+            {editAtTop ? (
+              <AdminTopBarPrimaryButton
+                label="Edit query"
+                icon="create-outline"
+                testID="tq-detail-edit"
+                onPress={openEdit}
+              />
+            ) : null}
+            <AdminTopBarIconButton
+              icon="share-outline"
+              label="Share query link"
+              hint="Opens the native share sheet with the web viewer link."
+              testID="tq-detail-share"
+              onPress={handleShareTrip}
+            />
+          </View>
         }
       />
         {successNote ? (
@@ -839,6 +876,12 @@ function TourQueryDetailScreenInner() {
             <Text style={styles.successBannerText}>{successNote}</Text>
           </View>
         ) : null}
+
+        <TourQueryTabBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          testIDPrefix="tq-detail-tab"
+        />
 
         {/* Trip summary */}
         <View style={styles.summaryCard}>
@@ -876,6 +919,389 @@ function TourQueryDetailScreenInner() {
             {data.customerName ?? "Customer"}
           </Text>
         </View>
+
+        <TourQueryTabPanel activeTab={activeTab} testIDPrefix="tq-detail-tab">
+        {activeTab === "basic" ? (
+          <>
+            <Section title="Query">
+              <Row label="Name" value={data.tourPackageQueryName ?? "—"} />
+              <Row label="Number" value={data.tourPackageQueryNumber ?? "—"} />
+              <Row label="Type" value={data.tourPackageQueryType ?? "—"} />
+              <Row label="Category" value={data.tourCategory ?? "—"} />
+            </Section>
+            {data.remarks ? (
+              <Section title="Remarks">
+                <Text style={styles.bodyText}>{data.remarks}</Text>
+              </Section>
+            ) : null}
+          </>
+        ) : null}
+
+        {activeTab === "guests" ? (
+        <>
+        <Section title="Customer">
+          <Row label="Name" value={data.customerName ?? "—"} />
+          <View style={styles.phoneRow}>
+            <View style={styles.phoneRowText}>
+              <Text style={styles.kvLabel}>Phone</Text>
+              <Text style={styles.kvValue}>{data.customerNumber ?? "—"}</Text>
+            </View>
+            <View style={styles.phoneActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Call customer"
+                accessibilityHint="Starts a phone call."
+                style={styles.inlineIcon}
+                onPress={() => callCustomer(data.customerNumber)}
+              >
+                <Ionicons name="call-outline" size={18} color={Colors.primary} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="WhatsApp customer"
+                accessibilityHint="Opens WhatsApp."
+                style={styles.inlineIcon}
+                onPress={() => messageOnWhatsApp(data.customerNumber)}
+              >
+                <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+              </Pressable>
+            </View>
+          </View>
+          {data.location?.label ? <Row label="Destination" value={data.location.label} /> : null}
+          {data.associatePartner?.name ? (
+            <Row label="Associate" value={data.associatePartner.name} />
+          ) : null}
+          {data.assignedTo ? <Row label="Assigned to" value={data.assignedTo} /> : null}
+          {data.inquiry?.id ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open linked inquiry"
+              accessibilityHint="Opens the inquiry linked to this trip."
+              style={styles.inquiryLink}
+              onPress={() =>
+                router.push(`/associate/inquiries/${data.inquiry!.id}` as never)
+              }
+            >
+              <Text style={styles.inquiryLinkText}>Linked inquiry</Text>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+            </Pressable>
+          ) : null}
+        </Section>
+        </>
+        ) : null}
+
+        {activeTab === "trip" ? (
+        <>
+        <Section title="Trip">
+          <Row
+            label="Travel dates"
+            value={
+              data.tourStartsFrom
+                ? `${formatDate(data.tourStartsFrom)} to ${data.tourEndsOn ? formatDate(data.tourEndsOn) : "…"}`
+                : "—"
+            }
+          />
+          {data.numDaysNight ? <Row label="Duration" value={data.numDaysNight} /> : null}
+          {data.location?.label ? <Row label="Destination" value={data.location.label} /> : null}
+          {data.transport ? <Row label="Transport" value={data.transport} /> : null}
+          {data.pickup_location ? <Row label="Pickup" value={data.pickup_location} /> : null}
+          {data.drop_location ? <Row label="Drop" value={data.drop_location} /> : null}
+        </Section>
+        {data.flightDetails.length ? (
+            <View style={styles.section}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={flightsOpen ? "Hide flights" : "Show flights"}
+                style={styles.sectionHeaderPress}
+                onPress={() => setFlightsOpen((v) => !v)}
+              >
+                <Text style={styles.sectionTitle}>Flights · {data.flightDetails.length}</Text>
+                <Ionicons
+                  name={flightsOpen ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={Colors.textTertiary}
+                />
+              </Pressable>
+              {flightsOpen ? (
+                  <View style={styles.sectionBody}>
+                    {data.flightDetails.map((f) => (
+                      <View key={f.id} style={styles.flightCard}>
+                        <Text style={styles.flightHead}>
+                          {f.flightName ?? ""}
+                          {f.flightNumber ? ` · ${f.flightNumber}` : ""}
+                        </Text>
+                        <Text style={styles.flightRoute}>
+                          {f.from ?? "—"} to {f.to ?? "—"}
+                        </Text>
+                        <Text style={styles.flightMeta}>
+                          {formatDate(f.date)}
+                          {f.departureTime ? ` · ${f.departureTime}` : ""}
+                          {f.arrivalTime ? ` to ${f.arrivalTime}` : ""}
+                          {f.flightDuration ? ` · ${f.flightDuration}` : ""}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+            </View>
+          ) : null}
+        </>
+        ) : null}
+
+        {activeTab === "itinerary" ? (
+        <>
+        {data.itineraries.length ?
+          (
+            <View style={styles.section}>
+              <Pressable
+                testID="trip-section-itinerary-toggle"
+                accessibilityRole="button"
+                accessibilityLabel={
+                  itineraryExpanded ? "Show fewer itinerary days" : "Show all itinerary days"
+                }
+                style={styles.sectionHeaderPress}
+                onPress={() => setItineraryExpanded((v) => !v)}
+              >
+                <Text style={styles.sectionTitle}>
+                  Itinerary · {data.itineraries.length} days
+                </Text>
+                <Ionicons
+                  name={itineraryExpanded ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={Colors.textTertiary}
+                />
+              </Pressable>
+              <View style={styles.sectionBody}>
+                {itinerarySlice.map((it) => (
+                  <View key={it.id} style={styles.dayCard}>
+                    <View style={styles.dayHead}>
+                      <View style={styles.dayBadge}>
+                        <Text style={styles.dayBadgeText}>D{it.dayNumber ?? "?"}</Text>
+                      </View>
+                      <Text style={styles.dayTitle} numberOfLines={2}>
+                        {stripHtml(it.itineraryTitle ?? "Untitled")}
+                      </Text>
+                    </View>
+                    {it.mealsIncluded ?
+                      (
+                        <View style={styles.miniRow}>
+                          <Ionicons name="restaurant-outline" size={14} color={Colors.textSecondary} />
+                          <Text style={styles.miniRowText}>{it.mealsIncluded}</Text>
+                        </View>
+                      )
+                      : null}
+                    {it.itineraryDescription ?
+                      (
+                        <CollapsibleDayDescription text={stripHtml(it.itineraryDescription)} />
+                      )
+                      : null}
+                  </View>
+                ))}
+                {data.itineraries.length > 2 && !itineraryExpanded ?
+                  (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Show all itinerary days"
+                      style={styles.showAllPress}
+                      onPress={() => setItineraryExpanded(true)}
+                    >
+                      <Text style={styles.showAllText}>Show all days</Text>
+                    </Pressable>
+                  )
+                  : null}
+              </View>
+            </View>
+          )
+          : null}
+        </>
+        ) : null}
+
+        {activeTab === "hotels" ? (
+        <>
+        {data.itineraries.length ?
+          (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitleStatic}>Hotels · {data.itineraries.length} days</Text>
+              <View style={styles.sectionBody}>
+                {data.itineraries.map((it) => (
+                  <View key={it.id} style={styles.dayCard}>
+                    <View style={styles.dayHead}>
+                      <View style={styles.dayBadge}>
+                        <Text style={styles.dayBadgeText}>D{it.dayNumber ?? "?"}</Text>
+                      </View>
+                      <Text style={styles.dayTitle} numberOfLines={2}>
+                        {stripHtml(it.itineraryTitle ?? `Day ${it.dayNumber ?? "?"}`)}
+                      </Text>
+                    </View>
+                    <View style={styles.miniRow}>
+                      <Ionicons name="bed-outline" size={14} color={Colors.textSecondary} />
+                      <Text style={styles.miniRowText}>{it.hotel?.name ?? "No hotel selected"}</Text>
+                    </View>
+                    {it.roomAllocations.length ?
+                      it.roomAllocations.map((r) => (
+                        <View key={r.id} style={styles.miniRow}>
+                          <Ionicons name="people-outline" size={14} color={Colors.textSecondary} />
+                          <Text style={styles.miniRowText}>{buildRoomLabel(r)}</Text>
+                        </View>
+                      ))
+                      : (
+                        <Text style={styles.helpInline}>No room allocations</Text>
+                      )}
+                    {buildTransportSummary(it.transportDetails) ?
+                      (
+                        <View style={styles.miniRow}>
+                          <Ionicons name="car-outline" size={14} color={Colors.textSecondary} />
+                          <Text style={styles.miniRowText}>
+                            {buildTransportSummary(it.transportDetails)}
+                          </Text>
+                        </View>
+                      )
+                      : (
+                        <Text style={styles.helpInline}>No transport</Text>
+                      )}
+                  </View>
+                ))}
+              </View>
+              {editAtTop ? (
+                <Pressable
+                  testID="tq-detail-hotels-edit"
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit hotels and transport"
+                  style={styles.linkish}
+                  onPress={() => router.push(`/admin/tour-queries/${id}/edit?tab=hotels` as never)}
+                >
+                  <Text style={styles.linkishText}>Edit hotels & transport</Text>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+                </Pressable>
+              ) : null}
+            </View>
+          )
+          : (
+            <Text style={styles.helpInline}>No itinerary days yet.</Text>
+          )}
+        </>
+        ) : null}
+
+        {activeTab === "pricing" ? (
+        <>
+        {/* Pricing */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderInline}>
+            <Text style={styles.sectionTitle}>Pricing</Text>
+            {canWriteSales ? (
+              <Pressable
+                testID="tour-query-pricing-edit"
+                accessibilityRole="button"
+                accessibilityLabel="Edit pricing"
+                accessibilityHint="Opens the pricing tab in the editor."
+                style={styles.sectionHeaderAction}
+                onPress={() =>
+                  router.push(`/admin/tour-queries/${id}/edit?tab=pricing` as never)
+                }
+              >
+                <Ionicons name="calculator-outline" size={15} color={Colors.primary} />
+                <Text style={styles.sectionHeaderActionText}>Edit</Text>
+              </Pressable>
+            ) : null}
+          </View>
+          <View style={styles.sectionBody}>
+            <Text style={styles.pricingTotal}>
+              {hasPositiveTotal(data.totalPrice) ? formatINR(data.totalPrice) : "No total yet"}
+            </Text>
+            <Text style={styles.pricingNote}>
+              {hasPositiveTotal(data.totalPrice)
+                ? pricingMethodLabel(data.pricingCalculationMethod)
+                : "No pricing yet"}
+            </Text>
+            {pricingItems.length ? (
+              <View style={styles.pricingItems}>
+                {pricingItems.map((item, index) => (
+                  <View key={`pricing-item-${index}`} style={styles.pricingItemRow}>
+                    <View style={styles.pricingItemText}>
+                      <Text style={styles.pricingItemName} numberOfLines={1}>
+                        {item.name || "Pricing item"}
+                      </Text>
+                      {item.description ? (
+                        <Text style={styles.pricingItemDescription} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.pricingItemPrice}>{formatINR(item.price)}</Text>
+                  </View>
+                ))}
+                {!hasPositiveTotal(data.totalPrice) && pricingItemTotal > 0 ? (
+                  <Text style={styles.pricingNote}>
+                    Item total {formatINR(pricingItemTotal)}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+            {data.price ?
+              <Text style={styles.priceSummaryLine} numberOfLines={3}>
+                {data.price}
+              </Text>
+              : null}
+            {visiblePricing.map(([label, value]) => (
+              <View key={label} style={styles.perPersonRow}>
+                <Text style={styles.perPersonLabel}>{label}</Text>
+                <Text style={styles.perPersonValue}>{formatINR(value)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+        {canWriteSales ? (
+          <Pressable
+            testID="tour-query-finance-link"
+            accessibilityRole="button"
+            accessibilityLabel="Open finance summary"
+            style={styles.linkish}
+            onPress={() => router.push(`/admin/tour-queries/${id}/finance` as never)}
+          >
+            <Text style={styles.linkishText}>Finance summary</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+          </Pressable>
+        ) : null}
+        </>
+        ) : null}
+
+        {activeTab === "variants" && id ? (
+          <TourQueryVariantsPanel queryId={id} embedded />
+        ) : null}
+
+        {activeTab === "policies" && policiesCount ? (
+        <>
+        {/* Policies aggregate */}
+        {policiesCount ?
+          (
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderInline}>
+                <Text style={styles.sectionTitle}>Policies · {policiesCount} sections</Text>
+              </View>
+              <View style={styles.sectionBody}>
+                    {policyBlocks.map((b) => (
+                      <View key={b.title} style={styles.policySub}>
+                        <Text style={styles.policySubTitle}>
+                          {b.title} · {b.items.length} lines
+                        </Text>
+                        {b.items.map((item, i) => (
+                          <View key={`${b.title}-${i}`} style={styles.bulletRow}>
+                            <Text style={styles.bulletDot}>·</Text>
+                            <Text style={styles.bulletText}>
+                              {item.replace(/<[^>]+>/g, "")}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    ))}
+              </View>
+            </View>
+          )
+          : null}
+        </>
+        ) : null}
+
+        </TourQueryTabPanel>
 
         <TripReadinessBar
           testID="trip-detail-readiness"
@@ -969,342 +1395,6 @@ function TourQueryDetailScreenInner() {
           omitToggle
         />
 
-        {/* Customer */}
-        <Section title="Customer">
-          <Row label="Name" value={data.customerName ?? "—"} />
-          <View style={styles.phoneRow}>
-            <View style={styles.phoneRowText}>
-              <Text style={styles.kvLabel}>Phone</Text>
-              <Text style={styles.kvValue}>{data.customerNumber ?? "—"}</Text>
-            </View>
-            <View style={styles.phoneActions}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Call customer"
-                accessibilityHint="Starts a phone call."
-                style={styles.inlineIcon}
-                onPress={() => callCustomer(data.customerNumber)}
-              >
-                <Ionicons name="call-outline" size={18} color={Colors.primary} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="WhatsApp customer"
-                accessibilityHint="Opens WhatsApp."
-                style={styles.inlineIcon}
-                onPress={() => messageOnWhatsApp(data.customerNumber)}
-              >
-                <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-              </Pressable>
-            </View>
-          </View>
-          {data.location?.label ? <Row label="Destination" value={data.location.label} /> : null}
-          {data.associatePartner?.name ? (
-            <Row label="Associate" value={data.associatePartner.name} />
-          ) : null}
-          {data.assignedTo ? <Row label="Assigned to" value={data.assignedTo} /> : null}
-          {data.inquiry?.id ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open linked inquiry"
-              accessibilityHint="Opens the inquiry linked to this trip."
-              style={styles.inquiryLink}
-              onPress={() =>
-                router.push(`/associate/inquiries/${data.inquiry!.id}` as never)
-              }
-            >
-              <Text style={styles.inquiryLinkText}>Linked inquiry</Text>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
-            </Pressable>
-          ) : null}
-        </Section>
-
-        {/* Itinerary */}
-        {data.itineraries.length ?
-          (
-            <View style={styles.section}>
-              <Pressable
-                testID="trip-section-itinerary-toggle"
-                accessibilityRole="button"
-                accessibilityLabel={
-                  itineraryExpanded ? "Show fewer itinerary days" : "Show all itinerary days"
-                }
-                style={styles.sectionHeaderPress}
-                onPress={() => setItineraryExpanded((v) => !v)}
-              >
-                <Text style={styles.sectionTitle}>
-                  Itinerary · {data.itineraries.length} days
-                </Text>
-                <Ionicons
-                  name={itineraryExpanded ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  color={Colors.textTertiary}
-                />
-              </Pressable>
-              <View style={styles.sectionBody}>
-                {itinerarySlice.map((it) => (
-                  <View key={it.id} style={styles.dayCard}>
-                    <View style={styles.dayHead}>
-                      <View style={styles.dayBadge}>
-                        <Text style={styles.dayBadgeText}>D{it.dayNumber ?? "?"}</Text>
-                      </View>
-                      <Text style={styles.dayTitle} numberOfLines={2}>
-                        {stripHtml(it.itineraryTitle ?? "Untitled")}
-                      </Text>
-                    </View>
-                    {it.hotel?.name ?
-                      (
-                        <View style={styles.miniRow}>
-                          <Ionicons name="bed-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.miniRowText}>{it.hotel.name}</Text>
-                        </View>
-                      )
-                      : null}
-                    {buildTransportSummary(it.transportDetails) ?
-                      (
-                        <View style={styles.miniRow}>
-                          <Ionicons name="car-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.miniRowText}>
-                            {buildTransportSummary(it.transportDetails)}
-                          </Text>
-                        </View>
-                      )
-                      : null}
-                    {it.mealsIncluded ?
-                      (
-                        <View style={styles.miniRow}>
-                          <Ionicons name="restaurant-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.miniRowText}>{it.mealsIncluded}</Text>
-                        </View>
-                      )
-                      : null}
-                    {it.roomAllocations.length ?
-                      it.roomAllocations.map((r) => (
-                        <View key={r.id} style={styles.miniRow}>
-                          <Ionicons name="people-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.miniRowText}>{buildRoomLabel(r)}</Text>
-                        </View>
-                      ))
-                      : null}
-                    {it.itineraryDescription ?
-                      (
-                        <CollapsibleDayDescription text={stripHtml(it.itineraryDescription)} />
-                      )
-                      : null}
-                  </View>
-                ))}
-                {data.itineraries.length > 2 && !itineraryExpanded ?
-                  (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Show all itinerary days"
-                      style={styles.showAllPress}
-                      onPress={() => setItineraryExpanded(true)}
-                    >
-                      <Text style={styles.showAllText}>Show all days</Text>
-                    </Pressable>
-                  )
-                  : null}
-              </View>
-            </View>
-          )
-          : null}
-
-        {/* Pricing */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderInline}>
-            <Text style={styles.sectionTitle}>Pricing</Text>
-            {canWriteSales ? (
-              <Pressable
-                testID="tour-query-pricing-edit"
-                accessibilityRole="button"
-                accessibilityLabel="Edit pricing"
-                accessibilityHint="Opens native quote pricing rows and total."
-                style={styles.sectionHeaderAction}
-                onPress={() => router.push(`/admin/tour-queries/${id}/pricing` as never)}
-              >
-                <Ionicons name="calculator-outline" size={15} color={Colors.primary} />
-                <Text style={styles.sectionHeaderActionText}>Edit</Text>
-              </Pressable>
-            ) : null}
-          </View>
-          <View style={styles.sectionBody}>
-            <Text style={styles.pricingTotal}>
-              {hasPositiveTotal(data.totalPrice) ? formatINR(data.totalPrice) : "No total yet"}
-            </Text>
-            <Text style={styles.pricingNote}>
-              {hasPositiveTotal(data.totalPrice)
-                ? pricingMethodLabel(data.pricingCalculationMethod)
-                : "No pricing yet"}
-            </Text>
-            {pricingItems.length ? (
-              <View style={styles.pricingItems}>
-                {pricingItems.map((item, index) => (
-                  <View key={`pricing-item-${index}`} style={styles.pricingItemRow}>
-                    <View style={styles.pricingItemText}>
-                      <Text style={styles.pricingItemName} numberOfLines={1}>
-                        {item.name || "Pricing item"}
-                      </Text>
-                      {item.description ? (
-                        <Text style={styles.pricingItemDescription} numberOfLines={2}>
-                          {item.description}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Text style={styles.pricingItemPrice}>{formatINR(item.price)}</Text>
-                  </View>
-                ))}
-                {!hasPositiveTotal(data.totalPrice) && pricingItemTotal > 0 ? (
-                  <Text style={styles.pricingNote}>
-                    Item total {formatINR(pricingItemTotal)}
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
-            {data.price ?
-              <Text style={styles.priceSummaryLine} numberOfLines={3}>
-                {data.price}
-              </Text>
-              : null}
-            {visiblePricing.map(([label, value]) => (
-              <View key={label} style={styles.perPersonRow}>
-                <Text style={styles.perPersonLabel}>{label}</Text>
-                <Text style={styles.perPersonValue}>{formatINR(value)}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Variants */}
-        {data.queryVariantSnapshots.length ?
-          (
-            <Section title={`Variants · ${data.queryVariantSnapshots.length}`}>
-              {data.queryVariantSnapshots.map((v) => {
-                const isSel =
-                  data.confirmedVariantId === v.sourceVariantId ||
-                  data.confirmedVariantId === v.id;
-                return (
-                  <View key={v.id} style={styles.variantRow}>
-                    <Ionicons
-                      name={isSel ? "checkmark-circle" : "ellipse-outline"}
-                      size={16}
-                      color={isSel ? (Colors.success ?? "#16a34a") : Colors.textTertiary}
-                    />
-                    <Text style={styles.variantName}>{v.name}</Text>
-                  </View>
-                );
-              })}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Open variant comparison"
-                accessibilityHint="Opens side-by-side variant pricing."
-                style={styles.linkish}
-                onPress={() => router.push(`/admin/tour-queries/${id}/variants` as never)}
-              >
-                <Text style={styles.linkishText}>Compare pricing</Text>
-                <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-              </Pressable>
-            </Section>
-          )
-          : null}
-
-        {/* Flights (collapsed) */}
-        {data.flightDetails.length ?
-          (
-            <View style={styles.section}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={flightsOpen ? "Hide flights" : "Show flights"}
-                style={styles.sectionHeaderPress}
-                onPress={() => setFlightsOpen((v) => !v)}
-              >
-                <Text style={styles.sectionTitle}>Flights · {data.flightDetails.length}</Text>
-                <Ionicons
-                  name={flightsOpen ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  color={Colors.textTertiary}
-                />
-              </Pressable>
-              {flightsOpen ?
-                (
-                  <View style={styles.sectionBody}>
-                    {data.flightDetails.map((f) => (
-                      <View key={f.id} style={styles.flightCard}>
-                        <Text style={styles.flightHead}>
-                          {f.flightName ?? ""}
-                          {f.flightNumber ? ` · ${f.flightNumber}` : ""}
-                        </Text>
-                        <Text style={styles.flightRoute}>
-                          {f.from ?? "—"} to {f.to ?? "—"}
-                        </Text>
-                        <Text style={styles.flightMeta}>
-                          {formatDate(f.date)}
-                          {f.departureTime ? ` · ${f.departureTime}` : ""}
-                          {f.arrivalTime ? ` to ${f.arrivalTime}` : ""}
-                          {f.flightDuration ? ` · ${f.flightDuration}` : ""}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )
-                : null}
-            </View>
-          )
-          : null}
-
-        {/* Policies aggregate */}
-        {policiesCount ?
-          (
-            <View style={styles.section}>
-              <Pressable
-                testID="trip-section-policies-toggle"
-                accessibilityRole="button"
-                accessibilityLabel={
-                  policiesOpen ? "Hide policy sections" : `Show ${policiesCount} policy sections`
-                }
-                style={styles.sectionHeaderPress}
-                onPress={() => setPoliciesOpen((v) => !v)}
-              >
-                <Text style={styles.sectionTitle}>Policies · {policiesCount} sections</Text>
-                <Ionicons
-                  name={policiesOpen ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  color={Colors.textTertiary}
-                />
-              </Pressable>
-              {policiesOpen ?
-                (
-                  <View style={styles.sectionBody}>
-                    {policyBlocks.map((b) => (
-                      <View key={b.title} style={styles.policySub}>
-                        <Text style={styles.policySubTitle}>
-                          {b.title} · {b.items.length} lines
-                        </Text>
-                        {b.items.map((item, i) => (
-                          <View key={`${b.title}-${i}`} style={styles.bulletRow}>
-                            <Text style={styles.bulletDot}>·</Text>
-                            <Text style={styles.bulletText}>
-                              {item.replace(/<[^>]+>/g, "")}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    ))}
-                  </View>
-                )
-                : null}
-            </View>
-          )
-          : null}
-
-        {data.remarks ?
-          (
-            <Section title="Remarks">
-              <Text style={styles.bodyText}>{data.remarks}</Text>
-            </Section>
-          )
-          : null}
-
         <Text style={styles.metaFoot}>
           Updated {formatDate(data.updatedAt)} · Created {formatDate(data.createdAt)}
         </Text>
@@ -1386,6 +1476,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   scroll: { paddingHorizontal: Spacing.lg },
+  topBarActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
   successBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -1505,6 +1600,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     marginBottom: Spacing.sm,
     marginLeft: 4,
+  },
+  helpInline: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginLeft: 4,
+    marginBottom: 4,
   },
   sectionBody: {
     backgroundColor: Colors.surface,

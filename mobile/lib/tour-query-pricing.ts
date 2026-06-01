@@ -34,6 +34,34 @@ export interface VariantComparisonItem {
   sourceVariantId: string | null;
   isConfirmed: boolean;
   pricing: VariantPricingBreakdown | null;
+  hotelSnapshots: Array<{
+    dayNumber: number;
+    hotelId: string;
+    hotelName: string;
+  }>;
+}
+
+export interface VariantBuildItinerary {
+  id: string;
+  dayNumber: number | null;
+  itineraryTitle: string | null;
+  locationId: string | null;
+  hotel: { id: string; name: string } | null;
+}
+
+export interface VariantBuildLookups {
+  roomTypes: Array<{ id: string; name: string }>;
+  occupancyTypes: Array<{ id: string; name: string }>;
+  mealPlans: Array<{ id: string; name: string }>;
+  vehicleTypes: Array<{ id: string; name: string }>;
+}
+
+export interface VariantBuildContext {
+  itineraries: VariantBuildItinerary[];
+  variantRoomAllocations: Record<string, unknown>;
+  variantTransportDetails: Record<string, unknown>;
+  variantHotelOverrides: Record<string, unknown>;
+  lookups: VariantBuildLookups;
 }
 
 export interface VariantComparisonResponse {
@@ -41,6 +69,7 @@ export interface VariantComparisonResponse {
   confirmedVariantId: string | null;
   hasPricing: boolean;
   variants: VariantComparisonItem[];
+  build: VariantBuildContext | null;
 }
 
 export interface VariantPricingDetailResponse {

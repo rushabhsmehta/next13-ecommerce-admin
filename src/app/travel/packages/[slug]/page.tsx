@@ -2,7 +2,7 @@ import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
 import { PackageDetailClient } from "./components/package-detail-client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 export const metadata = {
   title: "Tour Package Details | Aagam Holidays",
   description:

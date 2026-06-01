@@ -43,7 +43,24 @@ if ($storeFileLine) {
 # Production environment configuration for all variants
 $env:EXPO_PUBLIC_API_BASE_URL = "https://admin.aagamholidays.com"
 $env:EXPO_PUBLIC_WEBSITE_URL = "https://aagamholidays.com"
-$env:EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_bWFueS1mbGFtaW5nby02LmNsZXJrLmFjY291bnRzLmRldiQ"
+$env:EXPO_STAFF_EAS_PROJECT_ID = if ($env:EXPO_STAFF_EAS_PROJECT_ID) { $env:EXPO_STAFF_EAS_PROJECT_ID } else { "69483194-f389-44dd-91bf-38be100d9267" }
+$env:EXPO_FINANCE_EAS_PROJECT_ID = if ($env:EXPO_FINANCE_EAS_PROJECT_ID) { $env:EXPO_FINANCE_EAS_PROJECT_ID } else { "06fabef9-5b51-4a34-a694-03d21a826bed" }
+
+if (-not $env:EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    Write-Host ""
+    Write-Host "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY for a production build." -ForegroundColor Red
+    Write-Host "Set it to the production Clerk publishable key before running this script."
+    Write-Host ""
+    exit 1
+}
+
+if ($env:EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY -like "pk_test_*") {
+    Write-Host ""
+    Write-Host "Refusing to build a production AAB with a Clerk test publishable key." -ForegroundColor Red
+    Write-Host "Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY to the production Clerk publishable key."
+    Write-Host ""
+    exit 1
+}
 
 # Clean build artifacts first
 Write-Host "Cleaning gradle project..." -ForegroundColor Cyan
@@ -59,9 +76,9 @@ try {
 }
 
 $variants = @(
-    @{ name = "public"; flavor = "publicApp"; task = "bundlePublicAppRelease"; outPath = "publicAppRelease/app-publicApp-release.aab"; finalName = "aagam-holidays-public-1.0.2-v42.aab" },
-    @{ name = "staff"; flavor = "staff"; task = "bundleStaffRelease"; outPath = "staffRelease/app-staff-release.aab"; finalName = "aagam-operations-staff-1.0.2-v42.aab" },
-    @{ name = "finance"; flavor = "finance"; task = "bundleFinanceRelease"; outPath = "financeRelease/app-finance-release.aab"; finalName = "aagam-accounts-finance-1.0.2-v42.aab" }
+    @{ name = "public"; flavor = "publicApp"; task = "bundlePublicAppRelease"; outPath = "publicAppRelease/app-publicApp-release.aab"; finalName = "aagam-holidays-public-1.0.3-v44.aab" },
+    @{ name = "staff"; flavor = "staff"; task = "bundleStaffRelease"; outPath = "staffRelease/app-staff-release.aab"; finalName = "aagam-operations-staff-1.0.3-v44.aab" },
+    @{ name = "finance"; flavor = "finance"; task = "bundleFinanceRelease"; outPath = "financeRelease/app-finance-release.aab"; finalName = "aagam-accounts-finance-1.0.3-v44.aab" }
 )
 
 $ArtifactsDir = Join-Path $MobileRoot "artifacts\play-store"
@@ -108,5 +125,5 @@ foreach ($v in $variants) {
 
 Write-Host ""
 Write-Host "All variants built successfully! Output files are located in mobile/artifacts/play-store/:" -ForegroundColor Green
-Get-ChildItem -Path $ArtifactsDir -Filter *v42.aab | Select-Object Name, Length, LastWriteTime
+Get-ChildItem -Path $ArtifactsDir -Filter *v44.aab | Select-Object Name, Length, LastWriteTime
 Write-Host ""

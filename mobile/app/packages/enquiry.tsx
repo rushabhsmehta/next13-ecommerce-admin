@@ -99,7 +99,13 @@ export default function EnquiryScreen() {
 
     setSubmitting(true);
     try {
-      const token = await getToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...mobileAppVariantHeaders(),
+      };
+      const token = isSignedIn ? await getToken() : null;
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const preferenceLines = [
         remarks.trim(),
         budget.trim() ? `Budget: ${budget.trim()}` : "",
@@ -107,13 +113,9 @@ export default function EnquiryScreen() {
         hotelCategory ? `Preferred hotel: ${hotelCategory}` : "",
         packageName ? `Package: ${packageName}` : "",
       ].filter(Boolean);
-      const res = await fetch(`${API_BASE_URL}/api/mobile/enquiry`, {
+      const res = await fetch(`${API_BASE_URL}/api/travel/enquiry`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          ...mobileAppVariantHeaders(),
-        },
+        headers,
         body: JSON.stringify({
           locationId,
           name: name.trim(),
@@ -165,9 +167,13 @@ export default function EnquiryScreen() {
         <TouchableOpacity
           testID="enquiry-track-button"
           style={styles.successButton}
-          onPress={() => router.push("/profile/inquiries")}
+          onPress={() =>
+            isSignedIn ? router.push("/profile/inquiries") : router.push("/login")
+          }
         >
-          <Text style={styles.successButtonText}>Track My Enquiries</Text>
+          <Text style={styles.successButtonText}>
+            {isSignedIn ? "Track My Enquiries" : "Sign in to track enquiries"}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           testID="enquiry-back-to-package"

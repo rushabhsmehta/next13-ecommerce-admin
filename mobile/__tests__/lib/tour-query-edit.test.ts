@@ -61,4 +61,20 @@ describe("createTourQueryEditClient", () => {
       ],
     });
   });
+
+  it("update sends trip-level location and transport fields", async () => {
+    const request = jest.fn(async () => ({ id: "q1", updated: true }));
+    const client = createTourQueryEditClient(request as any);
+    await client.update("q1", {
+      locationId: "loc-1",
+      transport: "Private cab",
+      pickup_location: "Airport",
+      drop_location: "Hotel",
+    });
+    const [, opts] = request.mock.calls[0];
+    expect(opts.body.locationId).toBe("loc-1");
+    expect(opts.body.transport).toBe("Private cab");
+    expect(opts.body.pickup_location).toBe("Airport");
+    expect(opts.body.drop_location).toBe("Hotel");
+  });
 });

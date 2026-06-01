@@ -21,10 +21,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { OfflineGate } from "@/components/auth/PermissionGate";
 import { ApiError, withAuth } from "@/lib/api";
 import { createFinanceClient } from "@/lib/finance";
-import {
-  ACCOUNTS_ADMIN_SECTIONS,
-  type AccountsNavItem,
-} from "@/lib/accounts-admin-nav";
+import { ACCOUNTS_ADMIN_SECTIONS } from "@/lib/accounts-admin-nav";
 
 function formatBalance(n: number): string {
   if (!Number.isFinite(n)) return "—";
@@ -99,8 +96,11 @@ export function AccountsFinanceHub() {
     if (!authLoading) void loadSummary();
   }, [authLoading, canUseFinance, loadSummary]);
 
-  function openItem(item: AccountsNavItem) {
-    router.push(item.route as never);
+  function openItem(item: { id: string }) {
+    const navItem = ACCOUNTS_ADMIN_SECTIONS
+      .flatMap((section) => section.items)
+      .find((candidate) => candidate.id === item.id);
+    if (navItem) router.push(navItem.route as never);
   }
 
   if (authLoading || loading) {

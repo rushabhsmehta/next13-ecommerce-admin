@@ -173,117 +173,72 @@ export default function HomeScreen() {
           !activeLocation && activeCategory === "all" && !searchQ;
 
         if (isBrowseMode) {
-          const [destResult, metaResult] = await Promise.allSettled([
-            travelApi.getDestinations(),
-            travelApi.getPackages({
-              limit: 1,
-              offset: 0,
-            }),
-          ]);
-
-          if (myFetch !== dataFetchId.current) return;
-
-          if (destResult.status === "fulfilled") {
-            setDestinations(destResult.value.destinations || []);
-          } else {
-            console.error("Failed to load destinations:", destResult.reason);
-            setDestinations([]);
-          }
-
-          if (metaResult.status === "fulfilled") {
-            const meta = metaResult.value as {
+          try {
+            const feed = (await travelApi.getHomeFeed({
+              maxLocations: MAX_LOCATION_CAROUSELS,
+              packagesPerLocation: CAROUSEL_PKG_LIMIT,
+            })) as {
+              destinations?: Destination[];
               categories?: string[];
               featuredPackageCount?: number;
-              total?: number;
+              locationCarousels?: LocationCarouselRow[];
             };
+
+            if (myFetch !== dataFetchId.current) return;
+
+            setDestinations(feed.destinations || []);
             setFeaturedPackageCount(
-              typeof meta.featuredPackageCount === "number"
-                ? meta.featuredPackageCount
+              typeof feed.featuredPackageCount === "number"
+                ? feed.featuredPackageCount
                 : 0
             );
-            setPackageTotal(typeof meta.total === "number" ? meta.total : null);
-            if (Array.isArray(meta.categories) && meta.categories.length > 0) {
-              setCategories(meta.categories);
+            setPackageTotal(
+              typeof feed.featuredPackageCount === "number"
+                ? feed.featuredPackageCount
+                : null
+            );
+            if (Array.isArray(feed.categories) && feed.categories.length > 0) {
+              setCategories(feed.categories);
             }
-          } else {
-            console.error("Failed to load packages:", metaResult.reason);
+
+            const rows = feed.locationCarousels || [];
+
+            if (rows.length === 0) {
+              try {
+                const fb = (await travelApi.getPackages({
+                  limit: PAGE_SIZE,
+                  offset: 0,
+                })) as {
+                  packages?: Package[];
+                  hasMore?: boolean;
+                };
+                if (myFetch !== dataFetchId.current) return;
+                setPackages(fb.packages || []);
+                setHasMore(Boolean(fb.hasMore));
+                setLocationCarouselRows([]);
+                setLoadError(null);
+              } catch {
+                if (myFetch !== dataFetchId.current) return;
+                setPackages([]);
+                setHasMore(false);
+                setLocationCarouselRows([]);
+                setLoadError("Packages could not load. Pull down to retry.");
+              }
+            } else {
+              setLocationCarouselRows(rows);
+              setPackages([]);
+              setHasMore(false);
+              setLoadError(null);
+            }
+          } catch (err) {
+            if (myFetch !== dataFetchId.current) return;
+            console.error("Failed to load home feed:", err);
+            setDestinations([]);
             setPackages([]);
             setLocationCarouselRows([]);
             setHasMore(false);
             setLoadError("Packages could not load. Pull down to retry.");
             setPackageTotal(null);
-          }
-
-          if (metaResult.status !== "fulfilled") {
-            return;
-          }
-
-          const sortedDests =
-            destResult.status === "fulfilled"
-              ? [...(destResult.value.destinations || [])].sort(
-                  (a, b) =>
-                    (b._count?.tourPackages ?? 0) -
-                    (a._count?.tourPackages ?? 0)
-                )
-              : [];
-
-          const destsForCarousels = sortedDests.slice(0, MAX_LOCATION_CAROUSELS);
-
-          const carouselResults: Array<LocationCarouselRow | null> = await Promise.all(
-            destsForCarousels.map(async (dest) => {
-              try {
-                const r = (await travelApi.getPackages({
-                  locationId: dest.id,
-                  limit: CAROUSEL_PKG_LIMIT,
-                  offset: 0,
-                })) as { packages?: Package[] };
-                const pkgs = r.packages || [];
-                return pkgs.length > 0
-                  ? {
-                      id: dest.id,
-                      label: dest.label,
-                      slug: dest.slug,
-                      packages: pkgs,
-                    }
-                  : null;
-              } catch {
-                return null;
-              }
-            })
-          );
-
-          if (myFetch !== dataFetchId.current) return;
-
-          const rows = carouselResults.filter(
-            (r): r is LocationCarouselRow => r !== null
-          );
-
-          if (rows.length === 0) {
-            try {
-              const fb = (await travelApi.getPackages({
-                limit: PAGE_SIZE,
-                offset: 0,
-              })) as {
-                packages?: Package[];
-                hasMore?: boolean;
-              };
-              if (myFetch !== dataFetchId.current) return;
-              setPackages(fb.packages || []);
-              setHasMore(Boolean(fb.hasMore));
-              setLocationCarouselRows([]);
-              setLoadError(null);
-            } catch {
-              if (myFetch !== dataFetchId.current) return;
-              setPackages([]);
-              setHasMore(false);
-              setLocationCarouselRows([]);
-              setLoadError("Packages could not load. Pull down to retry.");
-            }
-          } else {
-            setLocationCarouselRows(rows);
-            setPackages([]);
-            setHasMore(false);
-            setLoadError(null);
           }
         } else {
           setLocationCarouselRows([]);
@@ -409,7 +364,7 @@ export default function HomeScreen() {
       await setLastViewedPackage(entry);
       setLastViewed(entry);
       trackEvent("package_open", { packageId: pkg.id, source: "home" });
-      router.push(`/packages/${pkg.slug || pkg.id}`);
+      router.push(`/packages/${pkg.slug || pkg.id}` as never);
     },
     [router]
   );
@@ -972,7 +927,7 @@ export default function HomeScreen() {
               testID="home-shortcut-continue"
               style={styles.shortcutChipCompact}
               onPress={() =>
-                router.push(`/packages/${lastViewed.slug || lastViewed.id}`)
+                router.push(`/packages/${lastViewed.slug || lastViewed.id}` as never)
               }
               accessibilityRole="button"
               accessibilityLabel="Continue last viewed package"

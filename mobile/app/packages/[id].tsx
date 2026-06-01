@@ -233,7 +233,7 @@ export default function PackageDetailScreen() {
     const packageName = encodeURIComponent(extractPlainText(pkg.tourPackageName) ?? "");
     if (locationId) {
       router.push(
-        `/packages/enquiry?locationId=${locationId}&locationLabel=${encodeURIComponent(locationLabel)}&packageName=${packageName}`
+        `/packages/enquiry?locationId=${locationId}&locationLabel=${encodeURIComponent(locationLabel)}&packageName=${packageName}` as never
       );
     } else {
       Linking.openURL(

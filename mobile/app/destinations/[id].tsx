@@ -67,7 +67,7 @@ export default function DestinationDetailScreen() {
     return (
       <Pressable
         style={styles.card}
-        onPress={() => router.push(`/packages/${item.slug || item.id}`)}
+        onPress={() => router.push(`/packages/${item.slug || item.id}` as never)}
         accessibilityRole="button"
         accessibilityLabel={`View package ${item.tourPackageName || "Tour Package"}`}
       >

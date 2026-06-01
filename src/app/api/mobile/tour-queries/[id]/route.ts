@@ -53,6 +53,19 @@ function sanitizeRoomAllocations(
   );
 }
 
+const transportDetailSchema = z.object({
+  id: z.string().optional(),
+  vehicleTypeId: z.string().min(1),
+  quantity: z.coerce.number().int().min(1).optional(),
+  description: z.string().optional().nullable(),
+});
+
+type ParsedTransportDetail = z.infer<typeof transportDetailSchema>;
+
+function sanitizeTransportDetails(rows: ParsedTransportDetail[] | undefined) {
+  return (rows ?? []).filter((row) => row.vehicleTypeId?.trim().length > 0);
+}
+
 const patchSchema = z.object({
   tourPackageQueryName: z.string().max(300).optional(),
   customerName: z.string().max(200).optional(),
@@ -72,6 +85,10 @@ const patchSchema = z.object({
   variantPricingData: z.record(z.any()).optional().nullable(),
   tourStartsFrom: z.string().optional().nullable(),
   tourEndsOn: z.string().optional().nullable(),
+  locationId: z.string().optional().nullable(),
+  transport: nullableText,
+  pickup_location: nullableText,
+  drop_location: nullableText,
   remarks: z.string().max(5000).optional().nullable(),
   inclusions: stringArray,
   exclusions: stringArray,
@@ -98,6 +115,7 @@ const patchSchema = z.object({
         itineraryDescription: z.string().optional().nullable(),
         mealsIncluded: z.string().optional().nullable(),
         roomAllocations: z.array(roomAllocationSchema).optional(),
+        transportDetails: z.array(transportDetailSchema).optional(),
       })
     )
     .optional(),
@@ -444,6 +462,10 @@ export async function PATCH(
       data.tourStartsFrom = v.tourStartsFrom ? new Date(v.tourStartsFrom) : null;
     if (v.tourEndsOn !== undefined)
       data.tourEndsOn = v.tourEndsOn ? new Date(v.tourEndsOn) : null;
+    if (v.locationId !== undefined) data.locationId = v.locationId;
+    if (v.transport !== undefined) data.transport = v.transport;
+    if (v.pickup_location !== undefined) data.pickup_location = v.pickup_location;
+    if (v.drop_location !== undefined) data.drop_location = v.drop_location;
     if (v.selectedTemplateId !== undefined) data.selectedTemplateId = v.selectedTemplateId;
     if (v.selectedTemplateType !== undefined) data.selectedTemplateType = v.selectedTemplateType;
     if (v.tourPackageTemplateName !== undefined) data.tourPackageTemplateName = v.tourPackageTemplateName;
@@ -684,6 +706,23 @@ export async function PATCH(
                 });
               }
             }
+
+            await tx.transportDetail.deleteMany({
+              where: { itineraryId: it.id },
+            });
+            const transportRows = sanitizeTransportDetails(it.transportDetails);
+            if (transportRows.length > 0) {
+              for (const td of transportRows) {
+                await tx.transportDetail.create({
+                  data: {
+                    itineraryId: it.id,
+                    vehicleTypeId: td.vehicleTypeId,
+                    quantity: td.quantity ?? 1,
+                    description: td.description || "",
+                  },
+                });
+              }
+            }
           } else {
             // Create new day
             // Fallback locationId to query locationId if not provided
@@ -740,6 +779,20 @@ export async function PATCH(
                     quantity: ra.quantity ?? 1,
                     customRoomType: ra.customRoomType || ""
                   }
+                });
+              }
+            }
+
+            const transportRows = sanitizeTransportDetails(it.transportDetails);
+            if (transportRows.length > 0) {
+              for (const td of transportRows) {
+                await tx.transportDetail.create({
+                  data: {
+                    itineraryId: createdItinerary.id,
+                    vehicleTypeId: td.vehicleTypeId,
+                    quantity: td.quantity ?? 1,
+                    description: td.description || "",
+                  },
                 });
               }
             }

@@ -90,7 +90,7 @@ export default function AllDestinationsScreen() {
         <Pressable
           testID={`all-dest-${item.id}`}
           style={styles.card}
-          onPress={() => router.push(`/destinations/${item.id}`)}
+          onPress={() => router.push(`/destinations/${item.id}` as never)}
           accessibilityRole="button"
           accessibilityLabel={`Open ${item.label}`}
         >

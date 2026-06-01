@@ -12,7 +12,9 @@ export async function GET(req: Request, props: { params: Promise<{ slug: string 
 
     const tourPackage = await prismadb.tourPackage.findFirst({
       where: {
-        slug : params.slug
+        slug: params.slug,
+        isArchived: false,
+        isFeatured: true,
       },
       include: {
         flightDetails: true,

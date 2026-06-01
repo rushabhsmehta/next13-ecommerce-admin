@@ -10,7 +10,7 @@ import { Testimonials } from "./components/testimonials";
 import { InquiryCta } from "./components/inquiry-cta";
 import { WhyChooseUs } from "./components/why-choose-us";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 export const metadata = {
   title: "Travel Home | Aagam Holidays",
   description:

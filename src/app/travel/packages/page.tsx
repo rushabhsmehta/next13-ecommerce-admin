@@ -1,7 +1,7 @@
 import prismadb from "@/lib/prismadb";
 import { PackagesListClient } from "./components/packages-list-client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 export const metadata = {
   title: "Tour Packages | Aagam Holidays",
   description:

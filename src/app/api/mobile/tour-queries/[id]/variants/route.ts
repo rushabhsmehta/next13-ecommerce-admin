@@ -65,14 +65,32 @@ export async function GET(
         id: true,
         confirmedVariantId: true,
         variantPricingData: true,
+        variantRoomAllocations: true,
+        variantTransportDetails: true,
+        variantHotelOverrides: true,
         associatePartnerId: true,
         inquiry: { select: { associatePartnerId: true } },
+        itineraries: {
+          select: {
+            id: true,
+            dayNumber: true,
+            itineraryTitle: true,
+            locationId: true,
+            hotelId: true,
+            hotel: { select: { id: true, name: true } },
+          },
+          orderBy: [{ dayNumber: "asc" }, { days: "asc" }],
+        },
         queryVariantSnapshots: {
           select: {
             id: true,
             name: true,
             sortOrder: true,
             sourceVariantId: true,
+            hotelSnapshots: {
+              select: { dayNumber: true, hotelId: true, hotelName: true },
+              orderBy: { dayNumber: "asc" },
+            },
           },
           orderBy: { sortOrder: "asc" },
         },
@@ -86,6 +104,25 @@ export async function GET(
 
     const pricingMap =
       (tpq.variantPricingData as Record<string, VariantPricing> | null) ?? {};
+
+    const [roomTypes, occupancyTypes, mealPlans, vehicleTypes] = await Promise.all([
+      prismadb.roomType.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prismadb.occupancyType.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prismadb.mealPlan.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prismadb.vehicleType.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+    ]);
 
     const variants = tpq.queryVariantSnapshots.map((snap) => {
       // Pricing is keyed by the source variant id when present, else snapshot id.
@@ -102,6 +139,11 @@ export async function GET(
           tpq.confirmedVariantId != null &&
           (tpq.confirmedVariantId === snap.id ||
             tpq.confirmedVariantId === snap.sourceVariantId),
+        hotelSnapshots: snap.hotelSnapshots.map((row) => ({
+          dayNumber: row.dayNumber,
+          hotelId: row.hotelId,
+          hotelName: row.hotelName,
+        })),
         pricing: pricing
           ? {
               calculationMethod:
@@ -131,6 +173,25 @@ export async function GET(
       confirmedVariantId: tpq.confirmedVariantId,
       hasPricing: Object.keys(pricingMap).length > 0,
       variants,
+      build: {
+        itineraries: tpq.itineraries.map((it) => ({
+          id: it.id,
+          dayNumber: it.dayNumber,
+          itineraryTitle: it.itineraryTitle,
+          locationId: it.locationId,
+          hotel: it.hotel,
+        })),
+        variantRoomAllocations: (tpq.variantRoomAllocations as Record<string, unknown> | null) ?? {},
+        variantTransportDetails:
+          (tpq.variantTransportDetails as Record<string, unknown> | null) ?? {},
+        variantHotelOverrides: (tpq.variantHotelOverrides as Record<string, unknown> | null) ?? {},
+        lookups: {
+          roomTypes,
+          occupancyTypes,
+          mealPlans,
+          vehicleTypes,
+        },
+      },
     });
   } catch (error) {
     console.log("[MOBILE_TOUR_QUERY_VARIANTS_GET]", error);

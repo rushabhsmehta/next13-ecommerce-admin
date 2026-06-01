@@ -1,4 +1,4 @@
-const VERSION = "1.0.2";
+const VERSION = "1.0.3";
 const PUBLIC_EAS_PROJECT_ID = "f6e23049-3b76-47ee-8194-9c9ad6de731a";
 const STAFF_EAS_PROJECT_ID =
   process.env.EXPO_STAFF_EAS_PROJECT_ID ??

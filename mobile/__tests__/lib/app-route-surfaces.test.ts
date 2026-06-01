@@ -14,10 +14,10 @@ describe("variant route surfaces", () => {
     expect(exists("apps/public", "packages/[id].tsx")).toBe(true);
   });
 
-  it("does not expose finance routes in the staff app", () => {
+  it("does not expose standalone finance routes in the staff app", () => {
     expect(exists("apps/staff", "admin/finance/index.tsx")).toBe(false);
     expect(exists("apps/staff", "admin/reports/index.tsx")).toBe(false);
-    expect(exists("apps/staff", "admin/tour-queries/[id]/finance.tsx")).toBe(false);
+    expect(exists("apps/staff", "admin/tour-queries/[id]/finance.tsx")).toBe(true);
     expect(exists("apps/staff", "admin/operations/index.tsx")).toBe(true);
   });
 

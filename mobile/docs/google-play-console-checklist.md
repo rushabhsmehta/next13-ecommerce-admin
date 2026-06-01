@@ -177,13 +177,38 @@ Browse curated tours, enquire instantly, and chat with your trip group on the go
 
 ---
 
-## Staff & Finance apps (optional)
+## Staff app: Aagam Operations
 
-If publishing **Aagam Operations** or **Aagam Accounts**:
+For **`com.aagamholidays.staff`**:
 
-- Mark **restricted**; provide **Clerk email OTP** or Google account for an org user with **OPERATIONS** / **FINANCE** role.
+- Upload the AAB to **Internal testing** first.
+- Mark app access as **restricted**; provide Clerk email OTP or a Google account for an org user with **OPERATIONS** or **ADMIN/OWNER** access.
+- Do **not** expose admin bypass tokens, keystore passwords, Clerk secret keys, or `google-service-account-key.json`.
+- Verify on device before promotion:
+  - Tour query edit and save
+  - Variants tab
+  - Pricing tab
+  - Finance route
+  - Location, transport, pickup/drop, and per-day transport details
+- Promote to **Production** only after staff sign-off.
+
+Sample release notes:
+
+```text
+Aagam Operations 1.0.3
+
+- Redesigned tour-query workspace for edit, pricing, variants, and finance handoff.
+- Added location, pickup/drop, transport, and per-day transport detail support.
+- Requires the production mobile tour-query API deploy before rollout.
+```
+
+## Finance app: Aagam Accounts
+
+If publishing **Aagam Accounts**:
+
+- Mark **restricted**; provide **Clerk email OTP** or Google account for an org user with **FINANCE** / **ADMIN** / **OWNER** role.
 - Do **not** expose admin bypass tokens in Play instructions.
-- Separate Play Console apps per package ID.
+- Use the separate Play Console app for `com.aagamholidays.finance`.
 
 ---
 

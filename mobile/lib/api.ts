@@ -289,6 +289,21 @@ export const travelApi = {
   getDestinations: () =>
     cachedRequest(CACHE_KEYS.DESTINATIONS, "/api/travel/destinations", CACHE_TTL.DESTINATIONS),
 
+  getHomeFeed: (params?: { maxLocations?: number; packagesPerLocation?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.maxLocations) searchParams.set("maxLocations", String(params.maxLocations));
+    if (params?.packagesPerLocation) {
+      searchParams.set("packagesPerLocation", String(params.packagesPerLocation));
+    }
+    const qs = searchParams.toString();
+    const endpoint = `/api/travel/home-feed${qs ? `?${qs}` : ""}`;
+    return cachedRequest(
+      CACHE_KEYS.HOME_FEED(Object.fromEntries(searchParams.entries())),
+      endpoint,
+      CACHE_TTL.HOME_FEED
+    );
+  },
+
   search: (query: string) =>
     request(`/api/travel/search?q=${encodeURIComponent(query)}`),
 

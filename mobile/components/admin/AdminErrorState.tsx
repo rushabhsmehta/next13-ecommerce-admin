@@ -49,6 +49,18 @@ function toFriendlyErrorMessage(message: string): string {
   const trimmed = message.trim();
   if (!trimmed) return "Something went wrong.";
 
+  if (/request failed with status 404/i.test(trimmed)) {
+    return "This feature is not available on the server yet. Pull the latest admin deploy or use a dev build pointed at your PC.";
+  }
+
+  if (/request failed with status 403/i.test(trimmed)) {
+    return "You do not have permission to view this.";
+  }
+
+  if (/request failed with status 401/i.test(trimmed)) {
+    return "Session expired. Sign in again.";
+  }
+
   if (/request failed with status 4\d\d/i.test(trimmed)) {
     return "Could not load this record.";
   }

@@ -31,6 +31,7 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
+import { fetchCrmInquiriesList } from "@/lib/crm-inquiries-list";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import AssociateInquiriesScreen from "@/app/associate/inquiries";
@@ -65,14 +66,6 @@ interface InquiryRow {
   location?: { id: string; label: string } | null;
   associatePartner?: { id: string; name: string } | null;
   tourPackageQueries?: Array<{ id: string }> | null;
-}
-
-interface InquiryListResponse {
-  items?: InquiryRow[];
-  inquiries?: InquiryRow[];
-  total?: number;
-  nextOffset?: number;
-  hasMore?: boolean;
 }
 
 const STATUS_FILTERS: { id: string; label: string }[] = [
@@ -188,27 +181,17 @@ function AdminInquiriesList({
         if (followUpsOnly) qs.set("followUpsOnly", "1");
         if (debouncedSearch) qs.set("search", debouncedSearch);
         const q = qs.toString();
-        const response = await authRequest<InquiryListResponse | InquiryRow[]>(
-          `/api/mobile/crm/inquiries${q ? `?${q}` : ""}`,
-          {
-            retries: 1,
-            cacheTtlSeconds: mode === "more" ? 0 : 20,
-            dedupe: true,
-            staleOnError: mode !== "more",
-          }
-        );
-        const list = Array.isArray(response)
-          ? response
-          : response.items ?? response.inquiries ?? [];
-        const responseTotal = Array.isArray(response)
-          ? list.length
-          : response.total ?? list.length;
-        const responseNextOffset = Array.isArray(response)
-          ? nextOffset + list.length
-          : response.nextOffset ?? nextOffset + list.length;
-        const responseHasMore = Array.isArray(response)
-          ? false
-          : response.hasMore ?? responseNextOffset < responseTotal;
+        const {
+          items: list,
+          total: responseTotal,
+          nextOffset: responseNextOffset,
+          hasMore: responseHasMore,
+        } = await fetchCrmInquiriesList(authRequest, q, {
+          retries: 1,
+          cacheTtlSeconds: mode === "more" ? 0 : 20,
+          dedupe: true,
+          staleOnError: mode !== "more",
+        });
 
         setItems((prev) => (mode === "more" ? [...prev, ...list] : list));
         setTotal(responseTotal);

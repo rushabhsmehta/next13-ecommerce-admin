@@ -174,7 +174,8 @@
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account-key.json",
-        "track": "internal"
+        "track": "alpha",
+        "releaseStatus": "completed"
       }
     },
     "production-finance": {

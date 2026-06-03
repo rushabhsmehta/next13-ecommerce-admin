@@ -1,3 +1,5 @@
+import { fetchCrmInquiriesList } from "@/lib/crm-inquiries-list";
+
 /** Same signature as `withAuth(...)` return type — required because `/api/locations` is Clerk-protected. */
 export type AuthenticatedRequest = <T = any>(
   endpoint: string,
@@ -39,11 +41,6 @@ export interface AssociateInquiry {
   location?: { id: string; label: string } | null;
   associatePartner?: { id: string; name: string } | null;
   actions?: InquiryActionItem[];
-}
-
-interface AssociateInquiryListResponse {
-  items?: AssociateInquiry[];
-  inquiries?: AssociateInquiry[];
 }
 
 export interface InquiryRoomAllocationPayload {
@@ -121,12 +118,13 @@ export function createAssociateInquiryClient(
 ) {
   return {
     async listInquiries(): Promise<AssociateInquiry[]> {
-      const response = await authRequest<AssociateInquiry[] | AssociateInquiryListResponse>(
-        "/api/mobile/crm/inquiries?limit=100",
-        { retries: 1, cacheTtlSeconds: 20, dedupe: true, staleOnError: true }
-      );
-      if (Array.isArray(response)) return response;
-      return response.items ?? response.inquiries ?? [];
+      const { items } = await fetchCrmInquiriesList(authRequest, "limit=100", {
+        retries: 1,
+        cacheTtlSeconds: 20,
+        dedupe: true,
+        staleOnError: true,
+      });
+      return items as AssociateInquiry[];
     },
     getInquiry(inquiryId: string): Promise<AssociateInquiry | null> {
       return authRequest<AssociateInquiry | null>(`/api/inquiries/${inquiryId}`);

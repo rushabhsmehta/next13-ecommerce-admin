@@ -2,8 +2,16 @@ import { z } from "zod";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { McpError } from "../lib/errors";
 import type { ToolHandlerMap } from "../lib/schemas";
-
-// ── Schemas ──────────────────────────────────────────────────────────────────
+import {
+  buildFidelityWarnings,
+  buildGenerationSystemPrompt,
+  buildGenerationUserPrompt,
+  GENERATION_TEMPERATURE_CREATIVE,
+  GENERATION_TEMPERATURE_STRICT,
+  hasPastedSourceContent,
+  sanitizeActivityDescriptionJson,
+  type ItineraryGenerationInput,
+} from "@/lib/ai/itinerary-generation-prompts";
 
 const GenerateItinerarySchema = z.object({
   destination: z.string().min(1),
@@ -18,65 +26,54 @@ const GenerateItinerarySchema = z.object({
   numChildren: z.number().int().min(0).optional(),
 });
 
-// ── Handlers ─────────────────────────────────────────────────────────────────
-
 async function generateItinerary(rawParams: unknown) {
   const params = GenerateItinerarySchema.parse(rawParams);
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Gemini API key not configured");
 
+  const input: ItineraryGenerationInput = {
+    destination: params.destination,
+    duration: { nights: params.nights, days: params.days },
+    groupType: params.groupType,
+    budgetCategory: params.budgetCategory,
+    specialRequirements: params.specialRequirements,
+    targetType: "tourPackage",
+    customerName: params.customerName,
+    startDate: params.startDate,
+    numAdults: params.numAdults,
+    numChildren: params.numChildren,
+  };
+
+  const strictSource = hasPastedSourceContent(input.specialRequirements);
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  const prompt = `Generate a detailed ${params.nights}-night/${params.days}-day tour itinerary for ${params.destination}.
-
-Group type: ${params.groupType}
-Budget: ${params.budgetCategory}
-${params.customerName ? `Customer: ${params.customerName}` : ""}
-${params.startDate ? `Start date: ${params.startDate}` : ""}
-${params.numAdults ? `Adults: ${params.numAdults}` : ""}
-${params.numChildren ? `Children: ${params.numChildren}` : ""}
-${params.specialRequirements ? `Special requirements: ${params.specialRequirements}` : ""}
-
-Output ONLY a valid JSON object with this structure:
-{
-  "tourPackageName": "string",
-  "tourCategory": "Domestic" or "International",
-  "tourPackageType": "string",
-  "numDaysNight": "${params.nights} Nights / ${params.days} Days",
-  "transport": "string",
-  "pickup_location": "string",
-  "drop_location": "string",
-  "highlights": ["string"],
-  "itineraries": [
-    {
-      "dayNumber": 1,
-      "days": "Day 1",
-      "itineraryTitle": "string",
-      "itineraryDescription": "string",
-      "mealsIncluded": "string",
-      "activities": [{ "activityTitle": "string", "activityDescription": "string" }]
-    }
-  ]
-}`;
+  const fullPrompt = `${buildGenerationSystemPrompt(strictSource)}\n\n${buildGenerationUserPrompt(input)}`;
 
   const result = await model.generateContent({
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.7, responseMimeType: "application/json" },
+    contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+    generationConfig: {
+      temperature: strictSource ? GENERATION_TEMPERATURE_STRICT : GENERATION_TEMPERATURE_CREATIVE,
+      responseMimeType: "application/json",
+    },
   });
 
   let text: string;
   try {
-    text = result.response.text().replace(/\n/g, " ").trim();
+    text = result.response.text().trim();
   } catch (e) {
     throw new McpError("Gemini returned an empty or inaccessible response", "AI_GENERATION_FAILED", 502, { cause: String(e) });
   }
 
-  // Strip markdown code fences Gemini sometimes emits despite responseMimeType: "application/json"
   const jsonText = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
 
   try {
-    return JSON.parse(jsonText);
+    const parsed = JSON.parse(sanitizeActivityDescriptionJson(jsonText));
+    const warnings = buildFidelityWarnings(params.specialRequirements, parsed);
+    if (warnings.length > 0) {
+      (parsed as Record<string, unknown>)._fidelityWarnings = warnings;
+    }
+    return parsed;
   } catch (e) {
     console.error("[MCP] generateItinerary: non-JSON from Gemini:", jsonText.slice(0, 300));
     throw new McpError(
@@ -85,8 +82,6 @@ Output ONLY a valid JSON object with this structure:
     );
   }
 }
-
-// ── Export ────────────────────────────────────────────────────────────────────
 
 export const aiHandlers: ToolHandlerMap = {
   generate_itinerary: generateItinerary,

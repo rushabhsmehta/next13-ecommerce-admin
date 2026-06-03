@@ -267,6 +267,18 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
                 promptTokens: result.usage?.promptTokens || 0,
                 completionTokens: result.usage?.completionTokens || 0,
             });
+            if (Array.isArray(result.fidelityWarnings) && result.fidelityWarnings.length > 0) {
+                toast({
+                    variant: "destructive",
+                    title: "Review pasted content",
+                    description: result.fidelityWarnings.join(" "),
+                });
+            } else if (result.strictSource) {
+                toast({
+                    title: "Structured from your paste",
+                    description: "Output follows pasted content only. Review each day before saving.",
+                });
+            }
             setProgress(100);
 
             setTimeout(() => {
@@ -723,22 +735,22 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
                             </>
                         )}
 
-                        {/* Special Requirements */}
+                        {/* Pasted source itinerary */}
                         <FormField
                             control={form.control}
                             name="specialRequirements"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Special Requirements (Optional)</FormLabel>
+                                    <FormLabel>Pasted itinerary / package content</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            placeholder="e.g., Include local food experiences, avoid long drives, focus on adventure activities..."
-                                            className="min-h-[80px]"
+                                            placeholder="Paste the full day-wise itinerary, quotation, or package text here. AI will structure it exactly — it will not add or remove days, hotels, or activities."
+                                            className="min-h-[160px] font-mono text-sm"
                                             {...field}
                                         />
                                     </FormControl>
                                     <FormDescription>
-                                        Add any specific preferences or must-have experiences
+                                        When you paste content here, generation follows your text strictly. Leave empty only if you want AI to invent a new itinerary from destination and duration.
                                     </FormDescription>
                                 </FormItem>
                             )}
@@ -912,12 +924,12 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
                             <Sparkles className="h-5 w-5 text-primary" /> Modify Itinerary with AI
                         </CardTitle>
                         <CardDescription>
-                            Want to change something? Just ask Aagam AI to tweak the itinerary.
+                            Describe only the exact change you want. Unmentioned days and text stay unchanged.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <Textarea
-                            placeholder="e.g., 'Change the hotel in Jaipur to something more heritage', 'Add a visit to Hawa Mahal on Day 2', 'Make the whole trip more relaxed'..."
+                            placeholder="e.g., 'On Day 2 only, change hotel to Taj Jai Mahal' or 'Add Hawa Mahal visit to Day 2 activities' — be specific; AI will not change anything else"
                             value={refinementInput}
                             onChange={(e) => setRefinementInput(e.target.value)}
                             className="min-h-[80px]"

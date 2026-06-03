@@ -87,8 +87,7 @@ const tourPackageQueryVoucherPage = async (
   const roomTypes = await prismadb.roomType.findMany({});
   const occupancyTypes = await prismadb.occupancyType.findMany({});
   const mealPlans = await prismadb.mealPlan.findMany({});
-
-
+  const vehicleTypes = await prismadb.vehicleType.findMany({});
 
   return (
     <>
@@ -102,6 +101,7 @@ const tourPackageQueryVoucherPage = async (
           roomTypes={roomTypes}
           occupancyTypes={occupancyTypes}
           mealPlans={mealPlans}
+          vehicleTypes={vehicleTypes}
           confirmedVariantHotelsByDay={confirmedVariantHotelsByDay}
           confirmedVariantName={confirmedVariantName}
         />

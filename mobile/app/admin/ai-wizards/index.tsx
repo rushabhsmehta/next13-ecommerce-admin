@@ -130,6 +130,14 @@ function AiWizardsInner() {
       });
       setDraft(result.data);
       setRefinePrompt("");
+      if (result.fidelityWarnings?.length) {
+        Alert.alert("Review pasted content", result.fidelityWarnings.join("\n"));
+      } else if (result.strictSource) {
+        Alert.alert(
+          "Structured from your paste",
+          "Output follows pasted content only. Review each day before saving."
+        );
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not generate itinerary.");
     } finally {
@@ -343,10 +351,10 @@ function AiWizardsInner() {
 
           <Field
             testID="ai-special-requirements"
-            label="Requirements"
+            label="Pasted itinerary"
             value={specialRequirements}
             onChangeText={setSpecialRequirements}
-            placeholder="Pace, hotels, food, accessibility, must-see places"
+            placeholder="Paste full day-wise text. AI structures it exactly — no added or removed days."
             multiline
           />
 
@@ -401,14 +409,14 @@ function AiWizardsInner() {
               </View>
             ) : null}
 
-            <Text style={styles.fieldLabel}>Refine before saving</Text>
+            <Text style={styles.fieldLabel}>Refine before saving (exact changes only)</Text>
             <TextInput
               testID="ai-refine-prompt"
               accessibilityLabel="Refinement instructions"
               style={[styles.input, styles.multilineInput]}
               value={refinePrompt}
               onChangeText={setRefinePrompt}
-              placeholder="Make this more premium, slow day 3 down, add Jain meals..."
+              placeholder="e.g. Day 2 only: change hotel to Taj Jai Mahal — other days stay unchanged"
               placeholderTextColor={Colors.textTertiary}
               multiline
             />

@@ -2,42 +2,17 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { handleApi, jsonError } from "@/lib/api-response";
+import {
+    buildRefineSystemPrompt,
+    REFINE_TEMPERATURE,
+} from "@/lib/ai/itinerary-generation-prompts";
 
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
-    currentItinerary: z.record(z.any()), // Accepts the full itinerary object
+    currentItinerary: z.record(z.any()),
     userPrompt: z.string().min(1, "Instructions are required"),
 });
-
-const SYSTEM_PROMPT = `You are "Aagam AI", an expert travel consultant.
-Your task is to MODIFY the provided tour package itinerary based on the user's instructions.
-
-## Inputs
-1. Current Itinerary JSON
-2. User Instructions for changes
-
-## Rules
-1. Return the COMPLETE updated JSON object.
-2. Maintain the exact same JSON structure as the input.
-3. Apply the user's changes intelligently (e.g., if they say "make it luxury", update hotels to 5-star, transport to premium, and budget).
-4. Do NOT remove fields unless explicitly asked.
-5. Ensure the "Activities" rule is followed: ONE activity object per day with EMPTY activityTitle. List activities in activityDescription using Roman numerals (i., ii., iii.) with EACH on a NEW LINE (use \\n).
-6. Output ONLY valid JSON.
-
-## Output Format (Identical to Input)
-{
-  "tourPackageName": "...",
-  "tourCategory": "...",
-  "tourPackageType": "...",
-  "numDaysNight": "...",
-  "transport": "...",
-  "pickup_location": "...",
-  "drop_location": "...",
-  "highlights": [...],
-  "itineraries": [...],
-  "estimatedBudget": {...}
-}`;
 
 export async function POST(req: Request) {
     return handleApi(async () => {
@@ -64,16 +39,16 @@ export async function POST(req: Request) {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-        const fullPrompt = `${SYSTEM_PROMPT}
+        const fullPrompt = `${buildRefineSystemPrompt()}
 
-    ## Current Itinerary JSON
-    ${JSON.stringify(currentItinerary, null, 2)}
+## Current Itinerary JSON
+${JSON.stringify(currentItinerary, null, 2)}
 
-    ## User Instructions
-    ${userPrompt}
-    
-    ## Updated Itinerary JSON
-    `;
+## User Instructions (change ONLY what is requested here)
+${userPrompt}
+
+## Updated Itinerary JSON
+`;
 
         console.log("[AI_REFINE] Sending refinement request...");
 
@@ -81,7 +56,7 @@ export async function POST(req: Request) {
             const result = await model.generateContent({
                 contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
                 generationConfig: {
-                    temperature: 0.7,
+                    temperature: REFINE_TEMPERATURE,
                     responseMimeType: "application/json",
                 },
             });

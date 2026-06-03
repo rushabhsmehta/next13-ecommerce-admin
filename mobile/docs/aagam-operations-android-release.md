@@ -111,6 +111,14 @@ If `EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID` is missing from the EAS production b
 
 If Native API is disabled, the Android app entry is missing, SHA-256 does not match the installed APK, or redirect URLs are missing, legacy/browser fallback errors can show *"Mobile SSO is not configured in Clerk..."*.
 
+## Crash on login: `Cannot find native module 'ExpoCryptoAES'`
+
+`@clerk/expo` v3+ requires the **native** `expo-crypto` module. If Play ships a binary built without it but **Expo OTA** (`staff-production`) delivers newer JS (Clerk 3 / login), opening **Sign in** crashes with *"Aagam Operations keeps stopping"* before Google OAuth runs.
+
+**Fix:** new native `production-staff` EAS build + Play upload (`expo-crypto` in `package.json` — autolinked, not a config plugin). Reinstall from closed testing. Avoid OTA-only Clerk upgrades until `runtimeVersion` and native modules match.
+
+USB check: `adb logcat -b crash | findstr ExpoCryptoAES`
+
 ## Railway Backend Deploy
 
 Deploy the Railway backend before users install the AAB. GitHub push alone does not update phones, and it only updates the production API if Railway auto-deploy is enabled for this branch.

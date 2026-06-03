@@ -57,6 +57,8 @@ export interface AiItineraryDraft {
 export interface AiResponse {
   success: boolean;
   data: AiItineraryDraft;
+  strictSource?: boolean;
+  fidelityWarnings?: string[];
   usage?: { model?: string };
 }
 

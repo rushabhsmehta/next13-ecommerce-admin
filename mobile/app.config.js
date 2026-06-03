@@ -1,4 +1,4 @@
-const VERSION = "1.0.3";
+const VERSION = "1.0.5";
 const PUBLIC_EAS_PROJECT_ID = "f6e23049-3b76-47ee-8194-9c9ad6de731a";
 const STAFF_EAS_PROJECT_ID =
   process.env.EXPO_STAFF_EAS_PROJECT_ID ??
@@ -112,6 +112,23 @@ module.exports = () => {
       process.env.EXPO_PUBLIC_WEBSITE_URL_DEV ?? "https://aagamholidays.com",
     whatsappBusinessNumber: "919724444701",
   };
+  const googleWebClientId = process.env.EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID;
+  const googleAndroidClientId = process.env.EXPO_PUBLIC_CLERK_GOOGLE_ANDROID_CLIENT_ID;
+  const googleIosClientId = process.env.EXPO_PUBLIC_CLERK_GOOGLE_IOS_CLIENT_ID;
+  const googleIosUrlScheme = process.env.EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME;
+
+  if (googleWebClientId) {
+    extra.EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID = googleWebClientId;
+  }
+  if (googleAndroidClientId) {
+    extra.EXPO_PUBLIC_CLERK_GOOGLE_ANDROID_CLIENT_ID = googleAndroidClientId;
+  }
+  if (googleIosClientId) {
+    extra.EXPO_PUBLIC_CLERK_GOOGLE_IOS_CLIENT_ID = googleIosClientId;
+  }
+  if (googleIosUrlScheme) {
+    extra.EXPO_PUBLIC_CLERK_GOOGLE_IOS_URL_SCHEME = googleIosUrlScheme;
+  }
 
   if (variant.easProjectId) {
     extra.eas = {
@@ -162,6 +179,7 @@ module.exports = () => {
       },
       plugins: [
         ["expo-router", { root: variant.routerRoot }],
+        "@clerk/expo",
         "expo-font",
         "expo-secure-store",
         [

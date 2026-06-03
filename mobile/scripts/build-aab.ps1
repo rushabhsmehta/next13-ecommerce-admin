@@ -76,9 +76,9 @@ try {
 }
 
 $variants = @(
-    @{ name = "public"; flavor = "publicApp"; task = "bundlePublicAppRelease"; outPath = "publicAppRelease/app-publicApp-release.aab"; finalName = "aagam-holidays-public-1.0.3-v44.aab" },
-    @{ name = "staff"; flavor = "staff"; task = "bundleStaffRelease"; outPath = "staffRelease/app-staff-release.aab"; finalName = "aagam-operations-staff-1.0.3-v44.aab" },
-    @{ name = "finance"; flavor = "finance"; task = "bundleFinanceRelease"; outPath = "financeRelease/app-finance-release.aab"; finalName = "aagam-accounts-finance-1.0.3-v44.aab" }
+    @{ name = "public"; flavor = "publicApp"; task = "bundlePublicAppRelease"; outPath = "publicAppRelease/app-publicApp-release.aab"; finalName = "aagam-holidays-public-1.0.4-v47.aab" },
+    @{ name = "staff"; flavor = "staff"; task = "bundleStaffRelease"; outPath = "staffRelease/app-staff-release.aab"; finalName = "aagam-operations-staff-1.0.4-v47.aab" },
+    @{ name = "finance"; flavor = "finance"; task = "bundleFinanceRelease"; outPath = "financeRelease/app-finance-release.aab"; finalName = "aagam-accounts-finance-1.0.4-v47.aab" }
 )
 
 $ArtifactsDir = Join-Path $MobileRoot "artifacts\play-store"

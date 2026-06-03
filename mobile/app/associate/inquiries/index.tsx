@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
 import { withAuth } from "@/lib/api";
 import { createAssociateInquiryClient, type AssociateInquiry } from "@/lib/associate-inquiries";

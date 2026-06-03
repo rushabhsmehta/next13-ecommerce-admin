@@ -14,7 +14,8 @@ function resolveAppScheme(): string {
 }
 
 /**
- * Redirect URL required by Clerk `startSSOFlow` (Google/Apple OAuth).
+ * Legacy redirect URL for browser OAuth callbacks.
+ * Native Google sign-in uses `@clerk/expo/google` and does not need this URL.
  * `AuthSession.makeRedirectUri` can return an empty string on some release builds;
  * we always fall back to `<scheme>://oauth-native-callback`.
  */

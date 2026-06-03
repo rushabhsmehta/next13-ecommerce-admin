@@ -14,7 +14,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useSignIn, useSignUp, useAuth, useSSO } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
+import { useSignIn, useSignUp } from "@clerk/expo/legacy";
+import { useSignInWithGoogle } from "@clerk/expo/google";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -35,15 +37,13 @@ function suggestedDevBypassToken(): string {
 
 type Step = "email" | "otp" | "profile";
 type FlowType = "signIn" | "signUp";
-type SocialStrategy = "oauth_google" | "oauth_apple";
-
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
   const { signUp, setActive: setSignUpActive, isLoaded: signUpLoaded } = useSignUp();
   const { getToken } = useAuth();
-  const { startSSOFlow } = useSSO();
+  const { startGoogleAuthenticationFlow } = useSignInWithGoogle();
 
   const [step, setStep] = useState<Step>("email");
   const [flowType, setFlowType] = useState<FlowType>("signIn");
@@ -102,19 +102,11 @@ export default function LoginScreen() {
     }
   }
 
-  async function handleSocialSignIn(strategy: SocialStrategy) {
+  async function handleGoogleSignIn() {
     setLoading(true);
     setError(null);
     try {
-      const redirectUrl = getClerkOAuthRedirectUrl();
-      if (!redirectUrl.includes("://")) {
-        setError("Sign-in redirect is not configured for this app build.");
-        return;
-      }
-      const { createdSessionId, setActive } = await startSSOFlow({
-        strategy,
-        redirectUrl,
-      });
+      const { createdSessionId, setActive } = await startGoogleAuthenticationFlow();
       if (!createdSessionId || !setActive) {
         setError("Sign-in was cancelled.");
         return;
@@ -123,7 +115,7 @@ export default function LoginScreen() {
       await setActive({ session: createdSessionId });
       await completeAuthenticatedSession();
     } catch (err: unknown) {
-      setError(extractClerkError(err) ?? "Could not sign in. Please try again.");
+      setError(getGoogleSignInError(err));
     } finally {
       setLoading(false);
     }
@@ -168,11 +160,9 @@ export default function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      const redirectUrl = getClerkOAuthRedirectUrl();
       await signIn!.create({
         strategy: "email_code",
         identifier: email.trim(),
-        redirectUrl,
       });
       setFlowType("signIn");
       setStep("otp");
@@ -361,25 +351,13 @@ export default function LoginScreen() {
             <Pressable
               testID="login-google-btn"
               style={[styles.socialBtn, loading && styles.btnDisabled]}
-              onPress={() => handleSocialSignIn("oauth_google")}
+              onPress={() => handleGoogleSignIn()}
               disabled={loading}
               accessibilityRole="button"
               accessibilityLabel="Continue with Google"
             >
               <Ionicons name="logo-google" size={18} color={Colors.text} />
               <Text style={styles.socialBtnText}>Continue with Google</Text>
-            </Pressable>
-
-            <Pressable
-              testID="login-apple-btn"
-              style={[styles.socialBtn, loading && styles.btnDisabled]}
-              onPress={() => handleSocialSignIn("oauth_apple")}
-              disabled={loading}
-              accessibilityRole="button"
-              accessibilityLabel="Continue with Apple"
-            >
-              <Ionicons name="logo-apple" size={20} color={Colors.text} />
-              <Text style={styles.socialBtnText}>Continue with Apple</Text>
             </Pressable>
 
             {__DEV__ ? (
@@ -562,6 +540,18 @@ function extractClerkError(err: unknown): string | null {
     return (e as { message: string }).message;
   }
   return null;
+}
+
+function getGoogleSignInError(err: unknown): string {
+  const clerkError = extractClerkError(err);
+  if (clerkError?.toLowerCase().includes("google sign-in credentials not found")) {
+    return "Google sign-in is missing its production client ID. Set EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID in EAS production.";
+  }
+  if (clerkError?.toLowerCase().includes("missing external verification redirect url")) {
+    const redirectUrl = getClerkOAuthRedirectUrl();
+    return `Mobile SSO is not configured in Clerk. Enable Native API, add the Android app entry, and allowlist ${redirectUrl}.`;
+  }
+  return clerkError ?? "Could not sign in. Please try again.";
 }
 
 const styles = StyleSheet.create({

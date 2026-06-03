@@ -98,8 +98,8 @@ def releaseKeyPassword =
 
 def hasReleaseSigning =
     releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
-def appVersionCode = 44
-def appVersionName = "1.0.3"
+def appVersionCode = 48
+def appVersionName = "1.0.5"
 def staffEasProjectId =
     System.getenv("EXPO_STAFF_EAS_PROJECT_ID") ?: "69483194-f389-44dd-91bf-38be100d9267"
 def financeEasProjectId =
@@ -110,6 +110,10 @@ android {
 
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
+
+    kotlinOptions {
+        freeCompilerArgs += ['-Xskip-metadata-version-check']
+    }
 
     namespace 'com.aagamholidays.app'
     defaultConfig {
@@ -206,6 +210,9 @@ android {
         jniLibs {
             def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
             useLegacyPackaging enableLegacyPackaging.toBoolean()
+        }
+        resources {
+            excludes += ['META-INF/versions/9/OSGI-INF/MANIFEST.MF']
         }
     }
     androidResources {

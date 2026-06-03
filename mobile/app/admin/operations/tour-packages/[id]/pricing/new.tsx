@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { AdminLoadingState } from "@/components/admin";
 import { ApiError, withAuth } from "@/lib/api";

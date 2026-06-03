@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { mobileAppVariantHeaders } from "@/lib/app-variant";
 import { API_BASE_URL } from "@/constants/api";

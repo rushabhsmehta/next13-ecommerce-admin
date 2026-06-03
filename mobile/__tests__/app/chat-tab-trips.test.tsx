@@ -35,7 +35,7 @@ jest.mock("@/hooks/useUnread", () => ({
   useUnread: () => ({ set: jest.fn() }),
 }));
 
-jest.mock("@clerk/clerk-expo", () => ({
+jest.mock("@clerk/expo", () => ({
   useAuth: () => ({
     isSignedIn: mockClerkAuth.isSignedIn,
     isLoaded: mockClerkAuth.isLoaded,

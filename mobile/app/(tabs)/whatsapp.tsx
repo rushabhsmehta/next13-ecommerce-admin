@@ -17,7 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { Colors } from "@/constants/theme";
 import { withAuth, ApiError } from "@/lib/api";
 import { useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";

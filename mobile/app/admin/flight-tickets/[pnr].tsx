@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
 import { API_BASE_URL } from "@/constants/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";

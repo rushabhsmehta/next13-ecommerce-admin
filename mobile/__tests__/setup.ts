@@ -63,7 +63,7 @@ jest.mock("@expo/vector-icons", () => {
   };
 });
 
-jest.mock("@clerk/clerk-expo", () => ({
+jest.mock("@clerk/expo", () => ({
   ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
   ClerkLoaded: ({ children }: { children: React.ReactNode }) => children,
   useAuth: () => ({

@@ -5,10 +5,10 @@ import { Colors } from "@/constants/theme";
 import { getPostLoginRoute } from "@/lib/app-variant";
 
 /**
- * Handles the deep link returned by Clerk after a social OAuth flow.
+ * Handles legacy deep links returned by Clerk after a browser OAuth flow.
  *
- * The `useSSO` hook in `login.tsx` already calls `setActive(...)` once it
- * receives `createdSessionId`. If the OS *also* fires the redirect deep link
+ * Native Google sign-in now uses Clerk's Google hook without this route. If a
+ * browser OAuth fallback ever fires the redirect deep link
  * (`<active-app-scheme>://oauth-native-callback?...`) into Expo Router, this screen
  * silently routes the user home instead of showing the default "Unmatched
  * Route" 404 page.

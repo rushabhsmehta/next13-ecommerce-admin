@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { withAuth } from "@/lib/api";
 import { createAssociateInquiryClient, type AssociateInquiry } from "@/lib/associate-inquiries";
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";

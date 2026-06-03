@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { Colors } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
 import { cache } from "@/lib/cache";

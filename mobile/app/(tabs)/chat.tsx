@@ -17,7 +17,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth, useClerk } from "@clerk/clerk-expo";
+import { useAuth, useClerk } from "@clerk/expo";
 import { Colors } from "@/constants/theme";
 import { API_BASE_URL } from "@/constants/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";

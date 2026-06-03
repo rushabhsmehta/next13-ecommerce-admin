@@ -12,9 +12,9 @@ Production release runbook for the Expo staff variant.
 | Gradle flavor/task | `staff` / `bundleStaffRelease` |
 | EAS profile | `production-staff` |
 | OTA channel | `staff-production` |
-| Runtime version | `1.0.3-staff` |
-| Version | `1.0.3` |
-| Version code | `44` |
+| Runtime version | `1.0.4-staff` |
+| Version | `1.0.4` |
+| Version code | `47` |
 | API base | `https://admin.aagamholidays.com` |
 | EAS project ID | `69483194-f389-44dd-91bf-38be100d9267` |
 
@@ -45,7 +45,7 @@ Confirm the required backend API files are included in the production deploy:
 - `src/app/api/mobile/tour-queries/[id]/route.ts`
 - `src/app/api/mobile/tour-queries/[id]/variants/route.ts`
 
-The current Play upload must use a `versionCode` greater than `43`. This release uses `44`. If Play already has `44` or higher, bump `versionCode` and artifact names before building.
+The current Play upload must use a `versionCode` greater than the latest Play/EAS build. This release uses `47`. If Play already has `47` or higher, bump `versionCode` and artifact names before building.
 
 ## Clerk Key
 
@@ -63,6 +63,53 @@ For local Gradle builds, export it in the shell:
 ```powershell
 $env:EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY = "<production Clerk publishable key>"
 ```
+
+## Clerk Native Google Sign-In
+
+Google sign-in uses Clerk's native Google flow (`@clerk/expo/google`). It requires Google Cloud OAuth clients, EAS production env values, and Clerk native-app configuration.
+
+Set these on the **staff EAS project** for production:
+
+```powershell
+cd mobile
+node ./scripts/run-with-variant.mjs staff eas env:create production --name EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID --value "<Google web OAuth client id>" --visibility plaintext --non-interactive --force
+node ./scripts/run-with-variant.mjs staff eas env:create production --name EXPO_PUBLIC_CLERK_GOOGLE_ANDROID_CLIENT_ID --value "<Google Android OAuth client id>" --visibility plaintext --non-interactive --force
+```
+
+Google Cloud must contain:
+
+- **Web OAuth client** with Clerk's Authorized Redirect URI.
+- **Android OAuth client** for package `com.aagamholidays.staff` and the app signing **SHA-1** fingerprint.
+
+Clerk Dashboard must also be configured. Print a local checklist:
+
+```powershell
+cd mobile
+node scripts/print-clerk-staff-android-setup.mjs
+```
+
+In the **production** Clerk instance ([dashboard.clerk.com](https://dashboard.clerk.com) → switch instance → **Configure → Native applications**):
+
+1. **Native API** — enabled.
+2. **Add Android app** — package `com.aagamholidays.staff`.
+3. **SHA-256 fingerprints** (add both if you test debug APK and ship on Play):
+   - **Play production:** Google Play Console → **Setup → App signing** → **App signing key certificate** → SHA-256 (not only the upload key).
+   - **Local debug APK:** `FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C` (repo `android/app/debug.keystore`).
+4. **Allowlist for mobile SSO redirect** — keep these for legacy/browser fallback safety:
+
+```text
+aagamstaff://oauth-native-callback
+aagamstaff://sso-callback
+clerk://com.aagamholidays.staff.callback
+```
+
+5. **Social connections → Google** — enabled on the same Clerk instance.
+
+`EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` for `production-staff` on EAS must be the **production** `pk_live_…` key for that instance (not `pk_test_…` from `mobile/.env.production`).
+
+If `EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID` is missing from the EAS production build environment, the app shows *"Google sign-in is missing its production client ID..."*.
+
+If Native API is disabled, the Android app entry is missing, SHA-256 does not match the installed APK, or redirect URLs are missing, legacy/browser fallback errors can show *"Mobile SSO is not configured in Clerk..."*.
 
 ## Railway Backend Deploy
 
@@ -120,7 +167,7 @@ mobile/android/app/build/outputs/bundle/staffRelease/app-staff-release.aab
 The helper script copies the staff artifact as:
 
 ```text
-mobile/artifacts/play-store/aagam-operations-staff-1.0.3-v44.aab
+mobile/artifacts/play-store/aagam-operations-staff-1.0.4-v47.aab
 ```
 
 ## Play Console Checklist
@@ -131,11 +178,11 @@ For `com.aagamholidays.staff`:
 - Use release notes:
 
 ```text
-Aagam Operations 1.0.3
+Aagam Operations 1.0.4
 
-- Redesigned tour-query workspace for edit, pricing, variants, and finance handoff.
-- Added location, pickup/drop, transport, and per-day transport detail support.
-- Requires the production mobile tour-query API deploy before rollout.
+- Fixes Google sign-in in the Operations app with Clerk native Google authentication.
+- Adds production Google client IDs to the staff app config.
+- Requires the new AAB; this is not a JS-only OTA update.
 ```
 
 - Verify on device: tour query edit/save, variants, pricing, finance route, location, transport, pickup/drop, and per-day transport fields.

@@ -2,13 +2,13 @@
 
 import React from "react";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { render, screen } from "@testing-library/react-native";
+import { act, render, screen, waitFor } from "@testing-library/react-native";
 import type { ReactTestInstance } from "react-test-renderer";
 
 const mockReplace = jest.fn();
 const mockGetToken = jest.fn(() => Promise.resolve("mobile-token"));
 const mockSetActive = jest.fn(() => Promise.resolve());
-const mockStartSSOFlow = jest.fn(() =>
+const mockStartGoogleAuthenticationFlow = jest.fn(() =>
   Promise.resolve({
     createdSessionId: "session-1",
     setActive: mockSetActive,
@@ -58,10 +58,13 @@ jest.mock("@/lib/dev-auth-bypass", () => ({
   setDevAuthBypassToken: jest.fn(() => Promise.resolve()),
 }));
 
-jest.mock("@clerk/clerk-expo", () => ({
+jest.mock("@clerk/expo", () => ({
   useAuth: () => ({
     getToken: mockGetToken,
   }),
+}));
+
+jest.mock("@clerk/expo/legacy", () => ({
   useSignIn: () => ({
     isLoaded: true,
     signIn: { create: jest.fn(), attemptFirstFactor: jest.fn() },
@@ -76,8 +79,11 @@ jest.mock("@clerk/clerk-expo", () => ({
     },
     setActive: jest.fn(),
   }),
-  useSSO: () => ({
-    startSSOFlow: mockStartSSOFlow,
+}));
+
+jest.mock("@clerk/expo/google", () => ({
+  useSignInWithGoogle: () => ({
+    startGoogleAuthenticationFlow: mockStartGoogleAuthenticationFlow,
   }),
 }));
 
@@ -98,14 +104,14 @@ describe("Login social sign-in", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetToken.mockResolvedValue("mobile-token");
-    mockStartSSOFlow.mockResolvedValue({
+    mockStartGoogleAuthenticationFlow.mockResolvedValue({
       createdSessionId: "session-1",
       setActive: mockSetActive,
     });
     global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
   });
 
-  it("renders Google sign-in wired to Clerk OAuth", () => {
+  it("renders Google sign-in wired to native Clerk Google auth", () => {
     (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
       ok: true,
       json: async () => ({ travelUser: { id: "traveller-1", name: "Ravi" } }),
@@ -116,10 +122,10 @@ describe("Login social sign-in", () => {
     const button = getPressableButton("login-google-btn");
     expect(screen.getByText("Continue with Google")).toBeTruthy();
     expect(button.props.accessibilityLabel).toBe("Continue with Google");
-    expect(String(button.props.onPress)).toContain("oauth_google");
+    expect(typeof button.props.onPress).toBe("function");
   });
 
-  it("renders Apple sign-in wired to Clerk OAuth", () => {
+  it("does not render Apple sign-in while Apple SSO is not configured", () => {
     (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
       ok: true,
       json: async () => ({ travelUser: null }),
@@ -127,9 +133,45 @@ describe("Login social sign-in", () => {
 
     render(<LoginScreen />);
 
-    const button = getPressableButton("login-apple-btn");
-    expect(screen.getByText("Continue with Apple")).toBeTruthy();
-    expect(button.props.accessibilityLabel).toBe("Continue with Apple");
-    expect(String(button.props.onPress)).toContain("oauth_apple");
+    expect(screen.queryByTestId("login-apple-btn")).toBeNull();
+    expect(screen.queryByText("Continue with Apple")).toBeNull();
+  });
+
+  it("starts the native Google authentication flow", async () => {
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ travelUser: { id: "traveller-1", name: "Ravi" } }),
+    } as Response);
+
+    render(<LoginScreen />);
+
+    const button = getPressableButton("login-google-btn");
+    await act(async () => {
+      await button.props.onPress();
+    });
+
+    await waitFor(() => {
+      expect(mockStartGoogleAuthenticationFlow).toHaveBeenCalledWith();
+    });
+  });
+
+  it("shows the production client ID fix when native Google credentials are missing", async () => {
+    mockStartGoogleAuthenticationFlow.mockRejectedValueOnce(
+      new Error("Google Sign-In credentials not found")
+    );
+
+    render(<LoginScreen />);
+
+    const button = getPressableButton("login-google-btn");
+    await act(async () => {
+      await button.props.onPress();
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Google sign-in is missing its production client ID/)
+      ).toBeTruthy();
+      expect(screen.getByText(/EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID/)).toBeTruthy();
+    });
   });
 });

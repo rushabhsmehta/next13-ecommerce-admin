@@ -19,7 +19,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";

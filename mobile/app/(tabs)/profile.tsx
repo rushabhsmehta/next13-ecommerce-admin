@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { useAuth, useClerk } from "@clerk/clerk-expo";
+import { useAuth, useClerk } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { buildTelUrl, buildWaMeUrl } from "@/constants/whatsapp";

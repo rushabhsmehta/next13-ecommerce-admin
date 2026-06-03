@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL } from "@/constants/api";
 import { resolveMobileAuthToken } from "@/lib/resolve-auth-token";

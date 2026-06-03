@@ -1,7 +1,7 @@
-ï»¿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
 import {
   createTourQueryEditClient,
@@ -961,8 +961,8 @@ export function useTourQueryEditForm(queryId: string) {
 
   const saveDisabledReason = saving
     ? selectedVariantIds.length > 0
-      ? "Savingâ€¦ variant snapshots can take up to a minute."
-      : "Savingâ€¦"
+      ? "Saving… variant snapshots can take up to a minute."
+      : "Saving…"
     : itineraryValidationError
       ? itineraryValidationError
       : datesOrderWarning

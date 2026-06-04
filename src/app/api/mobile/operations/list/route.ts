@@ -4,7 +4,13 @@ import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-use
 
 export const dynamic = "force-dynamic";
 
-type ResourceType = "hotels" | "locations" | "destinations" | "suppliers" | "itineraries";
+type ResourceType =
+  | "hotels"
+  | "locations"
+  | "destinations"
+  | "suppliers"
+  | "itineraries"
+  | "vehicle-types";
 
 const ALLOWED: ResourceType[] = [
   "hotels",
@@ -12,6 +18,7 @@ const ALLOWED: ResourceType[] = [
   "destinations",
   "suppliers",
   "itineraries",
+  "vehicle-types",
 ];
 
 interface MobileOpsItem {
@@ -24,7 +31,7 @@ interface MobileOpsItem {
 
 /**
  * Unified read-only list endpoint for operations master data.
- * `?type=hotels|locations|destinations|suppliers|itineraries`
+ * `?type=hotels|locations|destinations|suppliers|itineraries|vehicle-types`
  */
 export async function GET(req: Request) {
   try {
@@ -214,6 +221,29 @@ export async function GET(req: Request) {
           .filter(Boolean)
           .join(" · "),
         imageUrl: it.itineraryMasterImages?.[0]?.url ?? null,
+      }));
+      total = count;
+    } else if (type === "vehicle-types") {
+      const where: Record<string, unknown> = { isActive: true };
+      if (search) where.name = { contains: search };
+      const [rows, count] = await Promise.all([
+        prismadb.vehicleType.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+          orderBy: { name: "asc" },
+          skip: offset,
+          take: limit,
+        }),
+        prismadb.vehicleType.count({ where }),
+      ]);
+      items = rows.map((v) => ({
+        id: v.id,
+        name: v.name,
+        subtitle: v.description ?? undefined,
       }));
       total = count;
     }

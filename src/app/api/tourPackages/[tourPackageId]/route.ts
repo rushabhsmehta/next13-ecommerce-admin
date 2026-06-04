@@ -284,6 +284,43 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
     }
     // ===== End of pre-deletion itinerary lookup =====
 
+    // Preserve variant seasonal pricing before package variants are recreated.
+    // Deleting PackageVariant cascades to TourPackagePricing, so we snapshot the rows and clone them onto the recreated variants below.
+    const existingVariantPricingById = new Map<string, any[]>();
+
+    if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
+      const existingVariantIds = packageVariants
+        .map((variant: any) => variant?.id)
+        .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+
+      if (existingVariantIds.length > 0) {
+        const existingVariantPricings = await prismadb.tourPackagePricing.findMany({
+          where: {
+            tourPackageId: params.tourPackageId,
+            packageVariantId: { in: existingVariantIds },
+          },
+          include: {
+            pricingComponents: true,
+          },
+          orderBy: {
+            startDate: 'asc',
+          },
+        });
+
+        existingVariantPricings.forEach((pricing) => {
+          if (!pricing.packageVariantId) {
+            return;
+          }
+
+          const entries = existingVariantPricingById.get(pricing.packageVariantId) ?? [];
+          entries.push(pricing);
+          existingVariantPricingById.set(pricing.packageVariantId, entries);
+        });
+
+        console.log(`[VARIANTS PRE] Snapshotted ${existingVariantPricings.length} seasonal pricing records for ${existingVariantPricingById.size} variants`);
+      }
+    }
+
     const tourPackageUpdateData = {
       //  await prismadb.tourPackage.update({
       //  where: {
@@ -463,7 +500,40 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
             }
           }
 
-          if (variant.copiedFromTourPackageId) {
+          const preservedPricings = variant.id ? existingVariantPricingById.get(variant.id) ?? [] : [];
+
+          if (preservedPricings.length > 0) {
+            await Promise.all(
+              preservedPricings.map((pricing) =>
+                prismadb.tourPackagePricing.create({
+                  data: {
+                    tourPackageId: params.tourPackageId,
+                    packageVariantId: createdVariant.id,
+                    startDate: pricing.startDate,
+                    endDate: pricing.endDate,
+                    isActive: pricing.isActive,
+                    description: pricing.description,
+                    mealPlanId: pricing.mealPlanId,
+                    numberOfRooms: pricing.numberOfRooms,
+                    locationSeasonalPeriodId: pricing.locationSeasonalPeriodId,
+                    isGroupPricing: pricing.isGroupPricing,
+                    vehicleTypeId: pricing.vehicleTypeId,
+                    pricingComponents: pricing.pricingComponents.length > 0
+                      ? {
+                        create: pricing.pricingComponents.map((component: any) => ({
+                          pricingAttributeId: component.pricingAttributeId,
+                          price: component.price,
+                          purchasePrice: component.purchasePrice,
+                          description: component.description,
+                        })),
+                      }
+                      : undefined,
+                  },
+                })
+              )
+            );
+            console.log(`[VARIANTS] Restored ${preservedPricings.length} seasonal pricing records for variant ${createdVariant.id}`);
+          } else if (variant.copiedFromTourPackageId) {
             try {
               console.log(`[VARIANTS] Copying seasonal pricing for variant ${createdVariant.id} from package ${variant.copiedFromTourPackageId}`);
               const sourcePricings = await prismadb.tourPackagePricing.findMany({

@@ -6,15 +6,13 @@ import {
   Linking,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
@@ -22,6 +20,7 @@ import {
   AdminErrorState,
   AdminLoadingState,
   AdminScreen,
+  AdminSegmentedControl,
   AdminTopBar,
 } from "@/components/admin";
 import { API_BASE_URL } from "@/constants/api";
@@ -31,6 +30,7 @@ import {
   createTourQueryPricingClient,
   type VariantComparisonItem,
   type VariantComparisonResponse,
+  type VariantRoomAllocationInput,
 } from "@/lib/tour-query-pricing";
 import { VariantBuildPanel } from "./VariantBuildPanel";
 
@@ -90,7 +90,6 @@ function TourQueryVariantsPanelInner({
   embedded: boolean;
 }) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const id = queryId;
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -116,6 +115,8 @@ function TourQueryVariantsPanelInner({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
+  const [buildSavingVariantId, setBuildSavingVariantId] = useState<string | null>(null);
 
   const load = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -138,6 +139,53 @@ function TourQueryVariantsPanelInner({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const variants = data?.variants ?? [];
+    if (variants.length === 0) {
+      if (activeVariantId) setActiveVariantId(null);
+      return;
+    }
+    if (!activeVariantId || !variants.some((variant) => variant.id === activeVariantId)) {
+      setActiveVariantId(variants[0].id);
+    }
+  }, [activeVariantId, data?.variants]);
+
+  const saveVariantRooms = useCallback(
+    async (
+      variant: VariantComparisonItem,
+      roomsByItinerary: Record<string, VariantRoomAllocationInput[]>
+    ) => {
+      if (!id || buildSavingVariantId) return;
+      setBuildSavingVariantId(variant.id);
+      try {
+        const res = await client.updateVariantBuild(id, variant.id, {
+          roomsByItinerary,
+        });
+        setData((prev) =>
+          prev?.build
+            ? {
+                ...prev,
+                build: {
+                  ...prev.build,
+                  variantRoomAllocations: res.build.variantRoomAllocations,
+                  variantTransportDetails: res.build.variantTransportDetails,
+                },
+              }
+            : prev
+        );
+        Alert.alert("Saved", `Room allocations saved for "${variant.name}".`);
+      } catch (err) {
+        Alert.alert(
+          "Save failed",
+          err instanceof ApiError ? err.message : "Could not save room allocations."
+        );
+      } finally {
+        setBuildSavingVariantId(null);
+      }
+    },
+    [buildSavingVariantId, client, id]
+  );
 
   const onVariantPress = async (v: VariantComparisonItem) => {
     if (!id || updating) return;
@@ -235,6 +283,15 @@ function TourQueryVariantsPanelInner({
     data && data.variants.length
       ? pickComparePair(data.variants, cheapest ?? null)
       : [null, null];
+
+  const activeVariant = useMemo(() => {
+    const variants = data?.variants ?? [];
+    return (
+      variants.find((variant) => variant.id === activeVariantId) ??
+      variants[0] ??
+      null
+    );
+  }, [activeVariantId, data?.variants]);
 
   const openHotelsWeb = () => {
     if (!hotelEditUrl) return;
@@ -380,38 +437,52 @@ function TourQueryVariantsPanelInner({
             <Text style={styles.errText}>This trip has no variants.</Text>
           </View>
         ) : (
-          data.variants.map((v) => (
+          <>
+            <View style={styles.variantTabsCard} testID="trip-variant-tabs">
+              <Text style={styles.variantTabsLabel}>Variant options</Text>
+              <AdminSegmentedControl
+                options={data.variants.map((variant) => ({
+                  id: variant.id,
+                  label: variant.name || "Unnamed",
+                }))}
+                value={activeVariantId ?? data.variants[0].id}
+                onChange={setActiveVariantId}
+                testIDPrefix="trip-variant-tab"
+                scrollable
+              />
+            </View>
+            {activeVariant ? (
             <Pressable
-              key={v.id}
-              testID={`variant-card-${v.id}`}
+              key={activeVariant.id}
+              testID={`variant-card-${activeVariant.id}`}
               style={({ pressed }) => [
                 styles.card,
-                v.isConfirmed ? styles.cardConfirmed : null,
+                activeVariant.isConfirmed ? styles.cardConfirmed : null,
                 pressed ? { opacity: 0.7 } : null,
               ]}
               onPress={undefined}
               disabled={updating !== null}
-              accessibilityLabel={`Variant ${v.name}, cost ${v.pricing ? formatINR(v.pricing.totalCost) : "pending"}`}
+              accessibilityLabel={`Variant ${activeVariant.name}, cost ${activeVariant.pricing ? formatINR(activeVariant.pricing.totalCost) : "pending"}`}
             >
               <View style={styles.cardHead}>
                 <Text style={styles.cardName} numberOfLines={1}>
-                  {v.name || "Unnamed"}
+                  {activeVariant.name || "Unnamed"}
                 </Text>
                 <View style={styles.badges}>
-                  {updating === v.id ? (
+                  {updating === activeVariant.id ? (
                     <ActivityIndicator size="small" color={Colors.primary} style={{ marginRight: 4 }} />
                   ) : null}
-                  {v.isConfirmed ? (
+                  {activeVariant.isConfirmed ? (
                     <View style={[styles.badge, styles.badgeConfirmed]}>
                       <Text style={styles.badgeConfirmedText}>Confirmed</Text>
                     </View>
                   ) : null}
-                  {!v.isConfirmed && cheapest && cheapest.id === v.id && v.pricing ? (
+                  {!activeVariant.isConfirmed && cheapest && cheapest.id === activeVariant.id && activeVariant.pricing ? (
                     <View style={[styles.badge, styles.badgeCheap]}>
                       <Text style={styles.badgeCheapText}>Lowest</Text>
                     </View>
                   ) : null}
-                  {!v.pricing ?
+                  {!activeVariant.pricing ?
                     (
                       <View style={[styles.badge, styles.badgeWarn]}>
                         <Text style={styles.badgeWarnText}>No price</Text>
@@ -420,28 +491,28 @@ function TourQueryVariantsPanelInner({
                     : null}
                 </View>
               </View>
-              {v.pricing ?
+              {activeVariant.pricing ?
                 (
                   <>
-                    <Text style={styles.total}>{formatINR(v.pricing.totalCost)}</Text>
+                    <Text style={styles.total}>{formatINR(activeVariant.pricing.totalCost)}</Text>
                     <Text style={styles.marginHint}>
-                      {methodLabel(v.pricing.calculationMethod)} - Markup{" "}
-                      {formatINR(v.pricing.markupAmount)} ({v.pricing.markupPercentage}%)
+                      {methodLabel(activeVariant.pricing.calculationMethod)} - Markup{" "}
+                      {formatINR(activeVariant.pricing.markupAmount)} ({activeVariant.pricing.markupPercentage}%)
                     </Text>
                     <View style={styles.split}>
                       <View style={styles.splitCol}>
                         <Text style={styles.splitLabel}>Accommodation</Text>
-                        <Text style={styles.splitVal}>{formatINR(v.pricing.accommodation)}</Text>
+                        <Text style={styles.splitVal}>{formatINR(activeVariant.pricing.accommodation)}</Text>
                       </View>
                       <View style={styles.splitCol}>
                         <Text style={styles.splitLabel}>Transport</Text>
-                        <Text style={styles.splitVal}>{formatINR(v.pricing.transport)}</Text>
+                        <Text style={styles.splitVal}>{formatINR(activeVariant.pricing.transport)}</Text>
                       </View>
                     </View>
-                    {v.pricing.components.length ? (
+                    {activeVariant.pricing.components.length ? (
                       <View style={styles.componentPreview}>
-                        {v.pricing.components.slice(0, 4).map((component, idx) => (
-                          <View key={`${v.id}-component-${idx}`} style={styles.componentRow}>
+                        {activeVariant.pricing.components.slice(0, 4).map((component, idx) => (
+                          <View key={`${activeVariant.id}-component-${idx}`} style={styles.componentRow}>
                             <View style={styles.componentText}>
                               <Text style={styles.componentName} numberOfLines={1}>
                                 {component.name || "Pricing item"}
@@ -457,16 +528,16 @@ function TourQueryVariantsPanelInner({
                             </Text>
                           </View>
                         ))}
-                        {v.pricing.components.length > 4 ? (
+                        {activeVariant.pricing.components.length > 4 ? (
                           <Text style={styles.moreComponents}>
-                            +{v.pricing.components.length - 4} more pricing items
+                            +{activeVariant.pricing.components.length - 4} more pricing items
                           </Text>
                         ) : null}
                       </View>
                     ) : null}
-                    {v.pricing.remarks ? (
+                    {activeVariant.pricing.remarks ? (
                       <Text style={styles.remarks} numberOfLines={3}>
-                        {v.pricing.remarks}
+                        {activeVariant.pricing.remarks}
                       </Text>
                     ) : null}
                   </>
@@ -479,50 +550,53 @@ function TourQueryVariantsPanelInner({
               {data.build ? (
                 <VariantBuildPanel
                   queryId={id}
-                  variant={v}
+                  variant={activeVariant}
                   build={data.build}
                   canWriteSales={canWriteSales}
+                  onSaveRooms={canWriteSales ? saveVariantRooms : undefined}
+                  savingRooms={buildSavingVariantId === activeVariant.id}
                 />
               ) : null}
               {canWriteSales ? (
                 <View style={styles.cardActions}>
                   <Pressable
-                    testID={`variant-pricing-edit-${v.id}`}
+                    testID={`variant-pricing-edit-${activeVariant.id}`}
                     accessibilityRole="button"
-                    accessibilityLabel={`${v.pricing ? "Edit" : "Add"} pricing for ${v.name}`}
+                    accessibilityLabel={`${activeVariant.pricing ? "Edit" : "Add"} pricing for ${activeVariant.name}`}
                     style={styles.actionButton}
                     onPress={() =>
                       router.push(
-                        `/admin/tour-queries/${id}/variants/${v.id}/pricing` as never
+                        `/admin/tour-queries/${id}/variants/${activeVariant.id}/pricing` as never
                       )
                     }
                   >
                     <Ionicons name="calculator-outline" size={15} color={Colors.primary} />
                     <Text style={styles.actionButtonText}>
-                      {v.pricing ? "Edit pricing" : "Add pricing"}
+                      {activeVariant.pricing ? "Edit pricing" : "Add pricing"}
                     </Text>
                   </Pressable>
                   <Pressable
-                    testID={`variant-confirm-${v.id}`}
+                    testID={`variant-confirm-${activeVariant.id}`}
                     accessibilityRole="button"
-                    accessibilityLabel={v.isConfirmed ? `Clear ${v.name}` : `Confirm ${v.name}`}
+                    accessibilityLabel={activeVariant.isConfirmed ? `Clear ${activeVariant.name}` : `Confirm ${activeVariant.name}`}
                     style={[styles.actionButton, styles.actionButtonPrimary]}
-                    onPress={() => void onVariantPress(v)}
+                    onPress={() => void onVariantPress(activeVariant)}
                     disabled={updating !== null}
                   >
                     <Ionicons
-                      name={v.isConfirmed ? "close-circle-outline" : "checkmark-circle-outline"}
+                      name={activeVariant.isConfirmed ? "close-circle-outline" : "checkmark-circle-outline"}
                       size={15}
                       color={Colors.textInverse}
                     />
                     <Text style={styles.actionButtonPrimaryText}>
-                      {v.isConfirmed ? "Clear" : "Confirm"}
+                      {activeVariant.isConfirmed ? "Clear" : "Confirm"}
                     </Text>
                   </Pressable>
                 </View>
               ) : null}
             </Pressable>
-          ))
+            ) : null}
+          </>
         )}
     </>
   );
@@ -643,6 +717,22 @@ const styles = StyleSheet.create({
   cardConfirmed: {
     borderColor: Colors.primaryLight,
     backgroundColor: Colors.primaryBg,
+  },
+  variantTabsCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+    paddingTop: Spacing.sm,
+    overflow: "hidden",
+  },
+  variantTabsLabel: {
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.xs,
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.textTertiary,
+    textTransform: "uppercase",
   },
   cardHead: {
     flexDirection: "row",

@@ -64,6 +64,42 @@ export interface VariantBuildContext {
   lookups: VariantBuildLookups;
 }
 
+export interface VariantRoomAllocationInput {
+  roomTypeId?: string | null;
+  occupancyTypeId?: string | null;
+  mealPlanId?: string | null;
+  quantity?: number;
+  customRoomType?: string | null;
+  useCustomRoomType?: boolean;
+  guestNames?: string | null;
+  voucherNumber?: string | null;
+  extraBeds?: Array<{
+    occupancyTypeId?: string | null;
+    quantity?: number;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
+export interface VariantBuildUpdateInput {
+  roomsByItinerary?: Record<string, VariantRoomAllocationInput[]>;
+  transportByItinerary?: Record<string, unknown[]>;
+}
+
+export interface VariantBuildUpdateResponse {
+  tourPackageQueryId: string;
+  variant: {
+    id: string;
+    sourceVariantId: string | null;
+    name: string;
+    sortOrder: number | null;
+  };
+  build: Pick<
+    VariantBuildContext,
+    "variantRoomAllocations" | "variantTransportDetails"
+  >;
+}
+
 export interface VariantComparisonResponse {
   tourPackageQueryId: string;
   confirmedVariantId: string | null;
@@ -165,6 +201,22 @@ export function createTourQueryPricingClient(authRequest: AuthenticatedRequest) 
         )}/variants/${encodeURIComponent(variantId)}/pricing`,
         {
           method: "POST",
+          body: input,
+          timeout: TOUR_QUERY_WRITE_TIMEOUT,
+        }
+      );
+    },
+    updateVariantBuild(
+      tourQueryId: string,
+      variantId: string,
+      input: VariantBuildUpdateInput
+    ): Promise<VariantBuildUpdateResponse> {
+      return authRequest<VariantBuildUpdateResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(
+          tourQueryId
+        )}/variants/${encodeURIComponent(variantId)}/build`,
+        {
+          method: "PATCH",
           body: input,
           timeout: TOUR_QUERY_WRITE_TIMEOUT,
         }

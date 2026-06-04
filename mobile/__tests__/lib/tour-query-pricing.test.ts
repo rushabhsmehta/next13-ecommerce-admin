@@ -63,4 +63,47 @@ describe("createTourQueryPricingClient", () => {
       }
     );
   });
+
+  it("updates variant build rooms with write timeout", async () => {
+    const request = jest.fn(async () => ({
+      tourPackageQueryId: "q1",
+      variant: { id: "v1", sourceVariantId: "source-v1", name: "Budget", sortOrder: 1 },
+      build: {
+        variantRoomAllocations: {},
+        variantTransportDetails: {},
+      },
+    }));
+    const client = createTourQueryPricingClient(request as any);
+    await client.updateVariantBuild("q 1", "v/1", {
+      roomsByItinerary: {
+        "it 1": [
+          {
+            roomTypeId: "rt1",
+            occupancyTypeId: "occ1",
+            mealPlanId: "mp1",
+            quantity: 2,
+          },
+        ],
+      },
+    });
+    expect(request).toHaveBeenCalledWith(
+      "/api/mobile/tour-queries/q%201/variants/v%2F1/build",
+      {
+        method: "PATCH",
+        body: {
+          roomsByItinerary: {
+            "it 1": [
+              {
+                roomTypeId: "rt1",
+                occupancyTypeId: "occ1",
+                mealPlanId: "mp1",
+                quantity: 2,
+              },
+            ],
+          },
+        },
+        timeout: 90000,
+      }
+    );
+  });
 });

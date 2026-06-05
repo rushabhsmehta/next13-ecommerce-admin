@@ -7,6 +7,7 @@ const SupplierPage = async (props: { params: Promise<{ supplierId: string }> }) 
   const supplier = await prismadb.supplier.findUnique({
     where: { id: params.supplierId },
     include: {
+      contacts: true,
       locations: {
         include: {
           location: {

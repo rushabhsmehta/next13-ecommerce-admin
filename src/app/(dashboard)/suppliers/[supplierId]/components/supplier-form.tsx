@@ -29,10 +29,12 @@ import { Separator } from "@/components/ui/separator";
 import { Heading } from "@/components/ui/heading";
 import { AlertModal } from "@/components/modals/alert-modal";
 import { MultiSelect } from "@/components/ui/multi-select"; // You'll need to implement this component
+import { normalizePhoneNumber } from "@/lib/phone-utils";
 
 const formSchema = z.object({
   name: z.string().min(1),
   contact: z.string().optional(),
+  phoneNumber: z.string().optional(),
   gstNumber: z.string().optional(),
   address: z.string().optional(),
   contacts: z.array(z.string()).optional(),
@@ -54,10 +56,30 @@ interface SupplierFormProps {
     contact?: string | null;
     gstNumber?: string | null;
     address?: string | null;
-    contacts?: Array<{ id: string; number: string }>;
+    contacts?: Array<{ id: string; number: string; isPrimary?: boolean }>;
     email?: string | null;
     locations?: Array<{ location: Location }>;
   } | null;
+}
+
+function resolveSupplierPhoneContacts(
+  contacts?: Array<{ number: string; isPrimary?: boolean }>
+) {
+  const list = contacts ?? [];
+  const primary = list.find((c) => c.isPrimary);
+  if (primary) {
+    return {
+      phoneNumber: primary.number,
+      otherContacts: list.filter((c) => !c.isPrimary).map((c) => c.number),
+    };
+  }
+  if (list.length > 0) {
+    return {
+      phoneNumber: list[0].number,
+      otherContacts: list.slice(1).map((c) => c.number),
+    };
+  }
+  return { phoneNumber: "", otherContacts: [] as string[] };
 }
 
 export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
@@ -92,17 +114,21 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
   const toastMessage = initialData ? "Supplier updated." : "Supplier created.";
   const action = initialData ? "Save changes" : "Create";
 
+  const { phoneNumber: initialPhoneNumber, otherContacts: initialOtherContacts } =
+    resolveSupplierPhoneContacts(initialData?.contacts);
+
   const defaultValues = initialData
     ? {
       name: initialData.name,
       contact: initialData.contact || "",
+      phoneNumber: initialPhoneNumber,
       gstNumber: initialData.gstNumber || "",
       address: initialData.address || "",
-      contacts: initialData.contacts?.map(c => c.number) || [],
+      contacts: initialOtherContacts,
       email: initialData.email || "",
       locationIds: initialData.locations?.map(l => l.location.id) || [],
     }
-    : { name: "", contact: "", gstNumber: "", address: "", contacts: [], email: "", locationIds: [] };
+    : { name: "", contact: "", phoneNumber: "", gstNumber: "", address: "", contacts: [], email: "", locationIds: [] };
 
   const form = useForm<SupplierFormValues>({
     resolver: zodResolver(formSchema),
@@ -112,10 +138,26 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
   const onSubmit = async (data: SupplierFormValues) => {
     try {
       setLoading(true);
+
+      const hasPhone = typeof data.phoneNumber === "string" && data.phoneNumber.trim().length > 0;
+      const normalizedPhone = hasPhone ? normalizePhoneNumber(data.phoneNumber) : null;
+
+      if (hasPhone && !normalizedPhone) {
+        form.setError("phoneNumber", { type: "manual", message: "Enter a valid phone number" });
+        toast.error("Please enter a valid phone number.");
+        setLoading(false);
+        return;
+      }
+
+      const submitData = {
+        ...data,
+        phoneNumber: normalizedPhone ? normalizedPhone.e164 : "",
+      };
+
       if (initialData) {
-        await axios.patch(`/api/suppliers/${params?.supplierId}`, data);
+        await axios.patch(`/api/suppliers/${params?.supplierId}`, submitData);
       } else {
-        await axios.post(`/api/suppliers`, data);
+        await axios.post(`/api/suppliers`, submitData);
       }
 
       // Force router refresh before navigating
@@ -177,7 +219,28 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
                 <FormItem>
                   <FormLabel>Primary Contact</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Primary contact" {...field} />
+                    <Input disabled={loading} placeholder="Contact person name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Enter phone number"
+                      {...field}
+                      onChange={(event) => {
+                        const sanitized = event.target.value.replace(/\s+/g, "");
+                        field.onChange(sanitized);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

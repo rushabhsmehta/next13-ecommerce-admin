@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, contact, email, locationIds, gstNumber, address, contacts } = body;
+    const { name, contact, email, locationIds, gstNumber, address, contacts, phoneNumber } = body;
 
     // Validation
     if (!name) return new NextResponse("Name is required", { status: 400 });
@@ -39,6 +39,15 @@ export async function POST(req: Request) {
     }
 
     // Create new supplier entry with associated locations
+    const supplierContactCreates = [
+      ...(phoneNumber && String(phoneNumber).trim()
+        ? [{ number: String(phoneNumber).trim(), isPrimary: true }]
+        : []),
+      ...(contacts && contacts.length > 0
+        ? contacts.map((num: string) => ({ number: String(num), isPrimary: false }))
+        : []),
+    ];
+
     const supplier = await prismadb.supplier.create({
       data: {
         name,
@@ -47,9 +56,8 @@ export async function POST(req: Request) {
         gstNumber,
         address,
         ...locationData,
-        // Create supplier contact records if provided
-        contacts: contacts && contacts.length > 0 ? {
-          create: contacts.map((num: string) => ({ number: String(num) }))
+        contacts: supplierContactCreates.length > 0 ? {
+          create: supplierContactCreates
         } : undefined
       },
       include: {

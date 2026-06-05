@@ -68,7 +68,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ supplierId:
     if (!params.supplierId) return new NextResponse("Supplier ID is required", { status: 400 });
 
     const body = await req.json();
-    const { name, contact, email, locationIds, gstNumber, address, contacts } = body;
+    const { name, contact, email, locationIds, gstNumber, address, contacts, phoneNumber } = body;
     if (!name) return new NextResponse("Name is required", { status: 400 });
 
     // Delete existing supplier-location relationships
@@ -92,6 +92,15 @@ export async function PATCH(req: Request, props: { params: Promise<{ supplierId:
       };
     }
 
+    const supplierContactCreates = [
+      ...(phoneNumber && String(phoneNumber).trim()
+        ? [{ number: String(phoneNumber).trim(), isPrimary: true }]
+        : []),
+      ...(contacts && contacts.length > 0
+        ? contacts.map((num: string) => ({ number: String(num), isPrimary: false }))
+        : []),
+    ];
+
     const supplier = await prismadb.supplier.update({
       where: { id: params.supplierId },
       data: {
@@ -101,8 +110,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ supplierId:
         gstNumber,
         address,
         ...locationData,
-        contacts: contacts && contacts.length > 0 ? {
-          create: contacts.map((num: string) => ({ number: String(num) }))
+        contacts: supplierContactCreates.length > 0 ? {
+          create: supplierContactCreates
         } : undefined
       },
       include: {

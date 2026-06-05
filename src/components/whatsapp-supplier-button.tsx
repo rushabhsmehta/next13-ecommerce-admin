@@ -25,7 +25,14 @@ interface Supplier {
   name: string;
   contact?: string;
   email?: string;
-  contacts?: Array<{ number: string }>; // new contacts array
+  contacts?: Array<{ number: string; isPrimary?: boolean }>;
+}
+
+function getSupplierPhone(supplier: Supplier): string {
+  const primary = supplier.contacts?.find((c) => c.isPrimary)?.number;
+  if (primary) return primary;
+  if (supplier.contacts?.[0]?.number) return supplier.contacts[0].number;
+  return supplier.contact || "";
 }
 
 // Types for inquiry data
@@ -117,7 +124,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
       const response = await fetch('/api/suppliers');
       if (response.ok) {
         const suppliersData = await response.json();
-        const validSuppliers = suppliersData.filter((supplier: Supplier) => supplier.contact || (supplier.contacts && supplier.contacts.length > 0));
+        const validSuppliers = suppliersData.filter((supplier: Supplier) => getSupplierPhone(supplier));
         setSuppliers(validSuppliers);
         setFilteredSuppliers(validSuppliers);
       } else {
@@ -137,8 +144,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     } else {
       const filtered = suppliers.filter(supplier =>
         supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (supplier.contact && supplier.contact.includes(searchTerm)) ||
-        (supplier.contacts && supplier.contacts.some(c => c.number.includes(searchTerm)))
+        (getSupplierPhone(supplier).includes(searchTerm))
       );
       setFilteredSuppliers(filtered);
     }
@@ -156,7 +162,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     const supplier = suppliers.find(s => s.id === value);
     if (supplier) {
       setSelectedSupplier(supplier.id);
-      setSupplierPhone(supplier.contact || (supplier.contacts && supplier.contacts[0]?.number) || '');
+      setSupplierPhone(getSupplierPhone(supplier));
     } else {
       setSelectedSupplier('');
       setSupplierPhone('');
@@ -396,7 +402,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                       return supplier ? (
                         <div className="flex flex-col items-start text-left">
                           <span className="font-medium">{supplier.name}</span>
-                          <span className="text-xs text-muted-foreground">{supplier.contact || supplier.contacts?.[0]?.number}</span>
+                          <span className="text-xs text-muted-foreground">{getSupplierPhone(supplier)}</span>
                         </div>
                       ) : "Select supplier...";
                     })()
@@ -444,7 +450,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                           />
                           <div className="flex flex-col">
                             <span className="font-medium">{supplier.name}</span>
-                            <span className="text-xs text-muted-foreground">{supplier.contact || supplier.contacts?.[0]?.number}</span>
+                            <span className="text-xs text-muted-foreground">{getSupplierPhone(supplier)}</span>
                           </div>
                         </CommandItem>
                       ))}

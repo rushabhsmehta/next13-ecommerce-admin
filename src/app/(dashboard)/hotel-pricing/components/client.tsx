@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import axios, { AxiosError } from "axios"
 import { format, addDays } from "date-fns"
-import { formatLocalDate, dateToUtc } from "@/lib/timezone-utils"
+import { useRouter } from "next/navigation"
+import { formatLocalDate } from "@/lib/timezone-utils"
 import { toast } from "react-hot-toast"
 import { 
   CalendarIcon, 
@@ -15,10 +16,17 @@ import {
   Save,
   X,
   Copy,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { utcToLocal } from "@/lib/timezone-utils"
+import {
+  generateDateRangesForYear,
+  getSeasonColor,
+  type SeasonalPeriod,
+} from "@/lib/seasonal-periods"
 
 import { Heading } from "@/components/ui/heading"
 import { Button } from "@/components/ui/button"
@@ -113,9 +121,11 @@ interface PricingPeriod {
   roomTypeId: string;
   occupancyTypeId: string;
   mealPlanId: string | null;
+  locationSeasonalPeriodId?: string | null;
   roomType?: RoomType;
   occupancyType?: OccupancyType;
   mealPlan?: MealPlan | null;
+  locationSeasonalPeriod?: SeasonalPeriod | null;
 }
 
 interface EditingRow {
@@ -126,6 +136,7 @@ interface EditingRow {
   startDate: Date;
   endDate: Date;
   price: number;
+  locationSeasonalPeriodId: string;
 }
 
 interface HotelPricingClientProps {
@@ -164,6 +175,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   occupancyTypes,
   mealPlans
 }) => {
+  const router = useRouter()
   const [selectedLocationId, setSelectedLocationId] = useState<string>("")
   const [selectedHotelId, setSelectedHotelId] = useState<string>("")
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null)
@@ -173,6 +185,9 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   const [splitPreview, setSplitPreview] = useState<PricingSplitPreview | null>(null)
   const [showSplitDialog, setShowSplitDialog] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState<EditingRow | null>(null)
+  const [seasonalPeriods, setSeasonalPeriods] = useState<SeasonalPeriod[]>([])
+  const [selectedSeasonalPeriods, setSelectedSeasonalPeriods] = useState<SeasonalPeriod[]>([])
+  const [selectedSeasonType, setSelectedSeasonType] = useState<string | null>(null)
 
   // Filter hotels by selected location
   const filteredHotels = useMemo(() => {
@@ -218,7 +233,88 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   // Reset hotel selection when location changes
   useEffect(() => {
     setSelectedHotelId("")
+    setSeasonalPeriods([])
+    setSelectedSeasonalPeriods([])
+    setSelectedSeasonType(null)
   }, [selectedLocationId])
+
+  const fetchSeasonalPeriods = useCallback(async () => {
+    if (!selectedLocationId) {
+      setSeasonalPeriods([])
+      return
+    }
+    try {
+      const response = await axios.get(`/api/locations/${selectedLocationId}/seasonal-periods`)
+      setSeasonalPeriods(response.data)
+    } catch (error) {
+      console.error("Failed to fetch seasonal periods:", error)
+      setSeasonalPeriods([])
+    }
+  }, [selectedLocationId])
+
+  useEffect(() => {
+    void fetchSeasonalPeriods()
+  }, [fetchSeasonalPeriods])
+
+  const applySeasonToEditingRow = (period: SeasonalPeriod) => {
+    const currentYear = new Date().getFullYear()
+    const dateRanges = generateDateRangesForYear(period, currentYear)
+    if (dateRanges.length === 0) return
+
+    const firstRange = dateRanges[0]
+    setEditingRow((prev) =>
+      prev
+        ? {
+            ...prev,
+            startDate: firstRange.start,
+            endDate: firstRange.end,
+            locationSeasonalPeriodId: period.id,
+          }
+        : prev
+    )
+    setSelectedSeasonalPeriods([period])
+    setSelectedSeasonType(null)
+    toast.success(`Applied ${period.name} dates`)
+  }
+
+  const handleSeasonTypeSelect = (seasonType: string) => {
+    const periodsOfType = seasonalPeriods.filter((p) => p.seasonType === seasonType)
+    setSelectedSeasonalPeriods(periodsOfType)
+    setSelectedSeasonType(seasonType)
+    if (editingRow) {
+      setEditingRow({ ...editingRow, locationSeasonalPeriodId: "" })
+    }
+    toast.success(
+      `Selected all ${seasonType.replace(/_/g, " ").toLowerCase()} periods (${periodsOfType.length} periods)`
+    )
+  }
+
+  const handleIndividualPeriodSelect = (period: SeasonalPeriod) => {
+    setSelectedSeasonalPeriods([period])
+    setSelectedSeasonType(null)
+    if (editingRow) {
+      const currentYear = new Date().getFullYear()
+      const dateRanges = generateDateRangesForYear(period, currentYear)
+      if (dateRanges.length > 0) {
+        const firstRange = dateRanges[0]
+        setEditingRow({
+          ...editingRow,
+          startDate: firstRange.start,
+          endDate: firstRange.end,
+          locationSeasonalPeriodId: period.id,
+        })
+        toast.success(`Applied ${period.name} dates`)
+      }
+    }
+  }
+
+  const clearSeasonalPeriodSelection = () => {
+    setSelectedSeasonalPeriods([])
+    setSelectedSeasonType(null)
+    if (editingRow) {
+      setEditingRow({ ...editingRow, locationSeasonalPeriodId: "" })
+    }
+  }
 
   const checkForOverlaps = async (data: EditingRow): Promise<PricingSplitPreview | null> => {
     if (!selectedHotelId) return null
@@ -267,7 +363,13 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       return
     }
 
-    // Check for overlaps
+    // Bulk create for multiple seasonal periods (create mode only)
+    if (!row.id && selectedSeasonalPeriods.length > 1) {
+      await submitBulkPricing(row)
+      return
+    }
+
+    // Check for overlaps (single row)
     const preview = await checkForOverlaps(row)
     
     if (preview && preview.willSplit) {
@@ -294,17 +396,33 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
         occupancyTypeId: row.occupancyTypeId,
         price: row.price,
         mealPlanId: row.mealPlanId || null,
+        locationSeasonalPeriodId: row.locationSeasonalPeriodId || null,
       }
 
       if (row.id) {
         // Update existing
         await axios.patch(`/api/hotels/${selectedHotelId}/pricing/${row.id}`, data)
         toast.success("Pricing period updated")
+      } else if (selectedSeasonalPeriods.length === 1) {
+        const period = selectedSeasonalPeriods[0]
+        const currentYear = new Date().getFullYear()
+        const dateRanges = generateDateRangesForYear(period, currentYear)
+
+        for (const dateRange of dateRanges) {
+          await axios.post(`/api/hotels/${selectedHotelId}/pricing`, {
+            ...data,
+            startDate: dateRange.start,
+            endDate: dateRange.end,
+            locationSeasonalPeriodId: period.id,
+            applySplit: true,
+          })
+        }
+        toast.success("Pricing period created")
       } else {
         // Create new with splitting
         await axios.post(`/api/hotels/${selectedHotelId}/pricing`, {
           ...data,
-          applySplit: true // Flag to enable automatic splitting
+          applySplit: true,
         })
         toast.success("Pricing period created")
       }
@@ -316,6 +434,51 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       setEditingRow(null)
       setPendingSubmit(null)
       setSplitPreview(null)
+      setSelectedSeasonalPeriods([])
+      setSelectedSeasonType(null)
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error.response?.data?.message) {
+        toast.error(error.response.data.message)
+      } else {
+        toast.error("Something went wrong")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const submitBulkPricing = async (row: EditingRow) => {
+    if (!selectedHotelId) return
+
+    try {
+      setLoading(true)
+      const currentYear = new Date().getFullYear()
+      let createdCount = 0
+
+      for (const period of selectedSeasonalPeriods) {
+        const dateRanges = generateDateRangesForYear(period, currentYear)
+        for (const dateRange of dateRanges) {
+          await axios.post(`/api/hotels/${selectedHotelId}/pricing`, {
+            startDate: dateRange.start,
+            endDate: dateRange.end,
+            roomTypeId: row.roomTypeId,
+            occupancyTypeId: row.occupancyTypeId,
+            price: row.price,
+            mealPlanId: row.mealPlanId || null,
+            locationSeasonalPeriodId: period.id,
+            applySplit: true,
+          })
+          createdCount++
+        }
+      }
+
+      toast.success(
+        `Created ${createdCount} pricing periods for ${selectedSeasonType?.replace(/_/g, " ").toLowerCase() ?? "selected"} periods`
+      )
+      await fetchPricingPeriods()
+      setEditingRow(null)
+      setSelectedSeasonalPeriods([])
+      setSelectedSeasonType(null)
     } catch (error: unknown) {
       if (error instanceof AxiosError && error.response?.data?.message) {
         toast.error(error.response.data.message)
@@ -335,6 +498,11 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   }
 
   const handleEdit = (pricing: PricingPeriod) => {
+    setSelectedSeasonalPeriods([])
+    setSelectedSeasonType(null)
+    if (pricing.locationSeasonalPeriodId && pricing.locationSeasonalPeriod) {
+      setSelectedSeasonalPeriods([pricing.locationSeasonalPeriod])
+    }
     setEditingRow({
       id: pricing.id,
       roomTypeId: pricing.roomTypeId,
@@ -343,6 +511,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       startDate: utcToLocal(pricing.startDate) || new Date(),
       endDate: utcToLocal(pricing.endDate) || new Date(),
       price: pricing.price,
+      locationSeasonalPeriodId: pricing.locationSeasonalPeriodId || "",
     })
   }
 
@@ -373,6 +542,8 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       return
     }
     
+    setSelectedSeasonalPeriods([])
+    setSelectedSeasonType(null)
     setEditingRow({
       id: null,
       roomTypeId: roomTypes[0]?.id || "",
@@ -381,11 +552,14 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       startDate: new Date(),
       endDate: addDays(new Date(), 30),
       price: 0,
+      locationSeasonalPeriodId: "",
     })
   }
 
   const handleCancelEdit = () => {
     setEditingRow(null)
+    setSelectedSeasonalPeriods([])
+    setSelectedSeasonType(null)
   }
 
   const handleDuplicate = (pricing: PricingPeriod) => {
@@ -401,7 +575,11 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       startDate: nextStart,
       endDate: nextEnd,
       price: pricing.price,
+      locationSeasonalPeriodId: pricing.locationSeasonalPeriodId || "",
     })
+    if (pricing.locationSeasonalPeriod) {
+      setSelectedSeasonalPeriods([pricing.locationSeasonalPeriod])
+    }
   }
 
   return (
@@ -574,6 +752,109 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
               </div>
             </div>
 
+            {/* Seasonal period selection */}
+            {seasonalPeriods.length > 0 ? (
+              <Card className="border-blue-100 bg-blue-50/30">
+                <CardContent className="pt-4 space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">
+                        Seasonal periods for {selectedHotel.location.label}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/locations/${selectedLocationId}/seasonal-periods`)}
+                    >
+                      <Settings className="h-3 w-3 mr-1" />
+                      Manage Periods
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-medium text-purple-800">
+                        Bulk selection by season type:
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(["PEAK_SEASON", "OFF_SEASON", "SHOULDER_SEASON"] as const).map((seasonType) => {
+                        const periodsOfType = seasonalPeriods.filter((p) => p.seasonType === seasonType)
+                        if (periodsOfType.length === 0) return null
+                        const colors = getSeasonColor(seasonType)
+                        const isSelected = selectedSeasonType === seasonType
+                        return (
+                          <Button
+                            key={seasonType}
+                            type="button"
+                            variant={isSelected ? "default" : "outline"}
+                            size="sm"
+                            className={`${colors.bg} ${colors.text} ${colors.border} font-medium`}
+                            onClick={() => handleSeasonTypeSelect(seasonType)}
+                            disabled={!!editingRow?.id}
+                          >
+                            All {seasonType.replace(/_/g, " ").toLowerCase()} periods
+                            <span className="ml-2 text-xs opacity-70">({periodsOfType.length})</span>
+                          </Button>
+                        )
+                      })}
+                      {(selectedSeasonalPeriods.length > 0 || selectedSeasonType) && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearSeasonalPeriodSelection}
+                        >
+                          Clear selection
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {seasonalPeriods.map((period) => {
+                      const colors = getSeasonColor(period.seasonType)
+                      const isSelected = selectedSeasonalPeriods.some((p) => p.id === period.id)
+                      return (
+                        <Button
+                          key={period.id}
+                          type="button"
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          className={isSelected ? `${colors.bg} ${colors.text}` : ""}
+                          onClick={() => handleIndividualPeriodSelect(period)}
+                          disabled={!!editingRow?.id && selectedSeasonType !== null}
+                        >
+                          {period.name}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : selectedLocationId ? (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No seasonal periods configured</AlertTitle>
+                <AlertDescription className="flex items-center gap-2 flex-wrap">
+                  <span>Add peak/off/shoulder seasons for this location to auto-fill pricing dates.</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/locations/${selectedLocationId}/seasonal-periods`)}
+                  >
+                    <Settings className="h-3 w-3 mr-1" />
+                    Manage Seasonal Periods
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
             <Card>
               <CardHeader>
                 <CardTitle>Pricing Periods</CardTitle>
@@ -591,6 +872,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
+                          <TableHead className="w-[160px]">Season</TableHead>
                           <TableHead className="w-[180px]">Room Type</TableHead>
                           <TableHead className="w-[180px]">Occupancy</TableHead>
                           <TableHead className="w-[150px]">Meal Plan</TableHead>
@@ -604,6 +886,65 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                         {/* New/Editing Row */}
                         {editingRow && (
                           <TableRow className="bg-blue-50 border-2 border-blue-200">
+                            <TableCell>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between h-10 px-3"
+                                  >
+                                    {editingRow.locationSeasonalPeriodId ? (
+                                      seasonalPeriods.find((p) => p.id === editingRow.locationSeasonalPeriodId)?.name ?? "Season"
+                                    ) : (
+                                      <span className="text-muted-foreground">Manual dates</span>
+                                    )}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Search seasons..." />
+                                    <CommandList>
+                                      <CommandEmpty>No season found.</CommandEmpty>
+                                      <CommandGroup>
+                                        <CommandItem
+                                          value="manual"
+                                          onSelect={() => {
+                                            setEditingRow({ ...editingRow, locationSeasonalPeriodId: "" })
+                                            setSelectedSeasonalPeriods([])
+                                            setSelectedSeasonType(null)
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              !editingRow.locationSeasonalPeriodId ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          Manual dates
+                                        </CommandItem>
+                                        {seasonalPeriods.map((period) => (
+                                          <CommandItem
+                                            key={period.id}
+                                            value={period.name}
+                                            onSelect={() => applySeasonToEditingRow(period)}
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                editingRow.locationSeasonalPeriodId === period.id ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                            {period.name}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            </TableCell>
                             <TableCell>
                               <Popover>
                                 <PopoverTrigger asChild>
@@ -771,7 +1112,14 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                                   <Calendar
                                     mode="single"
                                     selected={editingRow.startDate}
-                                    onSelect={(date) => date && setEditingRow({ ...editingRow, startDate: date })}
+                                    onSelect={(date) =>
+                                      date &&
+                                      setEditingRow({
+                                        ...editingRow,
+                                        startDate: date,
+                                        locationSeasonalPeriodId: "",
+                                      })
+                                    }
                                     initialFocus
                                   />
                                 </PopoverContent>
@@ -795,7 +1143,14 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                                   <Calendar
                                     mode="single"
                                     selected={editingRow.endDate}
-                                    onSelect={(date) => date && setEditingRow({ ...editingRow, endDate: date })}
+                                    onSelect={(date) =>
+                                      date &&
+                                      setEditingRow({
+                                        ...editingRow,
+                                        endDate: date,
+                                        locationSeasonalPeriodId: "",
+                                      })
+                                    }
                                     initialFocus
                                   />
                                 </PopoverContent>
@@ -842,13 +1197,28 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                         {/* Existing Pricing Periods */}
                         {pricingPeriods.length === 0 && !editingRow ? (
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
                               No pricing periods defined yet. Click &quot;Add Pricing Period&quot; to get started.
                             </TableCell>
                           </TableRow>
                         ) : (
                           pricingPeriods.map((pricing) => (
                             <TableRow key={pricing.id} className="hover:bg-muted/50">
+                              <TableCell>
+                                {pricing.locationSeasonalPeriod ? (
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                                      getSeasonColor(pricing.locationSeasonalPeriod.seasonType).bg,
+                                      getSeasonColor(pricing.locationSeasonalPeriod.seasonType).text
+                                    )}
+                                  >
+                                    {pricing.locationSeasonalPeriod.name}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
                               <TableCell className="font-medium">
                                 {pricing.roomType?.name || 
                                   (roomTypes.find(rt => rt.id === pricing.roomTypeId)?.name) ||

@@ -26,7 +26,8 @@ export async function GET(
       include: {
         roomType: true,
         occupancyType: true,
-        mealPlan: true
+        mealPlan: true,
+        locationSeasonalPeriod: true,
       }
     });
 
@@ -66,7 +67,8 @@ export async function PATCH(
       roomTypeId, 
       occupancyTypeId, 
       price, 
-      mealPlanId 
+      mealPlanId,
+      locationSeasonalPeriodId,
     } = body;
 
     if (!startDate || !endDate) {
@@ -102,8 +104,15 @@ export async function PATCH(
         occupancyTypeId,
         price,
         mealPlanId: mealPlanId || null,
+        locationSeasonalPeriodId: locationSeasonalPeriodId ?? null,
         isActive: true
-      }
+      },
+      include: {
+        roomType: true,
+        occupancyType: true,
+        mealPlan: true,
+        locationSeasonalPeriod: true,
+      },
     });
 
     return NextResponse.json(updatedPricing);

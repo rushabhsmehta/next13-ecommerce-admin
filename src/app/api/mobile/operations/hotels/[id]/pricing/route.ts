@@ -24,6 +24,7 @@ const pricingSchema = z.object({
   price: z.coerce.number().min(0, "Price must be a positive number"),
   isActive: z.boolean().optional(),
   applySplit: z.boolean().optional(),
+  locationSeasonalPeriodId: z.string().nullable().optional(),
 });
 
 function formatPricingRow(row: {
@@ -36,9 +37,15 @@ function formatPricingRow(row: {
   roomTypeId: string | null;
   occupancyTypeId: string | null;
   mealPlanId: string | null;
+  locationSeasonalPeriodId?: string | null;
   roomType: { id: string; name: string } | null;
   occupancyType: { id: string; name: string } | null;
   mealPlan: { id: string; name: string; code: string } | null;
+  locationSeasonalPeriod?: {
+    id: string;
+    name: string;
+    seasonType: string;
+  } | null;
 }) {
   return {
     id: row.id,
@@ -54,6 +61,9 @@ function formatPricingRow(row: {
     mealPlanId: row.mealPlanId,
     mealPlanName: row.mealPlan?.name ?? null,
     mealPlanCode: row.mealPlan?.code ?? null,
+    locationSeasonalPeriodId: row.locationSeasonalPeriodId ?? null,
+    seasonalPeriodName: row.locationSeasonalPeriod?.name ?? null,
+    seasonType: row.locationSeasonalPeriod?.seasonType ?? null,
   };
 }
 
@@ -66,6 +76,7 @@ async function applyPricingSplit(input: {
   mealPlanId: string | null;
   price: number;
   isActive: boolean;
+  locationSeasonalPeriodId?: string | null;
 }) {
   return prismadb.$transaction(async (tx) => {
     const overlappingPeriods = await tx.hotelPricing.findMany({
@@ -96,6 +107,7 @@ async function applyPricingSplit(input: {
             occupancyTypeId: period.occupancyTypeId,
             mealPlanId: period.mealPlanId,
             price: period.price,
+            locationSeasonalPeriodId: period.locationSeasonalPeriodId,
             isActive: true,
           },
         });
@@ -111,6 +123,7 @@ async function applyPricingSplit(input: {
             occupancyTypeId: period.occupancyTypeId,
             mealPlanId: period.mealPlanId,
             price: period.price,
+            locationSeasonalPeriodId: period.locationSeasonalPeriodId,
             isActive: true,
           },
         });
@@ -127,6 +140,7 @@ async function applyPricingSplit(input: {
         mealPlanId: input.mealPlanId,
         price: input.price,
         isActive: input.isActive,
+        locationSeasonalPeriodId: input.locationSeasonalPeriodId ?? null,
       },
       select: {
         id: true,
@@ -138,9 +152,13 @@ async function applyPricingSplit(input: {
         roomTypeId: true,
         occupancyTypeId: true,
         mealPlanId: true,
+        locationSeasonalPeriodId: true,
         roomType: { select: { id: true, name: true } },
         occupancyType: { select: { id: true, name: true } },
         mealPlan: { select: { id: true, name: true, code: true } },
+        locationSeasonalPeriod: {
+          select: { id: true, name: true, seasonType: true },
+        },
       },
     });
   });
@@ -190,9 +208,13 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
         roomTypeId: true,
         occupancyTypeId: true,
         mealPlanId: true,
+        locationSeasonalPeriodId: true,
         roomType: { select: { id: true, name: true } },
         occupancyType: { select: { id: true, name: true } },
         mealPlan: { select: { id: true, name: true, code: true } },
+        locationSeasonalPeriod: {
+          select: { id: true, name: true, seasonType: true },
+        },
       },
       orderBy: { startDate: "asc" },
     });
@@ -270,26 +292,33 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       mealPlanId: v.mealPlanId || null,
       price: v.price,
       isActive: v.isActive ?? true,
+      locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
     };
+
+    const pricingSelect = {
+      id: true,
+      hotelId: true,
+      startDate: true,
+      endDate: true,
+      price: true,
+      isActive: true,
+      roomTypeId: true,
+      occupancyTypeId: true,
+      mealPlanId: true,
+      locationSeasonalPeriodId: true,
+      roomType: { select: { id: true, name: true } },
+      occupancyType: { select: { id: true, name: true } },
+      mealPlan: { select: { id: true, name: true, code: true } },
+      locationSeasonalPeriod: {
+        select: { id: true, name: true, seasonType: true },
+      },
+    } as const;
 
     const pricing = v.applySplit
       ? await applyPricingSplit(input)
       : await prismadb.hotelPricing.create({
           data: input,
-          select: {
-            id: true,
-            hotelId: true,
-            startDate: true,
-            endDate: true,
-            price: true,
-            isActive: true,
-            roomTypeId: true,
-            occupancyTypeId: true,
-            mealPlanId: true,
-            roomType: { select: { id: true, name: true } },
-            occupancyType: { select: { id: true, name: true } },
-            mealPlan: { select: { id: true, name: true, code: true } },
-          },
+          select: pricingSelect,
         });
 
     await recordMobileAudit({

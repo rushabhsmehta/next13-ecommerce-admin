@@ -24,6 +24,7 @@ export interface JsonPricingEntry {
   mealPlanId?: string | null;
   price: number;
   isActive: boolean;
+  locationSeasonalPeriodId?: string | null;
 }
 
 export interface JsonExportFormat {
@@ -77,7 +78,8 @@ const pricingEntrySchema = z.object({
   occupancyTypeId: z.string().min(1, "Occupancy type ID is required"),
   mealPlanId: z.string().optional().nullable(),
   price: z.number().min(0, "Price must be non-negative"),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
+  locationSeasonalPeriodId: z.string().optional().nullable(),
 }).refine(
   (data) => data.startDate <= data.endDate,
   { message: "End date must be on or after start date", path: ["endDate"] }
@@ -124,7 +126,8 @@ REQUIRED JSON STRUCTURE:
       "occupancyTypeId": "<ID from list below>",
       "mealPlanId": "<ID from list below or null>",
       "price": <number>,
-      "isActive": true
+      "isActive": true,
+      "locationSeasonalPeriodId": "<optional seasonal period ID or null>"
     }
   ]
 }

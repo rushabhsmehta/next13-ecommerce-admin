@@ -432,9 +432,12 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       );
     },
 
-    getHotelPricingLookups(): Promise<HotelPricingLookups> {
+    getHotelPricingLookups(locationId?: string): Promise<HotelPricingLookups> {
+      const query = locationId
+        ? `?locationId=${encodeURIComponent(locationId)}`
+        : "";
       return authRequest<HotelPricingLookups>(
-        "/api/mobile/operations/pricing-lookups",
+        `/api/mobile/operations/pricing-lookups${query}`,
         LOOKUP_CACHE
       );
     },
@@ -833,6 +836,9 @@ export interface HotelPricingRow {
   mealPlanId: string | null;
   mealPlanName: string | null;
   mealPlanCode: string | null;
+  locationSeasonalPeriodId?: string | null;
+  seasonalPeriodName?: string | null;
+  seasonType?: string | null;
 }
 
 export interface HotelPricingInput {
@@ -844,6 +850,7 @@ export interface HotelPricingInput {
   price: number;
   isActive?: boolean;
   applySplit?: boolean;
+  locationSeasonalPeriodId?: string | null;
 }
 
 export interface HotelPricingSplitPreview {
@@ -970,6 +977,16 @@ export interface HotelPricingLookups {
     id: string;
     name: string;
     code: string;
+    description: string | null;
+  }[];
+  seasonalPeriods?: {
+    id: string;
+    name: string;
+    seasonType: string;
+    startMonth: number;
+    startDay: number;
+    endMonth: number;
+    endDay: number;
     description: string | null;
   }[];
 }

@@ -13,7 +13,10 @@ export async function GET(req: Request) {
     const guard = await requireOperationsRead(userId);
     if (!guard.ok) return guard.response;
 
-    const [roomTypes, occupancyTypes, mealPlans] = await Promise.all([
+    const { searchParams } = new URL(req.url);
+    const locationId = searchParams.get("locationId")?.trim() ?? "";
+
+    const [roomTypes, occupancyTypes, mealPlans, seasonalPeriods] = await Promise.all([
       prismadb.roomType.findMany({
         where: { isActive: true },
         select: { id: true, name: true, description: true },
@@ -29,12 +32,29 @@ export async function GET(req: Request) {
         select: { id: true, name: true, code: true, description: true },
         orderBy: { name: "asc" },
       }),
+      locationId
+        ? prismadb.locationSeasonalPeriod.findMany({
+            where: { locationId, isActive: true },
+            select: {
+              id: true,
+              name: true,
+              seasonType: true,
+              startMonth: true,
+              startDay: true,
+              endMonth: true,
+              endDay: true,
+              description: true,
+            },
+            orderBy: [{ startMonth: "asc" }, { startDay: "asc" }],
+          })
+        : Promise.resolve([]),
     ]);
 
     return NextResponse.json({
       roomTypes,
       occupancyTypes,
       mealPlans,
+      seasonalPeriods,
     });
   } catch (error) {
     console.log("[MOBILE_OPS_PRICING_LOOKUPS_GET]", error);

@@ -210,7 +210,8 @@ export async function DELETE(
         locationId,
       },
       include: {
-        tourPackagePricings: true
+        tourPackagePricings: true,
+        hotelPricings: true,
       }
     })
 
@@ -218,10 +219,17 @@ export async function DELETE(
       return new NextResponse("Seasonal period not found", { status: 404 })
     }
 
-    // Check if any tour package pricing periods are using this seasonal period
+    // Check if any tour package or hotel pricing periods are using this seasonal period
     if (existingPeriod.tourPackagePricings.length > 0) {
       return new NextResponse(
         `Cannot delete seasonal period: ${existingPeriod.tourPackagePricings.length} tour package pricing periods are using it`,
+        { status: 409 }
+      )
+    }
+
+    if (existingPeriod.hotelPricings.length > 0) {
+      return new NextResponse(
+        `Cannot delete seasonal period: ${existingPeriod.hotelPricings.length} hotel pricing periods are using it`,
         { status: 409 }
       )
     }

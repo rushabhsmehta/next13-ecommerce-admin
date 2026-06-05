@@ -84,7 +84,8 @@ export async function POST(req: Request) {
         occupancyTypeId: p.occupancyTypeId,
         mealPlanId: p.mealPlanId,
         price: p.price,
-        isActive: p.isActive
+        isActive: p.isActive,
+        locationSeasonalPeriodId: p.locationSeasonalPeriodId,
       }));
     } else {
       // Generate sample entries if reference data exists

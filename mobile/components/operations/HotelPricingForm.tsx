@@ -3,6 +3,7 @@ import {
   Alert,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -30,6 +31,16 @@ import {
   type HotelPricingInput,
 } from "@/lib/operations";
 
+interface SeasonalPeriodOption {
+  id: string;
+  label: string;
+  seasonType?: string;
+  startMonth?: number;
+  startDay?: number;
+  endMonth?: number;
+  endDay?: number;
+}
+
 interface InitialValues {
   roomTypeId: string;
   roomTypeName: string;
@@ -41,6 +52,8 @@ interface InitialValues {
   startDate: Date;
   endDate: Date;
   isActive: boolean;
+  locationSeasonalPeriodId?: string;
+  seasonalPeriodName?: string;
 }
 
 interface Props {
@@ -77,6 +90,21 @@ function asDate(value?: string | Date | null): Date {
   return Number.isFinite(d.getTime()) ? d : new Date();
 }
 
+function datesForSeason(period: SeasonalPeriodOption, reference: Date) {
+  if (!period.startMonth || !period.startDay || !period.endMonth || !period.endDay) {
+    return null;
+  }
+  const year = reference.getFullYear();
+  const start = new Date(year, period.startMonth - 1, period.startDay);
+  let end = new Date(year, period.endMonth - 1, period.endDay);
+  if (end < start) {
+    end = new Date(year + 1, period.endMonth - 1, period.endDay);
+  }
+  return { start, end };
+}
+
+const SEASON_TYPES = ["PEAK_SEASON", "OFF_SEASON", "SHOULDER_SEASON"] as const;
+
 export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
   const router = useRouter();
   const { getToken } = useAuth();
@@ -103,18 +131,28 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
     initial?.endDate ? asDate(initial.endDate) : addDays(new Date(), 30)
   );
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [seasonalPeriodId, setSeasonalPeriodId] = useState(
+    initial?.locationSeasonalPeriodId ?? ""
+  );
+  const [seasonalPeriodName, setSeasonalPeriodName] = useState(
+    initial?.seasonalPeriodName ?? ""
+  );
+  const [bulkSeasonPeriods, setBulkSeasonPeriods] = useState<SeasonalPeriodOption[]>([]);
+  const [selectedSeasonType, setSelectedSeasonType] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [lookupsLoading, setLookupsLoading] = useState(true);
   const [roomTypes, setRoomTypes] = useState<{ id: string; label: string }[]>([]);
   const [occupancies, setOccupancies] = useState<{ id: string; label: string }[]>([]);
   const [mealPlans, setMealPlans] = useState<{ id: string; label: string }[]>([]);
-  const [picker, setPicker] = useState<"room" | "occupancy" | "meal" | null>(null);
+  const [seasonalPeriods, setSeasonalPeriods] = useState<SeasonalPeriodOption[]>([]);
+  const [picker, setPicker] = useState<"room" | "occupancy" | "meal" | "season" | null>(null);
   const [dateField, setDateField] = useState<"start" | "end" | null>(null);
 
   const loadLookups = useCallback(async () => {
     setLookupsLoading(true);
     try {
-      const lookups = await client.getHotelPricingLookups();
+      const hotel = await client.getHotel(hotelId);
+      const lookups = await client.getHotelPricingLookups(hotel.locationId);
       setRoomTypes(lookups.roomTypes.map((r) => ({ id: r.id, label: r.name })));
       setOccupancies(
         lookups.occupancyTypes.map((o) => ({
@@ -129,12 +167,24 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
           label: `${m.code} - ${m.name}`,
         })),
       ]);
+      setSeasonalPeriods([
+        { id: "__none", label: "Manual dates" },
+        ...(lookups.seasonalPeriods ?? []).map((s) => ({
+          id: s.id,
+          label: s.name,
+          seasonType: s.seasonType,
+          startMonth: s.startMonth,
+          startDay: s.startDay,
+          endMonth: s.endMonth,
+          endDay: s.endDay,
+        })),
+      ]);
     } catch {
       // Existing values still allow edit; validation will catch missing IDs.
     } finally {
       setLookupsLoading(false);
     }
-  }, [client]);
+  }, [client, hotelId]);
 
   useEffect(() => {
     void loadLookups();
@@ -150,13 +200,36 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
     !submitting;
 
   const pickerOptions =
-    picker === "room" ? roomTypes : picker === "occupancy" ? occupancies : mealPlans;
+    picker === "room"
+      ? roomTypes
+      : picker === "occupancy"
+        ? occupancies
+        : picker === "season"
+          ? seasonalPeriods
+          : mealPlans;
   const pickerTitle =
-    picker === "room" ? "Room type" : picker === "occupancy" ? "Occupancy" : "Meal plan";
+    picker === "room"
+      ? "Room type"
+      : picker === "occupancy"
+        ? "Occupancy"
+        : picker === "season"
+          ? "Seasonal period"
+          : "Meal plan";
   const pickerSelectedId =
-    picker === "meal" && !mealPlanId ? "__none" : picker === "room" ? roomTypeId : picker === "occupancy" ? occupancyTypeId : mealPlanId;
+    picker === "meal" && !mealPlanId
+      ? "__none"
+      : picker === "room"
+        ? roomTypeId
+        : picker === "occupancy"
+          ? occupancyTypeId
+          : picker === "season"
+            ? seasonalPeriodId || "__none"
+            : mealPlanId;
 
-  function buildPayload(applySplit = false): HotelPricingInput {
+  function buildPayload(
+    overrides: Partial<HotelPricingInput> = {},
+    applySplit = false
+  ): HotelPricingInput {
     return {
       roomTypeId,
       occupancyTypeId,
@@ -165,29 +238,86 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
       startDate: toIsoDate(startDate),
       endDate: toIsoDate(endDate),
       isActive,
+      locationSeasonalPeriodId: seasonalPeriodId || null,
       applySplit,
+      ...overrides,
     };
   }
 
   function onDateChange(event: DateTimePickerEvent, selected?: Date) {
     if (Platform.OS !== "ios") setDateField(null);
     if (event.type === "dismissed" || !selected) return;
-    if (dateField === "start") setStartDate(selected);
-    if (dateField === "end") setEndDate(selected);
+    if (dateField === "start") {
+      setStartDate(selected);
+      setSeasonalPeriodId("");
+      setSeasonalPeriodName("");
+      setBulkSeasonPeriods([]);
+      setSelectedSeasonType(null);
+    }
+    if (dateField === "end") {
+      setEndDate(selected);
+      setSeasonalPeriodId("");
+      setSeasonalPeriodName("");
+      setBulkSeasonPeriods([]);
+      setSelectedSeasonType(null);
+    }
+  }
+
+  function handleSeasonTypeSelect(seasonType: string) {
+    const periods = seasonalPeriods.filter(
+      (p) => p.id !== "__none" && p.seasonType === seasonType
+    );
+    setBulkSeasonPeriods(periods);
+    setSelectedSeasonType(seasonType);
+    setSeasonalPeriodId("");
+    setSeasonalPeriodName("");
+  }
+
+  async function saveSingle(applySplit = false) {
+    if (mode === "create") {
+      await client.createHotelPricing(hotelId, buildPayload({}, applySplit));
+      router.replace(`/admin/operations/hotels/${hotelId}/pricing` as never);
+    } else if (pricingId) {
+      await client.updateHotelPricing(hotelId, pricingId, buildPayload({}, false));
+      router.replace(
+        `/admin/operations/hotels/${hotelId}/pricing/${pricingId}` as never
+      );
+    }
+  }
+
+  async function saveBulk() {
+    let createdCount = 0;
+    for (const period of bulkSeasonPeriods) {
+      const range = datesForSeason(period, startDate);
+      if (!range) continue;
+      await client.createHotelPricing(
+        hotelId,
+        buildPayload(
+          {
+            startDate: toIsoDate(range.start),
+            endDate: toIsoDate(range.end),
+            locationSeasonalPeriodId: period.id,
+          },
+          true
+        )
+      );
+      createdCount++;
+    }
+    Alert.alert(
+      "Pricing created",
+      `Created ${createdCount} pricing period${createdCount === 1 ? "" : "s"}.`
+    );
+    router.replace(`/admin/operations/hotels/${hotelId}/pricing` as never);
   }
 
   async function save(applySplit = false) {
     setSubmitting(true);
     try {
-      if (mode === "create") {
-        await client.createHotelPricing(hotelId, buildPayload(applySplit));
-        router.replace(`/admin/operations/hotels/${hotelId}/pricing` as never);
-      } else if (pricingId) {
-        await client.updateHotelPricing(hotelId, pricingId, buildPayload(false));
-        router.replace(
-          `/admin/operations/hotels/${hotelId}/pricing/${pricingId}` as never
-        );
+      if (mode === "create" && bulkSeasonPeriods.length > 1) {
+        await saveBulk();
+        return;
       }
+      await saveSingle(applySplit);
     } catch (err) {
       Alert.alert(
         "Save failed",
@@ -205,11 +335,16 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
       return;
     }
 
+    if (mode === "create" && bulkSeasonPeriods.length > 1) {
+      await save(false);
+      return;
+    }
+
     if (mode === "create") {
       try {
         const preview = await client.checkHotelPricingOverlap(
           hotelId,
-          buildPayload(false)
+          buildPayload({}, false)
         );
         if (preview.willSplit) {
           Alert.alert("Overlap detected", preview.message, [
@@ -255,7 +390,7 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
 
       <AdminTopBar
         title={screenTitle}
-        subtitle="Hotel pricing"
+        subtitle="Seasonal pricing"
         onBackPress={() => router.back()}
         testID="hotel-pricing-form"
       />
@@ -290,7 +425,66 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
         </AdminFormField>
       </AdminFormSection>
 
+      {mode === "create" && seasonalPeriods.length > 1 ? (
+        <AdminFormSection title="Bulk by season type" testID="hotel-pricing-form-bulk-season">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.chipRow}>
+              {SEASON_TYPES.map((seasonType) => {
+                const count = seasonalPeriods.filter(
+                  (p) => p.id !== "__none" && p.seasonType === seasonType
+                ).length;
+                if (count === 0) return null;
+                const isSelected = selectedSeasonType === seasonType;
+                return (
+                  <Pressable
+                    key={seasonType}
+                    testID={`hotel-pricing-bulk-${seasonType.toLowerCase()}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`All ${seasonType.replace(/_/g, " ").toLowerCase()} periods`}
+                    style={[styles.chip, isSelected && styles.chipSelected]}
+                    onPress={() => handleSeasonTypeSelect(seasonType)}
+                  >
+                    <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                      All {seasonType.replace(/_/g, " ").toLowerCase()} ({count})
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              {bulkSeasonPeriods.length > 0 ? (
+                <Pressable
+                  testID="hotel-pricing-bulk-clear"
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear bulk season selection"
+                  style={styles.chipClear}
+                  onPress={() => {
+                    setBulkSeasonPeriods([]);
+                    setSelectedSeasonType(null);
+                  }}
+                >
+                  <Text style={styles.chipClearText}>Clear</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </ScrollView>
+          {bulkSeasonPeriods.length > 1 ? (
+            <Text style={styles.bulkHint}>
+              Will create {bulkSeasonPeriods.length} pricing rows with the same room, occupancy,
+              meal plan, and price.
+            </Text>
+          ) : null}
+        </AdminFormSection>
+      ) : null}
+
       <AdminFormSection title="Rates" testID="hotel-pricing-form-rates">
+        <AdminFormField label="Seasonal period">
+          <PickerButton
+            testID="hotel-pricing-form-season"
+            label={seasonalPeriodName || "Manual dates"}
+            selected={!!seasonalPeriodId}
+            disabled={lookupsLoading || bulkSeasonPeriods.length > 1}
+            onPress={() => setPicker("season")}
+          />
+        </AdminFormField>
         <AdminFormField label="Price (INR)" required>
           <TextInput
             testID="hotel-pricing-form-price"
@@ -350,6 +544,24 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
           } else if (picker === "occupancy") {
             setOccupancyTypeId(opt.id);
             setOccupancyTypeName(opt.label);
+          } else if (picker === "season") {
+            if (opt.id === "__none") {
+              setSeasonalPeriodId("");
+              setSeasonalPeriodName("");
+              setBulkSeasonPeriods([]);
+              setSelectedSeasonType(null);
+            } else {
+              setSeasonalPeriodId(opt.id);
+              setSeasonalPeriodName(opt.label);
+              setBulkSeasonPeriods([]);
+              setSelectedSeasonType(null);
+              const period = seasonalPeriods.find((item) => item.id === opt.id);
+              const range = period ? datesForSeason(period, startDate) : null;
+              if (range) {
+                setStartDate(range.start);
+                setEndDate(range.end);
+              }
+            }
           } else if (opt.id === "__none") {
             setMealPlanId("");
             setMealPlanName("No meal plan");
@@ -446,4 +658,30 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   switchLabel: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
+  chipRow: { flexDirection: "row", gap: Spacing.sm, paddingVertical: Spacing.xs },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  chipSelected: {
+    backgroundColor: Colors.primaryBg,
+    borderColor: Colors.primary,
+  },
+  chipText: { fontSize: FontSize.sm, color: Colors.text, fontWeight: "600" },
+  chipTextSelected: { color: Colors.primary },
+  chipClear: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    justifyContent: "center",
+  },
+  chipClearText: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  bulkHint: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
 });

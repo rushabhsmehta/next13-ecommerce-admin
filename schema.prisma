@@ -77,6 +77,7 @@ model LocationSeasonalPeriod {
   updatedAt           DateTime             @updatedAt
   location            Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
   tourPackagePricings TourPackagePricing[]
+  hotelPricings       HotelPricing[]
 
   @@index([locationId])
   @@index([seasonType])
@@ -163,27 +164,30 @@ model VehicleType {
 }
 
 model HotelPricing {
-  id              String         @id @default(uuid())
-  hotelId         String
-  startDate       DateTime
-  endDate         DateTime
-  price           Float
-  isActive        Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @default(now())
-  mealPlanId      String?
-  occupancyTypeId String?
-  roomTypeId      String?
-  hotel           Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  roomType        RoomType?      @relation(fields: [roomTypeId], references: [id], onDelete: SetNull)
-  occupancyType   OccupancyType? @relation(fields: [occupancyTypeId], references: [id], onDelete: SetNull)
-  mealPlan        MealPlan?      @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+  id                       String                  @id @default(uuid())
+  hotelId                  String
+  startDate                DateTime
+  endDate                  DateTime
+  price                    Float
+  isActive                 Boolean                 @default(true)
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @default(now())
+  mealPlanId               String?
+  occupancyTypeId          String?
+  roomTypeId               String?
+  locationSeasonalPeriodId String?
+  hotel                    Hotel                   @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType                 RoomType?               @relation(fields: [roomTypeId], references: [id], onDelete: SetNull)
+  occupancyType            OccupancyType?          @relation(fields: [occupancyTypeId], references: [id], onDelete: SetNull)
+  mealPlan                 MealPlan?               @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+  locationSeasonalPeriod   LocationSeasonalPeriod? @relation(fields: [locationSeasonalPeriodId], references: [id])
 
   @@index([hotelId])
   @@index([roomTypeId])
   @@index([occupancyTypeId])
   @@index([mealPlanId])
   @@index([startDate, endDate])
+  @@index([locationSeasonalPeriodId])
 }
 
 model TransportPricing {

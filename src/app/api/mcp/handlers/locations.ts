@@ -52,6 +52,7 @@ const CreateHotelPricingSchema = z.object({
   occupancyTypeId: z.string().min(1),
   price: z.number().min(0),
   mealPlanId: z.string().optional(),
+  locationSeasonalPeriodId: z.string().nullable().optional(),
 });
 
 const UpdateHotelPricingSchema = z.object({
@@ -63,6 +64,7 @@ const UpdateHotelPricingSchema = z.object({
   occupancyTypeId: z.string().optional(),
   price: z.number().min(0).optional(),
   mealPlanId: z.string().nullable().optional(),
+  locationSeasonalPeriodId: z.string().nullable().optional(),
 });
 
 const DeleteHotelPricingSchema = z.object({
@@ -194,9 +196,11 @@ async function getHotelPricing(rawParams: unknown) {
       startDate: true,
       endDate: true,
       price: true,
+      locationSeasonalPeriodId: true,
       roomType: { select: { id: true, name: true } },
       occupancyType: { select: { id: true, name: true, maxPersons: true } },
       mealPlan: { select: { id: true, name: true, code: true } },
+      locationSeasonalPeriod: { select: { id: true, name: true, seasonType: true } },
     },
     orderBy: [{ startDate: "asc" }, { roomTypeId: "asc" }],
   });
@@ -275,7 +279,7 @@ async function getTransportPricing(rawParams: unknown) {
 }
 
 async function createHotelPricing(rawParams: unknown) {
-  const { hotelId, startDate, endDate, roomTypeId, occupancyTypeId, price, mealPlanId } =
+  const { hotelId, startDate, endDate, roomTypeId, occupancyTypeId, price, mealPlanId, locationSeasonalPeriodId } =
     CreateHotelPricingSchema.parse(rawParams);
 
   const hotel = await prismadb.hotel.findUnique({ where: { id: hotelId }, select: { id: true } });
@@ -290,6 +294,7 @@ async function createHotelPricing(rawParams: unknown) {
       occupancyTypeId,
       price,
       mealPlanId: mealPlanId ?? null,
+      locationSeasonalPeriodId: locationSeasonalPeriodId ?? null,
       isActive: true,
     },
     select: {
@@ -297,15 +302,17 @@ async function createHotelPricing(rawParams: unknown) {
       startDate: true,
       endDate: true,
       price: true,
+      locationSeasonalPeriodId: true,
       roomType: { select: { id: true, name: true } },
       occupancyType: { select: { id: true, name: true } },
       mealPlan: { select: { id: true, name: true } },
+      locationSeasonalPeriod: { select: { id: true, name: true, seasonType: true } },
     },
   });
 }
 
 async function updateHotelPricing(rawParams: unknown) {
-  const { hotelId, pricingId, startDate, endDate, roomTypeId, occupancyTypeId, price, mealPlanId } =
+  const { hotelId, pricingId, startDate, endDate, roomTypeId, occupancyTypeId, price, mealPlanId, locationSeasonalPeriodId } =
     UpdateHotelPricingSchema.parse(rawParams);
 
   const existing = await prismadb.hotelPricing.findUnique({ where: { id: pricingId }, select: { id: true, hotelId: true } });
@@ -320,15 +327,18 @@ async function updateHotelPricing(rawParams: unknown) {
       ...(occupancyTypeId !== undefined && { occupancyTypeId }),
       ...(price !== undefined && { price }),
       ...(mealPlanId !== undefined && { mealPlanId }),
+      ...(locationSeasonalPeriodId !== undefined && { locationSeasonalPeriodId }),
     },
     select: {
       id: true,
       startDate: true,
       endDate: true,
       price: true,
+      locationSeasonalPeriodId: true,
       roomType: { select: { id: true, name: true } },
       occupancyType: { select: { id: true, name: true } },
       mealPlan: { select: { id: true, name: true } },
+      locationSeasonalPeriod: { select: { id: true, name: true, seasonType: true } },
     },
   });
 }

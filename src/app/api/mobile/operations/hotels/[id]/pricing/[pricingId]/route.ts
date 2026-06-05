@@ -19,6 +19,7 @@ const pricingSchema = z.object({
   mealPlanId: z.string().nullable().optional(),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   isActive: z.boolean().optional(),
+  locationSeasonalPeriodId: z.string().nullable().optional(),
 });
 
 /** Single hotel pricing row — read. Mirrors web GET /api/hotels/[hotelId]/pricing/[pricingId]. */
@@ -49,6 +50,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string; p
           roomTypeId: true,
           occupancyTypeId: true,
           mealPlanId: true,
+          locationSeasonalPeriodId: true,
           createdAt: true,
           updatedAt: true,
           roomType: {
@@ -59,6 +61,9 @@ export async function GET(req: Request, props: { params: Promise<{ id: string; p
           },
           mealPlan: {
             select: { id: true, name: true, code: true, description: true },
+          },
+          locationSeasonalPeriod: {
+            select: { id: true, name: true, seasonType: true },
           },
         },
       }),
@@ -85,6 +90,9 @@ export async function GET(req: Request, props: { params: Promise<{ id: string; p
         mealPlanId: pricing.mealPlanId,
         mealPlanName: pricing.mealPlan?.name ?? null,
         mealPlanCode: pricing.mealPlan?.code ?? null,
+        locationSeasonalPeriodId: pricing.locationSeasonalPeriodId,
+        seasonalPeriodName: pricing.locationSeasonalPeriod?.name ?? null,
+        seasonType: pricing.locationSeasonalPeriod?.seasonType ?? null,
         createdAt: pricing.createdAt.toISOString(),
         updatedAt: pricing.updatedAt.toISOString(),
       },
@@ -146,6 +154,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string;
         mealPlanId: v.mealPlanId || null,
         price: v.price,
         isActive: v.isActive ?? true,
+        locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
       },
       select: {
         id: true,
@@ -157,9 +166,13 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string;
         roomTypeId: true,
         occupancyTypeId: true,
         mealPlanId: true,
+        locationSeasonalPeriodId: true,
         roomType: { select: { id: true, name: true } },
         occupancyType: { select: { id: true, name: true } },
         mealPlan: { select: { id: true, name: true, code: true } },
+        locationSeasonalPeriod: {
+          select: { id: true, name: true, seasonType: true },
+        },
       },
     });
 
@@ -185,6 +198,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string;
       mealPlanId: pricing.mealPlanId,
       mealPlanName: pricing.mealPlan?.name ?? null,
       mealPlanCode: pricing.mealPlan?.code ?? null,
+      locationSeasonalPeriodId: pricing.locationSeasonalPeriodId,
+      seasonalPeriodName: pricing.locationSeasonalPeriod?.name ?? null,
+      seasonType: pricing.locationSeasonalPeriod?.seasonType ?? null,
     });
   } catch (error) {
     console.log("[MOBILE_OPS_HOTEL_PRICING_PATCH]", error);

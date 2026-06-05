@@ -193,9 +193,16 @@ function Inner() {
             }
           >
             <View style={styles.cardTop}>
-              <Text style={styles.cardDates}>
-                {fmtDate(item.startDate)} – {fmtDate(item.endDate)}
-              </Text>
+              <View style={styles.cardTopLeft}>
+                {item.seasonalPeriodName ? (
+                  <Text style={styles.seasonBadge} numberOfLines={1}>
+                    {item.seasonalPeriodName}
+                  </Text>
+                ) : null}
+                <Text style={styles.cardDates}>
+                  {fmtDate(item.startDate)} – {fmtDate(item.endDate)}
+                </Text>
+              </View>
               <Text style={styles.cardPrice}>{inr(item.price)}</Text>
             </View>
             <Text style={styles.cardSub} numberOfLines={2}>
@@ -258,7 +265,14 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: Spacing.sm,
   },
-  cardDates: { flex: 1, fontSize: FontSize.md, fontWeight: "600", color: Colors.text },
+  cardTopLeft: { flex: 1, gap: Spacing.xs },
+  seasonBadge: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.primary,
+    textTransform: "capitalize",
+  },
+  cardDates: { fontSize: FontSize.md, fontWeight: "600", color: Colors.text },
   cardPrice: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
   cardSub: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
   inactiveBadge: {

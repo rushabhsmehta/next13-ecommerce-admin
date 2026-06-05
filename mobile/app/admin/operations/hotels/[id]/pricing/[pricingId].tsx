@@ -162,6 +162,8 @@ function Inner() {
             startDate: new Date(p.startDate),
             endDate: new Date(p.endDate),
             isActive: p.isActive,
+            locationSeasonalPeriodId: p.locationSeasonalPeriodId ?? "",
+            seasonalPeriodName: p.seasonalPeriodName ?? "",
           }}
         />
       </PermissionGate>
@@ -232,6 +234,10 @@ function Inner() {
           <Row label="Max guests" value={String(p.occupancyMaxPersons)} />
         ) : null}
         <Row label="Meal plan" value={meal} />
+        <Row
+          label="Season"
+          value={p.seasonalPeriodName ?? "Manual dates"}
+        />
         <Row label="Status" value={p.isActive ? "Active" : "Inactive"} />
       </View>
 

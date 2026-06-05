@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import axios from "axios"
 import { format } from "date-fns"
 import { formatLocalDate } from "@/lib/timezone-utils"
+import { generateDateRangesForYear, getSeasonColor } from "@/lib/seasonal-periods"
 import { toast } from "react-hot-toast"
 import {
   CalendarIcon,
@@ -102,6 +103,7 @@ const pricingFormSchema = z.object({
     message: "Price must be at least 0",
   }),
   mealPlanId: z.string().optional(),
+  locationSeasonalPeriodId: z.string().optional(),
 }).refine(
   (values) => {
     // Simple check that end date is after start date
@@ -130,16 +132,18 @@ export default function HotelPricingPage() {
   const [roomTypes, setRoomTypes] = useState<any[]>([])
   const [occupancyTypes, setOccupancyTypes] = useState<any[]>([])
   const [mealPlans, setMealPlans] = useState<any[]>([])
+  const [seasonalPeriods, setSeasonalPeriods] = useState<any[]>([])
 
   const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
     defaultValues: {
       startDate: new Date(),
       endDate: new Date(),
-      roomTypeId: "", // Changed from roomType to roomTypeId
-      occupancyTypeId: "", // Changed from occupancyType to occupancyTypeId
+      roomTypeId: "",
+      occupancyTypeId: "",
       price: 0,
-      mealPlanId: "", // Changed from mealPlan to mealPlanId
+      mealPlanId: "",
+      locationSeasonalPeriodId: "",
     }
   })
   useEffect(() => {
@@ -147,6 +151,12 @@ export default function HotelPricingPage() {
       try {
         const response = await axios.get(`/api/hotels/${hotelId}`)
         setHotel(response.data)
+        if (response.data?.locationId) {
+          const seasonsRes = await axios.get(
+            `/api/locations/${response.data.locationId}/seasonal-periods`
+          )
+          setSeasonalPeriods(seasonsRes.data)
+        }
       } catch (error) {
         toast.error("Failed to fetch hotel details")
         console.error(error)
@@ -193,13 +203,19 @@ export default function HotelPricingPage() {
     try {
       setLoading(true)
 
+      const payload = {
+        ...data,
+        locationSeasonalPeriodId: data.locationSeasonalPeriodId || null,
+      }
+
       if (isEditMode && editId) {
-        // Update existing pricing period
-        await axios.patch(`/api/hotels/${hotelId}/pricing/${editId}`, data)
+        await axios.patch(`/api/hotels/${hotelId}/pricing/${editId}`, payload)
         toast.success("Pricing period updated")
       } else {
-        // Create new pricing period
-        await axios.post(`/api/hotels/${hotelId}/pricing`, data)
+        await axios.post(`/api/hotels/${hotelId}/pricing`, {
+          ...payload,
+          applySplit: true,
+        })
         toast.success("Pricing period created")
       }
 
@@ -230,6 +246,7 @@ export default function HotelPricingPage() {
     form.setValue("price", pricing.price)
     // Properly handle the meal plan ID from the relation or direct field
     form.setValue("mealPlanId", pricing.mealPlanId || "")
+    form.setValue("locationSeasonalPeriodId", pricing.locationSeasonalPeriodId || "")
     setIsDialogOpen(true)
   }
 
@@ -290,6 +307,7 @@ export default function HotelPricingPage() {
                 <TableCaption>List of pricing periods for this hotel</TableCaption>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Season</TableHead>
                     <TableHead>Date Range</TableHead>
                     <TableHead>Room Type</TableHead>
                     <TableHead>Occupancy</TableHead>
@@ -300,6 +318,21 @@ export default function HotelPricingPage() {
                 </TableHeader>
                 <TableBody>                  {pricingPeriods.map((pricing) => (
                   <TableRow key={pricing.id}>
+                    <TableCell>
+                      {pricing.locationSeasonalPeriod ? (
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                            getSeasonColor(pricing.locationSeasonalPeriod.seasonType).bg,
+                            getSeasonColor(pricing.locationSeasonalPeriod.seasonType).text
+                          )}
+                        >
+                          {pricing.locationSeasonalPeriod.name}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
                     <TableCell>
                       {formatLocalDate(utcToLocal(pricing.startDate) || new Date(), "PPP")} to {formatLocalDate(utcToLocal(pricing.endDate) || new Date(), "PPP")}
                     </TableCell>
@@ -483,6 +516,47 @@ export default function HotelPricingPage() {
                     )}
                   />
                 </div>
+
+                {seasonalPeriods.length > 0 ? (
+                  <FormField
+                    control={form.control}
+                    name="locationSeasonalPeriodId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Seasonal Period (Optional)</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value === "__none" ? "" : value)
+                            const period = seasonalPeriods.find((p) => p.id === value)
+                            if (period) {
+                              const ranges = generateDateRangesForYear(period, new Date().getFullYear())
+                              if (ranges.length > 0) {
+                                form.setValue("startDate", ranges[0].start)
+                                form.setValue("endDate", ranges[0].end)
+                              }
+                            }
+                          }}
+                          value={field.value || "__none"}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Manual dates" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="__none">Manual dates</SelectItem>
+                            {seasonalPeriods.map((period) => (
+                              <SelectItem key={period.id} value={period.id}>
+                                {period.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField

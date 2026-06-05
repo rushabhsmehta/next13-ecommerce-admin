@@ -36,7 +36,8 @@ export async function GET(req: Request, props: { params: Promise<{ hotelId: stri
       include: {
         roomType: true,
         occupancyType: true,
-        mealPlan: true
+        mealPlan: true,
+        locationSeasonalPeriod: true,
       },
       orderBy: {
         startDate: 'asc'
@@ -69,7 +70,8 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
       occupancyTypeId, 
       price,
       mealPlanId,
-      applySplit 
+      applySplit,
+      locationSeasonalPeriodId,
     } = body;
 
     if (!startDate || !endDate) {
@@ -150,6 +152,7 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
                 occupancyTypeId: period.occupancyTypeId,
                 price: period.price,
                 mealPlanId: period.mealPlanId,
+                locationSeasonalPeriodId: period.locationSeasonalPeriodId,
                 isActive: true
               }
             });
@@ -170,6 +173,7 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
                 occupancyTypeId: period.occupancyTypeId,
                 price: period.price,
                 mealPlanId: period.mealPlanId,
+                locationSeasonalPeriodId: period.locationSeasonalPeriodId,
                 isActive: true
               }
             });
@@ -186,6 +190,7 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
             occupancyTypeId,
             price,
             mealPlanId: mealPlanId || null,
+            locationSeasonalPeriodId: locationSeasonalPeriodId || null,
             isActive: true
           }
         });
@@ -206,6 +211,7 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
         occupancyTypeId,
         price,
         mealPlanId: mealPlanId || null,
+        locationSeasonalPeriodId: locationSeasonalPeriodId || null,
         isActive: true
       }
     });

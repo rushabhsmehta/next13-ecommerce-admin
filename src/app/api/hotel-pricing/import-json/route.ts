@@ -247,7 +247,8 @@ export async function POST(req: Request) {
             where: { id: existing.id },
             data: {
               price: valid.entry.price,
-              isActive: valid.entry.isActive
+              isActive: valid.entry.isActive,
+              locationSeasonalPeriodId: valid.entry.locationSeasonalPeriodId ?? null,
             }
           });
           updated++;
@@ -261,7 +262,8 @@ export async function POST(req: Request) {
               startDate: valid.startDateUtc,
               endDate: valid.endDateUtc,
               price: valid.entry.price,
-              isActive: valid.entry.isActive
+              isActive: valid.entry.isActive,
+              locationSeasonalPeriodId: valid.entry.locationSeasonalPeriodId ?? null,
             }
           });
           created++;

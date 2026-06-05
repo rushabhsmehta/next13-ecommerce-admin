@@ -1,0 +1,12 @@
+# Railway cron service for WhatsApp campaign dispatch.
+# Deploy this folder to the discerning-joy service with:
+#   railway up cron/whatsapp-campaign-worker --path-as-root -s discerning-joy
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+cronSchedule = "*/5 * * * *"
+startCommand = "sh run.sh"
+restartPolicyType = "NEVER"

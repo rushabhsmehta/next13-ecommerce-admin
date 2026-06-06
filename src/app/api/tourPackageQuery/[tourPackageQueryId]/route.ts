@@ -6,7 +6,7 @@ import prismadb from "@/lib/prismadb";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
 import { createAuditLog } from "@/lib/utils/audit-logger";
-import { createVariantSnapshots, applyVariantHotelOverrides, applyVariantPricingOverrides } from '@/lib/variant-snapshot';
+import { createVariantSnapshots, applyVariantHotelOverrides, applyVariantPricingOverrides, deleteVariantSnapshots } from '@/lib/variant-snapshot';
 
 export const dynamic = 'force-dynamic'; // Ensure API is not cached
 
@@ -1044,6 +1044,35 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       Array.isArray(selectedVariantIds) &&
       selectedVariantIds.length > 0;
 
+    const shouldClearVariantSnapshots =
+      hasBodyKey('selectedVariantIds') &&
+      Array.isArray(selectedVariantIds) &&
+      selectedVariantIds.length === 0;
+
+    const shouldClearVariantJson =
+      shouldClearVariantSnapshots &&
+      hasBodyKey('customQueryVariants') &&
+      Array.isArray(customQueryVariants) &&
+      customQueryVariants.length === 0;
+
+    if (shouldClearVariantSnapshots) {
+      console.log('🗑️ Clearing variant snapshots (selectedVariantIds cleared)...');
+      await deleteVariantSnapshots(params.tourPackageQueryId);
+    }
+
+    if (shouldClearVariantJson) {
+      await prismadb.tourPackageQuery.update({
+        where: { id: params.tourPackageQueryId },
+        data: {
+          variantHotelOverrides: {},
+          variantRoomAllocations: {},
+          variantTransportDetails: {},
+          variantPricingData: {},
+          confirmedVariantId: null,
+        },
+      });
+    }
+
     if (shouldRefreshSnapshots) {
       // Let snapshot errors propagate. Previously they were swallowed and the
       // API returned 200 even when snapshots had been wiped — the exact failure
@@ -1093,7 +1122,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
           }
         );
       }
-    } else if (variantFieldsTouched) {
+    } else if (variantFieldsTouched && !shouldClearVariantSnapshots) {
       // Variant override fields were updated but selectedVariantIds was not sent
       // (e.g. Hotels tab saved variantHotelOverrides only). Apply overrides directly
       // to existing snapshots without a full template rebuild.

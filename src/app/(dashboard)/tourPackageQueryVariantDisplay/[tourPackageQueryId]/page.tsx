@@ -3,6 +3,11 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryVariantDisplay } from "./components/tourPackageQueryVariantDisplay";
 import Link from "next/link";
 import { buildSyntheticSnapshots } from "@/lib/buildSyntheticSnapshots";
+import {
+    filterVariantSnapshotsForDisplay,
+    getActiveVariantIds,
+    parseSelectedVariantIds,
+} from "@/lib/variant-display-utils";
 
 const tourPackageQueryVariantPage = async (
     props: {
@@ -113,45 +118,59 @@ const tourPackageQueryVariantPage = async (
         }
     });
 
-    if (tourPackageQuery && (!tourPackageQuery.queryVariantSnapshots || tourPackageQuery.queryVariantSnapshots.length === 0)) {
-        const selectedVariantIds = (tourPackageQuery as any).selectedVariantIds as string[] | null;
-        const customQueryVariants = (tourPackageQuery as any).customQueryVariants as any[] | null;
-        const hasVariants = (selectedVariantIds && selectedVariantIds.length > 0) || (customQueryVariants && customQueryVariants.length > 0);
+    if (tourPackageQuery) {
+        const activeVariantIds = getActiveVariantIds(tourPackageQuery);
 
-        if (hasVariants) {
-            // Fetch PackageVariant records for template-derived variants
-            let packageVariants: any[] = [];
-            if (selectedVariantIds && selectedVariantIds.length > 0) {
-                packageVariants = await prismadb.packageVariant.findMany({
-                    where: { id: { in: selectedVariantIds } },
-                    include: {
-                        variantHotelMappings: {
-                            include: {
-                                hotel: {
-                                    include: {
-                                        images: { orderBy: { createdAt: 'asc' }, take: 1 },
-                                        location: true,
+        if (activeVariantIds.length === 0) {
+            (tourPackageQuery as any).queryVariantSnapshots = [];
+        } else {
+            (tourPackageQuery as any).queryVariantSnapshots = filterVariantSnapshotsForDisplay(
+                tourPackageQuery.queryVariantSnapshots,
+                activeVariantIds
+            );
+
+            if (!tourPackageQuery.queryVariantSnapshots?.length) {
+                const selectedVariantIds = parseSelectedVariantIds(
+                    (tourPackageQuery as any).selectedVariantIds
+                );
+                const customQueryVariants = (tourPackageQuery as any).customQueryVariants as any[] | null;
+
+                let packageVariants: any[] = [];
+                if (selectedVariantIds.length > 0) {
+                    packageVariants = await prismadb.packageVariant.findMany({
+                        where: { id: { in: selectedVariantIds } },
+                        include: {
+                            variantHotelMappings: {
+                                include: {
+                                    hotel: {
+                                        include: {
+                                            images: { orderBy: { createdAt: 'asc' }, take: 1 },
+                                            location: true,
+                                        },
                                     },
+                                    itinerary: true,
                                 },
-                                itinerary: true,
                             },
                         },
-                    },
-                    orderBy: { sortOrder: 'asc' },
+                        orderBy: { sortOrder: 'asc' },
+                    });
+                }
+
+                const syntheticSnapshots = buildSyntheticSnapshots({
+                    selectedVariantIds,
+                    packageVariants,
+                    variantHotelOverrides: (tourPackageQuery as any).variantHotelOverrides,
+                    variantPricingData: (tourPackageQuery as any).variantPricingData,
+                    customQueryVariants,
+                    itineraries: tourPackageQuery.itineraries,
+                    hotels: hotels as any,
                 });
+
+                (tourPackageQuery as any).queryVariantSnapshots = filterVariantSnapshotsForDisplay(
+                    syntheticSnapshots,
+                    activeVariantIds
+                );
             }
-
-            const syntheticSnapshots = buildSyntheticSnapshots({
-                selectedVariantIds,
-                packageVariants,
-                variantHotelOverrides: (tourPackageQuery as any).variantHotelOverrides,
-                variantPricingData: (tourPackageQuery as any).variantPricingData,
-                customQueryVariants,
-                itineraries: tourPackageQuery.itineraries,
-                hotels: hotels as any,
-            });
-
-            (tourPackageQuery as any).queryVariantSnapshots = syntheticSnapshots;
         }
     }
 

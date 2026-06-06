@@ -1,6 +1,9 @@
 import type {
   VariantBuildContext,
+  VariantBuildDraft,
   VariantComparisonItem,
+  VariantRoomAllocationInput,
+  VariantTransportDetailInput,
 } from "@/lib/tour-query-pricing";
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -25,6 +28,63 @@ export function findNestedRecord(
     }
   }
   return {};
+}
+
+export function cloneVariantBuildDraft(draft: VariantBuildDraft): VariantBuildDraft {
+  return JSON.parse(JSON.stringify(draft)) as VariantBuildDraft;
+}
+
+export function createVariantBuildDraft(
+  variant: VariantComparisonItem,
+  build: VariantBuildContext
+): VariantBuildDraft {
+  const roomsByItinerary = findNestedRecord(
+    build.variantRoomAllocations,
+    variantDataKeys(variant)
+  );
+  const transportByItinerary = findNestedRecord(
+    build.variantTransportDetails,
+    variantDataKeys(variant)
+  );
+  const draft: VariantBuildDraft = {
+    roomsByItinerary: {},
+    transportByItinerary: {},
+  };
+
+  for (const itinerary of build.itineraries) {
+    const rooms = roomsByItinerary[itinerary.id];
+    const transport = transportByItinerary[itinerary.id];
+    draft.roomsByItinerary[itinerary.id] = Array.isArray(rooms)
+      ? (JSON.parse(JSON.stringify(rooms)) as VariantRoomAllocationInput[])
+      : [];
+    draft.transportByItinerary[itinerary.id] = Array.isArray(transport)
+      ? (JSON.parse(JSON.stringify(transport)) as VariantTransportDetailInput[])
+      : [];
+  }
+
+  return draft;
+}
+
+export function copyFirstDayBuildToAllDays(
+  draft: VariantBuildDraft,
+  itineraryIds: string[]
+): VariantBuildDraft {
+  if (itineraryIds.length === 0) return cloneVariantBuildDraft(draft);
+  const firstId = itineraryIds[0];
+  const firstRooms = draft.roomsByItinerary[firstId] ?? [];
+  const firstTransport = draft.transportByItinerary[firstId] ?? [];
+  const next = cloneVariantBuildDraft(draft);
+
+  for (const itineraryId of itineraryIds) {
+    next.roomsByItinerary[itineraryId] = JSON.parse(
+      JSON.stringify(firstRooms)
+    ) as VariantRoomAllocationInput[];
+    next.transportByItinerary[itineraryId] = JSON.parse(
+      JSON.stringify(firstTransport)
+    ) as VariantTransportDetailInput[];
+  }
+
+  return next;
 }
 
 export function resolveVariantHotelName(

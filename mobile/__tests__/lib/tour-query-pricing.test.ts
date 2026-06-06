@@ -84,6 +84,17 @@ describe("createTourQueryPricingClient", () => {
             quantity: 2,
           },
         ],
+        "it 2": [],
+      },
+      transportByItinerary: {
+        "it 1": [
+          {
+            vehicleTypeId: "vehicle1",
+            quantity: 1,
+            description: "Airport pickup",
+          },
+        ],
+        "it 2": [],
       },
     });
     expect(request).toHaveBeenCalledWith(
@@ -100,6 +111,17 @@ describe("createTourQueryPricingClient", () => {
                 quantity: 2,
               },
             ],
+            "it 2": [],
+          },
+          transportByItinerary: {
+            "it 1": [
+              {
+                vehicleTypeId: "vehicle1",
+                quantity: 1,
+                description: "Airport pickup",
+              },
+            ],
+            "it 2": [],
           },
         },
         timeout: 90000,

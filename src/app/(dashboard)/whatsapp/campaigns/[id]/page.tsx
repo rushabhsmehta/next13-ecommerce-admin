@@ -195,7 +195,9 @@ export default function CampaignDetailsPage() {
     }
 
     const activeStatuses = ['sending', 'scheduled'];
-    const shouldPoll = activeStatuses.includes(campaign.status);
+    const shouldPoll =
+      activeStatuses.includes(campaign.status) ||
+      (campaign.status === 'completed' && summary.sent > 0);
 
     if (!shouldPoll) {
       return;
@@ -205,7 +207,7 @@ export default function CampaignDetailsPage() {
     const interval = setInterval(fetchCampaign, 30000);
 
     return () => clearInterval(interval);
-  }, [campaign, fetchCampaign]);
+  }, [campaign, fetchCampaign, summary.sent]);
 
   const sendCampaign = async () => {
     const existingStatus = campaign?.status;

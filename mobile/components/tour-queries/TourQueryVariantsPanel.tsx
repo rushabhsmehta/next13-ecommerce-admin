@@ -28,9 +28,9 @@ import { absoluteAdminUrl, tourQueryHotelUpdatePath } from "@/lib/tour-queries-w
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   createTourQueryPricingClient,
+  type VariantBuildDraft,
   type VariantComparisonItem,
   type VariantComparisonResponse,
-  type VariantRoomAllocationInput,
 } from "@/lib/tour-query-pricing";
 import { VariantBuildPanel } from "./VariantBuildPanel";
 
@@ -117,6 +117,7 @@ function TourQueryVariantsPanelInner({
   const [updating, setUpdating] = useState<string | null>(null);
   const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
   const [buildSavingVariantId, setBuildSavingVariantId] = useState<string | null>(null);
+  const [activeBuildDirty, setActiveBuildDirty] = useState(false);
 
   const load = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -151,17 +152,15 @@ function TourQueryVariantsPanelInner({
     }
   }, [activeVariantId, data?.variants]);
 
-  const saveVariantRooms = useCallback(
+  const saveVariantBuild = useCallback(
     async (
       variant: VariantComparisonItem,
-      roomsByItinerary: Record<string, VariantRoomAllocationInput[]>
+      draft: VariantBuildDraft
     ) => {
       if (!id || buildSavingVariantId) return;
       setBuildSavingVariantId(variant.id);
       try {
-        const res = await client.updateVariantBuild(id, variant.id, {
-          roomsByItinerary,
-        });
+        const res = await client.updateVariantBuild(id, variant.id, draft);
         setData((prev) =>
           prev?.build
             ? {
@@ -174,11 +173,17 @@ function TourQueryVariantsPanelInner({
               }
             : prev
         );
-        Alert.alert("Saved", `Room allocations saved for "${variant.name}".`);
+        setActiveBuildDirty(false);
+        Alert.alert(
+          "Saved",
+          `Room allocations and transport saved for "${variant.name}".`
+        );
       } catch (err) {
         Alert.alert(
           "Save failed",
-          err instanceof ApiError ? err.message : "Could not save room allocations."
+          err instanceof ApiError
+            ? err.message
+            : "Could not save room allocations and transport."
         );
       } finally {
         setBuildSavingVariantId(null);
@@ -292,6 +297,32 @@ function TourQueryVariantsPanelInner({
       null
     );
   }, [activeVariantId, data?.variants]);
+
+  const changeActiveVariant = useCallback(
+    (nextVariantId: string) => {
+      if (nextVariantId === activeVariantId) return;
+      if (!activeBuildDirty) {
+        setActiveVariantId(nextVariantId);
+        return;
+      }
+      Alert.alert(
+        "Discard unsaved variant edits?",
+        "Room allocation or transport changes have not been saved.",
+        [
+          { text: "Keep editing", style: "cancel" },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: () => {
+              setActiveBuildDirty(false);
+              setActiveVariantId(nextVariantId);
+            },
+          },
+        ]
+      );
+    },
+    [activeBuildDirty, activeVariantId]
+  );
 
   const openHotelsWeb = () => {
     if (!hotelEditUrl) return;
@@ -446,7 +477,7 @@ function TourQueryVariantsPanelInner({
                   label: variant.name || "Unnamed",
                 }))}
                 value={activeVariantId ?? data.variants[0].id}
-                onChange={setActiveVariantId}
+                onChange={changeActiveVariant}
                 testIDPrefix="trip-variant-tab"
                 scrollable
               />
@@ -549,12 +580,15 @@ function TourQueryVariantsPanelInner({
                 )}
               {data.build ? (
                 <VariantBuildPanel
+                  key={activeVariant.id}
                   queryId={id}
                   variant={activeVariant}
+                  variants={data.variants}
                   build={data.build}
                   canWriteSales={canWriteSales}
-                  onSaveRooms={canWriteSales ? saveVariantRooms : undefined}
-                  savingRooms={buildSavingVariantId === activeVariant.id}
+                  onSaveBuild={canWriteSales ? saveVariantBuild : undefined}
+                  onDirtyChange={setActiveBuildDirty}
+                  savingBuild={buildSavingVariantId === activeVariant.id}
                 />
               ) : null}
               {canWriteSales ? (

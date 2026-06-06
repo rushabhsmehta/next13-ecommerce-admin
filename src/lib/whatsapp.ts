@@ -2503,28 +2503,248 @@ export async function getWhatsAppMessages(
   });
 }
 
+const WHATSAPP_STATUS_RANK: Record<string, number> = {
+  pending: 0,
+  scheduled: 0,
+  sending: 0,
+  retry: 0,
+  sent: 1,
+  delivered: 2,
+  read: 3,
+  responded: 4,
+};
+
+const DELIVERED_RECIPIENT_STATUSES = new Set(['delivered', 'read', 'responded']);
+const READ_RECIPIENT_STATUSES = new Set(['read', 'responded']);
+
+function resolveWhatsAppStatus(currentStatus: string, incomingStatus: string) {
+  const normalizedIncoming = incomingStatus.toLowerCase();
+  if (currentStatus === normalizedIncoming) {
+    return currentStatus;
+  }
+
+  if (currentStatus === 'failed' || currentStatus === 'opted_out') {
+    return currentStatus;
+  }
+
+  if (normalizedIncoming === 'failed') {
+    return (WHATSAPP_STATUS_RANK[currentStatus] ?? -1) >= WHATSAPP_STATUS_RANK.delivered
+      ? currentStatus
+      : 'failed';
+  }
+
+  const incomingRank = WHATSAPP_STATUS_RANK[normalizedIncoming];
+  if (incomingRank === undefined) {
+    return currentStatus;
+  }
+
+  return incomingRank >= (WHATSAPP_STATUS_RANK[currentStatus] ?? -1)
+    ? normalizedIncoming
+    : currentStatus;
+}
+
+function getWebhookStatusError(metadata?: Record<string, any>) {
+  const error = Array.isArray(metadata?.errors) ? metadata.errors[0] : metadata?.error;
+  if (!error || typeof error !== 'object') {
+    return { code: undefined, message: undefined };
+  }
+
+  const messageParts = [
+    error.title,
+    error.message,
+    error.error_data?.details,
+  ].filter((value, index, values) =>
+    typeof value === 'string' && value.trim() && values.indexOf(value) === index
+  );
+
+  return {
+    code: error.code === undefined || error.code === null ? undefined : String(error.code),
+    message: messageParts.length > 0 ? messageParts.join(': ') : undefined,
+  };
+}
+
+function asMetadataRecord(value: Prisma.JsonValue | null): Record<string, any> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, any>
+    : {};
+}
+
+async function syncCampaignRecipientStatus(
+  message: WhatsAppMessage,
+  incomingStatus: string,
+  statusError: { code?: string; message?: string }
+) {
+  const messageMetadata = asMetadataRecord(message.metadata);
+  const recipientId =
+    typeof messageMetadata.recipientId === 'string' ? messageMetadata.recipientId : undefined;
+  const metadataCampaignId =
+    typeof messageMetadata.campaignId === 'string' ? messageMetadata.campaignId : undefined;
+
+  const recipient = recipientId
+    ? await prisma.whatsAppCampaignRecipient.findUnique({
+        where: { id: recipientId },
+        select: {
+          id: true,
+          campaignId: true,
+          status: true,
+          deliveredAt: true,
+          readAt: true,
+          failedAt: true,
+          errorCode: true,
+          errorMessage: true,
+        },
+      })
+    : message.messageSid
+      ? await prisma.whatsAppCampaignRecipient.findFirst({
+          where: { messageId: message.messageSid },
+          select: {
+            id: true,
+            campaignId: true,
+            status: true,
+            deliveredAt: true,
+            readAt: true,
+            failedAt: true,
+            errorCode: true,
+            errorMessage: true,
+          },
+        })
+      : null;
+
+  if (!recipient || (metadataCampaignId && recipient.campaignId !== metadataCampaignId)) {
+    return;
+  }
+
+  const nextStatus = resolveWhatsAppStatus(recipient.status, incomingStatus);
+  const now = new Date();
+  const nextErrorCode =
+    nextStatus === 'failed' ? statusError.code ?? recipient.errorCode : recipient.errorCode;
+  const nextErrorMessage =
+    nextStatus === 'failed'
+      ? statusError.message ?? recipient.errorMessage ?? 'Meta reported this message as failed'
+      : recipient.errorMessage;
+  const needsUpdate =
+    nextStatus !== recipient.status ||
+    (DELIVERED_RECIPIENT_STATUSES.has(nextStatus) && !recipient.deliveredAt) ||
+    (READ_RECIPIENT_STATUSES.has(nextStatus) && !recipient.readAt) ||
+    (nextStatus === 'failed' &&
+      (!recipient.failedAt ||
+        nextErrorCode !== recipient.errorCode ||
+        nextErrorMessage !== recipient.errorMessage));
+
+  if (!needsUpdate) {
+    return;
+  }
+
+  const deliveredIncrement =
+    !DELIVERED_RECIPIENT_STATUSES.has(recipient.status) &&
+    DELIVERED_RECIPIENT_STATUSES.has(nextStatus)
+      ? 1
+      : 0;
+  const readIncrement =
+    !READ_RECIPIENT_STATUSES.has(recipient.status) && READ_RECIPIENT_STATUSES.has(nextStatus)
+      ? 1
+      : 0;
+  const failedIncrement = recipient.status !== 'failed' && nextStatus === 'failed' ? 1 : 0;
+
+  await prisma.$transaction(async (tx) => {
+    const claimed = await tx.whatsAppCampaignRecipient.updateMany({
+      where: {
+        id: recipient.id,
+        campaignId: recipient.campaignId,
+        status: recipient.status,
+      },
+      data: {
+        status: nextStatus,
+        ...(DELIVERED_RECIPIENT_STATUSES.has(nextStatus) &&
+          !recipient.deliveredAt && { deliveredAt: now }),
+        ...(READ_RECIPIENT_STATUSES.has(nextStatus) && !recipient.readAt && { readAt: now }),
+        ...(nextStatus === 'failed' && {
+          failedAt: recipient.failedAt ?? now,
+          errorCode: nextErrorCode,
+          errorMessage: nextErrorMessage,
+        }),
+      },
+    });
+
+    if (claimed.count === 0) {
+      return;
+    }
+
+    const campaignUpdates: Record<string, { increment: number }> = {};
+    if (deliveredIncrement > 0) {
+      campaignUpdates.deliveredCount = { increment: deliveredIncrement };
+    }
+    if (readIncrement > 0) {
+      campaignUpdates.readCount = { increment: readIncrement };
+    }
+    if (failedIncrement > 0) {
+      campaignUpdates.failedCount = { increment: failedIncrement };
+    }
+
+    if (Object.keys(campaignUpdates).length > 0) {
+      await tx.whatsAppCampaign.update({
+        where: { id: recipient.campaignId },
+        data: campaignUpdates,
+      });
+    }
+  });
+}
+
 export async function updateMessageStatus(
   messageSid: string,
   status: string,
   metadata?: Record<string, any>
 ) {
   try {
-    const result = await prisma.whatsAppMessage.updateMany({
-      where: { messageSid },
-      data: {
-        status,
-        updatedAt: new Date(),
-        ...(status === 'delivered' && { deliveredAt: new Date() }),
-      },
-    });
+    const existingMessage = await prisma.whatsAppMessage.findFirst({ where: { messageSid } });
+    if (!existingMessage) {
+      return { count: 0 };
+    }
+
+    const nextStatus = resolveWhatsAppStatus(existingMessage.status, status);
+    const statusError = getWebhookStatusError(metadata);
+    const now = new Date();
+    const nextErrorCode =
+      nextStatus === 'failed' ? statusError.code ?? existingMessage.errorCode : existingMessage.errorCode;
+    const nextErrorMessage =
+      nextStatus === 'failed'
+        ? statusError.message ?? existingMessage.errorMessage ?? 'Meta reported this message as failed'
+        : existingMessage.errorMessage;
+    const needsUpdate =
+      nextStatus !== existingMessage.status ||
+      (DELIVERED_RECIPIENT_STATUSES.has(nextStatus) && !existingMessage.deliveredAt) ||
+      (nextStatus === 'failed' &&
+        (nextErrorCode !== existingMessage.errorCode ||
+          nextErrorMessage !== existingMessage.errorMessage));
+
+    const result = needsUpdate
+      ? await prisma.whatsAppMessage.updateMany({
+          where: {
+            messageSid,
+            status: existingMessage.status,
+          },
+          data: {
+            status: nextStatus,
+            updatedAt: now,
+            ...(DELIVERED_RECIPIENT_STATUSES.has(nextStatus) &&
+              !existingMessage.deliveredAt && { deliveredAt: now }),
+            ...(nextStatus === 'failed' && {
+              errorCode: nextErrorCode,
+              errorMessage: nextErrorMessage,
+            }),
+          },
+        })
+      : { count: 0 };
 
     const message = await prisma.whatsAppMessage.findFirst({ where: { messageSid } });
     if (message) {
+      await syncCampaignRecipientStatus(message, message.status, statusError);
+
       await recordAnalyticsEvent({
         eventType: 'message.status',
         sessionId: message.sessionId ?? undefined,
         messageId: message.id,
-        payload: { status, metadata },
+        payload: { status: message.status, metadata },
       });
 
       const session = message.sessionId
@@ -2533,14 +2753,14 @@ export async function updateMessageStatus(
       await runAutomations('message.status', {
         session,
         message,
-        payload: { status },
+        payload: { status: message.status },
       });
     }
 
     return result;
   } catch (error) {
     console.error('Error updating message status:', error);
-    return null;
+    throw error;
   }
 }
 

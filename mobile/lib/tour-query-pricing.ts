@@ -81,9 +81,21 @@ export interface VariantRoomAllocationInput {
   [key: string]: unknown;
 }
 
+export interface VariantTransportDetailInput {
+  vehicleTypeId?: string | null;
+  quantity?: number;
+  description?: string | null;
+  [key: string]: unknown;
+}
+
 export interface VariantBuildUpdateInput {
   roomsByItinerary?: Record<string, VariantRoomAllocationInput[]>;
-  transportByItinerary?: Record<string, unknown[]>;
+  transportByItinerary?: Record<string, VariantTransportDetailInput[]>;
+}
+
+export interface VariantBuildDraft {
+  roomsByItinerary: Record<string, VariantRoomAllocationInput[]>;
+  transportByItinerary: Record<string, VariantTransportDetailInput[]>;
 }
 
 export interface VariantBuildUpdateResponse {

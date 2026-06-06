@@ -524,6 +524,7 @@ export async function POST(request: NextRequest) {
           if (change.field !== 'messages') continue;
 
           const value = change.value;
+          let hasDbError = false;
 
           if (value.statuses) {
             for (const status of value.statuses) {
@@ -535,18 +536,25 @@ export async function POST(request: NextRequest) {
               }
 
               try {
-                await updateMessageStatus(messageId, statusValue);
+                await updateMessageStatus(messageId, statusValue, status);
               } catch (error) {
                 console.error('Error updating message status:', error);
+                hasDbError = true;
               }
             }
           }
 
-          if (!value.messages) continue;
+          if (!value.messages) {
+            if (hasDbError) {
+              return NextResponse.json(
+                { success: false, message: 'Failed to save message status updates' },
+                { status: 500 }
+              );
+            }
+            continue;
+          }
 
           console.log(`[WhatsApp Webhook] Found ${value.messages.length} incoming message(s)`);
-
-          let hasDbError = false;
 
           for (const message of value.messages) {
             if (debugMode) {

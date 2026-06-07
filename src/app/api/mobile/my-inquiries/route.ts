@@ -30,6 +30,16 @@ export async function GET(req: Request) {
           take: 1,
           select: { id: true, createdAt: true },
         },
+        couponRedemptions: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            code: true,
+            status: true,
+            discountAmount: true,
+            validationMessage: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -48,6 +58,7 @@ export async function GET(req: Request) {
         ? { name: inq.assignedStaff.name, email: inq.assignedStaff.email }
         : null,
       latestQuote: inq.tourPackageQueries[0] ?? null,
+      coupon: inq.couponRedemptions[0] ?? null,
       createdAt: inq.createdAt,
       updatedAt: inq.updatedAt,
       lastAction: inq.actions[0] ?? null,

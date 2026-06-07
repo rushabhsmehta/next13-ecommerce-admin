@@ -31,6 +31,20 @@ const InquiryPage = async (
         orderBy: {
           actionDate: 'desc'
         }
+      },
+      couponRedemptions: {
+        orderBy: {
+          createdAt: 'desc'
+        },
+        include: {
+          campaign: {
+            select: {
+              name: true,
+              discountType: true,
+              discountValue: true
+            }
+          }
+        }
       }
     }
   });
@@ -59,6 +73,37 @@ const InquiryPage = async (
         />
 
         {/* Staff Assignment Section */}
+        {inquiry && (
+          <div className="mt-6 border rounded-md shadow-sm p-4 bg-card">
+            <h3 className="text-lg font-medium mb-3">Coupon Status</h3>
+            {inquiry.couponRedemptions?.length ? (
+              <div className="space-y-2 text-sm">
+                {inquiry.couponRedemptions.map((redemption: any) => (
+                  <div key={redemption.id} className="flex flex-wrap items-center gap-2 rounded-md border p-3">
+                    <span className="font-semibold">{redemption.code}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                      {redemption.status}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {redemption.campaign?.name || "Coupon campaign"}
+                    </span>
+                    {redemption.discountAmount ? (
+                      <span className="text-green-700">
+                        Discount: ₹{Math.round(redemption.discountAmount).toLocaleString("en-IN")}
+                      </span>
+                    ) : null}
+                    {redemption.validationMessage ? (
+                      <span className="text-amber-700">{redemption.validationMessage}</span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No coupon requested for this inquiry.</p>
+            )}
+          </div>
+        )}
+
         {inquiry && (
           <div className="mt-6 border rounded-md shadow-sm p-4 bg-card">
             <h3 className="text-lg font-medium mb-4">Operational Staff Assignment</h3>

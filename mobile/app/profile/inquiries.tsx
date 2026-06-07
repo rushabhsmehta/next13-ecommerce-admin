@@ -34,6 +34,12 @@ interface Inquiry {
   createdAt: string;
   updatedAt: string;
   lastAction: { actionType: string; remarks: string; actionDate: string } | null;
+  coupon: {
+    code: string;
+    status: string;
+    discountAmount: number | null;
+    validationMessage: string | null;
+  } | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
@@ -50,6 +56,20 @@ function StatusBadge({ status }: { status: string }) {
     <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
       <Ionicons name={cfg.icon} size={11} color={cfg.color} />
       <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
+    </View>
+  );
+}
+
+function CouponBadge({ coupon }: { coupon: NonNullable<Inquiry["coupon"]> }) {
+  const applied = coupon.status === "APPLIED" || coupon.status === "VALIDATED" || coupon.status === "APPROVED";
+  const color = applied ? "#14532d" : coupon.status === "REJECTED" ? "#991b1b" : "#92400e";
+  const bg = applied ? "#dcfce7" : coupon.status === "REJECTED" ? "#fee2e2" : "#fef3c7";
+  return (
+    <View style={[styles.couponBadge, { backgroundColor: bg }]}>
+      <Ionicons name="pricetag-outline" size={11} color={color} />
+      <Text style={[styles.couponBadgeText, { color }]} numberOfLines={1}>
+        {coupon.code} - {coupon.status.replace(/_/g, " ")}
+      </Text>
     </View>
   );
 }
@@ -162,6 +182,7 @@ function InquiryCard({ inquiry }: { inquiry: Inquiry }) {
           <InfoChip icon="calendar-outline" label={journeyDateStr} />
         )}
         <InfoChip icon="time-outline" label={`Submitted ${createdStr}`} />
+        {inquiry.coupon ? <CouponBadge coupon={inquiry.coupon} /> : null}
       </View>
 
       <View style={styles.timelineBox}>
@@ -326,6 +347,16 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   chipText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "500" },
+  couponBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+    maxWidth: "100%",
+  },
+  couponBadgeText: { fontSize: FontSize.xs, fontWeight: "800", flexShrink: 1 },
 
   lastActionRow: {
     flexDirection: "row",

@@ -152,6 +152,15 @@ interface TourQueryDetail {
     status: string | null;
     associatePartnerId?: string | null;
   } | null;
+  couponRedemptions?: {
+    id: string;
+    code: string;
+    status: string;
+    discountAmount: number | null;
+    taxableAmountAfterDiscount: number | null;
+    validationMessage: string | null;
+    campaign?: { name: string } | null;
+  }[];
   flightDetails: FlightDetail[];
   queryVariantSnapshots: VariantSnapshot[];
   itineraries: ItineraryItem[];
@@ -789,6 +798,8 @@ function TourQueryDetailScreenInner() {
     .filter(Boolean)
     .join(" · ");
 
+  const latestCoupon = data.couponRedemptions?.[0] ?? null;
+
   const statusContext = data.isArchived
     ? "Archived queries stay out of active query lists."
     : confirmed
@@ -918,6 +929,14 @@ function TourQueryDetailScreenInner() {
           <Text style={styles.customerEcho} numberOfLines={2}>
             {data.customerName ?? "Customer"}
           </Text>
+          {latestCoupon ? (
+            <View style={styles.couponStrip}>
+              <Ionicons name="pricetag-outline" size={15} color={Colors.primary} />
+              <Text style={styles.couponStripText} numberOfLines={1}>
+                {latestCoupon.code} - {latestCoupon.status.replace(/_/g, " ")}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <TourQueryTabPanel activeTab={activeTab} testIDPrefix="tq-detail-tab">
@@ -1248,6 +1267,21 @@ function TourQueryDetailScreenInner() {
                 <Text style={styles.perPersonValue}>{formatINR(value)}</Text>
               </View>
             ))}
+            {latestCoupon ? (
+              <View style={styles.couponPriceBox}>
+                <View style={styles.perPersonRow}>
+                  <Text style={styles.perPersonLabel}>
+                    Coupon {latestCoupon.code} ({latestCoupon.status.replace(/_/g, " ")})
+                  </Text>
+                  <Text style={styles.perPersonValue}>
+                    {latestCoupon.discountAmount ? `-${formatINR(latestCoupon.discountAmount)}` : "Pending"}
+                  </Text>
+                </View>
+                {latestCoupon.validationMessage ? (
+                  <Text style={styles.pricingNote}>{latestCoupon.validationMessage}</Text>
+                ) : null}
+              </View>
+            ) : null}
           </View>
         </View>
         {canWriteSales ? (
@@ -1513,6 +1547,23 @@ const styles = StyleSheet.create({
   },
   summaryMetrics: { flexDirection: "row", gap: Spacing.xs },
   customerEcho: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
+  couponStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primaryBg,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+  },
+  couponStripText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.primary,
+  },
   statusLead: {
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
@@ -1707,6 +1758,12 @@ const styles = StyleSheet.create({
   },
   perPersonLabel: { fontSize: FontSize.sm, color: Colors.textSecondary, flex: 1 },
   perPersonValue: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.text },
+  couponPriceBox: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: Spacing.sm,
+    gap: 4,
+  },
   variantRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   variantName: { fontSize: FontSize.sm, color: Colors.text, fontWeight: "700" },
   linkish: {

@@ -65,6 +65,15 @@ interface AdminInquiryDetail {
   assignedStaff?: { id: string; name: string; email?: string | null } | null;
   actions?: InquiryActionItem[];
   tourPackageQueries?: { id: string }[] | null;
+  couponRedemptions?: {
+    id: string;
+    code: string;
+    status: string;
+    discountAmount: number | null;
+    taxableAmountAfterDiscount: number | null;
+    validationMessage: string | null;
+    campaign?: { name: string } | null;
+  }[];
 }
 
 interface StaffRow {
@@ -75,6 +84,11 @@ interface StaffRow {
 }
 
 const ACTION_TYPES = ["FOLLOW_UP", "CALL", "NOTE", "MEETING"] as const;
+
+function formatCouponAmount(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "-";
+  return `INR ${Math.round(Number(value)).toLocaleString("en-IN")}`;
+}
 
 export default function AdminInquiryDetailRoute() {
   return (
@@ -489,6 +503,7 @@ function AdminInquiryDetailInner() {
   }
 
   if (!detail) return null;
+  const latestCoupon = detail.couponRedemptions?.[0] ?? null;
 
   return (
     <AdminScreen
@@ -533,6 +548,29 @@ function AdminInquiryDetailInner() {
             <Text style={[styles.muted, { marginTop: 8 }]}>No staff assigned</Text>
           )}
         </View>
+
+        {latestCoupon ? (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Coupon</Text>
+            <View style={styles.couponHead}>
+              <Text style={styles.couponCode}>{latestCoupon.code}</Text>
+              <Text style={styles.couponStatus}>{latestCoupon.status.replace(/_/g, " ")}</Text>
+            </View>
+            <Text style={styles.cardValue}>
+              {latestCoupon.campaign?.name || "Coupon campaign"}
+            </Text>
+            <Text style={styles.muted}>
+              Discount {formatCouponAmount(latestCoupon.discountAmount)}
+              {latestCoupon.taxableAmountAfterDiscount !== null &&
+              latestCoupon.taxableAmountAfterDiscount !== undefined
+                ? `; taxable ${formatCouponAmount(latestCoupon.taxableAmountAfterDiscount)}`
+                : ""}
+            </Text>
+            {latestCoupon.validationMessage ? (
+              <Text style={styles.bannerText}>{latestCoupon.validationMessage}</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {(detail.tourPackageQueries && detail.tourPackageQueries.length > 0) || canWrite ? (
           <View style={styles.card}>
@@ -887,6 +925,28 @@ const styles = StyleSheet.create({
   },
   cardValue: { fontSize: FontSize.md, color: Colors.text, marginTop: 2 },
   muted: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  couponHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+    marginTop: 4,
+  },
+  couponCode: {
+    fontSize: FontSize.lg,
+    fontWeight: "900",
+    color: Colors.text,
+  },
+  couponStatus: {
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    overflow: "hidden",
+  },
   banner: {
     backgroundColor: "#fff7ed",
     borderRadius: BorderRadius.md,

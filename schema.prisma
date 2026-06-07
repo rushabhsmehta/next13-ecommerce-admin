@@ -276,6 +276,7 @@ model TourPackageQuery {
   images                           Images[]
   purchaseDetails                  PurchaseDetail[]
   saleDetails                      SaleDetail[]
+  couponRedemptions                CouponRedemption[]
   paymentDetails                   PaymentDetail[]
   receiptDetails                   ReceiptDetail[]
   expenseDetails                   ExpenseDetail[]
@@ -488,36 +489,42 @@ model PaymentDetail {
 }
 
 model SaleDetail {
-  id                 String                  @id @default(uuid())
-  tourPackageQueryId String
-  customerId         String?
-  saleDate           DateTime
-  salePrice          Float
-  description        String?                 @db.Text
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @default(now())
-  dueDate            DateTime?
-  gstAmount          Float?
-  gstPercentage      Float?
-  invoiceDate        DateTime?
-  invoiceNumber      String?
-  stateOfSupply      String?
-  status             String?                 @default("pending")
-  isGst              Boolean                 @default(true)
-  cgstAmount         Float?
-  sgstAmount         Float?
-  igstAmount         Float?
-  gstin              String?
-  hsnCode            String?
-  tourPackageQuery   TourPackageQuery        @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  customer           Customer?               @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  items              SaleItem[]
-  saleReturns        SaleReturn[]
-  receiptAllocations ReceiptSaleAllocation[]
-  linkedPurchases    SalePurchaseLink[]
+  id                   String                  @id @default(uuid())
+  tourPackageQueryId   String
+  customerId           String?
+  saleDate             DateTime
+  salePrice            Float
+  preDiscountSalePrice Float?
+  couponCode           String?
+  couponDiscountAmount Float?
+  couponRedemptionId   String?                 @unique
+  description          String?                 @db.Text
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @default(now())
+  dueDate              DateTime?
+  gstAmount            Float?
+  gstPercentage        Float?
+  invoiceDate          DateTime?
+  invoiceNumber        String?
+  stateOfSupply        String?
+  status               String?                 @default("pending")
+  isGst                Boolean                 @default(true)
+  cgstAmount           Float?
+  sgstAmount           Float?
+  igstAmount           Float?
+  gstin                String?
+  hsnCode              String?
+  tourPackageQuery     TourPackageQuery        @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  customer             Customer?               @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  couponRedemption     CouponRedemption?       @relation("SaleDetailCouponRedemption", fields: [couponRedemptionId], references: [id], onDelete: SetNull)
+  items                SaleItem[]
+  saleReturns          SaleReturn[]
+  receiptAllocations   ReceiptSaleAllocation[]
+  linkedPurchases      SalePurchaseLink[]
 
   @@index([customerId])
   @@index([tourPackageQueryId])
+  @@index([couponCode])
 }
 
 model SaleItem {
@@ -1080,6 +1087,7 @@ model Inquiry {
   location             Location           @relation("LocationToInquiry", fields: [locationId], references: [id])
   associatePartner     AssociatePartner?  @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
   actions              InquiryAction[]
+  couponRedemptions    CouponRedemption[]
   tourPackageQueries   TourPackageQuery[]
   assignedStaff        OperationalStaff?  @relation("AssignedOperationalStaffToInquiry", fields: [assignedToStaffId], references: [id])
   roomAllocations      RoomAllocation[]
@@ -1584,6 +1592,94 @@ model AuditLog {
   @@index([createdAt])
 }
 
+model CouponCampaign {
+  id                          String               @id @default(uuid())
+  name                        String
+  description                 String?              @db.Text
+  status                      CouponCampaignStatus @default(DRAFT)
+  discountType                CouponDiscountType
+  discountValue               Float
+  maxDiscountAmount           Float?
+  minBookingAmount            Float?
+  startsAt                    DateTime?
+  endsAt                      DateTime?
+  totalRedemptionLimit        Int?
+  perCustomerLimit            Int?
+  requiresApproval            Boolean              @default(false)
+  approvalRequiredAboveAmount Float?
+  eligibilityRules            Json?
+  createdByUserId             String?
+  updatedByUserId             String?
+  createdAt                   DateTime             @default(now())
+  updatedAt                   DateTime             @updatedAt
+  codes                       CouponCode[]
+  redemptions                 CouponRedemption[]
+
+  @@index([status])
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([createdAt])
+}
+
+model CouponCode {
+  id             String             @id @default(uuid())
+  campaignId     String
+  code           String             @unique
+  status         CouponCodeStatus   @default(ACTIVE)
+  maxRedemptions Int?
+  redeemedCount  Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  campaign       CouponCampaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  redemptions    CouponRedemption[]
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([redeemedCount])
+}
+
+model CouponRedemption {
+  id                         String                 @id @default(uuid())
+  campaignId                 String
+  couponCodeId               String
+  code                       String
+  status                     CouponRedemptionStatus @default(REQUESTED)
+  inquiryId                  String?
+  tourPackageQueryId         String?
+  customerId                 String?
+  customerName               String?
+  customerMobile             String?
+  travelAppUserId            String?
+  originalBookingAmount      Float?
+  discountAmount             Float?
+  taxableAmountAfterDiscount Float?
+  gstAfterDiscount           Float?
+  validationMessage          String?                @db.Text
+  approvalNotes              String?                @db.Text
+  approvedByUserId           String?
+  appliedByUserId            String?
+  validatedAt                DateTime?
+  approvedAt                 DateTime?
+  appliedAt                  DateTime?
+  rejectedAt                 DateTime?
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+  campaign                   CouponCampaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  couponCode                 CouponCode             @relation(fields: [couponCodeId], references: [id], onDelete: Cascade)
+  inquiry                    Inquiry?               @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
+  tourPackageQuery           TourPackageQuery?      @relation(fields: [tourPackageQueryId], references: [id], onDelete: SetNull)
+  saleDetail                 SaleDetail?            @relation("SaleDetailCouponRedemption")
+
+  @@index([campaignId])
+  @@index([couponCodeId])
+  @@index([code])
+  @@index([status])
+  @@index([inquiryId])
+  @@index([tourPackageQueryId])
+  @@index([customerMobile])
+  @@index([createdAt])
+}
+
 model TDSMaster {
   id                  String           @id @default(uuid())
   sectionCode         String
@@ -1743,6 +1839,35 @@ enum OrganizationRole {
 enum OperationalStaffRole {
   OPERATIONS
   ADMIN
+}
+
+enum CouponCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  EXPIRED
+  ARCHIVED
+}
+
+enum CouponCodeStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum CouponDiscountType {
+  PERCENT
+  FIXED
+}
+
+enum CouponRedemptionStatus {
+  REQUESTED
+  VALIDATED
+  APPROVAL_REQUIRED
+  APPROVED
+  APPLIED
+  REJECTED
+  VOIDED
 }
 
 // =============================================

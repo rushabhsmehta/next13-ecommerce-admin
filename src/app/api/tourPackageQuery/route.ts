@@ -5,6 +5,7 @@ import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from '@/lib/prismadb';
 import { createAuditLog } from "@/lib/utils/audit-logger";
 import { createVariantSnapshots, applyVariantHotelOverrides } from '@/lib/variant-snapshot';
+import { carryForwardInquiryCouponToTourQuery } from '@/lib/coupons';
 
 // Enable caching for GET requests - revalidate every 5 minutes
 export const revalidate = 300;
@@ -636,6 +637,25 @@ export async function POST(
             } catch (snapshotError) {
                 console.error('❌ Failed to create variant snapshots:', snapshotError);
                 // Non-fatal: Continue even if snapshots fail
+            }
+        }
+
+        if (inquiryId) {
+            try {
+                await carryForwardInquiryCouponToTourQuery({
+                    inquiryId,
+                    tourPackageQueryId: newTourPackageQuery.id,
+                    bookingAmount: Number.parseFloat(String(totalPrice || price || "0")) || null,
+                    locationId,
+                    tourPackageId: selectedTemplateId || null,
+                    tourCategory,
+                    customerName,
+                    customerMobile: customerNumber,
+                    travelDate: tourStartsFrom ? dateToUtc(tourStartsFrom) : null,
+                    numAdults,
+                });
+            } catch (couponError) {
+                console.log('[TOURPACKAGE_QUERY_COUPON_CARRY_FORWARD]', couponError);
             }
         }
 

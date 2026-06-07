@@ -150,6 +150,8 @@ export interface SaleInput {
   gstAmount?: number | null;
   gstPercentage?: number | null;
   isGst?: boolean;
+  couponCode?: string | null;
+  couponRedemptionId?: string | null;
   description?: string | null;
   items?: SaleItemInput[];
 }

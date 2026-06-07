@@ -44,9 +44,23 @@ function voucherHtml(opts: {
   base: number;
   gst: number;
   total: number;
+  preDiscountBase?: number;
+  couponCode?: string | null;
+  couponDiscountAmount?: number | null;
   company: ReturnType<typeof resolveCompanyInfo>;
 }): string {
   const c = brandColors;
+  const couponDiscount = Number(opts.couponDiscountAmount ?? 0);
+  const hasCouponDiscount = couponDiscount > 0;
+  const totalsRows = hasCouponDiscount
+    ? `<div><span>Package amount</span><span>${inr(
+        opts.preDiscountBase ?? opts.base + couponDiscount
+      )}</span></div>
+      <div><span>Coupon discount${
+        opts.couponCode ? ` (${esc(opts.couponCode)})` : ""
+      }</span><span>-${inr(couponDiscount)}</span></div>
+      <div><span>Taxable amount</span><span>${inr(opts.base)}</span></div>`
+    : `<div><span>Subtotal</span><span>${inr(opts.base)}</span></div>`;
   const rows = opts.items.length
     ? opts.items
         .map(
@@ -114,7 +128,7 @@ function voucherHtml(opts: {
       <tbody>${rows}</tbody>
     </table>
     <div class="totals">
-      <div><span>Subtotal</span><span>${inr(opts.base)}</span></div>
+      ${totalsRows}
       <div><span>GST</span><span>${inr(opts.gst)}</span></div>
       <div class="grand"><span>Total</span><span>${inr(opts.total)}</span></div>
     </div>
@@ -191,6 +205,7 @@ export async function GET(
       if (!sale) return new NextResponse("Not found", { status: 404 });
       const base = Number(sale.salePrice ?? 0);
       const gst = Number(sale.gstAmount ?? 0);
+      const couponDiscount = Number((sale as any).couponDiscountAmount ?? 0);
       html = voucherHtml({
         title: "Sale Invoice",
         number: sale.invoiceNumber || `#${sale.id.slice(0, 8)}`,
@@ -209,6 +224,9 @@ export async function GET(
         base,
         gst,
         total: base + gst,
+        preDiscountBase: Number((sale as any).preDiscountSalePrice ?? base + couponDiscount),
+        couponCode: (sale as any).couponCode ?? null,
+        couponDiscountAmount: couponDiscount,
         company,
       });
       safeName = (sale.invoiceNumber || sale.id).replace(

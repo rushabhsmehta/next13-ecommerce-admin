@@ -73,6 +73,12 @@ export async function GET(req: Request, props: { params: Promise<{ inquiryId: st
         actions: {
           orderBy: { createdAt: "desc" },
         },
+        couponRedemptions: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            campaign: { select: { id: true, name: true, discountType: true, discountValue: true } },
+          },
+        },
         roomAllocations: {
           include: {
             roomType: true,

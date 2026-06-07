@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { getRequestClerkUserId } from "@/lib/clerk-request-user";
+import { createRequestedCouponRedemption } from "@/lib/coupons";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,9 @@ export async function POST(req: Request) {
       numChildren5to11,
       numChildrenBelow5,
       remarks,
+      couponCode,
+      packageId,
+      source,
     } = body;
 
     if (!locationId || typeof locationId !== "string") {
@@ -51,6 +55,14 @@ export async function POST(req: Request) {
       travelUserId = travelUser?.id;
     }
 
+    const enrichedRemarks = [
+      remarks?.trim(),
+      source === "offer" ? "Source: Active package offer" : null,
+      packageId ? `Package ID: ${packageId}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     const inquiry = await prismadb.inquiry.create({
       data: {
         customerName: name.trim(),
@@ -67,11 +79,28 @@ export async function POST(req: Request) {
           ? Math.max(0, Number(numChildrenBelow5))
           : 0,
         journeyDate: journeyDate ? dateToUtc(new Date(journeyDate)) : undefined,
-        remarks: remarks?.trim() || undefined,
+        remarks: enrichedRemarks || undefined,
         status: "pending",
         fb_client_id: travelUserId,
       },
     });
+
+    if (couponCode) {
+      try {
+        await createRequestedCouponRedemption({
+          couponCode,
+          inquiryId: inquiry.id,
+          locationId,
+          customerName: name.trim(),
+          customerMobile: normalizedPhone,
+          travelAppUserId: travelUserId,
+          travelDate: journeyDate ? new Date(journeyDate) : null,
+          numAdults: numAdults ? Math.max(1, Number(numAdults)) : 1,
+        });
+      } catch (couponError) {
+        console.log("[TRAVEL_ENQUIRY_COUPON]", couponError);
+      }
+    }
 
     return NextResponse.json({ success: true, inquiryId: inquiry.id }, { status: 201 });
   } catch (error) {

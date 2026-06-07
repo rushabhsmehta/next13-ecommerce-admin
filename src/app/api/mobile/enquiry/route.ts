@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
+import { createRequestedCouponRedemption } from "@/lib/coupons";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,9 @@ export async function POST(req: Request) {
       numChildren5to11,
       numChildrenBelow5,
       remarks,
+      couponCode,
+      packageId,
+      source,
     } = body;
 
     if (!locationId || typeof locationId !== "string") {
@@ -44,6 +48,14 @@ export async function POST(req: Request) {
     });
     if (!location) return new NextResponse("Invalid location", { status: 400 });
 
+    const enrichedRemarks = [
+      remarks?.trim(),
+      source === "offer" ? "Source: Active package offer" : null,
+      packageId ? `Package ID: ${packageId}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
     const inquiry = await prismadb.inquiry.create({
       data: {
         customerName: name.trim(),
@@ -54,12 +66,29 @@ export async function POST(req: Request) {
         numChildren5to11: numChildren5to11 ? Math.max(0, Number(numChildren5to11)) : 0,
         numChildrenBelow5: numChildrenBelow5 ? Math.max(0, Number(numChildrenBelow5)) : 0,
         journeyDate: journeyDate ? new Date(journeyDate) : undefined,
-        remarks: remarks?.trim() || undefined,
+        remarks: enrichedRemarks || undefined,
         status: "PENDING",
         // fb_client_id stores the TravelAppUser ID for mobile-submitted inquiries
         fb_client_id: travelUser.id,
       },
     });
+
+    if (couponCode) {
+      try {
+        await createRequestedCouponRedemption({
+          couponCode,
+          inquiryId: inquiry.id,
+          locationId,
+          customerName: name.trim(),
+          customerMobile: phone.trim(),
+          travelAppUserId: travelUser.id,
+          travelDate: journeyDate ? new Date(journeyDate) : null,
+          numAdults: numAdults ? Math.max(1, Number(numAdults)) : 1,
+        });
+      } catch (couponError) {
+        console.log("[MOBILE_ENQUIRY_COUPON]", couponError);
+      }
+    }
 
     return NextResponse.json({ success: true, inquiryId: inquiry.id }, { status: 201 });
   } catch (error) {

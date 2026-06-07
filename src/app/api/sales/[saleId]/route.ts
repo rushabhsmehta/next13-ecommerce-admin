@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from '@/lib/prismadb';
+import {
+    calculateDiscountedTaxAmounts,
+    CouponError,
+    markCouponApplied,
+    prepareCouponApplication,
+} from '@/lib/coupons';
 
 export async function GET(req: Request, props: { params: Promise<{ saleId: string }> }) {
     const params = await props.params;
@@ -27,7 +33,8 @@ export async function GET(req: Request, props: { params: Promise<{ saleId: strin
                     orderBy: {
                         createdAt: 'asc'
                     }
-                }
+                },
+                couponRedemption: true
             }
         });
 
@@ -69,7 +76,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ saleId: str
             sgstAmount,
             igstAmount,
             gstin,
-            hsnCode
+            hsnCode,
+            couponCode,
+            couponRedemptionId
         } = body;
 
         if (!params.saleId) {
@@ -109,39 +118,105 @@ export async function PATCH(req: Request, props: { params: Promise<{ saleId: str
         }
 
         try {
-            // Delete existing items
-            await prismadb.saleItem.deleteMany({
-                where: {
-                    saleDetailId: params.saleId
-                }
-            });            // Update sale detail - REMOVED connect syntax
-            const updatedSale = await prismadb.saleDetail.update({
-                where: {
-                    id: params.saleId
-                },
-                data: {
-                    customerId,
-                    saleDate: dateToUtc(saleDate)!,
-                    invoiceNumber: invoiceNumber || null,
-                    salePrice: parseFloat(salePrice.toString()),
-                    gstAmount: gstAmount !== undefined ? parseFloat(gstAmount.toString()) : null,
-                    gstPercentage: gstPercentage !== undefined ? parseFloat(gstPercentage.toString()) : null,
-                    description: description || null,
-                    status: status || "completed",
-                    isGst: isGst !== undefined ? Boolean(isGst) : undefined,
-                    cgstAmount: cgstAmount !== undefined ? (cgstAmount ? parseFloat(cgstAmount.toString()) : null) : undefined,
-                    sgstAmount: sgstAmount !== undefined ? (sgstAmount ? parseFloat(sgstAmount.toString()) : null) : undefined,
-                    igstAmount: igstAmount !== undefined ? (igstAmount ? parseFloat(igstAmount.toString()) : null) : undefined,
-                    gstin: gstin !== undefined ? (gstin || null) : undefined,
-                    hsnCode: hsnCode !== undefined ? (hsnCode || null) : undefined,
-                }
-            });
+            const originalSalePrice = parseFloat(salePrice.toString());
+            const hasCouponInput = Boolean(couponCode || couponRedemptionId);
+
+            await prismadb.$transaction(async (tx: any) => {
+                await tx.saleItem.deleteMany({
+                    where: {
+                        saleDetailId: params.saleId
+                    }
+                });
+
+                const [customer, query] = await Promise.all([
+                    tx.customer.findUnique({
+                        where: { id: customerId },
+                        select: { name: true, contact: true },
+                    }),
+                    tourPackageQueryId
+                        ? tx.tourPackageQuery.findUnique({
+                            where: { id: tourPackageQueryId },
+                            select: {
+                                inquiryId: true,
+                                locationId: true,
+                                selectedTemplateId: true,
+                                tourCategory: true,
+                                customerName: true,
+                                customerNumber: true,
+                                tourStartsFrom: true,
+                                numAdults: true,
+                            },
+                        })
+                        : Promise.resolve(null),
+                ]);
+
+                const couponApplication = hasCouponInput
+                    ? await prepareCouponApplication(tx, {
+                        couponCode,
+                        couponRedemptionId,
+                        bookingAmount: originalSalePrice,
+                        customerId,
+                        customerName: customer?.name || query?.customerName || null,
+                        customerMobile: customer?.contact || query?.customerNumber || null,
+                        inquiryId: query?.inquiryId || null,
+                        tourPackageQueryId: tourPackageQueryId || null,
+                        locationId: query?.locationId || null,
+                        tourPackageId: query?.selectedTemplateId || null,
+                        tourCategory: query?.tourCategory || null,
+                        travelDate: query?.tourStartsFrom || null,
+                        numAdults: query?.numAdults || null,
+                        appliedByUserId: userId,
+                    })
+                    : null;
+
+                const finalSalePrice =
+                    couponApplication?.taxableAmountAfterDiscount ?? originalSalePrice;
+                const taxAmounts = couponApplication
+                    ? calculateDiscountedTaxAmounts({
+                        originalSalePrice,
+                        taxableAmountAfterDiscount: finalSalePrice,
+                        gstPercentage: gstPercentage !== undefined ? parseFloat(gstPercentage.toString()) : null,
+                        isGst: isGst !== undefined ? Boolean(isGst) : existingSale.isGst,
+                        preferIgst: Boolean(igstAmount && parseFloat(igstAmount.toString()) > 0),
+                    })
+                    : {
+                        gstAmount: gstAmount !== undefined ? parseFloat(gstAmount.toString()) : null,
+                        cgstAmount: cgstAmount !== undefined ? (cgstAmount ? parseFloat(cgstAmount.toString()) : null) : undefined,
+                        sgstAmount: sgstAmount !== undefined ? (sgstAmount ? parseFloat(sgstAmount.toString()) : null) : undefined,
+                        igstAmount: igstAmount !== undefined ? (igstAmount ? parseFloat(igstAmount.toString()) : null) : undefined,
+                    };
+
+                await tx.saleDetail.update({
+                    where: {
+                        id: params.saleId
+                    },
+                    data: {
+                        customerId,
+                        saleDate: dateToUtc(saleDate)!,
+                        invoiceNumber: invoiceNumber || null,
+                        salePrice: finalSalePrice,
+                        preDiscountSalePrice: couponApplication?.originalBookingAmount ?? existingSale.preDiscountSalePrice ?? null,
+                        couponCode: couponApplication?.code ?? existingSale.couponCode ?? null,
+                        couponDiscountAmount: couponApplication?.discountAmount ?? existingSale.couponDiscountAmount ?? null,
+                        couponRedemptionId: couponApplication?.redemptionId ?? existingSale.couponRedemptionId ?? null,
+                        gstAmount: taxAmounts.gstAmount,
+                        gstPercentage: gstPercentage !== undefined ? parseFloat(gstPercentage.toString()) : null,
+                        description: description || null,
+                        status: status || "completed",
+                        isGst: isGst !== undefined ? Boolean(isGst) : undefined,
+                        cgstAmount: taxAmounts.cgstAmount,
+                        sgstAmount: taxAmounts.sgstAmount,
+                        igstAmount: taxAmounts.igstAmount,
+                        gstin: gstin !== undefined ? (gstin || null) : undefined,
+                        hsnCode: hsnCode !== undefined ? (hsnCode || null) : undefined,
+                    }
+                });
 
             // Create new sale items
             if (items && Array.isArray(items) && items.length > 0) {
                 for (let i = 0; i < items.length; i++) {
                     const item = items[i];
-                    await prismadb.saleItem.create({
+                        await tx.saleItem.create({
                         data: {
                             saleDetailId: params.saleId,
                             productName: item.productName,
@@ -156,7 +231,20 @@ export async function PATCH(req: Request, props: { params: Promise<{ saleId: str
                         }
                     });
                 }
-            }
+                }
+
+                if (couponApplication) {
+                    await markCouponApplied(tx, {
+                        redemptionId: couponApplication.redemptionId,
+                        couponCodeId: couponApplication.couponCodeId,
+                        originalBookingAmount: couponApplication.originalBookingAmount,
+                        discountAmount: couponApplication.discountAmount,
+                        taxableAmountAfterDiscount: couponApplication.taxableAmountAfterDiscount,
+                        gstAfterDiscount: taxAmounts.gstAmount,
+                        appliedByUserId: userId,
+                    });
+                }
+            });
 
             // Return the updated sale with items
             const updatedSaleWithItems = await prismadb.saleDetail.findUnique({
@@ -164,7 +252,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ saleId: str
                     id: params.saleId
                 },
                 include: {
-                    customer: true,                    items: {
+                    customer: true,
+                    couponRedemption: true,
+                    items: {
                         include: {
                             taxSlab: true
                         },
@@ -177,6 +267,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ saleId: str
 
             return NextResponse.json(updatedSaleWithItems);
         } catch (updateError: any) {
+            if (updateError instanceof CouponError) {
+                return NextResponse.json(
+                    { message: updateError.message, code: updateError.code, details: updateError.details },
+                    { status: updateError.status }
+                );
+            }
             console.error("Sale update error details:", updateError);
             return new NextResponse(JSON.stringify({ 
                 message: "Error updating sale details", 

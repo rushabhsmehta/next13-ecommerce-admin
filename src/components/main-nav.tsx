@@ -11,6 +11,7 @@ export function MainNav({
 }: React.HTMLAttributes<HTMLElement>) {
   const pathname = usePathname();
   const params = useParams();
+  const couponsEnabled = process.env.NEXT_PUBLIC_COUPONS_ENABLED !== "0";
 
   const routes = [
     {
@@ -48,6 +49,15 @@ export function MainNav({
       label: 'Customers',
       active: pathname === `/customers`,
     },
+    ...(couponsEnabled
+      ? [
+          {
+            href: `/coupons`,
+            label: 'Coupons',
+            active: pathname === `/coupons`,
+          },
+        ]
+      : []),
     {
       href: `/suppliers`,
       label: 'Suppliers',

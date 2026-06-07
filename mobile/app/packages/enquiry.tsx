@@ -24,6 +24,7 @@ import { WHATSAPP_BUSINESS_NUMBER } from "@/constants/whatsapp";
 import { API_BASE_URL } from "@/constants/api";
 import { trackEvent } from "@/lib/analytics";
 import { mobileAppVariantHeaders } from "@/lib/app-variant";
+import { validateMobileCoupon } from "@/lib/coupons";
 
 const WHATSAPP_NUMBER = WHATSAPP_BUSINESS_NUMBER;
 const PHONE_RE = /^[6-9]\d{9}$/;
@@ -39,10 +40,13 @@ function formatYmd(date: Date): string {
 export default function EnquiryScreen() {
   const router = useRouter();
   const { getToken, isSignedIn } = useAuth();
-  const { locationId, locationLabel, packageName } = useLocalSearchParams<{
+  const { locationId, locationLabel, packageName, couponCode: couponCodeParam, packageId, source } = useLocalSearchParams<{
     locationId: string;
     locationLabel: string;
     packageName: string;
+    couponCode?: string;
+    packageId?: string;
+    source?: string;
   }>();
 
   const [name, setName] = useState("");
@@ -55,6 +59,10 @@ export default function EnquiryScreen() {
   const [budget, setBudget] = useState("");
   const [pickupCity, setPickupCity] = useState("");
   const [hotelCategory, setHotelCategory] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const [couponValid, setCouponValid] = useState<boolean | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [remarks, setRemarks] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -64,6 +72,11 @@ export default function EnquiryScreen() {
     () => (journeyDate ? formatYmd(journeyDate) : "Choose preferred date"),
     [journeyDate]
   );
+
+  useEffect(() => {
+    const value = Array.isArray(couponCodeParam) ? couponCodeParam[0] : couponCodeParam;
+    if (value?.trim()) setCouponCode(value.trim().toUpperCase());
+  }, [couponCodeParam]);
 
   useEffect(() => {
     if (!isSignedIn) { setLoadingProfile(false); return; }
@@ -86,6 +99,32 @@ export default function EnquiryScreen() {
     }
     prefill();
   }, [isSignedIn, getToken]);
+
+  async function handleValidateCoupon() {
+    const code = couponCode.trim();
+    if (!code) {
+      Alert.alert("Coupon", "Enter a coupon code first.");
+      return;
+    }
+    setValidatingCoupon(true);
+    try {
+      const result = await validateMobileCoupon({
+        couponCode: code,
+        bookingAmount: Number(budget.replace(/[^0-9.]/g, "")) || undefined,
+        locationId: locationId || undefined,
+        customerMobile: phone.replace(/\D/g, "") || undefined,
+        travelDate: journeyDate ? formatYmd(journeyDate) : undefined,
+        numAdults,
+      });
+      setCouponValid(result.valid);
+      setCouponMessage(result.message);
+    } catch {
+      setCouponValid(false);
+      setCouponMessage("Could not validate coupon right now.");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  }
 
   async function handleSubmit() {
     if (!name.trim()) { Alert.alert("Required", "Please enter your name."); return; }
@@ -125,6 +164,9 @@ export default function EnquiryScreen() {
           numChildren5to11: numChildren,
           numChildrenBelow5: numInfants,
           remarks: preferenceLines.join("\n") || undefined,
+          couponCode: couponCode.trim() || undefined,
+          packageId: packageId || undefined,
+          source: source || undefined,
         }),
       });
       if (res.ok) {
@@ -134,6 +176,7 @@ export default function EnquiryScreen() {
           children: numChildren,
           infants: numInfants,
           hasBudget: Boolean(budget.trim()),
+          hasCoupon: Boolean(couponCode.trim()),
         });
         setSubmitted(true);
       } else {
@@ -361,6 +404,58 @@ export default function EnquiryScreen() {
           returnKeyType="next"
         />
 
+        <View style={styles.couponHeaderRow}>
+          <FieldLabel>Coupon Code</FieldLabel>
+          <TouchableOpacity
+            testID="enquiry-offers-link"
+            onPress={() => router.push("/offers" as never)}
+            accessibilityRole="button"
+            accessibilityLabel="View available offers"
+          >
+            <Text style={styles.offersLink}>View offers</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.couponRow}>
+          <TextInput
+            testID="enquiry-coupon-input"
+            style={[styles.input, styles.couponInput]}
+            value={couponCode}
+            onChangeText={(value) => {
+              setCouponCode(value.toUpperCase());
+              setCouponMessage(null);
+              setCouponValid(null);
+            }}
+            placeholder="e.g. GOA10"
+            placeholderTextColor={Colors.textTertiary}
+            autoCapitalize="characters"
+            returnKeyType="done"
+          />
+          <TouchableOpacity
+            testID="enquiry-coupon-validate"
+            style={[styles.couponButton, validatingCoupon && styles.submitButtonDisabled]}
+            onPress={handleValidateCoupon}
+            disabled={validatingCoupon}
+            accessibilityRole="button"
+            accessibilityLabel="Validate coupon"
+          >
+            {validatingCoupon ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Ionicons name="checkmark-circle-outline" size={18} color={Colors.primary} />
+            )}
+          </TouchableOpacity>
+        </View>
+        {couponMessage ? (
+          <Text
+            style={[
+              styles.couponMessage,
+              couponValid ? styles.couponMessageOk : styles.couponMessageError,
+            ]}
+          >
+            {couponMessage}
+          </Text>
+        ) : null}
+
         <FieldLabel>Pickup City</FieldLabel>
         <TextInput
           testID="enquiry-pickup-city-input"
@@ -565,6 +660,40 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   hotelChipTextActive: { color: Colors.primary },
+  couponHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  offersLink: {
+    color: Colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    paddingBottom: 6,
+  },
+  couponRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  couponInput: { flex: 1 },
+  couponButton: {
+    width: 48,
+    height: 48,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.primaryBg,
+  },
+  couponMessage: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    marginTop: 6,
+  },
+  couponMessageOk: { color: Colors.success ?? "#15803d" },
+  couponMessageError: { color: Colors.error },
 
   submitButton: {
     flexDirection: "row",

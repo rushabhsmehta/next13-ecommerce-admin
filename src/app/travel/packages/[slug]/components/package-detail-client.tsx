@@ -132,6 +132,7 @@ export function PackageDetailClient({
   const [enquiryName, setEnquiryName] = useState("");
   const [enquiryPhone, setEnquiryPhone] = useState("");
   const [enquiryAdults, setEnquiryAdults] = useState("2");
+  const [enquiryCouponCode, setEnquiryCouponCode] = useState("");
   const [enquiryRemarks, setEnquiryRemarks] = useState("");
   const [enquirySubmitting, setEnquirySubmitting] = useState(false);
   const [enquirySuccess, setEnquirySuccess] = useState(false);
@@ -146,6 +147,12 @@ export function PackageDetailClient({
   useEffect(() => {
     setIsSaved(loadSavedPackageIds().includes(tourPackage.id));
   }, [tourPackage.id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const code = new URLSearchParams(window.location.search).get("coupon");
+    if (code?.trim()) setEnquiryCouponCode(code.trim().toUpperCase());
+  }, []);
 
   const handleShare = useCallback(async () => {
     const title = tourPackage.tourPackageName || "Tour Package";
@@ -196,6 +203,9 @@ export function PackageDetailClient({
             name: enquiryName.trim(),
             phone,
             numAdults: Number(enquiryAdults) || 2,
+            couponCode: enquiryCouponCode.trim() || undefined,
+            packageId: tourPackage.id,
+            source: isOfferActive ? "offer" : "package_detail",
             remarks: [
               enquiryRemarks.trim(),
               tourPackage.tourPackageName
@@ -221,6 +231,7 @@ export function PackageDetailClient({
     },
     [
       enquiryAdults,
+      enquiryCouponCode,
       enquiryName,
       enquiryPhone,
       enquiryRemarks,
@@ -763,6 +774,13 @@ export function PackageDetailClient({
                           value={enquiryAdults}
                           onChange={(e) => setEnquiryAdults(e.target.value)}
                           className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Coupon code"
+                          value={enquiryCouponCode}
+                          onChange={(e) => setEnquiryCouponCode(e.target.value.toUpperCase())}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm uppercase"
                         />
                         <textarea
                           placeholder="Any preferences or questions"

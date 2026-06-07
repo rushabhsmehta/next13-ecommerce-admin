@@ -57,6 +57,7 @@ const formSchema = z.object({
   gstin: z.string().optional().nullable(),
   hsnCode: z.string().optional().nullable(),
   stateOfSupply: z.string().optional().nullable(),
+  couponCode: z.string().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -110,6 +111,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
     gstin: initialData?.gstin || "",
     hsnCode: initialData?.hsnCode || "",
     stateOfSupply: initialData?.stateOfSupply || "",
+    couponCode: "",
   };
 
   const form = useForm<FormValues>({
@@ -121,6 +123,14 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
     control: form.control,
     name: "items"
   });
+  const [couponPreview, setCouponPreview] = useState<null | {
+    valid: boolean;
+    reason?: string | null;
+    message?: string | null;
+    discountAmount: number;
+    taxableAmountAfterDiscount: number;
+    approvalRequired: boolean;
+  }>(null);
   const recalculateTotals = useCallback((changedField?: string) => {
     if (isCalculatingRef.current) return;
 
@@ -211,6 +221,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
         gstin: data.isGst ? (data.gstin || null) : null,
         hsnCode: data.isGst ? (data.hsnCode || null) : null,
         stateOfSupply: data.stateOfSupply || null,
+        couponCode: data.couponCode?.trim() || null,
         cgstAmount: data.isGst ? (data.cgstAmount ?? null) : null,
         sgstAmount: data.isGst ? (data.sgstAmount ?? null) : null,
         igstAmount: data.isGst ? (data.igstAmount ?? null) : null,
@@ -265,6 +276,36 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
     console.error("Form Validation Errors:", errors);
     setFormErrors(extractFormErrors(errors));
     toast.error("Please check the form for errors");
+  };
+
+  const validateCoupon = async () => {
+    const couponCode = form.getValues("couponCode")?.trim();
+    if (!couponCode) {
+      toast.error("Enter a coupon code first");
+      return;
+    }
+    try {
+      const response = await axios.post("/api/coupons/validate", {
+        couponCode,
+        bookingAmount: form.getValues("salePrice"),
+        tourPackageQueryId: form.getValues("tourPackageQueryId") || null,
+        customerId: form.getValues("customerId") || null,
+      });
+      setCouponPreview(response.data);
+      if (response.data.valid) {
+        toast.success(
+          response.data.approvalRequired
+            ? "Coupon is eligible but needs approval"
+            : "Coupon is eligible"
+        );
+      } else {
+        toast.error(response.data.reason || "Coupon is not valid");
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.error || "Could not validate coupon";
+      setCouponPreview(null);
+      toast.error(message);
+    }
   };
 
   const handleAddItem = () => {
@@ -825,8 +866,85 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                 Add Item
               </Button>
 
+              <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50/50 p-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <FormField
+                    control={form.control}
+                    name="couponCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Coupon Code</FormLabel>
+                        <FormControl>
+                          <Input
+                            disabled={loading}
+                            placeholder={
+                              initialData?.couponCode
+                                ? `Applied: ${initialData.couponCode}`
+                                : "Optional"
+                            }
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) => {
+                              field.onChange(e.target.value.toUpperCase());
+                              setCouponPreview(null);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={validateCoupon}
+                      disabled={loading}
+                    >
+                      Validate
+                    </Button>
+                  </div>
+                </div>
+                {initialData?.couponCode && !form.watch("couponCode") ? (
+                  <p className="mt-2 text-xs text-emerald-700">
+                    Existing coupon {initialData.couponCode} is already attached and will be preserved.
+                  </p>
+                ) : null}
+                {couponPreview ? (
+                  <div className={`mt-3 rounded-md border p-3 text-sm ${
+                    couponPreview.valid
+                      ? "border-emerald-200 bg-white text-emerald-800"
+                      : "border-red-200 bg-white text-red-700"
+                  }`}>
+                    {couponPreview.valid ? (
+                      <>
+                        Discount {formatPrice(couponPreview.discountAmount)}; taxable amount becomes{" "}
+                        {formatPrice(couponPreview.taxableAmountAfterDiscount)}
+                        {couponPreview.approvalRequired ? " after approval." : "."}
+                      </>
+                    ) : (
+                      couponPreview.reason || couponPreview.message || "Coupon is not valid."
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
               <div className="mt-6 flex justify-end">
                 <div className="w-72 space-y-2 bg-slate-50 p-4 rounded-md border border-slate-200">
+                  {initialData?.couponDiscountAmount ? (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Original:</span>
+                        <span className="font-medium">
+                          {formatPrice(initialData.preDiscountSalePrice || form.watch("salePrice"))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm text-emerald-700">
+                        <span>Coupon:</span>
+                        <span>-{formatPrice(initialData.couponDiscountAmount)}</span>
+                      </div>
+                    </>
+                  ) : null}
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">Subtotal:</span>
                     <span className="font-medium">{formatPrice(form.watch("salePrice"))}</span>

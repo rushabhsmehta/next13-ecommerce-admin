@@ -10,6 +10,7 @@ import {
 } from "@/app/api/mobile/lib/assert-sales-trips-access";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 import { copyItineraryMedia } from "@/app/api/mobile/lib/copy-itinerary-media";
+import { carryForwardInquiryCouponToTourQuery } from "@/lib/coupons";
 
 export const dynamic = "force-dynamic";
 
@@ -510,6 +511,44 @@ export async function POST(req: Request) {
         select: { id: true },
       });
       createdId = created.id;
+    }
+
+    if (mode === "inquiry") {
+      try {
+        const createdQuery = await prismadb.tourPackageQuery.findUnique({
+          where: { id: createdId },
+          select: {
+            inquiryId: true,
+            totalPrice: true,
+            price: true,
+            locationId: true,
+            selectedTemplateId: true,
+            tourCategory: true,
+            customerName: true,
+            customerNumber: true,
+            tourStartsFrom: true,
+            numAdults: true,
+          },
+        });
+        if (createdQuery?.inquiryId) {
+          await carryForwardInquiryCouponToTourQuery({
+            inquiryId: createdQuery.inquiryId,
+            tourPackageQueryId: createdId,
+            bookingAmount:
+              Number.parseFloat(String(createdQuery.totalPrice || createdQuery.price || "0")) ||
+              null,
+            locationId: createdQuery.locationId,
+            tourPackageId: createdQuery.selectedTemplateId,
+            tourCategory: createdQuery.tourCategory,
+            customerName: createdQuery.customerName,
+            customerMobile: createdQuery.customerNumber,
+            travelDate: createdQuery.tourStartsFrom,
+            numAdults: createdQuery.numAdults,
+          });
+        }
+      } catch (couponError) {
+        console.log("[MOBILE_TOUR_QUERIES_COUPON_CARRY_FORWARD]", couponError);
+      }
     }
 
     await recordMobileAudit({

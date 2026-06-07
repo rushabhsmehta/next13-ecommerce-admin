@@ -25,6 +25,7 @@ import {
   AdminTopBar,
 } from "@/components/admin";
 import { createFinanceClient, type FinanceParty } from "@/lib/finance";
+import { validateMobileCoupon, type CouponValidationResult } from "@/lib/coupons";
 
 type Mode = "sale" | "purchase";
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -67,6 +68,9 @@ function Inner() {
   const [isGst, setIsGst] = useState(true);
   const [date, setDate] = useState(todayIso());
   const [description, setDescription] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponPreview, setCouponPreview] = useState<CouponValidationResult | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [partyPickerOpen, setPartyPickerOpen] = useState(false);
@@ -77,6 +81,10 @@ function Inner() {
 
   useEffect(() => {
     setParty(null);
+    if (mode === "purchase") {
+      setCouponCode("");
+      setCouponPreview(null);
+    }
   }, [mode]);
 
   const loadParties = useCallback(
@@ -112,9 +120,13 @@ function Inner() {
   const base = Number(baseAmount);
   const pct = Number(gstPct);
   const baseOk = Number.isFinite(base) && base > 0;
+  const taxableBase =
+    couponPreview?.valid && Number.isFinite(couponPreview.taxableAmountAfterDiscount)
+      ? Number(couponPreview.taxableAmountAfterDiscount)
+      : base;
   const gstAmount =
-    isGst && Number.isFinite(pct) && pct > 0 ? round2((base * pct) / 100) : 0;
-  const total = round2(base + gstAmount);
+    isGst && Number.isFinite(pct) && pct > 0 ? round2((taxableBase * pct) / 100) : 0;
+  const total = round2(taxableBase + gstAmount);
   const dateOk = ISO.test(date);
   const canSubmit = baseOk && dateOk && !!party && !submitting;
 
@@ -132,7 +144,7 @@ function Inner() {
     setVerifying(true);
     try {
       const r = await client.computeTax({
-        baseAmount: base,
+        baseAmount: taxableBase,
         gstPercentage: isGst ? pct || 0 : 0,
       });
       setServerTax({
@@ -150,7 +162,36 @@ function Inner() {
     } finally {
       setVerifying(false);
     }
-  }, [baseOk, base, isGst, pct, client]);
+  }, [baseOk, taxableBase, isGst, pct, client]);
+
+  const validateCoupon = useCallback(async () => {
+    const code = couponCode.trim();
+    if (!code || !baseOk) {
+      Alert.alert("Coupon", "Enter a coupon code and base amount first.");
+      return;
+    }
+    setValidatingCoupon(true);
+    try {
+      const result = await validateMobileCoupon({
+        couponCode: code,
+        bookingAmount: base,
+      });
+      setCouponPreview(result);
+      if (!result.valid) Alert.alert("Coupon", result.message);
+    } catch {
+      setCouponPreview({
+        valid: false,
+        message: "Could not validate coupon.",
+        code,
+        campaignName: null,
+        discountAmount: 0,
+        taxableAmountAfterDiscount: base,
+        approvalRequired: false,
+      });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  }, [couponCode, baseOk, base]);
 
   const submit = useCallback(async () => {
     if (!canSubmit || !party) return;
@@ -165,6 +206,7 @@ function Inner() {
           gstAmount: isGst ? gstAmount : null,
           gstPercentage: isGst && pct > 0 ? pct : null,
           isGst,
+          couponCode: couponCode.trim() || null,
           description: description.trim() || null,
         });
       } else {
@@ -198,6 +240,7 @@ function Inner() {
     isGst,
     gstAmount,
     pct,
+    couponCode,
     description,
     client,
     router,
@@ -279,12 +322,63 @@ function Inner() {
             testID="finance-invoice-amount"
             style={styles.input}
             value={baseAmount}
-            onChangeText={setBaseAmount}
+            onChangeText={(value) => {
+              setBaseAmount(value);
+              setCouponPreview(null);
+            }}
             keyboardType="decimal-pad"
             placeholder="0"
             placeholderTextColor={Colors.textTertiary}
           />
         </AdminFormField>
+
+        {mode === "sale" ? (
+          <AdminFormField label="Coupon code">
+            <View style={styles.couponRow}>
+              <TextInput
+                testID="finance-invoice-coupon"
+                style={[styles.input, styles.couponInput]}
+                value={couponCode}
+                onChangeText={(value) => {
+                  setCouponCode(value.toUpperCase());
+                  setCouponPreview(null);
+                }}
+                placeholder="Optional"
+                placeholderTextColor={Colors.textTertiary}
+                autoCapitalize="characters"
+              />
+              <Pressable
+                testID="finance-invoice-coupon-validate"
+                accessibilityRole="button"
+                accessibilityLabel="Validate coupon"
+                disabled={validatingCoupon || !couponCode.trim() || !baseOk}
+                style={[
+                  styles.couponBtn,
+                  validatingCoupon || !couponCode.trim() || !baseOk ? styles.btnDisabled : null,
+                ]}
+                onPress={validateCoupon}
+              >
+                {validatingCoupon ? (
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                ) : (
+                  <Ionicons name="checkmark-circle-outline" size={18} color={Colors.primary} />
+                )}
+              </Pressable>
+            </View>
+            {couponPreview ? (
+              <Text
+                style={[
+                  styles.couponMessage,
+                  couponPreview.valid ? styles.couponOk : styles.couponError,
+                ]}
+              >
+                {couponPreview.valid
+                  ? `Discount INR ${Math.round(couponPreview.discountAmount).toLocaleString("en-IN")}; taxable INR ${Math.round(couponPreview.taxableAmountAfterDiscount).toLocaleString("en-IN")}${couponPreview.approvalRequired ? " after approval" : ""}.`
+                  : couponPreview.message}
+              </Text>
+            ) : null}
+          </AdminFormField>
+        ) : null}
 
         <Pressable
           testID="finance-invoice-gst-toggle"
@@ -340,6 +434,16 @@ function Inner() {
       </AdminFormSection>
 
       <View style={styles.totalCard}>
+        {couponPreview?.valid && couponPreview.discountAmount > 0 ? (
+          <>
+            <Text style={styles.totalRow}>
+              Coupon: -INR {couponPreview.discountAmount.toLocaleString("en-IN")}
+            </Text>
+            <Text style={styles.totalRow}>
+              Taxable: INR {taxableBase.toLocaleString("en-IN")}
+            </Text>
+          </>
+        ) : null}
         <Text style={styles.totalRow}>
           Base: ₹{baseOk ? base.toLocaleString("en-IN") : "0"}
         </Text>
@@ -372,7 +476,7 @@ function Inner() {
             </Text>
             <Text style={styles.serverLine}>
               Server total ₹{serverTax.total.toLocaleString("en-IN")}
-              {Math.abs(serverTax.total - total) > 0.5 ? " — differs from local!" : " ✓ matches"}
+              {Math.abs(serverTax.total - total) > 0.5 ? " - differs from local!" : " matches"}
             </Text>
           </View>
         ) : null}
@@ -408,6 +512,30 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.text,
   },
+  couponRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  couponInput: { flex: 1 },
+  couponBtn: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryBg,
+  },
+  btnDisabled: { opacity: 0.5 },
+  couponMessage: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    marginTop: 6,
+  },
+  couponOk: { color: Colors.success ?? "#15803d" },
+  couponError: { color: Colors.error },
   textarea: { minHeight: 70, textAlignVertical: "top" },
   pickerBtn: {
     padding: Spacing.md,

@@ -36,6 +36,10 @@ const SaleVoucherPage = async (props: SaleVoucherPageProps) => {
   const packageName =
     sale.tourPackageQuery?.tourPackageQueryName || "Tour Package";
   const hasGst = !!sale.gstAmount && sale.gstAmount > 0;
+  const couponDiscount = sale.couponDiscountAmount || 0;
+  const hasCouponDiscount = couponDiscount > 0;
+  const preDiscountAmount =
+    sale.preDiscountSalePrice || sale.salePrice + couponDiscount;
   const baseAmount = sale.salePrice;
   const totalAmount = sale.salePrice + (sale.gstAmount || 0);
 
@@ -101,9 +105,27 @@ const SaleVoucherPage = async (props: SaleVoucherPageProps) => {
                 <tr className="border-b">
                   <td className="px-3 py-2 font-medium">{packageName}</td>
                   <td className="px-3 py-2 text-right font-medium">
-                    {formatPrice(baseAmount)}
+                    {formatPrice(hasCouponDiscount ? preDiscountAmount : baseAmount)}
                   </td>
                 </tr>
+                {hasCouponDiscount && (
+                  <>
+                    <tr className="border-b text-muted-foreground">
+                      <td className="px-3 py-2 text-xs">
+                        Coupon discount{sale.couponCode ? ` (${sale.couponCode})` : ""}
+                      </td>
+                      <td className="px-3 py-2 text-right text-xs">
+                        -{formatPrice(couponDiscount)}
+                      </td>
+                    </tr>
+                    <tr className="border-b text-muted-foreground">
+                      <td className="px-3 py-2 text-xs">Taxable amount</td>
+                      <td className="px-3 py-2 text-right text-xs">
+                        {formatPrice(baseAmount)}
+                      </td>
+                    </tr>
+                  </>
+                )}
                 {hasGst && (
                   <tr className="border-b text-muted-foreground">
                     <td className="px-3 py-2 text-xs">

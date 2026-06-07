@@ -315,6 +315,18 @@ export async function GET(
           },
           orderBy: { sortOrder: "asc" },
         },
+        couponRedemptions: {
+          select: {
+            id: true,
+            code: true,
+            status: true,
+            discountAmount: true,
+            taxableAmountAfterDiscount: true,
+            validationMessage: true,
+            campaign: { select: { name: true, discountType: true, discountValue: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
         itineraries: {
           select: {
             id: true,

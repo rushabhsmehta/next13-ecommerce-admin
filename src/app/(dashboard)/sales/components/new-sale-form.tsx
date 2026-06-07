@@ -58,6 +58,7 @@ const formSchema = z.object({
     required_error: "Sale date is required",
   }),
   salePrice: z.coerce.number().min(0, "Price must be zero or positive"),
+  couponCode: z.string().optional(),
   description: z.string().optional(),
   transactionType: z.enum(["simple", "itemized"], {
     required_error: "Please select transaction type",
@@ -85,19 +86,52 @@ export const NewSaleForm: React.FC<NewSaleFormProps> = ({
       tourPackageQueryId: "",
       saleDate: new Date(),
       salePrice: 0,
+      couponCode: "",
       description: "",
       transactionType: "simple",
     },
   });
 
   const transactionType = form.watch("transactionType");
+  const [couponPreview, setCouponPreview] = useState<null | {
+    valid: boolean;
+    reason?: string | null;
+    message?: string | null;
+    discountAmount: number;
+    taxableAmountAfterDiscount: number;
+    approvalRequired: boolean;
+  }>(null);
+
+  const validateCoupon = async () => {
+    const couponCode = form.getValues("couponCode")?.trim();
+    if (!couponCode) {
+      toast.error("Enter a coupon code first");
+      return;
+    }
+    try {
+      const response = await axios.post("/api/coupons/validate", {
+        couponCode,
+        bookingAmount: form.getValues("salePrice"),
+        tourPackageQueryId: form.getValues("tourPackageQueryId") || null,
+        customerId: form.getValues("customerId") || null,
+      });
+      setCouponPreview(response.data);
+      if (response.data.valid) toast.success("Coupon is eligible");
+      else toast.error(response.data.reason || "Coupon is not valid");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Could not validate coupon");
+    }
+  };
 
   const onSubmit = async (data: FormValues) => {
     try {
       setLoading(true);
       
       // Create sale record
-      const response = await axios.post("/api/sales", data);
+      const response = await axios.post("/api/sales", {
+        ...data,
+        couponCode: data.couponCode?.trim() || null,
+      });
       
       // Redirect based on transaction type
       if (data.transactionType === "simple") {
@@ -297,6 +331,42 @@ export const NewSaleForm: React.FC<NewSaleFormProps> = ({
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {transactionType === "simple" && (
+              <FormField
+                control={form.control}
+                name="couponCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Coupon Code</FormLabel>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input
+                          disabled={loading}
+                          placeholder="Optional"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e.target.value.toUpperCase());
+                            setCouponPreview(null);
+                          }}
+                        />
+                      </FormControl>
+                      <Button type="button" variant="outline" onClick={validateCoupon} disabled={loading}>
+                        Validate
+                      </Button>
+                    </div>
+                    {couponPreview ? (
+                      <FormDescription>
+                        {couponPreview.valid
+                          ? `Discount ${couponPreview.discountAmount}; taxable amount ${couponPreview.taxableAmountAfterDiscount}${couponPreview.approvalRequired ? " after approval" : ""}.`
+                          : couponPreview.reason || couponPreview.message || "Coupon is not valid."}
+                      </FormDescription>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}

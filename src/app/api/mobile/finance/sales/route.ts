@@ -9,6 +9,12 @@ import {
   findPriorIdempotentEntityId,
 } from "@/app/api/mobile/lib/finance-guard";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import {
+  calculateDiscountedTaxAmounts,
+  CouponError,
+  markCouponApplied,
+  prepareCouponApplication,
+} from "@/lib/coupons";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +41,8 @@ const schema = z.object({
   igstAmount: z.number().optional().nullable(),
   description: z.string().max(2000).optional().nullable(),
   status: z.string().optional(),
+  couponCode: z.string().optional().nullable(),
+  couponRedemptionId: z.string().uuid().optional().nullable(),
   items: z.array(itemSchema).optional().default([]),
 });
 
@@ -79,21 +87,79 @@ export async function POST(req: Request) {
     const v = parsed.data;
 
     const sale = await prismadb.$transaction(async (tx) => {
+      const [customer, query] = await Promise.all([
+        tx.customer.findUnique({
+          where: { id: v.customerId },
+          select: { name: true, contact: true },
+        }),
+        v.tourPackageQueryId
+          ? tx.tourPackageQuery.findUnique({
+              where: { id: v.tourPackageQueryId },
+              select: {
+                inquiryId: true,
+                locationId: true,
+                selectedTemplateId: true,
+                tourCategory: true,
+                customerName: true,
+                customerNumber: true,
+                tourStartsFrom: true,
+                numAdults: true,
+              },
+            })
+          : Promise.resolve(null),
+      ]);
+      const couponApplication = await prepareCouponApplication(tx, {
+        couponCode: v.couponCode,
+        couponRedemptionId: v.couponRedemptionId,
+        bookingAmount: v.salePrice,
+        customerId: v.customerId,
+        customerName: customer?.name || query?.customerName || null,
+        customerMobile: customer?.contact || query?.customerNumber || null,
+        inquiryId: query?.inquiryId || null,
+        tourPackageQueryId: v.tourPackageQueryId || null,
+        locationId: query?.locationId || null,
+        tourPackageId: query?.selectedTemplateId || null,
+        tourCategory: query?.tourCategory || null,
+        travelDate: query?.tourStartsFrom || null,
+        numAdults: query?.numAdults || null,
+        appliedByUserId: userId,
+      });
+      const finalSalePrice =
+        couponApplication?.taxableAmountAfterDiscount ?? v.salePrice;
+      const taxAmounts = couponApplication
+        ? calculateDiscountedTaxAmounts({
+            originalSalePrice: v.salePrice,
+            taxableAmountAfterDiscount: finalSalePrice,
+            gstPercentage: v.gstPercentage ?? null,
+            isGst: v.isGst !== undefined ? v.isGst : true,
+            preferIgst: Boolean(v.igstAmount && v.igstAmount > 0),
+          })
+        : {
+            gstAmount: v.gstAmount ?? null,
+            cgstAmount: v.cgstAmount ?? null,
+            sgstAmount: v.sgstAmount ?? null,
+            igstAmount: v.igstAmount ?? null,
+          };
+
       const created = await tx.saleDetail.create({
         data: {
           customerId: v.customerId,
           tourPackageQueryId: v.tourPackageQueryId || null,
           saleDate: dateToUtc(v.saleDate)!,
           invoiceNumber: v.invoiceNumber || null,
-          salePrice: v.salePrice,
-          gstAmount: v.gstAmount ?? null,
+          salePrice: finalSalePrice,
+          preDiscountSalePrice: couponApplication?.originalBookingAmount ?? null,
+          couponCode: couponApplication?.code ?? null,
+          couponDiscountAmount: couponApplication?.discountAmount ?? null,
+          couponRedemptionId: couponApplication?.redemptionId ?? null,
+          gstAmount: taxAmounts.gstAmount,
           gstPercentage: v.gstPercentage ?? null,
           description: v.description || null,
           status: v.status || "completed",
           isGst: v.isGst !== undefined ? v.isGst : true,
-          cgstAmount: v.cgstAmount ?? null,
-          sgstAmount: v.sgstAmount ?? null,
-          igstAmount: v.igstAmount ?? null,
+          cgstAmount: taxAmounts.cgstAmount,
+          sgstAmount: taxAmounts.sgstAmount,
+          igstAmount: taxAmounts.igstAmount,
         } as any,
       });
       for (let i = 0; i < (v.items?.length ?? 0); i++) {
@@ -109,6 +175,17 @@ export async function POST(req: Request) {
             totalAmount: it.totalAmount,
             orderIndex: i,
           } as any,
+        });
+      }
+      if (couponApplication) {
+        await markCouponApplied(tx, {
+          redemptionId: couponApplication.redemptionId,
+          couponCodeId: couponApplication.couponCodeId,
+          originalBookingAmount: couponApplication.originalBookingAmount,
+          discountAmount: couponApplication.discountAmount,
+          taxableAmountAfterDiscount: couponApplication.taxableAmountAfterDiscount,
+          gstAfterDiscount: taxAmounts.gstAmount,
+          appliedByUserId: userId,
         });
       }
       return created;
@@ -128,6 +205,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ id: sale.id, sale }, { status: 201 });
   } catch (error) {
+    if (error instanceof CouponError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code, details: error.details },
+        { status: error.status }
+      );
+    }
     console.log("[MOBILE_FINANCE_SALES_POST]", error);
     return new NextResponse("Internal error", { status: 500 });
   }

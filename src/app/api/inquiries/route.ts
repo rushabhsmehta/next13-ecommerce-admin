@@ -19,6 +19,7 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { normalizePhoneNumber } from "@/lib/phone-utils";
+import { createRequestedCouponRedemption } from "@/lib/coupons";
 import {
   canAccessInquiryForContext,
   canActOnInquiries,
@@ -109,6 +110,7 @@ export async function POST(req: Request) {
       fbclid,
       fbp,
       fbc,
+      couponCode,
       sendWhatsAppAck = true
     } = body;
 
@@ -246,6 +248,22 @@ export async function POST(req: Request) {
         }
       }
     });
+
+    if (couponCode) {
+      try {
+        await createRequestedCouponRedemption({
+          couponCode,
+          inquiryId: inquiry.id,
+          locationId,
+          customerName,
+          customerMobile: normalizedPhone.e164,
+          travelDate: journeyDate ? dateToUtc(journeyDate) : null,
+          numAdults,
+        });
+      } catch (couponError) {
+        console.log("[INQUIRIES_POST_COUPON]", couponError);
+      }
+    }
 
     // Add customer to WhatsApp customer list
     await ensureWhatsAppCustomer(customerName, customerMobileNumber);

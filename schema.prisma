@@ -675,6 +675,16 @@ model TourPackage {
   usefulTip                        Json?
   tourCategory                     String?               @default("Domestic")
   websiteSortOrder                 Int                   @default(0)
+  isOffer                          Boolean               @default(false)
+  offerTitle                       String?
+  offerSubtitle                    String?               @db.Text
+  offerBadge                       String?
+  offerPrice                       String?
+  offerOriginalPrice               String?
+  offerStartsAt                    DateTime?
+  offerEndsAt                      DateTime?
+  offerSortOrder                   Int                   @default(0)
+  offerTerms                       Json?
   location                         Location              @relation("LocationTotourPackage", fields: [locationId], references: [id])
   flightDetails                    FlightDetails[]
   itineraries                      Itinerary[]
@@ -688,6 +698,10 @@ model TourPackage {
 
   @@index([locationId])
   @@index([websiteSortOrder])
+  @@index([isOffer])
+  @@index([offerSortOrder])
+  @@index([offerStartsAt])
+  @@index([offerEndsAt])
 }
 
 model TourPackageRelation {

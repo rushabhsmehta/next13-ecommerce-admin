@@ -145,6 +145,16 @@ const formSchema = z.object({
   itineraries: z.array(itinerarySchema).optional().default([]),
   isFeatured: z.boolean().default(false),
   isArchived: z.boolean().default(false).optional(),
+  isOffer: z.boolean().default(false),
+  offerTitle: z.string().optional().nullable(),
+  offerSubtitle: z.string().optional().nullable(),
+  offerBadge: z.string().optional().nullable(),
+  offerPrice: z.string().optional().nullable(),
+  offerOriginalPrice: z.string().optional().nullable(),
+  offerStartsAt: z.string().optional().nullable(),
+  offerEndsAt: z.string().optional().nullable(),
+  offerSortOrder: z.coerce.number().optional(),
+  offerTerms: z.array(z.string()).optional().default([]),
   slug: z.string().optional(),
   packageVariants: z.array(z.object({
     id: z.string().optional(),
@@ -493,6 +503,16 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
       ...data,
       assignedTo: data.assignedTo ?? '',
       isArchived: initialData?.isArchived || false,
+      isOffer: Boolean(data.isOffer),
+      offerTitle: data.offerTitle ?? '',
+      offerSubtitle: data.offerSubtitle ?? '',
+      offerBadge: data.offerBadge ?? '',
+      offerPrice: data.offerPrice ?? '',
+      offerOriginalPrice: data.offerOriginalPrice ?? '',
+      offerStartsAt: data.offerStartsAt ? String(data.offerStartsAt).slice(0, 10) : '',
+      offerEndsAt: data.offerEndsAt ? String(data.offerEndsAt).slice(0, 10) : '',
+      offerSortOrder: data.offerSortOrder ?? 0,
+      offerTerms: parseJsonField(data.offerTerms) || [],
       customerNumber: data.customerNumber ?? '',
       tourCategory: data.tourCategory ?? 'Domestic', // Add default for tour category
       slug: initialData?.slug || '',
@@ -556,6 +576,16 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     numChild0to5: '',
     totalPrice: TOTAL_PRICE_DEFAULT,
     isArchived: false,
+    isOffer: false,
+    offerTitle: '',
+    offerSubtitle: '',
+    offerBadge: '',
+    offerPrice: '',
+    offerOriginalPrice: '',
+    offerStartsAt: '',
+    offerEndsAt: '',
+    offerSortOrder: 0,
+    offerTerms: [],
     // assignedTo: '',
     // assignedToEmail: '',
     slug: '',
@@ -1095,6 +1125,10 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
               <TabsTrigger value="pricing" className="flex items-center gap-2">
                 <Tag className="h-4 w-4" />
                 Pricing
+              </TabsTrigger>
+              <TabsTrigger value="offers" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Offers
               </TabsTrigger>
               <TabsTrigger value="policies" className="flex items-center gap-2">
                 <FileCheck className="h-4 w-4" />
@@ -2296,6 +2330,179 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                       )}
                     />
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="offers" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Offer Management</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="isOffer"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            disabled={readOnly}
+                            // @ts-ignore
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Mark as offer</FormLabel>
+                          <FormDescription>
+                            Promote this package in website and public app offer sections when it is also available on the website.
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="offerTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Offer Title</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading || readOnly} placeholder="Summer Special Kashmir" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="offerBadge"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Offer Badge</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading || readOnly} placeholder="Limited Offer" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="offerPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Offer Price</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading || readOnly} placeholder="34999" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="offerOriginalPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Original Price</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading || readOnly} placeholder="42999" {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="offerStartsAt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Starts At</FormLabel>
+                          <FormControl>
+                            <Input type="date" disabled={loading || readOnly} {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="offerEndsAt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ends At</FormLabel>
+                          <FormControl>
+                            <Input type="date" disabled={loading || readOnly} {...field} value={field.value ?? ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="offerSortOrder"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Offer Sort Order</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              disabled={loading || readOnly}
+                              value={field.value ?? 0}
+                              onChange={(event) => field.onChange(Number(event.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="offerSubtitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Offer Subtitle</FormLabel>
+                        <FormControl>
+                          <Textarea disabled={loading || readOnly} placeholder="Short description shown under the offer title" {...field} value={field.value ?? ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="offerTerms"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Offer Terms</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            disabled={loading || readOnly}
+                            placeholder="One term per line"
+                            value={(field.value ?? []).join('\n')}
+                            onChange={(event) =>
+                              field.onChange(
+                                event.target.value
+                                  .split('\n')
+                                  .map((line) => line.trim())
+                                  .filter(Boolean)
+                              )
+                            }
+                            rows={5}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

@@ -1,5 +1,11 @@
 import prismadb from "@/lib/prismadb";
 import { PackagesListClient } from "./components/packages-list-client";
+import {
+  PACKAGE_OFFER_FIELDS,
+  activeOfferOrderBy,
+  activeOfferWhere,
+  buildPublicOfferPayload,
+} from "@/lib/package-offers";
 
 export const revalidate = 300;
 export const metadata = {
@@ -13,6 +19,7 @@ export default async function PackagesPage(
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
   }
 ) {
+  const now = new Date();
   const searchParams = await props.searchParams;
   const category =
     typeof searchParams.category === "string"
@@ -24,11 +31,16 @@ export default async function PackagesPage(
     typeof searchParams.location === "string"
       ? searchParams.location
       : undefined;
+  const offerOnly =
+    typeof searchParams.offer === "string" &&
+    ["1", "true"].includes(searchParams.offer.toLowerCase());
 
-  const where: any = {
-    isFeatured: true,
-    isArchived: false,
-  };
+  const where: any = offerOnly
+    ? activeOfferWhere(now)
+    : {
+        isFeatured: true,
+        isArchived: false,
+      };
 
   if (category) {
     where.tourCategory = category;
@@ -56,11 +68,12 @@ export default async function PackagesPage(
         pricePerAdult: true,
         numDaysNight: true,
         tourCategory: true,
+        ...PACKAGE_OFFER_FIELDS,
         location: { select: { id: true, label: true } },
         images: { select: { url: true }, take: 1 },
         _count: { select: { itineraries: true } },
       },
-      orderBy: [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
+      orderBy: offerOnly ? activeOfferOrderBy : [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
     }),
     prismadb.location.findMany({
       where: { isActive: true },
@@ -81,12 +94,16 @@ export default async function PackagesPage(
   return (
     <div className="min-h-screen pt-20 bg-gray-50">
       <PackagesListClient
-        packages={packages}
+        packages={packages.map((pkg) => ({
+          ...pkg,
+          ...buildPublicOfferPayload(pkg, now),
+        }))}
         locations={locations}
         categories={uniqueCategories}
         initialCategory={category}
         initialSearch={search}
         initialLocation={locationId}
+        initialOffer={offerOnly}
       />
     </div>
   );

@@ -270,6 +270,7 @@ export const travelApi = {
     search?: string;
     limit?: number;
     offset?: number;
+    offer?: boolean;
   }) => {
     const searchParams = new URLSearchParams();
     if (params?.locationId) searchParams.set("locationId", params.locationId);
@@ -277,6 +278,7 @@ export const travelApi = {
     if (params?.search) searchParams.set("search", params.search);
     if (params?.limit) searchParams.set("limit", String(params.limit));
     if (params?.offset) searchParams.set("offset", String(params.offset));
+    if (params?.offer) searchParams.set("offer", "1");
     const qs = searchParams.toString();
     const endpoint = `/api/travel/packages${qs ? `?${qs}` : ""}`;
     return cachedRequest(

@@ -34,6 +34,14 @@ const normalizeFlightDetails = (details: unknown): Array<{ date: string; flightN
         .filter((detail): detail is { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string } => Boolean(detail?.date));
 };
 
+const toNullableDate = (value: unknown): Date | null => {
+    if (!value || typeof value !== 'string' || !value.trim()) {
+        return null;
+    }
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+};
+
 async function createItineraryAndActivities(
     tx: TransactionClient,
     itinerary: {
@@ -169,6 +177,16 @@ export async function POST(
             // assignedToEmail,
             slug,
             isFeatured,
+            isOffer,
+            offerTitle,
+            offerSubtitle,
+            offerBadge,
+            offerPrice,
+            offerOriginalPrice,
+            offerStartsAt,
+            offerEndsAt,
+            offerSortOrder,
+            offerTerms,
             isArchived } = body;
 
         if (!userId) {
@@ -244,6 +262,18 @@ export async function POST(
                     // assignedTo,
                     // assignedToEmail,
                     slug,
+                    isFeatured,
+                    isArchived,
+                    isOffer: Boolean(isOffer),
+                    offerTitle: offerTitle?.trim?.() || null,
+                    offerSubtitle: offerSubtitle?.trim?.() || null,
+                    offerBadge: offerBadge?.trim?.() || null,
+                    offerPrice: offerPrice?.trim?.() || null,
+                    offerOriginalPrice: offerOriginalPrice?.trim?.() || null,
+                    offerStartsAt: toNullableDate(offerStartsAt),
+                    offerEndsAt: toNullableDate(offerEndsAt),
+                    offerSortOrder: Number.isFinite(Number(offerSortOrder)) ? Number(offerSortOrder) : 0,
+                    offerTerms: Array.isArray(offerTerms) ? offerTerms.filter(Boolean) : undefined,
                     images: normalizedImages.length
                         ? {
                             createMany: {

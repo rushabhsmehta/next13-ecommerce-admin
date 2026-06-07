@@ -13,6 +13,10 @@ interface Package {
   pricePerAdult: string | null;
   numDaysNight: string | null;
   tourCategory: string | null;
+  isOfferActive?: boolean;
+  offerBadge?: string | null;
+  offerPrice?: string | null;
+  offerOriginalPrice?: string | null;
   location: { id: string; label: string };
   images: { url: string }[];
   _count: { itineraries: number };
@@ -25,6 +29,7 @@ interface PackagesListClientProps {
   initialCategory?: string;
   initialSearch?: string;
   initialLocation?: string;
+  initialOffer?: boolean;
 }
 
 type SortOption = "featured" | "name-asc" | "price-low" | "price-high";
@@ -45,11 +50,13 @@ export function PackagesListClient({
   initialCategory,
   initialSearch,
   initialLocation,
+  initialOffer,
 }: PackagesListClientProps) {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState(initialCategory || "all");
   const [searchQuery, setSearchQuery] = useState(initialSearch || "");
   const [activeLocation, setActiveLocation] = useState(initialLocation || "all");
+  const [offerOnly, setOfferOnly] = useState(Boolean(initialOffer));
   const [activeSort, setActiveSort] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -57,15 +64,18 @@ export function PackagesListClient({
     category?: string;
     search?: string;
     location?: string;
+    offer?: boolean;
   }) => {
     const params = new URLSearchParams();
     const category = next.category ?? activeCategory;
     const search = next.search ?? searchQuery;
     const location = next.location ?? activeLocation;
+    const offer = next.offer ?? offerOnly;
 
     if (category !== "all") params.set("category", category);
     if (search.trim()) params.set("search", search.trim());
     if (location !== "all") params.set("location", location);
+    if (offer) params.set("offer", "1");
 
     const query = params.toString();
     router.push(query ? `/travel/packages?${query}` : "/travel/packages");
@@ -90,6 +100,7 @@ export function PackagesListClient({
     setActiveCategory("all");
     setSearchQuery("");
     setActiveLocation("all");
+    setOfferOnly(false);
     setActiveSort("featured");
     router.push("/travel/packages");
   };
@@ -205,7 +216,7 @@ export function PackagesListClient({
             <span className="text-sm text-gray-500">
               {activeCategory === "all" ? "All categories" : activeCategory}
             </span>
-            {(activeCategory !== "all" || searchQuery || activeLocation !== "all") && (
+            {(activeCategory !== "all" || searchQuery || activeLocation !== "all" || offerOnly) && (
               <button
                 type="button"
                 onClick={clearFilters}
@@ -220,6 +231,20 @@ export function PackagesListClient({
       </div>
 
       <div className="flex flex-nowrap gap-2 mb-6 sm:mb-10 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+        <button
+          onClick={() => {
+            const next = !offerOnly;
+            setOfferOnly(next);
+            pushFilters({ offer: next });
+          }}
+          className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+            offerOnly
+              ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
+              : "bg-white text-amber-700 border border-amber-200 hover:bg-amber-50"
+          }`}
+        >
+          Offers
+        </button>
         <button
           onClick={() => handleCategoryChange("all")}
           className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
@@ -272,6 +297,10 @@ export function PackagesListClient({
               pricePerAdult={pkg.pricePerAdult}
               tourCategory={pkg.tourCategory}
               itineraryCount={pkg._count.itineraries}
+              isOfferActive={pkg.isOfferActive}
+              offerBadge={pkg.offerBadge}
+              offerPrice={pkg.offerPrice}
+              offerOriginalPrice={pkg.offerOriginalPrice}
             />
           ))}
         </div>

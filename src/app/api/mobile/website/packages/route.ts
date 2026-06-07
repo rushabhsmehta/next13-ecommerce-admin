@@ -3,6 +3,13 @@ import { Prisma } from "@prisma/client";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import { requireMobileAdminPermission } from "@/app/api/mobile/lib/assert-mobile-admin-permission";
+import {
+  PACKAGE_OFFER_FIELDS,
+  activeOfferOrderBy,
+  activeOfferWhere,
+  getPackageOfferStatus,
+  parseOfferTerms,
+} from "@/lib/package-offers";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +24,17 @@ function formatPackage(row: any) {
     isFeatured: row.isFeatured,
     isArchived: row.isArchived,
     websiteSortOrder: row.websiteSortOrder ?? 0,
+    isOffer: row.isOffer,
+    offerStatus: getPackageOfferStatus(row),
+    offerTitle: row.offerTitle,
+    offerSubtitle: row.offerSubtitle,
+    offerBadge: row.offerBadge,
+    offerPrice: row.offerPrice,
+    offerOriginalPrice: row.offerOriginalPrice,
+    offerStartsAt: row.offerStartsAt?.toISOString?.() ?? row.offerStartsAt,
+    offerEndsAt: row.offerEndsAt?.toISOString?.() ?? row.offerEndsAt,
+    offerSortOrder: row.offerSortOrder ?? 0,
+    offerTerms: parseOfferTerms(row.offerTerms),
     tourPackageType: row.tourPackageType,
     tourCategory: row.tourCategory,
     numDaysNight: row.numDaysNight,
@@ -66,6 +84,17 @@ export async function GET(req: Request) {
       where.isArchived = true;
     } else if (status === "featured") {
       where.isFeatured = true;
+    } else if (status === "offers") {
+      Object.assign(where, activeOfferWhere());
+    } else if (status === "scheduled") {
+      where.isOffer = true;
+      where.isFeatured = true;
+      where.isArchived = false;
+      where.offerStartsAt = { gt: new Date() };
+    } else if (status === "expired") {
+      where.isOffer = true;
+      where.isArchived = false;
+      where.offerEndsAt = { lt: new Date() };
     }
     if (search) {
       where.OR = [
@@ -87,6 +116,7 @@ export async function GET(req: Request) {
           isFeatured: true,
           isArchived: true,
           websiteSortOrder: true,
+          ...PACKAGE_OFFER_FIELDS,
           tourPackageType: true,
           tourCategory: true,
           numDaysNight: true,
@@ -115,6 +145,7 @@ export async function GET(req: Request) {
           },
         },
         orderBy: [
+          ...(status === "offers" ? activeOfferOrderBy : []),
           { location: { label: "asc" } },
           { websiteSortOrder: "asc" },
           { updatedAt: "desc" },
@@ -141,4 +172,3 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Internal error", code: "SERVER" }, { status: 500 });
   }
 }
-

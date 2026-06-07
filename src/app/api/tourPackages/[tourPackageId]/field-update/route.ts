@@ -23,7 +23,24 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
     }
 
   // Define allowed fields for security
-  const allowedFields = ['tourPackageType', 'tourCategory', 'numDaysNight', 'isFeatured', 'isArchived', 'websiteSortOrder'];
+  const allowedFields = [
+    'tourPackageType',
+    'tourCategory',
+    'numDaysNight',
+    'isFeatured',
+    'isArchived',
+    'websiteSortOrder',
+    'isOffer',
+    'offerTitle',
+    'offerSubtitle',
+    'offerBadge',
+    'offerPrice',
+    'offerOriginalPrice',
+    'offerStartsAt',
+    'offerEndsAt',
+    'offerSortOrder',
+    'offerTerms',
+  ];
     
     if (!allowedFields.includes(field)) {
       return new NextResponse("Field not allowed for update", { status: 400 });
@@ -31,12 +48,14 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
 
     // Create update data object
     const updateData: any = {};
-    if (field === 'websiteSortOrder') {
+    if (field === 'websiteSortOrder' || field === 'offerSortOrder') {
       const parsed = Number(value);
       if (!Number.isFinite(parsed)) {
-        return new NextResponse("Invalid websiteSortOrder", { status: 400 });
+        return new NextResponse(`Invalid ${field}`, { status: 400 });
       }
       updateData[field] = parsed;
+    } else if (field === 'offerStartsAt' || field === 'offerEndsAt') {
+      updateData[field] = value ? new Date(value) : null;
     } else {
       updateData[field] = value;
     }

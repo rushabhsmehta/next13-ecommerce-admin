@@ -29,6 +29,7 @@ import {
   ArrowUp,
   ArrowDown,
   Trash,
+  Tag,
 } from "lucide-react";
 
 import { Heading } from "@/components/ui/heading";
@@ -62,6 +63,13 @@ interface WebsiteTourPackage {
   isFeatured: boolean;
   isArchived: boolean;
   websiteSortOrder: number;
+  isOffer: boolean;
+  offerTitle?: string | null;
+  offerBadge?: string | null;
+  offerPrice?: string | null;
+  offerStartsAt?: string | null;
+  offerEndsAt?: string | null;
+  offerSortOrder: number;
   updatedAt: string;
   relatedPackages: RelatedPackageSummary[];
 }
@@ -113,6 +121,11 @@ const SortablePackageCard = ({ pkg, disabled }: SortablePackageCardProps) => {
             <div className="text-xs text-muted-foreground">
               Website order: {pkg.websiteSortOrder + 1}
             </div>
+            {pkg.isOffer && (
+              <div className="text-xs text-amber-700">
+                Offer order: {pkg.offerSortOrder + 1}
+              </div>
+            )}
             <div className="text-xs text-muted-foreground">
               Last updated: {new Date(pkg.updatedAt).toLocaleString()}
             </div>
@@ -120,6 +133,7 @@ const SortablePackageCard = ({ pkg, disabled }: SortablePackageCardProps) => {
         </div>
         <div className="flex flex-wrap gap-2">
           {pkg.isFeatured && <Badge variant="outline">Featured</Badge>}
+          {pkg.isOffer && <Badge className="bg-amber-500 text-white hover:bg-amber-500">Offer</Badge>}
           {pkg.isArchived && <Badge variant="destructive">Archived</Badge>}
         </div>
       </div>
@@ -151,6 +165,7 @@ export const WebsiteManagementClient = ({
   const [relationDraft, setRelationDraft] = useState<string[]>([]);
   const [relationDirty, setRelationDirty] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [savingOfferOrder, setSavingOfferOrder] = useState(false);
   const [savingRelations, setSavingRelations] = useState(false);
 
   useEffect(() => {
@@ -165,6 +180,17 @@ export const WebsiteManagementClient = ({
       .sort((a, b) => {
         if (a.websiteSortOrder !== b.websiteSortOrder) {
           return a.websiteSortOrder - b.websiteSortOrder;
+        }
+        return a.name.localeCompare(b.name);
+      });
+  }, [packageState, selectedLocationId]);
+
+  const offerPackagesForLocation = useMemo(() => {
+    return packageState
+      .filter((pkg) => pkg.locationId === selectedLocationId && !pkg.isArchived && pkg.isOffer)
+      .sort((a, b) => {
+        if (a.offerSortOrder !== b.offerSortOrder) {
+          return a.offerSortOrder - b.offerSortOrder;
         }
         return a.name.localeCompare(b.name);
       });
@@ -292,6 +318,55 @@ export const WebsiteManagementClient = ({
     }
   };
 
+  const handleOfferDragEnd = async (event: DragEndEvent) => {
+    if (readOnly) {
+      return;
+    }
+
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const currentOrder = offerPackagesForLocation.map((pkg) => pkg.id);
+    const oldIndex = currentOrder.indexOf(active.id as string);
+    const newIndex = currentOrder.indexOf(over.id as string);
+
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+
+    const reorderedIds = arrayMove(currentOrder, oldIndex, newIndex);
+    const previousState = packageState.map((pkg) => ({
+      ...pkg,
+      relatedPackages: pkg.relatedPackages.map((relation) => ({ ...relation })),
+    }));
+
+    setPackageState((prev) =>
+      prev.map((pkg) => {
+        const newPosition = reorderedIds.indexOf(pkg.id);
+        return newPosition >= 0 ? { ...pkg, offerSortOrder: newPosition } : pkg;
+      })
+    );
+
+    try {
+      setSavingOfferOrder(true);
+      await axios.patch("/api/tourPackages/reorder", {
+        locationId: selectedLocationId,
+        orderedIds: reorderedIds,
+        mode: "offers",
+      });
+      toast.success("Offer ordering updated");
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to update offer order", error);
+      toast.error("Could not update offer ordering");
+      setPackageState(previousState);
+    } finally {
+      setSavingOfferOrder(false);
+    }
+  };
+
   const handleRelationsSave = async () => {
     if (!selectedPrimaryId) {
       return;
@@ -348,6 +423,7 @@ export const WebsiteManagementClient = ({
   };
 
   const locationHasPackages = packagesForLocation.length > 0;
+  const locationHasOffers = offerPackagesForLocation.length > 0;
 
   return (
     <>
@@ -425,6 +501,50 @@ export const WebsiteManagementClient = ({
                 <SortableContext items={packagesForLocation} strategy={verticalListSortingStrategy}>
                   <div className="space-y-3">
                     {packagesForLocation.map((pkg) => (
+                      <SortablePackageCard key={pkg.id} pkg={pkg} disabled={readOnly} />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Tag className="h-5 w-5 text-amber-600" /> Offer Ordering
+              </CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Drag active offer packages to control their order in offer sections.
+              </p>
+            </div>
+            {savingOfferOrder && (
+              <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                <RefreshCcw className="h-3 w-3 animate-spin" /> Saving...
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!locationHasOffers && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No offer packages found for this location. Mark packages as offers in the package form.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {locationHasOffers && (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleOfferDragEnd}
+              >
+                <SortableContext items={offerPackagesForLocation} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-3">
+                    {offerPackagesForLocation.map((pkg) => (
                       <SortablePackageCard key={pkg.id} pkg={pkg} disabled={readOnly} />
                     ))}
                   </div>

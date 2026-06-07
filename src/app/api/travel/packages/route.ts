@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import {
+  PACKAGE_OFFER_FIELDS,
+  activeOfferOrderBy,
+  activeOfferWhere,
+  buildPublicOfferPayload,
+} from "@/lib/package-offers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
+    const now = new Date();
     const { searchParams } = new URL(req.url);
     const locationId = searchParams.get("locationId") || undefined;
     const category = searchParams.get("category") || undefined;
     const search = searchParams.get("search") || undefined;
+    const offerOnly = ["1", "true"].includes((searchParams.get("offer") || "").toLowerCase());
     const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "50", 10), 1), 100);
     const offset = Math.max(parseInt(searchParams.get("offset") || "0", 10), 0);
 
@@ -17,7 +25,7 @@ export async function GET(req: Request) {
       isArchived: false,
     };
 
-    const where: any = { ...baseWhere };
+    const where: any = offerOnly ? activeOfferWhere(now) : { ...baseWhere };
 
     if (locationId) where.locationId = locationId;
     if (category) where.tourCategory = category;
@@ -42,11 +50,12 @@ export async function GET(req: Request) {
           tourPackageType: true,
           pickup_location: true,
           drop_location: true,
+          ...PACKAGE_OFFER_FIELDS,
           location: { select: { id: true, label: true, imageUrl: true } },
           images: { select: { url: true }, take: 3 },
           _count: { select: { itineraries: true } },
         },
-        orderBy: [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
+        orderBy: offerOnly ? activeOfferOrderBy : [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
         take: limit,
         skip: offset,
       }),
@@ -78,7 +87,10 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({
-      packages,
+      packages: packages.map((pkg) => ({
+        ...pkg,
+        ...buildPublicOfferPayload(pkg, now),
+      })),
       total,
       limit,
       offset,

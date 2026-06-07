@@ -20,6 +20,10 @@ export type HomePackage = {
   numDaysNight?: string | null;
   pricePerAdult?: string | null;
   price?: string | null;
+  isOfferActive?: boolean;
+  offerBadge?: string | null;
+  offerPrice?: string | null;
+  offerOriginalPrice?: string | null;
   location?: { label?: string | null };
   images?: { url: string }[];
   _count?: { itineraries?: number };
@@ -39,7 +43,9 @@ export function PackageCard({ pkg, onPress, testID, variant = "list" }: Props) {
   const isCarousel = variant === "carousel";
   const imageUrl = pkg.images?.[0]?.url;
   const [imageFailed, setImageFailed] = useState(false);
-  const displayPrice = pkg.pricePerAdult || pkg.price;
+  const displayPrice = pkg.isOfferActive
+    ? pkg.offerPrice || pkg.pricePerAdult || pkg.price
+    : pkg.pricePerAdult || pkg.price;
   const priceNum =
     displayPrice != null && String(displayPrice).trim() !== ""
       ? Number(displayPrice)
@@ -51,6 +57,13 @@ export function PackageCard({ pkg, onPress, testID, variant = "list" }: Props) {
     () => splitPackageName(pkg.tourPackageName ?? "Tour Package"),
     [pkg.tourPackageName]
   );
+  const originalPriceNum =
+    pkg.isOfferActive && pkg.offerOriginalPrice
+      ? Number(pkg.offerOriginalPrice)
+      : NaN;
+  const formattedOriginalPrice = Number.isFinite(originalPriceNum)
+    ? `â‚¹${originalPriceNum.toLocaleString("en-IN")}`
+    : null;
 
   return (
     <Pressable
@@ -103,6 +116,14 @@ export function PackageCard({ pkg, onPress, testID, variant = "list" }: Props) {
             <Text style={styles.categoryText}>{pkg.tourCategory}</Text>
           </View>
         ) : null}
+        {pkg.isOfferActive ? (
+          <View style={styles.offerBadge}>
+            <Ionicons name="pricetag" size={10} color="#fff" />
+            <Text style={styles.offerBadgeText} numberOfLines={1}>
+              {pkg.offerBadge || "Offer"}
+            </Text>
+          </View>
+        ) : null}
 
         {pkg.location?.label && imageUrl && !imageFailed ? (
           <View style={styles.locationRow}>
@@ -135,6 +156,9 @@ export function PackageCard({ pkg, onPress, testID, variant = "list" }: Props) {
               <Text style={styles.pricePrefix}>From </Text>
               <Text style={styles.price}>{formattedPrice}</Text>
               <Text style={styles.priceUnit}>/person</Text>
+              {formattedOriginalPrice && formattedOriginalPrice !== formattedPrice ? (
+                <Text style={styles.originalPrice}>{formattedOriginalPrice}</Text>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -228,6 +252,24 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.2,
   },
+  offerBadge: {
+    position: "absolute",
+    bottom: Spacing.sm,
+    right: Spacing.md,
+    maxWidth: "52%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#f59e0b",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+  },
+  offerBadgeText: {
+    fontSize: FontSize.xs,
+    color: "#fff",
+    fontWeight: "800",
+  },
   locationRow: {
     position: "absolute",
     bottom: Spacing.sm,
@@ -309,5 +351,13 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
     fontWeight: "500",
+  },
+  originalPrice: {
+    width: "100%",
+    textAlign: "right",
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    fontWeight: "600",
+    textDecorationLine: "line-through",
   },
 });

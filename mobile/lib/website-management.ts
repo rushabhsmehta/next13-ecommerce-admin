@@ -25,6 +25,17 @@ export interface WebsitePackage {
   isFeatured: boolean;
   isArchived: boolean;
   websiteSortOrder: number;
+  isOffer: boolean;
+  offerStatus?: "none" | "draft" | "scheduled" | "live" | "expired" | "archived";
+  offerTitle?: string | null;
+  offerSubtitle?: string | null;
+  offerBadge?: string | null;
+  offerPrice?: string | null;
+  offerOriginalPrice?: string | null;
+  offerStartsAt?: string | null;
+  offerEndsAt?: string | null;
+  offerSortOrder: number;
+  offerTerms?: string[] | null;
   tourPackageType?: string | null;
   tourCategory?: string | null;
   numDaysNight?: string | null;
@@ -46,6 +57,16 @@ export interface WebsitePackageUpdateInput {
   isFeatured?: boolean;
   isArchived?: boolean;
   websiteSortOrder?: number;
+  isOffer?: boolean;
+  offerTitle?: string | null;
+  offerSubtitle?: string | null;
+  offerBadge?: string | null;
+  offerPrice?: string | null;
+  offerOriginalPrice?: string | null;
+  offerStartsAt?: string | null;
+  offerEndsAt?: string | null;
+  offerSortOrder?: number;
+  offerTerms?: string[] | null;
   tourPackageType?: string | null;
   tourCategory?: string | null;
   numDaysNight?: string | null;
@@ -71,7 +92,7 @@ export function createWebsiteManagementClient(authRequest: AuthenticatedRequest)
       filters: {
         search?: string;
         locationId?: string;
-        status?: "all" | "published" | "draft" | "archived" | "featured";
+        status?: "all" | "published" | "draft" | "archived" | "featured" | "offers" | "expired" | "scheduled";
         limit?: number;
         offset?: number;
       } = {}
@@ -101,6 +122,14 @@ export function createWebsiteManagementClient(authRequest: AuthenticatedRequest)
       });
     },
 
+    reorderOffers(orderedIds: string[]): Promise<{ success: boolean }> {
+      return authRequest<{ success: boolean }>("/api/mobile/website/reorder", {
+        method: "PATCH",
+        body: { orderedIds, mode: "offers" },
+        headers: { "Idempotency-Key": makeIdempotencyKey("website-offer-reorder") },
+      });
+    },
+
     updateRelated(id: string, relatedIds: string[]): Promise<{ success: boolean; relatedIds: string[] }> {
       return authRequest(`/api/mobile/website/packages/${encodeURIComponent(id)}/related`, {
         method: "PUT",
@@ -112,4 +141,3 @@ export function createWebsiteManagementClient(authRequest: AuthenticatedRequest)
 }
 
 export type WebsiteManagementClient = ReturnType<typeof createWebsiteManagementClient>;
-

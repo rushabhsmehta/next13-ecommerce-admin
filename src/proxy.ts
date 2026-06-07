@@ -20,6 +20,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/whatsapp/webhook",
   "/api/internal/whatsapp/campaign-worker",
   "/travel",
+  "/travel/offers",
   "/travel/packages",
   "/travel/packages/(.*)",
   "/travel/destinations",

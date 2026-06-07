@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { MapPin } from "lucide-react";
 import { PackageCard } from "../../components/package-card";
+import { PACKAGE_OFFER_FIELDS, buildPublicOfferPayload } from "@/lib/package-offers";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function DestinationDetailPage(
     params: Promise<{ id: string }>;
   }
 ) {
+  const now = new Date();
   const params = await props.params;
   const location = await prismadb.location.findUnique({
     where: { id: params.id },
@@ -25,6 +27,7 @@ export default async function DestinationDetailPage(
           pricePerAdult: true,
           numDaysNight: true,
           tourCategory: true,
+          ...PACKAGE_OFFER_FIELDS,
           location: { select: { label: true } },
           images: { select: { url: true }, take: 1 },
           _count: { select: { itineraries: true } },
@@ -85,7 +88,9 @@ export default async function DestinationDetailPage(
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {location.tourPackages.map((pkg: any) => (
+            {location.tourPackages.map((pkg: any) => {
+              const offer = buildPublicOfferPayload(pkg, now);
+              return (
               <PackageCard
                 key={pkg.id}
                 id={pkg.id}
@@ -98,8 +103,13 @@ export default async function DestinationDetailPage(
                 pricePerAdult={pkg.pricePerAdult}
                 tourCategory={pkg.tourCategory}
                 itineraryCount={pkg._count.itineraries}
+                isOfferActive={offer.isOfferActive}
+                offerBadge={offer.offerBadge}
+                offerPrice={offer.offerPrice}
+                offerOriginalPrice={offer.offerOriginalPrice}
               />
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

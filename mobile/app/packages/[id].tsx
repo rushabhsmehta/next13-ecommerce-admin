@@ -65,6 +65,17 @@ function formatTravelPrice(value: unknown): string | null {
   return `₹${n.toLocaleString("en-IN")}`;
 }
 
+function formatOfferDate(value: unknown): string | null {
+  if (!value) return null;
+  const date = new Date(String(value));
+  if (!Number.isFinite(date.getTime())) return null;
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
 export default function PackageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -152,8 +163,14 @@ export default function PackageDetailScreen() {
     img.url?.trim()
   );
   const itineraries: any[] = pkg.itineraries || [];
-  const displayPrice = pkg.pricePerAdult || pkg.price;
+  const isOfferActive = Boolean(pkg.isOfferActive);
+  const displayPrice = isOfferActive
+    ? pkg.offerPrice || pkg.pricePerAdult || pkg.price
+    : pkg.pricePerAdult || pkg.price;
   const formattedPrice = formatTravelPrice(displayPrice);
+  const formattedOriginalPrice = isOfferActive ? formatTravelPrice(pkg.offerOriginalPrice) : null;
+  const offerEndsAt = formatOfferDate(pkg.offerEndsAt);
+  const offerTerms = Array.isArray(pkg.offerTerms) ? pkg.offerTerms : [];
   const pricingDetails = [
     { label: "Adult", value: pkg.pricePerAdult },
     { label: "Child with bed", value: pkg.pricePerChildOrExtraBed },
@@ -164,7 +181,9 @@ export default function PackageDetailScreen() {
     .filter((item) => item.formatted);
 
   const packageUrl = getTravelPackageUrl(pkg.slug, pkg.id);
-  const shareMessage = `${nameParts.title} — Aagam Holidays\n${packageUrl}`;
+  const shareMessage = `${nameParts.title} - Aagam Holidays${
+    isOfferActive ? `\n${pkg.offerBadge || "Limited offer"} available` : ""
+  }\n${packageUrl}`;
 
   const openShareModal = () => setShareModalVisible(true);
   const closeShareModal = () => setShareModalVisible(false);
@@ -232,8 +251,11 @@ export default function PackageDetailScreen() {
     const locationLabel = pkg.location?.label ?? "";
     const packageName = encodeURIComponent(extractPlainText(pkg.tourPackageName) ?? "");
     if (locationId) {
+      if (isOfferActive) {
+        trackEvent("offer_enquiry_start", { packageId: pkg.id, locationId });
+      }
       router.push(
-        `/packages/enquiry?locationId=${locationId}&locationLabel=${encodeURIComponent(locationLabel)}&packageName=${packageName}` as never
+        `/packages/enquiry?locationId=${locationId}&locationLabel=${encodeURIComponent(locationLabel)}&packageName=${packageName}&packageId=${encodeURIComponent(pkg.id)}${isOfferActive ? "&source=offer" : ""}` as never
       );
     } else {
       Linking.openURL(
@@ -415,6 +437,43 @@ export default function PackageDetailScreen() {
               </Text>
             </Pressable>
           )}
+
+          {isOfferActive ? (
+            <View style={styles.offerPanel}>
+              <View style={styles.offerPanelTop}>
+                <View style={styles.offerIconWrap}>
+                  <Ionicons name="pricetag" size={16} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.offerBadgeText}>
+                    {pkg.offerBadge || "Limited Offer"}
+                  </Text>
+                  <Text style={styles.offerTitle}>
+                    {pkg.offerTitle || "Special package offer"}
+                  </Text>
+                </View>
+              </View>
+              {pkg.offerSubtitle ? (
+                <Text style={styles.offerSubtitle}>{pkg.offerSubtitle}</Text>
+              ) : null}
+              <View style={styles.offerPriceRow}>
+                {formattedPrice ? (
+                  <Text style={styles.offerPrice}>{formattedPrice}</Text>
+                ) : null}
+                {formattedOriginalPrice && formattedOriginalPrice !== formattedPrice ? (
+                  <Text style={styles.offerOriginalPrice}>{formattedOriginalPrice}</Text>
+                ) : null}
+                {offerEndsAt ? (
+                  <Text style={styles.offerValidity}>Valid till {offerEndsAt}</Text>
+                ) : null}
+              </View>
+              {offerTerms.length > 0 ? (
+                <Text style={styles.offerTerms} numberOfLines={2}>
+                  {offerTerms.slice(0, 2).join(" · ")}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
 
           {pricingDetails.length > 0 ? (
             <View style={styles.pricingDetailsPanel}>
@@ -811,11 +870,14 @@ export default function PackageDetailScreen() {
         <View style={styles.bottomPriceBlock}>
           {formattedPrice ? (
             <>
-              <Text style={styles.ctaPriceLabel}>From</Text>
+              <Text style={styles.ctaPriceLabel}>{isOfferActive ? "Offer" : "From"}</Text>
               <View style={styles.ctaPriceRow}>
                 <Text style={styles.ctaPrice}>{formattedPrice}</Text>
                 <Text style={styles.ctaPriceUnit}>/person</Text>
               </View>
+              {formattedOriginalPrice && formattedOriginalPrice !== formattedPrice ? (
+                <Text style={styles.ctaOriginalPrice}>{formattedOriginalPrice}</Text>
+              ) : null}
             </>
           ) : (
             <>
@@ -1051,6 +1113,59 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 18,
   },
+  offerPanel: {
+    marginTop: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "#fcd34d",
+    borderRadius: BorderRadius.lg,
+    backgroundColor: "#fffbeb",
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  offerPanelTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  offerIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#f59e0b",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  offerBadgeText: {
+    fontSize: FontSize.xs,
+    color: "#92400e",
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  offerTitle: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+    fontWeight: "800",
+  },
+  offerSubtitle: {
+    fontSize: FontSize.sm,
+    color: "#78350f",
+    lineHeight: 19,
+  },
+  offerPriceRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  offerPrice: { fontSize: FontSize.xl, color: "#b45309", fontWeight: "900" },
+  offerOriginalPrice: {
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+    fontWeight: "700",
+    textDecorationLine: "line-through",
+  },
+  offerValidity: { fontSize: FontSize.xs, color: "#92400e", fontWeight: "800" },
+  offerTerms: { fontSize: FontSize.xs, color: "#78350f", lineHeight: 17 },
   pricingDetailsPanel: {
     marginTop: Spacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
@@ -1398,6 +1513,12 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: "500",
     color: Colors.textSecondary,
+  },
+  ctaOriginalPrice: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    fontWeight: "600",
+    textDecorationLine: "line-through",
   },
   ctaPriceContact: {
     fontSize: FontSize.sm,

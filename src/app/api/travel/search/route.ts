@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import {
+  PACKAGE_OFFER_FIELDS,
+  activeOfferOrderBy,
+  activeOfferWhere,
+  buildPublicOfferPayload,
+} from "@/lib/package-offers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
+    const now = new Date();
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q") || "";
 
@@ -12,26 +19,50 @@ export async function GET(req: Request) {
       return NextResponse.json({ results: { packages: [], destinations: [] } });
     }
 
-    const [packages, destinations] = await Promise.all([
+    const searchConditions = [
+      { tourPackageName: { contains: query } },
+      { location: { label: { contains: query } } },
+    ];
+
+    const [offerPackages, regularPackages, destinations] = await Promise.all([
       prismadb.tourPackage.findMany({
         where: {
-          isFeatured: true,
-          isArchived: false,
-          OR: [
-            { tourPackageName: { contains: query } },
-            { location: { label: { contains: query } } },
-          ],
+          ...activeOfferWhere(now),
+          OR: searchConditions,
         },
         select: {
           id: true,
           tourPackageName: true,
           slug: true,
           numDaysNight: true,
+          price: true,
           pricePerAdult: true,
+          ...PACKAGE_OFFER_FIELDS,
           location: { select: { label: true } },
           images: { select: { url: true }, take: 1 },
         },
+        orderBy: activeOfferOrderBy,
         take: 5,
+      }),
+      prismadb.tourPackage.findMany({
+        where: {
+          isFeatured: true,
+          isArchived: false,
+          OR: searchConditions,
+        },
+        select: {
+          id: true,
+          tourPackageName: true,
+          slug: true,
+          numDaysNight: true,
+          price: true,
+          pricePerAdult: true,
+          ...PACKAGE_OFFER_FIELDS,
+          location: { select: { label: true } },
+          images: { select: { url: true }, take: 1 },
+        },
+        orderBy: [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
+        take: 8,
       }),
       prismadb.location.findMany({
         where: {
@@ -52,6 +83,11 @@ export async function GET(req: Request) {
       }),
     ]);
 
+    const packages = [
+      ...offerPackages,
+      ...regularPackages.filter((pkg) => !offerPackages.some((offer) => offer.id === pkg.id)),
+    ].slice(0, 5);
+
     return NextResponse.json({
       results: {
         packages: packages.map((p) => ({
@@ -60,9 +96,10 @@ export async function GET(req: Request) {
           name: p.tourPackageName,
           slug: p.slug,
           duration: p.numDaysNight,
-          price: p.pricePerAdult,
+          price: buildPublicOfferPayload(p, now).offerPrice || p.pricePerAdult || p.price,
           location: p.location.label,
           imageUrl: p.images[0]?.url,
+          ...buildPublicOfferPayload(p, now),
         })),
         destinations: destinations
           .filter((d) => d._count.tourPackages > 0)

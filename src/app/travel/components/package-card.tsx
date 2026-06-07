@@ -14,9 +14,13 @@ interface PackageCardProps {
   pricePerAdult: string | null;
   tourCategory: string | null;
   itineraryCount: number;
+  isOfferActive?: boolean;
+  offerBadge?: string | null;
+  offerPrice?: string | null;
+  offerOriginalPrice?: string | null;
 }
 
-function formatPrice(value: string | null) {
+function formatPrice(value: string | null | undefined) {
   if (!value) return null;
 
   const amount = Number(value);
@@ -38,8 +42,13 @@ export function PackageCard({
   pricePerAdult,
   tourCategory,
   itineraryCount,
+  isOfferActive,
+  offerBadge,
+  offerPrice,
+  offerOriginalPrice,
 }: PackageCardProps) {
-  const displayPrice = formatPrice(pricePerAdult) || formatPrice(price);
+  const displayPrice = formatPrice(isOfferActive ? offerPrice || pricePerAdult : pricePerAdult) || formatPrice(price);
+  const originalPrice = isOfferActive ? formatPrice(offerOriginalPrice) : null;
   const href = slug ? `/travel/packages/${slug}` : `/travel/packages/${id}`;
   const hasImage = Boolean(imageUrl);
   const displayName = stripHtml(name) || "Tour Package";
@@ -63,11 +72,15 @@ export function PackageCard({
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-          {tourCategory && (
+          {isOfferActive ? (
+            <span className="absolute top-3.5 left-3.5 px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-amber-900/10">
+              {offerBadge || "Limited Offer"}
+            </span>
+          ) : tourCategory ? (
             <span className="absolute top-3.5 left-3.5 px-3 py-1 bg-white/90 backdrop-blur-sm text-orange-700 text-xs font-semibold rounded-lg">
               {tourCategory}
             </span>
-          )}
+          ) : null}
 
           {duration && (
             <span className="absolute top-3.5 right-3.5 px-3 py-1 bg-black/30 backdrop-blur-sm text-white text-xs font-medium rounded-lg flex items-center gap-1">
@@ -107,6 +120,11 @@ export function PackageCard({
                     /person
                   </span>
                 </p>
+                {originalPrice && originalPrice !== displayPrice ? (
+                  <p className="text-xs text-gray-400 line-through">
+                    {"\u20B9"}{originalPrice}
+                  </p>
+                ) : null}
               </div>
             ) : (
               <span className="text-sm text-gray-500">Contact for pricing</span>

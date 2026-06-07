@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import { requireMobileAdminPermission } from "@/app/api/mobile/lib/assert-mobile-admin-permission";
@@ -8,6 +9,7 @@ import {
   readIdempotencyKey,
 } from "@/app/api/mobile/lib/finance-guard";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import { getPackageOfferStatus, parseOfferTerms } from "@/lib/package-offers";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,16 @@ const updateSchema = z
     isFeatured: z.boolean().optional(),
     isArchived: z.boolean().optional(),
     websiteSortOrder: z.coerce.number().int().min(0).optional(),
+    isOffer: z.boolean().optional(),
+    offerTitle: z.string().trim().max(200).optional().nullable(),
+    offerSubtitle: z.string().trim().max(1000).optional().nullable(),
+    offerBadge: z.string().trim().max(80).optional().nullable(),
+    offerPrice: z.string().trim().max(100).optional().nullable(),
+    offerOriginalPrice: z.string().trim().max(100).optional().nullable(),
+    offerStartsAt: z.coerce.date().optional().nullable(),
+    offerEndsAt: z.coerce.date().optional().nullable(),
+    offerSortOrder: z.coerce.number().int().min(0).optional(),
+    offerTerms: z.array(z.string().trim().max(500)).optional().nullable(),
     tourPackageType: z.string().trim().min(1).optional().nullable(),
     tourCategory: z.string().trim().min(1).optional().nullable(),
     numDaysNight: z.string().trim().min(1).optional().nullable(),
@@ -34,6 +46,17 @@ function formatPackage(row: any) {
     isFeatured: row.isFeatured,
     isArchived: row.isArchived,
     websiteSortOrder: row.websiteSortOrder ?? 0,
+    isOffer: row.isOffer,
+    offerStatus: getPackageOfferStatus(row),
+    offerTitle: row.offerTitle,
+    offerSubtitle: row.offerSubtitle,
+    offerBadge: row.offerBadge,
+    offerPrice: row.offerPrice,
+    offerOriginalPrice: row.offerOriginalPrice,
+    offerStartsAt: row.offerStartsAt?.toISOString?.() ?? row.offerStartsAt,
+    offerEndsAt: row.offerEndsAt?.toISOString?.() ?? row.offerEndsAt,
+    offerSortOrder: row.offerSortOrder ?? 0,
+    offerTerms: parseOfferTerms(row.offerTerms),
     tourPackageType: row.tourPackageType,
     tourCategory: row.tourCategory,
     numDaysNight: row.numDaysNight,
@@ -88,9 +111,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       return NextResponse.json({ error: "Tour package not found", code: "NOT_FOUND" }, { status: 404 });
     }
 
+    const updateData = {
+      ...parsed.data,
+      offerTerms:
+        parsed.data.offerTerms === null
+          ? Prisma.DbNull
+          : parsed.data.offerTerms,
+    };
+
     const updated = await prismadb.tourPackage.update({
       where: { id: params.id },
-      data: parsed.data,
+      data: updateData,
       include: { location: { select: { id: true, label: true } } },
     });
 
@@ -111,4 +142,3 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     return NextResponse.json({ error: "Internal error", code: "SERVER" }, { status: 500 });
   }
 }
-

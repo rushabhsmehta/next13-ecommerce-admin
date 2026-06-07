@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Clock, MapPin, Tag } from "lucide-react";
 import { stripHtml } from "@/lib/html-utils";
+import { formatOfferValidity } from "@/lib/package-offers";
 
 interface DealPackage {
   id: string;
@@ -11,12 +12,20 @@ interface DealPackage {
   pricePerAdult: string | null;
   numDaysNight: string | null;
   tourCategory: string | null;
+  isOfferActive?: boolean;
+  offerTitle?: string | null;
+  offerSubtitle?: string | null;
+  offerBadge?: string | null;
+  offerPrice?: string | null;
+  offerOriginalPrice?: string | null;
+  offerStartsAt?: Date | string | null;
+  offerEndsAt?: Date | string | null;
   location: { label: string };
   images: { url: string }[];
   _count: { itineraries: number };
 }
 
-function formatPrice(value: string | null) {
+function formatPrice(value: string | null | undefined) {
   if (!value) return null;
 
   const amount = Number(value);
@@ -47,17 +56,24 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
             </p>
           </div>
           <Link
-            href="/travel/packages"
+            href="/travel/offers"
             className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-amber-600 font-semibold hover:gap-3 transition-all text-sm"
           >
-            View All Packages <ArrowRight className="w-4 h-4" />
+            View All Offers <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
           {deals.map((pkg) => {
-            const displayPrice = formatPrice(pkg.pricePerAdult) || formatPrice(pkg.price);
-            const displayName = stripHtml(pkg.tourPackageName || "") || "Tour Package";
+            const displayPrice =
+              formatPrice(pkg.offerPrice) ||
+              formatPrice(pkg.pricePerAdult) ||
+              formatPrice(pkg.price);
+            const originalPrice = formatPrice(pkg.offerOriginalPrice);
+            const displayName =
+              stripHtml(pkg.offerTitle || pkg.tourPackageName || "") || "Tour Package";
+            const subtitle = pkg.offerSubtitle?.trim();
+            const validity = formatOfferValidity(pkg);
             const href = pkg.slug
               ? `/travel/packages/${pkg.slug}`
               : `/travel/packages/${pkg.id}`;
@@ -81,7 +97,7 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
                     <span className="absolute top-3 left-3 px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg shadow-lg">
-                      Best Value
+                      {pkg.offerBadge || "Limited Offer"}
                     </span>
 
                     {pkg.numDaysNight && (
@@ -103,6 +119,11 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
                     <h3 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-2 mb-3 leading-snug">
                       {displayName}
                     </h3>
+                    {subtitle ? (
+                      <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+                        {subtitle}
+                      </p>
+                    ) : null}
 
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                       {displayPrice ? (
@@ -117,6 +138,16 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
                               /person
                             </span>
                           </p>
+                          {originalPrice && originalPrice !== displayPrice ? (
+                            <p className="text-xs text-gray-400 line-through">
+                              {"\u20B9"}{originalPrice}
+                            </p>
+                          ) : null}
+                          {validity ? (
+                            <p className="text-[10px] text-amber-700 mt-1">
+                              {validity}
+                            </p>
+                          ) : null}
                         </div>
                       ) : (
                         <span className="text-sm text-gray-500">

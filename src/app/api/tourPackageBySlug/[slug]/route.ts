@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 
 import prismadb from "@/lib/prismadb";
+import { buildPublicOfferPayload } from "@/lib/package-offers";
 
 export async function GET(req: Request, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   try {
+    const now = new Date();
     if (!params.slug) {
       return new NextResponse("Tour Package Slug is required", { status: 400 });
     }
 
     const tourPackage = await prismadb.tourPackage.findFirst({
       where: {
-        slug: params.slug,
+        OR: [{ slug: params.slug }, { id: params.slug }],
         isArchived: false,
         isFeatured: true,
       },
@@ -42,7 +43,14 @@ export async function GET(req: Request, props: { params: Promise<{ slug: string 
         },
       },
     },)
-    return NextResponse.json(tourPackage);
+    return NextResponse.json(
+      tourPackage
+        ? {
+            ...tourPackage,
+            ...buildPublicOfferPayload(tourPackage, now),
+          }
+        : null
+    );
   } catch (error) {
     console.log('[TOUR_PACKAGE__GET]', error);
     return new NextResponse("Internal error", { status: 500 });

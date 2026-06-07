@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const reorderSchema = z.object({
   locationId: z.string().optional().nullable(),
   orderedIds: z.array(z.string().min(1)).min(1),
+  mode: z.enum(["website", "offers"]).optional().default("website"),
 });
 
 export async function PATCH(req: Request) {
@@ -54,7 +55,7 @@ export async function PATCH(req: Request) {
 
     const packages = await prismadb.tourPackage.findMany({
       where: { id: { in: orderedIds } },
-      select: { id: true, locationId: true, isArchived: true },
+      select: { id: true, locationId: true, isArchived: true, isOffer: true },
     });
     if (packages.length !== orderedIds.length) {
       return NextResponse.json(
@@ -77,12 +78,21 @@ export async function PATCH(req: Request) {
         { status: 400 }
       );
     }
+    if (parsed.data.mode === "offers" && packages.some((pkg) => !pkg.isOffer)) {
+      return NextResponse.json(
+        { error: "Only offer packages can be reordered in offer mode", code: "NON_OFFER_TARGET" },
+        { status: 400 }
+      );
+    }
 
     await prismadb.$transaction(
       orderedIds.map((id, index) =>
         prismadb.tourPackage.update({
           where: { id },
-          data: { websiteSortOrder: index },
+          data:
+            parsed.data.mode === "offers"
+              ? { offerSortOrder: index }
+              : { websiteSortOrder: index },
         })
       )
     );
@@ -96,6 +106,7 @@ export async function PATCH(req: Request) {
       metadata: {
         idempotencyKey: key,
         locationId: parsed.data.locationId ?? null,
+        mode: parsed.data.mode,
         orderedIds,
       },
     });
@@ -106,4 +117,3 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Internal error", code: "SERVER" }, { status: 500 });
   }
 }
-

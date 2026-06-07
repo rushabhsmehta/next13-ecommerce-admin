@@ -5,6 +5,14 @@ import prismadb from "@/lib/prismadb";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
 
+const toNullableDate = (value: unknown): Date | null => {
+  if (!value || typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
 export async function GET(req: Request, props: { params: Promise<{ tourPackageId: string }> }) {
   const params = await props.params;
   try {
@@ -191,6 +199,16 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       itineraries,
       isFeatured,
       isArchived,
+      isOffer,
+      offerTitle,
+      offerSubtitle,
+      offerBadge,
+      offerPrice,
+      offerOriginalPrice,
+      offerStartsAt,
+      offerEndsAt,
+      offerSortOrder,
+      offerTerms,
       // assignedTo,
       // assignedToEmail,
       slug,
@@ -347,6 +365,16 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       // disclaimer,
       isFeatured,
       isArchived,
+      isOffer: Boolean(isOffer),
+      offerTitle: offerTitle?.trim?.() || null,
+      offerSubtitle: offerSubtitle?.trim?.() || null,
+      offerBadge: offerBadge?.trim?.() || null,
+      offerPrice: offerPrice?.trim?.() || null,
+      offerOriginalPrice: offerOriginalPrice?.trim?.() || null,
+      offerStartsAt: toNullableDate(offerStartsAt),
+      offerEndsAt: toNullableDate(offerEndsAt),
+      offerSortOrder: Number.isFinite(Number(offerSortOrder)) ? Number(offerSortOrder) : 0,
+      offerTerms: Array.isArray(offerTerms) ? offerTerms.filter(Boolean) : null,
       // assignedTo,
       // assignedToEmail,
       slug,

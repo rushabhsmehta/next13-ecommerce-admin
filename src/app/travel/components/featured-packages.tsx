@@ -10,6 +10,10 @@ interface FeaturedPackage {
   pricePerAdult: string | null;
   numDaysNight: string | null;
   tourCategory: string | null;
+  isOfferActive?: boolean;
+  offerBadge?: string | null;
+  offerPrice?: string | null;
+  offerOriginalPrice?: string | null;
   location: { label: string };
   images: { url: string }[];
   _count: { itineraries: number };
@@ -62,6 +66,10 @@ export function FeaturedPackages({
               pricePerAdult={pkg.pricePerAdult}
               tourCategory={pkg.tourCategory}
               itineraryCount={pkg._count.itineraries}
+              isOfferActive={pkg.isOfferActive}
+              offerBadge={pkg.offerBadge}
+              offerPrice={pkg.offerPrice}
+              offerOriginalPrice={pkg.offerOriginalPrice}
             />
           ))}
         </div>

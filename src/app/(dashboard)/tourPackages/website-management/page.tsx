@@ -21,6 +21,13 @@ const WebsiteManagementPage = async () => {
         isFeatured: true,
         isArchived: true,
         websiteSortOrder: true,
+        isOffer: true,
+        offerTitle: true,
+        offerBadge: true,
+        offerPrice: true,
+        offerStartsAt: true,
+        offerEndsAt: true,
+        offerSortOrder: true,
         updatedAt: true,
         location: {
           select: {
@@ -78,6 +85,13 @@ const WebsiteManagementPage = async () => {
     isFeatured: pkg.isFeatured,
     isArchived: pkg.isArchived,
     websiteSortOrder: pkg.websiteSortOrder ?? 0,
+    isOffer: pkg.isOffer,
+    offerTitle: pkg.offerTitle,
+    offerBadge: pkg.offerBadge,
+    offerPrice: pkg.offerPrice,
+    offerStartsAt: pkg.offerStartsAt?.toISOString() ?? null,
+    offerEndsAt: pkg.offerEndsAt?.toISOString() ?? null,
+    offerSortOrder: pkg.offerSortOrder ?? 0,
     updatedAt: pkg.updatedAt.toISOString(),
     relatedPackages: pkg.primaryRelatedPackages
       .filter((relation) => relation.relatedTourPackage)

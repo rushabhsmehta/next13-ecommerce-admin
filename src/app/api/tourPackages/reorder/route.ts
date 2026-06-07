@@ -17,7 +17,11 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { orderedIds, locationId } = body as { orderedIds?: string[]; locationId?: string };
+    const { orderedIds, locationId, mode } = body as {
+      orderedIds?: string[];
+      locationId?: string;
+      mode?: "website" | "offers";
+    };
 
     if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
       return new NextResponse("orderedIds array is required", { status: 400 });
@@ -38,6 +42,7 @@ export async function PATCH(req: Request) {
         id: true,
         locationId: true,
         isArchived: true,
+        isOffer: true,
       },
     });
 
@@ -56,11 +61,14 @@ export async function PATCH(req: Request) {
     if (archivedPackage) {
       return new NextResponse("Archived tour packages cannot be reordered", { status: 400 });
     }
+    if (mode === "offers" && packages.some((pkg) => !pkg.isOffer)) {
+      return new NextResponse("Only offer packages can be reordered in offer mode", { status: 400 });
+    }
 
     const transaction = orderedIds.map((id, index) =>
       prismadb.tourPackage.update({
         where: { id },
-        data: { websiteSortOrder: index },
+        data: mode === "offers" ? { offerSortOrder: index } : { websiteSortOrder: index },
       })
     );
 

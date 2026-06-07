@@ -9,6 +9,12 @@ import { StatsSection } from "./components/stats-section";
 import { Testimonials } from "./components/testimonials";
 import { InquiryCta } from "./components/inquiry-cta";
 import { WhyChooseUs } from "./components/why-choose-us";
+import {
+  PACKAGE_OFFER_FIELDS,
+  activeOfferOrderBy,
+  activeOfferWhere,
+  buildPublicOfferPayload,
+} from "@/lib/package-offers";
 
 export const revalidate = 300;
 export const metadata = {
@@ -18,6 +24,7 @@ export const metadata = {
 };
 
 export default async function TravelHomePage() {
+  const now = new Date();
   const [
     destinations,
     featuredPackages,
@@ -53,6 +60,7 @@ export default async function TravelHomePage() {
         pricePerAdult: true,
         numDaysNight: true,
         tourCategory: true,
+        ...PACKAGE_OFFER_FIELDS,
         location: { select: { label: true } },
         images: { select: { url: true }, take: 1 },
         _count: { select: { itineraries: true } },
@@ -73,9 +81,9 @@ export default async function TravelHomePage() {
       orderBy: { _count: { id: "desc" } },
     }),
 
-    // New: Special deals (packages with per-adult pricing)
+    // Special deals are now explicit active offers.
     prismadb.tourPackage.findMany({
-      where: { isArchived: false, pricePerAdult: { not: null } },
+      where: activeOfferWhere(now),
       select: {
         id: true,
         tourPackageName: true,
@@ -84,11 +92,12 @@ export default async function TravelHomePage() {
         pricePerAdult: true,
         numDaysNight: true,
         tourCategory: true,
+        ...PACKAGE_OFFER_FIELDS,
         location: { select: { label: true } },
         images: { select: { url: true }, take: 1 },
         _count: { select: { itineraries: true } },
       },
-      orderBy: { pricePerAdult: "asc" },
+      orderBy: activeOfferOrderBy,
       take: 4,
     }),
 
@@ -122,8 +131,18 @@ export default async function TravelHomePage() {
     <div className="min-h-screen bg-white pt-20 sm:pt-24">
       <DestinationCarousel destinations={activeDestinations} />
       <TourCategories categories={categories} />
-      <FeaturedPackages packages={featuredPackages} />
-      <SpecialDeals deals={deals} />
+      <FeaturedPackages
+        packages={featuredPackages.map((pkg) => ({
+          ...pkg,
+          ...buildPublicOfferPayload(pkg, now),
+        }))}
+      />
+      <SpecialDeals
+        deals={deals.map((pkg) => ({
+          ...pkg,
+          ...buildPublicOfferPayload(pkg, now),
+        }))}
+      />
       <PopularActivities activities={filteredActivities} />
       <HowItWorks />
       <StatsSection

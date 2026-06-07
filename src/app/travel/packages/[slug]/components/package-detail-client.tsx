@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { PackageCard } from "../../../components/package-card";
 import { RichHtml } from "@/components/ui/rich-html";
+import { formatOfferValidity } from "@/lib/package-offers";
 
 interface PackageDetailClientProps {
   tourPackage: any;
@@ -166,6 +167,8 @@ export function PackageDetailClient({
     setIsSaved(saved);
   }, [tourPackage]);
 
+  const isOfferActive = Boolean(tourPackage.isOfferActive);
+
   const handleEnquirySubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -198,6 +201,9 @@ export function PackageDetailClient({
               tourPackage.tourPackageName
                 ? `Package: ${tourPackage.tourPackageName}`
                 : "",
+              isOfferActive
+                ? `Offer: ${tourPackage.offerTitle || tourPackage.offerBadge || "Active offer"}`
+                : "",
             ]
               .filter(Boolean)
               .join("\n"),
@@ -220,6 +226,10 @@ export function PackageDetailClient({
       enquiryRemarks,
       tourPackage.locationId,
       tourPackage.tourPackageName,
+      tourPackage.id,
+      tourPackage.offerTitle,
+      tourPackage.offerBadge,
+      isOfferActive,
     ]
   );
 
@@ -231,7 +241,15 @@ export function PackageDetailClient({
   const cancellationPolicy = parseJsonContent(tourPackage.cancellationPolicy);
   const paymentPolicy = parseJsonContent(tourPackage.paymentPolicy);
 
-  const displayPrice = formatPrice(tourPackage.pricePerAdult) || formatPrice(tourPackage.price);
+  const displayPrice =
+    formatPrice(
+      isOfferActive
+        ? tourPackage.offerPrice || tourPackage.pricePerAdult
+        : tourPackage.pricePerAdult
+    ) || formatPrice(tourPackage.price);
+  const originalPrice = isOfferActive ? formatPrice(tourPackage.offerOriginalPrice) : null;
+  const offerValidity = isOfferActive ? formatOfferValidity(tourPackage) : null;
+  const offerTerms = Array.isArray(tourPackage.offerTerms) ? tourPackage.offerTerms : [];
 
   const toggleDay = (index: string) => {
     const next = new Set(expandedDays);
@@ -299,6 +317,11 @@ export function PackageDetailClient({
               {tourPackage.tourCategory && (
                 <span className="inline-block px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-semibold rounded-lg mb-3">
                   {tourPackage.tourCategory}
+                </span>
+              )}
+              {isOfferActive && (
+                <span className="ml-2 inline-block px-3 py-1 bg-amber-500 text-white text-xs font-semibold rounded-lg mb-3">
+                  {tourPackage.offerBadge || "Limited Offer"}
                 </span>
               )}
               <RichHtml
@@ -581,14 +604,48 @@ export function PackageDetailClient({
           {/* Sidebar - Pricing Card */}
           <div className="lg:col-span-1">
             <div className="sticky top-20">
+              {isOfferActive && (
+                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
+                    {tourPackage.offerBadge || "Limited Offer"}
+                  </span>
+                  <h2 className="mt-2 text-lg font-bold text-gray-900">
+                    {tourPackage.offerTitle || "Special package offer"}
+                  </h2>
+                  {tourPackage.offerSubtitle ? (
+                    <p className="mt-1 text-sm text-amber-900/80">
+                      {tourPackage.offerSubtitle}
+                    </p>
+                  ) : null}
+                  {offerValidity ? (
+                    <p className="mt-3 text-xs font-semibold text-amber-800">
+                      {offerValidity}
+                    </p>
+                  ) : null}
+                  {offerTerms.length > 0 ? (
+                    <ul className="mt-3 space-y-1 text-xs text-amber-900/80">
+                      {offerTerms.slice(0, 3).map((term: string, index: number) => (
+                        <li key={index}>• {term}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              )}
               <div className="bg-white border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-lg shadow-orange-500/5">
                 <div className="mb-6">
                   {displayPrice ? (
                     <>
-                      <span className="text-xs text-gray-400 uppercase tracking-wider">Starting from</span>
+                      <span className="text-xs text-gray-400 uppercase tracking-wider">
+                        {isOfferActive ? "Offer price" : "Starting from"}
+                      </span>
                       <p className="text-3xl font-bold text-orange-700">
                         {"\u20B9"}{displayPrice}
                       </p>
+                      {originalPrice && originalPrice !== displayPrice ? (
+                        <p className="text-sm text-gray-400 line-through">
+                          {"\u20B9"}{originalPrice}
+                        </p>
+                      ) : null}
                       <span className="text-sm text-gray-500">per person</span>
                     </>
                   ) : (
@@ -756,6 +813,10 @@ export function PackageDetailClient({
                   pricePerAdult={pkg.pricePerAdult}
                   tourCategory={pkg.tourCategory}
                   itineraryCount={pkg._count.itineraries}
+                  isOfferActive={pkg.isOfferActive}
+                  offerBadge={pkg.offerBadge}
+                  offerPrice={pkg.offerPrice}
+                  offerOriginalPrice={pkg.offerOriginalPrice}
                 />
               ))}
             </div>

@@ -39,14 +39,73 @@ import {
 
 const PAGE_SIZE = 80;
 
-type StatusFilter = "all" | "published" | "draft" | "archived";
+type StatusFilter = "all" | "published" | "draft" | "archived" | "offers" | "scheduled" | "expired";
 
 const STATUSES: { id: StatusFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "published", label: "Live" },
+  { id: "offers", label: "Offers" },
+  { id: "scheduled", label: "Scheduled" },
+  { id: "expired", label: "Expired" },
   { id: "draft", label: "Draft" },
   { id: "archived", label: "Archived" },
 ];
+
+type OfferDraft = {
+  isOffer: boolean;
+  offerTitle: string;
+  offerSubtitle: string;
+  offerBadge: string;
+  offerPrice: string;
+  offerOriginalPrice: string;
+  offerStartsAt: string;
+  offerEndsAt: string;
+  offerSortOrder: string;
+  offerTermsText: string;
+};
+
+function toDateInput(value?: string | null): string {
+  if (!value) return "";
+  return String(value).slice(0, 10);
+}
+
+function toOfferDraft(item: WebsitePackage): OfferDraft {
+  const terms = Array.isArray(item.offerTerms)
+    ? item.offerTerms.filter(Boolean).join("\n")
+    : "";
+  return {
+    isOffer: item.isOffer,
+    offerTitle: item.offerTitle ?? "",
+    offerSubtitle: item.offerSubtitle ?? "",
+    offerBadge: item.offerBadge ?? "Limited Offer",
+    offerPrice: item.offerPrice ?? "",
+    offerOriginalPrice: item.offerOriginalPrice ?? "",
+    offerStartsAt: toDateInput(item.offerStartsAt),
+    offerEndsAt: toDateInput(item.offerEndsAt),
+    offerSortOrder: String(item.offerSortOrder ?? 0),
+    offerTermsText: terms,
+  };
+}
+
+function dateInputToIso(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const date = new Date(`${trimmed}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime())) {
+    throw new Error("Enter dates as YYYY-MM-DD.");
+  }
+  return date.toISOString();
+}
+
+function offerStatusLabel(item: WebsitePackage): string | null {
+  if (!item.isOffer && !item.isArchived) return null;
+  if (item.isArchived) return "Archived";
+  if (!item.isFeatured) return "Draft";
+  if (item.offerStatus === "scheduled") return "Scheduled";
+  if (item.offerStatus === "expired") return "Expired";
+  if (item.offerStatus === "live") return "Live Offer";
+  return item.isOffer ? "Offer" : null;
+}
 
 export default function WebsiteManagementScreen() {
   return (
@@ -85,6 +144,8 @@ function WebsiteManagementInner() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [relatedOpenId, setRelatedOpenId] = useState<string | null>(null);
   const [relatedDraft, setRelatedDraft] = useState<Record<string, string[]>>({});
+  const [offerOpenId, setOfferOpenId] = useState<string | null>(null);
+  const [offerDraft, setOfferDraft] = useState<Record<string, OfferDraft>>({});
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim()), 300);
@@ -175,6 +236,82 @@ function WebsiteManagementInner() {
       Alert.alert(
         "Reorder failed",
         err instanceof ApiError ? err.message : "Could not update website order."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function moveOfferPackage(item: WebsitePackage, direction: -1 | 1) {
+    if (!canWrite || item.isArchived || !item.isOffer) return;
+    const siblings = items
+      .filter((pkg) => pkg.isOffer && !pkg.isArchived && pkg.offerStatus === "live")
+      .sort((a, b) => a.offerSortOrder - b.offerSortOrder || a.name.localeCompare(b.name));
+    const index = siblings.findIndex((pkg) => pkg.id === item.id);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= siblings.length) return;
+    const ordered = [...siblings];
+    const [moved] = ordered.splice(index, 1);
+    ordered.splice(nextIndex, 0, moved);
+    setBusyId(item.id);
+    try {
+      await client.reorderOffers(ordered.map((pkg) => pkg.id));
+      setItems((prev) =>
+        prev.map((pkg) => {
+          const reorderedIndex = ordered.findIndex((row) => row.id === pkg.id);
+          return reorderedIndex >= 0 ? { ...pkg, offerSortOrder: reorderedIndex } : pkg;
+        })
+      );
+    } catch (err) {
+      Alert.alert(
+        "Offer reorder failed",
+        err instanceof ApiError ? err.message : "Could not update offer order."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function openOffer(item: WebsitePackage) {
+    setOfferDraft((prev) => ({ ...prev, [item.id]: prev[item.id] ?? toOfferDraft(item) }));
+    setOfferOpenId((currentOpen) => (currentOpen === item.id ? null : item.id));
+  }
+
+  function updateOfferDraft(item: WebsitePackage, patch: Partial<OfferDraft>) {
+    setOfferDraft((prev) => ({
+      ...prev,
+      [item.id]: { ...(prev[item.id] ?? toOfferDraft(item)), ...patch },
+    }));
+  }
+
+  async function saveOffer(item: WebsitePackage) {
+    if (!canWrite) return;
+    const draft = offerDraft[item.id] ?? toOfferDraft(item);
+    setBusyId(item.id);
+    try {
+      const terms = draft.offerTermsText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const next = await client.updatePackage(item.id, {
+        isOffer: draft.isOffer,
+        offerTitle: draft.offerTitle.trim() || null,
+        offerSubtitle: draft.offerSubtitle.trim() || null,
+        offerBadge: draft.offerBadge.trim() || null,
+        offerPrice: draft.offerPrice.trim() || null,
+        offerOriginalPrice: draft.offerOriginalPrice.trim() || null,
+        offerStartsAt: dateInputToIso(draft.offerStartsAt),
+        offerEndsAt: dateInputToIso(draft.offerEndsAt),
+        offerSortOrder: Number.parseInt(draft.offerSortOrder, 10) || 0,
+        offerTerms: terms.length ? terms : null,
+      });
+      replaceItem({ ...item, ...next });
+      setOfferDraft((prev) => ({ ...prev, [item.id]: toOfferDraft({ ...item, ...next }) }));
+      setOfferOpenId(null);
+    } catch (err) {
+      Alert.alert(
+        "Offer save failed",
+        err instanceof Error ? err.message : "Could not save offer details."
       );
     } finally {
       setBusyId(null);
@@ -283,7 +420,7 @@ function WebsiteManagementInner() {
         value={status}
         onChange={setStatus}
         testIDPrefix="website-status"
-        scrollable={false}
+        scrollable
       />
 
       <AdminCommandBar
@@ -359,6 +496,7 @@ function WebsiteManagementInner() {
         renderItem={({ item }) => {
           const isBusy = busyId === item.id;
           const isLive = item.isFeatured && !item.isArchived;
+          const offerLabel = offerStatusLabel(item);
           const candidates = items
             .filter((candidate) => candidate.id !== item.id && !candidate.isArchived)
             .slice(0, 20);
@@ -375,10 +513,22 @@ function WebsiteManagementInner() {
                   </Text>
                   <Text style={styles.rowMeta} numberOfLines={1}>
                     {item.locationLabel} - Order {item.websiteSortOrder + 1}
+                    {item.isOffer ? ` - Offer ${item.offerSortOrder + 1}` : ""}
                   </Text>
                 </View>
-                <View style={[styles.statusPill, item.isArchived ? styles.statusBad : isLive ? styles.statusOk : styles.statusWarn]}>
-                  <Text style={styles.statusText}>{item.isArchived ? "Archived" : isLive ? "Live" : "Draft"}</Text>
+                <View
+                  style={[
+                    styles.statusPill,
+                    item.isArchived
+                      ? styles.statusBad
+                      : offerLabel === "Live Offer"
+                        ? styles.statusOffer
+                        : isLive
+                          ? styles.statusOk
+                          : styles.statusWarn,
+                  ]}
+                >
+                  <Text style={styles.statusText}>{offerLabel || (isLive ? "Live" : "Draft")}</Text>
                 </View>
               </View>
 
@@ -399,17 +549,31 @@ function WebsiteManagementInner() {
                 />
                 <ActionButton
                   testID={`website-move-up-${item.id}`}
-                  label="Up"
+                  label={status === "offers" ? "Offer Up" : "Up"}
                   icon="arrow-up-outline"
                   disabled={!canWrite || isBusy || item.isArchived}
-                  onPress={() => void movePackage(item, -1)}
+                  onPress={() => void (status === "offers" ? moveOfferPackage(item, -1) : movePackage(item, -1))}
                 />
                 <ActionButton
                   testID={`website-move-down-${item.id}`}
-                  label="Down"
+                  label={status === "offers" ? "Offer Down" : "Down"}
                   icon="arrow-down-outline"
                   disabled={!canWrite || isBusy || item.isArchived}
-                  onPress={() => void movePackage(item, 1)}
+                  onPress={() => void (status === "offers" ? moveOfferPackage(item, 1) : movePackage(item, 1))}
+                />
+                <ActionButton
+                  testID={`website-toggle-offer-${item.id}`}
+                  label={item.isOffer ? "Unmark" : "Offer"}
+                  icon={item.isOffer ? "pricetag" : "pricetag-outline"}
+                  disabled={!canWrite || isBusy || item.isArchived}
+                  onPress={() => void updatePackage(item, { isOffer: !item.isOffer })}
+                />
+                <ActionButton
+                  testID={`website-edit-offer-${item.id}`}
+                  label="Edit Offer"
+                  icon="create-outline"
+                  disabled={!canWrite || isBusy}
+                  onPress={() => openOffer(item)}
                 />
                 <ActionButton
                   testID={`website-preview-${item.id}`}
@@ -440,6 +604,16 @@ function WebsiteManagementInner() {
                   onPress={() => openRelated(item)}
                 />
               </View>
+
+              {offerOpenId === item.id ? (
+                <OfferEditor
+                  item={item}
+                  draft={offerDraft[item.id] ?? toOfferDraft(item)}
+                  disabled={!canWrite || isBusy}
+                  onChange={(patch) => updateOfferDraft(item, patch)}
+                  onSave={() => void saveOffer(item)}
+                />
+              ) : null}
 
               {relatedOpenId === item.id ? (
                 <View style={styles.relatedBox}>
@@ -485,6 +659,160 @@ function WebsiteManagementInner() {
         }}
       />
     </AdminScreen>
+  );
+}
+
+function OfferEditor({
+  item,
+  draft,
+  disabled,
+  onChange,
+  onSave,
+}: {
+  item: WebsitePackage;
+  draft: OfferDraft;
+  disabled?: boolean;
+  onChange: (patch: Partial<OfferDraft>) => void;
+  onSave: () => void;
+}) {
+  return (
+    <View style={styles.offerBox}>
+      <View style={styles.offerHeader}>
+        <View>
+          <Text style={styles.relatedTitle}>Offer details</Text>
+          <Text style={styles.offerHint}>Edit public offer copy, dates, price, and terms.</Text>
+        </View>
+        <Pressable
+          testID={`website-offer-active-${item.id}`}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: draft.isOffer, disabled: !!disabled }}
+          disabled={disabled}
+          style={[styles.offerToggle, draft.isOffer ? styles.offerToggleActive : null]}
+          onPress={() => onChange({ isOffer: !draft.isOffer })}
+        >
+          <Text style={[styles.offerToggleText, draft.isOffer ? styles.offerToggleTextActive : null]}>
+            {draft.isOffer ? "Offer on" : "Offer off"}
+          </Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.offerGrid}>
+        <OfferInput
+          label="Title"
+          value={draft.offerTitle}
+          placeholder={item.name}
+          disabled={disabled}
+          onChangeText={(value) => onChange({ offerTitle: value })}
+        />
+        <OfferInput
+          label="Badge"
+          value={draft.offerBadge}
+          placeholder="Limited Offer"
+          disabled={disabled}
+          onChangeText={(value) => onChange({ offerBadge: value })}
+        />
+        <OfferInput
+          label="Offer price"
+          value={draft.offerPrice}
+          placeholder="34999"
+          keyboardType="numeric"
+          disabled={disabled}
+          onChangeText={(value) => onChange({ offerPrice: value })}
+        />
+        <OfferInput
+          label="Original price"
+          value={draft.offerOriginalPrice}
+          placeholder="42999"
+          keyboardType="numeric"
+          disabled={disabled}
+          onChangeText={(value) => onChange({ offerOriginalPrice: value })}
+        />
+        <OfferInput
+          label="Starts"
+          value={draft.offerStartsAt}
+          placeholder="YYYY-MM-DD"
+          disabled={disabled}
+          onChangeText={(value) => onChange({ offerStartsAt: value })}
+        />
+        <OfferInput
+          label="Ends"
+          value={draft.offerEndsAt}
+          placeholder="YYYY-MM-DD"
+          disabled={disabled}
+          onChangeText={(value) => onChange({ offerEndsAt: value })}
+        />
+        <OfferInput
+          label="Sort"
+          value={draft.offerSortOrder}
+          placeholder="0"
+          keyboardType="numeric"
+          disabled={disabled}
+          onChangeText={(value) => onChange({ offerSortOrder: value })}
+        />
+      </View>
+
+      <OfferInput
+        label="Subtitle"
+        value={draft.offerSubtitle}
+        placeholder="Short offer description"
+        multiline
+        disabled={disabled}
+        onChangeText={(value) => onChange({ offerSubtitle: value })}
+      />
+      <OfferInput
+        label="Terms"
+        value={draft.offerTermsText}
+        placeholder="One term per line"
+        multiline
+        disabled={disabled}
+        onChangeText={(value) => onChange({ offerTermsText: value })}
+      />
+
+      <Pressable
+        testID={`website-offer-save-${item.id}`}
+        accessibilityRole="button"
+        accessibilityLabel="Save offer details"
+        disabled={disabled}
+        style={[styles.saveRelatedButton, disabled ? styles.disabled : null]}
+        onPress={onSave}
+      >
+        <Text style={styles.saveRelatedText}>Save offer</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function OfferInput({
+  label,
+  value,
+  placeholder,
+  multiline,
+  keyboardType,
+  disabled,
+  onChangeText,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  multiline?: boolean;
+  keyboardType?: "default" | "numeric";
+  disabled?: boolean;
+  onChangeText: (value: string) => void;
+}) {
+  return (
+    <View style={styles.offerInputWrap}>
+      <Text style={styles.offerInputLabel}>{label}</Text>
+      <TextInput
+        style={[styles.offerInput, multiline ? styles.offerInputMultiline : null]}
+        value={value}
+        placeholder={placeholder}
+        placeholderTextColor={Colors.textTertiary}
+        editable={!disabled}
+        multiline={multiline}
+        keyboardType={keyboardType}
+        onChangeText={onChangeText}
+      />
+    </View>
   );
 }
 
@@ -631,6 +959,7 @@ const styles = StyleSheet.create({
   rowMeta: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: BorderRadius.full },
   statusOk: { backgroundColor: "#dcfce7" },
+  statusOffer: { backgroundColor: "#fef3c7" },
   statusWarn: { backgroundColor: "#fef3c7" },
   statusBad: { backgroundColor: "#fee2e2" },
   statusText: { fontSize: 10, fontWeight: "900", color: Colors.text },
@@ -650,6 +979,49 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 10, fontWeight: "800", color: Colors.primary },
   actionTextDisabled: { color: Colors.textTertiary },
   disabled: { opacity: 0.45 },
+  offerBox: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  offerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
+  offerHint: { marginTop: 2, fontSize: FontSize.xs, color: Colors.textTertiary },
+  offerToggle: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  offerToggleActive: { backgroundColor: "#fef3c7", borderColor: "#f59e0b" },
+  offerToggleText: { fontSize: FontSize.xs, fontWeight: "900", color: Colors.textSecondary },
+  offerToggleTextActive: { color: "#92400e" },
+  offerGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.sm,
+  },
+  offerInputWrap: { flexGrow: 1, flexBasis: "45%", gap: 5 },
+  offerInputLabel: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.textSecondary },
+  offerInput: {
+    minHeight: 42,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.background,
+    color: Colors.text,
+    fontSize: FontSize.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+  },
+  offerInputMultiline: { minHeight: 78, textAlignVertical: "top" },
   relatedBox: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.borderSubtle,

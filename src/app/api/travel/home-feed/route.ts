@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import {
+  PACKAGE_OFFER_FIELDS,
+  activeOfferOrderBy,
+  activeOfferWhere,
+  buildPublicOfferPayload,
+} from "@/lib/package-offers";
 
 export const revalidate = 300;
 
@@ -14,6 +20,7 @@ const PACKAGE_SELECT = {
   tourPackageType: true,
   pickup_location: true,
   drop_location: true,
+  ...PACKAGE_OFFER_FIELDS,
   location: { select: { id: true, label: true, imageUrl: true } },
   images: { select: { url: true }, take: 3 },
   _count: { select: { itineraries: true } },
@@ -26,6 +33,7 @@ const baseWhere = {
 
 export async function GET(req: Request) {
   try {
+    const now = new Date();
     const { searchParams } = new URL(req.url);
     const maxLocations = Math.min(
       Math.max(parseInt(searchParams.get("maxLocations") || "12", 10), 1),
@@ -36,7 +44,7 @@ export async function GET(req: Request) {
       20
     );
 
-    const [destinations, categoryGroups, featuredPackageCount] = await Promise.all([
+    const [destinations, categoryGroups, featuredPackageCount, offerPackages] = await Promise.all([
       prismadb.location.findMany({
         where: { isActive: true },
         select: {
@@ -58,6 +66,12 @@ export async function GET(req: Request) {
         where: { ...baseWhere, tourCategory: { not: null } },
       }),
       prismadb.tourPackage.count({ where: baseWhere }),
+      prismadb.tourPackage.findMany({
+        where: activeOfferWhere(now),
+        select: PACKAGE_SELECT,
+        orderBy: activeOfferOrderBy,
+        take: 8,
+      }),
     ]);
 
     const activeDestinations = destinations.filter(
@@ -106,8 +120,11 @@ export async function GET(req: Request) {
             id: dest.id,
             label: dest.label,
             slug: dest.slug,
-            packages,
-          };
+          packages: packages.map((pkg) => ({
+            ...pkg,
+            ...buildPublicOfferPayload(pkg, now),
+          })),
+        };
         })
         .filter((row): row is NonNullable<typeof row> => row !== null);
     }
@@ -121,6 +138,10 @@ export async function GET(req: Request) {
       destinations: activeDestinations,
       categories,
       featuredPackageCount,
+      offerPackages: offerPackages.map((pkg) => ({
+        ...pkg,
+        ...buildPublicOfferPayload(pkg, now),
+      })),
       locationCarousels,
     });
   } catch (error) {

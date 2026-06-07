@@ -110,6 +110,7 @@ export default function HomeScreen() {
   const { total: unreadChatTotal } = useUnread();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
+  const [offerPackages, setOfferPackages] = useState<Package[]>([]);
   const [locationCarouselRows, setLocationCarouselRows] = useState<
     LocationCarouselRow[]
   >([]);
@@ -182,6 +183,7 @@ export default function HomeScreen() {
               categories?: string[];
               featuredPackageCount?: number;
               locationCarousels?: LocationCarouselRow[];
+              offerPackages?: Package[];
             };
 
             if (myFetch !== dataFetchId.current) return;
@@ -200,6 +202,7 @@ export default function HomeScreen() {
             if (Array.isArray(feed.categories) && feed.categories.length > 0) {
               setCategories(feed.categories);
             }
+            setOfferPackages(feed.offerPackages || []);
 
             const rows = feed.locationCarousels || [];
 
@@ -235,6 +238,7 @@ export default function HomeScreen() {
             console.error("Failed to load home feed:", err);
             setDestinations([]);
             setPackages([]);
+            setOfferPackages([]);
             setLocationCarouselRows([]);
             setHasMore(false);
             setLoadError("Packages could not load. Pull down to retry.");
@@ -242,6 +246,7 @@ export default function HomeScreen() {
           }
         } else {
           setLocationCarouselRows([]);
+          setOfferPackages([]);
           const [destResult, pkgResult] = await Promise.allSettled([
             travelApi.getDestinations(),
             travelApi.getPackages({
@@ -364,6 +369,9 @@ export default function HomeScreen() {
       await setLastViewedPackage(entry);
       setLastViewed(entry);
       trackEvent("package_open", { packageId: pkg.id, source: "home" });
+      if (pkg.isOfferActive) {
+        trackEvent("offer_open", { packageId: pkg.id, source: "home" });
+      }
       router.push(`/packages/${pkg.slug || pkg.id}` as never);
     },
     [router]
@@ -422,6 +430,12 @@ export default function HomeScreen() {
       : packages;
     return pool.filter((pkg) => pkg.id !== lastViewed.id).slice(0, 3);
   }, [lastViewed, locationCarouselRows, packages, showingLocationCarousels]);
+
+  useEffect(() => {
+    if (offerPackages.length > 0) {
+      trackEvent("offer_view", { count: offerPackages.length, source: "home" });
+    }
+  }, [offerPackages.length]);
 
   const handleClear = () => {
     setSearchText("");
@@ -660,6 +674,37 @@ export default function HomeScreen() {
       )}
 
       {/* ── Popular places (same-size tiles, directly above packages) ── */}
+      {!activeLocation &&
+      activeCategory === "all" &&
+      !appliedSearch &&
+      !debouncedSearch.trim() &&
+      offerPackages.length > 0 ? (
+        <View style={styles.offerSection}>
+          <SectionHeader
+            title="Offers"
+            subtitle="Limited-period package specials"
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            snapToInterval={PACKAGE_CARD_CAROUSEL_WIDTH + Spacing.sm}
+            snapToAlignment="start"
+            contentContainerStyle={styles.carouselPkgRow}
+          >
+            {offerPackages.map((pkg, index) => (
+              <PackageCard
+                key={pkg.id}
+                variant="carousel"
+                testID={`offer-package-${index}`}
+                pkg={pkg}
+                onPress={() => void openPackage(pkg)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
       <View style={styles.popularPlacesSection}>
         <SectionHeader
           title="Popular places"
@@ -1293,6 +1338,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.xs,
   },
+  offerSection: { paddingTop: Spacing.md, paddingBottom: Spacing.xs },
   /** Packages directly below Popular places */
   packagesSection: { paddingTop: Spacing.sm, paddingBottom: 0 },
   recommendationSection: { paddingTop: Spacing.md, paddingBottom: Spacing.xs },

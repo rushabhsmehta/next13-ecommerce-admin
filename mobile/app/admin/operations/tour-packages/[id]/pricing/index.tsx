@@ -26,6 +26,10 @@ import {
   type TourPackagePricingRow,
 } from "@/lib/tour-packages";
 
+function firstParam(value?: string | string[]): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 function inr(n: number): string {
   return `₹${Math.round(n).toLocaleString("en-IN")}`;
 }
@@ -56,7 +60,14 @@ export default function TourPackagePricingListScreen() {
 function Inner() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id: packageId } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    packageVariantId?: string | string[];
+    variantName?: string | string[];
+  }>();
+  const packageId = firstParam(params.id);
+  const packageVariantId = firstParam(params.packageVariantId);
+  const variantName = firstParam(params.variantName);
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -82,7 +93,11 @@ function Inner() {
       else setLoading(true);
       setError(null);
       try {
-        const res = await client.listPricing(packageId);
+        const res = await client.listPricing(packageId, {
+          packageVariantId,
+          includeGlobal: true,
+          activeOnly: false,
+        });
         setItems(res.items);
         setTitle(res.package.tourPackageName ?? "Seasonal pricing");
       } catch (err) {
@@ -92,7 +107,7 @@ function Inner() {
         setRefreshing(false);
       }
     },
-    [packageId, client]
+    [packageId, packageVariantId, client]
   );
 
   useEffect(() => {
@@ -130,7 +145,13 @@ function Inner() {
       <Stack.Screen options={{ title, headerShown: false }} />
       <AdminTopBar
         title={title}
-        subtitle="Seasonal pricing"
+        subtitle={
+          packageVariantId
+            ? variantName
+              ? `Variant pricing: ${variantName}`
+              : "Variant pricing"
+            : "Seasonal pricing"
+        }
         onBackPress={() => router.back()}
         testID="tour-package-pricing-header"
         rightSlot={
@@ -140,7 +161,11 @@ function Inner() {
             testID="tour-package-pricing-add"
             onPress={() =>
               router.push(
-                `/admin/operations/tour-packages/${packageId}/pricing/new` as never
+                buildPricingRoute(
+                  `/admin/operations/tour-packages/${packageId}/pricing/new`,
+                  packageVariantId,
+                  variantName
+                ) as never
               )
             }
           />
@@ -199,7 +224,11 @@ function Inner() {
             style={styles.card}
             onPress={() =>
               router.push(
-                `/admin/operations/tour-packages/${packageId}/pricing/${item.id}` as never
+                buildPricingRoute(
+                  `/admin/operations/tour-packages/${packageId}/pricing/${item.id}`,
+                  packageVariantId,
+                  variantName
+                ) as never
               )
             }
           >
@@ -210,7 +239,11 @@ function Inner() {
               <Text style={styles.cardPrice}>{inr(item.totalPrice)}</Text>
             </View>
             <Text style={styles.cardSub} numberOfLines={2}>
-              {[item.mealPlanName, item.packageVariantName, item.seasonalPeriodName]
+              {[
+                item.mealPlanName,
+                item.packageVariantName ?? "Global",
+                item.seasonalPeriodName,
+              ]
                 .filter(Boolean)
                 .join(" · ") || "—"}
             </Text>
@@ -238,6 +271,17 @@ function Inner() {
       />
     </AdminScreen>
   );
+}
+
+function buildPricingRoute(
+  path: string,
+  packageVariantId?: string,
+  variantName?: string
+): string {
+  if (!packageVariantId) return path;
+  const query = new URLSearchParams({ packageVariantId });
+  if (variantName?.trim()) query.set("variantName", variantName.trim());
+  return `${path}?${query.toString()}`;
 }
 
 function FilterPill({

@@ -3,9 +3,13 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { AdminLoadingState } from "@/components/admin";
-import { ApiError, withAuth } from "@/lib/api";
+import { withAuth } from "@/lib/api";
 import { createTourPackagesClient } from "@/lib/tour-packages";
 import { TourPackagePricingForm } from "@/components/tour-packages/TourPackagePricingForm";
+
+function firstParam(value?: string | string[]): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
 
 export default function NewTourPackagePricingScreen() {
   return (
@@ -16,7 +20,14 @@ export default function NewTourPackagePricingScreen() {
 }
 
 function Inner() {
-  const { id: packageId } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    packageVariantId?: string | string[];
+    variantName?: string | string[];
+  }>();
+  const packageId = firstParam(params.id);
+  const packageVariantId = firstParam(params.packageVariantId);
+  const requestedVariantName = firstParam(params.variantName);
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -28,6 +39,7 @@ function Inner() {
   );
 
   const [locationId, setLocationId] = useState("");
+  const [variantName, setVariantName] = useState(requestedVariantName ?? "");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,13 +48,21 @@ function Inner() {
       try {
         const pkg = await client.get(packageId);
         setLocationId(pkg.locationId);
+        if (packageVariantId) {
+          try {
+            const variant = await client.getVariant(packageId, packageVariantId);
+            setVariantName(variant.name);
+          } catch {
+            /* keep the route-provided variant name if lookup fails */
+          }
+        }
       } catch {
         /* ignore */
       } finally {
         setLoading(false);
       }
     })();
-  }, [packageId, client]);
+  }, [packageId, packageVariantId, client]);
 
   if (loading || !packageId) {
     return <AdminLoadingState label="Loading…" testID="tour-pricing-new-loading" />;
@@ -51,7 +71,14 @@ function Inner() {
   return (
     <>
       <Stack.Screen options={{ title: "New pricing", headerShown: false }} />
-      <TourPackagePricingForm packageId={packageId} locationId={locationId} mode="create" />
+      <TourPackagePricingForm
+        packageId={packageId}
+        locationId={locationId}
+        mode="create"
+        lockedVariant={
+          packageVariantId ? { id: packageVariantId, name: variantName } : undefined
+        }
+      />
     </>
   );
 }

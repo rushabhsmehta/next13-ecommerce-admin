@@ -46,6 +46,7 @@ interface Props {
     isDefault: boolean;
     sortOrder: number;
     priceModifier: string;
+    pricingCount?: number;
     hotelMappings: (VariantHotelMappingInput & { hotelName?: string })[];
   };
   itineraries: ItineraryDay[];
@@ -111,6 +112,22 @@ export function PackageVariantForm({
 
   const screenTitle = mode === "create" ? "New variant" : "Edit variant";
   const canSubmit = name.trim().length > 0 && !submitting;
+  const variantPricingQuery =
+    variantId && name.trim()
+      ? `packageVariantId=${encodeURIComponent(variantId)}&variantName=${encodeURIComponent(
+          name.trim()
+        )}`
+      : variantId
+        ? `packageVariantId=${encodeURIComponent(variantId)}`
+        : "";
+  const variantPricingPath =
+    variantId && variantPricingQuery
+      ? `/admin/operations/tour-packages/${packageId}/pricing?${variantPricingQuery}`
+      : "";
+  const newVariantPricingPath =
+    variantId && variantPricingQuery
+      ? `/admin/operations/tour-packages/${packageId}/pricing/new?${variantPricingQuery}`
+      : "";
 
   function buildVariantPayload(): PackageVariantInput {
     return {
@@ -294,6 +311,45 @@ export function PackageVariantForm({
       </AdminFormSection>
 
       {mode === "edit" && variantId ? (
+        <AdminFormSection
+          title="Seasonal pricing"
+          description="Manage date-bound pricing periods and component rates for this variant."
+          testID="variant-form-pricing"
+        >
+          <Pressable
+            testID="variant-form-manage-pricing"
+            accessibilityRole="button"
+            accessibilityLabel="Manage variant seasonal pricing"
+            style={styles.actionBtn}
+            onPress={() => router.push(variantPricingPath as never)}
+          >
+            <Ionicons name="pricetag-outline" size={18} color={Colors.primary} />
+            <View style={styles.actionTextBlock}>
+              <Text style={styles.actionTitle}>Manage pricing</Text>
+              <Text style={styles.actionSub}>
+                {initial?.pricingCount ?? 0} variant pricing row(s)
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+          </Pressable>
+          <Pressable
+            testID="variant-form-new-pricing"
+            accessibilityRole="button"
+            accessibilityLabel="Add variant pricing period"
+            style={styles.actionBtn}
+            onPress={() => router.push(newVariantPricingPath as never)}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <View style={styles.actionTextBlock}>
+              <Text style={styles.actionTitle}>New pricing period</Text>
+              <Text style={styles.actionSub}>Variant is preselected.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+          </Pressable>
+        </AdminFormSection>
+      ) : null}
+
+      {mode === "edit" && variantId ? (
         <AdminDangerZone
           testID="variant-danger-zone"
           actions={[
@@ -363,4 +419,25 @@ const styles = StyleSheet.create({
   },
   pickerValue: { flex: 1, fontSize: FontSize.md, color: Colors.text },
   pickerPlaceholder: { flex: 1, fontSize: FontSize.md, color: Colors.textTertiary },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+  },
+  actionTextBlock: { flex: 1, gap: 2 },
+  actionTitle: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  actionSub: {
+    fontSize: FontSize.xs,
+    color: Colors.textTertiary,
+    fontWeight: "600",
+  },
 });

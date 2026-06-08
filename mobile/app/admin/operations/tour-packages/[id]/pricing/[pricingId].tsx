@@ -7,6 +7,10 @@ import { ApiError, withAuth } from "@/lib/api";
 import { createTourPackagesClient } from "@/lib/tour-packages";
 import { TourPackagePricingForm } from "@/components/tour-packages/TourPackagePricingForm";
 
+function firstParam(value?: string | string[]): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export default function EditTourPackagePricingScreen() {
   return (
     <PermissionGate permission="operations.write">
@@ -16,10 +20,16 @@ export default function EditTourPackagePricingScreen() {
 }
 
 function Inner() {
-  const { id: packageId, pricingId } = useLocalSearchParams<{
-    id: string;
-    pricingId: string;
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    pricingId?: string | string[];
+    packageVariantId?: string | string[];
+    variantName?: string | string[];
   }>();
+  const packageId = firstParam(params.id);
+  const pricingId = firstParam(params.pricingId);
+  const packageVariantId = firstParam(params.packageVariantId);
+  const requestedVariantName = firstParam(params.variantName);
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -31,6 +41,7 @@ function Inner() {
   );
 
   const [locationId, setLocationId] = useState("");
+  const [variantName, setVariantName] = useState(requestedVariantName ?? "");
   const [initial, setInitial] =
     useState<Parameters<typeof TourPackagePricingForm>[0]["initial"]>();
   const [loading, setLoading] = useState(true);
@@ -45,6 +56,14 @@ function Inner() {
           client.getPricing(packageId, pricingId),
         ]);
         setLocationId(pkg.locationId);
+        if (packageVariantId) {
+          try {
+            const variant = await client.getVariant(packageId, packageVariantId);
+            setVariantName(variant.name);
+          } catch {
+            /* keep the route-provided variant name if lookup fails */
+          }
+        }
         setInitial({
           startDate: new Date(pricing.startDate),
           endDate: new Date(pricing.endDate),
@@ -73,7 +92,7 @@ function Inner() {
         setLoading(false);
       }
     })();
-  }, [packageId, pricingId, client]);
+  }, [packageId, pricingId, packageVariantId, client]);
 
   if (loading) {
     return <AdminLoadingState label="Loading pricing…" testID="tour-pricing-edit-loading" />;
@@ -90,6 +109,9 @@ function Inner() {
         locationId={locationId}
         mode="edit"
         pricingId={pricingId}
+        lockedVariant={
+          packageVariantId ? { id: packageVariantId, name: variantName } : undefined
+        }
         initial={initial}
       />
     </>

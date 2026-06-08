@@ -54,6 +54,23 @@ describe("createTourPackagesClient", () => {
     expect(opts.headers["Idempotency-Key"]).toMatch(/^tour-package-pricing-create-/);
   });
 
+  it("listPricing builds variant scoped filters", async () => {
+    const request = jest.fn(async () => ({
+      package: { id: "pkg1", tourPackageName: "Test", locationId: "loc1" },
+      items: [],
+      total: 0,
+    }));
+    const client = createTourPackagesClient(request as any);
+    await client.listPricing("pkg1", {
+      packageVariantId: "var/1",
+      includeGlobal: true,
+      activeOnly: false,
+    });
+    expect(request.mock.calls[0][0]).toBe(
+      "/api/mobile/tour-packages/pkg1/pricing?packageVariantId=var%2F1&activeOnly=false"
+    );
+  });
+
   it("getLookups includes locationId query", async () => {
     const request = jest.fn(async () => ({
       mealPlans: [],

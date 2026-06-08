@@ -54,6 +54,7 @@ function Inner() {
           isDefault: variant.isDefault,
           sortOrder: variant.sortOrder,
           priceModifier: String(variant.priceModifier ?? 0),
+          pricingCount: variant.pricingCount,
           hotelMappings: variant.hotelMappings.map((m) => ({
             itineraryId: m.itineraryId,
             hotelId: m.hotelId,

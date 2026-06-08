@@ -88,6 +88,10 @@ interface Props {
   locationId: string;
   mode: "create" | "edit";
   pricingId?: string;
+  lockedVariant?: {
+    id: string;
+    name?: string | null;
+  };
   initial?: {
     startDate: Date;
     endDate: Date;
@@ -117,6 +121,7 @@ export function TourPackagePricingForm({
   locationId,
   mode,
   pricingId,
+  lockedVariant,
   initial,
 }: Props) {
   const router = useRouter();
@@ -137,9 +142,16 @@ export function TourPackagePricingForm({
   const [mealPlanId, setMealPlanId] = useState(initial?.mealPlanId ?? "");
   const [mealPlanName, setMealPlanName] = useState(initial?.mealPlanName ?? "");
   const [numberOfRooms, setNumberOfRooms] = useState(initial?.numberOfRooms ?? "1");
-  const [packageVariantId, setPackageVariantId] = useState(initial?.packageVariantId ?? "");
+  const variantLocked =
+    !!lockedVariant?.id &&
+    (mode === "create" || initial?.packageVariantId === lockedVariant.id);
+  const lockedVariantLabel =
+    lockedVariant?.name?.trim() || initial?.packageVariantName || "Selected variant";
+  const [packageVariantId, setPackageVariantId] = useState(
+    initial?.packageVariantId ?? lockedVariant?.id ?? ""
+  );
   const [packageVariantName, setPackageVariantName] = useState(
-    initial?.packageVariantName ?? ""
+    initial?.packageVariantName ?? lockedVariant?.name ?? ""
   );
   const [vehicleTypeId, setVehicleTypeId] = useState(initial?.vehicleTypeId ?? "");
   const [vehicleTypeName, setVehicleTypeName] = useState(initial?.vehicleTypeName ?? "");
@@ -238,8 +250,13 @@ export function TourPackagePricingForm({
     setMealPlanId(source.mealPlanId);
     setMealPlanName(`${source.mealPlanCode} - ${source.mealPlanName}`);
     setNumberOfRooms(String(source.numberOfRooms || 1));
-    setPackageVariantId(source.packageVariantId ?? "");
-    setPackageVariantName(source.packageVariantName ?? "");
+    if (variantLocked && lockedVariant?.id) {
+      setPackageVariantId(lockedVariant.id);
+      setPackageVariantName(lockedVariantLabel);
+    } else {
+      setPackageVariantId(source.packageVariantId ?? "");
+      setPackageVariantName(source.packageVariantName ?? "");
+    }
     setVehicleTypeId(source.vehicleTypeId ?? "");
     setVehicleTypeName(source.vehicleTypeName ?? "");
     setIsGroupPricing(source.isGroupPricing);
@@ -307,7 +324,7 @@ export function TourPackagePricingForm({
       } else if (pricingId) {
         await client.updatePricing(packageId, pricingId, buildPayload());
       }
-      router.replace(`/admin/operations/tour-packages/${packageId}/pricing` as never);
+      router.replace(buildPricingListPath(packageId, lockedVariant) as never);
     } catch (err) {
       Alert.alert(
         "Save failed",
@@ -332,7 +349,7 @@ export function TourPackagePricingForm({
             setSubmitting(true);
             try {
               await client.deletePricing(packageId, pricingId);
-              router.replace(`/admin/operations/tour-packages/${packageId}/pricing` as never);
+              router.replace(buildPricingListPath(packageId, lockedVariant) as never);
             } catch (err) {
               Alert.alert(
                 "Delete failed",
@@ -466,14 +483,20 @@ export function TourPackagePricingForm({
           <Pressable
             testID="tour-pricing-form-variant"
             accessibilityRole="button"
-            accessibilityLabel="Variant"
-            style={styles.pickerBtn}
+            accessibilityLabel={variantLocked ? "Locked variant" : "Variant"}
+            accessibilityState={{ disabled: variantLocked }}
+            disabled={variantLocked}
+            style={[styles.pickerBtn, variantLocked ? styles.lockedPickerBtn : null]}
             onPress={() => setPicker("variant")}
           >
             <Text style={styles.pickerValue}>
-              {packageVariantName || "All variants (global)"}
+              {packageVariantName || (variantLocked ? lockedVariantLabel : "All variants (global)")}
             </Text>
-            <Ionicons name="chevron-down" size={18} color={Colors.textTertiary} />
+            <Ionicons
+              name={variantLocked ? "lock-closed-outline" : "chevron-down"}
+              size={18}
+              color={Colors.textTertiary}
+            />
           </Pressable>
         </AdminFormField>
         <AdminFormField label="Vehicle type">
@@ -713,6 +736,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
   },
+  lockedPickerBtn: {
+    backgroundColor: Colors.surfaceAlt,
+  },
   pickerValue: { flex: 1, fontSize: FontSize.md, color: Colors.text },
   pickerPlaceholder: { flex: 1, fontSize: FontSize.md, color: Colors.textTertiary },
   switchRow: {
@@ -738,3 +764,17 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
 });
+
+function buildPricingListPath(
+  packageId: string,
+  lockedVariant?: { id: string; name?: string | null }
+): string {
+  if (!lockedVariant?.id) {
+    return `/admin/operations/tour-packages/${packageId}/pricing`;
+  }
+  const query = new URLSearchParams({ packageVariantId: lockedVariant.id });
+  if (lockedVariant.name?.trim()) {
+    query.set("variantName", lockedVariant.name.trim());
+  }
+  return `/admin/operations/tour-packages/${packageId}/pricing?${query.toString()}`;
+}

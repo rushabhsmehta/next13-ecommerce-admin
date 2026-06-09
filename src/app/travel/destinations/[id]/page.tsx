@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import prismadb from "@/lib/prismadb";
 import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
@@ -48,6 +49,34 @@ async function findLocationByParam(param: string) {
   }
 
   return location;
+}
+
+export async function generateMetadata(props: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const params = await props.params;
+  const location = await findLocationByParam(params.id);
+
+  if (!location || !location.isActive) {
+    return { title: "Destination Not Found | Aagam Holidays" };
+  }
+
+  const count = location.tourPackages.length;
+  const title = `Tour Packages in ${location.label}`;
+  const description = `Browse ${count} curated tour ${
+    count === 1 ? "package" : "packages"
+  } in ${location.label}. Handcrafted itineraries from Aagam Holidays.`;
+
+  return {
+    title: `${title} | Aagam Holidays`,
+    description,
+    openGraph: {
+      title: `${title} | Aagam Holidays`,
+      description,
+      type: "website",
+      ...(location.imageUrl ? { images: [{ url: location.imageUrl }] } : {}),
+    },
+  };
 }
 
 export default async function DestinationDetailPage(

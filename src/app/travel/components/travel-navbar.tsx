@@ -5,7 +5,17 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { Home, Search, X, LogIn, MessageCircle, LogOut } from "lucide-react";
+import {
+  Home,
+  Search,
+  X,
+  LogIn,
+  MessageCircle,
+  LogOut,
+  Package,
+  MapPin,
+  Tag,
+} from "lucide-react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { useTravelPath } from "./travel-path-provider";
 
@@ -214,10 +224,10 @@ export function TravelNavbar() {
             </form>
           ) : null}
 
-          <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
             <Link
               href={home}
-              className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
+              className={`relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
                 isActive("/")
                   ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
                   : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
@@ -225,6 +235,39 @@ export function TravelNavbar() {
             >
               <Home className="w-4 h-4" />
               Home
+            </Link>
+            <Link
+              href={href("/packages")}
+              className={`relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                isActive("/packages")
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                  : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              Packages
+            </Link>
+            <Link
+              href={href("/destinations")}
+              className={`relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                isActive("/destinations")
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                  : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+              }`}
+            >
+              <MapPin className="w-4 h-4" />
+              Destinations
+            </Link>
+            <Link
+              href={href("/offers")}
+              className={`relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                isActive("/offers")
+                  ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
+                  : "text-gray-600 hover:bg-amber-50 hover:text-amber-700"
+              }`}
+            >
+              <Tag className="w-4 h-4" />
+              Offers
             </Link>
 
             {/* Auth section — desktop */}

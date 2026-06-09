@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin, Star, ArrowRight } from "lucide-react";
-import { stripHtml } from "@/lib/html-utils";
+import { formatPackageDisplayName } from "@/lib/travel-display";
 import { useTravelPath } from "./travel-path-provider";
 
 interface PackageCardProps {
@@ -57,7 +57,7 @@ export function PackageCard({
     slug ? `/packages/${slug}` : `/packages/${id}`
   );
   const hasImage = Boolean(imageUrl);
-  const displayName = stripHtml(name) || "Tour Package";
+  const displayName = formatPackageDisplayName(name);
 
   return (
     <Link href={packageHref} className="group block">

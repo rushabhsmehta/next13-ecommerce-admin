@@ -4,6 +4,7 @@ import { getTravelBasePathFromHost } from "@/lib/travel-paths";
 import { TravelNavbar } from "./components/travel-navbar";
 import { TravelFooter } from "./components/travel-footer";
 import { TravelPathProvider } from "./components/travel-path-provider";
+import { TravelWhatsAppFab } from "./components/whatsapp-fab";
 
 export const metadata: Metadata = {
   title: "Travel | Aagam Holidays - Discover Amazing Tour Packages",
@@ -25,6 +26,7 @@ export default async function TravelLayout({
         <TravelNavbar />
         <main>{children}</main>
         <TravelFooter />
+        <TravelWhatsAppFab />
       </div>
     </TravelPathProvider>
   );

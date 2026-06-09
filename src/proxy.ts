@@ -85,7 +85,9 @@ function handleTravelPublicDomain(req: NextRequest): NextResponse | null {
   if (
     !path.startsWith("/sign-in") &&
     !path.startsWith("/sign-up") &&
-    path !== "/favicon.ico"
+    path !== "/favicon.ico" &&
+    path !== "/robots.txt" &&
+    path !== "/sitemap.xml"
   ) {
     return NextResponse.redirect(adminDashboardUrl(path), 302);
   }

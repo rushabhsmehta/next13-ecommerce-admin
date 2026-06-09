@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Clock, MapPin, Tag } from "lucide-react";
-import { stripHtml } from "@/lib/html-utils";
+import { formatPackageDisplayName } from "@/lib/travel-display";
 import { formatOfferValidity } from "@/lib/package-offers";
 import { useTravelPath } from "./travel-path-provider";
 
@@ -75,8 +75,9 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
               formatPrice(pkg.pricePerAdult) ||
               formatPrice(pkg.price);
             const originalPrice = formatPrice(pkg.offerOriginalPrice);
-            const displayName =
-              stripHtml(pkg.offerTitle || pkg.tourPackageName || "") || "Tour Package";
+            const displayName = formatPackageDisplayName(
+              pkg.offerTitle || pkg.tourPackageName
+            );
             const subtitle = pkg.offerSubtitle?.trim();
             const validity = formatOfferValidity(pkg);
             const href = travelHref(

@@ -1,4 +1,5 @@
 import prismadb from "@/lib/prismadb";
+import { HomeHeroBanner } from "./components/home-hero-banner";
 import { DestinationCarousel } from "./components/destination-carousel";
 import { TourCategories } from "./components/tour-categories";
 import { FeaturedPackages } from "./components/featured-packages";
@@ -128,7 +129,8 @@ export default async function TravelHomePage() {
   );
 
   return (
-    <div className="min-h-screen bg-white pt-20 sm:pt-24">
+    <div className="min-h-screen bg-white">
+      <HomeHeroBanner />
       <DestinationCarousel destinations={activeDestinations} />
       <TourCategories categories={categories} />
       <FeaturedPackages

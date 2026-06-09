@@ -8,17 +8,24 @@ import {
 } from "@/lib/package-offers";
 
 export const revalidate = 300;
+
+export const PAGE_SIZE = 24;
+
 export const metadata = {
   title: "Tour Packages | Aagam Holidays",
   description:
     "Search, filter, and compare curated tour packages from Aagam Holidays.",
 };
 
-export default async function PackagesPage(
-  props: {
-    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-  }
-) {
+function parsePageParam(value: string | string[] | undefined): number {
+  const raw = typeof value === "string" ? value : undefined;
+  const parsed = Number.parseInt(raw || "1", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+export default async function PackagesPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const now = new Date();
   const searchParams = await props.searchParams;
   const category =
@@ -34,6 +41,8 @@ export default async function PackagesPage(
   const offerOnly =
     typeof searchParams.offer === "string" &&
     ["1", "true"].includes(searchParams.offer.toLowerCase());
+  const page = parsePageParam(searchParams.page);
+  const skip = (page - 1) * PAGE_SIZE;
 
   const where: any = offerOnly
     ? activeOfferWhere(now)
@@ -57,7 +66,7 @@ export default async function PackagesPage(
     ];
   }
 
-  const [packages, locations, categories] = await Promise.all([
+  const [packages, totalCount, locations, categories] = await Promise.all([
     prismadb.tourPackage.findMany({
       where,
       select: {
@@ -73,8 +82,13 @@ export default async function PackagesPage(
         images: { select: { url: true }, take: 1 },
         _count: { select: { itineraries: true } },
       },
-      orderBy: offerOnly ? activeOfferOrderBy : [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
+      orderBy: offerOnly
+        ? activeOfferOrderBy
+        : [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
+      take: PAGE_SIZE,
+      skip,
     }),
+    prismadb.tourPackage.count({ where }),
     prismadb.location.findMany({
       where: { isActive: true },
       select: { id: true, label: true },
@@ -86,6 +100,9 @@ export default async function PackagesPage(
       distinct: ["tourCategory"],
     }),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
 
   const uniqueCategories = categories
     .map((c) => c.tourCategory)
@@ -104,6 +121,10 @@ export default async function PackagesPage(
         initialSearch={search}
         initialLocation={locationId}
         initialOffer={offerOnly}
+        totalCount={totalCount}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={PAGE_SIZE}
       />
     </div>
   );

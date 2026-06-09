@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import Link from "next/link";
+import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { PackageCard } from "../../components/package-card";
 import { useRouter } from "next/navigation";
 import { useTravelPath } from "../../components/travel-path-provider";
@@ -31,6 +32,10 @@ interface PackagesListClientProps {
   initialSearch?: string;
   initialLocation?: string;
   initialOffer?: boolean;
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
 }
 
 type SortOption = "featured" | "name-asc" | "price-low" | "price-high";
@@ -52,6 +57,10 @@ export function PackagesListClient({
   initialSearch,
   initialLocation,
   initialOffer,
+  totalCount,
+  currentPage,
+  totalPages,
+  pageSize,
 }: PackagesListClientProps) {
   const router = useRouter();
   const { href } = useTravelPath();
@@ -62,22 +71,28 @@ export function PackagesListClient({
   const [activeSort, setActiveSort] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
 
-  const pushFilters = (next: {
-    category?: string;
-    search?: string;
-    location?: string;
-    offer?: boolean;
-  }) => {
+  const pushFilters = (
+    next: {
+      category?: string;
+      search?: string;
+      location?: string;
+      offer?: boolean;
+      page?: number;
+    },
+    resetPage = false
+  ) => {
     const params = new URLSearchParams();
     const category = next.category ?? activeCategory;
     const search = next.search ?? searchQuery;
     const location = next.location ?? activeLocation;
     const offer = next.offer ?? offerOnly;
+    const page = resetPage ? 1 : (next.page ?? currentPage);
 
     if (category !== "all") params.set("category", category);
     if (search.trim()) params.set("search", search.trim());
     if (location !== "all") params.set("location", location);
     if (offer) params.set("offer", "1");
+    if (page > 1) params.set("page", String(page));
 
     const query = params.toString();
     router.push(query ? href(`/packages?${query}`) : href("/packages"));
@@ -85,17 +100,17 @@ export function PackagesListClient({
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
-    pushFilters({ category });
+    pushFilters({ category }, true);
   };
 
   const handleLocationChange = (location: string) => {
     setActiveLocation(location);
-    pushFilters({ location });
+    pushFilters({ location }, true);
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    pushFilters({ search: searchQuery });
+    pushFilters({ search: searchQuery }, true);
   };
 
   const clearFilters = () => {
@@ -130,6 +145,20 @@ export function PackagesListClient({
     }
   });
 
+  const rangeStart = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, totalCount);
+
+  const buildPageHref = (page: number) => {
+    const params = new URLSearchParams();
+    if (activeCategory !== "all") params.set("category", activeCategory);
+    if (searchQuery.trim()) params.set("search", searchQuery.trim());
+    if (activeLocation !== "all") params.set("location", activeLocation);
+    if (offerOnly) params.set("offer", "1");
+    if (page > 1) params.set("page", String(page));
+    const query = params.toString();
+    return query ? href(`/packages?${query}`) : href("/packages");
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
       <div className="mb-6 sm:mb-10">
@@ -139,11 +168,13 @@ export function PackagesListClient({
               Tour Packages
             </h1>
             <p className="text-gray-500 mt-2 text-sm sm:text-base">
-              Explore our curated collection of {packages.length} tour packages
+              Explore our curated collection of {totalCount} tour packages
             </p>
           </div>
           <div className="text-sm text-gray-500">
-            Showing {sortedPackages.length} results
+            {totalCount > 0
+              ? `Showing ${rangeStart}–${rangeEnd} of ${totalCount}`
+              : "No results"}
           </div>
         </div>
       </div>
@@ -163,7 +194,7 @@ export function PackagesListClient({
               type="button"
               onClick={() => {
                 setSearchQuery("");
-                pushFilters({ search: "" });
+                pushFilters({ search: "" }, true);
               }}
               className="absolute right-4 top-1/2 -translate-y-1/2"
               aria-label="Clear search"
@@ -218,7 +249,10 @@ export function PackagesListClient({
             <span className="text-sm text-gray-500">
               {activeCategory === "all" ? "All categories" : activeCategory}
             </span>
-            {(activeCategory !== "all" || searchQuery || activeLocation !== "all" || offerOnly) && (
+            {(activeCategory !== "all" ||
+              searchQuery ||
+              activeLocation !== "all" ||
+              offerOnly) && (
               <button
                 type="button"
                 onClick={clearFilters}
@@ -237,7 +271,7 @@ export function PackagesListClient({
           onClick={() => {
             const next = !offerOnly;
             setOfferOnly(next);
-            pushFilters({ offer: next });
+            pushFilters({ offer: next }, true);
           }}
           className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
             offerOnly
@@ -285,27 +319,68 @@ export function PackagesListClient({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-          {sortedPackages.map((pkg) => (
-            <PackageCard
-              key={pkg.id}
-              id={pkg.id}
-              name={pkg.tourPackageName || "Tour Package"}
-              slug={pkg.slug}
-              locationName={pkg.location.label}
-              imageUrl={pkg.images[0]?.url || ""}
-              duration={pkg.numDaysNight}
-              price={pkg.price}
-              pricePerAdult={pkg.pricePerAdult}
-              tourCategory={pkg.tourCategory}
-              itineraryCount={pkg._count.itineraries}
-              isOfferActive={pkg.isOfferActive}
-              offerBadge={pkg.offerBadge}
-              offerPrice={pkg.offerPrice}
-              offerOriginalPrice={pkg.offerOriginalPrice}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {sortedPackages.map((pkg) => (
+              <PackageCard
+                key={pkg.id}
+                id={pkg.id}
+                name={pkg.tourPackageName || "Tour Package"}
+                slug={pkg.slug}
+                locationName={pkg.location.label}
+                imageUrl={pkg.images[0]?.url || ""}
+                duration={pkg.numDaysNight}
+                price={pkg.price}
+                pricePerAdult={pkg.pricePerAdult}
+                tourCategory={pkg.tourCategory}
+                itineraryCount={pkg._count.itineraries}
+                isOfferActive={pkg.isOfferActive}
+                offerBadge={pkg.offerBadge}
+                offerPrice={pkg.offerPrice}
+                offerOriginalPrice={pkg.offerOriginalPrice}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 ? (
+            <nav
+              className="mt-10 flex items-center justify-center gap-2"
+              aria-label="Package list pagination"
+            >
+              {currentPage > 1 ? (
+                <Link
+                  href={buildPageHref(currentPage - 1)}
+                  className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-200 hover:text-orange-600"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-xl border border-gray-100 px-4 py-2 text-sm text-gray-300">
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </span>
+              )}
+              <span className="px-3 text-sm text-gray-500">
+                Page {currentPage} of {totalPages}
+              </span>
+              {currentPage < totalPages ? (
+                <Link
+                  href={buildPageHref(currentPage + 1)}
+                  className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-200 hover:text-orange-600"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-xl border border-gray-100 px-4 py-2 text-sm text-gray-300">
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </span>
+              )}
+            </nav>
+          ) : null}
+        </>
       )}
     </div>
   );

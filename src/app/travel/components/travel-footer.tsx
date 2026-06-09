@@ -3,10 +3,31 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Phone, Mail, MapPin, Instagram, Facebook, Twitter } from "lucide-react";
+import {
+  TRAVEL_CONTACT_ADDRESS,
+  TRAVEL_CONTACT_EMAIL,
+  getTravelContactPhoneDisplay,
+  getTravelSocialLinks,
+} from "@/lib/travel-site-config";
 import { useTravelPath } from "./travel-path-provider";
+
+const SOCIAL_ICONS = {
+  Instagram,
+  Facebook,
+  Twitter,
+} as const;
 
 export function TravelFooter() {
   const { href } = useTravelPath();
+  const phoneDisplay = getTravelContactPhoneDisplay();
+  const socialLinks = getTravelSocialLinks();
+
+  const categoryLinks = [
+    { path: "/packages?category=Domestic", label: "Domestic Tours" },
+    { path: "/packages?category=International", label: "International Tours" },
+    { path: "/offers", label: "Special Offers" },
+  ];
+
   return (
     <footer className="bg-gray-950 text-gray-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
@@ -28,22 +49,27 @@ export function TravelFooter() {
               Crafting unforgettable travel experiences with handpicked
               destinations, curated itineraries, and personalized service.
             </p>
-            <div className="flex space-x-3">
-              {[
-                { icon: Instagram, label: "Instagram" },
-                { icon: Facebook, label: "Facebook" },
-                { icon: Twitter, label: "Twitter" },
-              ].map((social) => (
-                <a
-                  key={social.label}
-                  href="#"
-                  className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center hover:bg-orange-500/20 hover:text-orange-400 transition-all duration-200"
-                  aria-label={social.label}
-                >
-                  <social.icon className="w-4 h-4" />
-                </a>
-              ))}
-            </div>
+            {socialLinks.length > 0 ? (
+              <div className="flex space-x-3">
+                {socialLinks.map((social) => {
+                  const Icon =
+                    SOCIAL_ICONS[social.label as keyof typeof SOCIAL_ICONS] ??
+                    Instagram;
+                  return (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-9 h-9 bg-white/5 rounded-lg flex items-center justify-center hover:bg-orange-500/20 hover:text-orange-400 transition-all duration-200"
+                      aria-label={social.label}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
 
           {/* Quick Links */}
@@ -73,12 +99,7 @@ export function TravelFooter() {
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm">Tour Categories</h4>
             <ul className="space-y-2.5 text-sm">
-              {[
-                { path: "/packages?category=Domestic", label: "Domestic Tours" },
-                { path: "/packages?category=International", label: "International Tours" },
-                { path: "/packages?category=Honeymoon", label: "Honeymoon Packages" },
-                { path: "/packages?category=Adventure", label: "Adventure Tours" },
-              ].map((link) => (
+              {categoryLinks.map((link) => (
                 <li key={link.path}>
                   <Link
                     href={href(link.path)}
@@ -95,17 +116,24 @@ export function TravelFooter() {
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm">Contact Us</h4>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-2.5">
-                <Phone className="w-4 h-4 mt-0.5 text-orange-500/70" />
-                <span>+91 98765 43210</span>
-              </li>
+              {phoneDisplay ? (
+                <li className="flex items-start gap-2.5">
+                  <Phone className="w-4 h-4 mt-0.5 text-orange-500/70" />
+                  <span>{phoneDisplay}</span>
+                </li>
+              ) : null}
               <li className="flex items-start gap-2.5">
                 <Mail className="w-4 h-4 mt-0.5 text-orange-500/70" />
-                <span>info@aagamholidays.com</span>
+                <a
+                  href={`mailto:${TRAVEL_CONTACT_EMAIL}`}
+                  className="hover:text-orange-400 transition-colors"
+                >
+                  {TRAVEL_CONTACT_EMAIL}
+                </a>
               </li>
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 mt-0.5 text-orange-500/70" />
-                <span>Ahmedabad, Gujarat, India</span>
+                <span>{TRAVEL_CONTACT_ADDRESS}</span>
               </li>
             </ul>
           </div>

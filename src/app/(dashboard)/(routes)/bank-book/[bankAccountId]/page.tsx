@@ -1,15 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
@@ -189,7 +188,8 @@ const BankBookPage = () => {
   };
 
   // Function to generate and download PDF
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     if (!bankAccount) return;
 
     const doc = new jsPDF();
@@ -288,7 +288,8 @@ const BankBookPage = () => {
   };
 
   // Function to generate and download Excel
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const XLSX = await importXlsx();
     if (!bankAccount) return;
 
     // Create empty worksheet

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,9 +22,6 @@ import {
 } from "lucide-react";
 import { AccruedExpensesTable } from "./accrued-expenses-table";
 import { PayAccruedExpenseModal } from "./pay-accrued-expense-modal";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 import Link from "next/link";
 
 interface AccruedExpensesClientProps {
@@ -85,7 +84,8 @@ export const AccruedExpensesClient: React.FC<AccruedExpensesClientProps> = ({
   };
 
   // Generate PDF report
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
 
     // Company header
@@ -227,7 +227,8 @@ export const AccruedExpensesClient: React.FC<AccruedExpensesClientProps> = ({
   };
 
   // Generate Excel report
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const XLSX = await importXlsx();
     const worksheet = XLSX.utils.aoa_to_sheet([]);
 
     // Add title and summary

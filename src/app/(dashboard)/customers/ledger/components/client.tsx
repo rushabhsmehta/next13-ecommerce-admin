@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,9 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 type Customer = {
   id: string;
@@ -175,7 +174,8 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
   }, [customers]);
 
   // Function to generate and download PDF
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
 
     // Add report title
@@ -234,7 +234,8 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
   };
 
   // Function to generate and download Excel
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const XLSX = await importXlsx();
     // Create worksheet data
     const workSheetData = [
       ["Customer Ledger Report"],

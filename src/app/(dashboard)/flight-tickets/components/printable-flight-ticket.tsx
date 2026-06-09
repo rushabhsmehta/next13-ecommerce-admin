@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Download, Printer, Plane, Users } from "lucide-react";
 import QRCode from "react-qr-code";
-import jsPDF from "jspdf";
-import 'jspdf-autotable';
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +52,8 @@ export const PrintableFlightTicket: React.FC<PrintableFlightTicketProps> = ({
   }, []); // Removing qrCodeRef.current from dependencies as it's a mutable ref
 
   // Function to generate PDF using jsPDF
-  const generatePDF = (download: boolean = false) => {
+  const generatePDF = async (download: boolean = false) => {
+    const { jsPDF } = await importJsPdf();
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',

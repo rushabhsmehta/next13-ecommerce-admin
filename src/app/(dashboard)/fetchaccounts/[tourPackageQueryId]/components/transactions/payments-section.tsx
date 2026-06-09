@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react';
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { format } from 'date-fns';
 import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer, Building2 } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,12 +73,13 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
     return formatPrice(value).replace('₹', 'Rs. ');
   };
 
-  const handleExportPaymentsPDF = () => {
+  const handleExportPaymentsPDF = async () => {
     if (!paymentsData.length) {
       toast.error('No payments to export');
       return;
     }
 
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
     const generatedAt = format(new Date(), "dd MMM yyyy HH:mm");
     const sanitizedName = tourPackageName.replace(/\s+/g, '-').toLowerCase() || 'tour-package';

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { createApprovalToken } from "../../../../../../mcp-server/src/contracts/oauth";
+import { createApprovalToken } from "@/lib/mcp-contracts/oauth";
 import { getUserOrgRole, roleAtLeast } from "@/lib/authz";
 
 function readString(value: FormDataEntryValue | null): string {

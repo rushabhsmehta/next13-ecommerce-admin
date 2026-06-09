@@ -1,7 +1,6 @@
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { InquiryColumn } from './columns';
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 
 // Helper function to load image as base64 data URL
 const loadImage = async (url: string): Promise<string> => {
@@ -22,6 +21,7 @@ const loadImage = async (url: string): Promise<string> => {
 
 // Function to download data as Excel
 export const downloadAsExcel = async (data: InquiryColumn[], filename = 'inquiries', organization: any) => {
+  const XLSX = await importXlsx();
   const workbook = XLSX.utils.book_new();
 
   const worksheetRows: any[][] = [];
@@ -101,6 +101,7 @@ export const downloadAsExcel = async (data: InquiryColumn[], filename = 'inquiri
 
 // Function to download data as PDF
 export const downloadAsPDF = async (data: InquiryColumn[], filename = 'inquiries', organization: any) => {
+  const { jsPDF, autoTable } = await importJsPdf();
   // Create PDF document
   const doc = new jsPDF();
 

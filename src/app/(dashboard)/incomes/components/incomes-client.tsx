@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,9 +26,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 import Link from "next/link";
 
 interface IncomesClientProps {
@@ -97,7 +96,8 @@ export const IncomesClient: React.FC<IncomesClientProps> = ({
   };
 
   // Function to generate and download PDF
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
 
     // Add report title
@@ -137,7 +137,8 @@ export const IncomesClient: React.FC<IncomesClientProps> = ({
   };
 
   // Function to generate and download Excel
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const XLSX = await importXlsx();
     // Create worksheet
     const worksheet = XLSX.utils.aoa_to_sheet([]);
 

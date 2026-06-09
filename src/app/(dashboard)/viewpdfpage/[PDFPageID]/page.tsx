@@ -1,4 +1,4 @@
-import ViewMyPDF from "@/components/ViewMyPDF";
+import ViewMyPDF from "@/components/view-pdf-loader";
 import prismadb from "@/lib/prismadb";
 
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,9 +18,6 @@ import {
 import { CalendarIcon, Download, ChevronsUpDown, FileSpreadsheet, Search } from "lucide-react";
 import { SuppliersTable } from "./suppliers-table";
 import { Input } from "@/components/ui/input";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandInput } from "@/components/ui/command";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -154,7 +153,8 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
   };
   
   // Function to generate and download PDF
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
 
     // Add report title
@@ -222,7 +222,8 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
   };
 
   // Function to generate and download Excel
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const XLSX = await importXlsx();
     // Create worksheet data
     const workSheetData = [
       ["Supplier Ledger Report"],

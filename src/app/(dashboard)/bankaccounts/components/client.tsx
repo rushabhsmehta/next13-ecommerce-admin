@@ -1,10 +1,9 @@
 'use client'
 
 import { Plus, Download, FileSpreadsheet } from "lucide-react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -34,7 +33,8 @@ export const BankAccountsClient: React.FC<BankAccountsClientProps> = ({
   };
 
   // Function to generate and download PDF
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
     // Add a Unicode font that supports the Rupee symbol
     doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
@@ -85,7 +85,8 @@ export const BankAccountsClient: React.FC<BankAccountsClientProps> = ({
   };
 
   // Function to generate and download Excel
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const XLSX = await importXlsx();
     // Create empty worksheet
     const worksheet = XLSX.utils.aoa_to_sheet([]);
 

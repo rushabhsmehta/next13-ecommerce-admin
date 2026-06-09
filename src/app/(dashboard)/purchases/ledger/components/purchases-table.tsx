@@ -1,6 +1,8 @@
 "use client";
 
 import { formatPrice } from "@/lib/utils";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
 import { PercentIcon, Download, FileSpreadsheet, ChevronDown, ChevronRight } from "lucide-react"; 
 import { useState } from "react";
@@ -16,9 +18,6 @@ import { CellAction } from "./cell-action";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 type Purchase = {
   id: string;
@@ -89,7 +88,8 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
   };
 
   // Function to generate and download PDF
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
 
     // Add report title
@@ -142,7 +142,8 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
   };
 
   // Function to generate and download Excel
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const XLSX = await importXlsx();
     // Create empty worksheet
     const worksheet = XLSX.utils.aoa_to_sheet([]);
 

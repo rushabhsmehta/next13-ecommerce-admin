@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +13,6 @@ import { CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TransactionsTable } from "./transactions-table";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 type CustomerTransaction = {
   id: string;
@@ -88,7 +87,8 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
   };
 
   // Generate PDF function
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
     
     // Add report title
@@ -170,7 +170,8 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
   };
 
   // Generate Excel function
-  const generateExcel = () => {
+  const generateExcel = async () => {
+    const XLSX = await importXlsx();
     // Create empty worksheet
     const worksheet = XLSX.utils.aoa_to_sheet([]);
       // Add title and summary information

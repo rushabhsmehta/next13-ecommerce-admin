@@ -12,7 +12,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { normalizeToolParams } from "../../../../mcp-server/src/contracts/tools";
+import { normalizeToolParams } from "@/lib/mcp-contracts/tools";
 import { McpError, mapPrismaError, summarizeZodError } from "./lib/errors";
 import { TOOLS } from "./handlers";
 

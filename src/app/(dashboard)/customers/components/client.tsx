@@ -1,14 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
 import { Download, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
+import { exportToCSV } from "@/lib/utils/csv-export";
 import { columns, CustomerColumn } from "./columns";
 
 interface CustomerClientProps {
@@ -33,21 +34,12 @@ export const CustomerClient: React.FC<CustomerClientProps> = ({
   );
 
   const downloadCsv = () => {
-    const worksheet = XLSX.utils.json_to_sheet(exportRows);
-    const csv = XLSX.utils.sheet_to_csv(worksheet);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
     const today = new Date().toISOString().split("T")[0];
-    link.href = url;
-    link.setAttribute("download", `customers-${today}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    exportToCSV(exportRows, `customers-${today}`);
   };
 
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
+    const XLSX = await importXlsx();
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");

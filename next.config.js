@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "@radix-ui/react-icons",
+    ],
+  },
   async headers() {
     return [
       {
@@ -20,15 +27,6 @@ const nextConfig = {
         ],
       },
     ];
-  },
-  // mcp-server contracts use .js extensions (NodeNext ESM convention) but are
-  // imported directly by the Next.js app. Tell webpack to resolve .js → .ts
-  // so the TypeScript source files are found during production builds.
-  webpack: (config) => {
-    config.resolve.extensionAlias = {
-      '.js': ['.ts', '.tsx', '.js', '.jsx'],
-    };
-    return config;
   },
   outputFileTracingIncludes: {
     '/api/**/*': [

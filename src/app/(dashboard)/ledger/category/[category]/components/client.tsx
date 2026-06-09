@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,9 +33,6 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 import { ComprehensiveLedgerTable } from "../../../components/comprehensive-ledger-table";
 import Link from "next/link";
 
@@ -113,7 +112,8 @@ export const CategoryLedgerClient: React.FC<CategoryLedgerClientProps> = ({
   };
 
   // Function to generate and download PDF
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
     
     // Company header
@@ -262,7 +262,8 @@ export const CategoryLedgerClient: React.FC<CategoryLedgerClientProps> = ({
   };
 
   // Function to generate and download Excel
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
+    const XLSX = await importXlsx();
     const worksheet = XLSX.utils.aoa_to_sheet([]);
 
     // Add title and summary information

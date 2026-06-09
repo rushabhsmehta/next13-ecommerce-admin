@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { importXlsx } from "@/lib/lazy-xlsx";
+import { importJsPdf } from "@/lib/lazy-jspdf";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,9 +42,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { jsPDF } from "jspdf";
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 import { ComprehensiveLedgerTable } from "./comprehensive-ledger-table";
 
 type Transaction = {
@@ -124,7 +123,8 @@ export const ComprehensiveLedgerClient: React.FC<ComprehensiveLedgerClientProps>
   };
 
   // Function to generate and download PDF
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
+    const { jsPDF, autoTable } = await importJsPdf();
     const doc = new jsPDF();
     
     // Company header
@@ -280,7 +280,8 @@ export const ComprehensiveLedgerClient: React.FC<ComprehensiveLedgerClientProps>
   };
 
   // Function to generate and download Excel
-  const downloadExcel = () => {
+  const downloadExcel = async () => {
+    const XLSX = await importXlsx();
     const worksheetData = filteredTransactions.map(transaction => ({
       Date: format(new Date(transaction.date), 'MMMM d, yyyy'),
       Type: transaction.type.toUpperCase(),

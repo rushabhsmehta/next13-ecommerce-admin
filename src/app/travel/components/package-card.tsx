@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, MapPin, Star, ArrowRight } from "lucide-react";
 import { stripHtml } from "@/lib/html-utils";
+import { useTravelPath } from "./travel-path-provider";
 
 interface PackageCardProps {
   id: string;
@@ -47,14 +50,17 @@ export function PackageCard({
   offerPrice,
   offerOriginalPrice,
 }: PackageCardProps) {
+  const { href: travelHref } = useTravelPath();
   const displayPrice = formatPrice(isOfferActive ? offerPrice || pricePerAdult : pricePerAdult) || formatPrice(price);
   const originalPrice = isOfferActive ? formatPrice(offerOriginalPrice) : null;
-  const href = slug ? `/travel/packages/${slug}` : `/travel/packages/${id}`;
+  const packageHref = travelHref(
+    slug ? `/packages/${slug}` : `/packages/${id}`
+  );
   const hasImage = Boolean(imageUrl);
   const displayName = stripHtml(name) || "Tour Package";
 
   return (
-    <Link href={href} className="group block">
+    <Link href={packageHref} className="group block">
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-300 group-hover:-translate-y-1 border border-gray-100/80">
         <div className="relative h-52 sm:h-56 overflow-hidden">
           {hasImage ? (

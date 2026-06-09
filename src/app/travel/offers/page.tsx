@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, Tag } from "lucide-react";
 import prismadb from "@/lib/prismadb";
+import { travelHref } from "@/lib/travel-paths";
+import { getServerTravelBasePath } from "@/lib/travel-paths-server";
 import { PackageCard } from "../components/package-card";
 import {
   PACKAGE_OFFER_FIELDS,
@@ -18,6 +20,8 @@ export const metadata = {
 };
 
 export default async function TravelOffersPage() {
+  const basePath = await getServerTravelBasePath();
+  const packagesHref = travelHref("/packages", basePath);
   const now = new Date();
   const offers = await prismadb.tourPackage.findMany({
     where: activeOfferWhere(now),
@@ -41,7 +45,7 @@ export default async function TravelOffersPage() {
     <div className="min-h-screen bg-gray-50 pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <Link
-          href="/travel/packages"
+          href={packagesHref}
           className="inline-flex items-center gap-2 text-sm font-semibold text-orange-700 hover:text-orange-800"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -68,7 +72,7 @@ export default async function TravelOffersPage() {
               Check back soon, or browse all tour packages for current availability.
             </p>
             <Link
-              href="/travel/packages"
+              href={packagesHref}
               className="mt-5 inline-flex rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-700"
             >
               Browse packages

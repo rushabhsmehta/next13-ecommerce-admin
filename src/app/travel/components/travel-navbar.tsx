@@ -7,10 +7,12 @@ import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Home, Search, X, LogIn, MessageCircle, LogOut } from "lucide-react";
 import { useUser, useClerk } from "@clerk/nextjs";
+import { useTravelPath } from "./travel-path-provider";
 
 export function TravelNavbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { href, home } = useTravelPath();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -54,18 +56,20 @@ export function TravelNavbar() {
   }, []);
 
   function handleSignOut() {
-    signOut(() => router.push("/travel"));
+    signOut(() => router.push(home));
     setDropdownOpen(false);
   }
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== "/travel" && pathname?.startsWith(href));
+  const isActive = (path: string) => {
+    const target = href(path);
+    return pathname === target || (target !== home && pathname?.startsWith(target));
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim();
     if (!query) return;
-    router.push(`/travel/packages?search=${encodeURIComponent(query)}`);
+    router.push(href(`/packages?search=${encodeURIComponent(query)}`));
     setSearchOpen(false);
   };
 
@@ -81,7 +85,7 @@ export function TravelNavbar() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Logo */}
           <div className="flex items-center justify-between gap-3 sm:justify-start sm:flex-shrink-0">
-            <Link href="/travel" className="flex items-center group">
+            <Link href={home} className="flex items-center group">
               <div className="relative w-24 h-8 sm:w-32 sm:h-11 transition-transform duration-300 group-hover:scale-[1.02]">
                 <Image
                   src="/aagamholidays.png"
@@ -108,9 +112,9 @@ export function TravelNavbar() {
                 {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
               </button>
               <Link
-                href="/travel"
+                href={home}
                 className={`relative flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                  isActive("/travel")
+                  isActive("/")
                     ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
                     : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
                 }`}
@@ -135,7 +139,7 @@ export function TravelNavbar() {
                           {travelUserName}
                         </p>
                         <Link
-                          href="/travel/chat"
+                          href={href("/chat")}
                           onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
                         >
@@ -156,7 +160,7 @@ export function TravelNavbar() {
                   </div>
                 ) : !isSignedIn ? (
                   <Link
-                    href="/travel/login"
+                    href={href("/login")}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-md"
                     aria-label="Login"
                   >
@@ -212,9 +216,9 @@ export function TravelNavbar() {
 
           <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
             <Link
-              href="/travel"
+              href={home}
               className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                isActive("/travel")
+                isActive("/")
                   ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
                   : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
               }`}
@@ -241,7 +245,7 @@ export function TravelNavbar() {
                         {travelUserName}
                       </p>
                       <Link
-                        href="/travel/chat"
+                        href={href("/chat")}
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                       >
@@ -262,7 +266,7 @@ export function TravelNavbar() {
                 </div>
               ) : !isSignedIn ? (
                 <Link
-                  href="/travel/login"
+                  href={href("/login")}
                   className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:shadow-lg hover:from-orange-600 hover:to-red-600 transition-all"
                 >
                   <LogIn className="w-4 h-4" />

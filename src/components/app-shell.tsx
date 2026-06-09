@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { DebugLogPanel } from "@/components/DebugLogPanel";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { isTravelPublicBrowserPath } from "@/lib/travel-paths";
 
 // Public, chrome-less pages: PDF generator + display pages rendered
 // unauthenticated by the internal PDF pipeline (Puppeteer). They must NOT mount
@@ -24,7 +25,9 @@ const CHROMELESS_PREFIXES = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isTravelRoute = pathname?.startsWith("/travel");
+  const isTravelRoute =
+    pathname?.startsWith("/travel") ||
+    (pathname ? isTravelPublicBrowserPath(pathname) : false);
   const isAuthRoute =
     pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up");
   const lowerPath = (pathname || "").toLowerCase();

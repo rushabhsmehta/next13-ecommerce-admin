@@ -1,7 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Zap } from "lucide-react";
 import { stripHtml } from "@/lib/html-utils";
+import { useTravelPath } from "./travel-path-provider";
 
 interface ActivityData {
   id: string;
@@ -15,6 +18,8 @@ export function PopularActivities({
 }: {
   activities: ActivityData[];
 }) {
+  const { href: travelHref } = useTravelPath();
+
   if (activities.length === 0) return null;
 
   return (
@@ -35,7 +40,7 @@ export function PopularActivities({
             </p>
           </div>
           <Link
-            href="/travel/packages"
+            href={travelHref("/packages")}
             className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-orange-600 font-semibold hover:gap-3 transition-all text-sm"
           >
             Explore Packages →
@@ -49,8 +54,8 @@ export function PopularActivities({
             const locationSlug = activity.location?.slug;
             const displayTitle = stripHtml(activity.activityMasterTitle) || "Activity";
             const href = locationSlug
-              ? `/travel/destinations/${locationSlug}`
-              : "/travel/packages";
+              ? travelHref(`/destinations/${locationSlug}`)
+              : travelHref("/packages");
 
             return (
               <Link key={activity.id} href={href} className="group block">

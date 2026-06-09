@@ -4,15 +4,19 @@ import { Search, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTravelPath } from "./travel-path-provider";
 
 export function HeroSection() {
   const router = useRouter();
+  const { href } = useTravelPath();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/travel/packages?search=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(
+        href(`/packages?search=${encodeURIComponent(searchQuery.trim())}`)
+      );
     }
   };
 

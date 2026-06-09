@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useTravelPath } from "../../../components/travel-path-provider";
 import { useCallback, useEffect, useState } from "react";
 import {
   MapPin,
@@ -124,6 +125,7 @@ export function PackageDetailClient({
   tourPackage,
   relatedPackages,
 }: PackageDetailClientProps) {
+  const { href } = useTravelPath();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"itinerary" | "inclusions" | "policies">("itinerary");
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set(["0"]));
@@ -139,10 +141,11 @@ export function PackageDetailClient({
   const [enquiryError, setEnquiryError] = useState<string | null>(null);
 
   const packageSlug = tourPackage.slug || tourPackage.id;
+  const packagePath = href(`/packages/${packageSlug}`);
   const shareUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/travel/packages/${packageSlug}`
-      : `/travel/packages/${packageSlug}`;
+      ? `${window.location.origin}${packagePath}`
+      : packagePath;
 
   useEffect(() => {
     setIsSaved(loadSavedPackageIds().includes(tourPackage.id));
@@ -293,7 +296,7 @@ export function PackageDetailClient({
           {/* Back Button & Actions */}
           <div className="absolute top-20 left-4 right-4 flex justify-between">
             <Link
-              href="/travel/packages"
+              href={href("/packages")}
               className="flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-xl rounded-xl text-white hover:bg-white/25 transition-all duration-200 text-sm"
             >
               <ArrowLeft className="w-4 h-4" /> Back

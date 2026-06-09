@@ -1,6 +1,9 @@
+"use client";
+
 import type { ElementType } from "react";
 import Link from "next/link";
 import { Map, Globe, Heart, Mountain, Compass, Waves, Camera, Leaf } from "lucide-react";
+import { useTravelPath } from "./travel-path-provider";
 
 interface CategoryData {
   tourCategory: string | null;
@@ -58,6 +61,8 @@ const defaultConfig: CategoryConfig = {
 };
 
 export function TourCategories({ categories }: { categories: CategoryData[] }) {
+  const { href } = useTravelPath();
+
   if (categories.length === 0) return null;
 
   return (
@@ -87,7 +92,7 @@ export function TourCategories({ categories }: { categories: CategoryData[] }) {
             return (
               <Link
                 key={tourCategory}
-                href={`/travel/packages?category=${encodeURIComponent(tourCategory)}`}
+                href={href(`/packages?category=${encodeURIComponent(tourCategory)}`)}
                 className="group"
               >
                 <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 group-hover:-translate-y-1 border border-gray-100/80 text-center">

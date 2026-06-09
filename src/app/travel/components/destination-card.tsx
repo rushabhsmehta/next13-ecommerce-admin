@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { useTravelPath } from "./travel-path-provider";
 
 interface DestinationCardProps {
   id: string;
@@ -17,10 +20,14 @@ export function DestinationCard({
   packageCount,
   slug,
 }: DestinationCardProps) {
+  const { href } = useTravelPath();
   const hasImage = Boolean(imageUrl);
+  const destinationHref = href(
+    slug ? `/destinations/${slug}` : `/destinations/${id}`
+  );
 
   return (
-    <Link href={`/travel/destinations/${id}`} className="group block">
+    <Link href={destinationHref} className="group block">
       <div className="relative h-72 sm:h-80 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-300 group-hover:-translate-y-1">
         {hasImage ? (
           <Image

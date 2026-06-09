@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Phone, Mail, MapPin, Instagram, Facebook, Twitter } from "lucide-react";
+import { useTravelPath } from "./travel-path-provider";
 
 export function TravelFooter() {
+  const { href } = useTravelPath();
   return (
     <footer className="bg-gray-950 text-gray-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
@@ -47,15 +51,15 @@ export function TravelFooter() {
             <h4 className="text-white font-semibold mb-4 text-sm">Quick Links</h4>
             <ul className="space-y-2.5 text-sm">
               {[
-                { href: "/travel/packages", label: "Tour Packages" },
-                { href: "/travel/destinations", label: "Destinations" },
-                { href: "/travel/privacy", label: "Privacy Policy" },
-                { href: "/travel/terms", label: "Terms of Service" },
-                { href: "/travel/account-deletion", label: "Delete Account" },
+                { path: "/packages", label: "Tour Packages" },
+                { path: "/destinations", label: "Destinations" },
+                { path: "/privacy", label: "Privacy Policy" },
+                { path: "/terms", label: "Terms of Service" },
+                { path: "/account-deletion", label: "Delete Account" },
               ].map((link) => (
-                <li key={link.href}>
+                <li key={link.path}>
                   <Link
-                    href={link.href}
+                    href={href(link.path)}
                     className="hover:text-orange-400 transition-colors duration-200"
                   >
                     {link.label}
@@ -70,14 +74,14 @@ export function TravelFooter() {
             <h4 className="text-white font-semibold mb-4 text-sm">Tour Categories</h4>
             <ul className="space-y-2.5 text-sm">
               {[
-                { href: "/travel/packages?category=Domestic", label: "Domestic Tours" },
-                { href: "/travel/packages?category=International", label: "International Tours" },
-                { href: "/travel/packages?category=Honeymoon", label: "Honeymoon Packages" },
-                { href: "/travel/packages?category=Adventure", label: "Adventure Tours" },
+                { path: "/packages?category=Domestic", label: "Domestic Tours" },
+                { path: "/packages?category=International", label: "International Tours" },
+                { path: "/packages?category=Honeymoon", label: "Honeymoon Packages" },
+                { path: "/packages?category=Adventure", label: "Adventure Tours" },
               ].map((link) => (
-                <li key={link.href}>
+                <li key={link.path}>
                   <Link
-                    href={link.href}
+                    href={href(link.path)}
                     className="hover:text-orange-400 transition-colors duration-200"
                   >
                     {link.label}

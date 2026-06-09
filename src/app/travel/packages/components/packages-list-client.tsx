@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { PackageCard } from "../../components/package-card";
 import { useRouter } from "next/navigation";
+import { useTravelPath } from "../../components/travel-path-provider";
 
 interface Package {
   id: string;
@@ -53,6 +54,7 @@ export function PackagesListClient({
   initialOffer,
 }: PackagesListClientProps) {
   const router = useRouter();
+  const { href } = useTravelPath();
   const [activeCategory, setActiveCategory] = useState(initialCategory || "all");
   const [searchQuery, setSearchQuery] = useState(initialSearch || "");
   const [activeLocation, setActiveLocation] = useState(initialLocation || "all");
@@ -78,7 +80,7 @@ export function PackagesListClient({
     if (offer) params.set("offer", "1");
 
     const query = params.toString();
-    router.push(query ? `/travel/packages?${query}` : "/travel/packages");
+    router.push(query ? href(`/packages?${query}`) : href("/packages"));
   };
 
   const handleCategoryChange = (category: string) => {
@@ -102,7 +104,7 @@ export function PackagesListClient({
     setActiveLocation("all");
     setOfferOnly(false);
     setActiveSort("featured");
-    router.push("/travel/packages");
+    router.push(href("/packages"));
   };
 
   const sortedPackages = [...packages].sort((left, right) => {

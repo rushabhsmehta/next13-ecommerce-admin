@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Clock, MapPin, Tag } from "lucide-react";
 import { stripHtml } from "@/lib/html-utils";
 import { formatOfferValidity } from "@/lib/package-offers";
+import { useTravelPath } from "./travel-path-provider";
 
 interface DealPackage {
   id: string;
@@ -37,6 +40,8 @@ function formatPrice(value: string | null | undefined) {
 }
 
 export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
+  const { href: travelHref } = useTravelPath();
+
   if (deals.length === 0) return null;
 
   return (
@@ -56,7 +61,7 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
             </p>
           </div>
           <Link
-            href="/travel/offers"
+            href={travelHref("/offers")}
             className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-amber-600 font-semibold hover:gap-3 transition-all text-sm"
           >
             View All Offers <ArrowRight className="w-4 h-4" />
@@ -74,9 +79,9 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
               stripHtml(pkg.offerTitle || pkg.tourPackageName || "") || "Tour Package";
             const subtitle = pkg.offerSubtitle?.trim();
             const validity = formatOfferValidity(pkg);
-            const href = pkg.slug
-              ? `/travel/packages/${pkg.slug}`
-              : `/travel/packages/${pkg.id}`;
+            const href = travelHref(
+              pkg.slug ? `/packages/${pkg.slug}` : `/packages/${pkg.id}`
+            );
             const hasImage = Boolean(pkg.images[0]?.url);
 
             return (

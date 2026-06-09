@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { travelHref } from "@/lib/travel-paths";
+import { getServerTravelBasePath } from "@/lib/travel-paths-server";
 
 export const metadata: Metadata = {
   title: "Terms of Service - Aagam Holidays",
@@ -8,7 +10,10 @@ export const metadata: Metadata = {
 
 const LAST_UPDATED = "25 May 2026";
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const basePath = await getServerTravelBasePath();
+  const t = (path: string) => travelHref(path, basePath);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 py-16 px-4">
@@ -77,7 +82,7 @@ export default function TermsPage() {
           <h2 className="text-2xl font-bold text-gray-900">7. Privacy</h2>
           <p>
             Our{" "}
-            <Link href="/travel/privacy" className="text-orange-600 underline">
+            <Link href={t("/privacy")} className="text-orange-600 underline">
               Privacy Policy
             </Link>{" "}
             explains how we handle personal data.
@@ -95,7 +100,7 @@ export default function TermsPage() {
         </section>
 
         <p className="text-center text-sm text-gray-500 pb-8">
-          <Link href="/travel/privacy" className="text-orange-600 underline">
+          <Link href={t("/privacy")} className="text-orange-600 underline">
             Privacy Policy
           </Link>
         </p>

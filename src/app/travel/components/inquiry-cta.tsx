@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { MessageCircle, Package, Sparkles } from "lucide-react";
+import { useTravelPath } from "./travel-path-provider";
 
 export function InquiryCta() {
+  const { href } = useTravelPath();
   return (
     <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -54,14 +58,14 @@ export function InquiryCta() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:min-w-[220px]">
               <Link
-                href="/travel/chat"
+                href={href("/chat")}
                 className="inline-flex items-center justify-center gap-2.5 bg-white text-orange-600 font-semibold px-6 py-3.5 rounded-xl hover:bg-orange-50 transition-colors shadow-lg shadow-black/10 text-sm sm:text-base"
               >
                 <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                 Start Planning
               </Link>
               <Link
-                href="/travel/packages"
+                href={href("/packages")}
                 className="inline-flex items-center justify-center gap-2.5 bg-white/10 backdrop-blur-sm text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-white/20 transition-colors border border-white/30 text-sm sm:text-base"
               >
                 <Package className="w-4 h-4 sm:w-5 sm:h-5" />

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { travelHref } from "@/lib/travel-paths";
+import { getServerTravelBasePath } from "@/lib/travel-paths-server";
 
 export const metadata: Metadata = {
   title: "Privacy Policy - Aagam Holidays",
@@ -9,7 +11,10 @@ export const metadata: Metadata = {
 
 const LAST_UPDATED = "25 May 2026";
 
-export default function PrivacyPolicyPage() {
+export default async function PrivacyPolicyPage() {
+  const basePath = await getServerTravelBasePath();
+  const t = (path: string) => travelHref(path, basePath);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 py-16 px-4">
@@ -109,11 +114,11 @@ export default function PrivacyPolicyPage() {
           <p>
             Chat and profile data are kept while your account is active. Billing and completed-tour
             records may be retained for up to 7 years under Indian tax and GST requirements. See our{" "}
-            <Link href="/travel/data-deletion" className="text-orange-600 underline">
+            <Link href={t("/data-deletion")} className="text-orange-600 underline">
               data deletion
             </Link>{" "}
             and{" "}
-            <Link href="/travel/account-deletion" className="text-orange-600 underline">
+            <Link href={t("/account-deletion")} className="text-orange-600 underline">
               account deletion
             </Link>{" "}
             pages for how to request removal.
@@ -149,11 +154,11 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <p className="text-center text-sm text-gray-500 pb-8">
-          <Link href="/travel/terms" className="text-orange-600 underline">
+          <Link href={t("/terms")} className="text-orange-600 underline">
             Terms of Service
           </Link>
           {" · "}
-          <Link href="/travel/account-deletion" className="text-orange-600 underline">
+          <Link href={t("/account-deletion")} className="text-orange-600 underline">
             Account deletion
           </Link>
         </p>

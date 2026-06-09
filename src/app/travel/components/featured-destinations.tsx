@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { DestinationCard } from "./destination-card";
+import { useTravelPath } from "./travel-path-provider";
 
 interface Destination {
   id: string;
@@ -15,6 +18,8 @@ export function FeaturedDestinations({
 }: {
   destinations: Destination[];
 }) {
+  const { href } = useTravelPath();
+
   if (destinations.length === 0) return null;
 
   return (
@@ -35,7 +40,7 @@ export function FeaturedDestinations({
             </p>
           </div>
           <Link
-            href="/travel/destinations"
+            href={href("/destinations")}
             className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-orange-600 font-semibold hover:gap-3 transition-all text-sm"
           >
             View All Destinations <ArrowRight className="w-4 h-4" />

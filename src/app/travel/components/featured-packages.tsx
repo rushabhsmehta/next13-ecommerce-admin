@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { PackageCard } from "./package-card";
+import { useTravelPath } from "./travel-path-provider";
 
 interface FeaturedPackage {
   id: string;
@@ -24,6 +27,8 @@ export function FeaturedPackages({
 }: {
   packages: FeaturedPackage[];
 }) {
+  const { href } = useTravelPath();
+
   if (packages.length === 0) return null;
 
   return (
@@ -44,7 +49,7 @@ export function FeaturedPackages({
             </p>
           </div>
           <Link
-            href="/travel/packages"
+            href={href("/packages")}
             className="mt-4 sm:mt-0 inline-flex items-center gap-2 text-orange-600 font-semibold hover:gap-3 transition-all text-sm"
           >
             View All Packages <ArrowRight className="w-4 h-4" />

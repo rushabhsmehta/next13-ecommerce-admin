@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import prismadb from "@/lib/prismadb";
+import { travelHref } from "@/lib/travel-paths";
+import { getServerTravelBasePath } from "@/lib/travel-paths-server";
 import { EmailOtpForm } from "./components/email-otp-form";
 
 export const metadata = {
@@ -13,9 +15,10 @@ export default async function TravelLoginPage({
 }: {
   searchParams: Promise<{ from?: string }>;
 }) {
+  const basePath = await getServerTravelBasePath();
   const { userId } = await auth();
   const params = await searchParams;
-  const returnTo = params.from ?? "/travel/chat";
+  const returnTo = params.from ?? travelHref("/chat", basePath);
 
   if (userId) {
     const travelUser = await prismadb.travelAppUser.findUnique({

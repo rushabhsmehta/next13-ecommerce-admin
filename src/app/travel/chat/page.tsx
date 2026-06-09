@@ -1,16 +1,24 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Calendar, MessageCircle, Clock } from "lucide-react";
 import prismadb from "@/lib/prismadb";
 import { formatSafeDate } from "@/lib/utils";
+import { travelHref } from "@/lib/travel-paths";
+import { getServerTravelBasePath } from "@/lib/travel-paths-server";
 
 export const metadata = {
   title: "My Chats | Aagam Holidays",
 };
 
 export default async function TravelChatPage() {
+  const basePath = await getServerTravelBasePath();
+  const chatPath = travelHref("/chat", basePath);
+  const loginPath = travelHref(`/login?from=${encodeURIComponent(chatPath)}`, basePath);
+  const packagesHref = travelHref("/packages", basePath);
+
   const { userId } = await auth();
-  if (!userId) redirect("/travel/login?from=/travel/chat");
+  if (!userId) redirect(loginPath);
 
   const travelUser = await prismadb.travelAppUser.findUnique({
     where: { clerkUserId: userId },
@@ -23,13 +31,19 @@ export default async function TravelChatPage() {
     },
   });
 
-  if (!travelUser) redirect("/travel/login?from=/travel/chat");
+  if (!travelUser) redirect(loginPath);
 
   if (!travelUser.isApproved) {
     return <PendingApprovalView name={travelUser.name} />;
   }
 
-  return <TravelChatView name={travelUser.name} memberships={travelUser.chatMemberships} />;
+  return (
+    <TravelChatView
+      name={travelUser.name}
+      memberships={travelUser.chatMemberships}
+      packagesHref={packagesHref}
+    />
+  );
 }
 
 function PendingApprovalView({ name }: { name: string }) {
@@ -79,7 +93,15 @@ type Membership = {
   };
 };
 
-function TravelChatView({ name, memberships }: { name: string; memberships: Membership[] }) {
+function TravelChatView({
+  name,
+  memberships,
+  packagesHref,
+}: {
+  name: string;
+  memberships: Membership[];
+  packagesHref: string;
+}) {
   if (memberships.length === 0) {
     return (
       <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-16">
@@ -93,12 +115,12 @@ function TravelChatView({ name, memberships }: { name: string; memberships: Memb
               You haven&apos;t been added to a trip group yet. Your coordinator will add you once your booking is confirmed.
             </p>
           </div>
-          <a
-            href="/travel/packages"
+          <Link
+            href={packagesHref}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-sm font-semibold text-white hover:from-orange-600 hover:to-red-600 transition-colors"
           >
             Browse tour packages
-          </a>
+          </Link>
         </div>
       </div>
     );

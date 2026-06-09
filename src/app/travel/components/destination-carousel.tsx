@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useTravelPath } from "./travel-path-provider";
 
 interface Destination {
   id: string;
@@ -18,6 +19,7 @@ export function DestinationCarousel({
 }: {
   destinations: Destination[];
 }) {
+  const { href: travelHref } = useTravelPath();
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   if (destinations.length === 0) return null;
@@ -75,9 +77,11 @@ export function DestinationCarousel({
           className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory scrollbar-hide"
         >
           {destinations.slice(0, 10).map((destination) => {
-            const href = destination.slug
-              ? `/travel/destinations/${destination.slug}`
-              : `/travel/destinations/${destination.id}`;
+            const href = travelHref(
+              destination.slug
+                ? `/destinations/${destination.slug}`
+                : `/destinations/${destination.id}`
+            );
 
             return (
               <Link

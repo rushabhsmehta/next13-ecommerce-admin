@@ -1,7 +1,5 @@
-/** Trim and collapse hyphens for location URL segments. */
-export function normalizeLocationSlug(
-  slug: string | null | undefined
-): string | null {
+/** Trim, lowercase, and collapse hyphens for URL slug segments. */
+export function normalizeSlug(slug: string | null | undefined): string | null {
   if (!slug) return null;
   const cleaned = slug
     .trim()
@@ -10,6 +8,31 @@ export function normalizeLocationSlug(
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
   return cleaned || null;
+}
+
+/** @deprecated Use normalizeSlug */
+export const normalizeLocationSlug = normalizeSlug;
+
+/** Normalize a manual slug or derive one from a display name. */
+export function normalizeSlugInput(
+  slug: string | null | undefined,
+  fallbackName?: string | null
+): string | null {
+  const fromSlug = normalizeSlug(slug);
+  if (fromSlug) return fromSlug;
+  if (!fallbackName) return null;
+  return normalizeSlug(fallbackName);
+}
+
+/** Tour package slugs are capped at 80 characters. */
+export function normalizeTourPackageSlugInput(
+  slug: string | null | undefined,
+  packageName?: string | null
+): string | null {
+  const fromSlug = normalizeSlug(slug)?.slice(0, 80);
+  if (fromSlug) return fromSlug;
+  if (!packageName?.trim()) return null;
+  return normalizeSlug(packageName)?.slice(0, 80) || null;
 }
 
 /** URL path segment for a location destination page (slug preferred, else id). */

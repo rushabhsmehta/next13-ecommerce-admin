@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
 import prismadb from "@/lib/prismadb";
+import { normalizeTourPackageSlugInput } from "@/lib/location-slug";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
 
@@ -264,6 +265,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
     const airlineCancellationPolicyString = JSON.stringify(processedAirlineCancellationPolicy);
     const termsConditionsString = JSON.stringify(processedTermsConditions);
     const kitchenGroupPolicyString = JSON.stringify(processedKitchenGroupPolicy);
+    const normalizedSlug = normalizeTourPackageSlugInput(slug, tourPackageName);
 
     // ===== CRITICAL: Get old itinerary data BEFORE deletion =====
     // This is needed for variant hotel mapping remapping (old itinerary IDs → dayNumbers)
@@ -377,7 +379,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       offerTerms: Array.isArray(offerTerms) ? offerTerms.filter(Boolean) : null,
       // assignedTo,
       // assignedToEmail,
-      slug,
+      slug: normalizedSlug,
       images: images && images.length > 0 ? {
         deleteMany: {},
         createMany: {

@@ -11,6 +11,7 @@ import {
   findPriorIdempotentEntityId,
 } from "@/app/api/mobile/lib/finance-guard";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import { normalizeSlugInput } from "@/lib/location-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -127,7 +128,7 @@ export async function POST(req: Request) {
       data: {
         label: v.label.trim(),
         imageUrl: v.imageUrl.trim(),
-        slug: v.slug?.trim() || null,
+        slug: normalizeSlugInput(v.slug, v.label),
         tags: v.tags?.trim() || null,
         isActive: v.isActive ?? true,
       } as any,

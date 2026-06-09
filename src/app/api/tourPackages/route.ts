@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 
 import prismadb from '@/lib/prismadb';
 import { Prisma } from '@prisma/client';
+import { normalizeTourPackageSlugInput } from '@/lib/location-slug';
 export const dynamic = 'force-dynamic';
 
 type TransactionClient = Prisma.TransactionClient;
@@ -226,6 +227,7 @@ export async function POST(
         const normalizedImages = normalizeImageInput(images);
         const normalizedFlightDetails = normalizeFlightDetails(flightDetails);
         const preparedItineraries = Array.isArray(itineraries) ? itineraries : [];
+        const normalizedSlug = normalizeTourPackageSlugInput(slug, tourPackageName);
 
         const createdTourPackage = await prismadb.$transaction(async (tx) => {
             const tourPackageRecord = await tx.tourPackage.create({
@@ -261,7 +263,7 @@ export async function POST(
                     kitchenGroupPolicy: processedKitchenGroupPolicy,
                     // assignedTo,
                     // assignedToEmail,
-                    slug,
+                    slug: normalizedSlug,
                     isFeatured,
                     isArchived,
                     isOffer: Boolean(isOffer),

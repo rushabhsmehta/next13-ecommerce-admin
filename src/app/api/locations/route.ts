@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 
 import prismadb from "@/lib/prismadb";
 import { assertCrmApiAccessForRequest, crmAccessErrorResponse } from "@/lib/crm-route-access";
+import { normalizeSlugInput } from "@/lib/location-slug";
 
 export async function POST(req: Request) {
   try {
@@ -46,13 +47,15 @@ export async function POST(req: Request) {
     const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
-    const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];    // Create new location entry
+    const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];
+    const normalizedSlug = normalizeSlugInput(slug, label);
+
     const location = await prismadb.location.create({
       data: {
         label,
         imageUrl,
         tags,
-        slug,
+        slug: normalizedSlug,
         inclusions: processedInclusions,
         exclusions: processedExclusions,
         importantNotes: processedImportantNotes,

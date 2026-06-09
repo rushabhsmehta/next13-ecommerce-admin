@@ -4,6 +4,7 @@ import {
   parsePricingSection,
   type PolicyFieldKey,
 } from "@/app/api/mobile/tour-packages/policy-fields";
+import { normalizeSlug } from "@/lib/location-slug";
 
 export const itineraryDaySchema = z.object({
   dayNumber: z.coerce.number().int().min(1),
@@ -87,11 +88,7 @@ export const tourPackagePricingWriteSchema = z.object({
 });
 
 export function slugifyTourPackageName(input: string): string {
-  const slug = input
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
+  const slug = normalizeSlug(input)?.slice(0, 80);
   return slug || `package-${Date.now().toString(36)}`;
 }
 

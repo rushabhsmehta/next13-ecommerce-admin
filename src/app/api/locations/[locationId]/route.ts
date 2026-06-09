@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { normalizeSlugInput } from "@/lib/location-slug";
 
 export async function GET(req: Request, props: { params: Promise<{ locationId: string }> }) {
   const params = await props.params;
@@ -89,6 +90,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ locationId:
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
     const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];
+    const normalizedSlug = normalizeSlugInput(slug, label);
 
     const location = await prismadb.location.update({
       where: {
@@ -98,7 +100,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ locationId:
         label,
         imageUrl,
         tags,
-        slug,        inclusions: processedInclusions,
+        slug: normalizedSlug,
+        inclusions: processedInclusions,
         exclusions: processedExclusions,
         importantNotes: processedImportantNotes,
         paymentPolicy: processedPaymentPolicy,

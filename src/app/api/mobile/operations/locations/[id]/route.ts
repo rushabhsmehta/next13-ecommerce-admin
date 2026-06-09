@@ -7,6 +7,7 @@ import {
   requireOperationsWrite,
 } from "@/app/api/mobile/lib/assert-operations-access";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import { normalizeSlugInput } from "@/lib/location-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       data: {
         label: v.label.trim(),
         imageUrl: v.imageUrl.trim(),
-        slug: v.slug?.trim() || null,
+        slug: normalizeSlugInput(v.slug, v.label),
         tags: v.tags?.trim() || null,
         ...(typeof v.isActive === "boolean" ? { isActive: v.isActive } : {}),
       } as any,

@@ -108,7 +108,7 @@ export default async function TravelHomePage() {
         id: true,
         activityMasterTitle: true,
         activityMasterImages: { select: { url: true }, take: 1 },
-        location: { select: { label: true, slug: true } },
+        location: { select: { id: true, label: true, slug: true } },
       },
       take: 8,
     }),

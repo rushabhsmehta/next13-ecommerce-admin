@@ -1,11 +1,54 @@
 import prismadb from "@/lib/prismadb";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import { MapPin } from "lucide-react";
 import { PackageCard } from "../../components/package-card";
 import { PACKAGE_OFFER_FIELDS, buildPublicOfferPayload } from "@/lib/package-offers";
+import {
+  locationDestinationSegment,
+  locationSlugLookupCandidates,
+} from "@/lib/location-slug";
 
 export const dynamic = "force-dynamic";
+
+const tourPackageSelect = {
+  where: { isFeatured: true, isArchived: false },
+  select: {
+    id: true,
+    tourPackageName: true,
+    slug: true,
+    price: true,
+    pricePerAdult: true,
+    numDaysNight: true,
+    tourCategory: true,
+    ...PACKAGE_OFFER_FIELDS,
+    location: { select: { label: true } },
+    images: { select: { url: true }, take: 1 },
+    _count: { select: { itineraries: true } },
+  },
+  orderBy: [{ websiteSortOrder: "asc" as const }, { createdAt: "desc" as const }],
+};
+
+async function findLocationByParam(param: string) {
+  const slugCandidates = locationSlugLookupCandidates(param);
+
+  let location = await prismadb.location.findFirst({
+    where: {
+      isActive: true,
+      OR: slugCandidates.map((slug) => ({ slug })),
+    },
+    include: { tourPackages: tourPackageSelect },
+  });
+
+  if (!location) {
+    location = await prismadb.location.findUnique({
+      where: { id: param },
+      include: { tourPackages: tourPackageSelect },
+    });
+  }
+
+  return location;
+}
 
 export default async function DestinationDetailPage(
   props: {
@@ -14,31 +57,15 @@ export default async function DestinationDetailPage(
 ) {
   const now = new Date();
   const params = await props.params;
-  const location = await prismadb.location.findUnique({
-    where: { id: params.id },
-    include: {
-      tourPackages: {
-        where: { isFeatured: true, isArchived: false },
-        select: {
-          id: true,
-          tourPackageName: true,
-          slug: true,
-          price: true,
-          pricePerAdult: true,
-          numDaysNight: true,
-          tourCategory: true,
-          ...PACKAGE_OFFER_FIELDS,
-          location: { select: { label: true } },
-          images: { select: { url: true }, take: 1 },
-          _count: { select: { itineraries: true } },
-        },
-        orderBy: [{ websiteSortOrder: "asc" }, { createdAt: "desc" }],
-      },
-    },
-  });
+  const location = await findLocationByParam(params.id);
 
   if (!location || !location.isActive) {
     notFound();
+  }
+
+  const canonicalSegment = locationDestinationSegment(location);
+  if (params.id !== canonicalSegment) {
+    redirect(`/destinations/${canonicalSegment}`);
   }
 
   return (

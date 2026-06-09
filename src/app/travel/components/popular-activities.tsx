@@ -4,13 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Zap } from "lucide-react";
 import { stripHtml } from "@/lib/html-utils";
+import { locationDestinationPath } from "@/lib/location-slug";
 import { useTravelPath } from "./travel-path-provider";
 
 interface ActivityData {
   id: string;
   activityMasterTitle: string;
   activityMasterImages: { url: string }[];
-  location: { label: string; slug: string | null } | null;
+  location: { id: string; label: string; slug: string | null } | null;
 }
 
 export function PopularActivities({
@@ -51,10 +52,9 @@ export function PopularActivities({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
           {activities.map((activity) => {
             const imageUrl = activity.activityMasterImages[0]?.url || "";
-            const locationSlug = activity.location?.slug;
             const displayTitle = stripHtml(activity.activityMasterTitle) || "Activity";
-            const href = locationSlug
-              ? travelHref(`/destinations/${locationSlug}`)
+            const href = activity.location
+              ? travelHref(locationDestinationPath(activity.location))
               : travelHref("/packages");
 
             return (

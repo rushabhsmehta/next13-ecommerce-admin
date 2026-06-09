@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { locationDestinationPath } from "@/lib/location-slug";
 import { useTravelPath } from "./travel-path-provider";
 
 interface DestinationCardProps {
@@ -22,9 +23,7 @@ export function DestinationCard({
 }: DestinationCardProps) {
   const { href } = useTravelPath();
   const hasImage = Boolean(imageUrl);
-  const destinationHref = href(
-    slug ? `/destinations/${slug}` : `/destinations/${id}`
-  );
+  const destinationHref = href(locationDestinationPath({ id, slug }));
 
   return (
     <Link href={destinationHref} className="group block">

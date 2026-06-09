@@ -61,5 +61,5 @@ export function locationSlugLookupCandidates(param: string): string[] {
     candidates.add(`${normalized}-`);
   }
 
-  return [...candidates];
+  return Array.from(candidates);
 }

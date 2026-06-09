@@ -9,6 +9,7 @@ import { HowItWorks } from "./components/how-it-works";
 import { StatsSection } from "./components/stats-section";
 import { Testimonials } from "./components/testimonials";
 import { InquiryCta } from "./components/inquiry-cta";
+import { TravelGuidesPreview } from "./components/travel-guides-preview";
 import { WhyChooseUs } from "./components/why-choose-us";
 import {
   PACKAGE_OFFER_FIELDS,
@@ -152,7 +153,13 @@ export default async function TravelHomePage() {
         packageCount={packageCount}
       />
       <Testimonials />
-      <InquiryCta />
+      <TravelGuidesPreview />
+      <InquiryCta
+        destinations={activeDestinations.map((d) => ({
+          id: d.id,
+          label: d.label,
+        }))}
+      />
       <WhyChooseUs />
     </div>
   );

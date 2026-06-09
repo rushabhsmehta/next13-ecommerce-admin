@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { PackageDetailClient } from "./components/package-detail-client";
 import { PACKAGE_OFFER_FIELDS, buildPublicOfferPayload } from "@/lib/package-offers";
 import { formatPackageDisplayName, plainPackageTitle } from "@/lib/travel-display";
+import { JsonLd } from "../../components/json-ld";
+import { buildTouristTripJsonLd } from "@/lib/travel-structured-data";
 
 export const revalidate = 300;
 
@@ -109,8 +111,19 @@ export default async function PackageDetailPage(props: {
     take: 3,
   });
 
+  const jsonLd = buildTouristTripJsonLd({
+    name: tourPackage.tourPackageName,
+    slug: tourPackage.slug,
+    id: tourPackage.id,
+    locationLabel: tourPackage.location?.label,
+    duration: tourPackage.numDaysNight,
+    imageUrl: tourPackage.images[0]?.url,
+  });
+
   return (
-    <PackageDetailClient
+    <>
+      <JsonLd data={jsonLd} />
+      <PackageDetailClient
       tourPackage={{
         ...tourPackage,
         ...buildPublicOfferPayload(tourPackage, now),
@@ -120,5 +133,6 @@ export default async function PackageDetailPage(props: {
         ...buildPublicOfferPayload(pkg, now),
       }))}
     />
+    </>
   );
 }

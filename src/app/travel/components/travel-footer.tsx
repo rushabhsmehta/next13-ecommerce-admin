@@ -79,6 +79,8 @@ export function TravelFooter() {
               {[
                 { path: "/packages", label: "Tour Packages" },
                 { path: "/destinations", label: "Destinations" },
+                { path: "/guides", label: "Travel Guides" },
+                { path: "/compare", label: "Compare Packages" },
                 { path: "/privacy", label: "Privacy Policy" },
                 { path: "/terms", label: "Terms of Service" },
                 { path: "/account-deletion", label: "Delete Account" },

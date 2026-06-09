@@ -9,6 +9,8 @@ import {
   locationDestinationSegment,
   locationSlugLookupCandidates,
 } from "@/lib/location-slug";
+import { JsonLd } from "../../components/json-ld";
+import { buildDestinationJsonLd } from "@/lib/travel-structured-data";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +99,17 @@ export default async function DestinationDetailPage(
     redirect(`/destinations/${canonicalSegment}`);
   }
 
+  const jsonLd = buildDestinationJsonLd({
+    name: location.label,
+    slug: location.slug,
+    id: location.id,
+    imageUrl: location.imageUrl,
+    packageCount: location.tourPackages.length,
+  });
+
   return (
+    <>
+      <JsonLd data={jsonLd} />
     <div className="min-h-screen pt-16">
       {/* Hero */}
       <div className="relative h-[40vh] sm:h-[50vh]">
@@ -170,5 +182,6 @@ export default async function DestinationDetailPage(
         )}
       </div>
     </div>
+    </>
   );
 }

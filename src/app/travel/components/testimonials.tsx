@@ -1,4 +1,9 @@
-import { Star, Quote } from "lucide-react";
+"use client";
+
+import Link from "next/link";
+import { Star, Quote, ExternalLink } from "lucide-react";
+import { getGoogleBusinessUrl } from "@/lib/travel-site-config";
+import { GoogleReviewsEmbed } from "./google-reviews-embed";
 
 const testimonials = [
   {
@@ -44,10 +49,11 @@ const testimonials = [
 ];
 
 export function Testimonials() {
+  const googleReviewsUrl = getGoogleBusinessUrl();
+
   return (
     <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Section Header */}
         <div className="text-center mb-12 sm:mb-14">
           <span className="text-orange-600 font-semibold text-sm uppercase tracking-wider">
             Traveller Stories
@@ -56,24 +62,38 @@ export function Testimonials() {
             What Our Customers Say
           </h2>
           <p className="text-gray-500 mt-3 max-w-2xl mx-auto text-sm sm:text-base">
-            Real stories from real travellers. We are proud to have made
-            thousands of journeys extraordinary.
+            {googleReviewsUrl
+              ? "Hear from travellers who explored India and beyond with Aagam Holidays."
+              : "Highlighted feedback from guests who travelled with Aagam Holidays."}
           </p>
+          {googleReviewsUrl ? (
+            <a
+              href={googleReviewsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-5 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition-colors"
+            >
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              Read reviews on Google
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
         </div>
 
-        {/* Testimonials Grid */}
+        <div className="mb-10 sm:mb-12">
+          <GoogleReviewsEmbed />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
           {testimonials.map((testimonial) => (
             <div
               key={testimonial.name}
               className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300 hover:-translate-y-1 border border-gray-100/80 flex flex-col"
             >
-              {/* Quote icon */}
               <div className="mb-4">
                 <Quote className="w-7 h-7 text-orange-200 fill-orange-100" />
               </div>
 
-              {/* Star Rating */}
               <div className="flex items-center gap-0.5 mb-3">
                 {Array.from({ length: testimonial.rating }).map((_, i) => (
                   <Star
@@ -83,15 +103,12 @@ export function Testimonials() {
                 ))}
               </div>
 
-              {/* Quote Text */}
               <p className="text-gray-600 text-sm leading-relaxed flex-1 mb-5 line-clamp-5">
                 &ldquo;{testimonial.quote}&rdquo;
               </p>
 
-              {/* Divider */}
               <div className="border-t border-gray-100 pt-4 mt-auto">
                 <div className="flex items-center gap-3">
-                  {/* Avatar */}
                   <div
                     className={`w-10 h-10 rounded-full bg-gradient-to-br ${testimonial.gradient} flex items-center justify-center flex-shrink-0`}
                   >
@@ -114,6 +131,20 @@ export function Testimonials() {
             </div>
           ))}
         </div>
+
+        {googleReviewsUrl ? (
+          <p className="mt-8 text-center text-xs text-gray-400">
+            Featured quotes above.{" "}
+            <Link
+              href={googleReviewsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-600 hover:underline"
+            >
+              View all Google reviews
+            </Link>
+          </p>
+        ) : null}
       </div>
     </section>
   );

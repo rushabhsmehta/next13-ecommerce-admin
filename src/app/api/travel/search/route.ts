@@ -72,6 +72,7 @@ export async function GET(req: Request) {
         select: {
           id: true,
           label: true,
+          slug: true,
           imageUrl: true,
           _count: {
             select: {
@@ -106,6 +107,7 @@ export async function GET(req: Request) {
           .map((d) => ({
             type: "destination" as const,
             id: d.id,
+            slug: d.slug,
             name: d.label,
             imageUrl: d.imageUrl,
             packageCount: d._count.tourPackages,

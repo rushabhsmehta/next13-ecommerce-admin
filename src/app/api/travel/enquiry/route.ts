@@ -55,9 +55,20 @@ export async function POST(req: Request) {
       travelUserId = travelUser?.id;
     }
 
+    const sourceLabel =
+      source === "offer"
+        ? "Source: Active package offer"
+        : source === "homepage_callback"
+          ? "Source: Homepage callback request"
+          : source === "package_detail"
+            ? "Source: Package detail page"
+            : source
+              ? `Source: ${source}`
+              : null;
+
     const enrichedRemarks = [
       remarks?.trim(),
-      source === "offer" ? "Source: Active package offer" : null,
+      sourceLabel,
       packageId ? `Package ID: ${packageId}` : null,
     ]
       .filter(Boolean)

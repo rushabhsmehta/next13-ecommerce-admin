@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import prismadb from "@/lib/prismadb";
 import { locationDestinationSegment } from "@/lib/location-slug";
 import { parseTravelPublicHosts } from "@/lib/travel-paths";
+import { TRAVEL_GUIDES } from "@/lib/travel-guides";
 
 export const revalidate = 3600;
 
@@ -19,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/packages", priority: 0.9 },
     { path: "/destinations", priority: 0.9 },
     { path: "/offers", priority: 0.8 },
+    { path: "/guides", priority: 0.7 },
     { path: "/privacy", priority: 0.3 },
     { path: "/terms", priority: 0.3 },
   ];
@@ -62,5 +64,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticEntries, ...packageEntries, ...destinationEntries];
+  const guideEntries: MetadataRoute.Sitemap = TRAVEL_GUIDES.map((guide) => ({
+    url: `${base}/guides/${guide.slug}`,
+    lastModified: new Date(guide.publishedAt),
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
+
+  return [...staticEntries, ...packageEntries, ...destinationEntries, guideEntries];
 }

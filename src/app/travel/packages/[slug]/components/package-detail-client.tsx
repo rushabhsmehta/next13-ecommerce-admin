@@ -24,6 +24,11 @@ import {
 import { PackageCard } from "../../../components/package-card";
 import { RichHtml } from "@/components/ui/rich-html";
 import { formatOfferValidity } from "@/lib/package-offers";
+import {
+  getSavedPackages,
+  isPackageSaved,
+  toggleSavedPackage,
+} from "@/lib/travel-saved-packages";
 
 interface PackageDetailClientProps {
   tourPackage: any;
@@ -86,41 +91,6 @@ function formatPrice(value: string | null | undefined) {
   }).format(amount);
 }
 
-const SAVED_PACKAGES_KEY = "travel-saved-packages";
-
-function loadSavedPackageIds(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(SAVED_PACKAGES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map((p) => p.id).filter(Boolean) : [];
-  } catch {
-    return [];
-  }
-}
-
-function toggleSavedPackage(pkg: { id: string; slug?: string | null; tourPackageName?: string | null }) {
-  if (typeof window === "undefined") return false;
-  try {
-    const raw = localStorage.getItem(SAVED_PACKAGES_KEY);
-    const list: Array<{ id: string; slug?: string | null; name?: string | null }> = raw
-      ? JSON.parse(raw)
-      : [];
-    const idx = list.findIndex((p) => p.id === pkg.id);
-    if (idx >= 0) {
-      list.splice(idx, 1);
-      localStorage.setItem(SAVED_PACKAGES_KEY, JSON.stringify(list));
-      return false;
-    }
-    list.unshift({ id: pkg.id, slug: pkg.slug, name: pkg.tourPackageName });
-    localStorage.setItem(SAVED_PACKAGES_KEY, JSON.stringify(list.slice(0, 50)));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function PackageDetailClient({
   tourPackage,
   relatedPackages,
@@ -130,6 +100,7 @@ export function PackageDetailClient({
   const [activeTab, setActiveTab] = useState<"itinerary" | "inclusions" | "policies">("itinerary");
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set(["0"]));
   const [isSaved, setIsSaved] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
   const [showEnquiryForm, setShowEnquiryForm] = useState(false);
   const [enquiryName, setEnquiryName] = useState("");
   const [enquiryPhone, setEnquiryPhone] = useState("");
@@ -148,7 +119,8 @@ export function PackageDetailClient({
       : packagePath;
 
   useEffect(() => {
-    setIsSaved(loadSavedPackageIds().includes(tourPackage.id));
+    setIsSaved(isPackageSaved(tourPackage.id));
+    setSavedCount(getSavedPackages().length);
   }, [tourPackage.id]);
 
   useEffect(() => {
@@ -175,6 +147,19 @@ export function PackageDetailClient({
   const handleToggleSave = useCallback(() => {
     const saved = toggleSavedPackage(tourPackage);
     setIsSaved(saved);
+    setSavedCount(getSavedPackages().length);
+    if (saved) {
+      fetch("/api/travel-auth/saved-packages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tourPackageId: tourPackage.id }),
+      }).catch(() => null);
+    } else {
+      fetch(
+        `/api/travel-auth/saved-packages?tourPackageId=${encodeURIComponent(tourPackage.id)}`,
+        { method: "DELETE" }
+      ).catch(() => null);
+    }
   }, [tourPackage]);
 
   const isOfferActive = Boolean(tourPackage.isOfferActive);
@@ -323,6 +308,14 @@ export function PackageDetailClient({
                 <Heart className={`w-5 h-5 ${isSaved ? "fill-current" : ""}`} />
               </button>
             </div>
+            {savedCount >= 2 && (
+              <Link
+                href={href("/compare")}
+                className="mt-2 inline-flex text-xs font-medium text-white/90 hover:text-white underline-offset-2 hover:underline"
+              >
+                Compare {savedCount} saved packages →
+              </Link>
+            )}
           </div>
 
           {/* Package Info Overlay */}

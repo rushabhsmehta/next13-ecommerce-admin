@@ -2,7 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+} from "lucide-react";
+import {
+  TRAVEL_MONTH_OPTIONS,
+  TRAVEL_SEASON_FILTER_OPTIONS,
+  travelMonthLabel,
+  type TravelSeasonFilterValue,
+} from "@/lib/travel-season-filter";
 import { PackageCard } from "../../components/package-card";
 import { useRouter } from "next/navigation";
 import { useTravelPath } from "../../components/travel-path-provider";
@@ -32,6 +45,9 @@ interface PackagesListClientProps {
   initialSearch?: string;
   initialLocation?: string;
   initialOffer?: boolean;
+  initialMonth?: number;
+  initialSeason?: TravelSeasonFilterValue;
+  seasonFilterActive?: boolean;
   totalCount: number;
   currentPage: number;
   totalPages: number;
@@ -57,6 +73,9 @@ export function PackagesListClient({
   initialSearch,
   initialLocation,
   initialOffer,
+  initialMonth,
+  initialSeason,
+  seasonFilterActive,
   totalCount,
   currentPage,
   totalPages,
@@ -68,8 +87,16 @@ export function PackagesListClient({
   const [searchQuery, setSearchQuery] = useState(initialSearch || "");
   const [activeLocation, setActiveLocation] = useState(initialLocation || "all");
   const [offerOnly, setOfferOnly] = useState(Boolean(initialOffer));
+  const [activeMonth, setActiveMonth] = useState(
+    initialMonth ? String(initialMonth) : "all"
+  );
+  const [activeSeason, setActiveSeason] = useState<TravelSeasonFilterValue>(
+    initialSeason ?? "best"
+  );
   const [activeSort, setActiveSort] = useState<SortOption>("featured");
   const [showFilters, setShowFilters] = useState(false);
+
+  const currentCalendarMonth = String(new Date().getMonth() + 1);
 
   const pushFilters = (
     next: {
@@ -77,6 +104,8 @@ export function PackagesListClient({
       search?: string;
       location?: string;
       offer?: boolean;
+      month?: string;
+      season?: TravelSeasonFilterValue;
       page?: number;
     },
     resetPage = false
@@ -86,12 +115,18 @@ export function PackagesListClient({
     const search = next.search ?? searchQuery;
     const location = next.location ?? activeLocation;
     const offer = next.offer ?? offerOnly;
+    const month = next.month ?? activeMonth;
+    const season = next.season ?? activeSeason;
     const page = resetPage ? 1 : (next.page ?? currentPage);
 
     if (category !== "all") params.set("category", category);
     if (search.trim()) params.set("search", search.trim());
     if (location !== "all") params.set("location", location);
     if (offer) params.set("offer", "1");
+    if (month !== "all") {
+      params.set("month", month);
+      if (season !== "best") params.set("season", season);
+    }
     if (page > 1) params.set("page", String(page));
 
     const query = params.toString();
@@ -113,11 +148,23 @@ export function PackagesListClient({
     pushFilters({ search: searchQuery }, true);
   };
 
+  const handleMonthChange = (month: string) => {
+    setActiveMonth(month);
+    pushFilters({ month }, true);
+  };
+
+  const handleSeasonChange = (season: TravelSeasonFilterValue) => {
+    setActiveSeason(season);
+    pushFilters({ season }, true);
+  };
+
   const clearFilters = () => {
     setActiveCategory("all");
     setSearchQuery("");
     setActiveLocation("all");
     setOfferOnly(false);
+    setActiveMonth("all");
+    setActiveSeason("best");
     setActiveSort("featured");
     router.push(href("/packages"));
   };
@@ -154,10 +201,21 @@ export function PackagesListClient({
     if (searchQuery.trim()) params.set("search", searchQuery.trim());
     if (activeLocation !== "all") params.set("location", activeLocation);
     if (offerOnly) params.set("offer", "1");
+    if (activeMonth !== "all") {
+      params.set("month", activeMonth);
+      if (activeSeason !== "best") params.set("season", activeSeason);
+    }
     if (page > 1) params.set("page", String(page));
     const query = params.toString();
     return query ? href(`/packages?${query}`) : href("/packages");
   };
+
+  const hasActiveFilters =
+    activeCategory !== "all" ||
+    searchQuery ||
+    activeLocation !== "all" ||
+    offerOnly ||
+    activeMonth !== "all";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
@@ -228,31 +286,86 @@ export function PackagesListClient({
       </div>
 
       <div className={`${showFilters ? "block" : "hidden"} sm:block mb-3 sm:mb-6`}>
-        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-3.5 sm:p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 min-w-[220px]">
-            Destination
-            <select
-              value={activeLocation}
-              onChange={(e) => handleLocationChange(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-            >
-              <option value="all">All Destinations</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.label}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-3.5 sm:p-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 min-w-[200px] flex-1">
+              Destination
+              <select
+                value={activeLocation}
+                onChange={(e) => handleLocationChange(e.target.value)}
+                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+              >
+                <option value="all">All Destinations</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <div className="flex items-center gap-3">
+            <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 min-w-[200px] flex-1">
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-orange-500" />
+                Travel month
+              </span>
+              <select
+                value={activeMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+              >
+                <option value="all">Any time</option>
+                {TRAVEL_MONTH_OPTIONS.map((m) => (
+                  <option key={m.value} value={String(m.value)}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {activeMonth !== "all" && (
+              <label className="flex flex-col gap-1 text-sm font-medium text-gray-700 min-w-[200px] flex-1">
+                Season preference
+                <select
+                  value={activeSeason}
+                  onChange={(e) =>
+                    handleSeasonChange(e.target.value as TravelSeasonFilterValue)
+                  }
+                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                >
+                  {TRAVEL_SEASON_FILTER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+
+          {activeMonth !== "all" && (
+            <p className="text-xs text-gray-500 leading-relaxed">
+              {seasonFilterActive
+                ? `Showing packages suited for ${travelMonthLabel(Number(activeMonth))} (${TRAVEL_SEASON_FILTER_OPTIONS.find((o) => o.value === activeSeason)?.label.toLowerCase()}). Destinations without a seasonal calendar are still included.`
+                : `Travel month selected — add seasonal periods to destinations in admin to refine results.`}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            {activeMonth === "all" && (
+              <button
+                type="button"
+                onClick={() => handleMonthChange(currentCalendarMonth)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                This month
+              </button>
+            )}
             <span className="text-sm text-gray-500">
               {activeCategory === "all" ? "All categories" : activeCategory}
             </span>
-            {(activeCategory !== "all" ||
-              searchQuery ||
-              activeLocation !== "all" ||
-              offerOnly) && (
+            {hasActiveFilters && (
               <button
                 type="button"
                 onClick={clearFilters}
@@ -304,6 +417,17 @@ export function PackagesListClient({
             {cat}
           </button>
         ))}
+        {activeMonth !== "all" && (
+          <button
+            type="button"
+            onClick={() => handleMonthChange("all")}
+            className="inline-flex items-center gap-1.5 px-4 py-2 sm:py-2.5 rounded-xl text-sm font-medium bg-sky-600 text-white shadow-md shadow-sky-500/20 whitespace-nowrap"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            {TRAVEL_MONTH_OPTIONS.find((m) => String(m.value) === activeMonth)?.short}
+            <X className="w-3.5 h-3.5 opacity-80" />
+          </button>
+        )}
       </div>
 
       {packages.length === 0 ? (

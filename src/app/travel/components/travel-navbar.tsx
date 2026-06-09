@@ -15,19 +15,23 @@ import {
   Package,
   MapPin,
   Tag,
+  UserCircle,
+  GitCompare,
 } from "lucide-react";
+import { getSavedPackages } from "@/lib/travel-saved-packages";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { useTravelPath } from "./travel-path-provider";
+import { TravelSearchBox } from "./travel-search-box";
 
 export function TravelNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { href, home } = useTravelPath();
-  const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [travelUserName, setTravelUserName] = useState<string | null>(null);
+  const [savedPackageCount, setSavedPackageCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +43,21 @@ export function TravelNavbar() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    function refreshSavedCount() {
+      setSavedPackageCount(getSavedPackages().length);
+    }
+    refreshSavedCount();
+    window.addEventListener("storage", refreshSavedCount);
+    window.addEventListener("focus", refreshSavedCount);
+    window.addEventListener("travel-saved-changed", refreshSavedCount);
+    return () => {
+      window.removeEventListener("storage", refreshSavedCount);
+      window.removeEventListener("focus", refreshSavedCount);
+      window.removeEventListener("travel-saved-changed", refreshSavedCount);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -73,14 +92,6 @@ export function TravelNavbar() {
   const isActive = (path: string) => {
     const target = href(path);
     return pathname === target || (target !== home && pathname?.startsWith(target));
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = searchQuery.trim();
-    if (!query) return;
-    router.push(href(`/packages?search=${encodeURIComponent(query)}`));
-    setSearchOpen(false);
   };
 
   return (
@@ -149,6 +160,14 @@ export function TravelNavbar() {
                           {travelUserName}
                         </p>
                         <Link
+                          href={href("/account")}
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                        >
+                          <UserCircle className="w-4 h-4" />
+                          My Account
+                        </Link>
+                        <Link
                           href={href("/chat")}
                           onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600"
@@ -181,47 +200,18 @@ export function TravelNavbar() {
             </div>
           </div>
 
-          <form onSubmit={handleSearch} className="hidden sm:block sm:flex-1 sm:max-w-xl">
-            <div className="flex items-center gap-2 rounded-full border border-orange-100 bg-white/95 px-3 py-2 shadow-sm">
-              <Search className="h-4 w-4 flex-shrink-0 text-orange-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search packages, destinations..."
-                className="w-full bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                aria-label="Search travel packages"
-              />
-              <button
-                type="submit"
-                className="rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:shadow-md hover:shadow-orange-500/20"
-              >
-                Search
-              </button>
-            </div>
-          </form>
+          <div className="hidden sm:block sm:flex-1 sm:max-w-xl">
+            <TravelSearchBox variant="desktop" />
+          </div>
 
           {searchOpen ? (
-            <form onSubmit={handleSearch} className="sm:hidden">
-              <div className="flex items-center gap-2 rounded-full border border-orange-100 bg-white/95 px-3 py-2 shadow-sm">
-                <Search className="h-4 w-4 flex-shrink-0 text-orange-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search packages, destinations..."
-                  className="w-full bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                  autoFocus
-                  aria-label="Search travel packages"
-                />
-                <button
-                  type="submit"
-                  className="rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 text-xs font-semibold text-white transition hover:shadow-md hover:shadow-orange-500/20"
-                >
-                  Go
-                </button>
-              </div>
-            </form>
+            <div className="sm:hidden">
+              <TravelSearchBox
+                variant="mobile"
+                autoFocus
+                onNavigate={() => setSearchOpen(false)}
+              />
+            </div>
           ) : null}
 
           <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
@@ -269,6 +259,19 @@ export function TravelNavbar() {
               <Tag className="w-4 h-4" />
               Offers
             </Link>
+            {savedPackageCount >= 2 && (
+              <Link
+                href={href("/compare")}
+                className={`relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                  isActive("/compare")
+                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
+                    : "text-gray-600 hover:bg-orange-50 hover:text-orange-600"
+                }`}
+              >
+                <GitCompare className="w-4 h-4" />
+                Compare
+              </Link>
+            )}
 
             {/* Auth section — desktop */}
             {isLoaded && (
@@ -287,6 +290,14 @@ export function TravelNavbar() {
                       <p className="px-4 py-2 text-xs text-gray-400 truncate border-b border-gray-50">
                         {travelUserName}
                       </p>
+                      <Link
+                        href={href("/account")}
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                      >
+                        <UserCircle className="w-4 h-4" />
+                        My Account
+                      </Link>
                       <Link
                         href={href("/chat")}
                         onClick={() => setDropdownOpen(false)}

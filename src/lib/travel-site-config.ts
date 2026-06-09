@@ -38,6 +38,19 @@ export const TRAVEL_CONTACT_ADDRESS =
   trimEnv(process.env.NEXT_PUBLIC_TRAVEL_CONTACT_ADDRESS) ||
   "Ahmedabad, Gujarat, India";
 
+/** Public Google Business / Maps listing (reviews tab link). */
+export function getGoogleBusinessUrl(): string | undefined {
+  return trimEnv(process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL);
+}
+
+/**
+ * Optional iframe `src` from Google Maps → Share → Embed a map.
+ * Used when Places API is not configured.
+ */
+export function getGoogleMapsEmbedUrl(): string | undefined {
+  return trimEnv(process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_URL);
+}
+
 export function getTravelSocialLinks(): Array<{
   label: string;
   href: string;

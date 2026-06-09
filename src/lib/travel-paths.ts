@@ -15,6 +15,8 @@ export const TRAVEL_PUBLIC_SEGMENTS = [
   "login",
   "chat",
   "account",
+  "guides",
+  "compare",
 ] as const;
 
 export function parseTravelPublicHosts(): string[] {

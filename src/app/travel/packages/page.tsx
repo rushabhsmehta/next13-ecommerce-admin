@@ -6,6 +6,12 @@ import {
   activeOfferWhere,
   buildPublicOfferPayload,
 } from "@/lib/package-offers";
+import {
+  parseTravelMonthParam,
+  parseTravelSeasonParam,
+  resolveSeasonalLocationFilter,
+  type TravelSeasonFilterValue,
+} from "@/lib/travel-season-filter";
 
 export const revalidate = 300;
 
@@ -42,6 +48,10 @@ export default async function PackagesPage(props: {
     typeof searchParams.offer === "string" &&
     ["1", "true"].includes(searchParams.offer.toLowerCase());
   const page = parsePageParam(searchParams.page);
+  const travelMonth = parseTravelMonthParam(searchParams.month);
+  const travelSeason: TravelSeasonFilterValue | undefined = travelMonth
+    ? parseTravelSeasonParam(searchParams.season) ?? "best"
+    : undefined;
   const skip = (page - 1) * PAGE_SIZE;
 
   const where: any = offerOnly
@@ -64,6 +74,44 @@ export default async function PackagesPage(props: {
       { tourPackageName: { contains: search } },
       { location: { label: { contains: search } } },
     ];
+  }
+
+  let seasonFilterActive = false;
+  if (travelMonth) {
+    const seasonalPeriods = await prismadb.locationSeasonalPeriod.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        locationId: true,
+        seasonType: true,
+        name: true,
+        startMonth: true,
+        startDay: true,
+        endMonth: true,
+        endDay: true,
+        isActive: true,
+      },
+    });
+
+    if (seasonalPeriods.length > 0) {
+      const { matchingLocationIds, configuredLocationIds } =
+        resolveSeasonalLocationFilter(
+          seasonalPeriods,
+          travelMonth,
+          travelSeason ?? "best"
+        );
+
+      seasonFilterActive = true;
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { locationId: { in: matchingLocationIds } },
+            { locationId: { notIn: configuredLocationIds } },
+          ],
+        },
+      ];
+    }
   }
 
   const [packages, totalCount, locations, categories] = await Promise.all([
@@ -121,6 +169,9 @@ export default async function PackagesPage(props: {
         initialSearch={search}
         initialLocation={locationId}
         initialOffer={offerOnly}
+        initialMonth={travelMonth}
+        initialSeason={travelSeason}
+        seasonFilterActive={seasonFilterActive}
         totalCount={totalCount}
         currentPage={currentPage}
         totalPages={totalPages}

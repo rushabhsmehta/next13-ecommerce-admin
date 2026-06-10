@@ -14,6 +14,13 @@ export const dynamic = 'force-dynamic'; // Ensure API is not cached
 export async function GET(req: Request, props: { params: Promise<{ tourPackageQueryId: string }> }) {
   const params = await props.params;
   try {
+    // Defense in depth: edge middleware protects this path, but the handler
+    // must not rely on it — this payload contains customer PII and pricing.
+    const { userId } = await auth();
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
     console.log('[TOUR_PACKAGE_QUERY_GET] Starting GET request for ID:', params.tourPackageQueryId);
 
     if (!params.tourPackageQueryId) {
@@ -92,9 +99,8 @@ export async function GET(req: Request, props: { params: Promise<{ tourPackageQu
       message: error?.message,
       code: error?.code,
       stack: error?.stack,
-      fullError: error
     });
-    return new NextResponse(`Internal error: ${error?.message || 'Unknown error'}`, { status: 500 });
+    return new NextResponse("Internal error", { status: 500 });
   }
 };
 

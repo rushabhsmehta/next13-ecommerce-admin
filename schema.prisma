@@ -294,6 +294,7 @@ model TourPackageQuery {
   @@index([locationId, isArchived, updatedAt])
   @@index([tourPackageQueryNumber])
   @@index([customerNumber])
+  @@index([isFeatured, tourStartsFrom])
 }
 
 model QueryVariantSnapshot {
@@ -417,6 +418,7 @@ model PurchaseDetail {
   @@index([tourPackageQueryId])
   @@index([tdsMasterId])
   @@index([tdsChallanId])
+  @@index([purchaseDate])
 }
 
 model PurchaseItem {
@@ -525,6 +527,7 @@ model SaleDetail {
   @@index([customerId])
   @@index([tourPackageQueryId])
   @@index([couponCode])
+  @@index([saleDate])
 }
 
 model SaleItem {
@@ -971,6 +974,7 @@ model Customer {
   tdsTransactions     TDSTransaction[]
 
   @@index([associatePartnerId])
+  @@index([contact])
 }
 
 model Supplier {
@@ -1096,6 +1100,11 @@ model Inquiry {
   @@index([locationId])
   @@index([associatePartnerId])
   @@index([assignedToStaffId])
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([journeyDate])
+  @@index([nextFollowUpDate])
+  @@index([customerMobileNumber])
 }
 
 model InquiryAction {
@@ -1214,6 +1223,7 @@ model Transfer {
   @@index([fromCashAccountId])
   @@index([toBankAccountId])
   @@index([toCashAccountId])
+  @@index([transferDate])
 }
 
 model Organization {

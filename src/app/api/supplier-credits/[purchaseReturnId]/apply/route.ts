@@ -52,7 +52,8 @@ export async function POST(
     if (!targetPurchase || targetPurchase.tourPackageQueryId !== tourPackageQueryId)
       return new NextResponse("Purchase not found in the given tour query", { status: 400 });
 
-    const purchaseTotal = (targetPurchase.netPayable ?? targetPurchase.price) + (targetPurchase.gstAmount ?? 0);
+    // netPayable already includes GST/TDS adjustments — only add gstAmount when falling back to base price
+    const purchaseTotal = targetPurchase.netPayable ?? (targetPurchase.price + (targetPurchase.gstAmount ?? 0));
     const purchaseAlreadyAllocated = targetPurchase.paymentAllocations.reduce((sum, a) => sum + a.allocatedAmount, 0);
     const purchaseRemaining = purchaseTotal - purchaseAlreadyAllocated;
     if (amount > purchaseRemaining + 0.01)

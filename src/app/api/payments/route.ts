@@ -63,7 +63,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // Create payment and allocations atomically
+    // Create payment, allocations, and the account debit atomically.
+    // The balance change uses an atomic decrement so concurrent payments
+    // against the same account can't lose updates (no read-modify-write).
     const paymentDetail = await prismadb.$transaction(async (tx: any) => {
       const payment = await tx.paymentDetail.create({
         data: {
@@ -96,20 +98,17 @@ export async function POST(req: Request) {
         ));
       }
 
+      if (bankAccountId) {
+        await tx.bankAccount.update({ where: { id: bankAccountId }, data: { currentBalance: { decrement: amount } } });
+      } else if (cashAccountId) {
+        await tx.cashAccount.update({ where: { id: cashAccountId }, data: { currentBalance: { decrement: amount } } });
+      }
+
       return payment;
     });
 
     if (images?.length) {
       await Promise.all(images.map(url => (prismadb as any).images.create({ data: { url, paymentDetailsId: paymentDetail.id } })));
-    }
-
-    const balanceChange = amount;
-    if (bankAccountId) {
-      const bankAccount = await (prismadb as any).bankAccount.findUnique({ where: { id: bankAccountId } });
-      if (bankAccount) await (prismadb as any).bankAccount.update({ where: { id: bankAccountId }, data: { currentBalance: bankAccount.currentBalance - balanceChange } });
-    } else if (cashAccountId) {
-      const cashAccount = await (prismadb as any).cashAccount.findUnique({ where: { id: cashAccountId } });
-      if (cashAccount) await (prismadb as any).cashAccount.update({ where: { id: cashAccountId }, data: { currentBalance: cashAccount.currentBalance - balanceChange } });
     }
 
     // TDS logic (best-effort)

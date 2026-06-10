@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import whatsappPrisma from '@/lib/whatsapp-prismadb';
 import prismadb from '@/lib/prismadb';
 import { verifyWebhookSignature, updateMessageStatus, sendWhatsAppMessage } from '@/lib/whatsapp';
@@ -6,8 +7,31 @@ import { sendWhatsAppInboundPush } from '@/lib/expo-push';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_ACCESS_TOKEN = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+const META_APP_SECRET = process.env.META_APP_SECRET || '';
 const GRAPH_BASE_URL = `https://graph.facebook.com/${META_GRAPH_API_VERSION}`;
 const debugMode = process.env.WHATSAPP_DEBUG === '1';
+
+/**
+ * Verifies Meta's X-Hub-Signature-256 header (HMAC-SHA256 of the raw body
+ * keyed with the app secret). Returns false on any mismatch. When
+ * META_APP_SECRET is not configured we log loudly but accept, so message
+ * ingestion isn't silently killed by a missing env var.
+ */
+function verifyMetaPayloadSignature(rawBody: string, signatureHeader: string | null): boolean {
+  if (!META_APP_SECRET) {
+    console.error('❌ [WhatsApp Webhook] META_APP_SECRET not configured — payload signature NOT verified. Set it to enforce webhook authenticity.');
+    return true;
+  }
+  if (!signatureHeader || !signatureHeader.startsWith('sha256=')) {
+    return false;
+  }
+  const expected = crypto.createHmac('sha256', META_APP_SECRET).update(rawBody, 'utf8').digest('hex');
+  const received = signatureHeader.slice('sha256='.length);
+  const expectedBuf = Buffer.from(expected, 'hex');
+  const receivedBuf = Buffer.from(received, 'hex');
+  if (expectedBuf.length !== receivedBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, receivedBuf);
+}
 
 const removeUndefined = <T extends Record<string, any>>(value: T): T =>
   Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
@@ -509,7 +533,14 @@ export async function POST(request: NextRequest) {
   console.log(`[WhatsApp Webhook] POST received at ${timestamp}`);
 
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    const signature = request.headers.get('x-hub-signature-256');
+    if (!verifyMetaPayloadSignature(rawBody, signature)) {
+      console.error('❌ [WhatsApp Webhook] Invalid X-Hub-Signature-256 — rejecting payload');
+      return new NextResponse('Invalid signature', { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
     if (debugMode) {
       console.log('Full webhook payload:', JSON.stringify(body, null, 2));
     }

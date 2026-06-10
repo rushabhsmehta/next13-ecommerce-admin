@@ -2,16 +2,20 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from '@/lib/timezone-utils';
+import { requireFinanceOrAdmin } from '@/lib/authz';
+import { handleApi, jsonError, noStore } from '@/lib/api-response';
+import { applyTransferBalances, validateTransferAccounts } from './transfer-balance';
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  try {
+  return handleApi(async () => {
     const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse("Unauthenticated", { status: 403 });
-    }
+    if (!userId) return jsonError("Unauthenticated", 403, 'AUTH');
+    await requireFinanceOrAdmin(userId);
 
     const body = await req.json();
-    const { 
+    const {
       transferDate,
       amount,
       reference,
@@ -19,50 +23,66 @@ export async function POST(req: Request) {
       fromAccountType,
       fromAccountId,
       toAccountType,
-      toAccountId 
+      toAccountId
     } = body;
 
     if (!transferDate) {
-      return new NextResponse("Transfer date is required", { status: 400 });
+      return jsonError("Transfer date is required", 400, 'VALIDATION');
     }
 
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return new NextResponse("Valid amount is required", { status: 400 });
+    const parsedAmount = Number(amount);
+    if (!parsedAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      return jsonError("Valid amount is required", 400, 'VALIDATION');
     }
 
     if (!fromAccountType || !fromAccountId) {
-      return new NextResponse("Source account is required", { status: 400 });
+      return jsonError("Source account is required", 400, 'VALIDATION');
     }
 
     if (!toAccountType || !toAccountId) {
-      return new NextResponse("Destination account is required", { status: 400 });
+      return jsonError("Destination account is required", 400, 'VALIDATION');
     }
 
-    // Cannot transfer to the same account
     if (fromAccountType === toAccountType && fromAccountId === toAccountId) {
-      return new NextResponse("Cannot transfer to the same account", { status: 400 });
-    }    const transferDetail = await prismadb.transfer.create({
-      data: {
-        transferDate: dateToUtc(transferDate)!,
-        amount: parseFloat(amount.toString()),
-        reference,
-        description,
-        fromBankAccountId: fromAccountType === 'bank' ? fromAccountId : undefined,
-        fromCashAccountId: fromAccountType === 'cash' ? fromAccountId : undefined,
-        toBankAccountId: toAccountType === 'bank' ? toAccountId : undefined,
-        toCashAccountId: toAccountType === 'cash' ? toAccountId : undefined,
-      }
+      return jsonError("Cannot transfer to the same account", 400, 'VALIDATION');
+    }
+
+    const accountError = await validateTransferAccounts(
+      { type: fromAccountType, id: fromAccountId },
+      { type: toAccountType, id: toAccountId }
+    );
+    if (accountError) return jsonError(accountError, 400, 'VALIDATION');
+
+    // Create the transfer and move money between accounts atomically.
+    const transferDetail = await prismadb.$transaction(async (tx) => {
+      const transfer = await tx.transfer.create({
+        data: {
+          transferDate: dateToUtc(transferDate)!,
+          amount: parsedAmount,
+          reference,
+          description,
+          fromBankAccountId: fromAccountType === 'bank' ? fromAccountId : undefined,
+          fromCashAccountId: fromAccountType === 'cash' ? fromAccountId : undefined,
+          toBankAccountId: toAccountType === 'bank' ? toAccountId : undefined,
+          toCashAccountId: toAccountType === 'cash' ? toAccountId : undefined,
+        }
+      });
+
+      await applyTransferBalances(tx, transfer, 1);
+
+      return transfer;
     });
 
-    return NextResponse.json(transferDetail);
-  } catch (error) {
-    console.log('[TRANSFER_POST]', error);
-    return new NextResponse("Internal error", { status: 500 });
-  }
+    return noStore(NextResponse.json(transferDetail, { status: 201 }));
+  });
 }
 
 export async function GET(req: Request) {
-  try {
+  return handleApi(async () => {
+    const { userId } = await auth();
+    if (!userId) return jsonError("Unauthenticated", 403, 'AUTH');
+    await requireFinanceOrAdmin(userId);
+
     const transfers = await prismadb.transfer.findMany({
       include: {
         fromBankAccount: true,
@@ -75,10 +95,6 @@ export async function GET(req: Request) {
       }
     });
 
-    return NextResponse.json(transfers);
-  } catch (error) {
-    console.log('[TRANSFERS_GET]', error);
-    return new NextResponse("Internal error", { status: 500 });
-  }
+    return noStore(NextResponse.json(transfers));
+  });
 }
-

@@ -24,41 +24,37 @@ export default async function AccountsDashboardPage() {
     }),
   ]);
 
-  const salesWithAllocations = await prismadb.saleDetail.findMany({
-    select: {
-      salePrice: true,
-      gstAmount: true,
-      receiptAllocations: { select: { allocatedAmount: true } },
-    },
-  });
-  const totalInvoiced = salesWithAllocations.reduce(
-    (sum, s) => sum + s.salePrice + (s.gstAmount || 0),
-    0
-  );
-  const totalCollected = salesWithAllocations.reduce(
-    (sum, s) =>
-      sum + s.receiptAllocations.reduce((a, r) => a + r.allocatedAmount, 0),
-    0
-  );
+  // Outstanding AR/AP via SQL aggregates — never load the full ledger into memory.
+  const [
+    salesAgg,
+    collectedAgg,
+    purchasesWithNetPayableAgg,
+    purchasesWithoutNetPayableAgg,
+    paidAgg,
+  ] = await Promise.all([
+    prismadb.saleDetail.aggregate({ _sum: { salePrice: true, gstAmount: true } }),
+    prismadb.receiptSaleAllocation.aggregate({ _sum: { allocatedAmount: true } }),
+    prismadb.purchaseDetail.aggregate({
+      where: { netPayable: { not: null } },
+      _sum: { netPayable: true },
+    }),
+    prismadb.purchaseDetail.aggregate({
+      where: { netPayable: null },
+      _sum: { price: true, gstAmount: true },
+    }),
+    prismadb.paymentPurchaseAllocation.aggregate({ _sum: { allocatedAmount: true } }),
+  ]);
+
+  const totalInvoiced =
+    (salesAgg._sum.salePrice || 0) + (salesAgg._sum.gstAmount || 0);
+  const totalCollected = collectedAgg._sum.allocatedAmount || 0;
   const outstandingReceivables = Math.max(0, totalInvoiced - totalCollected);
 
-  const purchasesWithAllocations = await prismadb.purchaseDetail.findMany({
-    select: {
-      price: true,
-      gstAmount: true,
-      netPayable: true,
-      paymentAllocations: { select: { allocatedAmount: true } },
-    },
-  });
-  const totalBilled = purchasesWithAllocations.reduce(
-    (sum, p) => sum + (p.netPayable ?? p.price + (p.gstAmount || 0)),
-    0
-  );
-  const totalPaid = purchasesWithAllocations.reduce(
-    (sum, p) =>
-      sum + p.paymentAllocations.reduce((a, pay) => a + pay.allocatedAmount, 0),
-    0
-  );
+  const totalBilled =
+    (purchasesWithNetPayableAgg._sum.netPayable || 0) +
+    (purchasesWithoutNetPayableAgg._sum.price || 0) +
+    (purchasesWithoutNetPayableAgg._sum.gstAmount || 0);
+  const totalPaid = paidAgg._sum.allocatedAmount || 0;
   const outstandingPayables = Math.max(0, totalBilled - totalPaid);
 
   const mtdSalesAgg = await prismadb.saleDetail.aggregate({

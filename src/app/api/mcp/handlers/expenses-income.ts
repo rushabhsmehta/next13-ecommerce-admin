@@ -407,23 +407,27 @@ async function payAccruedExpense(rawParams: unknown) {
   const paidDate = dateToUtc(params.paidDate);
   if (!paidDate) throw new McpError("Invalid paidDate", "VALIDATION_ERROR", 422);
 
-  const updated = await prismadb.expenseDetail.update({
-    where: { id: params.expenseId },
-    data: {
-      paidDate,
-      bankAccountId: account.type === "bank" ? account.id : null,
-      cashAccountId: account.type === "cash" ? account.id : null,
-    },
-  });
+  // Mark paid and debit the account atomically; isAccrued is cleared to match
+  // the web pay flow, and the decrement is atomic to avoid lost updates.
+  const updated = await prismadb.$transaction(async (tx) => {
+    const paid = await tx.expenseDetail.update({
+      where: { id: params.expenseId },
+      data: {
+        paidDate,
+        isAccrued: false,
+        bankAccountId: account.type === "bank" ? account.id : null,
+        cashAccountId: account.type === "cash" ? account.id : null,
+      },
+    });
 
-  // Outflow: subtract from account balance
-  if (account.type === "bank") {
-    const acct = await prismadb.bankAccount.findUnique({ where: { id: account.id } });
-    if (acct) await prismadb.bankAccount.update({ where: { id: account.id }, data: { currentBalance: acct.currentBalance - expense.amount } });
-  } else {
-    const acct = await prismadb.cashAccount.findUnique({ where: { id: account.id } });
-    if (acct) await prismadb.cashAccount.update({ where: { id: account.id }, data: { currentBalance: acct.currentBalance - expense.amount } });
-  }
+    if (account.type === "bank") {
+      await tx.bankAccount.update({ where: { id: account.id }, data: { currentBalance: { decrement: expense.amount } } });
+    } else {
+      await tx.cashAccount.update({ where: { id: account.id }, data: { currentBalance: { decrement: expense.amount } } });
+    }
+
+    return paid;
+  });
 
   return {
     ...updated,

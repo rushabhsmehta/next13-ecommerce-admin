@@ -61,10 +61,8 @@ export async function POST(req: Request) {
     
     const requestBody = await req.json();
     console.log('[RECEIPTS_POST] Processing receipt creation request (v2)');
-    console.log('[RECEIPTS_POST] Raw request body:', JSON.stringify(requestBody, null, 2));
-    
+
     const parsed = receiptCreateSchema.parse(requestBody);
-    console.log('[RECEIPTS_POST] Successfully parsed and validated request data');
     const { customerId, supplierId, receiptType, receiptDate, amount, method, transactionId, note, bankAccountId, cashAccountId, images, tourPackageQueryId, tdsMasterId, tdsOverrideRate, tdsType, linkTdsTransactionId, saleAllocations } = parsed;
 
     // Store method and transactionId info in the note if provided (since DB doesn't have these fields)
@@ -86,7 +84,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // Create receipt and allocations atomically
+    // Create receipt, allocations, and the account credit atomically.
+    // The balance change uses an atomic increment so concurrent receipts
+    // against the same account can't lose updates (no read-modify-write).
     const receiptDetail = await prismadb.$transaction(async (tx: any) => {
       const receipt = await tx.receiptDetail.create({
         data: ({
@@ -117,20 +117,17 @@ export async function POST(req: Request) {
         ));
       }
 
+      if (bankAccountId) {
+        await tx.bankAccount.update({ where: { id: bankAccountId }, data: { currentBalance: { increment: amount } } });
+      } else if (cashAccountId) {
+        await tx.cashAccount.update({ where: { id: cashAccountId }, data: { currentBalance: { increment: amount } } });
+      }
+
       return receipt;
     });
 
     if (images?.length) {
       await Promise.all(images.map(url => (prismadb as any).images.create({ data: { url, receiptDetailsId: receiptDetail.id } })));
-    }
-
-    const balanceChange = amount;
-    if (bankAccountId) {
-      const bankAccount = await (prismadb as any).bankAccount.findUnique({ where: { id: bankAccountId } });
-      if (bankAccount) await (prismadb as any).bankAccount.update({ where: { id: bankAccountId }, data: { currentBalance: bankAccount.currentBalance + balanceChange } });
-    } else if (cashAccountId) {
-      const cashAccount = await (prismadb as any).cashAccount.findUnique({ where: { id: cashAccountId } });
-      if (cashAccount) await (prismadb as any).cashAccount.update({ where: { id: cashAccountId }, data: { currentBalance: cashAccount.currentBalance + balanceChange } });
     }
 
     try {

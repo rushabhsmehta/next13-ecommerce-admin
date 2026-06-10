@@ -45,9 +45,9 @@ export function SpecialDeals({ deals }: { deals: DealPackage[] }) {
   if (deals.length === 0) return null;
 
   return (
-    <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-amber-50/40 to-white">
+    <section className="py-10 sm:py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-amber-50/40 to-white">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10 sm:mb-12">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-6 sm:mb-8">
           <div>
             <span className="text-amber-600 font-semibold text-sm uppercase tracking-wider flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5" /> Best Value

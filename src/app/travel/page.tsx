@@ -132,16 +132,16 @@ export default async function TravelHomePage() {
   return (
     <div className="min-h-screen bg-white">
       <HomeHeroBanner />
-      <DestinationCarousel destinations={activeDestinations} />
-      <TourCategories categories={categories} />
-      <FeaturedPackages
-        packages={featuredPackages.map((pkg) => ({
+      <SpecialDeals
+        deals={deals.map((pkg) => ({
           ...pkg,
           ...buildPublicOfferPayload(pkg, now),
         }))}
       />
-      <SpecialDeals
-        deals={deals.map((pkg) => ({
+      <DestinationCarousel destinations={activeDestinations} />
+      <TourCategories categories={categories} />
+      <FeaturedPackages
+        packages={featuredPackages.map((pkg) => ({
           ...pkg,
           ...buildPublicOfferPayload(pkg, now),
         }))}

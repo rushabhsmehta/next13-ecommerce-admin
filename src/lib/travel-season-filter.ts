@@ -28,9 +28,9 @@ export const TRAVEL_SEASON_FILTER_OPTIONS: Array<{
   {
     value: "best",
     label: "Best time (peak & shoulder)",
-    types: ["PEAK_SEASON", "SHOULDER_SEASON"],
+    types: ["HIGH_PEAK_SEASON", "PEAK_SEASON", "SHOULDER_SEASON"],
   },
-  { value: "peak", label: "Peak season only", types: ["PEAK_SEASON"] },
+  { value: "peak", label: "Peak season only", types: ["HIGH_PEAK_SEASON", "PEAK_SEASON"] },
   {
     value: "shoulder",
     label: "Shoulder season only",
@@ -40,7 +40,7 @@ export const TRAVEL_SEASON_FILTER_OPTIONS: Array<{
   {
     value: "any",
     label: "Any season",
-    types: ["PEAK_SEASON", "SHOULDER_SEASON", "OFF_SEASON"],
+    types: ["HIGH_PEAK_SEASON", "PEAK_SEASON", "SHOULDER_SEASON", "OFF_SEASON"],
   },
 ];
 

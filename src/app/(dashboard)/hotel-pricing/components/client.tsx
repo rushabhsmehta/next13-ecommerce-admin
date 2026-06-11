@@ -25,6 +25,7 @@ import { utcToLocal } from "@/lib/timezone-utils"
 import {
   generateDateRangesForYear,
   getSeasonColor,
+  SEASON_TYPES,
   type SeasonalPeriod,
 } from "@/lib/seasonal-periods"
 
@@ -782,7 +783,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {(["PEAK_SEASON", "OFF_SEASON", "SHOULDER_SEASON"] as const).map((seasonType) => {
+                      {SEASON_TYPES.map((seasonType) => {
                         const periodsOfType = seasonalPeriods.filter((p) => p.seasonType === seasonType)
                         if (periodsOfType.length === 0) return null
                         const colors = getSeasonColor(seasonType)

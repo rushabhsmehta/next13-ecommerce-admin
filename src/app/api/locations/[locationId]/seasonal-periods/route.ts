@@ -75,7 +75,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ location
     }
 
     // Validate season type
-    const validSeasonTypes = ['OFF_SEASON', 'PEAK_SEASON', 'SHOULDER_SEASON']
+    const validSeasonTypes = ['HIGH_PEAK_SEASON', 'OFF_SEASON', 'PEAK_SEASON', 'SHOULDER_SEASON']
     if (!validSeasonTypes.includes(seasonType)) {
       return new NextResponse("Invalid season type", { status: 400 })
     }

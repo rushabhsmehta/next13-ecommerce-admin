@@ -88,6 +88,16 @@ const PERIOD_FILTERS: { id: string; label: string }[] = [
 
 const PAGE_SIZE = 30;
 
+function formatInquiryCreatedAt(iso: string): string {
+  return new Date(iso).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function AdminCrmInquiriesScreenInner() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -460,6 +470,11 @@ function InquiryCard({
       <Text style={styles.cardMeta}>
         {row.location?.label ?? "Unknown location"} · {row.customerMobileNumber}
       </Text>
+      {row.createdAt ? (
+        <Text style={styles.cardCreated}>
+          Created: {formatInquiryCreatedAt(row.createdAt)}
+        </Text>
+      ) : null}
       {row.nextFollowUpDate ? (
         <Text style={styles.cardFollowUp}>
           Next follow-up: {new Date(row.nextFollowUpDate).toLocaleDateString("en-IN")}
@@ -594,6 +609,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   cardMeta: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
+  cardCreated: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   cardFollowUp: { fontSize: FontSize.xs, color: Colors.warning, fontWeight: "700", marginTop: 2 },
   cardAssociate: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   cardActions: {

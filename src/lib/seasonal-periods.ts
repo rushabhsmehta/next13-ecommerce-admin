@@ -2,9 +2,25 @@
  * Utility functions for handling location seasonal periods
  */
 
+export const SEASON_TYPES = [
+  'HIGH_PEAK_SEASON',
+  'PEAK_SEASON',
+  'SHOULDER_SEASON',
+  'OFF_SEASON',
+] as const
+
+export type SeasonType = (typeof SEASON_TYPES)[number]
+
+export const SEASON_TYPE_LABELS: Record<SeasonType, string> = {
+  HIGH_PEAK_SEASON: 'High Peak Season',
+  PEAK_SEASON: 'Peak Season',
+  SHOULDER_SEASON: 'Shoulder Season',
+  OFF_SEASON: 'Off Season',
+}
+
 export interface SeasonalPeriod {
   id: string
-  seasonType: 'OFF_SEASON' | 'PEAK_SEASON' | 'SHOULDER_SEASON'
+  seasonType: SeasonType
   name: string
   startMonth: number
   startDay: number
@@ -15,7 +31,7 @@ export interface SeasonalPeriod {
 }
 
 export interface SeasonalPeriodTemplate {
-  type: 'OFF_SEASON' | 'PEAK_SEASON' | 'SHOULDER_SEASON'
+  type: SeasonType
   name: string
   start: [number, number] // [month, day]
   end: [number, number] // [month, day]
@@ -209,7 +225,7 @@ export function findSeasonalPeriodForDate(
 export function validateSeasonalPeriod(period: Partial<SeasonalPeriod>): string[] {
   const errors: string[] = []
 
-  if (!period.seasonType || !['OFF_SEASON', 'PEAK_SEASON', 'SHOULDER_SEASON'].includes(period.seasonType)) {
+  if (!period.seasonType || !SEASON_TYPES.includes(period.seasonType as SeasonType)) {
     errors.push('Invalid season type')
   }
 
@@ -241,6 +257,8 @@ export function validateSeasonalPeriod(period: Partial<SeasonalPeriod>): string[
  */
 export function getSeasonColor(seasonType: string): { bg: string; text: string; border: string } {
   switch (seasonType) {
+    case 'HIGH_PEAK_SEASON':
+      return { bg: 'bg-rose-200', text: 'text-rose-900', border: 'border-rose-300' }
     case 'PEAK_SEASON':
       return { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' }
     case 'OFF_SEASON':

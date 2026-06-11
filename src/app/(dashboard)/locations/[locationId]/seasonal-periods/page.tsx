@@ -58,15 +58,18 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import {
   SEASONAL_TEMPLATES,
+  SEASON_TYPES,
+  SEASON_TYPE_LABELS,
   getSeasonColor,
   formatSeasonalPeriod,
   validateSeasonalPeriod,
   checkYearCoverage,
-  type SeasonalPeriod
+  type SeasonalPeriod,
+  type SeasonType,
 } from "@/lib/seasonal-periods"
 
 const seasonalPeriodSchema = z.object({
-  seasonType: z.enum(['OFF_SEASON', 'PEAK_SEASON', 'SHOULDER_SEASON'], {
+  seasonType: z.enum(SEASON_TYPES, {
     required_error: "Season type is required",
   }),
   name: z.string().min(1, {
@@ -345,7 +348,7 @@ export default function LocationSeasonalPeriodsPage() {
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <Badge className={`${colors.bg} ${colors.text}`}>
-                          {period.seasonType.replace('_', ' ')}
+                          {SEASON_TYPE_LABELS[period.seasonType as SeasonType] ?? period.seasonType.replace(/_/g, ' ')}
                         </Badge>
                         <h3 className="text-lg font-semibold">{period.name}</h3>
                       </div>
@@ -410,7 +413,7 @@ export default function LocationSeasonalPeriodsPage() {
                   <FormItem>
                     <FormLabel>Season Type</FormLabel>
                     <Select
-                      onValueChange={(value) => field.onChange(value as "PEAK_SEASON" | "SHOULDER_SEASON" | "OFF_SEASON")}
+                      onValueChange={(value) => field.onChange(value as SeasonType)}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -419,9 +422,11 @@ export default function LocationSeasonalPeriodsPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="PEAK_SEASON">Peak Season</SelectItem>
-                        <SelectItem value="SHOULDER_SEASON">Shoulder Season</SelectItem>
-                        <SelectItem value="OFF_SEASON">Off Season</SelectItem>
+                        {SEASON_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {SEASON_TYPE_LABELS[type]}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

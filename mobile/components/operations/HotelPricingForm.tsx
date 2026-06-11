@@ -103,7 +103,7 @@ function datesForSeason(period: SeasonalPeriodOption, reference: Date) {
   return { start, end };
 }
 
-const SEASON_TYPES = ["PEAK_SEASON", "OFF_SEASON", "SHOULDER_SEASON"] as const;
+const SEASON_TYPES = ["HIGH_PEAK_SEASON", "PEAK_SEASON", "OFF_SEASON", "SHOULDER_SEASON"] as const;
 
 export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
   const router = useRouter();

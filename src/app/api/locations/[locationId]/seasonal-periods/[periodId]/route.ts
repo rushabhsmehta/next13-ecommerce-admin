@@ -103,7 +103,7 @@ export async function PATCH(
 
     // Validate season type if provided
     if (seasonType) {
-      const validSeasonTypes = ['OFF_SEASON', 'PEAK_SEASON', 'SHOULDER_SEASON']
+      const validSeasonTypes = ['HIGH_PEAK_SEASON', 'OFF_SEASON', 'PEAK_SEASON', 'SHOULDER_SEASON']
       if (!validSeasonTypes.includes(seasonType)) {
         return new NextResponse("Invalid season type", { status: 400 })
       }

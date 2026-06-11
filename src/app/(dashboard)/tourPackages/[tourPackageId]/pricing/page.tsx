@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
+  SEASON_TYPES,
   getSeasonColor,
   formatSeasonalPeriod,
   generateDateRangesForYear,
@@ -606,7 +607,7 @@ export default function TourPackagePricingPage() {
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                              {['PEAK_SEASON', 'OFF_SEASON', 'SHOULDER_SEASON'].map((seasonType) => {
+                              {SEASON_TYPES.map((seasonType) => {
                                 const periodsOfType = seasonalPeriods.filter(p => p.seasonType === seasonType)
                                 if (periodsOfType.length === 0) return null
 

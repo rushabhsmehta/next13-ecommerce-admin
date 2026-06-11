@@ -16,6 +16,16 @@ import { createAssociateInquiryClient, type AssociateInquiry } from "@/lib/assoc
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
+function formatInquiryCreatedAt(iso: string): string {
+  return new Date(iso).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function AssociateInquiryListScreen() {
   const router = useRouter();
   const { getToken } = useAuth();
@@ -94,6 +104,11 @@ export default function AssociateInquiryListScreen() {
             </View>
             <Text style={styles.secondary}>{item.location?.label ?? "Unknown location"}</Text>
             <Text style={styles.secondary}>{item.customerMobileNumber}</Text>
+            {item.createdAt ? (
+              <Text style={styles.created}>
+                Created: {formatInquiryCreatedAt(item.createdAt)}
+              </Text>
+            ) : null}
           </TouchableOpacity>
         )}
       />
@@ -127,6 +142,7 @@ const styles = StyleSheet.create({
   customerName: { color: Colors.text, fontWeight: "700", fontSize: FontSize.md, flex: 1 },
   status: { color: Colors.primary, fontWeight: "600", fontSize: FontSize.xs },
   secondary: { color: Colors.textSecondary, fontSize: FontSize.sm },
+  created: { color: Colors.textTertiary, fontSize: FontSize.xs },
   fab: {
     position: "absolute",
     right: Spacing.lg,

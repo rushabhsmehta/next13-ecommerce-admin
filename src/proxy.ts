@@ -21,6 +21,7 @@ const isPublicRoute = createRouteMatcher([
   "/tourPackageQueryVariantDisplay/(.*)",
   "/tourPackageQueryPDFGenerator/(.*)",
   "/tourPackageQueryPDFGeneratorWithVariants/(.*)",
+  "/tourPackageQueryVoucherDisplay/(.*)",
   "/tourPackagePDFGenerator/(.*)",
   "/tourPackagePDFGeneratorWithVariants/(.*)",
   "/sign-in(.*)",

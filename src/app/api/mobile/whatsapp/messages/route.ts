@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import whatsappPrisma from "@/lib/whatsapp-prismadb";
-import { checkWhatsAppMessagingWindow } from "@/lib/whatsapp";
+import {
+  buildWhatsAppAddressVariants,
+  checkWhatsAppMessagingWindow,
+} from "@/lib/whatsapp";
 import { validateClerkAdmin } from "@/app/api/mobile/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +28,7 @@ export async function GET(req: Request) {
     }
 
     const normalizedPhone = phone.startsWith("+") ? phone : `+${phone}`;
-    const waPhone = `whatsapp:${normalizedPhone}`;
-    const waPhoneNoPlus = `whatsapp:${normalizedPhone.replace(/^\+/, "")}`;
+    const addressVariants = buildWhatsAppAddressVariants(normalizedPhone);
 
     const cursorDate = cursor ? new Date(cursor) : null;
     if (cursorDate && Number.isNaN(cursorDate.getTime())) {
@@ -39,8 +41,8 @@ export async function GET(req: Request) {
           AND: [
             {
               OR: [
-                { from: { in: [normalizedPhone, waPhone, waPhoneNoPlus] } },
-                { to: { in: [normalizedPhone, waPhone, waPhoneNoPlus] } },
+                { from: { in: addressVariants } },
+                { to: { in: addressVariants } },
               ],
             },
             ...(cursorDate ? [{ createdAt: { lt: cursorDate } }] : []),

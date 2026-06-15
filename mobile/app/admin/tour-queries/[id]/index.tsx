@@ -40,6 +40,7 @@ import {
   tourQueryHotelUpdatePath,
   tourQueryPdfPath,
   tourQueryPdfWithVariantsPath,
+  tourQueryVoucherPath,
 } from "@/lib/tour-queries-web-urls";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
@@ -311,7 +312,7 @@ function TourQueryDetailScreenInner() {
   const [lifecycleBusy, setLifecycleBusy] = useState<TourQueryLifecycleAction | null>(
     null
   );
-  const [pdfBusy, setPdfBusy] = useState<"plain" | "variants" | null>(null);
+  const [pdfBusy, setPdfBusy] = useState<"plain" | "variants" | "voucher" | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [itineraryExpanded, setItineraryExpanded] = useState(false);
   const [policiesOpen, setPoliciesOpen] = useState(false);
@@ -367,6 +368,10 @@ function TourQueryDetailScreenInner() {
     if (!id) return "";
     return absoluteAdminUrl(getAdminBase(), tourQueryPdfWithVariantsPath(id));
   }, [id]);
+  const voucherUrl = useMemo(() => {
+    if (!id) return "";
+    return absoluteAdminUrl(getAdminBase(), tourQueryVoucherPath(id));
+  }, [id]);
   const hotelEditUrl = useMemo(() => {
     if (!id) return "";
     return absoluteAdminUrl(getAdminBase(), tourQueryHotelUpdatePath(id));
@@ -411,33 +416,55 @@ function TourQueryDetailScreenInner() {
   }, [data, shareUrl]);
 
   const sharePdf = useCallback(
-    async (variant: boolean, fallbackWebUrl: string) => {
+    async (
+      kind: "plain" | "variants" | "voucher",
+      fallbackWebUrl: string
+    ) => {
       if (!id) return;
-      setPdfBusy(variant ? "variants" : "plain");
+      setPdfBusy(kind);
       try {
         const name =
           data?.tourPackageQueryNumber ||
           data?.tourPackageQueryName ||
           "query";
+        const endpoint =
+          kind === "voucher"
+            ? `/api/mobile/tour-queries/${encodeURIComponent(id)}/voucher`
+            : `/api/mobile/tour-queries/${encodeURIComponent(id)}/pdf${
+                kind === "variants" ? "?variant=1" : ""
+              }`;
         await downloadAndSharePdf({
-          endpoint: `/api/mobile/tour-queries/${encodeURIComponent(id)}/pdf${variant ? "?variant=1" : ""
-            }`,
-          fileName: variant ? `${name}-variants` : name,
+          endpoint,
+          fileName:
+            kind === "voucher"
+              ? `${name}-voucher`
+              : kind === "variants"
+                ? `${name}-variants`
+                : name,
           getToken: () => getTokenRef.current(),
-          dialogTitle: "Share query PDF",
+          dialogTitle:
+            kind === "voucher" ? "Share booking voucher" : "Share query PDF",
         });
       } catch (err) {
         const message =
-          err instanceof ApiError ? err.message : "Could not generate the PDF.";
-        Alert.alert("PDF unavailable", message, [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Open in browser",
-            onPress: () => {
-              if (fallbackWebUrl) void Linking.openURL(fallbackWebUrl);
+          err instanceof ApiError
+            ? err.message
+            : kind === "voucher"
+              ? "Could not generate the voucher."
+              : "Could not generate the PDF.";
+        Alert.alert(
+          kind === "voucher" ? "Voucher unavailable" : "PDF unavailable",
+          message,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open in browser",
+              onPress: () => {
+                if (fallbackWebUrl) void Linking.openURL(fallbackWebUrl);
+              },
             },
-          },
-        ]);
+          ]
+        );
       } finally {
         setPdfBusy(null);
       }
@@ -446,12 +473,16 @@ function TourQueryDetailScreenInner() {
   );
 
   const openPdf = useCallback(() => {
-    void sharePdf(false, pdfUrl);
+    void sharePdf("plain", pdfUrl);
   }, [sharePdf, pdfUrl]);
 
   const openPdfVariants = useCallback(() => {
-    void sharePdf(true, pdfVariantsUrl);
+    void sharePdf("variants", pdfVariantsUrl);
   }, [sharePdf, pdfVariantsUrl]);
+
+  const openVoucher = useCallback(() => {
+    void sharePdf("voucher", voucherUrl);
+  }, [sharePdf, voucherUrl]);
 
   const openHotelEditor = useCallback(() => {
     if (!hotelEditUrl) return;
@@ -536,6 +567,16 @@ function TourQueryDetailScreenInner() {
     base.push({
       title: "Share",
       rows: [
+        {
+          id: "voucher",
+          label: "Generate voucher",
+          icon: "ticket-outline",
+          testID: "tour-query-voucher",
+          accessibilityHint:
+            "Generates the booking voucher PDF and opens your device share sheet.",
+          onPress: openVoucher,
+          disabled: pdfBusy !== null,
+        },
         {
           id: "pdf-vars",
           label: "PDF with variants",
@@ -703,6 +744,7 @@ function TourQueryDetailScreenInner() {
     id,
     activeTab,
     openPdfVariants,
+    openVoucher,
     openHotelEditor,
     router,
     shareWebLink,
@@ -1408,6 +1450,20 @@ function TourQueryDetailScreenInner() {
               <ActivityIndicator size="small" color={Colors.primary} />
               : <Ionicons name="document-outline" size={18} color={Colors.primary} />}
             <Text style={styles.secondaryText}>PDF</Text>
+          </Pressable>
+          <Pressable
+            testID="tour-query-action-voucher"
+            accessibilityRole="button"
+            accessibilityLabel="Generate voucher"
+            accessibilityHint="Generates the booking voucher PDF and opens the share sheet."
+            style={styles.secondaryBtn}
+            disabled={pdfBusy !== null}
+            onPress={openVoucher}
+          >
+            {pdfBusy === "voucher" ?
+              <ActivityIndicator size="small" color={Colors.primary} />
+              : <Ionicons name="ticket-outline" size={18} color={Colors.primary} />}
+            <Text style={styles.secondaryText}>Voucher</Text>
           </Pressable>
           <Pressable
             testID="trip-more-actions"

@@ -5,6 +5,7 @@ import {
   tourQueryHotelUpdatePath,
   tourQueryPdfPath,
   tourQueryPdfWithVariantsPath,
+  tourQueryVoucherPath,
 } from "../../lib/tour-queries-web-urls";
 describe("tour-queries-web-urls", () => {
   it("encodes ids in path segments", () => {
@@ -29,6 +30,12 @@ describe("tour-queries-web-urls", () => {
   it("covers hotel update route", () => {
     expect(tourQueryHotelUpdatePath("abc")).toBe(
       "/tourPackageQueryHotelUpdate/abc"
+    );
+  });
+
+  it("covers voucher display route", () => {
+    expect(tourQueryVoucherPath("q/1")).toBe(
+      "/tourPackageQueryVoucherDisplay/q%2F1"
     );
   });
 });

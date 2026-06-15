@@ -2873,16 +2873,37 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                                 {accommodation?.hotelName && (
                                                   <div className="font-semibold text-gray-800 mb-1">{accommodation.hotelName}</div>
                                                 )}
-                                                {accommodation?.roomBreakdown?.map((rb: any, idx: number) => (
+                                                {accommodation?.roomBreakdown?.map((rb: any, idx: number) => {
+                                                  const qty = rb.quantity || 1;
+                                                  const priceLine =
+                                                    rb.totalCost > 0 && rb.pricePerNight > 0 && qty > 1
+                                                      ? `Rs.${rb.pricePerNight.toFixed(2)} x ${qty} = Rs.${rb.totalCost.toFixed(2)}`
+                                                      : rb.totalCost > 0
+                                                        ? `Rs.${rb.totalCost.toFixed(2)}`
+                                                        : 'Rs.0.00';
+                                                  return (
                                                   <div key={idx} className="mb-1 pl-2 border-l-2 border-blue-100">
-                                                    <div>{rb.roomTypeName || 'Room'} ({rb.occupancyTypeName || 'Occupancy'}) - Rs.{rb.totalCost.toFixed(2)}</div>
-                                                    {(rb.extraBedCosts || []).map((eb: any, ebIdx: number) => (
+                                                    <div>
+                                                      {rb.roomTypeName || 'Room'} ({rb.occupancyTypeName || 'Occupancy'})
+                                                      {qty > 1 ? ` x ${qty}` : ''} — {priceLine}
+                                                    </div>
+                                                    {(rb.extraBedCosts || []).map((eb: any, ebIdx: number) => {
+                                                      const ebQty = eb.quantity || 1;
+                                                      const ebPriceLine =
+                                                        eb.totalCost > 0 && eb.pricePerNight > 0 && ebQty > 1
+                                                          ? `Rs.${eb.pricePerNight.toFixed(2)} x ${ebQty} = Rs.${eb.totalCost.toFixed(2)}`
+                                                          : eb.totalCost > 0
+                                                            ? `Rs.${eb.totalCost.toFixed(2)}`
+                                                            : 'Rs.0.00';
+                                                      return (
                                                       <div key={ebIdx} className="text-[10px] text-amber-700 pl-2 border-l border-amber-200">
-                                                        + Extra Bed: {eb.occupancyTypeName || eb.occupancyTypeId} — Rs.{eb.totalCost.toFixed(2)}
+                                                        + Extra Bed: {eb.occupancyTypeName || eb.occupancyTypeId} — {ebPriceLine}
                                                       </div>
-                                                    ))}
+                                                      );
+                                                    })}
                                                   </div>
-                                                ))}
+                                                  );
+                                                })}
                                               </div>
                                             </TableCell>
                                             <TableCell className="text-right text-sm">

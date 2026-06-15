@@ -34,16 +34,9 @@ import { ApiError, withAuth } from "@/lib/api";
 import { fetchCrmInquiriesList } from "@/lib/crm-inquiries-list";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import AssociateInquiriesScreen from "@/app/associate/inquiries";
-
 /**
- * Admin CRM inquiries screen.
- *
- * The associate-only build of this screen lives in app/associate/inquiries/.
- * When an associate opens the admin tab we want them to fall back to that
- * one (same scope, just rebranded). Admins get the full filterable list with
- * delete capability driven by /api/inquiries (which already supports mobile
- * bearer auth via getRequestClerkUserId).
+ * Staff CRM inquiries list — filterable, paginated, scoped per RBAC
+ * (associates only see their own leads via /api/mobile/crm/inquiries).
  */
 export default function AdminCrmInquiriesScreen() {
   return (
@@ -74,8 +67,7 @@ const STATUS_FILTERS: { id: string; label: string }[] = [
   { id: "contacted", label: "Contacted" },
   { id: "quoted", label: "Quoted" },
   { id: "negotiation", label: "Negotiation" },
-  { id: "CONFIRMED", label: "Confirmed" },
-  { id: "CANCELLED", label: "Cancelled" },
+  { id: "completed", label: "Completed" },
 ];
 
 const PERIOD_FILTERS: { id: string; label: string }[] = [
@@ -88,31 +80,11 @@ const PERIOD_FILTERS: { id: string; label: string }[] = [
 
 const PAGE_SIZE = 30;
 
-function formatInquiryCreatedAt(iso: string): string {
-  return new Date(iso).toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 function AdminCrmInquiriesScreenInner() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { getToken } = useAuth();
-  const {
-    isAssociate,
-    isLoading: authLoading,
-    permissions,
-  } = useCurrentUser();
-
-  // Associates still use the inquiry workflow but with their narrower scope.
-  // The associate screen handles their RBAC; we just delegate to it.
-  if (!authLoading && isAssociate) {
-    return <AssociateInquiriesScreen />;
-  }
+  const { isAssociate, isLoading: authLoading, permissions } = useCurrentUser();
 
   return (
     <AdminInquiriesList
@@ -121,6 +93,7 @@ function AdminCrmInquiriesScreenInner() {
       getToken={getToken}
       authLoading={authLoading}
       canWrite={permissions.includes("crm.write")}
+      isAssociate={isAssociate}
     />
   );
 }
@@ -131,12 +104,14 @@ function AdminInquiriesList({
   getToken,
   authLoading,
   canWrite,
+  isAssociate,
 }: {
   router: ReturnType<typeof useRouter>;
   insets: ReturnType<typeof useSafeAreaInsets>;
   getToken: () => Promise<string | null>;
   authLoading: boolean;
   canWrite: boolean;
+  isAssociate: boolean;
 }) {
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -154,7 +129,7 @@ function AdminInquiriesList({
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [periodFilter, setPeriodFilter] = useState<string>("ALL");
   const [followUpsOnly, setFollowUpsOnly] = useState(false);
   const [search, setSearch] = useState("");
@@ -234,6 +209,14 @@ function AdminInquiriesList({
         ? `${items.length} of ${total}`
         : "0 shown";
 
+  const detailRoute = (id: string) =>
+    isAssociate
+      ? (`/associate/inquiries/${id}` as const)
+      : (`/admin/crm/inquiries/${id}` as const);
+  const newRoute = isAssociate
+    ? ("/associate/inquiries/new" as const)
+    : ("/admin/crm/inquiries/new" as const);
+
   function confirmDelete(row: InquiryRow) {
     if (!canWrite) return;
     Alert.alert(
@@ -281,7 +264,7 @@ function AdminInquiriesList({
               label="New"
               icon="add"
               testID="crm-new-inquiry"
-              onPress={() => router.push("/admin/crm/inquiries/new" as never)}
+              onPress={() => router.push(newRoute as never)}
             />
           ) : null
         }
@@ -336,7 +319,7 @@ function AdminInquiriesList({
               onActionPress={
                 hasAdvancedFilters || search.trim()
                   ? () => {
-                      setStatusFilter("ALL");
+                      setStatusFilter("pending");
                       setPeriodFilter("ALL");
                       setFollowUpsOnly(false);
                       setSearch("");
@@ -352,9 +335,7 @@ function AdminInquiriesList({
             row={item}
             canWrite={canWrite}
             deleting={deletingId === item.id}
-            onOpen={() =>
-              router.push(`/admin/crm/inquiries/${item.id}` as never)
-            }
+            onOpen={() => router.push(detailRoute(item.id) as never)}
             onCall={() =>
               item.customerMobileNumber
                 ? Linking.openURL(`tel:${item.customerMobileNumber}`)
@@ -385,7 +366,7 @@ function AdminInquiriesList({
         title="Inquiry filters"
         onClose={() => setFilterSheetOpen(false)}
         onReset={() => {
-          setStatusFilter("ALL");
+          setStatusFilter("pending");
           setPeriodFilter("ALL");
           setFollowUpsOnly(false);
           setSearch("");
@@ -464,7 +445,7 @@ function InquiryCard({
           {row.customerName}
         </Text>
         <View style={styles.statusPill}>
-          <Text style={styles.statusPillText}>{row.status}</Text>
+          <Text style={styles.statusPillText}>{row.status.toUpperCase()}</Text>
         </View>
       </View>
       <Text style={styles.cardMeta}>
@@ -472,7 +453,14 @@ function InquiryCard({
       </Text>
       {row.createdAt ? (
         <Text style={styles.cardCreated}>
-          Created: {formatInquiryCreatedAt(row.createdAt)}
+          Created:{" "}
+          {new Date(row.createdAt).toLocaleString("en-IN", {
+            day: "numeric",
+            month: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })}
         </Text>
       ) : null}
       {row.nextFollowUpDate ? (

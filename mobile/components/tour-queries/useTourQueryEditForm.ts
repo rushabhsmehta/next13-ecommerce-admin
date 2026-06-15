@@ -142,6 +142,41 @@ export function useTourQueryEditForm(queryId: string) {
   const [selectedCopyQueryId, setSelectedCopyQueryId] = useState<string | null>(null);
 
   const [activePicker, setActivePicker] = useState<ActivePickerState>(null);
+  const packagesLocationRef = useRef<string | null | undefined>(undefined);
+
+  const refreshPackagesList = useCallback(
+    async (locId: string | null, keepSelectedId?: string | null) => {
+      try {
+        const qs = new URLSearchParams({ limit: "100" });
+        if (locId) qs.set("locationId", locId);
+        const pkgsRes = await authRequest<{
+          packages: { id: string; tourPackageName: string | null }[];
+        }>(`/api/mobile/tour-packages?${qs}`);
+        let list = (pkgsRes.packages ?? []).map((p) => ({
+          id: p.id,
+          name: p.tourPackageName || "Untitled Package",
+        }));
+        if (keepSelectedId && !list.some((p) => p.id === keepSelectedId)) {
+          try {
+            const pkg = await authRequest<{ id: string; tourPackageName: string | null }>(
+              `/api/mobile/tour-packages/${encodeURIComponent(keepSelectedId)}`
+            );
+            list = [
+              { id: pkg.id, name: pkg.tourPackageName || "Untitled Package" },
+              ...list,
+            ];
+          } catch (err) {
+            console.log("Failed to load selected template for package list", err);
+          }
+        }
+        setPackagesList(list);
+      } catch (err) {
+        console.log("Failed to load tour packages for location", locId, err);
+        setPackagesList([]);
+      }
+    },
+    [authRequest]
+  );
 
   const loadHotelsForLocation = useCallback(async (locId: string) => {
     if (!locId || hotelsCache[locId]) return;
@@ -163,7 +198,7 @@ export function useTourQueryEditForm(queryId: string) {
     async function load() {
       if (!id) return;
       try {
-        const [d, locRes, pricingRes, vehicleRes, pkgsRes, queriesRes] = await Promise.all([
+        const [d, locRes, pricingRes, vehicleRes, queriesRes] = await Promise.all([
           authRequest<DetailResponse>(
             `/api/mobile/tour-queries/${encodeURIComponent(id)}`
           ),
@@ -178,9 +213,6 @@ export function useTourQueryEditForm(queryId: string) {
           authRequest<{ items: { id: string; name: string }[] }>(
             "/api/mobile/operations/list?type=vehicle-types&limit=100"
           ),
-          authRequest<{
-            packages: { id: string; tourPackageName: string | null }[];
-          }>("/api/mobile/tour-packages"),
           authRequest<{
             queries: { id: string; tourPackageQueryName: string | null; tourPackageQueryNumber: string | null }[];
           }>("/api/mobile/tour-queries?status=all&limit=50")
@@ -213,12 +245,10 @@ export function useTourQueryEditForm(queryId: string) {
         const initVariantIds = parseSelectedVariantIds(d.selectedVariantIds);
         setSelectedVariantIds(initVariantIds);
 
-        setPackagesList(
-          (pkgsRes.packages ?? []).map((p) => ({
-            id: p.id,
-            name: p.tourPackageName || "Untitled Package",
-          }))
-        );
+        const initLocationId = d.locationId ?? d.location?.id ?? null;
+        await refreshPackagesList(initLocationId, d.selectedTemplateId || null);
+        if (!cancelled) packagesLocationRef.current = initLocationId;
+
         setQueriesList(
           (queriesRes.queries ?? [])
             .filter((q) => q.id !== id)
@@ -328,7 +358,14 @@ export function useTourQueryEditForm(queryId: string) {
     return () => {
       cancelled = true;
     };
-  }, [id, authRequest]);
+  }, [id, authRequest, refreshPackagesList]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (packagesLocationRef.current === queryLocationId) return;
+    packagesLocationRef.current = queryLocationId;
+    void refreshPackagesList(queryLocationId, selectedPackageId);
+  }, [loading, queryLocationId, selectedPackageId, refreshPackagesList]);
 
   const datesOk =
     (!startsFrom || ISO.test(startsFrom)) && (!endsOn || ISO.test(endsOn));
@@ -961,8 +998,8 @@ export function useTourQueryEditForm(queryId: string) {
 
   const saveDisabledReason = saving
     ? selectedVariantIds.length > 0
-      ? "Saving… variant snapshots can take up to a minute."
-      : "Saving…"
+      ? "Saving? variant snapshots can take up to a minute."
+      : "Saving?"
     : itineraryValidationError
       ? itineraryValidationError
       : datesOrderWarning

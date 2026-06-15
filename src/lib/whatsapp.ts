@@ -418,10 +418,21 @@ function normalizeE164(input: string) {
   return `+${digits}`;
 }
 
-function normalizeWhatsAppLookupAddress(phoneNumber: string) {
+/** All stored variants for a customer phone (webhook uses whatsapp:+E164). */
+export function buildWhatsAppAddressVariants(phoneNumber: string): string[] {
   const cleaned = phoneNumber.trim().replace(/^whatsapp:/i, '');
-  const normalized = normalizeE164(cleaned);
-  return `whatsapp:${normalized.replace(/^\+/, '')}`;
+  const e164 = normalizeE164(cleaned);
+  const digits = e164.replace(/^\+/, '');
+  const withPlus = e164.startsWith('+') ? e164 : `+${digits}`;
+  return Array.from(
+    new Set([
+      withPlus,
+      digits,
+      `whatsapp:${withPlus}`,
+      `whatsapp:${digits}`,
+      `whatsapp:+${digits}`,
+    ]),
+  );
 }
 
 export interface WhatsAppMessagingWindowStatus {
@@ -432,10 +443,10 @@ export interface WhatsAppMessagingWindowStatus {
 
 export async function checkWhatsAppMessagingWindow(phoneNumber: string): Promise<WhatsAppMessagingWindowStatus> {
   try {
-    const normalizedPhone = normalizeWhatsAppLookupAddress(phoneNumber);
+    const addressVariants = buildWhatsAppAddressVariants(phoneNumber);
     const lastInboundMessage = await prisma.whatsAppMessage.findFirst({
       where: {
-        from: normalizedPhone,
+        from: { in: addressVariants },
         direction: 'inbound',
       },
       orderBy: {

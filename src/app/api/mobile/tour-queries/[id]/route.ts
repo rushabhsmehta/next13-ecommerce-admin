@@ -268,6 +268,7 @@ export async function GET(
         assignedToEmail: true,
         createdAt: true,
         updatedAt: true,
+        locationId: true,
         location: { select: { id: true, label: true } },
         associatePartner: { select: { id: true, name: true } },
         inquiry: {

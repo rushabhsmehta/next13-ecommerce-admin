@@ -20,6 +20,22 @@ function parseBoundedInt(value: string | null, fallback: number, min: number, ma
   return Math.min(Math.max(parsed, min), max);
 }
 
+/** Map mobile tab ids to DB status values (mixed legacy casing). */
+function inquiryStatusFilter(status: string | undefined): Prisma.InquiryWhereInput {
+  if (!status || status === "ALL") return {};
+  const key = status.toLowerCase();
+  switch (key) {
+    case "pending":
+      return { status: { in: ["pending", "PENDING"] } };
+    case "completed":
+      return { status: { in: ["completed", "COMPLETED", "CONFIRMED", "confirmed"] } };
+    case "cancelled":
+      return { status: { in: ["cancelled", "CANCELLED"] } };
+    default:
+      return { status };
+  }
+}
+
 /**
  * CRM inquiry list for mobile staff — same filters as GET /api/inquiries but
  * lives under /api/mobile/* so Clerk session middleware never intercepts
@@ -101,7 +117,7 @@ export async function GET(req: Request) {
 
     const where: Prisma.InquiryWhereInput = {
       ...(associateId && { associatePartnerId: associateId }),
-      ...(status && status !== "ALL" && { status }),
+      ...inquiryStatusFilter(status),
       ...dateFilter,
     };
     if (accessContext.isAssociate && accessContext.associatePartnerId) {

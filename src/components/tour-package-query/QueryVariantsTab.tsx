@@ -22,6 +22,9 @@ import { toast } from "react-hot-toast";
 import axios from "axios";
 import { utcToLocal } from "@/lib/timezone-utils";
 import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
+import {
+  applyPerPersonRatesToPricingItems,
+} from "@/lib/variant-pricing-display";
 
 /** Returns a fresh shallow-clone of each DEFAULT_PRICING_SECTION item to avoid shared-reference mutations. */
 const cloneDefaultPricingSection = () => DEFAULT_PRICING_SECTION.map(item => ({ ...item }));
@@ -243,27 +246,6 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     return null;
   };
 
-  // Map a pricing-item label to the corresponding derived rate key from the API.
-  const matchRateKey = (label: string):
-    | 'perPerson'
-    | 'perCouple'
-    | 'perPersonWithExtraBed'
-    | 'childWithMattress'
-    | 'childWithoutMattress'
-    | 'childBelow5WithSeat'
-    | 'childBelow5WithoutSeat'
-    | null => {
-    const l = (label || '').toLowerCase();
-    if (l.includes('couple')) return 'perCouple';
-    if (l.includes('extra bed') || l.includes('extra mattress')) return 'perPersonWithExtraBed';
-    if (l.includes('child below 5') && (l.includes('without seat') || l.includes('no seat'))) return 'childBelow5WithoutSeat';
-    if (l.includes('child below 5') && l.includes('with seat')) return 'childBelow5WithSeat';
-    if (l.includes('child') && l.includes('without') && l.includes('mattress')) return 'childWithoutMattress';
-    if (l.includes('child') && l.includes('with') && l.includes('mattress')) return 'childWithMattress';
-    if (l.includes('per person')) return 'perPerson';
-    return null;
-  };
-
   // Map a pricing item name to a guest quantity + label for auto-description.
   const getItemQuantityInfo = (itemName: string): { qty: number; label: string } => {
     const n = (itemName || '').toLowerCase();
@@ -341,38 +323,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         return;
       }
 
-      // Use actual pax counts from room allocations (not form fields) for accuracy
-      const apiMainPax: number = perPersonRates.mainPax ?? numAdults;
-      const apiExtraBedPax: number = perPersonRates.extraBedPax ?? 0;
-      const apiCnbPax: number = perPersonRates.cnbPax ?? 0;
-
-      const getQtyForKey = (key: string): { qty: number; label: string } => {
-        if (key === 'perPerson') return { qty: apiMainPax, label: 'Adults' };
-        if (key === 'perCouple') return { qty: Math.ceil(apiMainPax / 2) || 0, label: 'Couples' };
-        if (key === 'perPersonWithExtraBed') return { qty: apiExtraBedPax, label: 'Pax' };
-        if (key === 'childWithMattress' || key === 'childWithoutMattress') return { qty: numChild5to12, label: 'Children' };
-        if (key === 'childBelow5WithSeat') return { qty: apiCnbPax, label: 'CNB' };
-        if (key === 'childBelow5WithoutSeat') return { qty: numChild0to5, label: 'Children' };
-        return getItemQuantityInfo('');
-      };
-
-      const updatedItems = currentItems.map((item: any) => {
-        const key = matchRateKey(item.name || '');
-        if (!key) return item;
-        const rate = perPersonRates.rates[key];
-        if (!rate || rate.price === null) return item; // null = no such pax in allocation, skip
-        const price = rate.price ?? 0;
-        const { qty, label } = getQtyForKey(key);
-        const total = price * qty;
-        const autoDescription = qty > 0 && price > 0
-          ? `${qty} ${label} × Rs.${price.toLocaleString('en-IN')} = Rs.${total.toLocaleString('en-IN')}`
-          : '';
-        return {
-          ...item,
-          price: rate.price !== null && rate.price !== undefined ? rate.price.toString() : '',
-          description: autoDescription,
-          derivationFormula: rate.description || '',
-        };
+      const updatedItems = applyPerPersonRatesToPricingItems(currentItems, perPersonRates, {
+        numChild5to12,
+        numChild0to5,
       });
 
       setVariantPricingItems((prev) => ({ ...prev, [variantId]: updatedItems }));
@@ -386,6 +339,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           [variantId]: {
             ...existingData,
             components: updatedItems,
+            perPersonRates,
             updatedAt: new Date().toISOString(),
           },
         },
@@ -732,7 +686,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         itineraries: pricingItineraries,
         tourStartsFrom,
         tourEndsOn,
-        markup: markupPercentage
+        markup: markupPercentage,
+        includeBreakdown: true,
       });
 
       const result = response.data;
@@ -740,43 +695,34 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
       setVariantPriceCalculationResults(prev => ({ ...prev, [variantId]: result }));
 
+      const totalCost = result?.totalCost || 0;
+      const perPersonRates = result?.perPersonRates;
+      const baseItems =
+        (variantPricingItems[variantId] || []).length > 0
+          ? variantPricingItems[variantId]
+          : cloneDefaultPricingSection();
+      const pricingItems = perPersonRates?.rates
+        ? applyPerPersonRatesToPricingItems(baseItems, perPersonRates, {
+            numChild5to12,
+            numChild0to5,
+          })
+        : baseItems;
+
       const currentPricingData = form.getValues('variantPricingData') || {};
       form.setValue('variantPricingData', {
         ...currentPricingData,
         [variantId]: {
           calculationMethod: 'autoHotelTransport',
           ...result,
-          calculatedAt: result.calculatedAt || new Date().toISOString()
-        }
-      });
+          components: pricingItems,
+          totalCost,
+          perPersonRates: perPersonRates ?? undefined,
+          calculatedAt: result.calculatedAt || new Date().toISOString(),
+        },
+      }, { shouldDirty: true });
 
-      if (result && typeof result === 'object') {
-        const totalCost = result.totalCost || 0;
-        const pricingItems: { name: string; price: string; description: string }[] = [];
-        pricingItems.push({
-          name: 'Total Cost',
-          price: totalCost.toString(),
-          description: 'Total package cost with markup'
-        });
-        if (result.breakdown && typeof result.breakdown === 'object') {
-          const accommodationCost = result.breakdown.accommodation || 0;
-          pricingItems.push({
-            name: 'Accommodation',
-            price: accommodationCost.toString(),
-            description: 'Hotel room costs'
-          });
-          const transportCost = result.breakdown.transport || 0;
-          if (transportCost > 0) {
-            pricingItems.push({
-              name: 'Transport',
-              price: transportCost.toString(),
-              description: 'Vehicle costs'
-            });
-          }
-        }
-        setVariantPricingItems(prev => ({ ...prev, [variantId]: pricingItems }));
-        setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalCost.toString() }));
-      }
+      setVariantPricingItems(prev => ({ ...prev, [variantId]: pricingItems }));
+      setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalCost.toString() }));
 
       toast.success("Variant price calculation complete!");
     } catch (error: any) {

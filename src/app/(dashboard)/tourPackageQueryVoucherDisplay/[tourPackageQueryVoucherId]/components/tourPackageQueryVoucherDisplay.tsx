@@ -5,6 +5,7 @@ import { VoucherActions } from "@/components/voucher-actions";
 import type { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, RoomAllocation, TransportDetail, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
 import { formatLocalDate } from '@/lib/timezone-utils';
+import { normalizeItineraryDays } from '@/lib/utils';
 
 interface TourPackageQueryVoucherDisplayProps {
   initialData: TourPackageQuery & {
@@ -547,7 +548,10 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                 return (
                   <div key={itineraryIdx} className="vchr-stay" data-pdf-section="true">
                     <div className="vchr-stay-head">
-                      <div className="vchr-stay-badge">Day {itinerary.dayNumber} | {itinerary.days}</div>
+                      <div className="vchr-stay-badge">
+                        Day {itinerary.dayNumber}
+                        {normalizeItineraryDays(itinerary.days) ? ` | ${normalizeItineraryDays(itinerary.days)}` : ""}
+                      </div>
                       <h3 className="vchr-serif vchr-stay-title">{hotelDetails?.name || 'Hotel'}</h3>
                     </div>
                     {effectiveRoomAllocations.length > 0 ? (
@@ -629,7 +633,10 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                 return (
                   <div key={itineraryIdx} className="vchr-stay" data-pdf-section="true">
                     <div className="vchr-stay-head">
-                      <div className="vchr-stay-badge">Day {itinerary.dayNumber} | {itinerary.days}</div>
+                      <div className="vchr-stay-badge">
+                        Day {itinerary.dayNumber}
+                        {normalizeItineraryDays(itinerary.days) ? ` | ${normalizeItineraryDays(itinerary.days)}` : ""}
+                      </div>
                       <h3 className="vchr-serif vchr-stay-title">Transport</h3>
                     </div>
                     <table className="vchr-table">

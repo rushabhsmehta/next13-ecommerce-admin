@@ -173,6 +173,7 @@ function TourQueryVariantsPanelInner({
               }
             : prev
         );
+        await load("refresh");
         setActiveBuildDirty(false);
         Alert.alert(
           "Saved",
@@ -189,7 +190,7 @@ function TourQueryVariantsPanelInner({
         setBuildSavingVariantId(null);
       }
     },
-    [buildSavingVariantId, client, id]
+    [buildSavingVariantId, client, id, load]
   );
 
   const onVariantPress = async (v: VariantComparisonItem) => {

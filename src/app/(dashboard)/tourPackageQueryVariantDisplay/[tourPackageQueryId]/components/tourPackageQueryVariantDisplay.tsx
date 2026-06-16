@@ -11,6 +11,7 @@ import { formatLocalDate } from '@/lib/timezone-utils';
 import { Separator } from '@radix-ui/react-separator';
 import { useEffect, useState } from 'react';
 import { VariantComparisonSection } from '@/components/tour-package-query/VariantComparisonSection';
+import { formatItineraryDayHeader } from '@/lib/utils';
 
 interface TourPackageQueryVariantDisplayProps {
     initialData: TourPackageQuery & {
@@ -604,7 +605,7 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                             <div>
                                 <CardTitle className="text-3xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-transparent bg-clip-text print-gradient-fallback"
                                     dangerouslySetInnerHTML={{
-                                        __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
+                                        __html: formatItineraryDayHeader(itinerary),
                                     }} />
                             </div>
                         </div>
@@ -694,7 +695,7 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                             <div>
                                 <CardTitle className="text-2xl font-bold"
                                     dangerouslySetInnerHTML={{
-                                        __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
+                                        __html: formatItineraryDayHeader(itinerary),
                                     }} />
                             </div>
                         </div>

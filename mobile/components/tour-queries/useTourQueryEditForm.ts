@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
-import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
 import {
@@ -25,41 +24,54 @@ import {
   toInt,
 } from "./utils";
 
-function defaultRoomAllocationRow(
-  roomTypes: { id: string; name: string }[],
-  occupancyTypes: { id: string; name: string }[],
-  mealPlans: { id: string; name: string }[]
-): RoomAllocationRow {
-  return {
-    roomTypeId: roomTypes[0]?.id || "4ae23712-19f7-4035-9db9-4d0df85d64ea",
-    occupancyTypeId: occupancyTypes[0]?.id || "",
-    mealPlanId: mealPlans[0]?.id || null,
-    quantity: 1,
-    customRoomType: "",
-  };
+function ensureItineraryRoomDefaults(days: ItineraryRow[]): ItineraryRow[] {
+  return days.map((day) => ({
+    ...day,
+    roomAllocations: day.roomAllocations.filter((ra) => ra.occupancyTypeId?.trim()),
+    transportDetails: day.transportDetails ?? [],
+  }));
 }
 
-function ensureItineraryRoomDefaults(
-  days: ItineraryRow[],
-  roomTypes: { id: string; name: string }[],
-  occupancyTypes: { id: string; name: string }[],
-  mealPlans: { id: string; name: string }[]
+function mapItinerariesFromDetail(
+  itineraries: any[] | undefined | null
 ): ItineraryRow[] {
-  const fallback = defaultRoomAllocationRow(roomTypes, occupancyTypes, mealPlans);
-  return days.map((day) => {
-    const validAllocs = day.roomAllocations.filter((ra) => ra.occupancyTypeId?.trim());
-    if (validAllocs.length > 0) {
-      return { ...day, roomAllocations: validAllocs, transportDetails: day.transportDetails ?? [] };
-    }
-    return {
-      ...day,
-      roomAllocations: [{ ...fallback }],
-      transportDetails: day.transportDetails ?? [],
-    };
-  });
+  return (itineraries ?? []).map((it: any) => ({
+    id: it.id,
+    dayNumber: it.dayNumber != null ? toInt(it.dayNumber, 0) : null,
+    days: it.days != null ? String(it.days) : it.dayNumber != null ? String(it.dayNumber) : "",
+    locationId: it.locationId ?? null,
+    hotelId: it.hotelId ?? it.hotel?.id ?? null,
+    itineraryTitle: it.itineraryTitle ?? "",
+    itineraryDescription: it.itineraryDescription ?? "",
+    mealsIncluded: it.mealsIncluded ?? "",
+    roomAllocations: (it.roomAllocations ?? []).map((ra: any) => ({
+      id: ra.id,
+      roomTypeId: ra.roomTypeId,
+      occupancyTypeId: ra.occupancyTypeId ?? "",
+      mealPlanId: ra.mealPlanId ?? null,
+      quantity: toInt(ra.quantity, 1),
+      customRoomType: ra.customRoomType ?? "",
+    })),
+    transportDetails: (it.transportDetails ?? [])
+      .map((td: any) => ({
+        id: td.id,
+        vehicleTypeId: td.vehicleTypeId ?? td.vehicleType?.id ?? "",
+        quantity: toInt(td.quantity, 1),
+        description: td.description ?? "",
+      }))
+      .filter((td: TransportDetailRow) => td.vehicleTypeId?.trim()),
+  }));
 }
 
 type DetailResponse = TourQueryDetailResponse;
+
+function mapPoliciesFromDetail(d: DetailResponse): Record<string, string> {
+  const pol: Record<string, string> = {};
+  for (const f of POLICY_FIELDS) {
+    pol[f.key as string] = ((d[f.listKey] as string[]) ?? []).join("\n");
+  }
+  return pol;
+}
 
 type BaselinePayload = {
   tourPackageQueryName: string;
@@ -90,8 +102,33 @@ function serializeBaseline(p: BaselinePayload): string {
   return JSON.stringify(sorted);
 }
 
+function buildBaselineFromDetail(
+  d: DetailResponse,
+  itineraries: ItineraryRow[],
+  selectedVariantIds: string[]
+): BaselinePayload {
+  return {
+    tourPackageQueryName: d.tourPackageQueryName ?? "",
+    customerName: d.customerName ?? "",
+    customerNumber: d.customerNumber ?? "",
+    numAdults: d.numAdults ?? "",
+    numChild512: d.numChild5to12 ?? "",
+    numChild05: d.numChild0to5 ?? "",
+    tourStartsFrom: d.tourStartsFrom ? d.tourStartsFrom.substring(0, 10) : "",
+    tourEndsOn: d.tourEndsOn ? d.tourEndsOn.substring(0, 10) : "",
+    queryLocationId: d.locationId ?? d.location?.id ?? "",
+    transport: d.transport ?? "",
+    pickupLocation: d.pickup_location ?? "",
+    dropLocation: d.drop_location ?? "",
+    remarks: d.remarks ?? "",
+    policies: mapPoliciesFromDetail(d),
+    itineraries,
+    selectedTemplateId: d.selectedTemplateId || null,
+    selectedVariantIds,
+  };
+}
+
 export function useTourQueryEditForm(queryId: string) {
-  const router = useRouter();
   const id = queryId;
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
@@ -267,55 +304,12 @@ export function useTourQueryEditForm(queryId: string) {
           }
         }
 
-        const pol: Record<string, string> = {};
-        for (const f of POLICY_FIELDS) {
-          pol[f.key as string] = ((d[f.listKey] as string[]) ?? []).join("\n");
-        }
+        const pol = mapPoliciesFromDetail(d);
+        const itinerariesInit = mapItinerariesFromDetail(d.itineraries);
 
-        const itinerariesInit = (d.itineraries ?? []).map((it: any) => ({
-          id: it.id,
-          dayNumber: it.dayNumber != null ? toInt(it.dayNumber, 0) : null,
-          days: it.days != null ? String(it.days) : it.dayNumber != null ? String(it.dayNumber) : "",
-          locationId: it.locationId ?? null,
-          hotelId: it.hotelId ?? it.hotel?.id ?? null,
-          itineraryTitle: it.itineraryTitle ?? "",
-          itineraryDescription: it.itineraryDescription ?? "",
-          mealsIncluded: it.mealsIncluded ?? "",
-          roomAllocations: (it.roomAllocations ?? []).map((ra: any) => ({
-            id: ra.id,
-            roomTypeId: ra.roomTypeId,
-            occupancyTypeId: ra.occupancyTypeId ?? "",
-            mealPlanId: ra.mealPlanId ?? null,
-            quantity: toInt(ra.quantity, 1),
-            customRoomType: ra.customRoomType ?? "",
-          })),
-          transportDetails: (it.transportDetails ?? []).map((td: any) => ({
-            id: td.id,
-            vehicleTypeId: td.vehicleTypeId ?? td.vehicleType?.id ?? "",
-            quantity: toInt(td.quantity, 1),
-            description: td.description ?? "",
-          })).filter((td: TransportDetailRow) => td.vehicleTypeId?.trim()),
-        }));
-
-        baselineSerialized.current = serializeBaseline({
-          tourPackageQueryName: d.tourPackageQueryName ?? "",
-          customerName: d.customerName ?? "",
-          customerNumber: d.customerNumber ?? "",
-          numAdults: d.numAdults ?? "",
-          numChild512: d.numChild5to12 ?? "",
-          numChild05: d.numChild0to5 ?? "",
-          tourStartsFrom: d.tourStartsFrom ? d.tourStartsFrom.substring(0, 10) : "",
-          tourEndsOn: d.tourEndsOn ? d.tourEndsOn.substring(0, 10) : "",
-          queryLocationId: d.locationId ?? d.location?.id ?? "",
-          transport: d.transport ?? "",
-          pickupLocation: d.pickup_location ?? "",
-          dropLocation: d.drop_location ?? "",
-          remarks: d.remarks ?? "",
-          policies: pol,
-          itineraries: itinerariesInit,
-          selectedTemplateId: d.selectedTemplateId || null,
-          selectedVariantIds: initVariantIds,
-        });
+        baselineSerialized.current = serializeBaseline(
+          buildBaselineFromDetail(d, itinerariesInit, initVariantIds)
+        );
         setPolicies(pol);
         setItineraries(itinerariesInit);
 
@@ -766,10 +760,7 @@ export function useTourQueryEditForm(queryId: string) {
         }
 
         const withRooms = ensureItineraryRoomDefaults(
-          applyInquiryRoomAllocationsToAll(newItineraries),
-          roomTypes,
-          occupancyTypes,
-          mealPlans
+          applyInquiryRoomAllocationsToAll(newItineraries)
         );
         setItineraries(withRooms);
       } catch (err) {
@@ -826,10 +817,7 @@ export function useTourQueryEditForm(queryId: string) {
         setPolicies(pol);
 
         const withRooms = ensureItineraryRoomDefaults(
-          applyInquiryRoomAllocationsToAll(newItineraries),
-          roomTypes,
-          occupancyTypes,
-          mealPlans
+          applyInquiryRoomAllocationsToAll(newItineraries)
         );
         setItineraries(withRooms);
       } catch (err) {
@@ -873,7 +861,38 @@ export function useTourQueryEditForm(queryId: string) {
       copy[dayIndex] = day;
       return copy;
     });
-  }, [activePicker, loadHotelsForLocation, locations, authRequest, applyInquiryRoomAllocationsToAll, roomTypes, occupancyTypes, mealPlans, vehicleTypes]);
+  }, [activePicker, loadHotelsForLocation, locations, authRequest, applyInquiryRoomAllocationsToAll, vehicleTypes]);
+
+  const applySavedDetail = useCallback(
+    (d: DetailResponse) => {
+      const refreshedItineraries = mapItinerariesFromDetail(d.itineraries);
+      const refreshedVariantIds = parseSelectedVariantIds(d.selectedVariantIds);
+      const refreshedPolicies = mapPoliciesFromDetail(d);
+
+      setName(d.tourPackageQueryName ?? "");
+      setCustomerName(d.customerName ?? "");
+      setCustomerNumber(d.customerNumber ?? "");
+      setNumAdults(d.numAdults ?? "");
+      setNumChild512(d.numChild5to12 ?? "");
+      setNumChild05(d.numChild0to5 ?? "");
+      setStartsFrom(d.tourStartsFrom ? d.tourStartsFrom.substring(0, 10) : "");
+      setEndsOn(d.tourEndsOn ? d.tourEndsOn.substring(0, 10) : "");
+      setQueryLocationId(d.locationId ?? d.location?.id ?? null);
+      setTransport(d.transport ?? "");
+      setPickupLocation(d.pickup_location ?? "");
+      setDropLocation(d.drop_location ?? "");
+      setRemarks(d.remarks ?? "");
+      setInquiry(d.inquiry ?? null);
+      setSelectedPackageId(d.selectedTemplateId || null);
+      setSelectedVariantIds(refreshedVariantIds);
+      setPolicies(refreshedPolicies);
+      setItineraries(refreshedItineraries);
+      baselineSerialized.current = serializeBaseline(
+        buildBaselineFromDetail(d, refreshedItineraries, refreshedVariantIds)
+      );
+    },
+    []
+  );
 
   const save = useCallback(async () => {
     if (!id || saveBlocked) return;
@@ -946,7 +965,11 @@ export function useTourQueryEditForm(queryId: string) {
           .filter(Boolean) as never;
       }
       await editClient.update(id, payload);
-      router.back();
+      const refreshed = await authRequest<DetailResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(id)}`
+      );
+      applySavedDetail(refreshed);
+      Alert.alert("Saved", "Tour package query updated.");
     } catch (err) {
       if (err instanceof ApiError && err.details && typeof err.details === "object") {
         const flat = err.details as { fieldErrors?: Record<string, string[] | undefined> };
@@ -980,7 +1003,8 @@ export function useTourQueryEditForm(queryId: string) {
     packageVariants,
     packagesList,
     editClient,
-    router,
+    authRequest,
+    applySavedDetail,
   ]);
 
   const tabBadges = useMemo((): TabBadgeState => {

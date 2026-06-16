@@ -380,10 +380,14 @@ function AdminInquiryDetailInner() {
 
   async function handleCreateTourQuery() {
     if (!inquiryId || !canWrite) return;
-    Alert.alert(
-      "Create tour query",
-      "Do you want to create a new Tour Package Query from this inquiry?",
-      [
+    const existingCount = detail?.tourPackageQueries?.length ?? 0;
+    const title = existingCount > 0 ? "Create another tour query?" : "Create tour query";
+    const message =
+      existingCount > 0
+        ? `This inquiry already has ${existingCount} linked tour quer${existingCount === 1 ? "y" : "ies"}. Create another one anyway?`
+        : "Do you want to create a new Tour Package Query from this inquiry?";
+
+    Alert.alert(title, message, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Create",

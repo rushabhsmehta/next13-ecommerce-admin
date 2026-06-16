@@ -23,6 +23,7 @@ import {
   renderBulletList,
 } from "@/lib/pdf";
 import { renderItineraryImages, renderActivityImages } from "@/lib/itinerary-image-html";
+import { normalizeItineraryDays } from "@/lib/utils";
 
 // Variant snapshot types for standard PDF generator
 interface QueryVariantHotelSnapshotForPDF {
@@ -1169,7 +1170,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             (itinerary) => `
                   <tr style="border-bottom: 1px solid ${brandColors.border}; background: ${brandColors.white}; color: ${brandColors.text};">
                     <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: left; font-size: 16px; font-weight: bold;">
-                      Day ${itinerary.dayNumber}: ${itinerary.days}
+                      Day ${itinerary.dayNumber}${normalizeItineraryDays(itinerary.days) ? `: ${normalizeItineraryDays(itinerary.days)}` : ""}
                     </td>
                     <td style="width: 90%; padding: 12px; vertical-align: middle; font-size: 16px; font-weight: bold;">
                       ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}

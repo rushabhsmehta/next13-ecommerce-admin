@@ -200,6 +200,27 @@ function parseJsonRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
+function remapVariantBuildItineraryKeys(
+  source: unknown,
+  oldIdToDay: Map<string, number>,
+  dayToNewId: Map<number, string>
+): Record<string, unknown> {
+  const root = parseJsonRecord(source);
+  const next: Record<string, unknown> = {};
+  for (const [variantKey, byItinerary] of Object.entries(root)) {
+    const itinMap = parseJsonRecord(byItinerary);
+    const remapped: Record<string, unknown> = {};
+    for (const [itineraryId, rows] of Object.entries(itinMap)) {
+      const day = oldIdToDay.get(itineraryId);
+      const targetId =
+        day != null && dayToNewId.has(day) ? dayToNewId.get(day)! : itineraryId;
+      remapped[targetId] = rows;
+    }
+    next[variantKey] = remapped;
+  }
+  return next;
+}
+
 export async function GET(
   req: Request,
   props: { params: Promise<{ id: string }> }
@@ -676,6 +697,14 @@ export async function PATCH(
         const incomingIds = new Set(incomingItinsWithIds.map((it: any) => it.id));
         const idsToDelete = Array.from(existingIds).filter((exId) => !incomingIds.has(exId));
 
+        const deletedItineraryRows =
+          idsToDelete.length > 0
+            ? await tx.itinerary.findMany({
+                where: { id: { in: idsToDelete } },
+                select: { id: true, dayNumber: true },
+              })
+            : [];
+
         if (idsToDelete.length > 0) {
           await tx.itinerary.deleteMany({
             where: { id: { in: idsToDelete } }
@@ -827,6 +856,44 @@ export async function PATCH(
             numDaysNight: durationString
           }
         });
+
+        if (deletedItineraryRows.length > 0) {
+          const oldIdToDay = new Map(
+            deletedItineraryRows
+              .filter((row) => typeof row.dayNumber === "number")
+              .map((row) => [row.id, row.dayNumber as number])
+          );
+          const currentItineraryRows = await tx.itinerary.findMany({
+            where: { tourPackageQueryId: id },
+            select: { id: true, dayNumber: true },
+          });
+          const dayToNewId = new Map(
+            currentItineraryRows
+              .filter((row) => typeof row.dayNumber === "number")
+              .map((row) => [row.dayNumber as number, row.id])
+          );
+          const currentTpq = await tx.tourPackageQuery.findUnique({
+            where: { id },
+            select: { variantRoomAllocations: true, variantTransportDetails: true },
+          });
+          if (currentTpq) {
+            await tx.tourPackageQuery.update({
+              where: { id },
+              data: {
+                variantRoomAllocations: remapVariantBuildItineraryKeys(
+                  currentTpq.variantRoomAllocations,
+                  oldIdToDay,
+                  dayToNewId
+                ),
+                variantTransportDetails: remapVariantBuildItineraryKeys(
+                  currentTpq.variantTransportDetails,
+                  oldIdToDay,
+                  dayToNewId
+                ),
+              },
+            });
+          }
+        }
       }
     }, {
       maxWait: 20000,

@@ -8,7 +8,13 @@
 
 import React from "react";
 import Image from "next/image";
-import { Building2, DollarSign, Info } from "lucide-react";
+import { Building2, DollarSign } from "lucide-react";
+import {
+  findPricingRowPrice,
+  getVariantPricingDisplayRows,
+  mergeVariantPricingRowLabels,
+  type VariantPricingEntry,
+} from "@/lib/variant-pricing-display";
 
 interface VariantHotelSnapshot {
   id: string;
@@ -47,12 +53,6 @@ interface VariantSnapshot {
   sortOrder: number;
   hotelSnapshots: VariantHotelSnapshot[];
   pricingSnapshots: PricingSnapshot[];
-}
-
-interface VariantPricingEntry {
-  components?: { name: string; price: string; description?: string }[];
-  totalCost?: number;
-  remarks?: string;
 }
 
 interface ItineraryData {
@@ -126,38 +126,19 @@ export function VariantComparisonSection({
     new Set(variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber)))
   ).sort((a, b) => a - b);
 
-  // Flat list of all pricing component snapshots for a variant (across all pricing snapshots in order)
-  const getComponentsFlat = (v: VariantSnapshot) =>
-    v.pricingSnapshots.flatMap(ps => ps.pricingComponentSnapshots);
-
-  // Build index-keyed row labels: one row per component position.
-  // Using index instead of name avoids de-duplication when two components share the same name.
-  const maxSnapshotRows = Math.max(...variants.map(v => getComponentsFlat(v).length), 0);
-  const maxVpdRows = Math.max(...variants.map(v => (getVpd(v)?.components || []).length), 0);
-  const totalRows = Math.max(maxSnapshotRows, maxVpdRows);
-
-  const rowLabels = Array.from({ length: totalRows }, (_, i) => {
-    for (const v of variants) {
-      const vpd = getVpd(v);
-      if (vpd?.components?.[i]?.name) return vpd.components[i].name;
-      const comps = getComponentsFlat(v);
-      if (comps[i]?.attributeName) return comps[i].attributeName;
-    }
-    return `Item ${i + 1}`;
-  });
-
-  // Only keep rows that have at least one non-zero value
-  const pricingRows = rowLabels
-    .map((label, i) => ({ label, i }))
-    .filter(({ i }) =>
-      variants.some(v => {
-        const vpd = getVpd(v);
-        const vpdComp = vpd?.components?.[i];
-        if (vpdComp) return parseFloat(String(vpdComp.price || 0)) > 0;
-        const comp = getComponentsFlat(v)[i];
-        return comp ? parseFloat(String(comp.price || 0)) > 0 : false;
-      })
+  const getSnapshotComponentsFlat = (v: VariantSnapshot) =>
+    v.pricingSnapshots.flatMap((ps) =>
+      ps.pricingComponentSnapshots.map((comp) => ({
+        attributeName: comp.attributeName,
+        price: comp.price,
+        description: comp.description,
+      }))
     );
+
+  const variantDisplayRows = variants.map((v) =>
+    getVariantPricingDisplayRows(getVpd(v) as VariantPricingEntry | undefined, getSnapshotComponentsFlat(v))
+  );
+  const pricingRowLabels = mergeVariantPricingRowLabels(variantDisplayRows);
 
   // Calculate totals for "Best Value" badge — sum across ALL pricing snapshots
   const variantTotals = variants.map(v => {
@@ -366,7 +347,7 @@ export function VariantComparisonSection({
       )}
 
       {/* Pricing Comparison Table */}
-      {(hasPricing || pricingRows.length > 0) && (
+      {(hasPricing || pricingRowLabels.length > 0) && (
         <div className="rounded-xl border border-orange-200 bg-white shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-orange-50 to-red-50 px-5 py-4 border-b border-orange-200 flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -390,27 +371,18 @@ export function VariantComparisonSection({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {pricingRows.map(({ label, i }, idx) => (
-                  <tr key={i} className={`divide-x divide-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-orange-50/30'}`}>
+                {pricingRowLabels.map((label, idx) => (
+                  <tr key={label} className={`divide-x divide-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-orange-50/30'}`}>
                     <td className="px-4 py-3 font-medium text-gray-700 bg-gray-50">{label}</td>
-                    {variants.map(variant => {
-                      const vpd = getVpd(variant);
-                      const vpdComp = vpd?.components?.[i];
-                      if (vpdComp) {
-                        return (
-                          <td key={variant.id} className="px-4 py-3 text-right">
-                            <span className="font-semibold text-gray-900">₹ {formatINR(String(vpdComp.price || 0))}</span>
-                          </td>
-                        );
-                      }
-                      const comp = getComponentsFlat(variant)[i];
+                    {variants.map((variant, vidx) => {
+                      const row = findPricingRowPrice(variantDisplayRows[vidx], label);
                       return (
                         <td key={variant.id} className="px-4 py-3 text-right">
-                          {comp ? (
+                          {row ? (
                             <div>
-                              <span className="font-semibold text-gray-900">₹ {formatINR(comp.price)}</span>
-                              {comp.description && (
-                                <div className="text-xs text-gray-500 mt-0.5">{comp.description}</div>
+                              <span className="font-semibold text-gray-900">₹ {formatINR(String(row.price))}</span>
+                              {row.description && (
+                                <div className="text-xs text-gray-500 mt-0.5">{row.description}</div>
                               )}
                             </div>
                           ) : (

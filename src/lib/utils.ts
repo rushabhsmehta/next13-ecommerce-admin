@@ -38,6 +38,32 @@ export function formatSafeDate(dateInput: string | Date, formatString: string = 
 }
 
 
+/** Avoid rendering literal "null"/"undefined" for optional itinerary date labels. */
+export function normalizeItineraryDays(days: string | null | undefined): string | null {
+  if (!days || days === "null" || days === "undefined") return null;
+  return days;
+}
+
+export function cleanItineraryTitle(title: string | null | undefined): string {
+  return title?.replace(/^<p>/, "").replace(/<\/p>$/, "") ?? "";
+}
+
+/** e.g. "Day 3 : 15-06-2026 - Shimla" or "Day 3 - Shimla" when date is missing. */
+export function formatItineraryDayHeader(itinerary: {
+  dayNumber?: number | null;
+  days?: string | null;
+  itineraryTitle?: string | null;
+}): string {
+  const dayNum = itinerary.dayNumber ?? "";
+  const days = normalizeItineraryDays(itinerary.days);
+  const title = cleanItineraryTitle(itinerary.itineraryTitle);
+
+  if (days && title) return `Day ${dayNum} : ${days} - ${title}`;
+  if (days) return `Day ${dayNum} : ${days}`;
+  if (title) return `Day ${dayNum} - ${title}`;
+  return `Day ${dayNum}`;
+}
+
 export function formatPrice(
   price: number | string,
   options: {

@@ -6,6 +6,7 @@ import {
   getActiveVariantIds,
   parseSelectedVariantIds,
 } from "@/lib/variant-display-utils";
+import { enrichVariantPricingData } from "@/lib/enrich-variant-pricing-data";
 
 const TourPackageQueryPDFWithVariantsPage = async (
   props: {
@@ -106,6 +107,16 @@ const TourPackageQueryPDFWithVariantsPage = async (
   });
 
   if (tourPackageQuery) {
+    (tourPackageQuery as any).variantPricingData = await enrichVariantPricingData({
+      tourStartsFrom: tourPackageQuery.tourStartsFrom,
+      tourEndsOn: tourPackageQuery.tourEndsOn,
+      itineraries: tourPackageQuery.itineraries,
+      variantRoomAllocations: (tourPackageQuery as any).variantRoomAllocations,
+      variantTransportDetails: (tourPackageQuery as any).variantTransportDetails,
+      variantPricingData: (tourPackageQuery as any).variantPricingData,
+      variantHotelOverrides: (tourPackageQuery as any).variantHotelOverrides,
+    });
+
     const activeVariantIds = getActiveVariantIds(tourPackageQuery);
 
     if (activeVariantIds.length === 0) {

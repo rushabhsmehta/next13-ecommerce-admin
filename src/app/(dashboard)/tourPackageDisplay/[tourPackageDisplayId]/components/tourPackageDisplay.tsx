@@ -3,6 +3,7 @@ import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, Plan
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackage, Itinerary, FlightDetails, Activity } from "@prisma/client";
 import Link from 'next/link';
+import { formatItineraryDayHeader } from '@/lib/utils';
 
 
 interface TourPackageDisplayProps {
@@ -382,7 +383,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
               <div>
                 <CardTitle className="text-xl font-bold"
                   dangerouslySetInnerHTML={{
-                    __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
+                    __html: formatItineraryDayHeader(itinerary),
                   }} />
               </div>
             </div>

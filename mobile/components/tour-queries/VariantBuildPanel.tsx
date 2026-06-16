@@ -35,9 +35,42 @@ function formatINR(n: number | null | undefined): string {
   return `Rs. ${Math.round(n).toLocaleString("en-IN")}`;
 }
 
-function positiveInt(text: string): number {
-  const parsed = Number.parseInt(text.replace(/[^0-9]/g, ""), 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+/** Allow empty qty while editing; coerce to at least 1 only when persisting. */
+function parseQuantityInput(text: string): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  const parsed = Number.parseInt(trimmed.replace(/[^0-9]/g, ""), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatQuantityValue(quantity: number | undefined): string {
+  if (quantity == null || quantity === 0) return "";
+  return String(quantity);
+}
+
+function normalizeBuildDraftForSave(draft: VariantBuildDraft): VariantBuildDraft {
+  const next = cloneVariantBuildDraft(draft);
+  for (const itineraryId of Object.keys(next.roomsByItinerary)) {
+    next.roomsByItinerary[itineraryId] = (next.roomsByItinerary[itineraryId] ?? []).map(
+      (room) => ({
+        ...room,
+        quantity: Math.max(1, room.quantity ?? 1),
+        extraBeds: (room.extraBeds ?? []).map((bed) => ({
+          ...bed,
+          quantity: Math.max(1, bed.quantity ?? 1),
+        })),
+      })
+    );
+  }
+  for (const itineraryId of Object.keys(next.transportByItinerary)) {
+    next.transportByItinerary[itineraryId] = (next.transportByItinerary[itineraryId] ?? []).map(
+      (row) => ({
+        ...row,
+        quantity: Math.max(1, row.quantity ?? 1),
+      })
+    );
+  }
+  return next;
 }
 
 type RoomPickerField = "roomTypeId" | "occupancyTypeId" | "mealPlanId";
@@ -335,7 +368,7 @@ export function VariantBuildPanel({
 
   const saveBuild = () => {
     if (!onSaveBuild || savingBuild || !dirty) return;
-    void onSaveBuild(variant, cloneVariantBuildDraft(draft));
+    void onSaveBuild(variant, normalizeBuildDraftForSave(draft));
   };
 
   return (
@@ -567,11 +600,13 @@ export function VariantBuildPanel({
                                   <LabeledInput
                                     label="Qty"
                                     testID={`variant-build-room-qty-${variant.id}-${day.id}-${roomIndex}`}
-                                    value={String(room.quantity || 1)}
+                                    value={formatQuantityValue(room.quantity)}
                                     editable={canEdit && !savingBuild}
                                     keyboardType="number-pad"
                                     onChangeText={(text) =>
-                                      updateRoom(day.id, roomIndex, { quantity: positiveInt(text) })
+                                      updateRoom(day.id, roomIndex, {
+                                        quantity: parseQuantityInput(text),
+                                      })
                                     }
                                   />
                                 </View>
@@ -650,7 +685,7 @@ export function VariantBuildPanel({
                                           <LabeledInput
                                             label="Qty"
                                             testID={`variant-build-extra-qty-${variant.id}-${day.id}-${roomIndex}-${extraIndex}`}
-                                            value={String(extra.quantity || 1)}
+                                            value={formatQuantityValue(extra.quantity)}
                                             editable={canEdit && !savingBuild}
                                             keyboardType="number-pad"
                                             onChangeText={(text) =>
@@ -658,7 +693,7 @@ export function VariantBuildPanel({
                                                 day.id,
                                                 roomIndex,
                                                 extraIndex,
-                                                { quantity: positiveInt(text) }
+                                                { quantity: parseQuantityInput(text) }
                                               )
                                             }
                                           />
@@ -798,12 +833,12 @@ export function VariantBuildPanel({
                                   <LabeledInput
                                     label="Qty"
                                     testID={`variant-build-transport-qty-${variant.id}-${day.id}-${transportIndex}`}
-                                    value={String(transport.quantity || 1)}
+                                    value={formatQuantityValue(transport.quantity)}
                                     editable={canEdit && !savingBuild}
                                     keyboardType="number-pad"
                                     onChangeText={(text) =>
                                       updateTransport(day.id, transportIndex, {
-                                        quantity: positiveInt(text),
+                                        quantity: parseQuantityInput(text),
                                       })
                                     }
                                   />

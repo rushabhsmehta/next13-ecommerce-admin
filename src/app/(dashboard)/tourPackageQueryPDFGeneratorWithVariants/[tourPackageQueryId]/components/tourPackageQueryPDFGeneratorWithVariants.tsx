@@ -4,6 +4,12 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { escapeAttr, safeUrl } from "@/lib/html-escape";
+import {
+  findPricingRowPrice,
+  getVariantPricingDisplayRows,
+  mergeVariantPricingRowLabels,
+  type VariantPricingEntry,
+} from "@/lib/variant-pricing-display";
 import { renderItineraryImages, renderActivityImages, resolvePdfImageUrl } from "@/lib/itinerary-image-html";
 import {
   Activity,
@@ -683,42 +689,24 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
     // Helper: get variantPricingData entry for a snapshot (keyed by sourceVariantId, falls back to snapshot id)
     const getVpd = (v: typeof variants[0]) =>
-      (variantPricingData?.[v.sourceVariantId] ?? variantPricingData?.[v.id]) as { components?: { name: string; price: string; description?: string }[]; totalCost?: number; remarks?: string } | undefined;
+      (variantPricingData?.[v.sourceVariantId] ?? variantPricingData?.[v.id]) as VariantPricingEntry | undefined;
+
+    const getSnapshotComponentsFlat = (v: typeof variants[0]) =>
+      v.pricingSnapshots.flatMap((ps) =>
+        ps.pricingComponentSnapshots.map((comp) => ({
+          attributeName: comp.attributeName,
+          price: comp.price,
+          description: comp.description,
+        }))
+      );
+
+    const variantDisplayRows = variants.map((v) =>
+      getVariantPricingDisplayRows(getVpd(v), getSnapshotComponentsFlat(v))
+    );
+    const pricingRowLabels = mergeVariantPricingRowLabels(variantDisplayRows);
 
     // Show section whenever we have variant data; show '—' if pricing not configured
     const hasPricing = variants.some(v => v.pricingSnapshots.length > 0 || !!getVpd(v)?.totalCost);
-
-    // Flat list of all pricing component snapshots for a variant (across all pricing snapshots in order)
-    const getComponentsFlat = (v: typeof variants[0]) =>
-      v.pricingSnapshots.flatMap(ps => ps.pricingComponentSnapshots);
-
-    // Build index-keyed row list to avoid de-duplicating components with the same name
-    const maxSnapshotRows = Math.max(...variants.map(v => getComponentsFlat(v).length), 0);
-    const maxVpdRows = Math.max(...variants.map(v => (getVpd(v)?.components || []).length), 0);
-    const totalRows = Math.max(maxSnapshotRows, maxVpdRows);
-
-    const rowLabels = Array.from({ length: totalRows }, (_, i) => {
-      for (const v of variants) {
-        const vpd = getVpd(v);
-        if ((vpd?.components as any)?.[i]?.name) return (vpd!.components as any)[i].name as string;
-        const comps = getComponentsFlat(v);
-        if (comps[i]?.attributeName) return comps[i].attributeName;
-      }
-      return `Item ${i + 1}`;
-    });
-
-    // Only keep rows that have at least one non-zero value
-    const pricingRows = rowLabels
-      .map((label, i) => ({ label, i }))
-      .filter(({ i }) =>
-        variants.some(v => {
-          const vpd = getVpd(v);
-          const vpdComp = (vpd?.components as any)?.[i];
-          if (vpdComp) return parseFloat(String(vpdComp.price || 0)) > 0;
-          const comp = getComponentsFlat(v)[i];
-          return comp ? parseFloat(String(comp.price || 0)) > 0 : false;
-        })
-      );
 
     const variantCount = variants.length;
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1.6)));
@@ -772,28 +760,16 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     });
     const minPrice = Math.min(...variantTotals.filter(t => t !== Infinity));
 
-    const compRows = pricingRows.map(({ label, i }, rowIdx) => {
-      const cells = variants.map(v => {
+    const compRows = pricingRowLabels.map((label, rowIdx) => {
+      const cells = variants.map((v, vidx) => {
         const bg = (rowIdx + 2) % 2 === 0 ? brandColors.white : '#FAFAFA';
-
-        // Prefer variantPricingData components (by index)
-        const vpd = getVpd(v);
-        const vpdComp = (vpd?.components as any)?.[i];
-        if (vpdComp) {
+        const row = findPricingRowPrice(variantDisplayRows[vidx], label);
+        if (row) {
           return `<td style="${tdBase} background: ${bg}; text-align: right;">
-            <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(String(vpdComp.price || 0))}</span>
+            <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(String(row.price))}</span>
+            ${row.description ? `<div style="font-size: 9px; color: ${brandColors.muted}; margin-top: 2px;">${row.description}</div>` : ''}
           </td>`;
         }
-
-        // Fallback to pricingSnapshots (by index across all snapshots)
-        const comp = getComponentsFlat(v)[i];
-        if (comp) {
-          return `<td style="${tdBase} background: ${bg}; text-align: right;">
-            <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(comp.price.toString())}</span>
-            ${(comp as any).description ? `<div style="font-size: 9px; color: ${brandColors.muted}; margin-top: 2px;">${(comp as any).description}</div>` : ''}
-          </td>`;
-        }
-
         return `<td style="${tdBase} background: ${bg}; text-align: center;"><span style="color: #D1D5DB;">—</span></td>`;
       }).join('');
       return `<tr style="page-break-inside: avoid; break-inside: avoid;"><td style="${tdLabel}">${label}</td>${cells}</tr>`;

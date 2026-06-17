@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Edit, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
-import { CldUploadWidget } from 'next-cloudinary';
+import { CalendarIcon, Edit, Image as ImageIcon, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import toast from 'react-hot-toast';
 import { BankAccount, CashAccount, ExpenseCategory, ExpenseDetail } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
+import { TransactionImageUploadButton } from '@/components/ui/transaction-image-upload-button';
 
 // Extended the ExpenseDetail to include images relationship
 interface ExpenseWithImages extends ExpenseDetail {
@@ -217,18 +217,18 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                         <ImageIcon className="h-3.5 w-3.5 text-green-600" />
                       </Button>
                     ) : null}
-                    <CldUploadWidget
-                      uploadPreset="ckwg6oej"
-                      onQueuesEnd={(result: any) => {
-                        const files = result?.info?.files || [];
-                        const newUrls = files
-                          .filter((f: any) => f.status === 'success')
-                          .map((f: any) => f.uploadInfo?.secure_url)
-                          .filter(Boolean);
-
-                        if (newUrls.length > 0) {
-                          setUploadingImageId(expense.id);
-
+                    <TransactionImageUploadButton
+                      isUploading={uploadingImageId === expense.id}
+                      title="Upload Image"
+                      iconClassName="h-3.5 w-3.5 text-blue-600"
+                      onUploadStart={() => setUploadingImageId(expense.id)}
+                      onError={(error) => {
+                        console.error('Error uploading image:', error);
+                        toast.error(error.message || 'Failed to upload image');
+                        setUploadingImageId(null);
+                      }}
+                      onUploaded={async (url) => {
+                        try {
                           const expenseData = {
                             expenseDate: expense.expenseDate,
                             amount: expense.amount,
@@ -237,48 +237,35 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                             tourPackageQueryId: expense.tourPackageQueryId,
                             bankAccountId: expense.bankAccountId,
                             cashAccountId: expense.cashAccountId,
-                            images: [...(expense.images?.map(img => img.url) || []), ...newUrls]
+                            images: [...(expense.images?.map((img) => img.url) || []), url],
                           };
 
-                          fetch(`/api/expenses/${expense.id}`, {
+                          const response = await fetch(`/api/expenses/${expense.id}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(expenseData),
-                          })
-                            .then(response => {
-                              if (!response.ok) throw new Error('Failed to upload image');
-                              toast.success('Image uploaded successfully');
-                              setLocalExpensesData(prevExpenses =>
-                                prevExpenses.map(exp =>
-                                  exp.id === expense.id
-                                    ? { ...exp, images: [...(exp.images || []), ...newUrls.map((url: string) => ({ url }))] }
-                                    : exp
-                                )
-                              );
-                            })
-                            .catch(error => {
-                              console.error('Error uploading image:', error);
-                              toast.error('Failed to upload image');
-                            })
-                            .finally(() => setUploadingImageId(null));
+                          });
+
+                          if (!response.ok) {
+                            throw new Error('Failed to save image');
+                          }
+
+                          toast.success('Image uploaded successfully');
+                          setLocalExpensesData((prevExpenses) =>
+                            prevExpenses.map((exp) =>
+                              exp.id === expense.id
+                                ? { ...exp, images: [...(exp.images || []), { url }] }
+                                : exp
+                            )
+                          );
+                        } catch (error) {
+                          console.error('Error saving expense image:', error);
+                          toast.error('Failed to save image');
+                        } finally {
+                          setUploadingImageId(null);
                         }
                       }}
-                    >
-                      {({ open }) => {
-                        return (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => open?.()}
-                            className="h-7 w-7 p-0"
-                            title="Upload Image"
-                            disabled={uploadingImageId === expense.id}
-                          >
-                            <Upload className={`h-3.5 w-3.5 text-blue-600 ${uploadingImageId === expense.id ? 'animate-spin' : ''}`} />
-                          </Button>
-                        );
-                      }}
-                    </CldUploadWidget>
+                    />
                     <Button
                       variant="ghost"
                       size="sm"

@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { importJsPdf } from "@/lib/lazy-jspdf";
 import { format } from 'date-fns';
-import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer, Building2 } from 'lucide-react';
-import { CldUploadWidget } from 'next-cloudinary';
+import { CalendarIcon, Edit, FileDown, Image as ImageIcon, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer, Building2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import toast from 'react-hot-toast';
 import { BankAccount, CashAccount, PaymentDetail, Supplier, Customer } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
+import { TransactionImageUploadButton } from '@/components/ui/transaction-image-upload-button';
 
 // Extended the PaymentDetail to include images relationship
 interface PaymentWithImages extends PaymentDetail {
@@ -60,7 +60,6 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [currentPaymentId, setCurrentPaymentId] = useState<string | null>(null);  // Track the current payment ID for image operations
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null); // Track which payment is currently uploading an image
-  const uploadedImagesRef = useRef<{ [id: string]: string[] }>({});
   // Update local state when props change
   useEffect(() => {
     setPaymentsData(initialPaymentsData);
@@ -367,92 +366,54 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                       >
                         <ImageIcon className="h-3.5 w-3.5 text-green-600" />
                       </Button>
-                    ) : null}                      <CldUploadWidget
-                      uploadPreset="ckwg6oej"
-                      onSuccess={(result: any) => {
-                        if (result.info && result.info.secure_url) {
-                          const url = result.info.secure_url;
-                          if (!uploadedImagesRef.current[payment.id]) {
-                            uploadedImagesRef.current[payment.id] = [];
-                          }
-                          uploadedImagesRef.current[payment.id].push(url);
-                        }
+                    ) : null}
+                    <TransactionImageUploadButton
+                      isUploading={uploadingImageId === payment.id}
+                      title="Upload Images"
+                      onUploadStart={() => setUploadingImageId(payment.id)}
+                      onError={(error) => {
+                        console.error('Error uploading image:', error);
+                        toast.error(error.message || 'Failed to upload image');
+                        setUploadingImageId(null);
                       }}
-                      onClose={() => {
-                        const newUrls = uploadedImagesRef.current[payment.id];
-                        if (newUrls && newUrls.length > 0) {
-                          // Set this payment as currently uploading
-                          setUploadingImageId(payment.id);
-
-                          // Prepare data for upload
+                      onUploaded={async (url) => {
+                        try {
                           const paymentData = {
                             supplierId: payment.supplierId,
                             paymentDate: payment.paymentDate,
                             amount: payment.amount,
                             bankAccountId: payment.bankAccountId,
                             cashAccountId: payment.cashAccountId,
-                            images: [...(payment.images?.map(img => img.url) || []), ...newUrls]
+                            images: [...(payment.images?.map((img) => img.url) || []), url],
                           };
-                          // Update directly
-                          fetch(`/api/payments/${payment.id}`, {
-                            method: 'PATCH',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(paymentData),
-                          })
-                            .then(response => {
-                              if (!response.ok) {
-                                throw new Error('Failed to upload image');
-                              }
-                              toast.success('Image uploaded successfully');
-                              // Update local state immediately to show the view button
-                              setPaymentsData(paymentsData.map(p => {
-                                if (p.id === payment.id) {
-                                  return {
-                                    ...p,
-                                    images: [...(p.images || []), ...newUrls.map(url => ({ url }))]
-                                  };
-                                }
-                                return p;
-                              }));
 
-                              // Also refresh from server for completeness
-                              onRefresh();
-                            })
-                            .catch(error => {
-                              console.error('Error uploading image:', error);
-                              toast.error('Failed to upload image');
-                            })
-                            .finally(() => {
-                              uploadedImagesRef.current[payment.id] = [];
-                              // Clear the uploading state
-                              setUploadingImageId(null);
-                            });
+                          const response = await fetch(`/api/payments/${payment.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(paymentData),
+                          });
+
+                          if (!response.ok) {
+                            throw new Error('Failed to save image');
+                          }
+
+                          toast.success('Image uploaded successfully');
+                          setPaymentsData(
+                            paymentsData.map((p) =>
+                              p.id === payment.id
+                                ? { ...p, images: [...(p.images || []), { url }] }
+                                : p
+                            )
+                          );
+                          onRefresh();
+                        } catch (error) {
+                          console.error('Error saving payment image:', error);
+                          toast.error('Failed to save image');
+                        } finally {
+                          setUploadingImageId(null);
                         }
                       }}
-                    >
-                      {({ open }) => (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => open()}
-                          className="h-7 w-7 p-0"
-                          disabled={uploadingImageId === payment.id}
-                          title="Upload Images"
-                        >                            {uploadingImageId === payment.id ? (
-                          <div className="h-3.5 w-3.5 flex items-center justify-center">
-                            <svg className="animate-spin text-purple-600 h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          </div>
-                        ) : (
-                          <Upload className="h-3.5 w-3.5 text-purple-600" />
-                        )}
-                        </Button>
-                      )}
-                    </CldUploadWidget>
+                    />
                     <Button
                       variant="ghost"
                       size="sm"

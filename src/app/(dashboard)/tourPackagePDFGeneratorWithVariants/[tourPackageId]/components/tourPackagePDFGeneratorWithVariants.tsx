@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { escapeAttr } from "@/lib/html-escape";
-import { renderItineraryImages, renderActivityImages } from "@/lib/itinerary-image-html";
+import { /* renderItineraryImages, */ renderActivityImages } from "@/lib/itinerary-image-html";
 import {
   Activity,
   FlightDetails,
@@ -369,7 +369,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
             </div>
           </div>
 
-          ${renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber)}
+          ${/* TEMP: itinerary images disabled - renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber) */ ''}
 
           <div style="padding: 16px;">
             ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `

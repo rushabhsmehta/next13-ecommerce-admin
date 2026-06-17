@@ -10,7 +10,7 @@ import {
   mergeVariantPricingRowLabels,
   type VariantPricingEntry,
 } from "@/lib/variant-pricing-display";
-import { renderItineraryImages, renderActivityImages, resolvePdfImageUrl } from "@/lib/itinerary-image-html";
+import { /* renderItineraryImages, */ renderActivityImages, resolvePdfImageUrl } from "@/lib/itinerary-image-html";
 import {
   Activity,
   FlightDetails,
@@ -1111,7 +1111,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
               </p>
             </div>
           </div>
-          ${renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber)}
+          ${/* TEMP: itinerary images disabled - renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber) */ ''}
           <div style="padding: 16px;">
             ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `
               <div style="margin-bottom: 20px;">

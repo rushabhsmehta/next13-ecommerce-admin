@@ -21,7 +21,8 @@
         "check-db-health": "node scripts/check-db-health.js",
         "test-runpod": "node scripts/tests/test-runpod-image-gen.js",
         "test:accounts": "node --test src/lib/tour-package-query-accounting*.test.cjs",
-        "test:mobile-inquiry-crud": "node tools/test-mobile-inquiry-crud.mjs"
+        "test:mobile-inquiry-crud": "node tools/test-mobile-inquiry-crud.mjs",
+        "migrate:cloudinary-to-r2": "node tools/migrate-cloudinary-to-r2.mjs"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.995.0",
@@ -66,7 +67,6 @@
         "bcryptjs": "^3.0.2",
         "canvg": "^4.0.3",
         "class-variance-authority": "^0.7.1",
-        "cloudinary": "^2.9.0",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
         "csv-parse": "^6.1.0",
@@ -89,7 +89,6 @@
         "linkedin-api-client": "^0.3.0",
         "lucide-react": "^0.475.0",
         "next": "16.1.6",
-        "next-cloudinary": "^6.17.5",
         "next-themes": "^0.4.6",
         "node-fetch": "^2.7.0",
         "openai": "^4.93.0",

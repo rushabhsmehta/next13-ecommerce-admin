@@ -33,7 +33,10 @@ backend-dev.log*
 # vercel
 .vercel
 
-# typescript
+# migration artifacts
+tools/.cloudinary-r2-map.json
+tools/cloudinary-migration-failures.json
+
 *.tsbuildinfo
 next-env.d.ts
 

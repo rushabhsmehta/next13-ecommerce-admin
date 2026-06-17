@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { importJsPdf } from "@/lib/lazy-jspdf";
 import { format } from 'date-fns';
-import { CldUploadWidget } from 'next-cloudinary';
-import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer, BadgeCheck } from 'lucide-react';
+import { CalendarIcon, Edit, FileDown, Image as ImageIcon, PlusCircleIcon, Trash2, User as UserIcon, Copy, Printer, BadgeCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import toast from 'react-hot-toast';
 import { BankAccount, CashAccount, Customer, ReceiptDetail, Supplier } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
+import { TransactionImageUploadButton } from '@/components/ui/transaction-image-upload-button';
 
 // Extended the ReceiptDetail to include images relationship
 interface ReceiptWithImages extends ReceiptDetail {
@@ -60,7 +60,6 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [currentReceiptId, setCurrentReceiptId] = useState<string | null>(null);  // Track the current receipt ID for image operations
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null); // Track which receipt is currently uploading an image
-  const uploadedImagesRef = useRef<{ [id: string]: string[] }>({});
   // Update local state when props change
   useEffect(() => {
     setReceiptsData(initialReceiptsData);
@@ -372,24 +371,18 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                       >
                         <ImageIcon className="h-3.5 w-3.5 text-green-600" />
                       </Button>
-                    ) : null}                      <CldUploadWidget
-                      uploadPreset="ckwg6oej"
-                      onSuccess={(result: any) => {
-                        if (result.info && result.info.secure_url) {
-                          const url = result.info.secure_url;
-                          if (!uploadedImagesRef.current[receipt.id]) {
-                            uploadedImagesRef.current[receipt.id] = [];
-                          }
-                          uploadedImagesRef.current[receipt.id].push(url);
-                        }
+                    ) : null}
+                    <TransactionImageUploadButton
+                      isUploading={uploadingImageId === receipt.id}
+                      title="Upload Images"
+                      onUploadStart={() => setUploadingImageId(receipt.id)}
+                      onError={(error) => {
+                        console.error('Error uploading image:', error);
+                        toast.error(error.message || 'Failed to upload image');
+                        setUploadingImageId(null);
                       }}
-                      onClose={() => {
-                        const newUrls = uploadedImagesRef.current[receipt.id];
-                        if (newUrls && newUrls.length > 0) {
-                          // Set this receipt as currently uploading
-                          setUploadingImageId(receipt.id);
-
-                          // Prepare data for upload
+                      onUploaded={async (url) => {
+                        try {
                           const receiptData = {
                             customerId: receipt.customerId,
                             receiptDate: receipt.receiptDate,
@@ -397,69 +390,36 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                             bankAccountId: receipt.bankAccountId,
                             cashAccountId: receipt.cashAccountId,
                             tourPackageQueryId: receipt.tourPackageQueryId,
-                            images: [...(receipt.images?.map(img => img.url) || []), ...newUrls]
+                            images: [...(receipt.images?.map((img) => img.url) || []), url],
                           };
 
-                          // Update directly
-                          fetch(`/api/receipts/${receipt.id}`, {
+                          const response = await fetch(`/api/receipts/${receipt.id}`, {
                             method: 'PATCH',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(receiptData),
-                          })
-                            .then(response => {
-                              if (!response.ok) {
-                                throw new Error('Failed to upload image');
-                              }
-                              toast.success('Image uploaded successfully');
-                              // Update local state immediately to show the view button
-                              setReceiptsData(receiptsData.map(r => {
-                                if (r.id === receipt.id) {
-                                  return {
-                                    ...r,
-                                    images: [...(r.images || []), ...newUrls.map(url => ({ url }))]
-                                  };
-                                }
-                                return r;
-                              }));
+                          });
 
-                              // Also refresh from server for completeness
-                              onRefresh();
-                            })
-                            .catch(error => {
-                              console.error('Error uploading image:', error);
-                              toast.error('Failed to upload image');
-                            })
-                            .finally(() => {
-                              uploadedImagesRef.current[receipt.id] = [];
-                              // Clear the uploading state
-                              setUploadingImageId(null);
-                            });
+                          if (!response.ok) {
+                            throw new Error('Failed to save image');
+                          }
+
+                          toast.success('Image uploaded successfully');
+                          setReceiptsData(
+                            receiptsData.map((r) =>
+                              r.id === receipt.id
+                                ? { ...r, images: [...(r.images || []), { url }] }
+                                : r
+                            )
+                          );
+                          onRefresh();
+                        } catch (error) {
+                          console.error('Error saving receipt image:', error);
+                          toast.error('Failed to save image');
+                        } finally {
+                          setUploadingImageId(null);
                         }
                       }}
-                    >
-                      {({ open }) => (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => open()}
-                          className="h-7 w-7 p-0"
-                          disabled={uploadingImageId === receipt.id}
-                          title="Upload Images"
-                        >                            {uploadingImageId === receipt.id ? (
-                          <div className="h-3.5 w-3.5 flex items-center justify-center">
-                            <svg className="animate-spin text-purple-600 h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          </div>
-                        ) : (
-                          <Upload className="h-3.5 w-3.5 text-purple-600" />
-                        )}
-                        </Button>
-                      )}
-                    </CldUploadWidget>
+                    />
                     <Button
                       variant="ghost"
                       size="sm"

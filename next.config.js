@@ -1,4 +1,28 @@
 /** @type {import('next').NextConfig} */
+
+function getR2PublicRemotePattern() {
+  const base = process.env.CLOUDFLARE_R2_PUBLIC_BASE_URL;
+  if (!base) {
+    return null;
+  }
+
+  try {
+    const url = new URL(base);
+    if (!url.hostname || url.hostname.endsWith('.r2.dev')) {
+      return null;
+    }
+
+    return {
+      protocol: url.protocol.replace(':', ''),
+      hostname: url.hostname,
+    };
+  } catch {
+    return null;
+  }
+}
+
+const r2CustomDomainPattern = getR2PublicRemotePattern();
+
 const nextConfig = {
   experimental: {
     optimizePackageImports: [
@@ -69,7 +93,8 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: '*.r2.dev',
-      }
+      },
+      ...(r2CustomDomainPattern ? [r2CustomDomainPattern] : []),
     ],
   },
 }

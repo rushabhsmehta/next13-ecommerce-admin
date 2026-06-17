@@ -22,7 +22,7 @@ import {
   parsePolicyField,
   renderBulletList,
 } from "@/lib/pdf";
-import { renderItineraryImages, renderActivityImages } from "@/lib/itinerary-image-html";
+import { /* renderItineraryImages, */ renderActivityImages } from "@/lib/itinerary-image-html";
 import { normalizeItineraryDays } from "@/lib/utils";
 
 // Variant snapshot types for standard PDF generator
@@ -1082,7 +1082,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         </div>
 
         <!-- Enhanced Itinerary Content -->
-        ${renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber)}
+        ${/* TEMP: itinerary images disabled - renderItineraryImages(itinerary.itineraryImages, itinerary.dayNumber) */ ''}
         <div style="padding: 16px;">
           ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `
             <div style="margin-bottom: 20px;">

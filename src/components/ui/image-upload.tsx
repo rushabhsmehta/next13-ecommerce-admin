@@ -1,12 +1,13 @@
 "use client";
 
-import { CldUploadWidget } from 'next-cloudinary';
-import { useEffect, useState, useId, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from "react";
 
-import { Button } from '@/components/ui/button';
-import Image from 'next/image';
-import { ImagePlus, Trash, Sparkles } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { ImagePlus, Trash, Sparkles, Loader2 } from "lucide-react";
 import { AIImageGeneratorModal } from "@/components/ui/ai-image-generator-modal";
+import { shouldUseUnoptimizedImage, uploadCmsImage } from "@/lib/cms-image-upload";
+import toast from "react-hot-toast";
 
 interface ImageUploadProps {
   disabled?: boolean;
@@ -26,35 +27,38 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   value,
   enableAI = false,
   autoPrompt,
-  aspectRatio = "1:1"
+  aspectRatio = "1:1",
 }) => {
   const [isMounted, setIsMounted] = useState(false);
-  // Generate a unique ID for this widget instance to prevent conflicts
-  const uniqueId = useId();
-  // Use a ref to store the widget ID to ensure it remains stable across re-renders
-  const widgetIdRef = useRef(`upload-widget-${uniqueId}-${Math.random().toString(36).substring(7)}`);
+  const [isUploading, setIsUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Memoize the onUpload callback to prevent unnecessary re-renders
-  const onUpload = useCallback((result: any) => {
-    if (result?.info?.secure_url) {
-      onChange(result.info.secure_url);
-    }
-    // Widget auto-closes after success and onClose may not fire reliably,
-    // so reset overflow here to prevent scroll getting stuck.
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-  }, [onChange]);
+  const handleFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) {
+        return;
+      }
 
-  // Cloudinary widget sometimes leaves body overflow:hidden after closing,
-  // which causes page scrolling to get stuck.
-  const onWidgetClose = useCallback(() => {
-    document.body.style.overflow = '';
-    document.documentElement.style.overflow = '';
-  }, []);
+      setIsUploading(true);
+      try {
+        const { url } = await uploadCmsImage(file);
+        onChange(url);
+        toast.success("Image uploaded");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Upload failed";
+        toast.error(message);
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [onChange]
+  );
 
   if (!isMounted) {
     return null;
@@ -75,60 +79,53 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               className="object-cover"
               alt="Image"
               src={url}
-              unoptimized={!url.includes("cloudinary.com")}
+              unoptimized={shouldUseUnoptimizedImage(url)}
             />
           </div>
         ))}
       </div>
-      <CldUploadWidget
-        onSuccess={onUpload}
-        onClose={onWidgetClose}
-        uploadPreset="ckwg6oej"
-        options={{
-          multiple: false,
-          maxFiles: 1,
-          clientAllowedFormats: ['image'],
-          sources: ['local', 'url', 'camera'],
-        }}
-      >
-        {({ open }) => {
-          const onClick = (e: React.MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            open();
-          };
-
-          return (
-            <div className="flex gap-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          disabled={disabled || isUploading}
+          variant="secondary"
+          onClick={() => inputRef.current?.click()}
+        >
+          {isUploading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <ImagePlus className="h-4 w-4 mr-2" />
+          )}
+          {isUploading ? "Uploading..." : "Upload an Image"}
+        </Button>
+        {enableAI && (
+          <AIImageGeneratorModal
+            onImageGenerated={(url) => onChange(url)}
+            autoPrompt={autoPrompt}
+            aspectRatio={aspectRatio}
+            trigger={
               <Button
                 type="button"
-                disabled={disabled}
-                variant="secondary"
-                onClick={onClick}
+                disabled={disabled || isUploading}
+                variant="outline"
+                className="border-indigo-200 hover:bg-indigo-50 text-indigo-700"
               >
-                <ImagePlus className="h-4 w-4 mr-2" />
-                Upload an Image
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate with AI
               </Button>
-              {enableAI && (
-                <AIImageGeneratorModal
-                  onImageGenerated={(url) => onChange(url)}
-                  autoPrompt={autoPrompt}
-                  aspectRatio={aspectRatio}
-                  trigger={
-                    <Button type="button" disabled={disabled} variant="outline" className="border-indigo-200 hover:bg-indigo-50 text-indigo-700">
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate with AI
-                    </Button>
-                  }
-                />
-              )}
-            </div>
-          );
-        }}
-      </CldUploadWidget>
-    </div >
+            }
+          />
+        )}
+      </div>
+    </div>
   );
-}
+};
 
 export default ImageUpload;
-

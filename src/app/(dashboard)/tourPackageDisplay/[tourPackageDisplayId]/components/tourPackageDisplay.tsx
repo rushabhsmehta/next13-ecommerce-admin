@@ -388,7 +388,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
               </div>
             </div>
 
-            {/* Fixed Size Image Section */}
+            {/* TEMP: itinerary images disabled
             <div className="grid break-inside-avoid" style={{ gridTemplateColumns: `repeat(${Math.min(itinerary.itineraryImages?.length || 1, 3)}, 1fr)` }}>
               {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
                 <div key={imageIndex} className="relative w-full" style={{ paddingBottom: '100%' }}>
@@ -401,6 +401,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                 </div>
               ))}
             </div>
+            */}
 
             {/* Description Section */}
             <div className="flex-grow p-8">

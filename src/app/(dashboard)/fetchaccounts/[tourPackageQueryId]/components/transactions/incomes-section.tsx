@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Edit, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
-import { CldUploadWidget } from 'next-cloudinary';
+import { CalendarIcon, Edit, Image as ImageIcon, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import toast from 'react-hot-toast';
 import { BankAccount, CashAccount, IncomeCategory, IncomeDetail } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
+import { TransactionImageUploadButton } from '@/components/ui/transaction-image-upload-button';
 
 // Extended the IncomeDetail to include images relationship
 interface IncomeWithImages extends IncomeDetail {
@@ -50,7 +50,6 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
     const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
     const [currentImages, setCurrentImages] = useState<string[]>([]);
     const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
-    const uploadedImagesRef = useRef<{ [id: string]: string[] }>({});
 
     // Update local state when the prop changes
     useEffect(() => {
@@ -212,24 +211,18 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
                                                 <ImageIcon className="h-3.5 w-3.5 text-green-600" />
                                             </Button>
                                         ) : null}
-                                        <CldUploadWidget
-                                            uploadPreset="ckwg6oej"
-                                            onSuccess={(result: any) => {
-                                                if (result.info && result.info.secure_url) {
-                                                    const url = result.info.secure_url;
-                                                    if (!uploadedImagesRef.current[income.id]) {
-                                                        uploadedImagesRef.current[income.id] = [];
-                                                    }
-                                                    uploadedImagesRef.current[income.id].push(url);
-                                                }
+                                        <TransactionImageUploadButton
+                                            isUploading={uploadingImageId === income.id}
+                                            title="Upload Image"
+                                            iconClassName="h-3.5 w-3.5 text-blue-600"
+                                            onUploadStart={() => setUploadingImageId(income.id)}
+                                            onError={(error) => {
+                                                console.error('Error uploading image:', error);
+                                                toast.error(error.message || 'Failed to upload image');
+                                                setUploadingImageId(null);
                                             }}
-                                            onClose={() => {
-                                                const newUrls = uploadedImagesRef.current[income.id];
-                                                if (newUrls && newUrls.length > 0) {
-                                                    // Set this income as currently uploading
-                                                    setUploadingImageId(income.id);
-
-                                                    // Prepare data for upload
+                                            onUploaded={async (url) => {
+                                                try {
                                                     const incomeData = {
                                                         incomeDate: income.incomeDate,
                                                         amount: income.amount,
@@ -238,58 +231,35 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
                                                         tourPackageQueryId: income.tourPackageQueryId,
                                                         bankAccountId: income.bankAccountId,
                                                         cashAccountId: income.cashAccountId,
-                                                        images: [...(income.images?.map(img => img.url) || []), ...newUrls]
+                                                        images: [...(income.images?.map((img) => img.url) || []), url],
                                                     };
 
-                                                    // Update directly
-                                                    fetch(`/api/incomes/${income.id}`, {
+                                                    const response = await fetch(`/api/incomes/${income.id}`, {
                                                         method: 'PATCH',
-                                                        headers: {
-                                                            'Content-Type': 'application/json',
-                                                        },
+                                                        headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify(incomeData),
-                                                    })
-                                                        .then(response => {
-                                                            if (!response.ok) {
-                                                                throw new Error('Failed to upload image');
-                                                            }
-                                                            toast.success('Image uploaded successfully');
+                                                    });
 
-                                                            // Update local state immediately to show the view button
-                                                            setLocalIncomesData(prevIncomes =>
-                                                                prevIncomes.map(inc =>
-                                                                    inc.id === income.id
-                                                                        ? { ...inc, images: [...(inc.images || []), ...newUrls.map(url => ({ url }))] }
-                                                                        : inc
-                                                                )
-                                                            );
-                                                        })
-                                                        .catch(error => {
-                                                            console.error('Error uploading image:', error);
-                                                            toast.error('Failed to upload image');
-                                                        })
-                                                        .finally(() => {
-                                                            uploadedImagesRef.current[income.id] = [];
-                                                            setUploadingImageId(null);
-                                                        });
+                                                    if (!response.ok) {
+                                                        throw new Error('Failed to save image');
+                                                    }
+
+                                                    toast.success('Image uploaded successfully');
+                                                    setLocalIncomesData((prevIncomes) =>
+                                                        prevIncomes.map((inc) =>
+                                                            inc.id === income.id
+                                                                ? { ...inc, images: [...(inc.images || []), { url }] }
+                                                                : inc
+                                                        )
+                                                    );
+                                                } catch (error) {
+                                                    console.error('Error saving income image:', error);
+                                                    toast.error('Failed to save image');
+                                                } finally {
+                                                    setUploadingImageId(null);
                                                 }
                                             }}
-                                        >
-                                            {({ open }) => {
-                                                return (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => open?.()}
-                                                        className="h-7 w-7 p-0"
-                                                        title="Upload Image"
-                                                        disabled={uploadingImageId === income.id}
-                                                    >
-                                                        <Upload className={`h-3.5 w-3.5 text-blue-600 ${uploadingImageId === income.id ? 'animate-spin' : ''}`} />
-                                                    </Button>
-                                                );
-                                            }}
-                                        </CldUploadWidget>
+                                        />
                                         <Button
                                             variant="ghost"
                                             size="sm"

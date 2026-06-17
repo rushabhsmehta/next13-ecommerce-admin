@@ -16,7 +16,15 @@ allprojects {
   repositories {
     google()
     mavenCentral()
-    maven { url 'https://www.jitpack.io' }
+    maven {
+      // Only resolve JitPack-hosted artifacts here. Without content filtering,
+      // Gradle queries JitPack for every dependency (e.g. org.bouncycastle from
+      // expo-updates), which often times out on EAS builders.
+      url 'https://www.jitpack.io'
+      content {
+        includeGroupByRegex "com\\.github.*"
+      }
+    }
     maven {
       // All of Detox's dependencies are located in the npm package
       url "$rootDir/../node_modules/detox/android"

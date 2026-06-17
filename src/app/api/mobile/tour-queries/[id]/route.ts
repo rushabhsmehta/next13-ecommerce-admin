@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
@@ -204,7 +205,7 @@ function remapVariantBuildItineraryKeys(
   source: unknown,
   oldIdToDay: Map<string, number>,
   dayToNewId: Map<number, string>
-): Record<string, unknown> {
+): Prisma.InputJsonValue {
   const root = parseJsonRecord(source);
   const next: Record<string, unknown> = {};
   for (const [variantKey, byItinerary] of Object.entries(root)) {
@@ -218,7 +219,7 @@ function remapVariantBuildItineraryKeys(
     }
     next[variantKey] = remapped;
   }
-  return next;
+  return next as Prisma.InputJsonValue;
 }
 
 export async function GET(

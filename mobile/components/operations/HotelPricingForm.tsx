@@ -151,7 +151,7 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
   const loadLookups = useCallback(async () => {
     setLookupsLoading(true);
     try {
-      const hotel = await client.getHotel(hotelId);
+      const { hotel } = await client.getHotel(hotelId);
       const lookups = await client.getHotelPricingLookups(hotel.locationId);
       setRoomTypes(lookups.roomTypes.map((r) => ({ id: r.id, label: r.name })));
       setOccupancies(

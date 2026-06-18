@@ -10,10 +10,12 @@ import { enrichVariantPricingData } from "@/lib/enrich-variant-pricing-data";
 
 const TourPackageQueryPDFWithVariantsPage = async (
   props: {
-    params: Promise<{ tourPackageQueryId: string }>
+    params: Promise<{ tourPackageQueryId: string }>;
+    searchParams: Promise<{ print?: string; search?: string }>;
   }
 ) => {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryId,
@@ -207,6 +209,8 @@ const TourPackageQueryPDFWithVariantsPage = async (
           occupancyTypes={occupancyTypes}
           mealPlans={mealPlans}
           vehicleTypes={vehicleTypes}
+          printMode={searchParams.print === "1"}
+          initialSearchOption={searchParams.search}
         />
       </div>
     </div>

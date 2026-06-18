@@ -7,6 +7,10 @@ import {
   requireOperationsWrite,
 } from "@/app/api/mobile/lib/assert-operations-access";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import {
+  mapSupplierLocations,
+  supplierLocationsSelect,
+} from "@/app/api/mobile/lib/supplier-locations";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +20,7 @@ const updateSchema = z.object({
   email: z.string().email().optional().nullable().or(z.literal("")),
   gstNumber: z.string().max(30).optional().nullable(),
   address: z.string().max(2000).optional().nullable(),
+  locationIds: z.array(z.string().min(1)).optional(),
 });
 
 export async function GET(
@@ -30,7 +35,7 @@ export async function GET(
     if (!guard.ok) return guard.response;
     if (!params.id) return new NextResponse("Missing id", { status: 400 });
 
-    const supplier = await prismadb.supplier.findUnique({
+    const supplierRow = await prismadb.supplier.findUnique({
       where: { id: params.id },
       select: {
         id: true,
@@ -39,9 +44,16 @@ export async function GET(
         email: true,
         gstNumber: true,
         address: true,
+        ...supplierLocationsSelect,
       },
     });
-    if (!supplier) return new NextResponse("Not found", { status: 404 });
+    if (!supplierRow) return new NextResponse("Not found", { status: 404 });
+
+    const { locations: locationLinks, ...supplierCore } = supplierRow;
+    const supplier = {
+      ...supplierCore,
+      locations: mapSupplierLocations(locationLinks),
+    };
 
     const [purchaseCount, recent] = await Promise.all([
       prismadb.purchaseDetail.count({ where: { supplierId: params.id } }),
@@ -92,24 +104,53 @@ export async function PATCH(
     }
     const v = parsed.data;
 
-    const supplier = await prismadb.supplier.update({
-      where: { id: params.id },
-      data: {
-        name: v.name.trim(),
-        contact: v.contact?.trim() || null,
-        email: v.email && v.email.trim() ? v.email.trim() : null,
-        gstNumber: v.gstNumber?.trim() || null,
-        address: v.address?.trim() || null,
-      },
-      select: { id: true, name: true },
+    await prismadb.$transaction(async (tx) => {
+      await tx.supplier.update({
+        where: { id: params.id },
+        data: {
+          name: v.name.trim(),
+          contact: v.contact?.trim() || null,
+          email: v.email && v.email.trim() ? v.email.trim() : null,
+          gstNumber: v.gstNumber?.trim() || null,
+          address: v.address?.trim() || null,
+        },
+      });
+
+      if (v.locationIds !== undefined) {
+        await tx.supplierLocation.deleteMany({ where: { supplierId: params.id } });
+        if (v.locationIds.length > 0) {
+          await tx.supplierLocation.createMany({
+            data: v.locationIds.map((locationId) => ({
+              supplierId: params.id,
+              locationId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
     });
+
+    const saved = await prismadb.supplier.findUnique({
+      where: { id: params.id },
+      select: { id: true, name: true, ...supplierLocationsSelect },
+    });
+    if (!saved) return new NextResponse("Not found", { status: 404 });
+
+    const supplier = {
+      id: saved.id,
+      name: saved.name,
+      locations: mapSupplierLocations(saved.locations),
+    };
 
     await recordMobileAudit({
       userId,
       entityType: "Supplier",
       entityId: supplier.id,
       action: "UPDATE",
-      metadata: { name: supplier.name },
+      metadata: {
+        name: supplier.name,
+        locationCount: supplier.locations.length,
+      },
     });
 
     return NextResponse.json(supplier);

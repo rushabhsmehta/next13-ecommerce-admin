@@ -5,6 +5,11 @@
  */
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
 
+export interface SupplierLocationRef {
+  id: string;
+  label: string;
+}
+
 export interface Supplier {
   id: string;
   name: string;
@@ -12,6 +17,7 @@ export interface Supplier {
   email: string | null;
   gstNumber: string | null;
   address: string | null;
+  locations?: SupplierLocationRef[];
 }
 
 export interface SupplierListResponse {
@@ -39,6 +45,7 @@ export interface SupplierInput {
   email?: string | null;
   gstNumber?: string | null;
   address?: string | null;
+  locationIds?: string[];
 }
 
 function idemKey(prefix: string): string {

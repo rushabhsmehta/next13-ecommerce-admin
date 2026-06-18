@@ -251,7 +251,12 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
  */
 export async function generatePDFFromUrl(
   url: string,
-  options?: GeneratePdfOptions & { waitMs?: number; disableJavaScript?: boolean }
+  options?: GeneratePdfOptions & {
+    waitMs?: number;
+    disableJavaScript?: boolean;
+    /** Wait for this selector before printing (e.g. `[data-pdf-ready="1"]`). */
+    waitForSelector?: string;
+  }
 ): Promise<Buffer> {
   if (!url) {
     throw new Error("A page URL is required to generate a PDF.");
@@ -319,6 +324,12 @@ export async function generatePDFFromUrl(
             new Promise<void>((resolve) => setTimeout(resolve, 20000)),
           ]);
         })
+        .catch(() => {});
+    }
+
+    if (options?.waitForSelector) {
+      await page
+        .waitForSelector(options.waitForSelector, { timeout: 60000 })
         .catch(() => {});
     }
 

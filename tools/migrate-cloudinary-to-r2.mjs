@@ -9,7 +9,7 @@
  *   node tools/migrate-cloudinary-to-r2.mjs --apply      # download, upload, update DB
  *   node tools/migrate-cloudinary-to-r2.mjs --apply --limit=50   # batch 50 URLs per run
  *   node tools/migrate-cloudinary-to-r2.mjs --apply --whatsapp  # include WhatsApp DB
- *   node tools/migrate-cloudinary-to-r2.mjs --apply-map-only    # rewrite DB from tools/.cloudinary-r2-map.json only
+ *   node tools/migrate-cloudinary-to-r2.mjs --apply --skip-db-update  # upload only; DB rewrite later
  *
  * If Cloudinary returns HTTP 401, restore/reactivate the account (or add manual
  * entries to tools/.cloudinary-r2-map.json) before running --apply.
@@ -34,6 +34,8 @@ dotenv.config({ path: join(ROOT, ".env.local"), override: true });
 
 const APPLY = process.argv.includes("--apply");
 const APPLY_MAP_ONLY = process.argv.includes("--apply-map-only");
+const SKIP_DB_UPDATE = process.argv.includes("--skip-db-update");
+const JSON_ONLY = process.argv.includes("--json-only");
 const INCLUDE_WHATSAPP = process.argv.includes("--whatsapp");
 const LIMIT_ARG = process.argv.find((arg) => arg.startsWith("--limit="));
 const LIMIT = LIMIT_ARG ? Number(LIMIT_ARG.split("=")[1]) : null;
@@ -542,6 +544,177 @@ async function collectWhatsappRefs() {
   }
 }
 
+const BULK_STRING_COLUMNS = [
+  { table: "Images", column: "url" },
+  { table: "Location", column: "imageUrl" },
+  { table: "TourDestination", column: "imageUrl" },
+  { table: "Organization", column: "logoUrl" },
+  { table: "QueryVariantHotelSnapshot", column: "imageUrl" },
+  { table: "ChatGroup", column: "imageUrl" },
+  { table: "TravelAppUser", column: "avatarUrl" },
+  { table: "ChatMessage", column: "fileUrl" },
+];
+
+const BULK_RICH_TEXT_COLUMNS = [
+  { table: "TourPackage", column: "offerSubtitle" },
+  { table: "ChatMessage", column: "content" },
+];
+
+function chunkEntries(entries, size) {
+  const chunks = [];
+  for (let i = 0; i < entries.length; i += size) {
+    chunks.push(entries.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function applyBulkStringColumns(urlMap) {
+  const entries = Object.entries(urlMap);
+  const chunks = chunkEntries(entries, 100);
+  let affected = 0;
+
+  for (const { table, column } of BULK_STRING_COLUMNS) {
+    console.log(`  bulk ${table}.${column} (${chunks.length} batches)...`);
+    for (const chunk of chunks) {
+      const whenSql = chunk.map(() => "WHEN ? THEN ?").join(" ");
+      const inSql = chunk.map(() => "?").join(", ");
+      const params = [
+        ...chunk.flatMap(([oldUrl, newUrl]) => [oldUrl, newUrl]),
+        ...chunk.map(([oldUrl]) => oldUrl),
+      ];
+      const sql = `UPDATE \`${table}\` SET \`${column}\` = CASE \`${column}\` ${whenSql} END WHERE \`${column}\` IN (${inSql})`;
+      const count = await prisma.$executeRawUnsafe(sql, ...params);
+      if (typeof count === "number") {
+        affected += count;
+      }
+    }
+  }
+
+  return affected;
+}
+
+async function applyBulkRichTextColumns(urlMap) {
+  const entries = Object.entries(urlMap);
+  const chunks = chunkEntries(entries, 25);
+  let affected = 0;
+
+  for (const { table, column } of BULK_RICH_TEXT_COLUMNS) {
+    console.log(`  bulk replace ${table}.${column} (${chunks.length} batches)...`);
+    for (const chunk of chunks) {
+      const replaceExpr = chunk.map(() => `REPLACE(??, ?, ?)`).join(", ");
+      // Build nested REPLACE: REPLACE(REPLACE(col, o1, n1), o2, n2)...
+      let expr = `\`${column}\``;
+      const params = [];
+      for (const [oldUrl, newUrl] of chunk) {
+        expr = `REPLACE(${expr}, ?, ?)`;
+        params.push(oldUrl, newUrl);
+      }
+      const sql = `UPDATE \`${table}\` SET \`${column}\` = ${expr} WHERE \`${column}\` LIKE '%cloudinary.com%'`;
+      const count = await prisma.$executeRawUnsafe(sql, ...params);
+      if (typeof count === "number") {
+        affected += count;
+      }
+    }
+  }
+
+  return affected;
+}
+
+const MODEL_TABLE = {
+  location: "Location",
+  tourPackage: "TourPackage",
+  tourPackageQuery: "TourPackageQuery",
+};
+
+async function applyBulkJsonColumns(urlMap) {
+  const entries = Object.entries(urlMap);
+  let affected = 0;
+  let processed = 0;
+
+  for (const config of JSON_FIELD_CONFIG) {
+    const table = MODEL_TABLE[config.model];
+    if (!table) continue;
+
+    for (const column of config.fields) {
+      console.log(`  bulk json ${table}.${column} (${entries.length} url replacements)...`);
+      for (const [oldUrl, newUrl] of entries) {
+        try {
+          const sql = `UPDATE \`${table}\` SET \`${column}\` = CAST(REPLACE(CAST(\`${column}\` AS CHAR), ?, ?) AS JSON) WHERE \`${column}\` IS NOT NULL AND CAST(\`${column}\` AS CHAR) LIKE ?`;
+          const count = await prisma.$executeRawUnsafe(sql, oldUrl, newUrl, `%${oldUrl}%`);
+          if (typeof count === "number") {
+            affected += count;
+          }
+        } catch {
+          // Invalid JSON after replace — skip this url/column
+        }
+        processed += 1;
+        if (processed % 500 === 0) {
+          console.log(`    ... ${processed} url replacements applied`);
+        }
+      }
+    }
+  }
+
+  return affected;
+}
+
+async function applyMapOnlyFast(urlMap, options = {}) {
+  const { jsonOnly = false } = options;
+  console.log(`\nFast apply-map-only (bulk SQL${jsonOnly ? ", JSON columns only" : ""})...`);
+  let bulkAffected = 0;
+  if (!jsonOnly) {
+    bulkAffected +=
+      (await applyBulkStringColumns(urlMap)) + (await applyBulkRichTextColumns(urlMap));
+  }
+  bulkAffected += await applyBulkJsonColumns(urlMap);
+  console.log(`\nUpdated ${bulkAffected} records (row count estimate).`);
+  console.log("Done.");
+  return bulkAffected;
+}
+async function applyDatabaseUpdates(allRefs, urlMap) {
+  console.log("\nApplying bulk SQL updates for direct URL columns...");
+  const bulkAffected =
+    (await applyBulkStringColumns(urlMap)) +
+    (await applyBulkRichTextColumns(urlMap)) +
+    (await applyBulkJsonColumns(urlMap));
+  console.log(`  bulk rows affected: ${bulkAffected}`);
+
+  const jsonAndPartialRefs = allRefs.filter((ref) => {
+    if (ref.isJson) {
+      const urls = extractCloudinaryUrls(ref.value);
+      return urls.length > 0 && urls.every((url) => urlMap[url]);
+    }
+    return false;
+  });
+
+  if (!jsonAndPartialRefs.length) {
+    return bulkAffected;
+  }
+
+  console.log(`\nUpdating ${jsonAndPartialRefs.length} JSON field references...`);
+  let updated = 0;
+  let index = 0;
+  const concurrency = Number(process.env.MIGRATION_DB_CONCURRENCY || 3);
+
+  async function worker() {
+    while (index < jsonAndPartialRefs.length) {
+      const current = index;
+      index += 1;
+      const ref = jsonAndPartialRefs[current];
+      const changed = await applyDirectUpdate(ref, urlMap);
+      if (changed) {
+        updated += 1;
+      }
+      if (updated > 0 && updated % 200 === 0) {
+        console.log(`  ... ${updated} JSON records updated`);
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+  return bulkAffected + updated;
+}
+
 async function applyDirectUpdate(ref, urlMap) {
   const nextValue = ref.isRich
     ? replaceInString(ref.value, urlMap)
@@ -586,8 +759,15 @@ async function main() {
   console.log(`Mode: ${APPLY_MAP_ONLY ? "APPLY MAP ONLY" : APPLY ? "APPLY" : "DRY RUN"}`);
   console.log(`WhatsApp DB: ${INCLUDE_WHATSAPP ? "yes" : "no"}`);
 
-  const r2 = APPLY && !APPLY_MAP_ONLY ? loadR2Client() : null;
   const urlMap = loadUrlMap();
+  console.log(`Already mapped in ${MAP_PATH}: ${Object.keys(urlMap).length}`);
+
+  if (APPLY_MAP_ONLY && Object.keys(urlMap).length > 0) {
+    await applyMapOnlyFast(urlMap, { jsonOnly: JSON_ONLY });
+    return;
+  }
+
+  const r2 = APPLY && !APPLY_MAP_ONLY ? loadR2Client() : null;
   const failures = [];
 
   const directRefs = await collectDirectStringRefs();
@@ -650,6 +830,11 @@ async function main() {
     return;
   }
 
+  if (SKIP_DB_UPDATE && !APPLY_MAP_ONLY) {
+    console.log("\nSkipping database updates (--skip-db-update). Run --apply-map-only when uploads finish.");
+    return;
+  }
+
   const pendingRefs = allRefs.filter((ref) => {
     const urls = ref.isJson || ref.isRich
       ? extractCloudinaryUrls(ref.value)
@@ -665,18 +850,7 @@ async function main() {
   }
 
   console.log("\nUpdating database references...");
-  let updated = 0;
-  for (const ref of allRefs) {
-    const urls = ref.isJson || ref.isRich
-      ? extractCloudinaryUrls(ref.value)
-      : isCloudinaryUrl(ref.value) ? [ref.value] : [];
-
-    if (!urls.length) continue;
-    if (urls.some((url) => !urlMap[url])) continue;
-
-    const changed = await applyDirectUpdate(ref, urlMap);
-    if (changed) updated += 1;
-  }
+  const updated = await applyDatabaseUpdates(allRefs, urlMap);
 
   console.log(`\nUpdated ${updated} records.`);
   console.log("Done.");

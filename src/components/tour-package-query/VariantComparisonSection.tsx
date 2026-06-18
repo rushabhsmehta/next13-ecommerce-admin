@@ -15,6 +15,10 @@ import {
   mergeVariantPricingRowLabels,
   type VariantPricingEntry,
 } from "@/lib/variant-pricing-display";
+import {
+  formatDiscountLabel,
+  hasAppliedVariantDiscount,
+} from "@/lib/variant-pricing-discount";
 
 interface VariantHotelSnapshot {
   id: string;
@@ -159,6 +163,9 @@ export function VariantComparisonSection({
   const minPrice = Math.min(...variantTotals.filter(t => t !== Infinity));
 
   const hasPricing = variants.some(v => v.pricingSnapshots.length > 0 || !!getVpd(v)?.totalCost);
+  const showDiscountRow = variants.some((v) =>
+    hasAppliedVariantDiscount(getVpd(v)?.appliedDiscount)
+  );
 
   return (
     <div className="space-y-8">
@@ -393,6 +400,31 @@ export function VariantComparisonSection({
                     })}
                   </tr>
                 ))}
+
+                {showDiscountRow && (
+                  <tr className="divide-x divide-orange-200 bg-emerald-50">
+                    <td className="px-4 py-3 font-semibold text-emerald-800 bg-emerald-50">Discount</td>
+                    {variants.map((variant) => {
+                      const discount = getVpd(variant)?.appliedDiscount;
+                      return (
+                        <td key={`discount-${variant.id}`} className="px-4 py-3 text-center">
+                          {hasAppliedVariantDiscount(discount) ? (
+                            <div>
+                              <div className="font-semibold text-emerald-700">
+                                - ₹ {formatINR(String(discount!.amount))}
+                              </div>
+                              <div className="text-[10px] text-emerald-600 mt-0.5">
+                                {formatDiscountLabel(discount).replace(/^Discount\s*/, "")}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
 
                 {/* Total Row */}
                 <tr className="divide-x divide-orange-200 bg-orange-50 border-t-2 border-red-500">

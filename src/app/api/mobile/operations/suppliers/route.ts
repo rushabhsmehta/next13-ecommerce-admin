@@ -11,6 +11,11 @@ import {
   findPriorIdempotentEntityId,
 } from "@/app/api/mobile/lib/finance-guard";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
+import {
+  mapSupplierLocations,
+  supplierLocationCreateInput,
+  supplierLocationsSelect,
+} from "@/app/api/mobile/lib/supplier-locations";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +25,7 @@ const createSchema = z.object({
   email: z.string().email().optional().nullable().or(z.literal("")),
   gstNumber: z.string().max(30).optional().nullable(),
   address: z.string().max(2000).optional().nullable(),
+  locationIds: z.array(z.string().min(1)).optional(),
 });
 
 /** Supplier directory — list + create. operations.read / .write. */
@@ -113,8 +119,9 @@ export async function POST(req: Request) {
         email: v.email && v.email.trim() ? v.email.trim() : null,
         gstNumber: v.gstNumber?.trim() || null,
         address: v.address?.trim() || null,
+        ...supplierLocationCreateInput(v.locationIds),
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, ...supplierLocationsSelect },
     });
 
     await recordMobileAudit({
@@ -125,7 +132,14 @@ export async function POST(req: Request) {
       metadata: { idempotencyKey: key ?? undefined, name: supplier.name },
     });
 
-    return NextResponse.json(supplier, { status: 201 });
+    return NextResponse.json(
+      {
+        id: supplier.id,
+        name: supplier.name,
+        locations: mapSupplierLocations(supplier.locations),
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.log("[MOBILE_OPS_SUPPLIERS_POST]", error);
     return new NextResponse("Internal error", { status: 500 });

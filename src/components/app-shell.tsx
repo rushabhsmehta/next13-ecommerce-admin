@@ -19,6 +19,7 @@ const CHROMELESS_PREFIXES = [
   "/tourpackagequeryvariantdisplay",
   "/tourpackagequerypdfgenerator",
   "/tourpackagequerypdfgeneratorwithvariants",
+  "/tourpackagequeryvoucherdisplay",
   "/tourpackagepdfgenerator",
   "/tourpackagepdfgeneratorwithvariants",
 ];

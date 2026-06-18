@@ -10,6 +10,10 @@ import {
   mergeVariantPricingRowLabels,
   type VariantPricingEntry,
 } from "@/lib/variant-pricing-display";
+import {
+  formatDiscountLabel,
+  hasAppliedVariantDiscount,
+} from "@/lib/variant-pricing-discount";
 import { /* renderItineraryImages, */ renderActivityImages, resolvePdfImageUrl } from "@/lib/itinerary-image-html";
 import {
   Activity,
@@ -99,6 +103,10 @@ interface TourPackageQueryPDFGeneratorWithVariantsProps {
   occupancyTypes: OccupancyType[];
   mealPlans: MealPlan[];
   vehicleTypes: VehicleType[];
+  /** Passed from the server page when `?print=1` so Puppeteer SSR includes full HTML. */
+  printMode?: boolean;
+  /** Passed from the server page when `?search=` is set (mobile PDF pipeline). */
+  initialSearchOption?: string;
 }
 
 // Company info imported from @/lib/pdf
@@ -113,13 +121,15 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
   occupancyTypes,
   mealPlans,
   vehicleTypes,
+  printMode: printModeProp,
+  initialSearchOption,
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedOption = searchParams?.get("search") || "Empty";
+  const selectedOption = (initialSearchOption ?? searchParams?.get("search")) || "Empty";
   // Print mode: server-side PDF pipeline renders inline HTML (no auth-protected
   // /api/generate-pdf call). See generatePDFFromUrl + /api/mobile/**/pdf routes.
-  const printMode = searchParams?.get("print") === "1";
+  const printMode = printModeProp ?? searchParams?.get("print") === "1";
   const [loading, setLoading] = useState(false);
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
@@ -292,7 +302,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
     const variantPricingData = (initialData as any)?.variantPricingData as Record<string, any> | null | undefined;
     const getVpd = (v: typeof variants[0]) =>
-      (variantPricingData?.[v.sourceVariantId] ?? variantPricingData?.[v.id]) as { components?: { name: string; price: string; description?: string }[]; totalCost?: number; remarks?: string } | undefined;
+      (variantPricingData?.[v.sourceVariantId] ?? variantPricingData?.[v.id]) as VariantPricingEntry | undefined;
 
     const allDays = Array.from(new Set(
       variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
@@ -416,6 +426,25 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       return `<tr><td style="${tdLabel} background: ${brandColors.light}; color: ${brandColors.primary}; font-size: 13px;">💰 Total Price</td>${cells}</tr>`;
     })();
 
+    const showDiscountRow = variants.some((v) =>
+      hasAppliedVariantDiscount(getVpd(v)?.appliedDiscount)
+    );
+    const discountRow = showDiscountRow
+      ? (() => {
+          const cells = variants.map((v) => {
+            const discount = getVpd(v)?.appliedDiscount;
+            if (!hasAppliedVariantDiscount(discount)) {
+              return `<td style="${tdBase} background: #ECFDF5; text-align: center; color: #D1D5DB;">—</td>`;
+            }
+            return `<td style="${tdBase} background: #ECFDF5; text-align: center;">
+              <div style="font-weight: 700; color: #047857;">- ₹ ${formatINR(String(discount!.amount))}</div>
+              <div style="font-size: 9px; color: #059669; margin-top: 2px;">${formatDiscountLabel(discount).replace(/^Discount\\s*/, "")}</div>
+            </td>`;
+          }).join("");
+          return `<tr><td style="${tdLabel} background: #ECFDF5; color: #047857; font-weight: 700;">Discount</td>${cells}</tr>`;
+        })()
+      : "";
+
     const variantHeaders = variants.map(v => `
       <th style="${thBase} background: ${brandColors.primary}; color: white; width: ${dataColPct}%;">
         ${v.name}
@@ -474,6 +503,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   <tbody>
                     ${metaRows}
                     ${compRows}
+                    ${discountRow}
                     ${totalRow}
                   </tbody>
                 </table>
@@ -790,6 +820,28 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </tr>`;
     })();
 
+    const showDiscountRow = variants.some((v) =>
+      hasAppliedVariantDiscount(getVpd(v)?.appliedDiscount)
+    );
+    const discountRow = showDiscountRow
+      ? (() => {
+          const cells = variants.map((v) => {
+            const discount = getVpd(v)?.appliedDiscount;
+            if (!hasAppliedVariantDiscount(discount)) {
+              return `<td style="${tdBase} background: #ECFDF5; text-align: center; color: #D1D5DB; border-top: 1px solid ${brandColors.border};">—</td>`;
+            }
+            return `<td style="${tdBase} background: #ECFDF5; text-align: center; border-top: 1px solid ${brandColors.border};">
+              <div style="font-weight: 700; color: #047857;">- ₹ ${formatINR(String(discount!.amount))}</div>
+              <div style="font-size: 9px; color: #059669; margin-top: 2px;">${formatDiscountLabel(discount).replace(/^Discount\\s*/, "")}</div>
+            </td>`;
+          }).join("");
+          return `<tr style="page-break-inside: avoid; break-inside: avoid;">
+            <td style="${tdLabel} background: #ECFDF5; color: #047857; font-weight: 700; border-top: 1px solid ${brandColors.border};">Discount</td>
+            ${cells}
+          </tr>`;
+        })()
+      : "";
+
     const noPricingNote = !hasPricing ? `
       <div style="margin-top: 10px; padding: 6px 10px; background: #FEF9C3; border-radius: 4px;">
         <span style="font-size: 10px; color: #713F12; font-style: italic;">⚠ No pricing data found. Please enter pricing in the Variants Pricing Tab and save.</span>
@@ -824,6 +876,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
               </thead>
               <tbody>
                 ${compRows}
+                ${discountRow}
                 ${totalRow}
               </tbody>
             </table>
@@ -1096,8 +1149,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
       itinerariesSection += initialData.itineraries.map((itinerary, dayIndex) => {
         return `
-        <div style="${cardStyle}; margin-bottom: 20px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
-          <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid ${brandColors.border};">
+        <div style="${cardStyle}; margin-bottom: 20px; ${dayIndex > 0 ? pageBreakBefore : ''}">
+          <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid ${brandColors.border}; page-break-inside: avoid; break-inside: avoid-page;">
             <div style="background: ${brandColors.primary}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;">
               <span style="font-size: 7px; font-weight: 700; text-transform: uppercase;">DAY</span>
               <span style="font-size: 14px; font-weight: 800; line-height: 1.1;">${itinerary.dayNumber}</span>
@@ -1421,7 +1474,12 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
   if (!initialData) return <div>No data available</div>;
 
   if (printMode) {
-    return <div dangerouslySetInnerHTML={{ __html: buildHtmlContent() }} />;
+    return (
+      <div
+        data-pdf-ready="1"
+        dangerouslySetInnerHTML={{ __html: buildHtmlContent() }}
+      />
+    );
   }
 
   return (

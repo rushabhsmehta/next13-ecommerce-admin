@@ -1,4 +1,5 @@
 import type { PerPersonRatesResult } from "@/lib/pricing-calculator";
+import type { AppliedVariantDiscount } from "@/lib/variant-pricing-discount";
 import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
 
 export type VariantPricingComponent = {
@@ -11,6 +12,8 @@ export type VariantPricingComponent = {
 export type VariantPricingEntry = {
   components?: VariantPricingComponent[];
   totalCost?: number;
+  subtotalBeforeDiscount?: number;
+  appliedDiscount?: AppliedVariantDiscount;
   perPersonRates?: PerPersonRatesResult;
   remarks?: string;
 };

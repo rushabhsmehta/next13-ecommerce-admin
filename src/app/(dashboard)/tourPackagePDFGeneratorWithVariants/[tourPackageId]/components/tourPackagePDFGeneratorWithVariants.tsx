@@ -45,6 +45,8 @@ interface TourPackagePDFGeneratorWithVariantsProps {
     destination: TourDestination | null;
     location: Location;
   })[];
+  printMode?: boolean;
+  initialSearchOption?: string;
 }
 
 
@@ -55,13 +57,15 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
   initialData,
   locations,
   hotels,
+  printMode: printModeProp,
+  initialSearchOption,
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedOption = searchParams?.get("search") || "Empty";
+  const selectedOption = (initialSearchOption ?? searchParams?.get("search")) || "Empty";
   // Print mode: server-side PDF pipeline renders inline HTML (no auth-protected
   // /api/generate-pdf call). See generatePDFFromUrl + /api/mobile/**/pdf routes.
-  const printMode = searchParams?.get("print") === "1";
+  const printMode = printModeProp ?? searchParams?.get("print") === "1";
   const [loading, setLoading] = useState(false);
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
@@ -353,8 +357,8 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       `;
 
       itinerariesSection += initialData.itineraries.map((itinerary, dayIndex) => `
-        <div style="${cardStyle}; margin-bottom: 20px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
-          <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid ${brandColors.border};">
+        <div style="${cardStyle}; margin-bottom: 20px; ${dayIndex > 0 ? pageBreakBefore : ''}">
+          <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid ${brandColors.border}; page-break-inside: avoid; break-inside: avoid-page;">
             <div style="background: ${brandColors.primary}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;">
               <span style="font-size: 7px; font-weight: 700; text-transform: uppercase;">DAY</span>
               <span style="font-size: 14px; font-weight: 800; line-height: 1.1;">${itinerary.dayNumber}</span>
@@ -672,7 +676,12 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
   if (!initialData) return <div>No data available</div>;
 
   if (printMode) {
-    return <div dangerouslySetInnerHTML={{ __html: buildHtmlContent() }} />;
+    return (
+      <div
+        data-pdf-ready="1"
+        dangerouslySetInnerHTML={{ __html: buildHtmlContent() }}
+      />
+    );
   }
 
   return (

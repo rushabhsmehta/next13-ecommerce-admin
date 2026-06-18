@@ -1,21 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Pressable,
   StyleSheet,
+  Text,
   TextInput,
+  View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import {
   AdminBottomActionBar,
   AdminFormField,
   AdminFormSection,
+  AdminPickerSheet,
+  type AdminPickerOption,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
-import { createOperationsClient, type SupplierInput } from "@/lib/operations";
+import {
+  createOperationsClient,
+  type SupplierInput,
+  type SupplierLocationRef,
+} from "@/lib/operations";
 
 interface InitialValues {
   name: string;
@@ -23,6 +33,7 @@ interface InitialValues {
   email: string;
   gstNumber: string;
   address: string;
+  locations?: SupplierLocationRef[];
 }
 
 const EMPTY: InitialValues = {
@@ -31,6 +42,7 @@ const EMPTY: InitialValues = {
   email: "",
   gstNumber: "",
   address: "",
+  locations: [],
 };
 
 interface Props {
@@ -58,10 +70,52 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
   const [email, setEmail] = useState(seed.email);
   const [gstNumber, setGstNumber] = useState(seed.gstNumber);
   const [address, setAddress] = useState(seed.address);
+  const [locationIds, setLocationIds] = useState<string[]>(
+    () => seed.locations?.map((loc) => loc.id) ?? []
+  );
+  const [locationOptions, setLocationOptions] = useState<AdminPickerOption[]>([]);
+  const [pickersLoading, setPickersLoading] = useState(true);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const labelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const loc of seed.locations ?? []) map.set(loc.id, loc.label);
+    for (const opt of locationOptions) map.set(opt.id, opt.label);
+    return map;
+  }, [seed.locations, locationOptions]);
+
+  const availableLocationOptions = useMemo(
+    () => locationOptions.filter((opt) => !locationIds.includes(opt.id)),
+    [locationOptions, locationIds]
+  );
+
+  const loadLocations = useCallback(async () => {
+    setPickersLoading(true);
+    try {
+      const res = await client.listLocations({ limit: 100 });
+      setLocationOptions(res.items.map((loc) => ({ id: loc.id, label: loc.label })));
+    } catch {
+      // Existing selections still display from seed labels.
+    } finally {
+      setPickersLoading(false);
+    }
+  }, [client]);
+
+  useEffect(() => {
+    void loadLocations();
+  }, [loadLocations]);
 
   const screenTitle = mode === "create" ? "New supplier" : "Edit supplier";
   const canSubmit = name.trim().length > 0 && !submitting;
+
+  function addLocation(id: string) {
+    setLocationIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }
+
+  function removeLocation(id: string) {
+    setLocationIds((prev) => prev.filter((item) => item !== id));
+  }
 
   async function submit() {
     if (!canSubmit) return;
@@ -73,6 +127,7 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
         email: email.trim() || null,
         gstNumber: gstNumber.trim() || null,
         address: address.trim() || null,
+        locationIds,
       };
       if (mode === "create") {
         const saved = await client.createSupplier(payload);
@@ -186,6 +241,70 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
           />
         </AdminFormField>
       </AdminFormSection>
+
+      <AdminFormSection title="Coverage" testID="supplier-form-locations">
+        <AdminFormField
+          label="Locations"
+          hint="Tour regions this supplier serves (e.g. Kashmir, Goa)."
+        >
+          {locationIds.length > 0 ? (
+            <View style={styles.chipRow}>
+              {locationIds.map((id) => (
+                <Pressable
+                  key={id}
+                  testID={`supplier-form-location-chip-${id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${labelById.get(id) ?? "location"}`}
+                  style={styles.chip}
+                  onPress={() => removeLocation(id)}
+                >
+                  <Text style={styles.chipText} numberOfLines={1}>
+                    {labelById.get(id) ?? "Location"}
+                  </Text>
+                  <Ionicons name="close-circle" size={16} color={Colors.textSecondary} />
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptyLocations}>No locations selected yet.</Text>
+          )}
+          <Pressable
+            testID="supplier-form-add-location"
+            accessibilityRole="button"
+            accessibilityLabel="Add location"
+            accessibilityHint="Opens a list of tour locations to link to this supplier"
+            style={[
+              styles.addLocationBtn,
+              availableLocationOptions.length === 0 && !pickersLoading
+                ? styles.addLocationBtnDisabled
+                : null,
+            ]}
+            onPress={() => setShowLocationPicker(true)}
+            disabled={pickersLoading || availableLocationOptions.length === 0}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <Text style={styles.addLocationText}>
+              {pickersLoading
+                ? "Loading locations…"
+                : availableLocationOptions.length === 0
+                  ? locationIds.length > 0
+                    ? "All locations added"
+                    : "No locations available"
+                  : "Add location"}
+            </Text>
+          </Pressable>
+        </AdminFormField>
+      </AdminFormSection>
+
+      <AdminPickerSheet
+        visible={showLocationPicker}
+        title="Add location"
+        options={availableLocationOptions}
+        loading={pickersLoading}
+        onClose={() => setShowLocationPicker(false)}
+        onSelect={(opt) => addLocation(opt.id)}
+        testID="supplier-form-location-picker"
+      />
     </AdminScreen>
   );
 }
@@ -202,4 +321,41 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   textarea: { minHeight: 80, textAlignVertical: "top" },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "100%",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primaryBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.primaryLight,
+  },
+  chipText: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.text,
+    flexShrink: 1,
+  },
+  emptyLocations: {
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+    marginBottom: Spacing.sm,
+  },
+  addLocationBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  addLocationBtnDisabled: { opacity: 0.5 },
+  addLocationText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.primary,
+  },
 });

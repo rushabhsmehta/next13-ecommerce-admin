@@ -25,6 +25,12 @@ import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/default
 import {
   applyPerPersonRatesToPricingItems,
 } from "@/lib/variant-pricing-display";
+import {
+  computeVariantDiscount,
+  formatDiscountLabel,
+  hasAppliedVariantDiscount,
+  type VariantDiscountType,
+} from "@/lib/variant-pricing-discount";
 
 /** Returns a fresh shallow-clone of each DEFAULT_PRICING_SECTION item to avoid shared-reference mutations. */
 const cloneDefaultPricingSection = () => DEFAULT_PRICING_SECTION.map(item => ({ ...item }));
@@ -110,6 +116,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const [variantPriceCalculationResults, setVariantPriceCalculationResults] = useState<Record<string, any>>({});
   const [variantMarkupValues, setVariantMarkupValues] = useState<Record<string, string>>({});
   const [variantPricingTiers, setVariantPricingTiers] = useState<Record<string, 'standard' | 'premium' | 'luxury' | 'custom'>>({});
+  const [variantDiscountTypes, setVariantDiscountTypes] = useState<Record<string, VariantDiscountType>>({});
+  const [variantDiscountValues, setVariantDiscountValues] = useState<Record<string, string>>({});
+  const [variantDiscountReasons, setVariantDiscountReasons] = useState<Record<string, string>>({});
   // Pricing breakdown items (always-visible, editable), total price, and remarks per variant
   const [variantPricingItems, setVariantPricingItems] = useState<Record<string, { name: string; price: string; description: string; derivationFormula?: string }[]>>({});
   const [variantTotalPrices, setVariantTotalPrices] = useState<Record<string, string>>({});
@@ -129,6 +138,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       const newPricingItems: Record<string, { name: string; price: string; description: string }[]> = {};
       const newTotalPrices: Record<string, string> = {};
       const newRemarks: Record<string, string> = {};
+      const newDiscountTypes: Record<string, VariantDiscountType> = {};
+      const newDiscountValues: Record<string, string> = {};
+      const newDiscountReasons: Record<string, string> = {};
       const variantsNeedingFormDefaults: string[] = [];
 
       activeVariantIds.forEach(variantId => {
@@ -146,6 +158,13 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           if (typeof savedData.remarks === 'string') {
             newRemarks[variantId] = savedData.remarks;
           }
+          if (savedData.appliedDiscount && hasAppliedVariantDiscount(savedData.appliedDiscount)) {
+            newDiscountTypes[variantId] = savedData.appliedDiscount.type;
+            newDiscountValues[variantId] = String(savedData.appliedDiscount.inputValue);
+            if (savedData.appliedDiscount.reason) {
+              newDiscountReasons[variantId] = savedData.appliedDiscount.reason;
+            }
+          }
         } else {
           newPricingItems[variantId] = cloneDefaultPricingSection();
           variantsNeedingFormDefaults.push(variantId);
@@ -155,6 +174,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       setVariantPricingItems(newPricingItems);
       setVariantTotalPrices(newTotalPrices);
       setVariantRemarks(newRemarks);
+      setVariantDiscountTypes(newDiscountTypes);
+      setVariantDiscountValues(newDiscountValues);
+      setVariantDiscountReasons(newDiscountReasons);
 
       if (variantsNeedingFormDefaults.length > 0) {
         const currentPricingData = form.getValues('variantPricingData') || {};
@@ -555,19 +577,15 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     });
 
     const currentPricingData = form.getValues('variantPricingData') || {};
-    form.setValue('variantPricingData', {
-      ...currentPricingData,
-      [variantId]: {
-        calculationMethod: 'useTourPackagePricing',
-        components: finalComponents,
-        totalCost: totalPrice,
-        calculatedAt: new Date().toISOString()
-      }
+    finalizeVariantSubtotal(variantId, totalPrice, {
+      ...(currentPricingData[variantId] || {}),
+      calculationMethod: 'useTourPackagePricing',
+      components: finalComponents,
+      calculatedAt: new Date().toISOString(),
     });
 
     // Also update the always-visible pricing breakdown and total
     setVariantPricingItems(prev => ({ ...prev, [variantId]: finalComponents }));
-    setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalPrice.toString() }));
 
     toast.success(`Applied ${components.length} component${components.length !== 1 ? 's' : ''} successfully!`);
   };
@@ -602,19 +620,15 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
     const totalPrice = items.reduce((sum, item) => sum + Number(item.price || 0), 0);
     const currentPricingData = form.getValues('variantPricingData') || {};
-    form.setValue('variantPricingData', {
-      ...currentPricingData,
-      [variantId]: {
-        calculationMethod: 'manual',
-        components: items,
-        totalCost: totalPrice,
-        calculatedAt: new Date().toISOString()
-      }
+    finalizeVariantSubtotal(variantId, totalPrice, {
+      ...(currentPricingData[variantId] || {}),
+      calculationMethod: 'manual',
+      components: items,
+      calculatedAt: new Date().toISOString(),
     });
 
     // Also update the always-visible pricing breakdown and total
     setVariantPricingItems(prev => ({ ...prev, [variantId]: items }));
-    setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalPrice.toString() }));
 
     toast.success("Manual pricing applied successfully!");
   };
@@ -695,7 +709,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
       setVariantPriceCalculationResults(prev => ({ ...prev, [variantId]: result }));
 
-      const totalCost = result?.totalCost || 0;
+      const subtotal = result?.totalCost || 0;
       const perPersonRates = result?.perPersonRates;
       const baseItems =
         (variantPricingItems[variantId] || []).length > 0
@@ -709,20 +723,16 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         : baseItems;
 
       const currentPricingData = form.getValues('variantPricingData') || {};
-      form.setValue('variantPricingData', {
-        ...currentPricingData,
-        [variantId]: {
-          calculationMethod: 'autoHotelTransport',
-          ...result,
-          components: pricingItems,
-          totalCost,
-          perPersonRates: perPersonRates ?? undefined,
-          calculatedAt: result.calculatedAt || new Date().toISOString(),
-        },
-      }, { shouldDirty: true });
+      finalizeVariantSubtotal(variantId, subtotal, {
+        ...(currentPricingData[variantId] || {}),
+        calculationMethod: 'autoHotelTransport',
+        ...result,
+        components: pricingItems,
+        perPersonRates: perPersonRates ?? undefined,
+        calculatedAt: result.calculatedAt || new Date().toISOString(),
+      });
 
       setVariantPricingItems(prev => ({ ...prev, [variantId]: pricingItems }));
-      setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalCost.toString() }));
 
       toast.success("Variant price calculation complete!");
     } catch (error: any) {
@@ -736,6 +746,22 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     setVariantPriceCalculationResults(prev => ({ ...prev, [variantId]: null }));
     setVariantMarkupValues(prev => ({ ...prev, [variantId]: '0' }));
     setVariantPricingTiers(prev => ({ ...prev, [variantId]: 'standard' }));
+    setVariantDiscountTypes(prev => ({ ...prev, [variantId]: 'percent' }));
+    setVariantDiscountValues(prev => ({ ...prev, [variantId]: '' }));
+    setVariantDiscountReasons(prev => ({ ...prev, [variantId]: '' }));
+
+    const currentPricingData = form.getValues('variantPricingData') || {};
+    const existingData = currentPricingData[variantId] || {};
+    const { appliedDiscount: _a, subtotalBeforeDiscount: _s, ...rest } = existingData;
+    form.setValue(
+      'variantPricingData',
+      {
+        ...currentPricingData,
+        [variantId]: rest,
+      },
+      { shouldDirty: true }
+    );
+
     toast.success("Pricing calculation reset");
   };
 
@@ -831,18 +857,14 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       }
 
       const currentPricingData = form.getValues('variantPricingData') || {};
-      form.setValue('variantPricingData', {
-        ...currentPricingData,
-        [variantId]: {
-          calculationMethod: 'useTourPackagePricing',
-          components: finalComponents,
-          totalCost: totalPrice,
-          calculatedAt: new Date().toISOString()
-        }
+      finalizeVariantSubtotal(variantId, totalPrice, {
+        ...(currentPricingData[variantId] || {}),
+        calculationMethod: 'useTourPackagePricing',
+        components: finalComponents,
+        calculatedAt: new Date().toISOString(),
       });
 
       setVariantPricingItems(prev => ({ ...prev, [variantId]: finalComponents }));
-      setVariantTotalPrices(prev => ({ ...prev, [variantId]: totalPrice.toString() }));
 
       toast.success("Tour package pricing applied successfully!");
     } catch (error) {
@@ -850,6 +872,137 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       console.error("Error fetching/applying tour package pricing:", error);
       toast.error("Failed to fetch or apply tour package pricing.");
     }
+  };
+
+  const getVariantDiscountInput = (variantId: string) => ({
+    type: variantDiscountTypes[variantId] || "percent" as VariantDiscountType,
+    inputValue: parseFloat(variantDiscountValues[variantId] || "0") || 0,
+    reason: variantDiscountReasons[variantId]?.trim() || undefined,
+  });
+
+  const buildVariantPricingWithDiscount = (
+    variantId: string,
+    subtotal: number,
+    baseEntry: Record<string, unknown>
+  ) => {
+    const discountInput = getVariantDiscountInput(variantId);
+    const existingData = (form.getValues("variantPricingData") || {})[variantId] || {};
+    const shouldApply =
+      discountInput.inputValue > 0 ||
+      hasAppliedVariantDiscount(existingData.appliedDiscount);
+
+    if (!shouldApply) {
+      const { appliedDiscount: _removed, subtotalBeforeDiscount: _sub, ...rest } = baseEntry as Record<string, unknown>;
+      return {
+        ...rest,
+        totalCost: subtotal,
+      };
+    }
+
+    const result = computeVariantDiscount(subtotal, discountInput);
+    const nextEntry: Record<string, unknown> = {
+      ...baseEntry,
+      subtotalBeforeDiscount: result.subtotalBeforeDiscount,
+      totalCost: result.totalCost,
+    };
+
+    if (result.appliedDiscount) {
+      nextEntry.appliedDiscount = result.appliedDiscount;
+    } else {
+      delete nextEntry.appliedDiscount;
+      delete nextEntry.subtotalBeforeDiscount;
+    }
+
+    return nextEntry;
+  };
+
+  const persistVariantPricingEntry = (
+    variantId: string,
+    entry: Record<string, unknown>
+  ) => {
+    const currentPricingData = form.getValues("variantPricingData") || {};
+    form.setValue(
+      "variantPricingData",
+      {
+        ...currentPricingData,
+        [variantId]: entry,
+      },
+      { shouldDirty: true }
+    );
+    const totalCost = typeof entry.totalCost === "number" ? entry.totalCost : 0;
+    setVariantTotalPrices((prev) => ({ ...prev, [variantId]: totalCost.toString() }));
+  };
+
+  const clearStructuredDiscount = (variantId: string, showToast = false) => {
+    const currentPricingData = form.getValues("variantPricingData") || {};
+    const existingData = currentPricingData[variantId] || {};
+    const hadDiscount = hasAppliedVariantDiscount(existingData.appliedDiscount);
+
+    setVariantDiscountValues((prev) => ({ ...prev, [variantId]: "" }));
+    setVariantDiscountReasons((prev) => ({ ...prev, [variantId]: "" }));
+
+    const { appliedDiscount: _a, subtotalBeforeDiscount: _s, ...rest } = existingData;
+    form.setValue(
+      "variantPricingData",
+      {
+        ...currentPricingData,
+        [variantId]: rest,
+      },
+      { shouldDirty: true }
+    );
+
+    if (showToast && hadDiscount) {
+      toast("Structured discount cleared because the final amount was edited manually.", {
+        icon: "ℹ️",
+      });
+    }
+  };
+
+  const handleApplyVariantDiscount = (variantId: string, subtotalOverride?: number) => {
+    const currentPricingData = form.getValues("variantPricingData") || {};
+    const existingData = currentPricingData[variantId] || {};
+    const calcResult = variantPriceCalculationResults[variantId];
+
+    const subtotal =
+      subtotalOverride ??
+      (typeof existingData.subtotalBeforeDiscount === "number"
+        ? existingData.subtotalBeforeDiscount
+        : (calcResult?.totalCost ??
+          (Number.isFinite(parseFloat(variantTotalPrices[variantId] || "0"))
+            ? parseFloat(variantTotalPrices[variantId] || "0")
+            : 0)));
+
+    if (subtotal <= 0) {
+      toast.error("Calculate or enter pricing before applying a discount.");
+      return;
+    }
+
+    const discountInput = getVariantDiscountInput(variantId);
+    if (discountInput.inputValue <= 0) {
+      toast.error("Enter a discount percentage or fixed amount.");
+      return;
+    }
+
+    const nextEntry = buildVariantPricingWithDiscount(variantId, subtotal, {
+      ...existingData,
+      subtotalBeforeDiscount: subtotal,
+    });
+
+    persistVariantPricingEntry(variantId, nextEntry);
+    toast.success("Discount applied.");
+  };
+
+  const finalizeVariantSubtotal = (
+    variantId: string,
+    subtotal: number,
+    baseEntry: Record<string, unknown>
+  ) => {
+    const nextEntry = buildVariantPricingWithDiscount(variantId, subtotal, {
+      ...baseEntry,
+      subtotalBeforeDiscount: subtotal,
+    });
+    persistVariantPricingEntry(variantId, nextEntry);
+    return nextEntry;
   };
 
   // Helper functions for variant pricing breakdown items
@@ -922,7 +1075,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         remarks,
         updatedAt: new Date().toISOString()
       }
-    });
+    }, { shouldDirty: true });
   };
 
   // Room Allocation Helper Functions
@@ -2707,6 +2860,17 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     const calcResult = variantPriceCalculationResults[variant.id];
                     const markupValue = variantMarkupValues[variant.id] || '0';
                     const pricingTier = variantPricingTiers[variant.id] || 'custom';
+                    const variantPricingEntry = savedVariantPricingData?.[variant.id];
+                    const appliedDiscount = variantPricingEntry?.appliedDiscount;
+                    const hasDiscount = hasAppliedVariantDiscount(appliedDiscount);
+                    const subtotalBeforeDiscount =
+                      typeof variantPricingEntry?.subtotalBeforeDiscount === 'number'
+                        ? variantPricingEntry.subtotalBeforeDiscount
+                        : calcResult?.totalCost ?? 0;
+                    const finalTotalAfterDiscount =
+                      typeof variantPricingEntry?.totalCost === 'number'
+                        ? variantPricingEntry.totalCost
+                        : calcResult?.totalCost ?? 0;
 
                     return (
                       <div className="space-y-4">
@@ -2881,10 +3045,28 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                         <TableCell className="text-right font-bold text-sm">Rs.{calcResult.appliedMarkup.amount.toFixed(2)}</TableCell>
                                       </TableRow>
                                     )}
-                                    <TableRow className="bg-blue-200">
-                                      <TableCell colSpan={4} className="font-medium text-right text-base">Final Total Cost</TableCell>
-                                      <TableCell className="text-right font-bold text-base">Rs.{calcResult.totalCost.toFixed(2)}</TableCell>
+                                    <TableRow className="bg-blue-100">
+                                      <TableCell colSpan={4} className="font-medium text-right text-sm">
+                                        {hasDiscount ? 'Subtotal (before discount)' : 'Final Total Cost'}
+                                      </TableCell>
+                                      <TableCell className="text-right font-bold text-sm">Rs.{subtotalBeforeDiscount.toFixed(2)}</TableCell>
                                     </TableRow>
+                                    {hasDiscount && (
+                                      <>
+                                        <TableRow className="bg-emerald-50">
+                                          <TableCell colSpan={4} className="font-medium text-right text-sm text-emerald-800">
+                                            {formatDiscountLabel(appliedDiscount)}
+                                          </TableCell>
+                                          <TableCell className="text-right font-bold text-sm text-emerald-700">
+                                            - Rs.{appliedDiscount.amount.toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                        <TableRow className="bg-blue-200">
+                                          <TableCell colSpan={4} className="font-medium text-right text-base">Final Total (after discount)</TableCell>
+                                          <TableCell className="text-right font-bold text-base">Rs.{finalTotalAfterDiscount.toFixed(2)}</TableCell>
+                                        </TableRow>
+                                      </>
+                                    )}
                                   </TableBody>
                                 </Table>
                               </div>
@@ -3362,6 +3544,80 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   </CardContent>
                 </Card>
 
+                {/* Discount Section - apply after pricing calculation */}
+                <Card className="shadow-sm border-2 border-emerald-200/60 bg-gradient-to-r from-emerald-50 to-teal-50 mt-4">
+                  <CardContent className="pt-5 pb-5">
+                    <div className="flex items-center mb-3">
+                      <IndianRupee className="mr-2 h-5 w-5 text-emerald-600" />
+                      <h3 className="text-base font-bold text-emerald-800">Apply Discount</h3>
+                    </div>
+                    <p className="text-xs text-emerald-700 mb-4">
+                      Apply a percentage or fixed discount after pricing is calculated. Per-person breakdown rows stay unchanged; only the final total is reduced.
+                    </p>
+                    <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-emerald-700">Discount type</label>
+                        <Select
+                          value={variantDiscountTypes[variant.id] || 'percent'}
+                          onValueChange={(value: VariantDiscountType) =>
+                            setVariantDiscountTypes(prev => ({ ...prev, [variant.id]: value }))
+                          }
+                        >
+                          <SelectTrigger className="w-40 h-9 bg-white border-emerald-300">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percent">Percentage (%)</SelectItem>
+                            <SelectItem value="fixed">Fixed amount (Rs.)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-emerald-700">
+                          {(variantDiscountTypes[variant.id] || 'percent') === 'percent' ? 'Discount %' : 'Discount amount (Rs.)'}
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max={(variantDiscountTypes[variant.id] || 'percent') === 'percent' ? '100' : undefined}
+                          value={variantDiscountValues[variant.id] || ''}
+                          disabled={loading}
+                          placeholder={(variantDiscountTypes[variant.id] || 'percent') === 'percent' ? 'e.g. 5' : 'e.g. 5000'}
+                          className="w-36 h-9 bg-white border-emerald-300"
+                          onChange={(e) =>
+                            setVariantDiscountValues(prev => ({ ...prev, [variant.id]: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1 min-w-[200px]">
+                        <label className="text-xs font-semibold text-emerald-700">Reason (optional)</label>
+                        <Input
+                          value={variantDiscountReasons[variant.id] || ''}
+                          disabled={loading}
+                          placeholder="e.g. Early bird offer"
+                          className="h-9 bg-white border-emerald-300"
+                          onChange={(e) =>
+                            setVariantDiscountReasons(prev => ({ ...prev, [variant.id]: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => handleApplyVariantDiscount(variant.id)}
+                        disabled={loading}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        Apply Discount
+                      </Button>
+                    </div>
+                    {hasAppliedVariantDiscount(savedVariantPricingData?.[variant.id]?.appliedDiscount) && (
+                      <p className="text-xs text-emerald-800 mt-3 bg-white/70 border border-emerald-200 rounded px-2 py-1.5 inline-block">
+                        Active: {formatDiscountLabel(savedVariantPricingData?.[variant.id]?.appliedDiscount)} — saves Rs.{savedVariantPricingData?.[variant.id]?.appliedDiscount?.amount?.toLocaleString('en-IN')}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Total Package Price - Always visible and editable */}
                 <Card className="shadow-sm border-2 border-orange-200/60 bg-gradient-to-r from-orange-50 to-red-50 mt-4">
                   <CardContent className="pt-5 pb-5">
@@ -3385,7 +3641,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           onChange={(e) => {
                             setVariantTotalPrices(prev => ({ ...prev, [variant.id]: e.target.value }));
                           }}
-                          onBlur={() => syncVariantPricingToForm(variant.id)}
+                          onBlur={() => {
+                            clearStructuredDiscount(variant.id, true);
+                            syncVariantPricingToForm(variant.id);
+                          }}
                         />
                       </div>
                       <p className="text-xs text-orange-600 mt-1 flex items-center">

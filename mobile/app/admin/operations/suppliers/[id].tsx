@@ -143,6 +143,7 @@ function Inner() {
           email: data.supplier.email ?? "",
           gstNumber: data.supplier.gstNumber ?? "",
           address: data.supplier.address ?? "",
+          locations: data.supplier.locations ?? [],
         }}
       />
     );
@@ -239,6 +240,19 @@ function Inner() {
         ) : null}
       </View>
 
+      <Text style={styles.sectionTitle}>Locations</Text>
+      {supplier.locations && supplier.locations.length > 0 ? (
+        <View style={styles.locChipRow}>
+          {supplier.locations.map((loc) => (
+            <View key={loc.id} style={styles.locChip} testID={`supplier-location-${loc.id}`}>
+              <Text style={styles.locChipText}>{loc.label}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.muted}>No locations linked.</Text>
+      )}
+
       <View style={styles.statCard}>
         <Text style={styles.statValue}>{summary.purchaseCount}</Text>
         <Text style={styles.statLabel}>Purchases</Text>
@@ -294,6 +308,16 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginTop: Spacing.sm,
   },
+  locChipRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
+  locChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primaryBg,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+  },
+  locChipText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.text },
   muted: { fontSize: FontSize.sm, color: Colors.textTertiary },
   pRow: {
     flexDirection: "row",

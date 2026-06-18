@@ -3,10 +3,12 @@ import TourPackagePDFGeneratorWithVariants from "./components/tourPackagePDFGene
 
 const TourPackagePDFWithVariantsPage = async (
   props: {
-    params: Promise<{ tourPackageId: string }>
+    params: Promise<{ tourPackageId: string }>;
+    searchParams: Promise<{ print?: string; search?: string }>;
   }
 ) => {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const tourPackage = await prismadb.tourPackage.findUnique({
     where: {
       id: params.tourPackageId,
@@ -62,6 +64,8 @@ const TourPackagePDFWithVariantsPage = async (
           initialData={tourPackage}
           locations={locations}
           hotels={hotels}
+          printMode={searchParams.print === "1"}
+          initialSearchOption={searchParams.search}
         />
       </div>
     </div>

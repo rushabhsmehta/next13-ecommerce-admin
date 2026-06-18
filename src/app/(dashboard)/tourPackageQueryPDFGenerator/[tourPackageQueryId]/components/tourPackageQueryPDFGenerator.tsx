@@ -92,6 +92,10 @@ interface TourPackageQueryPDFGeneratorProps {
   })[];
   selectedOption?: string;
   associatePartners: AssociatePartner[];
+  /** Passed from the server page when `?print=1` so Puppeteer SSR includes full HTML. */
+  printMode?: boolean;
+  /** Passed from the server page when `?search=` is set (mobile PDF pipeline). */
+  initialSearchOption?: string;
 };
 
 // Company info imported from @/lib/pdf
@@ -101,16 +105,18 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   initialData,
   locations,
   hotels,
+  printMode: printModeProp,
+  initialSearchOption,
 }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const selectedOptionParam = searchParams?.get("search");
+  const selectedOptionParam = initialSearchOption ?? searchParams?.get("search");
   const selectedOption = selectedOptionParam && selectedOptionParam.length ? selectedOptionParam : "AH";
   // Print mode: rendered by the server-side PDF pipeline (Puppeteer), which
   // cannot authenticate `/api/generate-pdf`. Render the composed proposal HTML
   // inline so the headless browser prints it directly instead of triggering the
   // client download. See generatePDFFromUrl + /api/mobile/**/pdf routes.
-  const printMode = searchParams?.get("print") === "1";
+  const printMode = printModeProp ?? searchParams?.get("print") === "1";
   const [loading, setLoading] = useState(false);
   const [preparedBy, setPreparedBy] = useState<{ name: string; email: string } | null>(null);
 
@@ -1063,9 +1069,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       // Clean individual itinerary day cards
       itinerariesSection += initialData.itineraries
         .map((itinerary, dayIndex) => `
-      <div style="${cardStyle}; margin-bottom: 24px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
+      <div style="${cardStyle}; margin-bottom: 24px; ${dayIndex > 0 ? pageBreakBefore : ''}">
         <!-- Clean Itinerary Header -->
-        <div style="display: flex; align-items: center; background: #f9fafb; padding: 16px; border-bottom: 1px solid ${brandColors.border};">
+        <div style="display: flex; align-items: center; background: #f9fafb; padding: 16px; border-bottom: 1px solid ${brandColors.border}; page-break-inside: avoid; break-inside: avoid-page;">
           <div style="background: ${brandColors.primary}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
             <span style="font-size: 10px; font-weight: 500;">DAY</span>
             <span style="font-size: 16px; font-weight: 700;">${itinerary.dayNumber}</span>
@@ -1597,7 +1603,12 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   // Print mode: render the composed proposal HTML directly so a headless
   // browser can print it to PDF without calling the authenticated endpoint.
   if (printMode) {
-    return <div dangerouslySetInnerHTML={{ __html: buildHtmlContent() }} />;
+    return (
+      <div
+        data-pdf-ready="1"
+        dangerouslySetInnerHTML={{ __html: buildHtmlContent() }}
+      />
+    );
   }
 
   return (

@@ -46,6 +46,16 @@ const patchSchema = z.object({
   transportDetails: z.unknown().optional(),
   perPersonRates: z.unknown().optional(),
   remarks: z.string().max(5000).optional().nullable(),
+  subtotalBeforeDiscount: z.coerce.number().min(0).optional(),
+  appliedDiscount: z
+    .object({
+      type: z.enum(["percent", "fixed"]),
+      inputValue: z.coerce.number().min(0),
+      amount: z.coerce.number().min(0),
+      reason: z.string().max(500).optional().nullable(),
+    })
+    .optional()
+    .nullable(),
 });
 
 const calculateSchema = z.object({
@@ -114,6 +124,12 @@ function normalizePricing(pricing: Record<string, any> | null) {
     transportDetails: pricing.transportDetails ?? null,
     perPersonRates: pricing.perPersonRates ?? null,
     calculatedAt: pricing.calculatedAt ?? null,
+    subtotalBeforeDiscount:
+      pricing.subtotalBeforeDiscount != null
+        ? Number(pricing.subtotalBeforeDiscount)
+        : null,
+    appliedDiscount: pricing.appliedDiscount ?? null,
+    discountAmount: Number(pricing.appliedDiscount?.amount ?? 0),
   };
 }
 
@@ -305,6 +321,23 @@ export async function PATCH(
         : {}),
       ...(parsed.data.perPersonRates !== undefined
         ? { perPersonRates: parsed.data.perPersonRates }
+        : {}),
+      ...(parsed.data.subtotalBeforeDiscount !== undefined
+        ? { subtotalBeforeDiscount: parsed.data.subtotalBeforeDiscount }
+        : {}),
+      ...(parsed.data.appliedDiscount !== undefined
+        ? parsed.data.appliedDiscount
+          ? {
+              appliedDiscount: {
+                type: parsed.data.appliedDiscount.type,
+                inputValue: parsed.data.appliedDiscount.inputValue,
+                amount: parsed.data.appliedDiscount.amount,
+                ...(parsed.data.appliedDiscount.reason
+                  ? { reason: parsed.data.appliedDiscount.reason }
+                  : {}),
+              },
+            }
+          : { appliedDiscount: undefined, subtotalBeforeDiscount: undefined }
         : {}),
     };
 

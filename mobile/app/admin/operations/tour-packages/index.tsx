@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -48,6 +49,7 @@ function Inner() {
   const { getToken } = useAuth();
   const { permissions } = useCurrentUser();
   const canWrite = permissions.includes("operations.write");
+  const canAiGenerate = permissions.includes("aiWizards.write");
   const getTokenRef = useRef(getToken);
   useEffect(() => {
     getTokenRef.current = getToken;
@@ -111,6 +113,37 @@ function Inner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced, locationFilter]);
 
+  const openManualCreate = useCallback(() => {
+    router.push(
+      locationFilter
+        ? (`/admin/operations/tour-packages/new?locationId=${locationFilter}` as never)
+        : ("/admin/operations/tour-packages/new" as never)
+    );
+  }, [locationFilter, router]);
+
+  const openAiGenerate = useCallback(() => {
+    router.push("/admin/ai-wizards?target=tourPackage" as never);
+  }, [router]);
+
+  const openCreateMenu = useCallback(() => {
+    if (!canWrite) return;
+    if (!canAiGenerate) {
+      openManualCreate();
+      return;
+    }
+    Alert.alert("Create tour package", "Choose how to start.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Manual",
+        onPress: openManualCreate,
+      },
+      {
+        text: "AI Generate",
+        onPress: openAiGenerate,
+      },
+    ]);
+  }, [canAiGenerate, canWrite, openAiGenerate, openManualCreate]);
+
   return (
     <AdminScreen scroll={false} testID="tour-packages-list-screen">
       <Stack.Screen options={{ title: "Tour packages", headerShown: false }} />
@@ -125,13 +158,12 @@ function Inner() {
               label="New"
               icon="add"
               testID="tour-packages-new"
-              onPress={() =>
-                router.push(
-                  locationFilter
-                    ? (`/admin/operations/tour-packages/new?locationId=${locationFilter}` as never)
-                    : ("/admin/operations/tour-packages/new" as never)
-                )
+              accessibilityHint={
+                canAiGenerate
+                  ? "Opens manual or AI tour package creation."
+                  : "Opens the manual tour package form."
               }
+              onPress={openCreateMenu}
             />
           ) : null
         }

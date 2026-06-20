@@ -304,6 +304,7 @@ function TourQueryDetailScreenInner() {
   );
   const { permissions } = useCurrentUser();
   const canWriteSales = permissions.includes("salesTrips.write");
+  const canWriteOperations = permissions.includes("operations.write");
 
   const [data, setData] = useState<TourQueryDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -635,6 +636,22 @@ function TourQueryDetailScreenInner() {
             },
           ]
         : []),
+      ...(canWriteOperations
+        ? [
+            {
+              id: "create-tour-package",
+              label: "Create tour package",
+              icon: "briefcase-outline" as const,
+              testID: "tour-query-create-package",
+              accessibilityHint:
+                "Opens a prefilled tour package form created from this query.",
+              onPress: () =>
+                router.push(
+                  `/admin/operations/tour-packages/from-query/${id}` as never
+                ),
+            },
+          ]
+        : []),
       {
         id: "hotels-web",
         label: "Hotels (web)",
@@ -749,6 +766,7 @@ function TourQueryDetailScreenInner() {
     router,
     shareWebLink,
     canWriteSales,
+    canWriteOperations,
     runLifecycle,
     lifecycleBusy,
     pdfBusy,

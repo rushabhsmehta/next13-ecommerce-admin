@@ -114,6 +114,7 @@ const ROLE_PERMISSIONS: Record<AppRole, MobileAdminPermission[]> = {
     "crm.write",
     "salesTrips.read",
     "salesTrips.write",
+    "aiWizards.write",
     "operations.read",
     "operations.write",
     "flightTickets.read",

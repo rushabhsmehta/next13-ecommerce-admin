@@ -169,31 +169,53 @@ function CreateTourQueryScreenInner() {
     (row: SourceRow) => {
       if (!canWrite) return;
       const kind = mode === "inquiry" ? "inquiry" : mode === "package" ? "package" : mode === "copy" ? "query" : "scratch";
-      const message = mode === "scratch"
-        ? "Create a new blank tour package query?"
-        : `Create a new tour package query from this ${kind}?`;
+
+      const runCreate = async () => {
+        setSubmittingId(row.id);
+        try {
+          const result = await createClient.create({
+            mode,
+            sourceId: row.id,
+          });
+          router.replace(`/admin/tour-queries/${result.id}/edit` as never);
+        } catch (err) {
+          Alert.alert(
+            "Create failed",
+            err instanceof ApiError ? err.message : "Could not create the tour package query."
+          );
+        } finally {
+          setSubmittingId(null);
+        }
+      };
+
+      if (mode === "inquiry") {
+        Alert.alert("Create Tour Package Query", `Choose how to create a query for ${row.title}.`, [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Smart Build",
+            onPress: () =>
+              router.push(
+                `/admin/tour-queries/smart-build?inquiryId=${encodeURIComponent(row.id)}` as never
+              ),
+          },
+          {
+            text: "Quick create",
+            onPress: () => void runCreate(),
+          },
+        ]);
+        return;
+      }
+
+      const message =
+        mode === "scratch"
+          ? "Create a new blank tour package query?"
+          : `Create a new tour package query from this ${kind}?`;
 
       Alert.alert("Create Tour Package Query", message, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Create",
-          onPress: async () => {
-            setSubmittingId(row.id);
-            try {
-              const result = await createClient.create({
-                mode,
-                sourceId: row.id,
-              });
-              router.replace(`/admin/tour-queries/${result.id}/edit` as never);
-            } catch (err) {
-              Alert.alert(
-                "Create failed",
-                err instanceof ApiError ? err.message : "Could not create the tour package query."
-              );
-            } finally {
-              setSubmittingId(null);
-            }
-          },
+          onPress: () => void runCreate(),
         },
       ]);
     },
@@ -232,6 +254,15 @@ function CreateTourQueryScreenInner() {
       <View style={styles.helperCard}>
         <Text style={styles.helper}>{meta.helper}</Text>
       </View>
+
+      {mode === "inquiry" && canWrite ? (
+        <View style={styles.smartBuildBanner}>
+          <Ionicons name="sparkles-outline" size={20} color={Colors.primary} />
+          <Text style={styles.smartBuildSub}>
+            Tap an inquiry below and choose Smart Build for package template, rooms, transport, and pricing.
+          </Text>
+        </View>
+      ) : null}
 
       {mode === "scratch" ? (
         <View style={styles.scratchContainer}>
@@ -407,6 +438,24 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
   },
   helper: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "600", lineHeight: 20 },
+  smartBuildBanner: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primaryBg,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  smartBuildSub: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",

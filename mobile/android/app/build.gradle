@@ -98,8 +98,8 @@ def releaseKeyPassword =
 
 def hasReleaseSigning =
     releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
-def appVersionCode = 50
-def appVersionName = "1.0.5"
+def appVersionCode = 51
+def appVersionName = "1.0.6"
 def staffEasProjectId =
     System.getenv("EXPO_STAFF_EAS_PROJECT_ID") ?: "69483194-f389-44dd-91bf-38be100d9267"
 def financeEasProjectId =

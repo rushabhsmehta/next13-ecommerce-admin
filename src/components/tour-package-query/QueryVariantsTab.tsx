@@ -26,9 +26,12 @@ import {
   applyPerPersonRatesToPricingItems,
 } from "@/lib/variant-pricing-display";
 import {
+  applyPercentDiscountToPricingComponents,
+  clonePricingComponents,
   computeVariantDiscount,
   formatDiscountLabel,
   hasAppliedVariantDiscount,
+  type PricingComponentItem,
   type VariantDiscountType,
 } from "@/lib/variant-pricing-discount";
 
@@ -752,15 +755,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
     const currentPricingData = form.getValues('variantPricingData') || {};
     const existingData = currentPricingData[variantId] || {};
-    const { appliedDiscount: _a, subtotalBeforeDiscount: _s, ...rest } = existingData;
+    const restoredComponents = Array.isArray(existingData.componentsBeforeDiscount)
+      ? clonePricingComponents(existingData.componentsBeforeDiscount as PricingComponentItem[])
+      : null;
+    const {
+      appliedDiscount: _a,
+      subtotalBeforeDiscount: _s,
+      componentsBeforeDiscount: _c,
+      ...rest
+    } = existingData;
     form.setValue(
       'variantPricingData',
       {
         ...currentPricingData,
-        [variantId]: rest,
+        [variantId]: {
+          ...rest,
+          ...(restoredComponents ? { components: restoredComponents } : {}),
+        },
       },
       { shouldDirty: true }
     );
+
+    if (restoredComponents) {
+      setVariantPricingItems((prev) => ({ ...prev, [variantId]: restoredComponents }));
+    }
 
     toast.success("Pricing calculation reset");
   };
@@ -880,6 +898,32 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     reason: variantDiscountReasons[variantId]?.trim() || undefined,
   });
 
+  const resolveUndiscountedComponents = (
+    variantId: string,
+    baseEntry: Record<string, unknown>,
+    existingData: Record<string, unknown>
+  ): PricingComponentItem[] => {
+    if (Array.isArray(baseEntry.components) && baseEntry.components.length > 0) {
+      return clonePricingComponents(baseEntry.components as PricingComponentItem[]);
+    }
+    if (
+      Array.isArray(existingData.componentsBeforeDiscount) &&
+      existingData.componentsBeforeDiscount.length > 0
+    ) {
+      return clonePricingComponents(
+        existingData.componentsBeforeDiscount as PricingComponentItem[]
+      );
+    }
+    const stateItems = variantPricingItems[variantId];
+    if (stateItems?.length) {
+      return clonePricingComponents(stateItems);
+    }
+    if (Array.isArray(existingData.components) && existingData.components.length > 0) {
+      return clonePricingComponents(existingData.components as PricingComponentItem[]);
+    }
+    return [];
+  };
+
   const buildVariantPricingWithDiscount = (
     variantId: string,
     subtotal: number,
@@ -892,14 +936,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       hasAppliedVariantDiscount(existingData.appliedDiscount);
 
     if (!shouldApply) {
-      const { appliedDiscount: _removed, subtotalBeforeDiscount: _sub, ...rest } = baseEntry as Record<string, unknown>;
+      const {
+        appliedDiscount: _removed,
+        subtotalBeforeDiscount: _sub,
+        componentsBeforeDiscount: _cbd,
+        ...rest
+      } = baseEntry as Record<string, unknown>;
       return {
         ...rest,
         totalCost: subtotal,
       };
     }
 
-    const result = computeVariantDiscount(subtotal, discountInput);
+    const effectiveInput =
+      discountInput.inputValue > 0
+        ? discountInput
+        : existingData.appliedDiscount
+          ? {
+              type: existingData.appliedDiscount.type as VariantDiscountType,
+              inputValue: Number(existingData.appliedDiscount.inputValue) || 0,
+              reason: existingData.appliedDiscount.reason as string | undefined,
+            }
+          : discountInput;
+
+    const result = computeVariantDiscount(subtotal, effectiveInput);
     const nextEntry: Record<string, unknown> = {
       ...baseEntry,
       subtotalBeforeDiscount: result.subtotalBeforeDiscount,
@@ -911,6 +971,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     } else {
       delete nextEntry.appliedDiscount;
       delete nextEntry.subtotalBeforeDiscount;
+      delete nextEntry.componentsBeforeDiscount;
+    }
+
+    if (result.appliedDiscount?.type === "percent") {
+      const sourceComponents = resolveUndiscountedComponents(
+        variantId,
+        baseEntry,
+        existingData
+      );
+      if (sourceComponents.length > 0) {
+        const snapshot = clonePricingComponents(sourceComponents);
+        nextEntry.componentsBeforeDiscount = snapshot;
+        nextEntry.components = applyPercentDiscountToPricingComponents(
+          snapshot,
+          result.appliedDiscount.inputValue
+        );
+      }
+    } else if (result.appliedDiscount?.type === "fixed") {
+      if (Array.isArray(existingData.componentsBeforeDiscount)) {
+        nextEntry.components = clonePricingComponents(
+          existingData.componentsBeforeDiscount as PricingComponentItem[]
+        );
+        delete nextEntry.componentsBeforeDiscount;
+      }
     }
 
     return nextEntry;
@@ -931,31 +1015,110 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     );
     const totalCost = typeof entry.totalCost === "number" ? entry.totalCost : 0;
     setVariantTotalPrices((prev) => ({ ...prev, [variantId]: totalCost.toString() }));
+    if (Array.isArray(entry.components)) {
+      setVariantPricingItems((prev) => ({
+        ...prev,
+        [variantId]: entry.components as PricingComponentItem[],
+      }));
+    }
   };
 
   const clearStructuredDiscount = (variantId: string, showToast = false) => {
     const currentPricingData = form.getValues("variantPricingData") || {};
     const existingData = currentPricingData[variantId] || {};
     const hadDiscount = hasAppliedVariantDiscount(existingData.appliedDiscount);
+    const restoredComponents = Array.isArray(existingData.componentsBeforeDiscount)
+      ? clonePricingComponents(existingData.componentsBeforeDiscount as PricingComponentItem[])
+      : null;
+    const restoredTotal =
+      typeof existingData.subtotalBeforeDiscount === "number"
+        ? existingData.subtotalBeforeDiscount
+        : typeof existingData.totalCost === "number"
+          ? existingData.totalCost
+          : null;
 
     setVariantDiscountValues((prev) => ({ ...prev, [variantId]: "" }));
     setVariantDiscountReasons((prev) => ({ ...prev, [variantId]: "" }));
 
-    const { appliedDiscount: _a, subtotalBeforeDiscount: _s, ...rest } = existingData;
+    const {
+      appliedDiscount: _a,
+      subtotalBeforeDiscount: _s,
+      componentsBeforeDiscount: _c,
+      ...rest
+    } = existingData;
+    const nextEntry: Record<string, unknown> = {
+      ...rest,
+      ...(restoredComponents ? { components: restoredComponents } : {}),
+      ...(restoredTotal != null ? { totalCost: restoredTotal } : {}),
+    };
+
     form.setValue(
       "variantPricingData",
       {
         ...currentPricingData,
-        [variantId]: rest,
+        [variantId]: nextEntry,
       },
       { shouldDirty: true }
     );
+
+    if (restoredComponents) {
+      setVariantPricingItems((prev) => ({ ...prev, [variantId]: restoredComponents }));
+    }
+    if (restoredTotal != null) {
+      setVariantTotalPrices((prev) => ({ ...prev, [variantId]: restoredTotal.toString() }));
+    }
 
     if (showToast && hadDiscount) {
       toast("Structured discount cleared because the final amount was edited manually.", {
         icon: "ℹ️",
       });
     }
+  };
+
+  const clearDiscountOnBreakdownEdit = (variantId: string) => {
+    const currentPricingData = form.getValues("variantPricingData") || {};
+    const existingData = currentPricingData[variantId] || {};
+    if (
+      !hasAppliedVariantDiscount(existingData.appliedDiscount) ||
+      existingData.appliedDiscount?.type !== "percent"
+    ) {
+      return;
+    }
+
+    setVariantDiscountValues((prev) => ({ ...prev, [variantId]: "" }));
+    setVariantDiscountReasons((prev) => ({ ...prev, [variantId]: "" }));
+
+    const restoredTotal =
+      typeof existingData.subtotalBeforeDiscount === "number"
+        ? existingData.subtotalBeforeDiscount
+        : typeof existingData.totalCost === "number"
+          ? existingData.totalCost
+          : 0;
+
+    const stateItems = variantPricingItems[variantId];
+    const {
+      appliedDiscount: _a,
+      subtotalBeforeDiscount: _s,
+      componentsBeforeDiscount: _c,
+      ...rest
+    } = existingData;
+
+    form.setValue(
+      "variantPricingData",
+      {
+        ...currentPricingData,
+        [variantId]: {
+          ...rest,
+          ...(stateItems !== undefined ? { components: stateItems } : {}),
+          totalCost: restoredTotal,
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      { shouldDirty: true }
+    );
+
+    setVariantTotalPrices((prev) => ({ ...prev, [variantId]: restoredTotal.toString() }));
+    toast("Discount cleared because pricing breakdown was edited.", { icon: "ℹ️" });
   };
 
   const handleApplyVariantDiscount = (variantId: string, subtotalOverride?: number) => {
@@ -1076,6 +1239,11 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         updatedAt: new Date().toISOString()
       }
     }, { shouldDirty: true });
+  };
+
+  const syncVariantPricingBreakdown = (variantId: string) => {
+    clearDiscountOnBreakdownEdit(variantId);
+    syncVariantPricingToForm(variantId);
   };
 
   // Room Allocation Helper Functions
@@ -1953,9 +2121,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           </div>
                           {pricingItems.map((item: any, idx: number) => (
                             <div key={idx} className={`grid grid-cols-[1fr_6rem_1fr_3.5rem] gap-0 px-2 py-1 border-b border-slate-100 last:border-b-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}`}>
-                              <Input value={item.name} disabled={loading} placeholder="Item name" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'name', e.target.value)} onBlur={() => syncVariantPricingToForm(cVariant.id)} className="h-7 text-xs border-0 shadow-none px-1 focus-visible:ring-0 bg-transparent" />
-                              <Input value={item.price} disabled={loading} placeholder="0" type="number" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'price', e.target.value)} onBlur={() => syncVariantPricingToForm(cVariant.id)} className="h-7 text-xs border-0 shadow-none px-1 focus-visible:ring-0 bg-transparent text-right" />
-                              <Input value={item.description} disabled={loading} placeholder="e.g., 6 Adults × Rs.20,000 = Rs.1,20,000" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'description', e.target.value)} onBlur={() => syncVariantPricingToForm(cVariant.id)} className="h-7 text-xs border-0 shadow-none px-2 focus-visible:ring-0 bg-transparent" />
+                              <Input value={item.name} disabled={loading} placeholder="Item name" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'name', e.target.value)} onBlur={() => syncVariantPricingBreakdown(cVariant.id)} className="h-7 text-xs border-0 shadow-none px-1 focus-visible:ring-0 bg-transparent" />
+                              <Input value={item.price} disabled={loading} placeholder="0" type="number" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'price', e.target.value)} onBlur={() => syncVariantPricingBreakdown(cVariant.id)} className="h-7 text-xs border-0 shadow-none px-1 focus-visible:ring-0 bg-transparent text-right" />
+                              <Input value={item.description} disabled={loading} placeholder="e.g., 6 Adults × Rs.20,000 = Rs.1,20,000" onChange={(e) => handleUpdateVariantPricingItem(cVariant.id, idx, 'description', e.target.value)} onBlur={() => syncVariantPricingBreakdown(cVariant.id)} className="h-7 text-xs border-0 shadow-none px-2 focus-visible:ring-0 bg-transparent" />
                               <div className="flex items-center justify-center gap-0.5">
                                 {item.derivationFormula ? (
                                   <Popover>
@@ -3492,7 +3660,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               disabled={loading}
                               placeholder="e.g., Per Person Cost"
                               onChange={(e) => handleUpdateVariantPricingItem(variant.id, idx, 'name', e.target.value)}
-                              onBlur={() => syncVariantPricingToForm(variant.id)}
+                              onBlur={() => syncVariantPricingBreakdown(variant.id)}
                               className="h-8 text-xs border-0 shadow-none px-1 focus-visible:ring-0 bg-transparent"
                             />
                             <Input
@@ -3501,7 +3669,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               placeholder="0"
                               type="number"
                               onChange={(e) => handleUpdateVariantPricingItem(variant.id, idx, 'price', e.target.value)}
-                              onBlur={() => syncVariantPricingToForm(variant.id)}
+                              onBlur={() => syncVariantPricingBreakdown(variant.id)}
                               className="h-8 text-xs border-0 shadow-none px-1 focus-visible:ring-0 bg-transparent"
                             />
                             <Input
@@ -3509,7 +3677,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               disabled={loading}
                               placeholder={`e.g., ${numAdults > 0 ? numAdults : 'N'} Adults × Rs.20,000 = Rs.${numAdults > 0 ? (numAdults * 20000).toLocaleString('en-IN') : '1,20,000'}`}
                               onChange={(e) => handleUpdateVariantPricingItem(variant.id, idx, 'description', e.target.value)}
-                              onBlur={() => syncVariantPricingToForm(variant.id)}
+                              onBlur={() => syncVariantPricingBreakdown(variant.id)}
                               className="h-8 text-xs border-0 shadow-none px-2 focus-visible:ring-0 bg-transparent"
                             />
                             <div className="flex items-center justify-center gap-0.5">
@@ -3552,7 +3720,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       <h3 className="text-base font-bold text-emerald-800">Apply Discount</h3>
                     </div>
                     <p className="text-xs text-emerald-700 mb-4">
-                      Apply a percentage or fixed discount after pricing is calculated. Per-person breakdown rows stay unchanged; only the final total is reduced.
+                      Percentage discounts reduce each breakdown row&apos;s base price and line total. Fixed-amount discounts apply to the final total only.
                     </p>
                     <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end">
                       <div className="space-y-1">

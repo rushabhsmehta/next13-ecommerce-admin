@@ -9,7 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
@@ -57,8 +57,15 @@ export default function AiWizardsScreen() {
   );
 }
 
+function parseTargetParam(value: string | string[] | undefined): AiTargetType | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "tourPackage" || raw === "tourPackageQuery") return raw;
+  return null;
+}
+
 function AiWizardsInner() {
   const router = useRouter();
+  const { target: targetParam } = useLocalSearchParams<{ target?: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -69,7 +76,15 @@ function AiWizardsInner() {
     []
   );
 
-  const [targetType, setTargetType] = useState<AiTargetType>("tourPackage");
+  const initialTarget = parseTargetParam(targetParam);
+  const [targetType, setTargetType] = useState<AiTargetType>(
+    initialTarget ?? "tourPackage"
+  );
+
+  useEffect(() => {
+    const parsed = parseTargetParam(targetParam);
+    if (parsed) setTargetType(parsed);
+  }, [targetParam]);
   const [destination, setDestination] = useState("");
   const [nights, setNights] = useState("3");
   const [days, setDays] = useState("4");
@@ -191,8 +206,9 @@ function AiWizardsInner() {
       if (targetType === "tourPackageQuery") {
         router.replace(`/admin/tour-queries/${saved.id}/edit` as never);
       } else {
-        Alert.alert("Package draft saved", "The package is saved as an unpublished website draft.");
-        router.replace("/admin/website" as never);
+        router.replace(
+          `/admin/operations/tour-packages/${saved.id}` as never
+        );
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not save this draft.");

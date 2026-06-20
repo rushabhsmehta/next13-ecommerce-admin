@@ -600,23 +600,45 @@ function AdminInquiryDetailInner() {
             )}
 
             {canWrite ? (
-              <Pressable
-                testID="inquiry-create-tour-query"
-                accessibilityRole="button"
-                accessibilityLabel="Create tour query from this inquiry"
-                style={[
-                  styles.primaryBtn,
-                  { marginTop: Spacing.sm, backgroundColor: Colors.primary },
-                  saving ? styles.btnDisabled : null,
-                ]}
-                disabled={saving}
-                onPress={() => void handleCreateTourQuery()}
-              >
-                <Ionicons name="map-outline" size={18} color="#fff" />
-                <Text style={styles.primaryBtnText}>
-                  {saving ? "Processing…" : "Create Tour Query"}
-                </Text>
-              </Pressable>
+              <>
+                <Pressable
+                  testID="inquiry-smart-build"
+                  accessibilityRole="button"
+                  accessibilityLabel="Smart build tour query from inquiry"
+                  accessibilityHint="Opens package template, rooms, transport, and pricing wizard."
+                  style={[
+                    styles.primaryBtn,
+                    { marginTop: Spacing.sm, backgroundColor: Colors.primaryDark },
+                    saving ? styles.btnDisabled : null,
+                  ]}
+                  disabled={saving}
+                  onPress={() =>
+                    router.push(
+                      `/admin/tour-queries/smart-build?inquiryId=${inquiryId}` as never
+                    )
+                  }
+                >
+                  <Ionicons name="sparkles-outline" size={18} color="#fff" />
+                  <Text style={styles.primaryBtnText}>Smart Build</Text>
+                </Pressable>
+                <Pressable
+                  testID="inquiry-create-tour-query"
+                  accessibilityRole="button"
+                  accessibilityLabel="Create tour query from this inquiry"
+                  style={[
+                    styles.primaryBtn,
+                    { marginTop: Spacing.sm, backgroundColor: Colors.primary },
+                    saving ? styles.btnDisabled : null,
+                  ]}
+                  disabled={saving}
+                  onPress={() => void handleCreateTourQuery()}
+                >
+                  <Ionicons name="map-outline" size={18} color="#fff" />
+                  <Text style={styles.primaryBtnText}>
+                    {saving ? "Processing…" : "Create Tour Query"}
+                  </Text>
+                </Pressable>
+              </>
             ) : null}
           </View>
         ) : null}

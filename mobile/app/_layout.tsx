@@ -274,6 +274,10 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="admin/tour-queries/smart-build"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="admin/tour-queries/[id]/index"
               options={{ headerTitle: "Tour Query", headerBackTitle: "Queries" }}
             />
@@ -299,6 +303,10 @@ export default function RootLayout() {
             />
             <Stack.Screen
               name="admin/operations/tour-packages/new"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="admin/operations/tour-packages/from-query/[queryId]"
               options={{ headerShown: false }}
             />
             <Stack.Screen

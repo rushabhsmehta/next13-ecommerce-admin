@@ -31,6 +31,21 @@ describe("createOperationsClient", () => {
     expect(request).toHaveBeenCalledWith("/api/mobile/operations/suppliers", READ_CACHE);
   });
 
+  it("listSuppliers passes search and locationId", async () => {
+    const request = jest.fn(async () => ({
+      suppliers: [],
+      total: 0,
+      hasMore: false,
+      nextOffset: 0,
+    }));
+    const client = createOperationsClient(request as any);
+    await client.listSuppliers({ search: "goa", locationId: "loc-1" });
+    expect(request).toHaveBeenCalledWith(
+      "/api/mobile/operations/suppliers?search=goa&locationId=loc-1",
+      READ_CACHE
+    );
+  });
+
   it("getSupplier encodes the id", async () => {
     const request = jest.fn(async () => ({}));
     const client = createOperationsClient(request as any);

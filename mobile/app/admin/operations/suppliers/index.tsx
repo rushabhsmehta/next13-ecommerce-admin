@@ -26,6 +26,8 @@ import {
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { createOperationsClient, type Supplier } from "@/lib/operations";
+import { LookupPickerModal } from "@/components/inquiry/LookupPickerModal";
+import type { InquiryLookupOption } from "@/lib/inquiry-lookups";
 
 const PAGE_SIZE = 30;
 
@@ -51,8 +53,13 @@ function SuppliersListScreenInner() {
     () => createOperationsClient(withAuth(() => getTokenRef.current())),
     []
   );
+  const request = useMemo(() => withAuth(() => getTokenRef.current()), []);
 
   const [items, setItems] = useState<Supplier[]>([]);
+  const [locations, setLocations] = useState<InquiryLookupOption[]>([]);
+  const [locationId, setLocationId] = useState("");
+  const [locationLabel, setLocationLabel] = useState("");
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -68,8 +75,21 @@ function SuppliersListScreenInner() {
     return () => clearTimeout(t);
   }, [search]);
 
+  useEffect(() => {
+    void request<{ items: { id: string; name: string }[] }>(
+      "/api/mobile/operations/list?type=locations&limit=100",
+      LOOKUP_CACHE
+    )
+      .then((data) => {
+        setLocations(data.items.map((l) => ({ id: l.id, label: l.name })));
+      })
+      .catch(() => {
+        /* location picker falls back to empty list */
+      });
+  }, [request]);
+
   const load = useCallback(
-    async (mode: "initial" | "refresh" | "more", term: string) => {
+    async (mode: "initial" | "refresh" | "more", term: string, locId: string) => {
       if (mode === "more") setLoadingMore(true);
       else if (mode === "refresh") setRefreshing(true);
       else setLoading(true);
@@ -78,6 +98,7 @@ function SuppliersListScreenInner() {
         const nextOffset = mode === "more" ? offset : 0;
         const res = await client.listSuppliers({
           search: term || undefined,
+          locationId: locId || undefined,
           limit: PAGE_SIZE,
           offset: nextOffset,
         });
@@ -101,9 +122,11 @@ function SuppliersListScreenInner() {
   );
 
   useEffect(() => {
-    void load("initial", debounced);
+    void load("initial", debounced, locationId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced]);
+  }, [debounced, locationId]);
+
+  const hasFilters = Boolean(debounced || locationId);
 
   const subtitle = loading ? "Loading..." : `${total} total`;
 
@@ -128,18 +151,53 @@ function SuppliersListScreenInner() {
         }
       />
 
+      {locationId ? (
+        <Pressable
+          testID="suppliers-clear-location-filter"
+          accessibilityRole="button"
+          accessibilityLabel="Clear location filter"
+          style={styles.filterChip}
+          onPress={() => {
+            setLocationId("");
+            setLocationLabel("");
+          }}
+        >
+          <Text style={styles.filterChipText} numberOfLines={1}>
+            {locationLabel || "Location"} · Clear
+          </Text>
+          <Ionicons name="close" size={14} color={Colors.primary} />
+        </Pressable>
+      ) : null}
+
       <AdminCommandBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search by name, phone, or email"
+        searchPlaceholder="Search by name, phone, email, or location"
         searchTestID="suppliers-search"
         testID="suppliers-command-bar"
+        onFilterPress={() => setLocationPickerOpen(true)}
+        filterActive={Boolean(locationId)}
+        filterAccessibilityLabel="Filter by location"
+      />
+
+      <LookupPickerModal
+        visible={locationPickerOpen}
+        title="Location"
+        options={locations}
+        testID="suppliers-location-picker"
+        onClose={() => setLocationPickerOpen(false)}
+        onSelect={(id) => {
+          const opt = locations.find((o) => o.id === id);
+          setLocationId(id);
+          setLocationLabel(opt?.label ?? "");
+          setLocationPickerOpen(false);
+        }}
       />
 
       {error ? (
         <AdminErrorState
           message={error}
-          onRetry={() => void load("refresh", debounced)}
+          onRetry={() => void load("refresh", debounced, locationId)}
           testID="suppliers-error"
         />
       ) : null}
@@ -155,14 +213,14 @@ function SuppliersListScreenInner() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => void load("refresh", debounced)}
+            onRefresh={() => void load("refresh", debounced, locationId)}
             tintColor={Colors.primary}
           />
         }
         onEndReachedThreshold={0.5}
         onEndReached={() => {
           if (!loading && !loadingMore && hasMore) {
-            void load("more", debounced);
+            void load("more", debounced, locationId);
           }
         }}
         ListEmptyComponent={
@@ -172,7 +230,7 @@ function SuppliersListScreenInner() {
             <AdminEmptyState
               icon="business-outline"
               title="No suppliers"
-              body={debounced ? "Try a different search." : "Tap + to add one."}
+              body={hasFilters ? "Try a different search or filter." : "Tap + to add one."}
               testID="suppliers-empty"
             />
           )
@@ -184,7 +242,10 @@ function SuppliersListScreenInner() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const locationText =
+            item.locations?.map((l) => l.label).join(" · ") || null;
+          return (
           <Pressable
             testID={`supplier-row-${item.id}`}
             accessibilityRole="button"
@@ -201,6 +262,11 @@ function SuppliersListScreenInner() {
               <Text style={styles.rowName} numberOfLines={1}>
                 {item.name}
               </Text>
+              {locationText ? (
+                <Text style={styles.rowLocations} numberOfLines={1}>
+                  {locationText}
+                </Text>
+              ) : null}
               <Text style={styles.rowMeta} numberOfLines={1}>
                 {item.contact ?? "No phone"}
                 {item.email ? ` · ${item.email}` : ""}
@@ -224,11 +290,14 @@ function SuppliersListScreenInner() {
             ) : null}
             <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
           </Pressable>
-        )}
+          );
+        }}
       />
     </AdminScreen>
   );
 }
+
+const LOOKUP_CACHE = { cacheTtlSeconds: 300, dedupe: true, staleOnError: true } as const;
 
 const styles = StyleSheet.create({
   list: { flex: 1 },
@@ -265,6 +334,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+    maxWidth: "90%",
+  },
+  filterChipText: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.primary },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -313,6 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   rowName: { fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
+  rowLocations: { fontSize: FontSize.xs, color: Colors.primary, marginTop: 2, fontWeight: "600" },
   rowMeta: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
   rowGst: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   callBtn: {

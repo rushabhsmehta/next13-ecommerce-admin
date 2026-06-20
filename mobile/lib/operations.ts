@@ -60,11 +60,13 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
   return {
     listSuppliers(filters: {
       search?: string;
+      locationId?: string;
       limit?: number;
       offset?: number;
     } = {}): Promise<SupplierListResponse> {
       const qs = new URLSearchParams();
       if (filters.search) qs.set("search", filters.search);
+      if (filters.locationId) qs.set("locationId", filters.locationId);
       if (filters.limit) qs.set("limit", String(filters.limit));
       if (filters.offset) qs.set("offset", String(filters.offset));
       const q = qs.toString();

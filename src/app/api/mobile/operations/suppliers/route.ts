@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import {
@@ -38,22 +39,29 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim() ?? "";
+    const locationId = searchParams.get("locationId")?.trim() ?? undefined;
     const limitRaw = Number.parseInt(searchParams.get("limit") ?? "30", 10);
     const offsetRaw = Number.parseInt(searchParams.get("offset") ?? "0", 10);
     const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 30, 1), 100);
     const offset = Math.max(Number.isFinite(offsetRaw) ? offsetRaw : 0, 0);
 
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search } },
-            { contact: { contains: search } },
-            { email: { contains: search } },
-          ],
-        }
-      : {};
+    const and: Prisma.SupplierWhereInput[] = [];
+    if (locationId) {
+      and.push({ locations: { some: { locationId } } });
+    }
+    if (search) {
+      and.push({
+        OR: [
+          { name: { contains: search } },
+          { contact: { contains: search } },
+          { email: { contains: search } },
+          { locations: { some: { location: { label: { contains: search } } } } },
+        ],
+      });
+    }
+    const where: Prisma.SupplierWhereInput = and.length ? { AND: and } : {};
 
-    const [suppliers, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       prismadb.supplier.findMany({
         where,
         select: {
@@ -63,6 +71,7 @@ export async function GET(req: Request) {
           email: true,
           gstNumber: true,
           address: true,
+          ...supplierLocationsSelect,
         },
         orderBy: { name: "asc" },
         skip: offset,
@@ -70,6 +79,16 @@ export async function GET(req: Request) {
       }),
       prismadb.supplier.count({ where }),
     ]);
+
+    const suppliers = rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      contact: row.contact,
+      email: row.email,
+      gstNumber: row.gstNumber,
+      address: row.address,
+      locations: mapSupplierLocations(row.locations),
+    }));
 
     return NextResponse.json({
       suppliers,

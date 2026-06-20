@@ -404,7 +404,11 @@ function TourQueryVariantsPanelInner({
           </View>
         ) : null}
 
-        {compareA?.pricing || compareB?.pricing ?
+        {data.variants.length >= 2 &&
+        compareA &&
+        compareB &&
+        compareA.id !== compareB.id &&
+        (compareA.pricing || compareB.pricing) ?
           (
             <View style={styles.compareCard}>
               <Text style={styles.compareHeading}>Quick compare</Text>

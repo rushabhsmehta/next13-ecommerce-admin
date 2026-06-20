@@ -3653,7 +3653,11 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           <span className="text-[10px] font-semibold text-slate-600 flex items-center gap-1 pl-2"><Calculator className="h-2.5 w-2.5 text-blue-500" />Description</span>
                           <span className="text-[10px] font-semibold text-slate-500 text-center">Actions</span>
                         </div>
-                        {(variantPricingItems[variant.id] || []).map((item, idx) => (
+                        {(variantPricingItems[variant.id] || []).map((item, idx) => {
+                          const variantHasDiscount = hasAppliedVariantDiscount(
+                            savedVariantPricingData?.[variant.id]?.appliedDiscount
+                          );
+                          return (
                           <div key={idx} className={`grid grid-cols-[1fr_7rem_1fr_4rem] gap-0 px-2 py-1 border-b border-slate-100 last:border-b-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}`}>
                             <Input
                               value={item.name}
@@ -3665,20 +3669,22 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             />
                             <Input
                               value={item.price}
-                              disabled={loading}
+                              disabled={loading || variantHasDiscount}
+                              readOnly={variantHasDiscount}
                               placeholder="0"
                               type="number"
                               onChange={(e) => handleUpdateVariantPricingItem(variant.id, idx, 'price', e.target.value)}
                               onBlur={() => syncVariantPricingBreakdown(variant.id)}
-                              className="h-8 text-xs border-0 shadow-none px-1 focus-visible:ring-0 bg-transparent"
+                              className={`h-8 text-xs border-0 shadow-none px-1 focus-visible:ring-0 ${variantHasDiscount ? 'bg-slate-100/80 cursor-not-allowed' : 'bg-transparent'}`}
                             />
                             <Input
                               value={item.description}
-                              disabled={loading}
+                              disabled={loading || variantHasDiscount}
+                              readOnly={variantHasDiscount}
                               placeholder={`e.g., ${numAdults > 0 ? numAdults : 'N'} Adults × Rs.20,000 = Rs.${numAdults > 0 ? (numAdults * 20000).toLocaleString('en-IN') : '1,20,000'}`}
                               onChange={(e) => handleUpdateVariantPricingItem(variant.id, idx, 'description', e.target.value)}
                               onBlur={() => syncVariantPricingBreakdown(variant.id)}
-                              className="h-8 text-xs border-0 shadow-none px-2 focus-visible:ring-0 bg-transparent"
+                              className={`h-8 text-xs border-0 shadow-none px-2 focus-visible:ring-0 ${variantHasDiscount ? 'bg-slate-100/80 cursor-not-allowed' : 'bg-transparent'}`}
                             />
                             <div className="flex items-center justify-center gap-0.5">
                               {item.derivationFormula ? (
@@ -3706,7 +3712,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               </Button>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>
@@ -3720,7 +3727,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       <h3 className="text-base font-bold text-emerald-800">Apply Discount</h3>
                     </div>
                     <p className="text-xs text-emerald-700 mb-4">
-                      Percentage discounts reduce each breakdown row&apos;s base price and line total. Fixed-amount discounts apply to the final total only.
+                      Percentage discounts update each row&apos;s description with discount and GST; base prices stay unchanged. Fixed-amount discounts apply to the final total only.
                     </p>
                     <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-end">
                       <div className="space-y-1">

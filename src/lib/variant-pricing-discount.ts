@@ -20,9 +20,31 @@ export type VariantDiscountResult = {
   subtotalBeforeDiscount: number;
 };
 
+export const VARIANT_PRICING_GST_PERCENT = 5;
+
+export type PricingLineAmounts = {
+  unitBase: number;
+  qty: number;
+  lineBase: number;
+  discountPercent: number;
+  discountAmount: number;
+  afterDiscount: number;
+  gstAmount: number;
+  netLineTotal: number;
+  netUnitPrice: number;
+};
+
 function parseNonNegativeNumber(value: unknown): number {
   const n = typeof value === "string" ? Number.parseFloat(value) : Number(value);
   return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function roundInr(value: number): number {
+  return Math.round(value);
+}
+
+export function formatInrAmount(value: number): string {
+  return `Rs. ${roundInr(value).toLocaleString("en-IN")}`;
 }
 
 /**
@@ -98,21 +120,92 @@ export type PricingComponentItem = {
   derivationFormula?: string;
 };
 
-const LINE_DESCRIPTION_PATTERN =
+export const LINE_DESCRIPTION_PATTERN =
   /^(\d+)\s+(.+?)\s×\s*Rs\.?\s*([\d,]+(?:\.\d+)?)\s*=\s*Rs\.?\s*([\d,]+(?:\.\d+)?)$/i;
+
+const GENERATED_PRICING_LINE_PATTERN =
+  /(?:− Discount \(\d+%\) Rs\. [\d,]+ = Rs\. [\d,]+ \+ GST \(5%\)|\+ GST \(5%\))/;
 
 function parseComponentPrice(value: string | undefined): number {
   const n = Number.parseFloat(String(value ?? "").replace(/[^\d.-]/g, ""));
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
-function rebuildLineDescription(
-  qty: number,
-  label: string,
-  unitPrice: number,
-  lineTotal: number
+export type PricingLineContext = {
+  qty: number;
+  label?: string;
+};
+
+/** Parse qty × rate descriptions to recover quantity context for line math. */
+export function parsePricingLineContext(description: string | undefined | null): PricingLineContext {
+  const match = (description ?? "").match(LINE_DESCRIPTION_PATTERN);
+  if (!match) {
+    return { qty: 1 };
+  }
+  const qty = Number.parseInt(match[1], 10);
+  return {
+    qty: Number.isFinite(qty) && qty > 0 ? qty : 1,
+    label: match[2].trim(),
+  };
+}
+
+export function isGeneratedPricingLineDescription(description: string | undefined | null): boolean {
+  return GENERATED_PRICING_LINE_PATTERN.test(description ?? "");
+}
+
+export function computePricingLineAmounts(input: {
+  unitBase: number;
+  discountPercent?: number;
+  qty?: number;
+  gstPercent?: number;
+}): PricingLineAmounts {
+  const unitBase = Math.max(0, roundInr(parseNonNegativeNumber(input.unitBase)));
+  const qty = Math.max(1, Math.round(parseNonNegativeNumber(input.qty ?? 1)));
+  const discountPercent = Math.min(
+    100,
+    Math.max(0, parseNonNegativeNumber(input.discountPercent ?? 0))
+  );
+  const gstPercent = Math.max(0, parseNonNegativeNumber(input.gstPercent ?? VARIANT_PRICING_GST_PERCENT));
+
+  const lineBase = roundInr(unitBase * qty);
+  const discountAmount =
+    discountPercent > 0 ? roundInr(lineBase * (discountPercent / 100)) : 0;
+  const afterDiscount = Math.max(0, lineBase - discountAmount);
+  const gstAmount = gstPercent > 0 ? roundInr(afterDiscount * (gstPercent / 100)) : 0;
+  const netLineTotal = afterDiscount + gstAmount;
+  const netUnitPrice = qty > 1 ? roundInr(netLineTotal / qty) : netLineTotal;
+
+  return {
+    unitBase,
+    qty,
+    lineBase,
+    discountPercent,
+    discountAmount,
+    afterDiscount,
+    gstAmount,
+    netLineTotal,
+    netUnitPrice,
+  };
+}
+
+export function buildPricingLineDescription(
+  amounts: PricingLineAmounts,
+  options: { label?: string } = {}
 ): string {
-  return `${qty} ${label} × Rs.${unitPrice.toLocaleString("en-IN")} = Rs.${lineTotal.toLocaleString("en-IN")}`;
+  const { qty, unitBase, lineBase, discountPercent, discountAmount, afterDiscount, gstAmount, netLineTotal } =
+    amounts;
+  const label = options.label?.trim();
+
+  let prefix = formatInrAmount(unitBase);
+  if (qty > 1 && label) {
+    prefix = `${qty} ${label} × ${formatInrAmount(unitBase)} = ${formatInrAmount(lineBase)}`;
+  }
+
+  if (discountPercent > 0) {
+    return `${prefix} − Discount (${discountPercent}%) ${formatInrAmount(discountAmount)} = ${formatInrAmount(afterDiscount)} + GST (${VARIANT_PRICING_GST_PERCENT}%) ${formatInrAmount(gstAmount)} = ${formatInrAmount(netLineTotal)}`;
+  }
+
+  return `${prefix} + GST (${VARIANT_PRICING_GST_PERCENT}%) ${formatInrAmount(gstAmount)} = ${formatInrAmount(netLineTotal)}`;
 }
 
 /** Shallow-clone pricing breakdown rows for safe snapshots. */
@@ -123,8 +216,8 @@ export function clonePricingComponents(
 }
 
 /**
- * Apply a percentage discount to each pricing breakdown row's base price.
- * Rebuilds auto-generated descriptions when they match the standard qty × rate = total pattern.
+ * Apply a percentage discount to each pricing breakdown row.
+ * Keeps original base price; rebuilds description with discount + GST math.
  */
 export function applyPercentDiscountToPricingComponents(
   items: PricingComponentItem[],
@@ -135,32 +228,45 @@ export function applyPercentDiscountToPricingComponents(
     return clonePricingComponents(items);
   }
 
-  const multiplier = 1 - cappedPercent / 100;
-
   return items.map((item) => {
-    const oldPrice = parseComponentPrice(item.price);
-    if (oldPrice <= 0) {
+    const unitBase = parseComponentPrice(item.price);
+    if (unitBase <= 0) {
       return { ...item };
     }
 
-    const newPrice = Math.round(oldPrice * multiplier);
-    const description = item.description ?? "";
-    const match = description.match(LINE_DESCRIPTION_PATTERN);
-
-    if (match) {
-      const qty = Number.parseInt(match[1], 10);
-      const label = match[2].trim();
-      const newTotal = newPrice * qty;
-      return {
-        ...item,
-        price: newPrice.toString(),
-        description: rebuildLineDescription(qty, label, newPrice, newTotal),
-      };
-    }
+    const { qty, label } = parsePricingLineContext(item.description);
+    const amounts = computePricingLineAmounts({
+      unitBase,
+      discountPercent: cappedPercent,
+      qty,
+    });
 
     return {
       ...item,
-      price: newPrice.toString(),
+      price: unitBase.toString(),
+      description: buildPricingLineDescription(amounts, { label }),
     };
   });
+}
+
+/** Build discount + GST description for a single component row (display/editor). */
+export function buildComponentPricingDescription(
+  unitBase: number,
+  description: string | undefined | null,
+  appliedDiscount?: AppliedVariantDiscount | null
+): { description: string; netUnitPrice: number } {
+  const { qty, label } = parsePricingLineContext(description);
+  const discountPercent =
+    appliedDiscount?.type === "percent" && appliedDiscount.inputValue > 0
+      ? appliedDiscount.inputValue
+      : 0;
+  const amounts = computePricingLineAmounts({
+    unitBase,
+    discountPercent,
+    qty,
+  });
+  return {
+    description: buildPricingLineDescription(amounts, { label }),
+    netUnitPrice: amounts.netUnitPrice,
+  };
 }

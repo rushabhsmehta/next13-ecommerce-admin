@@ -388,14 +388,27 @@ export function VariantBuildPanel({
           ) : (
             dayRows.map((day) => (
               <View key={day.id} style={styles.dayCard}>
-                <Text style={styles.dayTitle}>
-                  Day {day.dayLabel}
-                  {day.itineraryTitle ? ` - ${day.itineraryTitle.replace(/<[^>]+>/g, "")}` : ""}
-                </Text>
-                <View style={styles.row}>
-                  <Ionicons name="bed-outline" size={15} color={Colors.textSecondary} />
-                  <Text style={styles.rowText}>{day.hotelName}</Text>
+                <View style={styles.hotelCardHead}>
+                  <View style={styles.nightBadge}>
+                    <Text style={styles.nightBadgeText}>Night {day.dayLabel}</Text>
+                  </View>
+                  {day.rooms.length > 0 || day.transport.length > 0 ? (
+                    <Text style={styles.muted}>
+                      {day.rooms.length} room{day.rooms.length === 1 ? "" : "s"}
+                      {day.transport.length > 0
+                        ? ` · ${day.transport.length} transport`
+                        : ""}
+                    </Text>
+                  ) : null}
                 </View>
+                <Text style={styles.hotelName} numberOfLines={2}>
+                  {day.hotelName}
+                </Text>
+                {day.itineraryTitle ? (
+                  <Text style={styles.muted} numberOfLines={2}>
+                    {day.itineraryTitle.replace(/<[^>]+>/g, "")}
+                  </Text>
+                ) : null}
               </View>
             ))
           )}
@@ -1062,6 +1075,28 @@ const styles = StyleSheet.create({
   },
   dayBody: { gap: Spacing.sm },
   dayTitle: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
+  hotelCardHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
+  nightBadge: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+  },
+  nightBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.textInverse,
+  },
+  hotelName: {
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.text,
+  },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",

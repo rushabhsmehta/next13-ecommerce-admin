@@ -1,5 +1,13 @@
 import type { PerPersonRatesResult } from "@/lib/pricing-calculator";
 import type { AppliedVariantDiscount } from "@/lib/variant-pricing-discount";
+import type { PricingLineAmounts } from "@/lib/variant-pricing-discount";
+import {
+  buildComponentPricingDescription,
+  computePricingLineAmounts,
+  isGeneratedPricingLineDescription,
+  parsePricingLineContext,
+  VARIANT_PRICING_GST_PERCENT,
+} from "@/lib/variant-pricing-discount";
 import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
 
 export type VariantPricingComponent = {
@@ -11,6 +19,7 @@ export type VariantPricingComponent = {
 
 export type VariantPricingEntry = {
   components?: VariantPricingComponent[];
+  componentsBeforeDiscount?: VariantPricingComponent[];
   totalCost?: number;
   subtotalBeforeDiscount?: number;
   appliedDiscount?: AppliedVariantDiscount;
@@ -39,15 +48,138 @@ export function matchPricingItemRateKey(
   return null;
 }
 
+export type PricingCalculationParts = PricingLineAmounts & {
+  qtyLabel?: string;
+};
+
 export type PricingDisplayRow = {
   label: string;
   price: number;
+  netPrice: number;
+  calculationParts?: PricingCalculationParts;
+  calculationText?: string;
   description?: string;
 };
+
+function buildCalculationParts(
+  unitBase: number,
+  description: string | undefined | null,
+  appliedDiscount?: AppliedVariantDiscount | null
+): PricingCalculationParts {
+  const { qty, label: qtyLabel } = parsePricingLineContext(description);
+  const discountPercent = resolveRowDiscountPercent(appliedDiscount);
+  return {
+    ...computePricingLineAmounts({
+      unitBase,
+      discountPercent,
+      qty,
+    }),
+    qtyLabel,
+  };
+}
+
+/** Package-level breakdown for the Total Price row in price comparison. */
+export function buildPackageTotalCalculationParts(
+  vpd: VariantPricingEntry | undefined | null
+): PricingCalculationParts | null {
+  if (!vpd) return null;
+
+  const lineBase = Math.round(
+    parseFloat(String(vpd.subtotalBeforeDiscount ?? vpd.totalCost ?? 0))
+  );
+  if (!Number.isFinite(lineBase) || lineBase <= 0) return null;
+
+  const applied = vpd.appliedDiscount;
+  if (applied?.type === "percent" && applied.inputValue > 0) {
+    return buildCalculationParts(lineBase, null, applied);
+  }
+
+  if (applied?.type === "fixed" && applied.amount > 0) {
+    const discountAmount = Math.min(lineBase, Math.round(applied.amount));
+    const afterDiscount = Math.max(0, lineBase - discountAmount);
+    const gstAmount = Math.round(afterDiscount * (VARIANT_PRICING_GST_PERCENT / 100));
+    const netLineTotal = afterDiscount + gstAmount;
+    return {
+      unitBase: lineBase,
+      qty: 1,
+      lineBase,
+      discountPercent: 0,
+      discountAmount,
+      afterDiscount,
+      gstAmount,
+      netLineTotal,
+      netUnitPrice: netLineTotal,
+    };
+  }
+
+  return buildCalculationParts(lineBase, null, null);
+}
 
 function parsePrice(value: string | number | undefined | null): number {
   const n = parseFloat(String(value ?? "").replace(/[^\d.-]/g, ""));
   return Number.isFinite(n) ? n : 0;
+}
+
+function resolveRowDiscountPercent(appliedDiscount?: AppliedVariantDiscount | null): number {
+  if (appliedDiscount?.type === "percent" && appliedDiscount.inputValue > 0) {
+    return appliedDiscount.inputValue;
+  }
+  return 0;
+}
+
+export function resolvePricingDisplayRow(
+  comp: VariantPricingComponent,
+  appliedDiscount?: AppliedVariantDiscount | null,
+  beforeDiscountComp?: VariantPricingComponent | null
+): PricingDisplayRow | null {
+  const label = (comp.name || comp.attributeName || "").trim();
+  if (!label || SUMMARY_ROW_NAMES.has(label.toLowerCase())) return null;
+
+  const unitBase = parsePrice(beforeDiscountComp?.price ?? comp.price);
+  if (unitBase <= 0) return null;
+
+  const contextDescription = beforeDiscountComp?.description ?? comp.description;
+  const storedDescription = comp.description || beforeDiscountComp?.description || undefined;
+  const calculationParts = buildCalculationParts(
+    unitBase,
+    contextDescription,
+    appliedDiscount
+  );
+
+  if (storedDescription && isGeneratedPricingLineDescription(storedDescription)) {
+    return {
+      label,
+      price: unitBase,
+      netPrice: calculationParts.netUnitPrice,
+      calculationParts,
+      calculationText: storedDescription,
+      description: storedDescription,
+    };
+  }
+
+  const built = buildComponentPricingDescription(
+    unitBase,
+    contextDescription,
+    appliedDiscount
+  );
+  return {
+    label,
+    price: unitBase,
+    netPrice: built.netUnitPrice,
+    calculationParts,
+    calculationText: built.description,
+    description: built.description,
+  };
+}
+
+function findBeforeDiscountComponent(
+  componentsBeforeDiscount: VariantPricingComponent[] | undefined,
+  label: string
+): VariantPricingComponent | undefined {
+  if (!Array.isArray(componentsBeforeDiscount)) return undefined;
+  return componentsBeforeDiscount.find(
+    (comp) => (comp.name || comp.attributeName || "").trim() === label
+  );
 }
 
 function rowsFromPerPersonRates(perPersonRates: PerPersonRatesResult): PricingDisplayRow[] {
@@ -57,27 +189,32 @@ function rowsFromPerPersonRates(perPersonRates: PerPersonRatesResult): PricingDi
     if (!key) continue;
     const rate = perPersonRates.rates[key];
     if (!rate || rate.price === null || rate.price <= 0) continue;
+    const unitBase = rate.price;
+    const calculationParts = buildCalculationParts(unitBase, rate.description || "", null);
+    const built = buildComponentPricingDescription(unitBase, rate.description || "", null);
     rows.push({
       label: item.name,
-      price: rate.price,
-      description: rate.description || undefined,
+      price: unitBase,
+      netPrice: calculationParts.netUnitPrice,
+      calculationParts,
+      calculationText: built.description,
+      description: rate.description || built.description,
     });
   }
   return rows;
 }
 
-function rowsFromComponents(components: VariantPricingComponent[]): PricingDisplayRow[] {
+function rowsFromComponents(
+  components: VariantPricingComponent[],
+  appliedDiscount?: AppliedVariantDiscount | null,
+  componentsBeforeDiscount?: VariantPricingComponent[]
+): PricingDisplayRow[] {
   const rows: PricingDisplayRow[] = [];
   for (const comp of components) {
     const label = (comp.name || comp.attributeName || "").trim();
-    if (!label || SUMMARY_ROW_NAMES.has(label.toLowerCase())) continue;
-    const price = parsePrice(comp.price);
-    if (price <= 0) continue;
-    rows.push({
-      label,
-      price,
-      description: comp.description || undefined,
-    });
+    const beforeDiscountComp = findBeforeDiscountComponent(componentsBeforeDiscount, label);
+    const row = resolvePricingDisplayRow(comp, appliedDiscount, beforeDiscountComp);
+    if (row) rows.push(row);
   }
   return rows;
 }
@@ -87,7 +224,12 @@ export function getVariantPricingDisplayRows(
   vpd: VariantPricingEntry | undefined | null,
   snapshotComponents: VariantPricingComponent[] = []
 ): PricingDisplayRow[] {
-  const fromComponents = rowsFromComponents(vpd?.components || []);
+  const appliedDiscount = vpd?.appliedDiscount;
+  const fromComponents = rowsFromComponents(
+    vpd?.components || [],
+    appliedDiscount,
+    vpd?.componentsBeforeDiscount
+  );
   if (fromComponents.length > 0) return fromComponents;
 
   if (vpd?.perPersonRates?.rates) {
@@ -95,7 +237,7 @@ export function getVariantPricingDisplayRows(
     if (fromRates.length > 0) return fromRates;
   }
 
-  return rowsFromComponents(snapshotComponents);
+  return rowsFromComponents(snapshotComponents, appliedDiscount);
 }
 
 /** Union of row labels across variants, with default pricing order first. */
@@ -186,3 +328,5 @@ export function applyPerPersonRatesToPricingItems(
     };
   });
 }
+
+export { VARIANT_PRICING_GST_PERCENT };

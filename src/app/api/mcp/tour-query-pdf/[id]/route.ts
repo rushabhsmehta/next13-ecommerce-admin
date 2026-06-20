@@ -264,7 +264,7 @@ function buildVariants(q: QueryData): string {
     ` : "<em style='color:#9CA3AF'>Pricing not configured</em>";
 
     return `
-      <div style="margin-bottom:20px;border:1px solid #E5E7EB;border-radius:6px;padding:14px">
+      <div style="margin-bottom:20px;border:1px solid #E5E7EB;border-radius:6px;padding:14px;${snapshots.length === 1 ? "max-width:520px;" : ""}">
         <div class="variant-name" style="margin-bottom:8px">${esc(variant.name)}</div>
         ${variant.description ? `<div style="color:#6B7280;font-size:11px;margin-bottom:8px">${esc(variant.description)}</div>` : ""}
         ${hotelsTable}

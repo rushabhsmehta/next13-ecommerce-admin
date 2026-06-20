@@ -546,7 +546,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               Package Variants
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Compare different package options with varying accommodations and pricing
+              Compare package options with varying accommodations and pricing
             </p>
           </CardHeader>
           <CardContent className="px-5 py-6">

@@ -25,6 +25,16 @@ import {
 import { /* renderItineraryImages, */ renderActivityImages } from "@/lib/itinerary-image-html";
 import { normalizeItineraryDays } from "@/lib/utils";
 
+/** Keeps single-variant PDF tables from stretching full page width. */
+function pdfComparisonTableStyle(variantCount: number): string {
+  const base = "border-collapse: collapse; font-family: Arial, sans-serif;";
+  return variantCount === 1 ? `max-width: 520px; width: 100%; ${base}` : `width: 100%; ${base}`;
+}
+
+function pdfVariantColumnWidth(variantCount: number, dataColPct: number): string {
+  return variantCount === 1 ? "width: 300px; max-width: 300px;" : `width: ${dataColPct}%;`;
+}
+
 // Variant snapshot types for standard PDF generator
 interface QueryVariantHotelSnapshotForPDF {
   id: string;
@@ -304,6 +314,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     ));
 
     const variantCount = variants.length;
+    const isSingleVariant = variantCount === 1;
+    const comparisonTableStyle = pdfComparisonTableStyle(variantCount);
+    const priceCellAlign = isSingleVariant ? "left" : "inherit";
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1)));
     const dataColPct = Math.round((100 - labelColPct) / variantCount);
 
@@ -312,7 +325,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const tdLabel = `${tdBase} background: ${brandColors.tableHeaderBg}; font-weight: 600; white-space: nowrap; color: ${brandColors.slateText};`;
 
     const variantHeaders = variants.map(v => `
-      <th style="${thBase} background: ${brandColors.primary}; color: white; width: ${dataColPct}%;">
+      <th style="${thBase} background: ${brandColors.primary}; color: white; ${pdfVariantColumnWidth(variantCount, dataColPct)}">
         ${v.name}
         ${v.priceModifier && v.priceModifier !== 0 ? `
           <span style="display: block; font-size: 10px; font-weight: 500; opacity: 0.9; margin-top: 2px;">
@@ -325,7 +338,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const hotelRows = allDays.map((day, i) => {
       const cells = variants.map(v => {
         const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
-        return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
+        return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};${isSingleVariant ? " max-width: 300px; width: 300px;" : ""}">
           ${h ? `
             <div style="display: flex; align-items: center; gap: 10px;">
               ${h.imageUrl ? `
@@ -359,7 +372,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         },
       },
     ].map(({ label, fn }, i) => {
-      const cells = variants.map(v => `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">${fn(v)}</td>`).join('');
+      const cells = variants.map(v => `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel}; text-align: ${priceCellAlign};">${fn(v)}</td>`).join('');
       return `<tr><td style="${tdLabel}">${label}</td>${cells}</tr>`;
     }).join('');
 
@@ -367,7 +380,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       const cells = variants.map(v => {
         const ps = v.pricingSnapshots[0];
         const comp = ps?.pricingComponentSnapshots.find(c => c.attributeName === compName);
-        return `<td style="${tdBase} background: ${(i + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
+        return `<td style="${tdBase} background: ${(i + 2) % 2 === 0 ? brandColors.white : brandColors.subtlePanel}; text-align: ${priceCellAlign};">
           ${comp ? `₹ ${fmtINR(comp.price.toString())}` : '—'}
         </td>`;
       }).join('');
@@ -377,7 +390,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const totalRow = (() => {
       const cells = variants.map(v => {
         const ps = v.pricingSnapshots[0];
-        return `<td style="${tdBase} background: ${brandColors.light}; font-weight: 700; font-size: 15px; color: ${brandColors.primary};">
+        return `<td style="${tdBase} background: ${brandColors.light}; font-weight: 700; font-size: 15px; color: ${brandColors.primary}; text-align: ${priceCellAlign};">
           ${ps ? `₹ ${fmtINR(ps.totalPrice.toString())}` : '—'}
         </td>`;
       }).join('');
@@ -391,7 +404,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             📊 Variant Comparison at a Glance
           </h3>
           <p style="color: rgba(255,255,255,0.88); font-size: 12px; margin: 4px 0 0 0;">
-            Side-by-side comparison of all package variants — hotels &amp; pricing
+            Side-by-side comparison of ${variants.length} package variant${variants.length === 1 ? "" : "s"} — hotels &amp; pricing
           </p>
         </div>
 
@@ -402,7 +415,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                 <span>🏨</span> Hotel Comparison by Day
               </div>
               <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+                <table style="${comparisonTableStyle}">
                   <thead>
                     <tr>
                       <th style="${thBase} background: ${brandColors.tableHeaderBg}; color: ${brandColors.text}; width: ${labelColPct}%;">Day</th>
@@ -421,7 +434,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                 <span>💰</span> Pricing Comparison
               </div>
               <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+                <table style="${comparisonTableStyle}">
                   <thead>
                     <tr>
                       <th style="${thBase} background: ${brandColors.tableHeaderBg}; color: ${brandColors.text}; width: ${labelColPct}%;">Component</th>

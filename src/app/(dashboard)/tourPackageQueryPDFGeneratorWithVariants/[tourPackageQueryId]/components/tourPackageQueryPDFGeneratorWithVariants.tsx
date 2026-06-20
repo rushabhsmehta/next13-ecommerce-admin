@@ -5,11 +5,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { escapeAttr, safeUrl } from "@/lib/html-escape";
 import {
+  buildPackageTotalCalculationParts,
   findPricingRowPrice,
   getVariantPricingDisplayRows,
   mergeVariantPricingRowLabels,
   type VariantPricingEntry,
 } from "@/lib/variant-pricing-display";
+import { buildPricingCalculationBreakdownHtml } from "@/components/tour-package-query/PricingCalculationBreakdown";
 import {
   formatDiscountLabel,
   hasAppliedVariantDiscount,
@@ -40,6 +42,29 @@ import {
   parsePolicyField,
   renderBulletList,
 } from "@/lib/pdf";
+
+/** Keeps single-variant PDF tables from stretching full page width. */
+function pdfComparisonTableStyle(variantCount: number): string {
+  const base = "border-collapse: collapse; font-family: Arial, sans-serif;";
+  return variantCount === 1 ? `max-width: 520px; width: 100%; ${base}` : `width: 100%; ${base}`;
+}
+
+function pdfVariantColumnWidth(variantCount: number, dataColPct: number): string {
+  return variantCount === 1 ? "width: 300px; max-width: 300px;" : `width: ${dataColPct}%;`;
+}
+
+function pdfHotelImageHtml(imageUrl: string | null, hotelName: string, lightBg: string, lightOrange: string): string {
+  const resolved = resolvePdfImageUrl(imageUrl);
+  const frame = "width: 100%; aspect-ratio: 16/10; overflow: hidden;";
+  if (resolved) {
+    return `<div style="${frame} background: #F3F4F6;">
+      <img src="${escapeAttr(resolved)}" alt="${escapeAttr(hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
+    </div>`;
+  }
+  return `<div style="${frame} background: linear-gradient(135deg, ${lightBg} 0%, ${lightOrange} 100%); display: flex; align-items: center; justify-content: center;">
+    <span style="font-size: 30px;">🏨</span>
+  </div>`;
+}
 
 interface TourPackageQueryPDFGeneratorWithVariantsProps {
   initialData: TourPackageQuery & {
@@ -332,6 +357,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const variantCount = variants.length;
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1)));
     const dataColPct = Math.round((100 - labelColPct) / variantCount);
+    const comparisonTableStyle = pdfComparisonTableStyle(variantCount);
 
     const thBase = `padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid ${brandColors.border};`;
     const tdBase = `padding: 10px 12px; font-size: 13px; border: 1px solid ${brandColors.border}; vertical-align: top;`;
@@ -446,7 +472,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       : "";
 
     const variantHeaders = variants.map(v => `
-      <th style="${thBase} background: ${brandColors.primary}; color: white; width: ${dataColPct}%;">
+      <th style="${thBase} background: ${brandColors.primary}; color: white; ${pdfVariantColumnWidth(variantCount, dataColPct)}">
         ${v.name}
         ${v.priceModifier && v.priceModifier !== 0 ? `
           <span style="display: block; font-size: 10px; font-weight: 500; opacity: 0.9; margin-top: 2px;">
@@ -474,7 +500,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 <span>🏨</span> Hotel Comparison by Day
               </div>
               <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+                <table style="${comparisonTableStyle}">
                   <thead>
                     <tr>
                       <th style="${thBase} background: ${brandColors.tableHeaderBg}; color: ${brandColors.text}; width: ${labelColPct}%;">Day</th>
@@ -493,7 +519,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 <span>💰</span> Pricing Comparison
               </div>
               <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+                <table style="${comparisonTableStyle}">
                   <thead>
                     <tr>
                       <th style="${thBase} background: ${brandColors.tableHeaderBg}; color: ${brandColors.text}; width: ${labelColPct}%;">Component</th>
@@ -527,6 +553,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     if (allDays.length === 0) return "";
 
     const variantCount = variants.length;
+    const isSingleVariant = variantCount === 1;
+    const comparisonTableStyle = pdfComparisonTableStyle(variantCount);
     // Compact day column — just a numbered badge, no wasted space
     const labelColPct = Math.max(6, Math.round(60 / (variantCount + 2)));
     const dataColPct = Math.round((100 - labelColPct) / variantCount);
@@ -538,7 +566,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const tdDayBase = `${tdBase} text-align: center; border-right: 2px solid #FDBA74; width: ${labelColPct}%;`;
 
     const variantHeaders = variants.map((v, idx) => `
-      <th style="padding: 10px 8px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid ${brandColors.border}; background: ${brandColors.lightOrange}; color: ${brandColors.text}; width: ${dataColPct}%;">
+      <th style="padding: 10px 8px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid ${brandColors.border}; background: ${brandColors.lightOrange}; color: ${brandColors.text}; ${pdfVariantColumnWidth(variantCount, dataColPct)}">
         <div style="font-size: 12px; font-weight: 800; color: ${brandColors.primary};">${v.name}</div>
         ${v.priceModifier && v.priceModifier !== 0 ? `
           <div style="font-size: 9px; font-weight: 500; opacity: 0.75; margin-top: 2px;">
@@ -569,18 +597,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
         const getName = (obj: any) => obj?.name || '';
 
-        return `<td style="${tdBase} background: ${isEven ? brandColors.white : brandColors.subtlePanel}; padding: 8px 6px;">
+        return `<td style="${tdBase} background: ${isEven ? brandColors.white : brandColors.subtlePanel}; padding: 8px 6px; ${isSingleVariant ? "max-width: 300px; width: 300px;" : ""}">
           ${h ? `
             <div style="border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; background: white;">
-              ${resolvePdfImageUrl(h.imageUrl) ? `
-                <div style="height: 120px; overflow: hidden; background: #F3F4F6;">
-                  <img src="${escapeAttr(resolvePdfImageUrl(h.imageUrl))}" alt="${escapeAttr(h.hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
-                </div>
-              ` : `
-                <div style="height: 90px; background: linear-gradient(135deg, ${brandColors.light} 0%, ${brandColors.lightOrange} 100%); display: flex; align-items: center; justify-content: center;">
-                  <span style="font-size: 30px;">🏨</span>
-                </div>
-              `}
+              ${pdfHotelImageHtml(h.imageUrl, h.hotelName, brandColors.light, brandColors.lightOrange)}
               <div style="padding: 9px 10px; border-top: 2.5px solid ${accent};">
                 <div style="font-size: 12px; font-weight: 700; color: ${brandColors.text}; line-height: 1.35; margin-bottom: 2px;">${h.hotelName}</div>
                 ${h.hotel?.destination?.name ? `<div style="font-size: 10px; font-weight: 600; color: ${brandColors.secondary}; margin-bottom: 2px;">${h.hotel.destination.name}</div>` : ''}
@@ -675,7 +695,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
           </div>
         ` : ''}
         <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.06); border: 1px solid ${brandColors.border}; margin-bottom: 0;">
-          <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+          <table style="${comparisonTableStyle}">
             <thead style="display: table-header-group;">
               <tr style="page-break-inside: avoid; break-inside: avoid;">
                 <th style="padding: 10px 6px; background: ${brandColors.primary}; color: white; width: ${labelColPct}%; text-align: center; border: none; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;">
@@ -697,7 +717,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
             <div style="width: 46px; height: 46px; background: ${brandColors.primary}; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">🏨</div>
             <div>
               <h3 style="color: ${brandColors.primary}; font-size: 20px; font-weight: 800; margin: 0;">Hotel Comparison</h3>
-              <p style="color: #7C2D12; font-size: 12px; margin: 4px 0 0 0; font-weight: 400;">Accommodations across all ${variants.length} variants — night by night</p>
+              <p style="color: #7C2D12; font-size: 12px; margin: 4px 0 0 0; font-weight: 400;">Accommodations across ${variants.length} package variant${variants.length === 1 ? "" : "s"} — night by night</p>
             </div>
           </div>
         </div>
@@ -739,15 +759,18 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const hasPricing = variants.some(v => v.pricingSnapshots.length > 0 || !!getVpd(v)?.totalCost);
 
     const variantCount = variants.length;
+    const isSingleVariant = variantCount === 1;
+    const comparisonTableStyle = pdfComparisonTableStyle(variantCount);
     const labelColPct = Math.max(18, Math.round(100 / (variantCount + 1.6)));
     const dataColPct = Math.round((100 - labelColPct) / variantCount);
+    const priceCellAlign = isSingleVariant ? "left" : "center";
 
     const thBase = `padding: 10px 8px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid ${brandColors.border};`;
     const tdBase = `padding: 9px 12px; border: 1px solid ${brandColors.border}; vertical-align: middle;`;
     const tdLabel = `${tdBase} background: #FAFAFA; font-weight: 600; color: ${brandColors.slateText}; font-size: 12px;`;
 
     const variantHeaders = variants.map((v, idx) => `
-      <th style="${thBase} background: ${brandColors.lightOrange}; color: ${brandColors.primary}; width: ${dataColPct}%;">
+      <th style="${thBase} background: ${brandColors.lightOrange}; color: ${brandColors.primary}; ${pdfVariantColumnWidth(variantCount, dataColPct)}">
         <div style="font-size: 12px; font-weight: 800;">${v.name}</div>
         ${v.priceModifier && v.priceModifier !== 0 ? `
           <div style="font-size: 9px; font-weight: 500; color: ${brandColors.muted}; margin-top: 2px;">${v.priceModifier > 0 ? '+' : ''}${v.priceModifier}%</div>
@@ -755,9 +778,11 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       </th>
     `).join('');
 
-    // Safely parse total price — prefers variantPricingData, sums across ALL pricingSnapshots
+    // Package total with GST-inclusive breakdown for Total Price row
     const safeTotal = (v: typeof variants[0]): string => {
       const vpd = getVpd(v);
+      const packageParts = buildPackageTotalCalculationParts(vpd);
+      if (packageParts) return `₹ ${formatINR(String(packageParts.netLineTotal))}`;
       if (vpd?.totalCost) {
         const n = parseFloat(String(vpd.totalCost));
         if (!isNaN(n) && n > 0) return `₹ ${formatINR(n.toString())}`;
@@ -772,9 +797,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       return '—';
     };
 
-    // Identify cheapest variant for "Best Value" badge — sum across ALL pricing snapshots
     const variantTotals = variants.map(v => {
       const vpd = getVpd(v);
+      const packageParts = buildPackageTotalCalculationParts(vpd);
+      if (packageParts) return packageParts.netLineTotal;
       if (vpd?.totalCost) {
         const n = parseFloat(String(vpd.totalCost));
         if (!isNaN(n) && n > 0) return n;
@@ -795,52 +821,48 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         const bg = (rowIdx + 2) % 2 === 0 ? brandColors.white : '#FAFAFA';
         const row = findPricingRowPrice(variantDisplayRows[vidx], label);
         if (row) {
-          return `<td style="${tdBase} background: ${bg}; text-align: right;">
-            <span style="font-weight: 600; color: ${brandColors.text};">₹ ${formatINR(String(row.price))}</span>
-            ${row.description ? `<div style="font-size: 9px; color: ${brandColors.muted}; margin-top: 2px;">${row.description}</div>` : ''}
+          const breakdownHtml = row.calculationParts
+            ? buildPricingCalculationBreakdownHtml(row.calculationParts, {
+                mutedColor: brandColors.muted,
+                borderColor: '#FDBA74',
+                panelBg: `linear-gradient(180deg, ${brandColors.lightOrange} 0%, ${brandColors.white} 100%)`,
+              })
+            : '';
+          return `<td style="${tdBase} background: ${bg}; text-align: ${priceCellAlign}; vertical-align: top; padding: 12px 10px;">
+            <div style="font-size: 18px; font-weight: 800; color: ${brandColors.primary}; line-height: 1.2; margin-bottom: 2px;">₹ ${formatINR(String(row.netPrice))}</div>
+            ${breakdownHtml}
           </td>`;
         }
-        return `<td style="${tdBase} background: ${bg}; text-align: center;"><span style="color: #D1D5DB;">—</span></td>`;
+        return `<td style="${tdBase} background: ${bg}; text-align: ${priceCellAlign};"><span style="color: #D1D5DB;">—</span></td>`;
       }).join('');
-      return `<tr style="page-break-inside: avoid; break-inside: avoid;"><td style="${tdLabel}">${label}</td>${cells}</tr>`;
+      return `<tr style="page-break-inside: avoid; break-inside: avoid;"><td style="${tdLabel} vertical-align: middle;">${label}</td>${cells}</tr>`;
     }).join('');
 
     const totalRow = (() => {
       const cells = variants.map((v, idx) => {
+        const vpd = getVpd(v);
+        const packageParts = buildPackageTotalCalculationParts(vpd);
         const totalStr = safeTotal(v);
-        const isBest = variantTotals[idx] === minPrice && minPrice !== Infinity;
-        return `<td style="${tdBase} background: ${brandColors.lightOrange}; text-align: center; padding: 14px 12px; border-top: 2px solid ${brandColors.primary};">
+        const isBest = !isSingleVariant && variantTotals[idx] === minPrice && minPrice !== Infinity;
+        const breakdownHtml = packageParts
+          ? buildPricingCalculationBreakdownHtml(packageParts, {
+              mutedColor: brandColors.muted,
+              borderColor: '#FDBA74',
+              panelBg: `linear-gradient(180deg, ${brandColors.lightOrange} 0%, ${brandColors.white} 100%)`,
+              baseLabel: 'Package price',
+            })
+          : '';
+        return `<td style="${tdBase} background: ${brandColors.lightOrange}; text-align: ${priceCellAlign}; padding: 14px 12px; border-top: 2px solid ${brandColors.primary}; vertical-align: top;">
           <div style="font-size: 16px; font-weight: 800; color: ${brandColors.primary}; line-height: 1.2; margin-bottom: 3px;">${totalStr}</div>
-          ${isBest && totalStr !== '—' ? `<div style="display: inline-block; background: #059669; color: white; font-size: 8px; padding: 2px 7px; border-radius: 999px; font-weight: 600;">Best Value</div>` : ''}
+          ${breakdownHtml}
+          ${isBest && totalStr !== '—' ? `<div style="display: inline-block; background: #059669; color: white; font-size: 8px; padding: 2px 7px; border-radius: 999px; font-weight: 600; margin-top: 6px;">Best Value</div>` : ''}
         </td>`;
       }).join('');
       return `<tr style="page-break-inside: avoid; break-inside: avoid;">
-        <td style="${tdLabel} background: ${brandColors.lightOrange}; color: ${brandColors.primary}; font-weight: 700; border-top: 2px solid ${brandColors.primary};">Total Price</td>
+        <td style="${tdLabel} background: ${brandColors.lightOrange}; color: ${brandColors.primary}; font-weight: 700; border-top: 2px solid ${brandColors.primary}; vertical-align: middle;">Total Price</td>
         ${cells}
       </tr>`;
     })();
-
-    const showDiscountRow = variants.some((v) =>
-      hasAppliedVariantDiscount(getVpd(v)?.appliedDiscount)
-    );
-    const discountRow = showDiscountRow
-      ? (() => {
-          const cells = variants.map((v) => {
-            const discount = getVpd(v)?.appliedDiscount;
-            if (!hasAppliedVariantDiscount(discount)) {
-              return `<td style="${tdBase} background: #ECFDF5; text-align: center; color: #D1D5DB; border-top: 1px solid ${brandColors.border};">—</td>`;
-            }
-            return `<td style="${tdBase} background: #ECFDF5; text-align: center; border-top: 1px solid ${brandColors.border};">
-              <div style="font-weight: 700; color: #047857;">- ₹ ${formatINR(String(discount!.amount))}</div>
-              <div style="font-size: 9px; color: #059669; margin-top: 2px;">${formatDiscountLabel(discount).replace(/^Discount\\s*/, "")}</div>
-            </td>`;
-          }).join("");
-          return `<tr style="page-break-inside: avoid; break-inside: avoid;">
-            <td style="${tdLabel} background: #ECFDF5; color: #047857; font-weight: 700; border-top: 1px solid ${brandColors.border};">Discount</td>
-            ${cells}
-          </tr>`;
-        })()
-      : "";
 
     const noPricingNote = !hasPricing ? `
       <div style="margin-top: 10px; padding: 6px 10px; background: #FEF9C3; border-radius: 4px;">
@@ -859,13 +881,13 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
             <div style="width: 46px; height: 46px; background: ${brandColors.secondary}; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;">💰</div>
             <div>
               <h3 style="color: ${brandColors.secondary}; font-size: 20px; font-weight: 800; margin: 0;">Price Comparison</h3>
-              <p style="color: #7C2D12; font-size: 12px; margin: 4px 0 0 0; font-weight: 400;">Detailed pricing breakdown across all ${variants.length} package variants</p>
+              <p style="color: #7C2D12; font-size: 12px; margin: 4px 0 0 0; font-weight: 400;">Detailed pricing breakdown across ${variants.length} package variant${variants.length === 1 ? "" : "s"}</p>
             </div>
           </div>
         </div>
         <div style="padding: 16px 16px 14px;">
           <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.06); border: 1px solid ${brandColors.border};">
-            <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+            <table style="${comparisonTableStyle}">
               <thead style="display: table-header-group;">
                 <tr style="page-break-inside: avoid; break-inside: avoid;">
                   <th style="padding: 11px 12px; background: ${brandColors.secondary}; color: white; width: ${labelColPct}%; text-align: left; border: none; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;">
@@ -876,7 +898,6 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
               </thead>
               <tbody>
                 ${compRows}
-                ${discountRow}
                 ${totalRow}
               </tbody>
             </table>

@@ -31,7 +31,7 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
-import { fetchCrmInquiriesList } from "@/lib/crm-inquiries-list";
+import { fetchCrmInquiriesList, type CrmInquiryListRow, type CrmInquiryTourPackageQuerySummary } from "@/lib/crm-inquiries-list";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 /**
@@ -46,19 +46,14 @@ export default function AdminCrmInquiriesScreen() {
   );
 }
 
-interface InquiryRow {
-  id: string;
-  status: string;
-  customerName: string;
-  customerMobileNumber: string;
-  numAdults: number;
-  numChildren5to11: number;
-  journeyDate: string | null;
-  nextFollowUpDate: string | null;
-  createdAt: string;
-  location?: { id: string; label: string } | null;
-  associatePartner?: { id: string; name: string } | null;
-  tourPackageQueries?: Array<{ id: string }> | null;
+type InquiryRow = CrmInquiryListRow;
+
+function queryLabel(q: CrmInquiryTourPackageQuerySummary): string {
+  return (
+    q.tourPackageQueryName?.trim() ||
+    q.tourPackageQueryNumber?.trim() ||
+    `Query ${q.id.slice(0, 8)}`
+  );
 }
 
 const STATUS_FILTERS: { id: string; label: string }[] = [
@@ -334,8 +329,12 @@ function AdminInquiriesList({
           <InquiryCard
             row={item}
             canWrite={canWrite}
+            isAssociate={isAssociate}
             deleting={deletingId === item.id}
             onOpen={() => router.push(detailRoute(item.id) as never)}
+            onOpenQuery={(queryId) =>
+              router.push(`/admin/tour-queries/${queryId}` as never)
+            }
             onCall={() =>
               item.customerMobileNumber
                 ? Linking.openURL(`tel:${item.customerMobileNumber}`)
@@ -417,20 +416,26 @@ function AdminInquiriesList({
 function InquiryCard({
   row,
   canWrite,
+  isAssociate,
   deleting,
   onOpen,
+  onOpenQuery,
   onCall,
   onWhatsApp,
   onDelete,
 }: {
   row: InquiryRow;
   canWrite: boolean;
+  isAssociate: boolean;
   deleting: boolean;
   onOpen: () => void;
+  onOpenQuery: (queryId: string) => void;
   onCall: () => void;
   onWhatsApp: () => void;
   onDelete: () => void;
 }) {
+  const queries = row.tourPackageQueries ?? [];
+
   return (
     <Pressable
       testID={`inquiry-row-${row.id}`}
@@ -470,6 +475,65 @@ function InquiryCard({
       ) : null}
       {row.associatePartner ? (
         <Text style={styles.cardAssociate}>Via {row.associatePartner.name}</Text>
+      ) : null}
+      {queries.length > 0 ? (
+        <View style={styles.queriesSection}>
+          <Text style={styles.queriesSectionTitle}>Tour queries</Text>
+          {queries.map((q) => {
+            const label = queryLabel(q);
+            const rowContent = (
+              <>
+                <View style={styles.queryRowText}>
+                  <Text style={styles.queryRowLabel} numberOfLines={1}>
+                    {label}
+                  </Text>
+                  {q.tourPackageQueryType ? (
+                    <Text style={styles.queryRowType} numberOfLines={1}>
+                      {q.tourPackageQueryType}
+                    </Text>
+                  ) : null}
+                </View>
+                {q.isFeatured ? (
+                  <View style={styles.confirmedPill}>
+                    <Text style={styles.confirmedPillText}>Confirmed</Text>
+                  </View>
+                ) : null}
+                {!isAssociate ? (
+                  <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+                ) : null}
+              </>
+            );
+
+            if (isAssociate) {
+              return (
+                <View
+                  key={q.id}
+                  testID={`inquiry-query-${row.id}-${q.id}`}
+                  style={styles.queryRow}
+                >
+                  {rowContent}
+                </View>
+              );
+            }
+
+            return (
+              <Pressable
+                key={q.id}
+                testID={`inquiry-query-${row.id}-${q.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Open tour query ${label}`}
+                accessibilityHint="Opens tour query details."
+                style={styles.queryRow}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onOpenQuery(q.id);
+                }}
+              >
+                {rowContent}
+              </Pressable>
+            );
+          })}
+        </View>
       ) : null}
       <View style={styles.cardActions}>
         {row.customerMobileNumber ? (
@@ -600,6 +664,35 @@ const styles = StyleSheet.create({
   cardCreated: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   cardFollowUp: { fontSize: FontSize.xs, color: Colors.warning, fontWeight: "700", marginTop: 2 },
   cardAssociate: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
+  queriesSection: { marginTop: Spacing.sm, gap: 4 },
+  queriesSectionTitle: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  queryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: 4,
+  },
+  queryRowText: { flex: 1, minWidth: 0 },
+  queryRowLabel: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.primary },
+  queryRowType: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 1 },
+  confirmedPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#dcfce7",
+  },
+  confirmedPillText: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: "#166534",
+    textTransform: "uppercase",
+  },
   cardActions: {
     flexDirection: "row",
     gap: Spacing.sm,

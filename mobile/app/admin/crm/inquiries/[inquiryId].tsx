@@ -27,6 +27,7 @@ import {
 } from "@/lib/inquiry-statuses";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { createTourQueryCreateClient } from "@/lib/tour-query-create";
+import type { CrmInquiryTourPackageQuerySummary } from "@/lib/crm-inquiries-list";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   AdminErrorState,
@@ -46,6 +47,14 @@ const STATUS_SEGMENT_OPTIONS = INQUIRY_STATUSES.map((st) => ({
   label: INQUIRY_STATUS_LABELS[st],
 }));
 
+function queryLabel(q: CrmInquiryTourPackageQuerySummary): string {
+  return (
+    q.tourPackageQueryName?.trim() ||
+    q.tourPackageQueryNumber?.trim() ||
+    `Query ${q.id.slice(0, 8)}`
+  );
+}
+
 interface AdminInquiryDetail {
   id: string;
   customerName: string;
@@ -64,7 +73,7 @@ interface AdminInquiryDetail {
   associatePartner?: { id: string; name: string } | null;
   assignedStaff?: { id: string; name: string; email?: string | null } | null;
   actions?: InquiryActionItem[];
-  tourPackageQueries?: { id: string }[] | null;
+  tourPackageQueries?: CrmInquiryTourPackageQuerySummary[] | null;
   couponRedemptions?: {
     id: string;
     code: string;
@@ -585,13 +594,23 @@ function AdminInquiryDetailInner() {
                   key={q.id}
                   testID={`inquiry-open-query-${q.id}`}
                   accessibilityRole="button"
-                  accessibilityLabel="Open tour query"
+                  accessibilityLabel={`Open tour query ${queryLabel(q)}`}
                   style={styles.linkRow}
                   onPress={() =>
                     router.push(`/admin/tour-queries/${q.id}` as never)
                   }
                 >
-                  <Text style={styles.linkText}>Open query {q.id.slice(0, 8)}…</Text>
+                  <View style={styles.linkRowText}>
+                    <Text style={styles.linkText}>{queryLabel(q)}</Text>
+                    {q.tourPackageQueryType ? (
+                      <Text style={styles.muted}>{q.tourPackageQueryType}</Text>
+                    ) : null}
+                  </View>
+                  {q.isFeatured ? (
+                    <View style={styles.confirmedPill}>
+                      <Text style={styles.confirmedPillText}>Confirmed</Text>
+                    </View>
+                  ) : null}
                   <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
                 </Pressable>
               ))
@@ -1090,11 +1109,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: Spacing.sm,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
   },
+  linkRowText: { flex: 1, minWidth: 0 },
   linkText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.primary },
+  confirmedPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    backgroundColor: "#dcfce7",
+  },
+  confirmedPillText: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: "#166534",
+    textTransform: "uppercase",
+  },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",

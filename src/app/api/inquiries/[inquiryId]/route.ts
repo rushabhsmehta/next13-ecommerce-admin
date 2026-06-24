@@ -90,6 +90,18 @@ export async function GET(req: Request, props: { params: Promise<{ inquiryId: st
           include: {
             vehicleType: true
           }
+        },
+        tourPackageQueries: {
+          select: {
+            id: true,
+            inquiryId: true,
+            tourPackageQueryName: true,
+            tourPackageQueryNumber: true,
+            tourPackageQueryType: true,
+            isFeatured: true,
+            updatedAt: true,
+          },
+          orderBy: { updatedAt: "desc" },
         }
       }
     });

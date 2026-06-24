@@ -161,7 +161,18 @@ export async function GET(req: Request) {
           createdAt: true,
           location: { select: { id: true, label: true } },
           associatePartner: { select: { id: true, name: true } },
-          tourPackageQueries: { select: { id: true } },
+          tourPackageQueries: {
+            select: {
+              id: true,
+              inquiryId: true,
+              tourPackageQueryName: true,
+              tourPackageQueryNumber: true,
+              tourPackageQueryType: true,
+              isFeatured: true,
+              updatedAt: true,
+            },
+            orderBy: { updatedAt: "desc" },
+          },
         },
         orderBy: followUpsOnly
           ? [{ nextFollowUpDate: "asc" }, { updatedAt: "desc" }]

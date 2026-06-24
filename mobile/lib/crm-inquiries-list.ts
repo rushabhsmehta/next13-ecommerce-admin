@@ -1,6 +1,16 @@
 import { ApiError } from "@/lib/api";
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
 
+export interface CrmInquiryTourPackageQuerySummary {
+  id: string;
+  inquiryId: string | null;
+  tourPackageQueryName: string | null;
+  tourPackageQueryNumber: string | null;
+  tourPackageQueryType: string | null;
+  isFeatured: boolean;
+  updatedAt: string;
+}
+
 export interface CrmInquiryListRow {
   id: string;
   status: string;
@@ -13,7 +23,7 @@ export interface CrmInquiryListRow {
   createdAt: string;
   location?: { id: string; label: string } | null;
   associatePartner?: { id: string; name: string } | null;
-  tourPackageQueries?: Array<{ id: string }> | null;
+  tourPackageQueries?: CrmInquiryTourPackageQuerySummary[] | null;
 }
 
 export interface CrmInquiryListResult {

@@ -94,14 +94,6 @@ node scripts/whatsapp/submit-and-send-marketing-welcome.js
 
 ### Utilities
 
-#### `convert-key-for-vercel.js`
-Convert encryption keys to Base64 format for Vercel environment variables.
-
-**Usage:**
-```bash
-node scripts/whatsapp/convert-key-for-vercel.js
-```
-
 #### `upload-public-key.js`
 Upload public encryption key to Meta.
 

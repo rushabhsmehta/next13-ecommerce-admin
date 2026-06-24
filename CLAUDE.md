@@ -43,7 +43,7 @@ npm run test:accounts # Run accounting module tests
 npm run sync-whatsapp-templates   # Sync WhatsApp templates
 npm run cleanup-database          # Auto-cleanup daily
 npm run check-db-health           # Check database health
-npm run vercel-build              # Prisma generation + Next.js build for Vercel
+npm run build                     # Prisma generation (postinstall) + Next.js build for Railway
 npm run postinstall               # Auto-runs Prisma generation after npm install
 npm run seed-whatsapp-templates   # Seeds WhatsApp templates
 npm run process-whatsapp-campaigns # Processes WhatsApp campaigns
@@ -531,11 +531,11 @@ Required variables (see `.env` for full list):
 - No Prettier config; formatting relies on ESLint
 - `tsconfig.json` excludes: `node_modules`, `mobile`, `scripts`, `prisma`, `.next`
 
-## PDF Generation & Vercel
+## PDF Generation & Railway
 
 - Puppeteer pipeline lives in `src/utils/generatepdf.ts`. In production it uses `@sparticuz/chromium-min` for serverless. Use `inlineImagesInHtml()` to convert remote header/footer images to data URIs (Puppeteer can't load remote images in margin templates) and `createProfessionalFooter(companyInfo)` for branded footers.
 - PDF-related dashboard routes are covered by `createRouteMatcher` public paths in `src/proxy.ts` where appropriate. `isCrmPdfAutomationRequest()` in `src/lib/crm-route-access.ts` skips **org RBAC** for Puppeteer/HeadlessChrome requests on those paths so internal PDF jobs can render.
-- `vercel.json` sets `maxDuration: 30` for `src/app/api/**` and `PRISMA_CLIENT_ENGINE_TYPE=binary` at build time. Multi-line env vars (e.g. `WHATSAPP_FLOW_PRIVATE_KEY`) must include the full `-----BEGIN/END-----` markers in Vercel.
+- Production is hosted on **Railway** (`admin.aagamholidays.com`). Set `PRISMA_CLIENT_ENGINE_TYPE=binary` at build time if needed. Multi-line env vars (e.g. `WHATSAPP_FLOW_PRIVATE_KEY`) must include the full `-----BEGIN/END-----` markers in Railway service variables.
 
 ## Mobile App (Expo)
 

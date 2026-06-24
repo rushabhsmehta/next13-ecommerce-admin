@@ -40,6 +40,8 @@ interface TourPackageQueryVoucherDisplayProps {
   selectedOption?: string;
   confirmedVariantHotelsByDay?: Record<number, string>;
   confirmedVariantName?: string | null;
+  /** Passed from the server page when `?search=` is set (mobile PDF pipeline). */
+  initialSearchOption?: string;
 };
 
 type CompanyInfo = {
@@ -97,9 +99,11 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   vehicleTypes = [],
   confirmedVariantHotelsByDay = {},
   confirmedVariantName,
+  initialSearchOption,
 }) => {
   const searchParams = useSearchParams();
-  const selectedOption = searchParams?.get('search') || 'Empty';
+  const selectedOption =
+    initialSearchOption ?? searchParams?.get("search") ?? "Empty";
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
   const confirmedVariantId = (initialData as any)?.confirmedVariantId as string | null | undefined;
@@ -283,6 +287,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
         <div
           id="voucher-content"
+          data-pdf-ready="1"
           data-pdf-footer-label={footerLabel}
           data-pdf-footer-primary={footerPrimaryLine}
           data-pdf-footer-secondary={footerSecondaryLine}

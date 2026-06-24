@@ -53,7 +53,10 @@ export async function GET(
       id
     )}?search=AH`;
 
-    const pdf = await generatePDFFromUrl(pageUrl, { waitMs: 1500 });
+    const pdf = await generatePDFFromUrl(pageUrl, {
+      waitMs: 2000,
+      waitForSelector: '[data-pdf-ready="1"]',
+    });
 
     await recordMobileAudit({
       userId,

@@ -338,6 +338,17 @@ export async function generatePDFFromUrl(
       setTimeout(r, options?.waitMs && options.waitMs > 0 ? options.waitMs : 1500)
     );
 
+    // Guard against capturing an empty shell (e.g. print-mode HTML injected only
+    // after React hydration, or a stale loading boundary).
+    const bodyTextLen = await page
+      .evaluate(() => (document.body?.innerText || "").replace(/\s+/g, " ").trim().length)
+      .catch(() => 0);
+    if (bodyTextLen < 80) {
+      throw new Error(
+        `PDF page rendered with insufficient visible content (${bodyTextLen} chars).`
+      );
+    }
+
     const hasHeaderFooter = Boolean(options?.headerHtml || options?.footerHtml);
     const marginDefaults = hasHeaderFooter
       ? { top: "72px", right: "14px", bottom: "96px", left: "14px" }

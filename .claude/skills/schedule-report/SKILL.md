@@ -43,12 +43,12 @@ Existing scheduled jobs (scripts / internal):
    - `export const dynamic = "force-dynamic"`
    - Authenticate with `Authorization: Bearer ${process.env.CRON_SECRET}` (see `CRON_SECRET` in `.env`)
    - Log errors as `console.log("[CRON_<TASK>]", error)`
-4. Add route to **Vercel Cron** in `vercel.json` if deploying on Vercel, or external scheduler (Railway, GitHub Actions)
+4. Schedule via **Railway cron**, GitHub Actions, or another external scheduler
 5. For WhatsApp delivery: follow patterns in `src/app/api/whatsapp/` and campaign worker
 6. For Excel attachment: reuse `export-report-xlsx` patterns; for PDF use `generate-voucher-pdf` / Puppeteer pipeline
 7. Document the cron URL and secret in project docs — never commit real secrets
 
 ## Notes
 
-- `vercel.json` sets `maxDuration: 30` on `src/app/api/**` — keep cron jobs within limits or split work
+- Keep cron/API jobs within Railway timeout limits — split long work if needed
 - Prefer idempotent cron handlers (safe if triggered twice)

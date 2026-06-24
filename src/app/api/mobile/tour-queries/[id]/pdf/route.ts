@@ -62,14 +62,14 @@ export async function GET(
       ? `/tourPackageQueryPDFGeneratorWithVariants/${encodeURIComponent(id)}`
       : `/tourPackageQueryPDFGenerator/${encodeURIComponent(id)}`;
     // `print=1` tells the generator page to render the composed proposal HTML
-    // inline instead of POSTing to the auth-protected `/api/generate-pdf`
-    // (which Puppeteer cannot authenticate — it would otherwise capture a
-    // sign-in HTML page and produce a damaged PDF). `search` selects branding.
+    // inline instead of POSTing to the auth-protected `/api/generate-pdf`.
+    // JavaScript must stay enabled so React can hydrate the print-mode HTML
+    // (dangerouslySetInnerHTML). Routes are public in `proxy.ts` and the
+    // HeadlessChrome UA skips org RBAC for this automation path.
     const pageUrl = `${base}${pagePath}?print=1&search=AH`;
 
     const pdf = await generatePDFFromUrl(pageUrl, {
-      waitMs: 1500,
-      disableJavaScript: true,
+      waitMs: 2000,
       waitForSelector: '[data-pdf-ready="1"]',
     });
 

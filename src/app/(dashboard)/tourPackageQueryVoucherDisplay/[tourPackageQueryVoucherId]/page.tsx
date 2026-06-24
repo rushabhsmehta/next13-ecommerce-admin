@@ -5,10 +5,12 @@ import Navbar from "@/components/navbar";
 
 const tourPackageQueryVoucherPage = async (
   props: {
-    params: Promise<{ tourPackageQueryVoucherId: string }>
+    params: Promise<{ tourPackageQueryVoucherId: string }>;
+    searchParams: Promise<{ search?: string }>;
   }
 ) => {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const tourPackageQueryVoucher = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryVoucherId,
@@ -104,6 +106,7 @@ const tourPackageQueryVoucherPage = async (
           vehicleTypes={vehicleTypes}
           confirmedVariantHotelsByDay={confirmedVariantHotelsByDay}
           confirmedVariantName={confirmedVariantName}
+          initialSearchOption={searchParams.search}
         />
       </div>
     </div>

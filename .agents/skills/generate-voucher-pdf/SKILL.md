@@ -41,7 +41,7 @@ PDF pipeline:
 3. Read `src/lib/pdf/branding.ts` and `src/lib/pdf/styles.ts`
 4. Compose voucher: org header, title/number/date, info panels, line items table, totals, signatures
 5. Use `formatPrice()` and `format()` / `formatSafeDate()` for display
-6. **Production PDF:** `src/utils/generatepdf.ts` uses `@sparticuz/chromium-min` on Vercel; use `inlineImagesInHtml()` for remote header/footer images in margin templates
+6. **Production PDF:** `src/utils/generatepdf.ts` uses `@sparticuz/chromium-min` on Railway; use `inlineImagesInHtml()` for remote header/footer images in margin templates
 7. **Automation:** Puppeteer/HeadlessChrome may call voucher routes with relaxed org RBAC via `isCrmPdfAutomationRequest()` in `src/lib/crm-route-access.ts` — user-facing routes still require normal auth
 
 ## Additional resources

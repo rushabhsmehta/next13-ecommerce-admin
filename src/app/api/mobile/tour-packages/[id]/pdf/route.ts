@@ -54,8 +54,7 @@ export async function GET(
     const pageUrl = `${base}${pagePath}?print=1&search=AH`;
 
     const pdf = await generatePDFFromUrl(pageUrl, {
-      waitMs: 1500,
-      disableJavaScript: true,
+      waitMs: 2000,
       waitForSelector: '[data-pdf-ready="1"]',
     });
 

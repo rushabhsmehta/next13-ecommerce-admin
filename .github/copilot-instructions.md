@@ -202,18 +202,14 @@ const locations = await prismadb.location.findMany({ where: { isActive: true }})
 ## 📄 PDF Generation
 
 ### Puppeteer Setup (`src/utils/generatepdf.ts`)
-- **Production**: Uses `@sparticuz/chromium-min` for Vercel serverless
+- **Production**: Uses `@sparticuz/chromium-min` on Railway
 - **Headers/footers**: Use `inlineImagesInHtml()` to convert remote images to data URIs (avoids loading issues in PDF margins)
 - **Helper**: `createProfessionalFooter(companyInfo)` for consistent styling
 - **Auth bypass**: Middleware allows HeadlessChrome user-agent through without Clerk auth
 
-### Vercel Config (`vercel.json`)
-```json
-{
-  "functions": { "src/app/api/**/*.ts": { "maxDuration": 30 } },
-  "build": { "env": { "PRISMA_CLIENT_ENGINE_TYPE": "binary" } }
-}
-```
+### Railway production notes
+- Set `PRISMA_CLIENT_ENGINE_TYPE=binary` in Railway service variables if Prisma engine issues occur
+- PDF and mobile API routes may need generous timeout settings on Railway for Puppeteer jobs
 
 ## 💬 WhatsApp Integration
 
@@ -224,7 +220,7 @@ const locations = await prismadb.location.findMany({ where: { isActive: true }})
 - **Business account resolution**: Auto-resolves WABA ID if not in env vars
 
 ### Required Environment Variables
-Must be set on Vercel for builds (see `docs/VERCEL_ENV_SETUP.md`):
+Must be set on Railway for production builds:
 ```
 META_GRAPH_API_VERSION=v22.0
 META_WHATSAPP_PHONE_NUMBER_ID=...
@@ -310,18 +306,17 @@ npx prisma migrate dev   # Create new migration
 - [ ] Add/update tests in `scripts/tests/` if changing core logic
 - [ ] Document breaking changes in relevant `docs/` files
 
-## 🚀 Deployment (Vercel)
+## 🚀 Deployment (Railway)
 
 ### Build Process
-1. Runs `vercel-build` script: Prisma generate (both schemas) → Next.js build
-2. Requires all `META_*` and `WHATSAPP_*` env vars to be set
-3. Uses binary engine type for Prisma (`PRISMA_CLIENT_ENGINE_TYPE=binary`)
-4. API routes have 30s max duration
+1. Runs `npm run build` (postinstall generates both Prisma clients, then Next.js build)
+2. Requires all `META_*` and `WHATSAPP_*` env vars to be set in Railway
+3. Uses binary engine type for Prisma when `PRISMA_CLIENT_ENGINE_TYPE=binary` is set
+4. Host: `admin.aagamholidays.com`
 
-### Vercel Env Setup
-- Add all env vars to Production, Preview, Development environments
+### Railway env setup
+- Add all env vars to the Railway service for production
 - Multi-line keys (like `WHATSAPP_FLOW_PRIVATE_KEY`) must include `-----BEGIN/END-----` markers
-- See `docs/VERCEL_ENV_SETUP.md` for step-by-step
 
 ## 🎯 WhatsApp Campaigns System (Latest)
 

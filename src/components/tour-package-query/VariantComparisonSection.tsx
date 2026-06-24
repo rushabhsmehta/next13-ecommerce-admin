@@ -479,12 +479,13 @@ export function VariantComparisonSection({
                       return (
                         <td key={variant.id} className="px-4 py-4 align-top">
                           {row ? (
-                            <div className={`flex flex-col ${priceCellAlign} gap-2.5`}>
-                              <div className="text-xl font-bold text-red-800 tracking-tight">
-                                ₹ {formatINR(String(row.netPrice))}
-                              </div>
-                              {row.calculationParts && (
+                            <div className={`flex flex-col ${priceCellAlign}`}>
+                              {row.calculationParts ? (
                                 <PricingCalculationBreakdown parts={row.calculationParts} />
+                              ) : (
+                                <div className="text-xl font-bold text-red-800 tracking-tight">
+                                  ₹ {formatINR(String(row.netPrice))}
+                                </div>
                               )}
                             </div>
                           ) : (
@@ -510,7 +511,7 @@ export function VariantComparisonSection({
                         <div className={`flex flex-col ${priceCellAlign} gap-2.5`}>
                           <div className="text-xl font-extrabold text-red-700">{totalStr}</div>
                           {packageParts && (
-                            <PricingCalculationBreakdown parts={packageParts} baseLabel="Package price" />
+                            <PricingCalculationBreakdown parts={packageParts} baseLabel="Base amount" />
                           )}
                           {isBest && totalStr !== "—" && (
                             <span className="inline-block bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">

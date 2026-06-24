@@ -826,10 +826,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 mutedColor: brandColors.muted,
                 borderColor: '#FDBA74',
                 panelBg: `linear-gradient(180deg, ${brandColors.lightOrange} 0%, ${brandColors.white} 100%)`,
+                primaryColor: brandColors.primary,
               })
-            : '';
+            : `<div style="font-size: 18px; font-weight: 800; color: ${brandColors.primary}; line-height: 1.2;">₹ ${formatINR(String(row.netPrice))}</div>`;
           return `<td style="${tdBase} background: ${bg}; text-align: ${priceCellAlign}; vertical-align: top; padding: 12px 10px;">
-            <div style="font-size: 18px; font-weight: 800; color: ${brandColors.primary}; line-height: 1.2; margin-bottom: 2px;">₹ ${formatINR(String(row.netPrice))}</div>
             ${breakdownHtml}
           </td>`;
         }
@@ -849,7 +849,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
               mutedColor: brandColors.muted,
               borderColor: '#FDBA74',
               panelBg: `linear-gradient(180deg, ${brandColors.lightOrange} 0%, ${brandColors.white} 100%)`,
-              baseLabel: 'Package price',
+              baseLabel: 'Base amount',
+              primaryColor: brandColors.primary,
             })
           : '';
         return `<td style="${tdBase} background: ${brandColors.lightOrange}; text-align: ${priceCellAlign}; padding: 14px 12px; border-top: 2px solid ${brandColors.primary}; vertical-align: top;">

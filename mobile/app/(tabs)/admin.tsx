@@ -129,10 +129,17 @@ const QUICK_ACTIONS: {
     visible: ({ permissions }) => permissions.includes("operations.write"),
   },
   {
-    id: "ai-draft",
-    title: "AI draft",
+    id: "ai-package-draft",
+    title: "AI package",
     icon: "sparkles-outline",
-    route: "/admin/ai-wizards",
+    route: "/admin/ai-wizards?target=tourPackage",
+    visible: ({ permissions }) => permissions.includes("aiWizards.write"),
+  },
+  {
+    id: "ai-query-draft",
+    title: "AI query",
+    icon: "sparkles-outline",
+    route: "/admin/ai-wizards?target=tourPackageQuery",
     visible: ({ permissions }) => permissions.includes("aiWizards.write"),
   },
 ];

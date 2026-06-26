@@ -17,19 +17,24 @@ import { PermissionGate, OfflineGate } from "@/components/auth/PermissionGate";
 import { DateField } from "@/components/ui/DateField";
 import {
   AdminErrorState,
+  AdminPickerSheet,
   AdminScreen,
   AdminTopBar,
   AdminWorkflowRail,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { AI_DRAFT_KEYS, storeAiDraft } from "@/lib/ai-wizard-drafts";
 import {
   createAiWizardsClient,
   type AiBudgetCategory,
+  type AiEntitySummary,
   type AiGroupType,
   type AiItineraryDraft,
   type AiLocationOption,
   type AiTargetType,
 } from "@/lib/ai-wizards";
+
+type WizardStep = 1 | 2 | 3;
 
 const GROUPS: { id: AiGroupType; label: string }[] = [
   { id: "family", label: "Family" },
@@ -40,11 +45,18 @@ const GROUPS: { id: AiGroupType; label: string }[] = [
   { id: "solo", label: "Solo" },
 ];
 
-const BUDGETS: { id: AiBudgetCategory; label: string }[] = [
-  { id: "budget", label: "Budget" },
-  { id: "mid-range", label: "Mid" },
-  { id: "premium", label: "Premium" },
-  { id: "luxury", label: "Luxury" },
+const BUDGETS: { id: AiBudgetCategory; label: string; hint: string }[] = [
+  { id: "budget", label: "Budget", hint: "3-star, shared transfers" },
+  { id: "mid-range", label: "Mid", hint: "4-star, private transfers" },
+  { id: "premium", label: "Premium", hint: "4–5 star, premium services" },
+  { id: "luxury", label: "Luxury", hint: "5-star, exclusive experiences" },
+];
+
+const GENERATION_MESSAGES = [
+  "Analyzing destination…",
+  "Planning activities…",
+  "Crafting descriptions…",
+  "Finalizing itinerary…",
 ];
 
 export default function AiWizardsScreen() {
@@ -63,9 +75,17 @@ function parseTargetParam(value: string | string[] | undefined): AiTargetType | 
   return null;
 }
 
+function parseApplyToId(value: string | string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return typeof raw === "string" ? raw : "";
+}
+
 function AiWizardsInner() {
   const router = useRouter();
-  const { target: targetParam } = useLocalSearchParams<{ target?: string }>();
+  const {
+    target: targetParam,
+    applyToId: applyToIdParam,
+  } = useLocalSearchParams<{ target?: string; applyToId?: string }>();
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
@@ -80,12 +100,7 @@ function AiWizardsInner() {
   const [targetType, setTargetType] = useState<AiTargetType>(
     initialTarget ?? "tourPackage"
   );
-
-  useEffect(() => {
-    const parsed = parseTargetParam(targetParam);
-    if (parsed) setTargetType(parsed);
-  }, [targetParam]);
-  const [destination, setDestination] = useState("");
+  const [step, setStep] = useState<WizardStep>(1);
   const [nights, setNights] = useState("3");
   const [days, setDays] = useState("4");
   const [groupType, setGroupType] = useState<AiGroupType>("family");
@@ -97,10 +112,29 @@ function AiWizardsInner() {
   const [numChildren, setNumChildren] = useState("0");
   const [locations, setLocations] = useState<AiLocationOption[]>([]);
   const [locationId, setLocationId] = useState("");
+  const [entities, setEntities] = useState<AiEntitySummary[]>([]);
+  const [entitiesLoading, setEntitiesLoading] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState(parseApplyToId(applyToIdParam));
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showEntityPicker, setShowEntityPicker] = useState(false);
   const [draft, setDraft] = useState<AiItineraryDraft | null>(null);
+  const [tokenUsage, setTokenUsage] = useState<number | null>(null);
   const [refinePrompt, setRefinePrompt] = useState("");
-  const [busy, setBusy] = useState<"generate" | "refine" | "save" | null>(null);
+  const [busy, setBusy] = useState<"generate" | "refine" | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    const parsed = parseTargetParam(targetParam);
+    if (parsed) setTargetType(parsed);
+  }, [targetParam]);
+
+  useEffect(() => {
+    const id = parseApplyToId(applyToIdParam);
+    if (id) setSelectedEntityId(id);
+  }, [applyToIdParam]);
 
   useEffect(() => {
     let alive = true;
@@ -117,19 +151,55 @@ function AiWizardsInner() {
     };
   }, [client, locationId]);
 
-  const canGenerate = destination.trim().length > 0 && Number(days) >= 1 && Number(nights) >= 1;
-  const dayPreview = draft?.itineraries ?? [];
+  useEffect(() => {
+    if (!locationId) {
+      setEntities([]);
+      return;
+    }
+    let alive = true;
+    setEntitiesLoading(true);
+    client
+      .listEntitiesForLocation(targetType, locationId)
+      .then((rows) => {
+        if (!alive) return;
+        setEntities(rows);
+        if (selectedEntityId && !rows.some((r) => r.id === selectedEntityId)) {
+          setSelectedEntityId("");
+        }
+      })
+      .catch(() => {
+        if (alive) setEntities([]);
+      })
+      .finally(() => {
+        if (alive) setEntitiesLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [client, locationId, targetType, selectedEntityId]);
+
+  const selectedLocation = locations.find((l) => l.id === locationId);
+  const destinationLabel = selectedLocation?.label ?? "";
+  const selectedEntity = entities.find((e) => e.id === selectedEntityId);
+  const entityLabel = targetType === "tourPackageQuery" ? "query" : "package";
+  const canGenerate = !!locationId && Number(days) >= 1 && Number(nights) >= 1;
 
   const generate = useCallback(async () => {
     if (!canGenerate) {
-      Alert.alert("Add destination", "Enter destination and duration before generating.");
+      Alert.alert("Choose destination", "Select a location and duration before generating.");
       return;
     }
     setBusy("generate");
     setError(null);
+    setGenerationError(null);
+    setStep(2);
+    setProgress(0);
+    const tick = setInterval(() => {
+      setProgress((p) => Math.min(p + 10, 90));
+    }, 500);
     try {
       const result = await client.generate({
-        destination: destination.trim(),
+        destination: destinationLabel,
         duration: {
           nights: Math.max(1, Number.parseInt(nights, 10) || 1),
           days: Math.max(1, Number.parseInt(days, 10) || 1),
@@ -143,8 +213,16 @@ function AiWizardsInner() {
         numAdults: targetType === "tourPackageQuery" ? Number.parseInt(numAdults, 10) || 2 : undefined,
         numChildren: targetType === "tourPackageQuery" ? Number.parseInt(numChildren, 10) || 0 : undefined,
       });
+      clearInterval(tick);
+      setProgress(100);
       setDraft(result.data);
       setRefinePrompt("");
+      setTokenUsage(() => {
+        const total =
+          (result.usage?.promptTokens ?? 0) + (result.usage?.completionTokens ?? 0);
+        return total > 0 ? total : null;
+      });
+      setTimeout(() => setStep(3), 400);
       if (result.fidelityWarnings?.length) {
         Alert.alert("Review pasted content", result.fidelityWarnings.join("\n"));
       } else if (result.strictSource) {
@@ -154,7 +232,16 @@ function AiWizardsInner() {
         );
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not generate itinerary.");
+      clearInterval(tick);
+      setProgress(0);
+      const message =
+        err instanceof ApiError && err.status === 429
+          ? "AI generation limit reached. Please wait a minute and try again."
+          : err instanceof ApiError
+            ? err.message
+            : "Could not generate itinerary.";
+      setGenerationError(message);
+      setError(message);
     } finally {
       setBusy(null);
     }
@@ -164,7 +251,7 @@ function AiWizardsInner() {
     client,
     customerName,
     days,
-    destination,
+    destinationLabel,
     groupType,
     nights,
     numAdults,
@@ -193,45 +280,77 @@ function AiWizardsInner() {
     }
   }, [client, draft, refinePrompt]);
 
-  const saveDraft = useCallback(async () => {
-    if (!draft) return;
-    if (!locationId) {
-      Alert.alert("Choose location", "Select the back-office location this draft belongs to.");
+  const handleCreateNew = useCallback(async () => {
+    if (!draft || !locationId) return;
+    const key =
+      targetType === "tourPackageQuery"
+        ? AI_DRAFT_KEYS.queryCreate
+        : AI_DRAFT_KEYS.packageCreate;
+    await storeAiDraft(key, { locationId, data: draft });
+    if (targetType === "tourPackageQuery") {
+      router.push(`/admin/tour-queries/new?locationId=${encodeURIComponent(locationId)}` as never);
+    } else {
+      router.push(
+        `/admin/operations/tour-packages/new?locationId=${encodeURIComponent(locationId)}` as never
+      );
+    }
+  }, [draft, locationId, router, targetType]);
+
+  const handleApplyExisting = useCallback(async () => {
+    if (!draft || !locationId || !selectedEntityId) {
+      Alert.alert(
+        "Select existing record",
+        `Choose an existing tour ${entityLabel} to apply this itinerary to.`
+      );
       return;
     }
-    setBusy("save");
-    setError(null);
-    try {
-      const saved = await client.saveDraft({ targetType, locationId, draft });
-      if (targetType === "tourPackageQuery") {
-        router.replace(`/admin/tour-queries/${saved.id}/edit` as never);
-      } else {
-        router.replace(
-          `/admin/operations/tour-packages/${saved.id}` as never
-        );
-      }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not save this draft.");
-    } finally {
-      setBusy(null);
+    const key =
+      targetType === "tourPackageQuery"
+        ? AI_DRAFT_KEYS.queryApply
+        : AI_DRAFT_KEYS.packageApply;
+    await storeAiDraft(key, { locationId, data: draft });
+    if (targetType === "tourPackageQuery") {
+      router.push(`/admin/tour-queries/${selectedEntityId}/edit` as never);
+    } else {
+      router.push(`/admin/operations/tour-packages/${selectedEntityId}` as never);
     }
-  }, [client, draft, locationId, router, targetType]);
+  }, [draft, entityLabel, locationId, router, selectedEntityId, targetType]);
+
+  const startOver = useCallback(() => {
+    setDraft(null);
+    setStep(1);
+    setGenerationError(null);
+    setProgress(0);
+    setTokenUsage(null);
+    setExpandedDays({});
+  }, []);
 
   async function shareDraft() {
     if (!draft) return;
     const lines = [
       draft.tourPackageName,
       draft.numDaysNight,
-      draft.estimatedBudget && typeof draft.estimatedBudget === "object"
-        ? `Budget: ${String((draft.estimatedBudget as any).perPerson ?? (draft.estimatedBudget as any).total ?? "")}`
-        : "",
+      draft.transport ? `Transport: ${draft.transport}` : "",
       "",
       ...(draft.itineraries ?? []).map(
-        (day, index) => `Day ${day.dayNumber ?? index + 1}: ${day.itineraryTitle ?? ""}`
+        (day, index) =>
+          `Day ${day.dayNumber ?? index + 1}: ${day.itineraryTitle ?? ""}\n${day.itineraryDescription ?? ""}`
       ),
     ].filter(Boolean);
     await Share.share({ title: draft.tourPackageName, message: lines.join("\n") });
   }
+
+  const progressMessage =
+    progress < 30
+      ? GENERATION_MESSAGES[0]
+      : progress < 60
+        ? GENERATION_MESSAGES[1]
+        : progress < 90
+          ? GENERATION_MESSAGES[2]
+          : GENERATION_MESSAGES[3];
+
+  const screenTitle =
+    targetType === "tourPackageQuery" ? "AI Query Wizard" : "AI Package Wizard";
 
   return (
     <AdminScreen
@@ -239,49 +358,86 @@ function AiWizardsInner() {
       bottomInset={Spacing.xl}
       contentContainerStyle={styles.content}
     >
-      <Stack.Screen options={{ title: "AI Wizards", headerShown: false }} />
+      <Stack.Screen options={{ title: screenTitle, headerShown: false }} />
       <AdminTopBar
-        title="AI Wizards"
-        subtitle="Generate, refine, review, save"
+        title={screenTitle}
+        subtitle="Generate, refine, then open in editor"
         onBackPress={() => router.back()}
         testID="ai-wizards-header"
       />
       <AdminWorkflowRail
         testID="ai-step-rail"
         steps={[
-          { id: "generate", label: "Generate", done: canGenerate, active: !draft },
-          { id: "review", label: "Review", done: !!draft, active: !!draft },
-          { id: "save", label: "Save", done: !!draft && !!locationId, active: !!draft },
+          { id: "details", label: "Details", done: step > 1, active: step === 1 },
+          { id: "generate", label: "Generate", done: step > 2, active: step === 2 },
+          { id: "review", label: "Review", done: step === 3 && !!draft, active: step === 3 },
         ]}
       />
 
-      {error ? (
+      {error && step !== 2 ? (
         <AdminErrorState message={error} testID="ai-wizards-error" />
       ) : null}
+
+      {step === 1 ? (
         <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Output</Text>
+          <Text style={styles.panelTitle}>Trip details</Text>
           <View style={styles.twoCol}>
             <SegmentButton
               label="Package"
               selected={targetType === "tourPackage"}
               testID="ai-target-package"
-              onPress={() => setTargetType("tourPackage")}
+              onPress={() => {
+                setTargetType("tourPackage");
+                setSelectedEntityId("");
+              }}
             />
             <SegmentButton
               label="Query"
               selected={targetType === "tourPackageQuery"}
               testID="ai-target-query"
-              onPress={() => setTargetType("tourPackageQuery")}
+              onPress={() => {
+                setTargetType("tourPackageQuery");
+                setSelectedEntityId("");
+              }}
             />
           </View>
 
-          <Field
-            testID="ai-destination"
-            label="Destination"
-            value={destination}
-            onChangeText={setDestination}
-            placeholder="Kerala, Bali, Kashmir..."
-          />
+          <Pressable
+            testID="ai-location-picker"
+            accessibilityRole="button"
+            accessibilityLabel="Destination location"
+            style={styles.pickerButton}
+            onPress={() => setShowLocationPicker(true)}
+          >
+            <Text style={styles.fieldLabel}>Destination</Text>
+            <Text style={destinationLabel ? styles.pickerValue : styles.pickerPlaceholder}>
+              {destinationLabel || "Select location"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            testID="ai-entity-picker"
+            accessibilityRole="button"
+            accessibilityLabel={`Apply to existing ${entityLabel}`}
+            style={styles.pickerButton}
+            onPress={() => setShowEntityPicker(true)}
+            disabled={!locationId || entitiesLoading}
+          >
+            <Text style={styles.fieldLabel}>Apply to existing (optional)</Text>
+            <Text
+              style={
+                selectedEntity ? styles.pickerValue : styles.pickerPlaceholder
+              }
+            >
+              {entitiesLoading
+                ? "Loading…"
+                : selectedEntity
+                  ? selectedEntity.tourPackageName
+                  : entities.length
+                    ? `Create new ${entityLabel}`
+                    : `No ${entityLabel}s at this location`}
+            </Text>
+          </Pressable>
 
           <View style={styles.twoCol}>
             <Field
@@ -314,15 +470,23 @@ function AiWizardsInner() {
           </View>
 
           <Text style={styles.fieldLabel}>Budget</Text>
-          <View style={styles.wrapRail}>
+          <View style={styles.budgetList}>
             {BUDGETS.map((option) => (
-              <Chip
+              <Pressable
                 key={option.id}
-                label={option.label}
-                selected={budgetCategory === option.id}
                 testID={`ai-budget-${option.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
+                accessibilityState={{ selected: budgetCategory === option.id }}
+                style={[
+                  styles.budgetCard,
+                  budgetCategory === option.id ? styles.budgetCardActive : null,
+                ]}
                 onPress={() => setBudgetCategory(option.id)}
-              />
+              >
+                <Text style={styles.budgetLabel}>{option.label}</Text>
+                <Text style={styles.budgetHint}>{option.hint}</Text>
+              </Pressable>
             ))}
           </View>
 
@@ -373,6 +537,10 @@ function AiWizardsInner() {
             placeholder="Paste full day-wise text. AI structures it exactly — no added or removed days."
             multiline
           />
+          <Text style={styles.helperText}>
+            When you paste content here, generation follows your text strictly. Leave empty to
+            invent a new itinerary from destination and duration.
+          </Text>
 
           <Pressable
             testID="ai-generate"
@@ -383,27 +551,76 @@ function AiWizardsInner() {
             style={[styles.primaryButton, !canGenerate || busy ? styles.disabled : null]}
             onPress={() => void generate()}
           >
-            {busy === "generate" ? <ActivityIndicator color="#fff" /> : <Ionicons name="sparkles-outline" size={18} color="#fff" />}
-            <Text style={styles.primaryButtonText}>Generate</Text>
+            <Ionicons name="sparkles-outline" size={18} color="#fff" />
+            <Text style={styles.primaryButtonText}>Generate itinerary</Text>
           </Pressable>
         </View>
+      ) : null}
 
-        {error ? (
-          <View style={styles.errorCard}>
-            <Ionicons name="warning-outline" size={16} color={Colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
+      {step === 2 ? (
+        <View style={styles.panel} testID="ai-generating-panel">
+          <View style={styles.generatingIconWrap}>
+            <Ionicons
+              name="sparkles"
+              size={32}
+              color={generationError ? Colors.error : Colors.primary}
+            />
           </View>
-        ) : null}
-
-        {draft ? (
-          <View style={styles.panel} testID="ai-review-panel">
-            <View style={styles.reviewHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.panelTitle}>{draft.tourPackageName}</Text>
-                <Text style={styles.reviewMeta}>
-                  {draft.numDaysNight || `${nights} Nights / ${days} Days`} - {draft.tourPackageType || "AI Draft"}
-                </Text>
+          <Text style={styles.panelTitle}>
+            {generationError ? "Generation failed" : "Creating your itinerary"}
+          </Text>
+          <Text style={styles.generatingSubtitle}>
+            {generationError ?? "Our AI is crafting a personalized travel experience"}
+          </Text>
+          {!generationError ? (
+            <>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${progress}%` }]} />
               </View>
+              <Text style={styles.progressPct}>{progress}%</Text>
+              <Text style={styles.progressMsg}>{progressMessage}</Text>
+              <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.md }} />
+            </>
+          ) : (
+            <>
+              <Pressable
+                testID="ai-retry-generate"
+                style={styles.primaryButton}
+                onPress={() => void generate()}
+              >
+                <Ionicons name="refresh-outline" size={18} color="#fff" />
+                <Text style={styles.primaryButtonText}>Try again</Text>
+              </Pressable>
+              <Pressable
+                testID="ai-back-to-details"
+                style={styles.secondaryButton}
+                onPress={() => {
+                  setGenerationError(null);
+                  setStep(1);
+                }}
+              >
+                <Text style={styles.secondaryButtonText}>Back to details</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      ) : null}
+
+      {step === 3 && draft ? (
+        <View style={styles.panel} testID="ai-review-panel">
+          <View style={styles.reviewHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.panelTitle}>{draft.tourPackageName}</Text>
+              <View style={styles.badgeRow}>
+                <Badge text={draft.numDaysNight || `${nights}N/${days}D`} />
+                {draft.tourPackageType ? <Badge text={draft.tourPackageType} /> : null}
+                {draft.transport ? <Badge text={draft.transport} /> : null}
+              </View>
+            </View>
+            <View style={styles.reviewActions}>
+              {tokenUsage != null ? (
+                <Text style={styles.tokenText}>{tokenUsage} tokens</Text>
+              ) : null}
               <Pressable
                 testID="ai-share-draft"
                 accessibilityRole="button"
@@ -414,82 +631,209 @@ function AiWizardsInner() {
                 <Ionicons name="share-outline" size={18} color={Colors.text} />
               </Pressable>
             </View>
+          </View>
 
-            {Array.isArray(draft.highlights) && draft.highlights.length ? (
-              <View style={styles.highlightBox}>
-                {draft.highlights.slice(0, 5).map((highlight, index) => (
-                  <Text key={`${highlight}-${index}`} style={styles.highlightText}>
-                    {highlight}
-                  </Text>
+          {Array.isArray(draft.highlights) && draft.highlights.length ? (
+            <View style={styles.highlightBox}>
+              <Text style={styles.sectionLabel}>Highlights</Text>
+              <View style={styles.wrapRail}>
+                {draft.highlights.map((highlight, index) => (
+                  <Badge key={`${highlight}-${index}`} text={highlight} />
                 ))}
               </View>
-            ) : null}
-
-            <Text style={styles.fieldLabel}>Refine before saving (exact changes only)</Text>
-            <TextInput
-              testID="ai-refine-prompt"
-              accessibilityLabel="Refinement instructions"
-              style={[styles.input, styles.multilineInput]}
-              value={refinePrompt}
-              onChangeText={setRefinePrompt}
-              placeholder="e.g. Day 2 only: change hotel to Taj Jai Mahal — other days stay unchanged"
-              placeholderTextColor={Colors.textTertiary}
-              multiline
-            />
-            <Pressable
-              testID="ai-refine"
-              accessibilityRole="button"
-              accessibilityLabel="Refine itinerary"
-              accessibilityState={{ disabled: busy !== null || !refinePrompt.trim() }}
-              disabled={busy !== null || !refinePrompt.trim()}
-              style={[styles.secondaryButton, busy || !refinePrompt.trim() ? styles.disabled : null]}
-              onPress={() => void refine()}
-            >
-              {busy === "refine" ? <ActivityIndicator color={Colors.primary} /> : <Ionicons name="color-wand-outline" size={17} color={Colors.primary} />}
-              <Text style={styles.secondaryButtonText}>Refine</Text>
-            </Pressable>
-
-            <Text style={styles.fieldLabel}>Save to location</Text>
-            <View style={styles.wrapRail}>
-              {locations.map((location) => (
-                <Chip
-                  key={location.id}
-                  label={location.label}
-                  selected={locationId === location.id}
-                  testID={`ai-location-${location.id}`}
-                  onPress={() => setLocationId(location.id)}
-                />
-              ))}
             </View>
+          ) : null}
 
-            <View style={styles.dayList}>
-              {dayPreview.map((day, index) => (
-                <View key={`${day.dayNumber ?? index}-${day.itineraryTitle ?? ""}`} style={styles.dayCard}>
-                  <Text style={styles.dayTitle}>
-                    Day {day.dayNumber ?? index + 1}: {day.itineraryTitle ?? "Untitled day"}
-                  </Text>
-                  <Text style={styles.dayDescription} numberOfLines={5}>
+          {draft.estimatedBudget && typeof draft.estimatedBudget === "object" ? (
+            <View style={styles.budgetEstimate}>
+              <Text style={styles.sectionLabel}>Estimated budget</Text>
+              <Text style={styles.budgetTotal}>
+                {String((draft.estimatedBudget as { total?: string }).total ?? "—")}
+              </Text>
+              <Text style={styles.budgetPerPerson}>
+                {String((draft.estimatedBudget as { perPerson?: string }).perPerson ?? "")}
+              </Text>
+            </View>
+          ) : null}
+
+          <Text style={styles.sectionLabel}>Itinerary preview</Text>
+          <View style={styles.dayList}>
+            {(draft.itineraries ?? []).map((day, index) => {
+              const dayNum = day.dayNumber ?? index + 1;
+              const expanded = expandedDays[dayNum] ?? false;
+              return (
+                <View key={`${dayNum}-${day.itineraryTitle ?? ""}`} style={styles.dayCard}>
+                  <Pressable
+                    testID={`ai-day-${dayNum}-toggle`}
+                    accessibilityRole="button"
+                    onPress={() =>
+                      setExpandedDays((prev) => ({ ...prev, [dayNum]: !expanded }))
+                    }
+                  >
+                    <Text style={styles.dayTitle}>
+                      Day {dayNum}: {day.itineraryTitle ?? "Untitled day"}
+                    </Text>
+                  </Pressable>
+                  <Text style={styles.dayDescription} numberOfLines={expanded ? undefined : 3}>
                     {day.itineraryDescription ?? "No description"}
                   </Text>
+                  <View style={styles.badgeRow}>
+                    {day.mealsIncluded ? <Badge text={day.mealsIncluded} /> : null}
+                    {day.suggestedHotel ? <Badge text={`🏨 ${day.suggestedHotel}`} /> : null}
+                  </View>
+                  {expanded && (day.activities ?? []).length > 0 ? (
+                    <View style={styles.activityList}>
+                      {(day.activities ?? []).map((act, actIndex) => (
+                        <View key={`act-${actIndex}`} style={styles.activityCard}>
+                          <Text style={styles.activityTitle}>
+                            {act.activityTitle || `Activity ${actIndex + 1}`}
+                          </Text>
+                          {act.activityDescription ? (
+                            <Text style={styles.activityDesc}>{act.activityDescription}</Text>
+                          ) : null}
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
-              ))}
-            </View>
-
-            <Pressable
-              testID="ai-save-draft"
-              accessibilityRole="button"
-              accessibilityLabel="Save reviewed AI draft"
-              accessibilityState={{ disabled: busy !== null || !locationId }}
-              disabled={busy !== null || !locationId}
-              style={[styles.primaryButton, busy || !locationId ? styles.disabled : null]}
-              onPress={() => void saveDraft()}
-            >
-              {busy === "save" ? <ActivityIndicator color="#fff" /> : <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />}
-              <Text style={styles.primaryButtonText}>Save reviewed draft</Text>
-            </Pressable>
+              );
+            })}
           </View>
-        ) : null}
+
+          <Text style={styles.sectionLabel}>Modify with AI</Text>
+          <TextInput
+            testID="ai-refine-prompt"
+            accessibilityLabel="Refinement instructions"
+            style={[styles.input, styles.multilineInput]}
+            value={refinePrompt}
+            onChangeText={setRefinePrompt}
+            placeholder="e.g. Day 2 only: change hotel to Taj Jai Mahal"
+            placeholderTextColor={Colors.textTertiary}
+            multiline
+          />
+          <Pressable
+            testID="ai-refine"
+            accessibilityRole="button"
+            accessibilityLabel="Refine itinerary"
+            disabled={busy !== null || !refinePrompt.trim()}
+            style={[styles.secondaryButton, busy || !refinePrompt.trim() ? styles.disabled : null]}
+            onPress={() => void refine()}
+          >
+            {busy === "refine" ? (
+              <ActivityIndicator color={Colors.primary} />
+            ) : (
+              <Ionicons name="color-wand-outline" size={17} color={Colors.primary} />
+            )}
+            <Text style={styles.secondaryButtonText}>Update itinerary</Text>
+          </Pressable>
+
+          <Text style={styles.sectionLabel}>What would you like to do?</Text>
+          {selectedEntity ? (
+            <Pressable
+              testID="ai-apply-existing"
+              accessibilityRole="button"
+              accessibilityLabel={`Apply to ${selectedEntity.tourPackageName}`}
+              disabled={busy !== null}
+              style={[styles.primaryButton, busy ? styles.disabled : null]}
+              onPress={() => void handleApplyExisting()}
+            >
+              <Ionicons name="refresh-outline" size={18} color="#fff" />
+              <Text style={styles.primaryButtonText}>
+                Apply to &quot;{selectedEntity.tourPackageName}&quot;
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            testID="ai-create-new"
+            accessibilityRole="button"
+            accessibilityLabel={`Create new ${entityLabel}`}
+            disabled={busy !== null}
+            style={[
+              selectedEntity ? styles.secondaryButton : styles.primaryButton,
+              busy ? styles.disabled : null,
+            ]}
+            onPress={() => void handleCreateNew()}
+          >
+            <Ionicons
+              name="add-circle-outline"
+              size={18}
+              color={selectedEntity ? Colors.primary : "#fff"}
+            />
+            <Text
+              style={
+                selectedEntity ? styles.secondaryButtonText : styles.primaryButtonText
+              }
+            >
+              Create new {targetType === "tourPackageQuery" ? "query" : "package"}
+            </Text>
+          </Pressable>
+          <Pressable
+            testID="ai-regenerate"
+            accessibilityRole="button"
+            accessibilityLabel="Regenerate itinerary"
+            style={styles.ghostButton}
+            onPress={() => {
+              setDraft(null);
+              setStep(2);
+              void generate();
+            }}
+          >
+            <Text style={styles.ghostButtonText}>Regenerate</Text>
+          </Pressable>
+          <Pressable
+            testID="ai-start-over"
+            accessibilityRole="button"
+            accessibilityLabel="Start over"
+            style={styles.ghostButton}
+            onPress={startOver}
+          >
+            <Text style={styles.ghostButtonText}>Start over</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <AdminPickerSheet
+        visible={showLocationPicker}
+        title="Destination"
+        testID="ai-location-sheet"
+        options={locations.map((l) => ({ id: l.id, label: l.label }))}
+        selectedId={locationId}
+        onSelect={(opt) => {
+          setLocationId(opt.id);
+          setSelectedEntityId("");
+          setShowLocationPicker(false);
+        }}
+        onClose={() => setShowLocationPicker(false)}
+      />
+
+      <AdminPickerSheet
+        visible={showEntityPicker}
+        title={`Existing ${entityLabel}`}
+        testID="ai-entity-sheet"
+        options={[
+          { id: "", label: `Create new ${entityLabel}` },
+          ...entities.map((e) => ({
+            id: e.id,
+            label: e.tourPackageName,
+            subtitle: [e.numDaysNight, e.tourPackageType].filter(Boolean).join(" · "),
+          })),
+        ]}
+        selectedId={selectedEntityId}
+        onSelect={(opt) => {
+          setSelectedEntityId(opt.id);
+          setShowEntityPicker(false);
+        }}
+        onClose={() => setShowEntityPicker(false)}
+      />
     </AdminScreen>
+  );
+}
+
+function Badge({ text }: { text: string }) {
+  return (
+    <View style={styles.badge}>
+      <Text style={styles.badgeText}>{text}</Text>
+    </View>
   );
 }
 
@@ -581,24 +925,6 @@ function Chip({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
-  headerSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   content: { paddingHorizontal: Spacing.lg, gap: Spacing.md },
   panel: {
     backgroundColor: Colors.surface,
@@ -612,6 +938,8 @@ const styles = StyleSheet.create({
   twoCol: { flexDirection: "row", gap: Spacing.sm },
   field: { gap: 6, flex: 1 },
   fieldLabel: { fontSize: FontSize.xs, fontWeight: "900", color: Colors.textSecondary },
+  sectionLabel: { fontSize: FontSize.sm, fontWeight: "900", color: Colors.text },
+  helperText: { fontSize: FontSize.xs, color: Colors.textTertiary, lineHeight: 18 },
   input: {
     minHeight: 44,
     borderRadius: BorderRadius.md,
@@ -624,6 +952,16 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   multilineInput: { minHeight: 92, textAlignVertical: "top" },
+  pickerButton: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surfaceAlt,
+    padding: Spacing.md,
+    gap: 4,
+  },
+  pickerValue: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.text },
+  pickerPlaceholder: { fontSize: FontSize.sm, color: Colors.textTertiary },
   segmentButton: {
     flex: 1,
     alignItems: "center",
@@ -648,6 +986,17 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: Colors.primaryBg, borderColor: Colors.primaryLight },
   chipText: { fontSize: FontSize.xs, fontWeight: "900", color: Colors.textSecondary },
   chipTextActive: { color: Colors.primary },
+  budgetList: { gap: Spacing.xs },
+  budgetCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    padding: Spacing.sm,
+    backgroundColor: Colors.surfaceAlt,
+  },
+  budgetCardActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryBg },
+  budgetLabel: { fontSize: FontSize.sm, fontWeight: "900", color: Colors.text },
+  budgetHint: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   primaryButton: {
     minHeight: 48,
     borderRadius: BorderRadius.md,
@@ -672,27 +1021,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   secondaryButtonText: { color: Colors.primary, fontSize: FontSize.sm, fontWeight: "900" },
-  disabled: { opacity: 0.45 },
-  errorCard: {
-    borderRadius: BorderRadius.md,
-    backgroundColor: "#fff1f2",
-    borderWidth: 1,
-    borderColor: "#fecdd3",
-    padding: Spacing.sm,
-    flexDirection: "row",
-    gap: Spacing.xs,
+  ghostButton: {
+    minHeight: 40,
     alignItems: "center",
+    justifyContent: "center",
   },
-  errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
-  reviewHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
-  reviewMeta: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 4 },
-  highlightBox: {
-    gap: 6,
+  ghostButtonText: { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: "700" },
+  disabled: { opacity: 0.45 },
+  iconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reviewHeader: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.sm },
+  reviewActions: { alignItems: "flex-end", gap: 4 },
+  tokenText: { fontSize: FontSize.xs, color: Colors.textTertiary },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  badgeText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: "700" },
+  highlightBox: { gap: Spacing.sm },
+  budgetEstimate: {
     borderRadius: BorderRadius.md,
     backgroundColor: Colors.surfaceAlt,
     padding: Spacing.md,
+    gap: 4,
   },
-  highlightText: { fontSize: FontSize.sm, color: Colors.text, fontWeight: "700", lineHeight: 19 },
+  budgetTotal: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.text },
+  budgetPerPerson: { fontSize: FontSize.sm, color: Colors.textSecondary },
   dayList: { gap: Spacing.sm },
   dayCard: {
     borderRadius: BorderRadius.md,
@@ -704,4 +1069,46 @@ const styles = StyleSheet.create({
   },
   dayTitle: { fontSize: FontSize.sm, fontWeight: "900", color: Colors.text },
   dayDescription: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
+  activityList: { gap: Spacing.xs, marginTop: 4 },
+  activityCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    padding: Spacing.sm,
+    backgroundColor: Colors.surface,
+  },
+  activityTitle: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
+  activityDesc: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 4, lineHeight: 18 },
+  generatingIconWrap: {
+    alignSelf: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primaryBg,
+  },
+  generatingSubtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceAlt,
+    overflow: "hidden",
+    marginTop: Spacing.md,
+  },
+  progressFill: { height: "100%", backgroundColor: Colors.primary },
+  progressPct: {
+    fontSize: FontSize.lg,
+    fontWeight: "900",
+    color: Colors.text,
+    textAlign: "center",
+    marginTop: Spacing.sm,
+  },
+  progressMsg: {
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+    textAlign: "center",
+  },
 });

@@ -274,6 +274,10 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="admin/tour-queries/new"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="admin/tour-queries/smart-build"
               options={{ headerShown: false }}
             />

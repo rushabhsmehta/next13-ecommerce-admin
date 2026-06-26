@@ -4,6 +4,7 @@ import {
   Alert,
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -13,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { DateField } from "@/components/ui/DateField";
 import {
   AdminBottomActionBar,
   AdminErrorState,
@@ -23,6 +25,7 @@ import {
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { downloadAndSharePdf } from "@/lib/pdf-download";
 import {
   createSmartQueryBuildClient,
   type SmartBuildPrefill,
@@ -70,6 +73,7 @@ function SmartBuildInner() {
   const [transportDetails, setTransportDetails] = useState<SmartBuildTransportDetail[]>([]);
   const [totalPrice, setTotalPrice] = useState<number | null>(null);
   const [priceLines, setPriceLines] = useState<string[]>([]);
+  const [queryNumber, setQueryNumber] = useState("");
   const [picker, setPicker] = useState<
     "package" | "mealPlan" | "roomType" | "occupancy" | "vehicle" | null
   >(null);
@@ -89,6 +93,7 @@ function SmartBuildInner() {
       setRoomAllocations(data.suggestedRoomAllocations);
       setTransportDetails(data.suggestedTransport);
       if (data.lookups.mealPlans[0]) setMealPlanId(data.lookups.mealPlans[0].id);
+      setQueryNumber(`TPQ-${Date.now()}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not load smart build data.");
     } finally {
@@ -146,7 +151,7 @@ function SmartBuildInner() {
     }
   }, [step, totalPrice, calculating, runPriceCalc]);
 
-  async function submit() {
+  async function submit(downloadPdfAfter = false) {
     if (!prefill || !canWrite || !canNextFromPackage || !canNextFromRooms) return;
     setSubmitting(true);
     try {
@@ -157,7 +162,25 @@ function SmartBuildInner() {
         roomAllocations,
         transportDetails,
         totalPrice,
+        tourPackageQueryNumber: queryNumber.trim() || undefined,
       });
+      if (downloadPdfAfter) {
+        try {
+          await downloadAndSharePdf({
+            endpoint: `/api/mobile/tour-queries/${encodeURIComponent(created.id)}/pdf`,
+            fileName: created.tourPackageQueryNumber ?? "tour-query",
+            getToken: () => getTokenRef.current(),
+            dialogTitle: "Share tour query PDF",
+          });
+        } catch (pdfErr) {
+          Alert.alert(
+            "Query created",
+            pdfErr instanceof ApiError
+              ? `${pdfErr.message} Open the query to download the PDF later.`
+              : "PDF download failed. Open the query to download later."
+          );
+        }
+      }
       router.replace(`/admin/tour-queries/${created.id}/edit` as never);
     } catch (err) {
       Alert.alert(
@@ -272,20 +295,61 @@ function SmartBuildInner() {
           </View>
           {roomAllocations.map((row, index) => (
             <View key={`room-${index}`} style={styles.card}>
-              <FieldButton
-                testID={`smart-build-room-type-${index}`}
-                label="Room type"
-                value={
-                  row.useCustomRoomType
-                    ? row.customRoomType || "Custom"
-                    : prefill.lookups.roomTypes.find((r) => r.id === row.roomTypeId)?.name ??
-                      "Select room type"
-                }
-                onPress={() => {
-                  setPickerRowIndex(index);
-                  setPicker("roomType");
-                }}
-              />
+              <View style={styles.switchRow}>
+                <Text style={styles.fieldLabel}>Custom room type</Text>
+                <Switch
+                  testID={`smart-build-custom-room-${index}`}
+                  accessibilityLabel={`Custom room type row ${index + 1}`}
+                  value={!!row.useCustomRoomType}
+                  onValueChange={(checked) =>
+                    setRoomAllocations((prev) =>
+                      prev.map((item, i) =>
+                        i === index
+                          ? {
+                              ...item,
+                              useCustomRoomType: checked,
+                              roomTypeId: checked ? "" : item.roomTypeId,
+                              customRoomType: checked ? item.customRoomType : "",
+                            }
+                          : item
+                      )
+                    )
+                  }
+                />
+              </View>
+              {row.useCustomRoomType ? (
+                <>
+                  <Text style={styles.fieldLabel}>Custom room name</Text>
+                  <TextInput
+                    testID={`smart-build-custom-room-name-${index}`}
+                    accessibilityLabel={`Custom room name row ${index + 1}`}
+                    style={styles.input}
+                    value={row.customRoomType ?? ""}
+                    onChangeText={(text) =>
+                      setRoomAllocations((prev) =>
+                        prev.map((item, i) =>
+                          i === index ? { ...item, customRoomType: text } : item
+                        )
+                      )
+                    }
+                    placeholder="e.g. Villa with pool"
+                    placeholderTextColor={Colors.textTertiary}
+                  />
+                </>
+              ) : (
+                <FieldButton
+                  testID={`smart-build-room-type-${index}`}
+                  label="Room type"
+                  value={
+                    prefill.lookups.roomTypes.find((r) => r.id === row.roomTypeId)?.name ??
+                    "Select room type"
+                  }
+                  onPress={() => {
+                    setPickerRowIndex(index);
+                    setPicker("roomType");
+                  }}
+                />
+              )}
               <FieldButton
                 testID={`smart-build-occupancy-${index}`}
                 label="Occupancy"
@@ -312,6 +376,18 @@ function SmartBuildInner() {
                   );
                 }}
               />
+              {roomAllocations.length > 1 ? (
+                <Pressable
+                  testID={`smart-build-remove-room-${index}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove room row ${index + 1}`}
+                  onPress={() =>
+                    setRoomAllocations((prev) => prev.filter((_, i) => i !== index))
+                  }
+                >
+                  <Text style={styles.removeText}>Remove room</Text>
+                </Pressable>
+              ) : null}
             </View>
           ))}
         </View>
@@ -361,6 +437,109 @@ function SmartBuildInner() {
                   setPicker("vehicle");
                 }}
               />
+              <Text style={styles.fieldLabel}>Quantity</Text>
+              <TextInput
+                testID={`smart-build-transport-qty-${index}`}
+                style={styles.input}
+                keyboardType="number-pad"
+                value={String(row.quantity ?? 1)}
+                onChangeText={(text) => {
+                  const quantity = Math.max(1, Number.parseInt(text, 10) || 1);
+                  setTransportDetails((prev) =>
+                    prev.map((item, i) => (i === index ? { ...item, quantity } : item))
+                  );
+                }}
+              />
+              <View style={styles.switchRow}>
+                <Text style={styles.fieldLabel}>Airport pickup</Text>
+                <Switch
+                  testID={`smart-build-airport-pickup-${index}`}
+                  value={!!row.isAirportPickupRequired}
+                  onValueChange={(checked) =>
+                    setTransportDetails((prev) =>
+                      prev.map((item, i) =>
+                        i === index ? { ...item, isAirportPickupRequired: checked } : item
+                      )
+                    )
+                  }
+                />
+              </View>
+              <View style={styles.switchRow}>
+                <Text style={styles.fieldLabel}>Airport drop</Text>
+                <Switch
+                  testID={`smart-build-airport-drop-${index}`}
+                  value={!!row.isAirportDropRequired}
+                  onValueChange={(checked) =>
+                    setTransportDetails((prev) =>
+                      prev.map((item, i) =>
+                        i === index ? { ...item, isAirportDropRequired: checked } : item
+                      )
+                    )
+                  }
+                />
+              </View>
+              <Text style={styles.fieldLabel}>Pickup location</Text>
+              <TextInput
+                testID={`smart-build-pickup-${index}`}
+                style={styles.input}
+                value={row.pickupLocation ?? ""}
+                onChangeText={(text) =>
+                  setTransportDetails((prev) =>
+                    prev.map((item, i) =>
+                      i === index ? { ...item, pickupLocation: text } : item
+                    )
+                  )
+                }
+              />
+              <Text style={styles.fieldLabel}>Drop location</Text>
+              <TextInput
+                testID={`smart-build-drop-${index}`}
+                style={styles.input}
+                value={row.dropLocation ?? ""}
+                onChangeText={(text) =>
+                  setTransportDetails((prev) =>
+                    prev.map((item, i) =>
+                      i === index ? { ...item, dropLocation: text } : item
+                    )
+                  )
+                }
+              />
+              <Text style={styles.fieldLabel}>Requirement date</Text>
+              <DateField
+                testID={`smart-build-requirement-date-${index}`}
+                style={styles.input}
+                value={row.requirementDate ?? ""}
+                onChange={(value) =>
+                  setTransportDetails((prev) =>
+                    prev.map((item, i) =>
+                      i === index ? { ...item, requirementDate: value || null } : item
+                    )
+                  )
+                }
+                placeholder="Optional"
+              />
+              <Text style={styles.fieldLabel}>Notes</Text>
+              <TextInput
+                testID={`smart-build-transport-notes-${index}`}
+                style={[styles.input, styles.multilineInput]}
+                value={row.notes ?? ""}
+                multiline
+                onChangeText={(text) =>
+                  setTransportDetails((prev) =>
+                    prev.map((item, i) => (i === index ? { ...item, notes: text } : item))
+                  )
+                }
+              />
+              <Pressable
+                testID={`smart-build-remove-transport-${index}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove transport row ${index + 1}`}
+                onPress={() =>
+                  setTransportDetails((prev) => prev.filter((_, i) => i !== index))
+                }
+              >
+                <Text style={styles.removeText}>Remove transport</Text>
+              </Pressable>
             </View>
           ))}
         </View>
@@ -368,7 +547,17 @@ function SmartBuildInner() {
 
       {step === "review" ? (
         <View style={styles.panel} testID="smart-build-review-panel">
-          <Text style={styles.panelTitle}>Review</Text>
+          <Text style={styles.panelTitle}>Review & create</Text>
+          <Text style={styles.fieldLabel}>Query number (optional)</Text>
+          <TextInput
+            testID="smart-build-query-number"
+            accessibilityLabel="Tour package query number"
+            style={styles.input}
+            value={queryNumber}
+            onChangeText={setQueryNumber}
+            placeholder="Auto-generated if empty"
+            placeholderTextColor={Colors.textTertiary}
+          />
           <Text style={styles.meta}>{selectedPackage?.tourPackageName ?? "—"}</Text>
           <Text style={styles.meta}>
             {roomAllocations.length} room allocation{roomAllocations.length === 1 ? "" : "s"}
@@ -381,11 +570,20 @@ function SmartBuildInner() {
           ) : (
             <Text style={styles.meta}>Price could not be calculated automatically.</Text>
           )}
-          {priceLines.slice(0, 4).map((line, index) => (
+          {priceLines.map((line, index) => (
             <Text key={`${line}-${index}`} style={styles.meta}>
               {line}
             </Text>
           ))}
+          <Pressable
+            testID="smart-build-recalculate-inline"
+            accessibilityRole="button"
+            accessibilityLabel="Recalculate price"
+            style={styles.recalcButton}
+            onPress={() => void runPriceCalc()}
+          >
+            <Text style={styles.recalcText}>Recalculate price</Text>
+          </Pressable>
         </View>
       ) : null}
 
@@ -398,12 +596,13 @@ function SmartBuildInner() {
           (step === "rooms" && !canNextFromRooms)
         }
         onPrimaryPress={() => {
-          if (step === "review") void submit();
+          if (step === "review") void submit(false);
           else goNext();
         }}
-        secondaryLabel={step === "review" ? "Recalculate price" : undefined}
-        secondaryTestID="smart-build-recalculate"
-        onSecondaryPress={step === "review" ? () => void runPriceCalc() : undefined}
+        secondaryLabel={step === "review" ? "Create & download PDF" : undefined}
+        secondaryTestID="smart-build-create-download"
+        secondaryIcon={step === "review" ? "download-outline" : undefined}
+        onSecondaryPress={step === "review" ? () => void submit(true) : undefined}
       />
 
       <AdminPickerSheet
@@ -569,4 +768,13 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.text,
   },
+  multilineInput: { minHeight: 72, textAlignVertical: "top", paddingVertical: 10 },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  removeText: { fontSize: FontSize.sm, color: Colors.error, fontWeight: "700" },
+  recalcButton: { alignSelf: "flex-start", paddingVertical: Spacing.xs },
+  recalcText: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: "800" },
 });

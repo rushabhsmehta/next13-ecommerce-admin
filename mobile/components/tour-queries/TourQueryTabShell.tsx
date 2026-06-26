@@ -9,6 +9,7 @@ export interface TourQueryTabBarProps {
   onTabChange: (tab: TourQueryTabId) => void;
   badges?: TabBadgeState;
   testIDPrefix?: string;
+  hiddenTabs?: TourQueryTabId[];
 }
 
 function tabLabel(opt: TourQueryTabOption, badges?: TabBadgeState): string {
@@ -30,8 +31,10 @@ export function TourQueryTabBar({
   onTabChange,
   badges,
   testIDPrefix = "tq-tab",
+  hiddenTabs,
 }: TourQueryTabBarProps) {
-  const options = TOUR_QUERY_TABS.map((t) => ({
+  const hidden = new Set(hiddenTabs ?? []);
+  const options = TOUR_QUERY_TABS.filter((t) => !hidden.has(t.id)).map((t) => ({
     id: t.id,
     label: tabLabel(t, badges),
   }));
@@ -77,6 +80,7 @@ export function TourQueryTabShell({
   onTabChange,
   badges,
   testIDPrefix = "tq-tab",
+  hiddenTabs,
   children,
 }: TourQueryTabShellProps) {
   return (
@@ -86,6 +90,7 @@ export function TourQueryTabShell({
         onTabChange={onTabChange}
         badges={badges}
         testIDPrefix={testIDPrefix}
+        hiddenTabs={hiddenTabs}
       />
       <TourQueryTabPanel activeTab={activeTab} testIDPrefix={testIDPrefix}>
         {children}

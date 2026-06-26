@@ -44,5 +44,38 @@ describe("createAiWizardsClient", () => {
       headers: { "Idempotency-Key": expect.stringMatching(/^ai-save-/) },
     });
   });
+
+  it("lists entities for a location", async () => {
+    const request = jest.fn(async (path: string) => {
+      if (path.includes("tour-packages")) {
+        return {
+          packages: [
+            {
+              id: "p1",
+              tourPackageName: "Kerala",
+              tourPackageType: "Domestic",
+              numDaysNight: "3N/4D",
+            },
+          ],
+        };
+      }
+      return {
+        queries: [
+          {
+            id: "q1",
+            tourPackageQueryName: "Query 1",
+            customerName: "Guest",
+            tourPackageQueryType: "Custom",
+            numDaysNight: "2N/3D",
+          },
+        ],
+      };
+    });
+    const client = createAiWizardsClient(request as any);
+    const packages = await client.listEntitiesForLocation("tourPackage", "loc1");
+    expect(packages[0].id).toBe("p1");
+    const queries = await client.listEntitiesForLocation("tourPackageQuery", "loc1");
+    expect(queries[0].tourPackageName).toBe("Query 1");
+  });
 });
 

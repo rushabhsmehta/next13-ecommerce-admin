@@ -35,6 +35,7 @@ import {
   TourPackageForm,
   type TourPackageFormInitial,
 } from "@/components/tour-packages/TourPackageForm";
+import { AI_DRAFT_KEYS, peekAiDraft } from "@/lib/ai-wizard-drafts";
 import { downloadAndSharePdf } from "@/lib/pdf-download";
 import {
   absoluteAdminUrl,
@@ -140,6 +141,13 @@ function Inner() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!canWrite || !data) return;
+    void peekAiDraft(AI_DRAFT_KEYS.packageApply).then((stored) => {
+      if (stored) setEditing(true);
+    });
+  }, [canWrite, data]);
 
   const handleDelete = useCallback(async () => {
     if (!id) return;

@@ -60,6 +60,7 @@ export type SmartBuildCreateInput = {
   roomAllocations: SmartBuildRoomAllocation[];
   transportDetails?: SmartBuildTransportDetail[];
   totalPrice?: number | null;
+  tourPackageQueryNumber?: string;
 };
 
 export type SmartBuildPriceResult = {

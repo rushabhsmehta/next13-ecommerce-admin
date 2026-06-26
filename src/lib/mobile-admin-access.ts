@@ -337,20 +337,23 @@ export const MOBILE_ADMIN_MODULES: MobileAdminModule[] = [
     // selection before saving an unpublished package draft or draft query.
     id: "ai-wizards",
     title: "AI Wizards",
-    description: "AI package and query generation flows with review, refine, and save steps.",
+    description:
+      "AI package and query wizards with web-style draft handoff: generate, refine, review, then open create/edit forms for manual save.",
     category: "Sales",
     phase: "Phase 2",
     icon: "sparkles-outline",
     status: "ready",
     requiredPermission: "aiWizards.write",
     offlinePolicy: "online_only",
-    acceptanceTarget: "Admins can generate and refine packages or quotations from mobile before saving.",
+    acceptanceTarget:
+      "Admins can generate and refine packages or quotations on mobile, then save from the standard editor (matching web).",
     webRoutes: ["/tourPackages/ai-wizard", "/tourPackageQuery/ai-wizard", "/api/ai/generate-itinerary"],
     workflows: [
-      "Generate itinerary/package draft",
+      "Generate itinerary/package draft from location",
       "Refine generated content",
-      "Review AI output before saving",
-      "Convert approved draft into package or query",
+      "Review AI output before opening editor",
+      "Create new or apply to existing package/query",
+      "Save from tour package or query form",
     ],
   },
   {

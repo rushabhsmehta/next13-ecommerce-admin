@@ -7,6 +7,11 @@ import {
   type TourQueryEditInput,
 } from "@/lib/tour-query-edit";
 import { firstTabForFieldErrors } from "./tab-config";
+import {
+  AI_DRAFT_KEYS,
+  consumeAiDraft,
+  mapAiDraftToQueryInitial,
+} from "@/lib/ai-wizard-drafts";
 import type {
   ActivePickerState,
   ItineraryRow,
@@ -180,6 +185,7 @@ export function useTourQueryEditForm(queryId: string) {
 
   const [activePicker, setActivePicker] = useState<ActivePickerState>(null);
   const packagesLocationRef = useRef<string | null | undefined>(undefined);
+  const aiApplyDraftChecked = useRef(false);
 
   const refreshPackagesList = useCallback(
     async (locId: string | null, keepSelectedId?: string | null) => {
@@ -353,6 +359,25 @@ export function useTourQueryEditForm(queryId: string) {
       cancelled = true;
     };
   }, [id, authRequest, refreshPackagesList]);
+
+  useEffect(() => {
+    if (loading || !id || aiApplyDraftChecked.current) return;
+    aiApplyDraftChecked.current = true;
+    void (async () => {
+      const stored = await consumeAiDraft(AI_DRAFT_KEYS.queryApply);
+      if (!stored) return;
+      const mapped = mapAiDraftToQueryInitial(stored);
+      setName((prev) => mapped.tourPackageQueryName || prev);
+      setTransport((prev) => mapped.transport || prev);
+      setPickupLocation((prev) => mapped.pickupLocation || prev);
+      setDropLocation((prev) => mapped.dropLocation || prev);
+      if (mapped.itineraries.length) setItineraries(mapped.itineraries);
+      Alert.alert(
+        "AI Wizard",
+        "Applied AI-generated itinerary to this query. Review and save when ready."
+      );
+    })();
+  }, [loading, id]);
 
   useEffect(() => {
     if (loading) return;

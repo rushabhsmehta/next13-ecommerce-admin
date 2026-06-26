@@ -30,6 +30,7 @@ export const smartBuildInputSchema = z.object({
   roomAllocations: z.array(roomAllocationSchema).min(1),
   transportDetails: z.array(transportDetailSchema).optional().default([]),
   totalPrice: z.coerce.number().optional().nullable(),
+  tourPackageQueryNumber: z.string().optional(),
   pricingSection: z
     .array(
       z.object({
@@ -612,7 +613,8 @@ export async function createSmartBuildTourQuery(
     data: {
       inquiryId: inquiry.id,
       associatePartnerId,
-      tourPackageQueryNumber: generateTourPackageQueryNumber(),
+      tourPackageQueryNumber:
+        input.tourPackageQueryNumber?.trim() || generateTourPackageQueryNumber(),
       tourPackageQueryName: `${inquiry.customerName} - ${tourPackage.tourPackageName}`,
       tourPackageQueryType: tourPackage.tourPackageType,
       tourCategory: tourPackage.tourCategory || "Domestic",

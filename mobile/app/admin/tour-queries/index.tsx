@@ -22,6 +22,7 @@ import {
   AdminScreen,
   AdminSegmentedControl,
   AdminTopBar,
+  AdminTopBarIconButton,
   AdminTopBarPrimaryButton,
 } from "@/components/admin";
 import { TripFocusCard, TripMiniMetric, TripStatusPill } from "@/components/admin/trips";
@@ -129,6 +130,7 @@ function TourQueriesListScreenInner() {
   const request = useMemo(() => withAuth(() => getTokenRef.current()), []);
   const { permissions } = useCurrentUser();
   const canWriteSales = permissions.includes("salesTrips.write");
+  const canAiWizard = permissions.includes("aiWizards.write");
 
   const [items, setItems] = useState<TourQueryListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,13 +233,27 @@ function TourQueriesListScreenInner() {
         onBackPress={() => router.back()}
         testID="tour-queries-header"
         rightSlot={
-          canWriteSales ? (
-            <AdminTopBarPrimaryButton
-              label="New"
-              icon="add"
-              testID="tour-queries-new"
-              onPress={() => router.push("/admin/tour-queries/create" as never)}
-            />
+          canWriteSales || canAiWizard ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs }}>
+              {canAiWizard ? (
+                <AdminTopBarIconButton
+                  icon="sparkles-outline"
+                  accessibilityLabel="AI generate query"
+                  testID="tour-queries-ai-wizard"
+                  onPress={() =>
+                    router.push("/admin/ai-wizards?target=tourPackageQuery" as never)
+                  }
+                />
+              ) : null}
+              {canWriteSales ? (
+                <AdminTopBarPrimaryButton
+                  label="New"
+                  icon="add"
+                  testID="tour-queries-new"
+                  onPress={() => router.push("/admin/tour-queries/create" as never)}
+                />
+              ) : null}
+            </View>
           ) : null
         }
       />

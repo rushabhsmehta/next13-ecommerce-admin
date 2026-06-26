@@ -19,11 +19,15 @@ describe("smart-query-build client", () => {
       tourPackageId: "pkg-1",
       mealPlanId: "meal-1",
       roomAllocations: [{ occupancyTypeId: "occ-1", quantity: 1 }],
+      tourPackageQueryNumber: "TPQ-CUSTOM-1",
     });
     expect(authRequest).toHaveBeenCalledWith(
       "/api/mobile/tour-queries/smart-build",
       expect.objectContaining({
         method: "POST",
+        body: expect.objectContaining({
+          tourPackageQueryNumber: "TPQ-CUSTOM-1",
+        }),
         headers: expect.objectContaining({
           "Idempotency-Key": expect.stringMatching(/^smart-build-/),
         }),

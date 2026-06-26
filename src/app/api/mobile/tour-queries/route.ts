@@ -132,6 +132,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search")?.trim() ?? "";
+    const locationId = searchParams.get("locationId")?.trim() ?? "";
     const status = (searchParams.get("status") ?? "all").toLowerCase();
     const limitRaw = Number.parseInt(searchParams.get("limit") ?? "25", 10);
     const offsetRaw = Number.parseInt(searchParams.get("offset") ?? "0", 10);
@@ -168,6 +169,10 @@ export async function GET(req: Request) {
           { customerNumber: { contains: search } },
         ],
       });
+    }
+
+    if (locationId) {
+      parts.push({ locationId });
     }
 
     const where: Prisma.TourPackageQueryWhereInput =

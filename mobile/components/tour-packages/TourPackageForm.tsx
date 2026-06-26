@@ -29,6 +29,12 @@ import {
   type TourPackageItineraryDayInput,
   type TourPackagePricingSectionRow,
 } from "@/lib/tour-packages";
+import {
+  AI_DRAFT_KEYS,
+  consumeAiDraft,
+  mapAiDraftToPackageInitial,
+  mapAiDraftToPackageItineraries,
+} from "@/lib/ai-wizard-drafts";
 
 export interface TourPackageFormInitial {
   locationId: string;
@@ -154,6 +160,7 @@ export function TourPackageForm({
     { id: string; label: string }[]
   >([]);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [aiDraftLoaded, setAiDraftLoaded] = useState(false);
 
   const loadLocations = useCallback(async () => {
     try {
@@ -174,6 +181,63 @@ export function TourPackageForm({
   useEffect(() => {
     void loadLocations();
   }, [loadLocations]);
+
+  useEffect(() => {
+    if (aiDraftLoaded) return;
+    let cancelled = false;
+
+    async function loadAiDraft() {
+      const draftKey =
+        mode === "create" ? AI_DRAFT_KEYS.packageCreate : AI_DRAFT_KEYS.packageApply;
+
+      const stored = await consumeAiDraft(draftKey);
+      if (!stored || cancelled) return;
+
+      const label =
+        locationOptions.find((l) => l.id === stored.locationId)?.label ??
+        stored.locationId;
+      const mapped = mapAiDraftToPackageInitial(stored, label);
+
+      if (mode === "create") {
+        if (mapped.locationId) setLocationId(mapped.locationId);
+        if (mapped.locationLabel) setLocationLabel(mapped.locationLabel);
+        if (mapped.tourPackageName) setTourPackageName(mapped.tourPackageName);
+        if (mapped.tourCategory) setTourCategory(mapped.tourCategory);
+        if (mapped.tourPackageType) setTourPackageType(mapped.tourPackageType);
+        if (mapped.numDaysNight) setNumDaysNight(mapped.numDaysNight);
+        if (mapped.transport) setTransport(mapped.transport);
+        if (mapped.pickup_location) setPickupLocation(mapped.pickup_location);
+        if (mapped.drop_location) setDropLocation(mapped.drop_location);
+        if (mapped.price) setPrice(mapped.price);
+        if (mapped.itineraries?.length) setItineraries(mapped.itineraries);
+        if (mapped.inclusions?.length) setInclusions(mapped.inclusions);
+        if (mapped.exclusions?.length) setExclusions(mapped.exclusions);
+        if (mapped.importantNotes?.length) setImportantNotes(mapped.importantNotes);
+        Alert.alert("AI Wizard", "Loaded itinerary from AI Wizard. Review and save when ready.");
+      } else {
+        if (mapped.tourPackageName) setTourPackageName(mapped.tourPackageName);
+        if (mapped.tourCategory) setTourCategory(mapped.tourCategory);
+        if (mapped.tourPackageType) setTourPackageType(mapped.tourPackageType);
+        if (mapped.numDaysNight) setNumDaysNight(mapped.numDaysNight);
+        if (mapped.transport) setTransport(mapped.transport);
+        if (mapped.pickup_location) setPickupLocation(mapped.pickup_location);
+        if (mapped.drop_location) setDropLocation(mapped.drop_location);
+        setItineraries(
+          mapAiDraftToPackageItineraries(stored.data, stored.locationId || locationId)
+        );
+        Alert.alert(
+          "AI Wizard",
+          "Applied AI-generated itinerary to this package. Review and save when ready."
+        );
+      }
+      if (!cancelled) setAiDraftLoaded(true);
+    }
+
+    void loadAiDraft();
+    return () => {
+      cancelled = true;
+    };
+  }, [aiDraftLoaded, locationId, locationOptions, mode]);
 
   const screenTitle = mode === "create" ? "New package" : "Edit package";
   const canSubmit =

@@ -59,7 +59,14 @@ export interface AiResponse {
   data: AiItineraryDraft;
   strictSource?: boolean;
   fidelityWarnings?: string[];
-  usage?: { model?: string };
+  usage?: { promptTokens?: number; completionTokens?: number; model?: string };
+}
+
+export interface AiEntitySummary {
+  id: string;
+  tourPackageName: string;
+  tourPackageType: string;
+  numDaysNight: string;
 }
 
 function makeIdempotencyKey(prefix: string): string {
@@ -89,6 +96,54 @@ export function createAiWizardsClient(authRequest: AuthenticatedRequest) {
         body: { currentItinerary, userPrompt },
         headers: { "Idempotency-Key": makeIdempotencyKey("ai-refine") },
       });
+    },
+
+    listEntitiesForLocation(
+      targetType: AiTargetType,
+      locationId: string
+    ): Promise<AiEntitySummary[]> {
+      if (targetType === "tourPackage") {
+        const qs = new URLSearchParams({
+          locationId,
+          limit: "100",
+          includeArchived: "false",
+        });
+        return authRequest<{ packages: Array<{
+          id: string;
+          tourPackageName: string | null;
+          tourPackageType: string | null;
+          numDaysNight: string | null;
+        }> }>(`/api/mobile/tour-packages?${qs}`, { retries: 1 }).then((res) =>
+          (res.packages ?? []).map((pkg) => ({
+            id: pkg.id,
+            tourPackageName: pkg.tourPackageName || "Untitled",
+            tourPackageType: pkg.tourPackageType || "",
+            numDaysNight: pkg.numDaysNight || "",
+          }))
+        );
+      }
+
+      const qs = new URLSearchParams({
+        locationId,
+        status: "all",
+        limit: "100",
+      });
+      return authRequest<{
+        queries: Array<{
+          id: string;
+          tourPackageQueryName: string | null;
+          customerName: string | null;
+          tourPackageQueryType: string | null;
+          numDaysNight: string | null;
+        }>;
+      }>(`/api/mobile/tour-queries?${qs}`, { retries: 1 }).then((res) =>
+        (res.queries ?? []).map((q) => ({
+          id: q.id,
+          tourPackageName: q.tourPackageQueryName || q.customerName || "Untitled",
+          tourPackageType: q.tourPackageQueryType || "",
+          numDaysNight: q.numDaysNight || "",
+        }))
+      );
     },
 
     saveDraft(input: {

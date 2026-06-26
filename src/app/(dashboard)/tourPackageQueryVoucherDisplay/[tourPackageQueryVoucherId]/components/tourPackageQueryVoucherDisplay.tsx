@@ -5,7 +5,6 @@ import { VoucherActions } from "@/components/voucher-actions";
 import type { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, RoomAllocation, TransportDetail, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
 import { formatLocalDate } from '@/lib/timezone-utils';
-import { normalizeItineraryDays } from '@/lib/utils';
 
 interface TourPackageQueryVoucherDisplayProps {
   initialData: TourPackageQuery & {
@@ -88,6 +87,51 @@ const stripHtml = (input: string): string => {
     .replace(/\s+/g, ' ')
     .trim();
 };
+
+type VoucherItinerary = Itinerary & {
+  roomAllocations: (RoomAllocation & {
+    roomType: RoomType | null;
+    occupancyType: OccupancyType | null;
+    mealPlan: MealPlan | null;
+    quantity?: number | null;
+    voucherNumber?: string | null;
+    customRoomType?: string | null;
+    extraBeds?: { occupancyType?: OccupancyType | null; occupancyTypeId?: string; quantity?: number }[];
+  })[];
+  transportDetails?: (TransportDetail & { vehicleType: VehicleType | null })[];
+};
+
+function resolveDayHotelId(
+  itinerary: VoucherItinerary,
+  confirmedVariantHotelsByDay: Record<number, string>,
+  confirmedHotelOverrides: Record<string, string>,
+): string | null {
+  return (
+    confirmedVariantHotelsByDay[itinerary.dayNumber as number] ??
+    confirmedHotelOverrides[itinerary.id] ??
+    itinerary.hotelId ??
+    null
+  );
+}
+
+function resolveDayRoomAllocations(
+  itinerary: VoucherItinerary,
+  confirmedAllocations: Record<string, any[]> | null,
+): any[] {
+  return confirmedAllocations
+    ? (confirmedAllocations[itinerary.id] || [])
+    : itinerary.roomAllocations;
+}
+
+function resolveDayTransport(
+  itinerary: VoucherItinerary,
+  confirmedTransport: Record<string, any[]> | null,
+): any[] {
+  const fromVariant = confirmedTransport?.[itinerary.id];
+  return fromVariant !== undefined
+    ? fromVariant
+    : (itinerary.transportDetails || []);
+}
 
 export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDisplayProps> = ({
   initialData,
@@ -251,16 +295,23 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         .vchr-day-date { color: var(--vchr-accent-deep); background: #fff7ed; border: 1px solid #f0d9b5; border-radius: 999px; display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; padding: 4px 9px; text-transform: uppercase; white-space: nowrap; }
         .vchr-day-text { color: var(--vchr-ink); font-size: 12.4px; line-height: 1.55; }
         .vchr-day-text strong { color: var(--vchr-strong); font-weight: 750; }
+        .vchr-day-content { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+        .vchr-day-subcard { position: relative; border: 1px solid rgba(234,223,206,0.96); border-radius: 16px; background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,250,243,0.92)); overflow: hidden; box-shadow: 0 8px 22px rgba(124,45,18,0.045); }
+        .vchr-day-subcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+        .vchr-day-subcard--itinerary::before { background: linear-gradient(180deg, var(--vchr-gold), var(--vchr-accent)); }
+        .vchr-day-subcard--stay::before { background: linear-gradient(180deg, #f59e0b, #b45309); }
+        .vchr-day-subcard--transport::before { background: linear-gradient(180deg, #94a3b8, #475569); }
+        .vchr-day-subcard-head { background: linear-gradient(135deg, #fff7ed, #fffdf8); padding: 11px 14px 9px; border-bottom: 1px solid rgba(234, 223, 206, 0.82); }
+        .vchr-day-subcard-kicker { color: var(--vchr-gold); font-size: 8px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; }
+        .vchr-day-subcard-title { color: var(--vchr-strong); font-size: 15px; margin: 3px 0 0; line-height: 1.2; }
+        .vchr-day-subcard-body { padding: 13px 16px 14px; }
+        .vchr-day-subcard--stay .vchr-table, .vchr-day-subcard--transport .vchr-table { border-radius: 0; }
         .vchr-table-wrap { border: 1px solid var(--vchr-line); border-radius: 18px; overflow: hidden; background: #ffffff; box-shadow: 0 12px 30px rgba(124,45,18,0.045); }
         .vchr-table { width: 100%; border-collapse: collapse; font-size: 10.8px; }
         .vchr-table th { background: #fff7ed; color: var(--vchr-accent-deep); text-align: left; font-weight: 800; font-size: 8.3px; letter-spacing: 0.13em; text-transform: uppercase; padding: 10px 11px; border-bottom: 1px solid var(--vchr-line); }
         .vchr-table td { padding: 10px 11px; border-bottom: 1px solid rgba(234, 223, 206, 0.74); vertical-align: top; color: var(--vchr-ink); }
         .vchr-table tr:last-child td { border-bottom: none; }
         .vchr-table .num { text-align: right; }
-        .vchr-stay { margin-bottom: 16px; border: 1px solid var(--vchr-line); border-radius: 20px; overflow: hidden; background: #ffffff; break-inside: avoid; page-break-inside: avoid; }
-        .vchr-stay-head { background: linear-gradient(135deg, #fff7ed, #fffdf8); padding: 13px 15px 11px; border-bottom: 1px solid var(--vchr-line); }
-        .vchr-stay-title { color: var(--vchr-strong); font-size: 17px; margin: 4px 0 0; }
-        .vchr-stay-badge { display: inline-block; font-size: 8.5px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: var(--vchr-accent-deep); }
         .vchr-extra-bed { color: var(--vchr-mute); font-style: italic; }
         .vchr-empty { color: var(--vchr-mute); font-size: 10.5px; font-style: italic; padding: 14px 15px; }
         .vchr-policy-grid { column-count: 2; column-gap: 30px; column-rule: 1px solid var(--vchr-line); }
@@ -459,20 +510,136 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               <div className="vchr-timeline">
                 {initialData.itineraries.map((itinerary, index) => {
                   const cleanedTitle = stripHtml(itinerary.itineraryTitle || '');
+                  const effectiveHotelId = resolveDayHotelId(
+                    itinerary,
+                    confirmedVariantHotelsByDay,
+                    confirmedHotelOverrides,
+                  );
+                  const hotelDetails = effectiveHotelId
+                    ? hotels.find(h => h.id === effectiveHotelId)
+                    : undefined;
+                  const effectiveRoomAllocations = resolveDayRoomAllocations(
+                    itinerary,
+                    confirmedAllocations,
+                  );
+                  const effectiveTransport = resolveDayTransport(itinerary, confirmedTransport);
+                  const showStay = Boolean(hotelDetails) || effectiveRoomAllocations.length > 0;
+                  const showTransport = effectiveTransport.length > 0;
+
                   return (
-                    <div key={index} className="vchr-day-row">
+                    <div key={index} className="vchr-day-row" data-pdf-section="true">
                       <div className="vchr-day-marker">
                         <div className="vchr-serif vchr-day-num">{String(itinerary.dayNumber).padStart(2, '0')}</div>
                         <div className="vchr-day-num-label">Day</div>
                       </div>
-                      <div className="vchr-day-card">
-                        <div className="vchr-day-card-head">
-                          <span className="vchr-day-card-label">Curated Itinerary</span>
-                          {itinerary.days && <span className="vchr-day-date">{itinerary.days}</span>}
+                      <div className="vchr-day-content">
+                        <div className="vchr-day-subcard vchr-day-subcard--itinerary">
+                          <div className="vchr-day-subcard-body">
+                            <div className="vchr-day-card-head">
+                              <span className="vchr-day-card-label">Curated Itinerary</span>
+                              {itinerary.days && <span className="vchr-day-date">{itinerary.days}</span>}
+                            </div>
+                            <div className="vchr-day-text">
+                              <strong>{cleanedTitle || '-'}</strong>
+                            </div>
+                          </div>
                         </div>
-                        <div className="vchr-day-text">
-                          <strong>{cleanedTitle || '-'}</strong>
-                        </div>
+
+                        {showStay && (
+                          <div className="vchr-day-subcard vchr-day-subcard--stay">
+                            <div className="vchr-day-subcard-head">
+                              <div className="vchr-day-subcard-kicker">Stays &amp; Rooms</div>
+                              <h3 className="vchr-serif vchr-day-subcard-title">{hotelDetails?.name || 'Hotel'}</h3>
+                            </div>
+                            {effectiveRoomAllocations.length > 0 ? (
+                              <table className="vchr-table">
+                                <thead>
+                                  <tr>
+                                    <th>Room</th>
+                                    <th>Occupancy</th>
+                                    <th>Meal</th>
+                                    <th>Qty</th>
+                                    <th>Guests</th>
+                                    <th>Voucher</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {effectiveRoomAllocations.map((room: any, roomIdx: number) => {
+                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+                                    const useCustom = room?.useCustomRoomType || customText.length > 0;
+                                    const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '-');
+                                    const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '-';
+                                    const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '-';
+                                    return (
+                                      <React.Fragment key={roomIdx}>
+                                        <tr>
+                                          <td style={{ fontWeight: 500 }}>{roomTypeName}</td>
+                                          <td>{occupancyName}</td>
+                                          <td>{mealPlanName}</td>
+                                          <td>{room.quantity || '-'}</td>
+                                          <td style={{ color: 'var(--vchr-mute)' }}>{room.guestNames || '-'}</td>
+                                          <td style={{ color: 'var(--vchr-mute)' }}>{room.voucherNumber || '-'}</td>
+                                        </tr>
+                                        {(room.extraBeds || []).map((eb: any, ebIdx: number) => {
+                                          const extraOccupancyName =
+                                            eb.occupancyType?.name ||
+                                            occupancyTypes.find((o: any) => o.id === eb.occupancyTypeId)?.name ||
+                                            '-';
+                                          return (
+                                            <tr key={`eb-${ebIdx}`}>
+                                              <td className="vchr-extra-bed" style={{ paddingLeft: 16 }}>
+                                                + {extraOccupancyName}
+                                              </td>
+                                              <td colSpan={5} className="vchr-extra-bed">
+                                                Qty {eb.quantity || 1}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </React.Fragment>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <div className="vchr-empty">No room allocation recorded.</div>
+                            )}
+                          </div>
+                        )}
+
+                        {showTransport && (
+                          <div className="vchr-day-subcard vchr-day-subcard--transport">
+                            <div className="vchr-day-subcard-head">
+                              <div className="vchr-day-subcard-kicker">Ground Transfers</div>
+                            </div>
+                            <table className="vchr-table">
+                              <thead>
+                                <tr>
+                                  <th>Vehicle</th>
+                                  <th>Qty</th>
+                                  <th>Capacity</th>
+                                  <th>Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {effectiveTransport.map((transport: any, transportIdx: number) => {
+                                  const vehicleName =
+                                    transport.vehicleType?.name ||
+                                    vehicleTypes.find((v) => v.id === transport.vehicleTypeId)?.name ||
+                                    '-';
+                                  return (
+                                    <tr key={transportIdx}>
+                                      <td style={{ fontWeight: 500 }}>{vehicleName}</td>
+                                      <td>{transport.quantity ?? 1}</td>
+                                      <td style={{ color: 'var(--vchr-mute)' }}>{transport.capacity || '-'}</td>
+                                      <td style={{ color: 'var(--vchr-mute)' }}>{transport.description || '-'}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -525,160 +692,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                 </tbody>
               </table>
               </div>
-            </section>
-          )}
-
-          {initialData.itineraries && initialData.itineraries.length > 0 && (
-            <section data-pdf-section="true" className="vchr-section">
-              <div className="vchr-section-head">
-                <div>
-                  <div className="vchr-section-kicker">Stays & Rooms</div>
-                  <h2 className="vchr-serif vchr-section-title">Accommodation</h2>
-                </div>
-                <div className="vchr-section-rule" />
-              </div>
-              {initialData.itineraries.map((itinerary, itineraryIdx) => {
-                // Prefer confirmed-variant hotels, then query overrides, then itinerary defaults.
-                const effectiveHotelId =
-                  confirmedVariantHotelsByDay[itinerary.dayNumber as number] ??
-                  confirmedHotelOverrides[itinerary.id] ??
-                  itinerary.hotelId;
-                const hotelDetails = hotels.find(h => h.id === effectiveHotelId);
-                const effectiveRoomAllocations: any[] = confirmedAllocations
-                  ? (confirmedAllocations[itinerary.id] || [])
-                  : itinerary.roomAllocations;
-
-                if (!hotelDetails && effectiveRoomAllocations.length === 0) return null;
-
-                return (
-                  <div key={itineraryIdx} className="vchr-stay" data-pdf-section="true">
-                    <div className="vchr-stay-head">
-                      <div className="vchr-stay-badge">
-                        Day {itinerary.dayNumber}
-                        {normalizeItineraryDays(itinerary.days) ? ` | ${normalizeItineraryDays(itinerary.days)}` : ""}
-                      </div>
-                      <h3 className="vchr-serif vchr-stay-title">{hotelDetails?.name || 'Hotel'}</h3>
-                    </div>
-                    {effectiveRoomAllocations.length > 0 ? (
-                      <table className="vchr-table">
-                        <thead>
-                          <tr>
-                            <th>Room</th>
-                            <th>Occupancy</th>
-                            <th>Meal</th>
-                            <th>Qty</th>
-                            <th>Guests</th>
-                            <th>Voucher</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {effectiveRoomAllocations.map((room: any, roomIdx: number) => {
-                            const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
-                            const useCustom = room?.useCustomRoomType || customText.length > 0;
-                            const roomTypeName = useCustom ? customText : (room.roomType?.name || roomTypes.find((r: any) => r.id === room.roomTypeId)?.name || '-');
-                            const occupancyName = room.occupancyType?.name || occupancyTypes.find((o: any) => o.id === room.occupancyTypeId)?.name || '-';
-                            const mealPlanName = room.mealPlan?.name || mealPlans.find((m: any) => m.id === room.mealPlanId)?.name || '-';
-                            return (
-                              <React.Fragment key={roomIdx}>
-                                <tr>
-                                  <td style={{ fontWeight: 500 }}>{roomTypeName}</td>
-                                  <td>{occupancyName}</td>
-                                  <td>{mealPlanName}</td>
-                                  <td>{room.quantity || '-'}</td>
-                                  <td style={{ color: 'var(--vchr-mute)' }}>{room.guestNames || '-'}</td>
-                                  <td style={{ color: 'var(--vchr-mute)' }}>{room.voucherNumber || '-'}</td>
-                                </tr>
-                                {(room.extraBeds || []).map((eb: any, ebIdx: number) => {
-                                  const extraOccupancyName =
-                                    eb.occupancyType?.name ||
-                                    occupancyTypes.find((o: any) => o.id === eb.occupancyTypeId)?.name ||
-                                    '-';
-                                  return (
-                                  <tr key={`eb-${ebIdx}`}>
-                                    <td className="vchr-extra-bed" style={{ paddingLeft: 16 }}>
-                                      + {extraOccupancyName}
-                                    </td>
-                                    <td colSpan={5} className="vchr-extra-bed">
-                                      Qty {eb.quantity || 1}
-                                    </td>
-                                  </tr>
-                                  );
-                                })}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div className="vchr-empty">No room allocation recorded.</div>
-                    )}
-                  </div>
-                );
-              })}
-            </section>
-          )}
-
-          {initialData.itineraries && initialData.itineraries.some((itinerary) => {
-            const fromVariant = confirmedTransport?.[itinerary.id];
-            const effective =
-              fromVariant !== undefined ? fromVariant : (itinerary.transportDetails || []);
-            return effective.length > 0;
-          }) && (
-            <section data-pdf-section="true" className="vchr-section">
-              <div className="vchr-section-head">
-                <div>
-                  <div className="vchr-section-kicker">Ground Transfers</div>
-                  <h2 className="vchr-serif vchr-section-title">Transportation</h2>
-                </div>
-                <div className="vchr-section-rule" />
-              </div>
-              {initialData.itineraries.map((itinerary, itineraryIdx) => {
-                const fromVariant = confirmedTransport?.[itinerary.id];
-                const effectiveTransport: any[] =
-                  fromVariant !== undefined
-                    ? fromVariant
-                    : (itinerary.transportDetails || []);
-
-                if (effectiveTransport.length === 0) return null;
-
-                return (
-                  <div key={itineraryIdx} className="vchr-stay" data-pdf-section="true">
-                    <div className="vchr-stay-head">
-                      <div className="vchr-stay-badge">
-                        Day {itinerary.dayNumber}
-                        {normalizeItineraryDays(itinerary.days) ? ` | ${normalizeItineraryDays(itinerary.days)}` : ""}
-                      </div>
-                      <h3 className="vchr-serif vchr-stay-title">Transport</h3>
-                    </div>
-                    <table className="vchr-table">
-                      <thead>
-                        <tr>
-                          <th>Vehicle</th>
-                          <th>Qty</th>
-                          <th>Capacity</th>
-                          <th>Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {effectiveTransport.map((transport: any, transportIdx: number) => {
-                          const vehicleName =
-                            transport.vehicleType?.name ||
-                            vehicleTypes.find((v) => v.id === transport.vehicleTypeId)?.name ||
-                            '-';
-                          return (
-                            <tr key={transportIdx}>
-                              <td style={{ fontWeight: 500 }}>{vehicleName}</td>
-                              <td>{transport.quantity ?? 1}</td>
-                              <td style={{ color: 'var(--vchr-mute)' }}>{transport.capacity || '-'}</td>
-                              <td style={{ color: 'var(--vchr-mute)' }}>{transport.description || '-'}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
             </section>
           )}
 

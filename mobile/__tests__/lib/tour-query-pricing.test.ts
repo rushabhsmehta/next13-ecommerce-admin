@@ -64,6 +64,33 @@ describe("createTourQueryPricingClient", () => {
     );
   });
 
+  it("fetches package pricing components with query params", async () => {
+    const request = jest.fn(async () => ({
+      tourPackageQueryId: "q1",
+      variantId: "v1",
+      packageVariantId: "source-v1",
+      selectedTemplateId: "pkg1",
+      tourPackageTemplateName: "Kerala Package",
+      matchedPeriod: {
+        id: "p1",
+        startDate: "2026-07-01T00:00:00.000Z",
+        endDate: "2026-07-31T00:00:00.000Z",
+        mealPlanId: "mp1",
+        mealPlanName: "MAP",
+        numberOfRooms: 1,
+      },
+      components: [],
+    }));
+    const client = createTourQueryPricingClient(request as any);
+    await client.fetchPackagePricingComponents("q1", "v1", {
+      mealPlanId: "mp1",
+      numberOfRooms: 1,
+    });
+    expect(request).toHaveBeenCalledWith(
+      "/api/mobile/tour-queries/q1/variants/v1/pricing/package-components?mealPlanId=mp1&numberOfRooms=1"
+    );
+  });
+
   it("updates variant build rooms with write timeout", async () => {
     const request = jest.fn(async () => ({
       tourPackageQueryId: "q1",

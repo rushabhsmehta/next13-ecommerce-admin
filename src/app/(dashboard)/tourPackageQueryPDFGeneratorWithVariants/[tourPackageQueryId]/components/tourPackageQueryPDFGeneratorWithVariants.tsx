@@ -9,9 +9,13 @@ import {
   findPricingRowPrice,
   getVariantPricingDisplayRows,
   mergeVariantPricingRowLabels,
+  toUnitDisplayParts,
   type VariantPricingEntry,
 } from "@/lib/variant-pricing-display";
-import { buildPricingCalculationBreakdownHtml } from "@/components/tour-package-query/PricingCalculationBreakdown";
+import {
+  buildPricingCalculationBreakdownHtml,
+  buildQtySubtitle,
+} from "@/components/tour-package-query/PricingCalculationBreakdown";
 import {
   formatDiscountLabel,
   hasAppliedVariantDiscount,
@@ -822,11 +826,12 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         const row = findPricingRowPrice(variantDisplayRows[vidx], label);
         if (row) {
           const breakdownHtml = row.calculationParts
-            ? buildPricingCalculationBreakdownHtml(row.calculationParts, {
+            ? buildPricingCalculationBreakdownHtml(toUnitDisplayParts(row.calculationParts), {
                 mutedColor: brandColors.muted,
                 borderColor: '#FDBA74',
                 panelBg: `linear-gradient(180deg, ${brandColors.lightOrange} 0%, ${brandColors.white} 100%)`,
                 primaryColor: brandColors.primary,
+                qtySubtitle: buildQtySubtitle(row.calculationParts),
               })
             : `<div style="font-size: 18px; font-weight: 800; color: ${brandColors.primary}; line-height: 1.2;">₹ ${formatINR(String(row.netPrice))}</div>`;
           return `<td style="${tdBase} background: ${bg}; text-align: ${priceCellAlign}; vertical-align: top; padding: 12px 10px;">

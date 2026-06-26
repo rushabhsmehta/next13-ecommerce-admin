@@ -163,6 +163,12 @@ export async function GET(
               transportDetails: pricing.transportDetails ?? null,
               perPersonRates: pricing.perPersonRates ?? null,
               calculatedAt: pricing.calculatedAt ?? null,
+              subtotalBeforeDiscount:
+                pricing.subtotalBeforeDiscount != null
+                  ? Number(pricing.subtotalBeforeDiscount)
+                  : null,
+              appliedDiscount: pricing.appliedDiscount ?? null,
+              discountAmount: Number(pricing.appliedDiscount?.amount ?? 0),
             }
           : null,
       };

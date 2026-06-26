@@ -1,70 +1,50 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
-import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
   AdminBottomActionBar,
   AdminErrorState,
-  AdminFormSection,
   AdminLoadingState,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
 import {
   createTourQueryPricingClient,
+  type AppliedVariantDiscountPayload,
+  type VariantCalculationMethod,
+  type VariantPackageComponentsResponse,
   type VariantPricingCalculationResponse,
-  type VariantPricingComponent,
   type VariantPricingDetailResponse,
 } from "@/lib/tour-query-pricing";
-
-type LocalPricingRow = VariantPricingComponent & { localId: string };
-
-function makeRow(seed?: Partial<VariantPricingComponent>, index = 0): LocalPricingRow {
-  return {
-    localId: `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
-    name: seed?.name ? String(seed.name) : "",
-    price: seed?.price ? String(seed.price) : "",
-    description: seed?.description ? String(seed.description) : "",
-  };
-}
-
-function parseMoney(value: string | null | undefined): number {
-  if (!value) return 0;
-  const n = Number.parseFloat(value.replace(/[^0-9.-]/g, ""));
-  return Number.isFinite(n) ? n : 0;
-}
-
-function formatINR(value: number | string | null | undefined): string {
-  const n = typeof value === "string" ? parseMoney(value) : value ?? 0;
-  if (!Number.isFinite(n) || n <= 0) return "Rs. 0";
-  return `Rs. ${Math.round(n).toLocaleString("en-IN")}`;
-}
-
-function methodLabel(method: string | null | undefined): string {
-  if (method === "manual") return "Manual pricing";
-  if (method === "autoHotelTransport") return "Hotel + transport";
-  if (method === "autoTourPackage" || method === "useTourPackagePricing") {
-    return "Package pricing";
-  }
-  return "No method";
-}
+import { cloneDefaultPricingSection } from "@/lib/variant-pricing-defaults";
+import {
+  applyPercentDiscountToPricingComponents,
+  clonePricingComponents,
+  computeVariantDiscount,
+  type VariantDiscountType,
+} from "@/lib/variant-pricing-discount";
+import { parseMoney, pricingRowsTotal } from "@/lib/variant-pricing-utils";
+import {
+  VariantAutoCalculateSection,
+  VariantDiscountSection,
+  VariantPackagePricingSection,
+  VariantPricingBreakdown,
+  VariantPricingMethodPicker,
+  VariantPricingTotalSection,
+  makePricingRow,
+  methodLabel,
+  normalizeCalculationMethod,
+  type LocalPricingRow,
+} from "@/components/tour-queries/variant-pricing";
 
 function rowsFromDetail(data: VariantPricingDetailResponse): LocalPricingRow[] {
   const saved = data.pricing?.components ?? [];
-  if (saved.length) return saved.map((item, index) => makeRow(item, index));
-  return [makeRow()];
+  if (saved.length) return saved.map((item, index) => makePricingRow(item, index));
+  return cloneDefaultPricingSection().map((item, index) => makePricingRow(item, index));
 }
 
 export default function VariantPricingScreen() {
@@ -89,49 +69,111 @@ function VariantPricingScreenInner() {
   const client = useMemo(() => createTourQueryPricingClient(authRequest), [authRequest]);
 
   const [data, setData] = useState<VariantPricingDetailResponse | null>(null);
-  const [rows, setRows] = useState<LocalPricingRow[]>([makeRow()]);
+  const [rows, setRows] = useState<LocalPricingRow[]>([makePricingRow()]);
   const [totalCost, setTotalCost] = useState("");
+  const [subtotalBeforeDiscount, setSubtotalBeforeDiscount] = useState<number | null>(null);
   const [remarks, setRemarks] = useState("");
   const [markup, setMarkup] = useState("0");
-  const [calculationMethod, setCalculationMethod] = useState("manual");
+  const [calculationMethod, setCalculationMethod] =
+    useState<VariantCalculationMethod>("manual");
   const [calculation, setCalculation] =
     useState<VariantPricingCalculationResponse | null>(null);
+  const [appliedDiscount, setAppliedDiscount] =
+    useState<AppliedVariantDiscountPayload | null>(null);
+  const [componentsBeforeDiscount, setComponentsBeforeDiscount] = useState<
+    LocalPricingRow[] | null
+  >(null);
+  const [discountType, setDiscountType] = useState<VariantDiscountType>("percent");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountReason, setDiscountReason] = useState("");
+  const [mealPlanId, setMealPlanId] = useState("");
+  const [roomCount, setRoomCount] = useState(1);
+  const [fetchingComponents, setFetchingComponents] = useState(false);
+  const [fetchResult, setFetchResult] = useState<VariantPackageComponentsResponse | null>(null);
+  const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
+  const [componentQuantities, setComponentQuantities] = useState<Record<string, number>>({});
+  const [mealPlans, setMealPlans] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [calculatingFromRooms, setCalculatingFromRooms] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loadLookups = useCallback(async () => {
+    try {
+      const res = await authRequest<{ mealPlans: Array<{ id: string; name: string }> }>(
+        "/api/mobile/operations/pricing-lookups"
+      );
+      setMealPlans(res.mealPlans ?? []);
+    } catch {
+      setMealPlans([]);
+    }
+  }, [authRequest]);
+
+  const hydrateFromDetail = useCallback((res: VariantPricingDetailResponse) => {
+    setData(res);
+    setRows(rowsFromDetail(res));
+    setTotalCost(res.pricing?.totalCost ? String(Math.round(res.pricing.totalCost)) : "");
+    setSubtotalBeforeDiscount(
+      res.pricing?.subtotalBeforeDiscount != null
+        ? Number(res.pricing.subtotalBeforeDiscount)
+        : null
+    );
+    setRemarks(res.pricing?.remarks ?? "");
+    setCalculationMethod(normalizeCalculationMethod(res.pricing?.calculationMethod));
+    setAppliedDiscount(res.pricing?.appliedDiscount ?? null);
+    if (res.pricing?.appliedDiscount) {
+      setDiscountType(res.pricing.appliedDiscount.type);
+      setDiscountValue(String(res.pricing.appliedDiscount.inputValue ?? ""));
+      setDiscountReason(res.pricing.appliedDiscount.reason ?? "");
+    }
+    if (res.pricing?.componentsBeforeDiscount?.length) {
+      setComponentsBeforeDiscount(
+        res.pricing.componentsBeforeDiscount.map((item, index) => makePricingRow(item, index))
+      );
+    } else {
+      setComponentsBeforeDiscount(null);
+    }
+    setCalculation(null);
+    setFetchResult(null);
+    setSelectedComponentIds([]);
+    setComponentQuantities({});
+  }, []);
 
   const load = useCallback(async () => {
     if (!id || !variantId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await client.getVariantPricing(id, variantId);
-      setData(res);
-      setRows(rowsFromDetail(res));
-      setTotalCost(res.pricing?.totalCost ? String(Math.round(res.pricing.totalCost)) : "");
-      setRemarks(res.pricing?.remarks ?? "");
-      setCalculationMethod(res.pricing?.calculationMethod || "manual");
-      setCalculation(null);
+      const [res] = await Promise.all([client.getVariantPricing(id, variantId), loadLookups()]);
+      hydrateFromDetail(res);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not load variant pricing.");
     } finally {
       setLoading(false);
     }
-  }, [client, id, variantId]);
+  }, [client, hydrateFromDetail, id, loadLookups, variantId]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const itemTotal = useMemo(
-    () => rows.reduce((sum, row) => sum + parseMoney(row.price), 0),
-    [rows]
-  );
+  const itemTotal = useMemo(() => pricingRowsTotal(rows), [rows]);
 
-  const markManual = useCallback(() => {
-    setCalculation(null);
-    setCalculationMethod("manual");
+  const currentSubtotal = useMemo(() => {
+    if (subtotalBeforeDiscount != null && subtotalBeforeDiscount > 0) {
+      return subtotalBeforeDiscount;
+    }
+    const explicit = parseMoney(totalCost);
+    if (explicit > 0) return explicit;
+    return itemTotal > 0 ? Math.round(itemTotal) : 0;
+  }, [itemTotal, subtotalBeforeDiscount, totalCost]);
+
+  const updateRows = useCallback((next: LocalPricingRow[]) => {
+    setRows(next);
+    setComponentsBeforeDiscount(null);
+    setAppliedDiscount(null);
+    setSubtotalBeforeDiscount(null);
   }, []);
 
   const updateRow = useCallback(
@@ -139,25 +181,45 @@ function VariantPricingScreenInner() {
       setRows((prev) =>
         prev.map((row) => (row.localId === localId ? { ...row, [field]: value } : row))
       );
-      markManual();
+      setComponentsBeforeDiscount(null);
+      setAppliedDiscount(null);
+      setSubtotalBeforeDiscount(null);
+      setCalculationMethod("manual");
     },
-    [markManual]
+    []
   );
 
   const addRow = useCallback(() => {
-    setRows((prev) => [...prev, makeRow(undefined, prev.length)]);
-    markManual();
-  }, [markManual]);
+    setRows((prev) => [...prev, makePricingRow(undefined, prev.length)]);
+    setCalculationMethod("manual");
+  }, []);
 
-  const removeRow = useCallback(
-    (localId: string) => {
-      setRows((prev) => {
-        const next = prev.filter((row) => row.localId !== localId);
-        return next.length ? next : [makeRow()];
-      });
-      markManual();
+  const removeRow = useCallback((localId: string) => {
+    setRows((prev) => {
+      const next = prev.filter((row) => row.localId !== localId);
+      return next.length ? next : [makePricingRow()];
+    });
+    setCalculationMethod("manual");
+  }, []);
+
+  const applySubtotal = useCallback(
+    (
+      subtotal: number,
+      method: VariantCalculationMethod,
+      nextRows: LocalPricingRow[],
+      calc?: VariantPricingCalculationResponse | null
+    ) => {
+      setRows(nextRows);
+      setCalculationMethod(method);
+      setCalculation(calc ?? null);
+      setSubtotalBeforeDiscount(Math.round(subtotal));
+      setAppliedDiscount(null);
+      setComponentsBeforeDiscount(null);
+      setDiscountValue("");
+      setDiscountReason("");
+      setTotalCost(String(Math.round(subtotal)));
     },
-    [markManual]
+    []
   );
 
   const calculateFromVariantSetup = useCallback(async () => {
@@ -167,10 +229,13 @@ function VariantPricingScreenInner() {
       const result = await client.calculateVariantPricing(id, variantId, {
         markup: parseMoney(markup),
       });
-      setCalculation(result);
-      setRows(result.pricingSection.map((item, index) => makeRow(item, index)));
-      setTotalCost(String(Math.round(result.totalCost || 0)));
-      setCalculationMethod(result.calculationMethod || "autoHotelTransport");
+      const nextRows = result.pricingSection.map((item, index) => makePricingRow(item, index));
+      applySubtotal(
+        result.subtotalBeforeDiscount ?? result.totalCost,
+        "autoHotelTransport",
+        nextRows,
+        result
+      );
     } catch (err) {
       Alert.alert(
         "Calculation failed",
@@ -179,7 +244,125 @@ function VariantPricingScreenInner() {
     } finally {
       setCalculating(false);
     }
-  }, [calculating, client, id, markup, variantId]);
+  }, [applySubtotal, calculating, client, id, markup, variantId]);
+
+  const calculateFromRooms = useCallback(async () => {
+    if (!id || !variantId || calculatingFromRooms) return;
+    setCalculatingFromRooms(true);
+    try {
+      const result = await client.calculateVariantPricing(id, variantId, {
+        markup: parseMoney(markup),
+      });
+      const nextRows = result.pricingSection.map((item, index) => makePricingRow(item, index));
+      setRows(nextRows);
+      setCalculation(result);
+      if (subtotalBeforeDiscount == null) {
+        setSubtotalBeforeDiscount(result.subtotalBeforeDiscount ?? result.totalCost);
+      }
+    } catch (err) {
+      Alert.alert(
+        "Calculation failed",
+        err instanceof ApiError ? err.message : "Could not refresh pricing rows from rooms."
+      );
+    } finally {
+      setCalculatingFromRooms(false);
+    }
+  }, [calculatingFromRooms, client, id, markup, subtotalBeforeDiscount, variantId]);
+
+  const fetchPackageComponents = useCallback(async () => {
+    if (!id || !variantId || fetchingComponents || !mealPlanId) return;
+    setFetchingComponents(true);
+    try {
+      const result = await client.fetchPackagePricingComponents(id, variantId, {
+        mealPlanId,
+        numberOfRooms: roomCount,
+      });
+      setFetchResult(result);
+      const allIds = result.components.map((comp) => comp.id);
+      setSelectedComponentIds(allIds);
+      const initialQuantities: Record<string, number> = {};
+      for (const comp of result.components) {
+        initialQuantities[comp.id] = 1;
+      }
+      setComponentQuantities(initialQuantities);
+    } catch (err) {
+      setFetchResult(null);
+      Alert.alert(
+        "Fetch failed",
+        err instanceof ApiError ? err.message : "Could not fetch package pricing components."
+      );
+    } finally {
+      setFetchingComponents(false);
+    }
+  }, [client, fetchingComponents, id, mealPlanId, roomCount, variantId]);
+
+  const applyPackageRows = useCallback(
+    (nextRows: LocalPricingRow[], subtotal: number) => {
+      applySubtotal(subtotal, "useTourPackagePricing", nextRows, null);
+    },
+    [applySubtotal]
+  );
+
+  const handleApplyDiscount = useCallback(() => {
+    const subtotal =
+      subtotalBeforeDiscount != null && subtotalBeforeDiscount > 0
+        ? subtotalBeforeDiscount
+        : itemTotal > 0
+          ? Math.round(itemTotal)
+          : parseMoney(totalCost);
+
+    const result = computeVariantDiscount(subtotal, {
+      type: discountType,
+      inputValue: parseMoney(discountValue),
+      reason: discountReason.trim() || undefined,
+    });
+
+    const baseComponents = clonePricingComponents(
+      (componentsBeforeDiscount ?? rows).map(({ localId: _localId, ...row }) => row)
+    );
+
+    let nextRows = rows;
+    if (result.appliedDiscount?.type === "percent") {
+      const snapshot = clonePricingComponents(baseComponents);
+      setComponentsBeforeDiscount(snapshot.map((item, index) => makePricingRow(item, index)));
+      const discounted = applyPercentDiscountToPricingComponents(
+        snapshot,
+        result.appliedDiscount.inputValue
+      );
+      nextRows = discounted.map((item, index) => makePricingRow(item, index));
+      setRows(nextRows);
+    } else if (result.appliedDiscount?.type === "fixed" && componentsBeforeDiscount?.length) {
+      nextRows = componentsBeforeDiscount;
+      setRows(nextRows);
+      setComponentsBeforeDiscount(null);
+    }
+
+    setAppliedDiscount(result.appliedDiscount);
+    setSubtotalBeforeDiscount(result.subtotalBeforeDiscount);
+    setTotalCost(String(result.totalCost));
+  }, [
+    componentsBeforeDiscount,
+    discountReason,
+    discountType,
+    discountValue,
+    itemTotal,
+    rows,
+    subtotalBeforeDiscount,
+    totalCost,
+  ]);
+
+  const handleClearDiscount = useCallback(() => {
+    if (componentsBeforeDiscount?.length) {
+      setRows(componentsBeforeDiscount);
+    }
+    setComponentsBeforeDiscount(null);
+    setAppliedDiscount(null);
+    if (subtotalBeforeDiscount != null) {
+      setTotalCost(String(subtotalBeforeDiscount));
+    }
+    setDiscountValue("");
+    setDiscountReason("");
+  }, [componentsBeforeDiscount, subtotalBeforeDiscount]);
 
   const save = useCallback(async () => {
     if (!id || !variantId || saving) return;
@@ -190,6 +373,11 @@ function VariantPricingScreenInner() {
         description: String(row.description ?? "").trim(),
       }))
       .filter((row) => row.name || row.price || row.description);
+    const componentsSnapshot = (componentsBeforeDiscount ?? []).map((row) => ({
+      name: String(row.name ?? "").trim(),
+      price: String(row.price ?? "").trim(),
+      description: String(row.description ?? "").trim(),
+    }));
     const explicitTotal = totalCost.trim();
     const totalForSave = explicitTotal
       ? parseMoney(explicitTotal)
@@ -204,6 +392,10 @@ function VariantPricingScreenInner() {
         components,
         totalCost: totalForSave,
         remarks: remarks.trim() || null,
+        subtotalBeforeDiscount:
+          subtotalBeforeDiscount != null ? subtotalBeforeDiscount : totalForSave,
+        appliedDiscount: appliedDiscount ?? null,
+        componentsBeforeDiscount: componentsSnapshot,
         ...(calculation && calculationMethod === "autoHotelTransport"
           ? {
               basePrice: calculation.basePrice,
@@ -225,15 +417,18 @@ function VariantPricingScreenInner() {
       setSaving(false);
     }
   }, [
+    appliedDiscount,
     calculation,
     calculationMethod,
     client,
+    componentsBeforeDiscount,
     id,
     itemTotal,
     remarks,
     router,
     rows,
     saving,
+    subtotalBeforeDiscount,
     totalCost,
     variantId,
   ]);
@@ -265,12 +460,16 @@ function VariantPricingScreenInner() {
           primaryLabel={saving ? "Saving..." : "Save pricing"}
           primaryIcon="save-outline"
           primaryTestID="variant-pricing-save"
-          primaryDisabled={saving || calculating}
+          primaryDisabled={saving || calculating || calculatingFromRooms}
           onPrimaryPress={() => void save()}
           secondaryLabel="Use sum"
           secondaryIcon="calculator-outline"
           secondaryTestID="variant-pricing-use-sum"
-          onSecondaryPress={() => setTotalCost(itemTotal > 0 ? String(Math.round(itemTotal)) : "")}
+          onSecondaryPress={() => {
+            const sum = itemTotal > 0 ? Math.round(itemTotal) : 0;
+            setSubtotalBeforeDiscount(sum);
+            setTotalCost(sum > 0 ? String(sum) : "");
+          }}
         />
       }
     >
@@ -285,11 +484,15 @@ function VariantPricingScreenInner() {
       <View style={styles.summary}>
         <View style={styles.summaryCell}>
           <Text style={styles.summaryLabel}>Saved total</Text>
-          <Text style={styles.summaryValue}>{formatINR(data.pricing?.totalCost)}</Text>
+          <Text style={styles.summaryValue}>
+            Rs. {Math.round(data.pricing?.totalCost ?? 0).toLocaleString("en-IN")}
+          </Text>
         </View>
         <View style={styles.summaryCell}>
-          <Text style={styles.summaryLabel}>Rows total</Text>
-          <Text style={styles.summaryValue}>{formatINR(itemTotal)}</Text>
+          <Text style={styles.summaryLabel}>Current</Text>
+          <Text style={styles.summaryValue}>
+            Rs. {currentSubtotal.toLocaleString("en-IN")}
+          </Text>
         </View>
         <View style={styles.summaryCell}>
           <Text style={styles.summaryLabel}>Method</Text>
@@ -297,151 +500,95 @@ function VariantPricingScreenInner() {
         </View>
       </View>
 
-      <AdminFormSection title="Calculate" testID="variant-pricing-calculate-section">
-        <View style={styles.calculateRow}>
-          <TextInput
-            testID="variant-pricing-markup"
-            accessibilityLabel="Markup percentage"
-            value={markup}
-            onChangeText={setMarkup}
-            placeholder="Markup %"
-            placeholderTextColor={Colors.textTertiary}
-            keyboardType="numeric"
-            style={[styles.input, styles.markupInput]}
-          />
-          <Pressable
-            testID="variant-pricing-calculate"
-            accessibilityRole="button"
-            accessibilityLabel="Calculate from variant rooms and transport"
-            disabled={calculating}
-            style={({ pressed }) => [
-              styles.calculateButton,
-              calculating ? styles.calculateButtonDisabled : null,
-              pressed && !calculating ? styles.pressed : null,
-            ]}
-            onPress={() => void calculateFromVariantSetup()}
-          >
-            {calculating ? (
-              <ActivityIndicator size="small" color={Colors.textInverse} />
-            ) : (
-              <Ionicons name="calculator-outline" size={16} color={Colors.textInverse} />
-            )}
-            <Text style={styles.calculateButtonText}>
-              {calculating ? "Calculating" : "Calculate"}
-            </Text>
-          </Pressable>
-        </View>
-        {calculation ? (
-          <View style={styles.calcResult}>
-            <View style={styles.calcMetric}>
-              <Text style={styles.calcMetricLabel}>Base</Text>
-              <Text style={styles.calcMetricValue}>{formatINR(calculation.basePrice)}</Text>
-            </View>
-            <View style={styles.calcMetric}>
-              <Text style={styles.calcMetricLabel}>Stay</Text>
-              <Text style={styles.calcMetricValue}>
-                {formatINR(calculation.breakdown.accommodation)}
-              </Text>
-            </View>
-            <View style={styles.calcMetric}>
-              <Text style={styles.calcMetricLabel}>Transport</Text>
-              <Text style={styles.calcMetricValue}>
-                {formatINR(calculation.breakdown.transport)}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-      </AdminFormSection>
+      <VariantPricingMethodPicker
+        value={calculationMethod}
+        onChange={(method) => setCalculationMethod(method)}
+      />
 
-      <AdminFormSection title="Line Items" testID="variant-pricing-line-items">
-        {rows.map((row, index) => (
-          <View key={row.localId} style={styles.rowCard}>
-            <View style={styles.rowHeader}>
-              <Text style={styles.rowIndex}>Item {index + 1}</Text>
-              <Pressable
-                testID={`variant-pricing-remove-${index}`}
-                accessibilityRole="button"
-                accessibilityLabel={`Remove pricing item ${index + 1}`}
-                style={styles.removeButton}
-                onPress={() => removeRow(row.localId)}
-              >
-                <Ionicons name="trash-outline" size={16} color={Colors.error} />
-              </Pressable>
-            </View>
-            <TextInput
-              testID={`variant-pricing-name-${index}`}
-              accessibilityLabel={`Pricing item ${index + 1} name`}
-              value={String(row.name ?? "")}
-              onChangeText={(value) => updateRow(row.localId, "name", value)}
-              placeholder="Item name"
-              placeholderTextColor={Colors.textTertiary}
-              style={styles.input}
-            />
-            <TextInput
-              testID={`variant-pricing-price-${index}`}
-              accessibilityLabel={`Pricing item ${index + 1} price`}
-              value={String(row.price ?? "")}
-              onChangeText={(value) => updateRow(row.localId, "price", value)}
-              placeholder="Price"
-              placeholderTextColor={Colors.textTertiary}
-              keyboardType="numeric"
-              style={styles.input}
-            />
-            <TextInput
-              testID={`variant-pricing-description-${index}`}
-              accessibilityLabel={`Pricing item ${index + 1} description`}
-              value={String(row.description ?? "")}
-              onChangeText={(value) => updateRow(row.localId, "description", value)}
-              placeholder="Calculation"
-              placeholderTextColor={Colors.textTertiary}
-              multiline
-              style={[styles.input, styles.multiline]}
-            />
-          </View>
-        ))}
-        <Pressable
-          testID="variant-pricing-add-item"
-          accessibilityRole="button"
-          accessibilityLabel="Add pricing item"
-          style={styles.addButton}
-          onPress={addRow}
-        >
-          <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
-          <Text style={styles.addButtonText}>Add item</Text>
-        </Pressable>
-      </AdminFormSection>
+      {calculationMethod === "autoHotelTransport" ? (
+        <VariantAutoCalculateSection
+          markup={markup}
+          onMarkupChange={setMarkup}
+          calculating={calculating}
+          calculation={calculation}
+          onCalculate={() => void calculateFromVariantSetup()}
+        />
+      ) : null}
 
-      <AdminFormSection title="Total And Remarks" testID="variant-pricing-total-section">
-        <TextInput
-          testID="variant-pricing-total"
-          accessibilityLabel="Total price"
-          value={totalCost}
-          onChangeText={(value) => {
-            setTotalCost(value);
-            markManual();
+      {calculationMethod === "useTourPackagePricing" ? (
+        <VariantPackagePricingSection
+          queryContext={data.queryContext}
+          mealPlans={mealPlans}
+          mealPlanId={mealPlanId}
+          onMealPlanIdChange={(nextId) => {
+            setMealPlanId(nextId);
+            setFetchResult(null);
           }}
-          placeholder="Total price"
-          placeholderTextColor={Colors.textTertiary}
-          keyboardType="numeric"
-          style={styles.input}
+          roomCount={roomCount}
+          onRoomCountChange={(count) => {
+            setRoomCount(count);
+            setFetchResult(null);
+          }}
+          fetching={fetchingComponents}
+          fetchResult={fetchResult}
+          selectedComponentIds={selectedComponentIds}
+          onToggleComponent={(componentId) => {
+            setSelectedComponentIds((prev) =>
+              prev.includes(componentId)
+                ? prev.filter((rowId) => rowId !== componentId)
+                : [...prev, componentId]
+            );
+          }}
+          componentQuantities={componentQuantities}
+          onComponentQuantityChange={(componentId, quantity) => {
+            setComponentQuantities((prev) => ({ ...prev, [componentId]: quantity }));
+          }}
+          onFetch={() => void fetchPackageComponents()}
+          onApplySelected={applyPackageRows}
+          onApplyAll={applyPackageRows}
         />
-        <TextInput
-          testID="variant-pricing-remarks"
-          accessibilityLabel="Pricing remarks"
-          value={remarks}
-          onChangeText={setRemarks}
-          placeholder="Remarks"
-          placeholderTextColor={Colors.textTertiary}
-          multiline
-          style={[styles.input, styles.multiline]}
-        />
-        {saving ? (
-          <View style={styles.savingLine}>
-            <ActivityIndicator size="small" color={Colors.primary} />
-            <Text style={styles.savingText}>Saving variant pricing</Text>
-          </View>
-        ) : null}
-      </AdminFormSection>
+      ) : null}
+
+      <VariantPricingBreakdown
+        rows={rows}
+        calculatingFromRooms={calculatingFromRooms}
+        onLoadDefault={() => updateRows(cloneDefaultPricingSection().map((item, index) => makePricingRow(item, index)))}
+        onCalculateFromRooms={() => void calculateFromRooms()}
+        onAddRow={addRow}
+        onRemoveRow={removeRow}
+        onUpdateRow={updateRow}
+      />
+
+      <VariantDiscountSection
+        discountType={discountType}
+        onDiscountTypeChange={setDiscountType}
+        discountValue={discountValue}
+        onDiscountValueChange={setDiscountValue}
+        discountReason={discountReason}
+        onDiscountReasonChange={setDiscountReason}
+        appliedDiscount={appliedDiscount}
+        onApplyDiscount={handleApplyDiscount}
+        onClearDiscount={handleClearDiscount}
+      />
+
+      <VariantPricingTotalSection
+        totalCost={totalCost}
+        onTotalCostChange={(value) => {
+          setTotalCost(value);
+          setAppliedDiscount(null);
+        }}
+        remarks={remarks}
+        onRemarksChange={setRemarks}
+        roomCount={calculationMethod === "useTourPackagePricing" ? roomCount : undefined}
+        rowsTotal={itemTotal}
+      />
+
+      {saving ? (
+        <View style={styles.savingLine}>
+          <ActivityIndicator size="small" />
+          <Text style={styles.savingText}>Saving variant pricing</Text>
+        </View>
+      ) : null}
     </AdminScreen>
   );
 }
@@ -458,9 +605,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderSubtle,
-    borderRadius: BorderRadius.md,
+    borderRadius: 8,
     backgroundColor: Colors.surface,
-    padding: Spacing.sm,
+    padding: 8,
     gap: 3,
   },
   summaryLabel: {
@@ -470,130 +617,25 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   summaryValue: {
-    fontSize: FontSize.sm,
+    fontSize: 13,
     fontWeight: "900",
     color: Colors.text,
   },
   summaryValueSmall: {
-    fontSize: FontSize.xs,
+    fontSize: 11,
     fontWeight: "900",
     color: Colors.text,
-  },
-  calculateRow: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: Spacing.sm,
-  },
-  markupInput: { flex: 1 },
-  calculateButton: {
-    minHeight: 46,
-    minWidth: 132,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.primary,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-  },
-  calculateButtonDisabled: { opacity: 0.55 },
-  calculateButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: "900",
-    color: Colors.textInverse,
-  },
-  calcResult: {
-    flexDirection: "row",
-    gap: Spacing.xs,
-  },
-  calcMetric: {
-    flex: 1,
-    minWidth: 0,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.surfaceAlt,
-    padding: Spacing.sm,
-    gap: 2,
-  },
-  calcMetricLabel: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-  },
-  calcMetricValue: {
-    fontSize: FontSize.xs,
-    fontWeight: "900",
-    color: Colors.text,
-  },
-  rowCard: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.surface,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  rowHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  rowIndex: {
-    fontSize: FontSize.xs,
-    fontWeight: "900",
-    color: Colors.textTertiary,
-    textTransform: "uppercase",
-  },
-  removeButton: {
-    width: 34,
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surfaceAlt,
-  },
-  input: {
-    minHeight: 46,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.background,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    fontSize: FontSize.md,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  multiline: {
-    minHeight: 78,
-    textAlignVertical: "top",
-    lineHeight: 20,
-  },
-  addButton: {
-    minHeight: 44,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.primaryLight,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.primaryBg,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: Spacing.xs,
-  },
-  addButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: "900",
-    color: Colors.primary,
   },
   savingLine: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   savingText: {
-    fontSize: FontSize.sm,
+    fontSize: 14,
     fontWeight: "700",
     color: Colors.textSecondary,
   },
-  pressed: { opacity: 0.88 },
 });

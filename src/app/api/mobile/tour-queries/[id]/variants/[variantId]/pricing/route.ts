@@ -8,6 +8,8 @@ import {
   requireSalesTripsWrite,
 } from "@/app/api/mobile/lib/assert-sales-trips-access";
 import { calculatePricing, derivePerPersonRates } from "@/lib/pricing-calculator";
+import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
+import { applyPerPersonRatesToPricingItems } from "@/lib/variant-pricing-display";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +58,7 @@ const patchSchema = z.object({
     })
     .optional()
     .nullable(),
+  componentsBeforeDiscount: z.array(pricingComponentSchema).optional(),
 });
 
 const calculateSchema = z.object({
@@ -130,6 +133,32 @@ function normalizePricing(pricing: Record<string, any> | null) {
         : null,
     appliedDiscount: pricing.appliedDiscount ?? null,
     discountAmount: Number(pricing.appliedDiscount?.amount ?? 0),
+    componentsBeforeDiscount: normalizeComponents(pricing.componentsBeforeDiscount),
+  };
+}
+
+function parseGuestCount(value: string | null | undefined): number {
+  const n = Number.parseInt(String(value ?? "0"), 10);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function queryContextFor(tpq: {
+  selectedTemplateId: string | null;
+  tourPackageTemplateName: string | null;
+  tourStartsFrom: Date | null;
+  tourEndsOn: Date | null;
+  numAdults: string | null;
+  numChild5to12: string | null;
+  numChild0to5: string | null;
+}) {
+  return {
+    selectedTemplateId: tpq.selectedTemplateId,
+    tourPackageTemplateName: tpq.tourPackageTemplateName,
+    tourStartsFrom: tpq.tourStartsFrom?.toISOString() ?? null,
+    tourEndsOn: tpq.tourEndsOn?.toISOString() ?? null,
+    numAdults: parseGuestCount(tpq.numAdults),
+    numChild5to12: parseGuestCount(tpq.numChild5to12),
+    numChild0to5: parseGuestCount(tpq.numChild0to5),
   };
 }
 
@@ -144,6 +173,11 @@ async function loadQuery(id: string) {
       id: true,
       tourStartsFrom: true,
       tourEndsOn: true,
+      selectedTemplateId: true,
+      tourPackageTemplateName: true,
+      numAdults: true,
+      numChild5to12: true,
+      numChild0to5: true,
       variantPricingData: true,
       variantRoomAllocations: true,
       variantTransportDetails: true,
@@ -193,7 +227,8 @@ function pricingKeyFor(variant: { id: string; sourceVariantId: string | null }) 
 function responseFor(
   queryId: string,
   variant: { id: string; sourceVariantId: string | null; name: string; sortOrder: number | null },
-  pricing: Record<string, any> | null
+  pricing: Record<string, any> | null,
+  queryContext?: ReturnType<typeof queryContextFor>
 ) {
   return {
     tourPackageQueryId: queryId,
@@ -204,6 +239,7 @@ function responseFor(
       sortOrder: variant.sortOrder,
     },
     pricing: normalizePricing(pricing),
+    ...(queryContext ? { queryContext } : {}),
   };
 }
 
@@ -237,7 +273,14 @@ export async function GET(
     const key = pricingKeyFor(variant);
     const pricing = asRecord(pricingMap[key] ?? pricingMap[variant.id] ?? null);
 
-    return NextResponse.json(responseFor(tpq.id, variant, Object.keys(pricing).length ? pricing : null));
+    return NextResponse.json(
+      responseFor(
+        tpq.id,
+        variant,
+        Object.keys(pricing).length ? pricing : null,
+        queryContextFor(tpq)
+      )
+    );
   } catch (error) {
     console.log("[MOBILE_TOUR_QUERY_VARIANT_PRICING_GET]", error);
     return new NextResponse("Internal error", { status: 500 });
@@ -338,6 +381,13 @@ export async function PATCH(
               },
             }
           : { appliedDiscount: undefined, subtotalBeforeDiscount: undefined }
+        : {}),
+      ...(parsed.data.componentsBeforeDiscount !== undefined
+        ? {
+            componentsBeforeDiscount: normalizeComponents(
+              parsed.data.componentsBeforeDiscount
+            ),
+          }
         : {}),
     };
 
@@ -482,28 +532,22 @@ export async function POST(
       perPersonRates = undefined;
     }
 
-    const pricingSection = [
-      {
-        name: "Total Cost",
-        price: String(result.totalCost || 0),
-        description: `Base ${result.basePrice.toFixed(0)} + markup ${result.appliedMarkup.amount.toFixed(0)}`,
-      },
-      {
-        name: "Accommodation",
-        price: String(result.breakdown.accommodation || 0),
-        description: "Hotel room costs",
-      },
-      {
-        name: "Transport",
-        price: String(result.breakdown.transport || 0),
-        description: "Vehicle costs",
-      },
-    ].filter((item) => Number(item.price) > 0 || item.name === "Total Cost");
+    const numChild5to12 = parseGuestCount(tpq.numChild5to12);
+    const numChild0to5 = parseGuestCount(tpq.numChild0to5);
+    const defaultItems = DEFAULT_PRICING_SECTION.map((item) => ({ ...item }));
+    const pricingSection =
+      perPersonRates && typeof perPersonRates === "object"
+        ? applyPerPersonRatesToPricingItems(defaultItems, perPersonRates as any, {
+            numChild5to12,
+            numChild0to5,
+          })
+        : defaultItems;
 
     return NextResponse.json({
       ...result,
       perPersonRates,
       pricingSection,
+      subtotalBeforeDiscount: result.totalCost,
       calculationMethod: "autoHotelTransport",
     });
   } catch (error) {

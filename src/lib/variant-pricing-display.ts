@@ -78,6 +78,20 @@ function buildCalculationParts(
   };
 }
 
+
+
+/** Per-unit breakdown for rate rows (Per Person, Per Couple, etc.) in price comparison cells. */
+export function toUnitDisplayParts(parts: PricingCalculationParts): PricingCalculationParts {
+  if (parts.qty <= 1) return parts;
+  return {
+    ...computePricingLineAmounts({
+      unitBase: parts.unitBase,
+      discountPercent: parts.discountPercent,
+      qty: 1,
+    }),
+    qtyLabel: parts.qtyLabel,
+  };
+}
 /** Package-level breakdown for the Total Price row in price comparison. */
 export function buildPackageTotalCalculationParts(
   vpd: VariantPricingEntry | undefined | null

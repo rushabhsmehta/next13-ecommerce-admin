@@ -32,6 +32,10 @@ import {
   type VariantComparisonItem,
   type VariantComparisonResponse,
 } from "@/lib/tour-query-pricing";
+import {
+  formatDiscountLabel,
+  hasAppliedVariantDiscount,
+} from "@/lib/variant-pricing-discount";
 import { VariantBuildPanel } from "./VariantBuildPanel";
 
 function formatINR(n: number | null | undefined): string {
@@ -535,6 +539,18 @@ function TourQueryVariantsPanelInner({
                       {methodLabel(activeVariant.pricing.calculationMethod)} - Markup{" "}
                       {formatINR(activeVariant.pricing.markupAmount)} ({activeVariant.pricing.markupPercentage}%)
                     </Text>
+                    {hasAppliedVariantDiscount(activeVariant.pricing.appliedDiscount) ? (
+                      <Text style={styles.discountHint}>
+                        {formatDiscountLabel(activeVariant.pricing.appliedDiscount)} — saves{" "}
+                        {formatINR(
+                          activeVariant.pricing.discountAmount ??
+                            activeVariant.pricing.appliedDiscount?.amount
+                        )}
+                        {activeVariant.pricing.subtotalBeforeDiscount ?
+                          ` · was ${formatINR(activeVariant.pricing.subtotalBeforeDiscount)}`
+                        : ""}
+                      </Text>
+                    ) : null}
                     <View style={styles.split}>
                       <View style={styles.splitCol}>
                         <Text style={styles.splitLabel}>Accommodation</Text>
@@ -797,6 +813,12 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: Colors.textSecondary,
     fontWeight: "700",
+    marginBottom: Spacing.sm,
+  },
+  discountHint: {
+    fontSize: FontSize.xs,
+    color: Colors.success,
+    fontWeight: "800",
     marginBottom: Spacing.sm,
   },
   split: { flexDirection: "row", gap: Spacing.md },

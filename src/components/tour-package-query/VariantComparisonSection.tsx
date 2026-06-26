@@ -14,9 +14,13 @@ import {
   findPricingRowPrice,
   getVariantPricingDisplayRows,
   mergeVariantPricingRowLabels,
+  toUnitDisplayParts,
   type VariantPricingEntry,
 } from "@/lib/variant-pricing-display";
-import { PricingCalculationBreakdown } from "@/components/tour-package-query/PricingCalculationBreakdown";
+import {
+  buildQtySubtitle,
+  PricingCalculationBreakdown,
+} from "@/components/tour-package-query/PricingCalculationBreakdown";
 
 interface VariantHotelSnapshot {
   id: string;
@@ -483,7 +487,10 @@ export function VariantComparisonSection({
                           {row ? (
                             <div className={`flex flex-col ${priceCellAlign}`}>
                               {row.calculationParts ? (
-                                <PricingCalculationBreakdown parts={row.calculationParts} />
+                                <PricingCalculationBreakdown
+                                  parts={toUnitDisplayParts(row.calculationParts)}
+                                  qtySubtitle={buildQtySubtitle(row.calculationParts)}
+                                />
                               ) : (
                                 <div className="text-xl font-bold text-red-800 tracking-tight">
                                   ₹ {formatINR(String(row.netPrice))}

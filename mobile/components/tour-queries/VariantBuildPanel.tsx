@@ -29,6 +29,11 @@ import {
   formatTransportLine,
   resolveVariantHotelName,
 } from "./variant-build-utils";
+import { methodLabel } from "./variant-pricing/types";
+import {
+  formatDiscountLabel,
+  hasAppliedVariantDiscount,
+} from "@/lib/variant-pricing-discount";
 
 function formatINR(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "Rs. 0";
@@ -930,9 +935,16 @@ export function VariantBuildPanel({
             <>
               <Text style={styles.total}>{formatINR(variant.pricing.totalCost)}</Text>
               <Text style={styles.muted}>
-                Base {formatINR(variant.pricing.basePrice)} - Markup{" "}
+                {methodLabel(variant.pricing.calculationMethod)} · Base{" "}
+                {formatINR(variant.pricing.basePrice)} · Markup{" "}
                 {formatINR(variant.pricing.markupAmount)} ({variant.pricing.markupPercentage}%)
               </Text>
+              {hasAppliedVariantDiscount(variant.pricing.appliedDiscount) ? (
+                <Text style={styles.discountHint}>
+                  {formatDiscountLabel(variant.pricing.appliedDiscount)} — saves{" "}
+                  {formatINR(variant.pricing.discountAmount ?? variant.pricing.appliedDiscount?.amount)}
+                </Text>
+              ) : null}
               <View style={styles.split}>
                 <Text style={styles.splitItem}>
                   Stay {formatINR(variant.pricing.accommodation)}
@@ -1113,6 +1125,11 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "600" },
   bullet: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "600" },
   muted: { fontSize: FontSize.sm, color: Colors.textTertiary, fontWeight: "600" },
+  discountHint: {
+    fontSize: FontSize.xs,
+    color: Colors.success,
+    fontWeight: "800",
+  },
   empty: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,

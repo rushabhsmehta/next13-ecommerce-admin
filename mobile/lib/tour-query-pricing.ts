@@ -11,9 +11,32 @@ export interface VariantPricingComponent {
   [key: string]: unknown;
 }
 
+export type VariantCalculationMethod =
+  | "manual"
+  | "autoHotelTransport"
+  | "useTourPackagePricing";
+
+export type AppliedVariantDiscountPayload = {
+  type: "percent" | "fixed";
+  inputValue: number;
+  amount: number;
+  reason?: string | null;
+};
+
+export interface VariantPricingQueryContext {
+  selectedTemplateId: string | null;
+  tourPackageTemplateName: string | null;
+  tourStartsFrom: string | null;
+  tourEndsOn: string | null;
+  numAdults: number;
+  numChild5to12: number;
+  numChild0to5: number;
+}
+
 export interface VariantPricingBreakdown {
   calculationMethod: string | null;
   components: VariantPricingComponent[];
+  componentsBeforeDiscount?: VariantPricingComponent[];
   remarks: string | null;
   totalCost: number;
   basePrice: number;
@@ -25,6 +48,9 @@ export interface VariantPricingBreakdown {
   transportDetails?: unknown;
   perPersonRates?: unknown;
   calculatedAt: string | null;
+  subtotalBeforeDiscount?: number | null;
+  appliedDiscount?: AppliedVariantDiscountPayload | null;
+  discountAmount?: number;
 }
 
 export interface VariantComparisonItem {
@@ -129,6 +155,7 @@ export interface VariantPricingDetailResponse {
     sortOrder: number | null;
   };
   pricing: VariantPricingBreakdown | null;
+  queryContext?: VariantPricingQueryContext;
 }
 
 export interface VariantPricingCalculationResponse {
@@ -136,6 +163,7 @@ export interface VariantPricingCalculationResponse {
   pricingSection: VariantPricingComponent[];
   totalCost: number;
   basePrice: number;
+  subtotalBeforeDiscount?: number;
   appliedMarkup: { percentage: number; amount: number };
   breakdown: { accommodation: number; transport: number };
   itineraryBreakdown?: unknown;
@@ -144,9 +172,36 @@ export interface VariantPricingCalculationResponse {
   calculatedAt?: string;
 }
 
+export interface PackagePricingComponentRow {
+  id: string;
+  pricingAttributeId: string;
+  pricingAttributeName: string;
+  price: number;
+  description: string | null;
+  pricingAttribute: { id: string; name: string; sortOrder: number };
+}
+
+export interface VariantPackageComponentsResponse {
+  tourPackageQueryId: string;
+  variantId: string;
+  packageVariantId: string;
+  selectedTemplateId: string;
+  tourPackageTemplateName: string | null;
+  matchedPeriod: {
+    id: string;
+    startDate: string;
+    endDate: string;
+    mealPlanId: string;
+    mealPlanName: string;
+    numberOfRooms: number;
+  };
+  components: PackagePricingComponentRow[];
+}
+
 export interface VariantPricingUpdateInput {
   calculationMethod?: string | null;
   components?: VariantPricingComponent[];
+  componentsBeforeDiscount?: VariantPricingComponent[];
   totalCost?: number;
   basePrice?: number;
   appliedMarkup?: { percentage?: number; amount?: number };
@@ -155,6 +210,8 @@ export interface VariantPricingUpdateInput {
   transportDetails?: unknown;
   perPersonRates?: unknown;
   remarks?: string | null;
+  subtotalBeforeDiscount?: number;
+  appliedDiscount?: AppliedVariantDiscountPayload | null;
 }
 
 export function createTourQueryPricingClient(authRequest: AuthenticatedRequest) {
@@ -216,6 +273,21 @@ export function createTourQueryPricingClient(authRequest: AuthenticatedRequest) 
           body: input,
           timeout: TOUR_QUERY_WRITE_TIMEOUT,
         }
+      );
+    },
+    fetchPackagePricingComponents(
+      tourQueryId: string,
+      variantId: string,
+      input: { mealPlanId: string; numberOfRooms: number }
+    ): Promise<VariantPackageComponentsResponse> {
+      const qs = new URLSearchParams({
+        mealPlanId: input.mealPlanId,
+        numberOfRooms: String(input.numberOfRooms),
+      });
+      return authRequest<VariantPackageComponentsResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(
+          tourQueryId
+        )}/variants/${encodeURIComponent(variantId)}/pricing/package-components?${qs.toString()}`
       );
     },
     updateVariantBuild(

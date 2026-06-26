@@ -338,14 +338,16 @@ export function VariantComparisonSection({
   const getNightContext = (variant: VariantSnapshot, day: number) => {
     const itinerary = itineraryByDay[day];
     const hotelInfo = variant.hotelSnapshots.find((h) => h.dayNumber === day);
+    const variantKey = variant.sourceVariantId ?? variant.id;
+    const itineraryId = (itinerary as { id?: string } | undefined)?.id;
     const roomAllocations =
-      variantRoomAllocations?.[variant.sourceVariantId]?.[(itinerary as any)?.id] ||
-      variantRoomAllocations?.[variant.id]?.[(itinerary as any)?.id] ||
+      (itineraryId ? variantRoomAllocations?.[variantKey]?.[itineraryId] : undefined) ||
+      (itineraryId ? variantRoomAllocations?.[variant.id]?.[itineraryId] : undefined) ||
       itinerary?.roomAllocations ||
       [];
     const transportDetails =
-      variantTransportDetails?.[variant.sourceVariantId]?.[(itinerary as any)?.id] ||
-      variantTransportDetails?.[variant.id]?.[(itinerary as any)?.id] ||
+      (itineraryId ? variantTransportDetails?.[variantKey]?.[itineraryId] : undefined) ||
+      (itineraryId ? variantTransportDetails?.[variant.id]?.[itineraryId] : undefined) ||
       itinerary?.transportDetails ||
       [];
     return { hotelInfo, roomAllocations, transportDetails };

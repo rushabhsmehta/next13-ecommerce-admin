@@ -6,6 +6,7 @@ import prismadb from '@/lib/prismadb';
 import { createAuditLog } from "@/lib/utils/audit-logger";
 import { createVariantSnapshots, applyVariantHotelOverrides } from '@/lib/variant-snapshot';
 import { carryForwardInquiryCouponToTourQuery } from '@/lib/coupons';
+import { buildItineraryIdMap, remapVariantDataKeys } from '@/lib/variant-data-remap';
 
 // Enable caching for GET requests - revalidate every 5 minutes
 export const revalidate = 300;
@@ -543,17 +544,23 @@ export async function POST(
             } as any,
         });
 
+        let remappedHotelOverrides: Record<string, Record<string, string>> | undefined;
+
         if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
             // Create all itineraries with strict validation
             console.log(`📋 Creating ${itineraries.length} itineraries with strict validation...`);
             try {
-                const results = await Promise.all(
+                const createdItins = await Promise.all(
                     itineraries.map(async (itinerary: any, index: number) => {
                         try {
                             console.log(`🔄 Processing itinerary ${index + 1}/${itineraries.length}...`);
                             const result = await createItineraryAndActivities(itinerary, newTourPackageQuery.id);
                             console.log(`✅ Successfully created itinerary ${index + 1}`);
-                            return result;
+                            return {
+                                oldId: itinerary.id as string | undefined,
+                                newId: result.id,
+                                dayNumber: itinerary.dayNumber as number | undefined,
+                            };
                         } catch (itineraryError: any) {
                             const errorMessage = `Itinerary ${index + 1} failed: ${itineraryError.message}`;
                             console.error('[ITINERARY_VALIDATION_ERROR]', {
@@ -568,7 +575,36 @@ export async function POST(
                     })
                 );
 
-                console.log(`📊 All ${results.length} itineraries created successfully`);
+                const itineraryIdMap = buildItineraryIdMap(createdItins);
+
+                if (Object.keys(itineraryIdMap).length > 0) {
+                    const remappedOverrides = variantHotelOverrides
+                        ? remapVariantDataKeys(variantHotelOverrides, itineraryIdMap) as Record<string, Record<string, string>>
+                        : undefined;
+                    const remappedRooms = variantRoomAllocations
+                        ? remapVariantDataKeys(variantRoomAllocations, itineraryIdMap)
+                        : undefined;
+                    const remappedTransport = variantTransportDetails
+                        ? remapVariantDataKeys(variantTransportDetails, itineraryIdMap)
+                        : undefined;
+
+                    remappedHotelOverrides = remappedOverrides;
+
+                    await prismadb.tourPackageQuery.update({
+                        where: { id: newTourPackageQuery.id },
+                        data: {
+                            ...(remappedOverrides !== undefined ? { variantHotelOverrides: remappedOverrides as object } : {}),
+                            ...(remappedRooms !== undefined ? { variantRoomAllocations: remappedRooms as object } : {}),
+                            ...(remappedTransport !== undefined ? { variantTransportDetails: remappedTransport as object } : {}),
+                        },
+                    });
+
+                    console.log(
+                        `[TOURPACKAGE_QUERY_POST] Remapped variant JSON keys for ${Object.keys(itineraryIdMap).length} itinerary mappings`
+                    );
+                }
+
+                console.log(`📊 All ${createdItins.length} itineraries created successfully`);
             } catch (error: any) {
                 console.error('[ITINERARIES_CREATION_FAILED]', error.message);
                 // Delete the tour package query since itinerary creation failed
@@ -619,7 +655,8 @@ export async function POST(
                 console.log('✅ Variant snapshots created successfully');
 
                 // Apply query-level hotel overrides on top of the package-default hotel snapshots
-                if (variantHotelOverrides && Object.keys(variantHotelOverrides).length > 0) {
+                const effectiveHotelOverrides = remappedHotelOverrides ?? variantHotelOverrides;
+                if (effectiveHotelOverrides && Object.keys(effectiveHotelOverrides).length > 0) {
                     try {
                         const queryItineraries = await prismadb.itinerary.findMany({
                             where: { tourPackageQueryId: newTourPackageQuery.id },
@@ -627,7 +664,7 @@ export async function POST(
                         });
                         await applyVariantHotelOverrides(
                             newTourPackageQuery.id,
-                            variantHotelOverrides as Record<string, Record<string, string>>,
+                            effectiveHotelOverrides as Record<string, Record<string, string>>,
                             queryItineraries
                         );
                     } catch (overrideError) {

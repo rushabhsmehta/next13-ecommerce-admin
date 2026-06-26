@@ -30,6 +30,8 @@ import {
   VariantHotelMapping,
   VehicleType,
   LocationSeasonalPeriod,
+  RoomAllocation,
+  TransportDetail,
 } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import {
@@ -235,8 +237,116 @@ const formSchema = z.object({
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
+type InquiryWithAllocations = Inquiry & {
+  roomAllocations?: (RoomAllocation & {
+    roomType?: RoomType | null;
+    occupancyType?: OccupancyType | null;
+    mealPlan?: MealPlan | null;
+    extraBeds?: { occupancyTypeId: string; quantity?: number }[];
+  })[];
+  transportDetails?: TransportDetail[];
+};
+
+type MappedRoomAllocation = {
+  roomTypeId: string;
+  occupancyTypeId: string;
+  mealPlanId: string;
+  quantity: number;
+  guestNames: string;
+  voucherNumber: string;
+  customRoomType: string;
+  useCustomRoomType: boolean;
+  extraBeds: { occupancyTypeId: string; quantity?: number }[];
+};
+
+type MappedTransportDetail = {
+  vehicleTypeId: string;
+  transportType?: string;
+  quantity: number;
+  description: string;
+};
+
+function mapTemplateExtraBeds(extraBeds: unknown): MappedRoomAllocation["extraBeds"] {
+  if (!Array.isArray(extraBeds)) return [];
+  return extraBeds.map((eb) => {
+    const bed = eb as Record<string, unknown>;
+    return {
+      occupancyTypeId: String(bed.occupancyTypeId || ""),
+      ...(typeof bed.quantity === "number" ? { quantity: bed.quantity } : {}),
+    };
+  });
+}
+
+function mapInquiryRoomAllocations(allocations: InquiryWithAllocations["roomAllocations"]): MappedRoomAllocation[] {
+  if (!allocations?.length) return [];
+  return allocations.map((allocation) => ({
+    roomTypeId: allocation.roomTypeId || "",
+    occupancyTypeId: allocation.occupancyTypeId || "",
+    mealPlanId: allocation.mealPlanId || "",
+    quantity: Number(allocation.quantity) || 1,
+    guestNames: allocation.guestNames || "",
+    voucherNumber: allocation.voucherNumber || "",
+    customRoomType: allocation.customRoomType || "",
+    useCustomRoomType: Boolean(allocation.customRoomType && allocation.customRoomType.trim().length > 0),
+    extraBeds: (allocation.extraBeds || []).map((eb) => ({
+      occupancyTypeId: eb.occupancyTypeId || "",
+      quantity: typeof eb.quantity === "number" ? eb.quantity : 1,
+    })),
+  }));
+}
+
+function mapInquiryTransportDetails(transportDetails: InquiryWithAllocations["transportDetails"]): MappedTransportDetail[] {
+  if (!transportDetails?.length) return [];
+  return transportDetails.map((transport) => ({
+    vehicleTypeId: transport.vehicleTypeId || "",
+    quantity: Number(transport.quantity) || 1,
+    description: transport.description || "",
+  }));
+}
+
+function resolveItineraryRoomAllocations(
+  inquiry: InquiryWithAllocations | null,
+  templateAllocations: unknown
+): MappedRoomAllocation[] {
+  if (inquiry?.roomAllocations && inquiry.roomAllocations.length > 0) {
+    return mapInquiryRoomAllocations(inquiry.roomAllocations);
+  }
+  if (Array.isArray(templateAllocations)) {
+    return templateAllocations.map((alloc: Record<string, unknown>) => ({
+      roomTypeId: (alloc.roomTypeId as string) || (alloc.roomType as string) || "",
+      occupancyTypeId: (alloc.occupancyTypeId as string) || (alloc.occupancyType as string) || "",
+      mealPlanId: (alloc.mealPlanId as string) || (alloc.mealPlan as string) || "",
+      quantity: Number(alloc.quantity) || 1,
+      guestNames: (alloc.guestNames as string) || "",
+      voucherNumber: (alloc.voucherNumber as string) || "",
+      customRoomType: (alloc.customRoomType as string) || "",
+      useCustomRoomType: Boolean(alloc.customRoomType && String(alloc.customRoomType).trim().length > 0),
+      extraBeds: mapTemplateExtraBeds(alloc.extraBeds),
+    }));
+  }
+  return [];
+}
+
+function resolveItineraryTransportDetails(
+  inquiry: InquiryWithAllocations | null,
+  templateTransport: unknown
+): MappedTransportDetail[] {
+  if (inquiry?.transportDetails && inquiry.transportDetails.length > 0) {
+    return mapInquiryTransportDetails(inquiry.transportDetails);
+  }
+  if (Array.isArray(templateTransport)) {
+    return templateTransport.map((detail: Record<string, unknown>) => ({
+      vehicleTypeId: (detail.vehicleTypeId as string) || (detail.vehicleType as string) || "",
+      transportType: (detail.transportType as string) || "",
+      quantity: Number(detail.quantity) || 1,
+      description: (detail.description as string) || "",
+    }));
+  }
+  return [];
+}
+
 interface TourPackageQueryFormProps {
-  inquiry: Inquiry | null;
+  inquiry: InquiryWithAllocations | null;
   locations: Location[];
   // --- ADJUSTED hotels TYPE ---
   hotels: (Hotel & {
@@ -260,6 +370,8 @@ interface TourPackageQueryFormProps {
     })[];
     itineraries: (Itinerary & {
       itineraryImages: Images[];
+      roomAllocations?: RoomAllocation[];
+      transportDetails?: TransportDetail[];
       activities: (Activity & {
         activityImages: Images[];
       })[] | null;
@@ -284,6 +396,8 @@ interface TourPackageQueryFormProps {
     flightDetails: FlightDetails[];
     itineraries: (Itinerary & {
       itineraryImages: Images[];
+      roomAllocations?: RoomAllocation[];
+      transportDetails?: TransportDetail[];
       activities: (Activity & {
         activityImages: Images[];
       })[] | null;
@@ -609,20 +723,8 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
         activityDescription: activity.activityDescription || '',
       })) || [],
       hotelId: itinerary.hotelId || '',
-      roomAllocations: (itinerary as any).roomAllocations?.map((alloc: any) => ({
-        roomTypeId: alloc.roomTypeId || alloc.roomType || '',
-        occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
-        mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
-        quantity: Number(alloc.quantity) || 1,
-        guestNames: alloc.guestNames || '',
-        extraBeds: alloc.extraBeds || [],
-      })) || [],
-      transportDetails: (itinerary as any).transportDetails?.map((detail: any) => ({
-        vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
-        transportType: detail.transportType || '',
-        quantity: Number(detail.quantity) || 1,
-        description: detail.description || '',
-      })) || [],
+      roomAllocations: resolveItineraryRoomAllocations(inquiry, (itinerary as { roomAllocations?: unknown }).roomAllocations),
+      transportDetails: resolveItineraryTransportDetails(inquiry, (itinerary as { transportDetails?: unknown }).transportDetails),
     })) || [];
 
     form.setValue('itineraries', transformedItineraries);
@@ -703,8 +805,8 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
 
       if (selectedTourPackageQuery.itineraries && selectedTourPackageQuery.itineraries.length > 0) {
         form.setValue('itineraries', selectedTourPackageQuery.itineraries.map((itinerary, idx) => ({
-          id: (itinerary as any).id || `temp-${idx}`, // Preserve ID for accordion UI; stripped before API submit
-          locationId: itinerary.locationId || form.getValues('locationId') || '', // Use optional default
+          id: (itinerary as { id?: string }).id || `temp-${idx}`,
+          locationId: itinerary.locationId || form.getValues('locationId') || '',
           itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
           itineraryTitle: itinerary.itineraryTitle || '',
           itineraryDescription: itinerary.itineraryDescription || '',
@@ -715,22 +817,21 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             activityDescription: activity.activityDescription || '',
             activityImages: activity.activityImages?.map(img => ({ url: img.url })) || []
           })) || [],
-          hotelId: itinerary.hotelId || '', // Use optional default
-          // Map roomAllocations and transportDetails from query template
-          roomAllocations: (itinerary as any).roomAllocations?.map((alloc: any) => ({
-            roomTypeId: alloc.roomTypeId || alloc.roomType || '',
-            occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
-            mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
-            quantity: Number(alloc.quantity) || 1,
-            guestNames: alloc.guestNames || '',
-            extraBeds: alloc.extraBeds || [],
-          })) || [],
-          transportDetails: (itinerary as any).transportDetails?.map((detail: any) => ({
-            vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
-            transportType: detail.transportType || '',
-            quantity: Number(detail.quantity) || 1,
-            description: detail.description || ''
-          })) || [],
+          hotelId: itinerary.hotelId || '',
+          roomAllocations: (() => {
+            const fromTemplate = (itinerary as { roomAllocations?: unknown }).roomAllocations;
+            if (Array.isArray(fromTemplate) && fromTemplate.length > 0) {
+              return resolveItineraryRoomAllocations(null, fromTemplate);
+            }
+            return resolveItineraryRoomAllocations(inquiry, fromTemplate);
+          })(),
+          transportDetails: (() => {
+            const fromTemplate = (itinerary as { transportDetails?: unknown }).transportDetails;
+            if (Array.isArray(fromTemplate) && fromTemplate.length > 0) {
+              return resolveItineraryTransportDetails(null, fromTemplate);
+            }
+            return resolveItineraryTransportDetails(inquiry, fromTemplate);
+          })(),
         })));
       } else {
         form.setValue('itineraries', []); // Clear if template has none
@@ -746,6 +847,30 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
       }
     }
   };
+
+  const applyInquiryRoomAllocationsToAllDays = () => {
+    if (!inquiry?.roomAllocations || inquiry.roomAllocations.length === 0) {
+      toast.error("No room allocations found in inquiry");
+      return;
+    }
+
+    const currentItineraries = form.getValues("itineraries") || [];
+    const inquiryRoomAllocations = mapInquiryRoomAllocations(inquiry.roomAllocations);
+    const inquiryTransportDetails = mapInquiryTransportDetails(inquiry.transportDetails);
+
+    const updatedItineraries = currentItineraries.map((itinerary) => ({
+      ...itinerary,
+      roomAllocations: inquiryRoomAllocations,
+      transportDetails:
+        inquiryTransportDetails.length > 0
+          ? inquiryTransportDetails
+          : itinerary.transportDetails || [],
+    }));
+
+    form.setValue("itineraries", updatedItineraries);
+    toast.success(`Applied inquiry room allocations to ${currentItineraries.length} days`);
+  };
+
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     // --- ADJUST onSubmit TO MATCH SCHEMA ---
     const formattedData = {
@@ -759,11 +884,9 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
       // Apply timezone normalization to date fields
       tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
       tourEndsOn: normalizeApiDate(data.tourEndsOn),
-      // Explicitly type the 'itinerary' parameter; strip 'id' so the API creates fresh records
-      itineraries: data.itineraries.map((itinerary: z.infer<typeof itinerarySchema>) => {
-        const { id: _itineraryId, ...itineraryWithoutId } = itinerary as any;
-        return {
-        ...itineraryWithoutId,
+      // Keep client-side itinerary `id` for server-side variant JSON key remapping (not used as DB PK).
+      itineraries: data.itineraries.map((itinerary: z.infer<typeof itinerarySchema>) => ({
+        ...itinerary,
         locationId: data.locationId,
         activities: itinerary.activities?.map((activity) => ({
           ...activity,
@@ -778,8 +901,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
           ...detail,
           quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
         })),
-        }; // close return {
-      }), // close .map(
+      })),
       pricingSection: data.pricingSection || [],
     };
 
@@ -934,6 +1056,8 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
                 handleTourPackageVariantSelection={handleTourPackageVariantSelection}
                 handleTourPackageQuerySelection={handleTourPackageQuerySelection}
                 form={form}
+                inquiry={inquiry}
+                applyInquiryRoomAllocationsToAllDays={applyInquiryRoomAllocationsToAllDays}
               />
             </TabsContent>
 

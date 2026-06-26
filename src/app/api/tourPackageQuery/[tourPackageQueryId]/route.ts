@@ -508,20 +508,7 @@ async function createFlightDetailWithImagesFallback(flightDetail: {
   }
 }
 
-// Helper to remap JSON keys from old frontend itinerary IDs to newly inserted DB itinerary IDs
-const remapVariantDataKeys = (variantData: any, idMap: Record<string, string>) => {
-  if (!variantData || typeof variantData !== 'object') return variantData;
-  const remapped: any = {};
-  for (const variantId in variantData) {
-    if (typeof variantData[variantId] !== 'object') continue;
-    remapped[variantId] = {};
-    for (const oldItin in variantData[variantId]) {
-      const newItin = idMap[oldItin] || oldItin;
-      remapped[variantId][newItin] = variantData[variantId][oldItin];
-    }
-  }
-  return remapped;
-};
+import { remapVariantDataKeys } from "@/lib/variant-data-remap";
 
 export async function PATCH(req: Request, props: { params: Promise<{ tourPackageQueryId: string }> }) {
   const params = await props.params;
@@ -838,9 +825,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
             await tx.tourPackageQuery.update({
               where: { id: params.tourPackageQueryId },
               data: {
-                ...(remappedOverrides !== undefined ? { variantHotelOverrides: remappedOverrides } : {}),
-                ...(remappedRooms !== undefined ? { variantRoomAllocations: remappedRooms } : {}),
-                ...(remappedTransport !== undefined ? { variantTransportDetails: remappedTransport } : {}),
+                ...(remappedOverrides !== undefined ? { variantHotelOverrides: remappedOverrides as object } : {}),
+                ...(remappedRooms !== undefined ? { variantRoomAllocations: remappedRooms as object } : {}),
+                ...(remappedTransport !== undefined ? { variantTransportDetails: remappedTransport as object } : {}),
               }
             });
             console.log(`[TRANSACTION] Successfully remapped variant JSON keys for ${Object.keys(itineraryIdMap).length} itineraries`);
@@ -938,9 +925,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
             await prismadb.tourPackageQuery.update({
               where: { id: params.tourPackageQueryId },
               data: {
-                variantHotelOverrides: variantHotelOverrides ? remapVariantDataKeys(variantHotelOverrides, fallbackItineraryIdMap) : undefined,
-                variantRoomAllocations: variantRoomAllocations ? remapVariantDataKeys(variantRoomAllocations, fallbackItineraryIdMap) : undefined,
-                variantTransportDetails: variantTransportDetails ? remapVariantDataKeys(variantTransportDetails, fallbackItineraryIdMap) : undefined,
+                variantHotelOverrides: variantHotelOverrides ? remapVariantDataKeys(variantHotelOverrides, fallbackItineraryIdMap) as object : undefined,
+                variantRoomAllocations: variantRoomAllocations ? remapVariantDataKeys(variantRoomAllocations, fallbackItineraryIdMap) as object : undefined,
+                variantTransportDetails: variantTransportDetails ? remapVariantDataKeys(variantTransportDetails, fallbackItineraryIdMap) as object : undefined,
               }
             });
             console.log(`[FALLBACK] Successfully remapped variant JSON keys for ${Object.keys(fallbackItineraryIdMap).length} itineraries`);

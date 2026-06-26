@@ -12,8 +12,25 @@ const TourPackageQueryPage = async (
       id: params.inquiryId
     },
     include: {
-      associatePartner: true
-    }
+      associatePartner: true,
+      roomAllocations: {
+        include: {
+          roomType: true,
+          occupancyType: true,
+          mealPlan: true,
+          extraBeds: {
+            include: {
+              occupancyType: true,
+            },
+          },
+        },
+      },
+      transportDetails: {
+        include: {
+          vehicleType: true,
+        },
+      },
+    },
   });
 
   const locations = await prismadb.location.findMany();
@@ -53,6 +70,12 @@ const TourPackageQueryPage = async (
       itineraries: {
         include: {
           itineraryImages: true,
+          roomAllocations: {
+            include: {
+              extraBeds: true,
+            },
+          },
+          transportDetails: true,
           activities: {
             include: {
               activityImages: true,
@@ -104,6 +127,12 @@ const TourPackageQueryPage = async (
       itineraries: {
         include: {
           itineraryImages: true,
+          roomAllocations: {
+            include: {
+              extraBeds: true,
+            },
+          },
+          transportDetails: true,
           activities: {
             include: {
               activityImages: true

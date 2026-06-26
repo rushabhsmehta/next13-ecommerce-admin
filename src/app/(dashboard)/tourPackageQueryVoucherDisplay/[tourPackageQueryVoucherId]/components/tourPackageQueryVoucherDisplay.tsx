@@ -588,16 +588,22 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                                   <td style={{ color: 'var(--vchr-mute)' }}>{room.guestNames || '-'}</td>
                                   <td style={{ color: 'var(--vchr-mute)' }}>{room.voucherNumber || '-'}</td>
                                 </tr>
-                                {(room.extraBeds || []).map((eb: any, ebIdx: number) => (
+                                {(room.extraBeds || []).map((eb: any, ebIdx: number) => {
+                                  const extraOccupancyName =
+                                    eb.occupancyType?.name ||
+                                    occupancyTypes.find((o: any) => o.id === eb.occupancyTypeId)?.name ||
+                                    '-';
+                                  return (
                                   <tr key={`eb-${ebIdx}`}>
                                     <td className="vchr-extra-bed" style={{ paddingLeft: 16 }}>
-                                      + Extra bed | {eb.occupancyType?.name || '-'}
+                                      + {extraOccupancyName}
                                     </td>
                                     <td colSpan={5} className="vchr-extra-bed">
                                       Qty {eb.quantity || 1}
                                     </td>
                                   </tr>
-                                ))}
+                                  );
+                                })}
                               </React.Fragment>
                             );
                           })}

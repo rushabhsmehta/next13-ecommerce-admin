@@ -25,6 +25,7 @@ import { utcToLocal } from "@/lib/timezone-utils"
 import {
   generateDateRangesForYear,
   getSeasonColor,
+  formatSeasonalPeriod,
   SEASON_TYPES,
   type SeasonalPeriod,
 } from "@/lib/seasonal-periods"
@@ -290,22 +291,63 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     )
   }
 
-  const handleIndividualPeriodSelect = (period: SeasonalPeriod) => {
-    setSelectedSeasonalPeriods([period])
-    setSelectedSeasonType(null)
-    if (editingRow) {
+  const applyEditingRowForPeriodSelection = (
+    row: EditingRow,
+    selection: SeasonalPeriod[]
+  ): EditingRow => {
+    if (selection.length === 0) {
+      return { ...row, locationSeasonalPeriodId: "" }
+    }
+    if (selection.length === 1) {
       const currentYear = new Date().getFullYear()
-      const dateRanges = generateDateRangesForYear(period, currentYear)
+      const dateRanges = generateDateRangesForYear(selection[0], currentYear)
       if (dateRanges.length > 0) {
         const firstRange = dateRanges[0]
-        setEditingRow({
-          ...editingRow,
+        return {
+          ...row,
           startDate: firstRange.start,
           endDate: firstRange.end,
-          locationSeasonalPeriodId: period.id,
-        })
-        toast.success(`Applied ${period.name} dates`)
+          locationSeasonalPeriodId: selection[0].id,
+        }
       }
+    }
+    return { ...row, locationSeasonalPeriodId: "" }
+  }
+
+  const handleIndividualPeriodSelect = (period: SeasonalPeriod) => {
+    setSelectedSeasonType(null)
+
+    if (editingRow?.id) {
+      const selection = [period]
+      setSelectedSeasonalPeriods(selection)
+      setEditingRow(applyEditingRowForPeriodSelection(editingRow, selection))
+      toast.success(`Applied ${period.name} dates`)
+      return
+    }
+
+    const isAlreadySelected = selectedSeasonalPeriods.some((p) => p.id === period.id)
+    const newSelection = isAlreadySelected
+      ? selectedSeasonalPeriods.filter((p) => p.id !== period.id)
+      : [...selectedSeasonalPeriods, period]
+
+    setSelectedSeasonalPeriods(newSelection)
+
+    if (editingRow) {
+      setEditingRow(applyEditingRowForPeriodSelection(editingRow, newSelection))
+    }
+
+    if (isAlreadySelected) {
+      toast.success(
+        `Removed ${period.name}${
+          newSelection.length > 0 ? ` (${newSelection.length} periods selected)` : ""
+        }`
+      )
+    } else {
+      toast.success(
+        `Added ${period.name} (${newSelection.length} period${
+          newSelection.length === 1 ? "" : "s"
+        } selected)`
+      )
     }
   }
 
@@ -349,14 +391,18 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       return
     }
 
-    if (!row.startDate || !row.endDate) {
-      toast.error("Please select start and end dates")
-      return
-    }
+    const isBulkCreate = !row.id && selectedSeasonalPeriods.length > 1
 
-    if (row.endDate < row.startDate) {
-      toast.error("End date must be on or after start date")
-      return
+    if (!isBulkCreate) {
+      if (!row.startDate || !row.endDate) {
+        toast.error("Please select start and end dates")
+        return
+      }
+
+      if (row.endDate < row.startDate) {
+        toast.error("End date must be on or after start date")
+        return
+      }
     }
 
     if (row.price <= 0) {
@@ -365,7 +411,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     }
 
     // Bulk create for multiple seasonal periods (create mode only)
-    if (!row.id && selectedSeasonalPeriods.length > 1) {
+    if (isBulkCreate) {
       await submitBulkPricing(row)
       return
     }
@@ -473,9 +519,12 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
         }
       }
 
-      toast.success(
-        `Created ${createdCount} pricing periods for ${selectedSeasonType?.replace(/_/g, " ").toLowerCase() ?? "selected"} periods`
-      )
+      const seasonLabel = selectedSeasonType
+        ? `all ${selectedSeasonType.replace(/_/g, " ").toLowerCase()} periods`
+        : `${selectedSeasonalPeriods.length} selected season${
+            selectedSeasonalPeriods.length === 1 ? "" : "s"
+          }`
+      toast.success(`Created ${createdCount} pricing periods for ${seasonLabel}`)
       await fetchPricingPeriods()
       setEditingRow(null)
       setSelectedSeasonalPeriods([])
@@ -542,18 +591,31 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       toast.error("Please select a hotel first")
       return
     }
-    
-    setSelectedSeasonalPeriods([])
-    setSelectedSeasonType(null)
+
+    let startDate = new Date()
+    let endDate = addDays(new Date(), 30)
+    let locationSeasonalPeriodId = ""
+
+    if (selectedSeasonalPeriods.length === 1) {
+      const period = selectedSeasonalPeriods[0]
+      const currentYear = new Date().getFullYear()
+      const dateRanges = generateDateRangesForYear(period, currentYear)
+      if (dateRanges.length > 0) {
+        startDate = dateRanges[0].start
+        endDate = dateRanges[0].end
+        locationSeasonalPeriodId = period.id
+      }
+    }
+
     setEditingRow({
       id: null,
       roomTypeId: roomTypes[0]?.id || "",
       occupancyTypeId: occupancyTypes[0]?.id || "",
       mealPlanId: "",
-      startDate: new Date(),
-      endDate: addDays(new Date(), 30),
+      startDate,
+      endDate,
       price: 0,
-      locationSeasonalPeriodId: "",
+      locationSeasonalPeriodId,
     })
   }
 
@@ -835,6 +897,59 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                       )
                     })}
                   </div>
+
+                  {selectedSeasonalPeriods.length > 0 && (
+                    <div className="text-xs bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-3 rounded-lg">
+                      <div className="font-semibold text-gray-800 mb-2">
+                        Selection Summary ({selectedSeasonalPeriods.length} period
+                        {selectedSeasonalPeriods.length === 1 ? "" : "s"})
+                      </div>
+                      {selectedSeasonType ? (
+                        <div className="text-purple-700">
+                          <strong>Bulk selection:</strong> All{" "}
+                          {selectedSeasonType.replace(/_/g, " ").toLowerCase()} periods
+                          <div className="mt-2 text-xs text-purple-600">
+                            Pricing will be created for all these periods when you save.
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-blue-700">
+                          <strong>Individual selection:</strong>{" "}
+                          {selectedSeasonalPeriods.length === 1
+                            ? selectedSeasonalPeriods[0]?.name
+                            : `${selectedSeasonalPeriods.length} periods selected`}
+                          {selectedSeasonalPeriods.length > 1 && (
+                            <div className="mt-2 text-xs text-blue-600">
+                              Pricing will be created for all selected periods when you save.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <div className="mt-3 border-t border-gray-200 pt-2">
+                        <div className="font-medium text-gray-700 mb-2">
+                          Selected periods &amp; date ranges:
+                        </div>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {selectedSeasonalPeriods.map((period, index) => (
+                            <div
+                              key={period.id}
+                              className="flex items-center justify-between text-xs bg-white/70 rounded px-2 py-1"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <span className="w-4 h-4 text-center bg-gray-100 rounded text-[10px] font-medium">
+                                  {index + 1}
+                                </span>
+                                <span className="font-medium text-gray-800">{period.name}</span>
+                              </div>
+                              <div className="text-gray-600 font-mono">
+                                {formatSeasonalPeriod(period)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : selectedLocationId ? (
@@ -895,7 +1010,9 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                                     role="combobox"
                                     className="w-full justify-between h-10 px-3"
                                   >
-                                    {editingRow.locationSeasonalPeriodId ? (
+                                    {selectedSeasonalPeriods.length > 1 ? (
+                                      `${selectedSeasonalPeriods.length} periods selected`
+                                    ) : editingRow.locationSeasonalPeriodId ? (
                                       seasonalPeriods.find((p) => p.id === editingRow.locationSeasonalPeriodId)?.name ?? "Season"
                                     ) : (
                                       <span className="text-muted-foreground">Manual dates</span>
@@ -1100,13 +1217,24 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                                 <PopoverTrigger asChild>
                                   <Button
                                     variant="outline"
+                                    disabled={
+                                      !editingRow.id &&
+                                      (selectedSeasonalPeriods.length > 1 || selectedSeasonType !== null)
+                                    }
                                     className={cn(
                                       "w-full justify-start text-left font-normal",
                                       !editingRow.startDate && "text-muted-foreground"
                                     )}
                                   >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {editingRow.startDate ? format(editingRow.startDate, "dd MMM yy") : "Pick"}
+                                    {!editingRow.id &&
+                                    (selectedSeasonalPeriods.length > 1 || selectedSeasonType !== null) ? (
+                                      <span className="text-xs text-muted-foreground">Auto-set</span>
+                                    ) : editingRow.startDate ? (
+                                      format(editingRow.startDate, "dd MMM yy")
+                                    ) : (
+                                      "Pick"
+                                    )}
                                   </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
@@ -1131,13 +1259,24 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                                 <PopoverTrigger asChild>
                                   <Button
                                     variant="outline"
+                                    disabled={
+                                      !editingRow.id &&
+                                      (selectedSeasonalPeriods.length > 1 || selectedSeasonType !== null)
+                                    }
                                     className={cn(
                                       "w-full justify-start text-left font-normal",
                                       !editingRow.endDate && "text-muted-foreground"
                                     )}
                                   >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {editingRow.endDate ? format(editingRow.endDate, "dd MMM yy") : "Pick"}
+                                    {!editingRow.id &&
+                                    (selectedSeasonalPeriods.length > 1 || selectedSeasonType !== null) ? (
+                                      <span className="text-xs text-muted-foreground">Auto-set</span>
+                                    ) : editingRow.endDate ? (
+                                      format(editingRow.endDate, "dd MMM yy")
+                                    ) : (
+                                      "Pick"
+                                    )}
                                   </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">

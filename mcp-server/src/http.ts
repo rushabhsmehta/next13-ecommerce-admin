@@ -14,6 +14,10 @@ import express from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { verifyApprovalToken } from "./contracts/oauth.js";
+import {
+  REDIRECT_URI_NOT_REGISTERED_PAGE,
+  UNKNOWN_OAUTH_CLIENT_PAGE,
+} from "./oauth-error-page.js";
 
 interface PendingCode {
   codeChallenge: string;
@@ -73,6 +77,21 @@ const authCodes = new Map<string, PendingCode>();
 const approvalRequests = new Map<string, PendingApprovalRequest>();
 const registeredClients = loadMap<RegisteredClient>(CLIENTS_FILE);
 const sessions = new Map<string, SessionEntry>();
+
+function isEphemeralClientsFile(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, "/").toLowerCase();
+  return normalized.includes("/tmp/") || normalized.endsWith("/tmp");
+}
+
+if (isEphemeralClientsFile(CLIENTS_FILE)) {
+  console.error(
+    `[MCP HTTP] WARNING: MCP_CLIENTS_FILE=${CLIENTS_FILE} is ephemeral. ` +
+    "OAuth client registrations are lost on redeploy. " +
+    "Set MCP_CLIENTS_FILE=/data/mcp-clients.json with a persistent Railway volume."
+  );
+} else {
+  console.error(`[MCP HTTP] OAuth client registry: ${CLIENTS_FILE} (${registeredClients.size} client(s))`);
+}
 
 function ensureDirectory(filePath: string) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -256,6 +275,11 @@ function bad400(res: express.Response, tag: string, reason: string, ctx?: Record
   res.status(400).send(reason);
 }
 
+function bad400Html(res: express.Response, tag: string, reason: string, html: string, ctx?: Record<string, unknown>): void {
+  log(tag, `400 ${reason}`, ctx);
+  res.status(400).type("html").send(html);
+}
+
 function bad400json(res: express.Response, tag: string, error: string, error_description: string, ctx?: Record<string, unknown>): void {
   log(tag, `400 ${error}: ${error_description}`, ctx);
   res.status(400).json({ error, error_description });
@@ -283,7 +307,18 @@ export function startHttpServer(createServer: () => McpServer): void {
   const requireBearer = makeRequireBearer(baseUrl);
 
   app.get("/health", (_req, res) => {
-    res.json({ status: "ok", tokenMode: "stateless-hmac" });
+    res.json({
+      status: "ok",
+      tokenMode: "stateless-hmac",
+      config: {
+        tokenSecretSet: TOKEN_SECRET.length > 0,
+        clientsFile: CLIENTS_FILE,
+        clientsFilePersistent: !isEphemeralClientsFile(CLIENTS_FILE),
+        registeredClients: registeredClients.size,
+        nextAppUrlConfigured: NEXT_BASE_URL.length > 0,
+        approvalSecretSet: APPROVAL_SECRET.length > 0,
+      },
+    });
   });
 
   app.get("/.well-known/oauth-protected-resource", (_req, res) => {
@@ -335,13 +370,13 @@ export function startHttpServer(createServer: () => McpServer): void {
     }
     const client = registeredClients.get(client_id);
     if (!client) {
-      bad400(res, "AUTHORIZE", "Unknown OAuth client.", {
+      bad400Html(res, "AUTHORIZE", "Unknown OAuth client.", UNKNOWN_OAUTH_CLIENT_PAGE, {
         client_id, registeredClientIds: [...registeredClients.keys()],
       });
       return;
     }
     if (!isRedirectUriAllowed(client, redirect_uri)) {
-      bad400(res, "AUTHORIZE", "Redirect URI is not registered for this client.");
+      bad400Html(res, "AUTHORIZE", "Redirect URI is not registered for this client.", REDIRECT_URI_NOT_REGISTERED_PAGE);
       return;
     }
     const approvalId = crypto.randomUUID();

@@ -46,6 +46,7 @@ import {
   parsePolicyField,
   renderBulletList,
 } from "@/lib/pdf";
+import { isLastItineraryDay } from "@/lib/hotel-comparison-days";
 
 /** Keeps single-variant PDF tables from stretching full page width. */
 function pdfComparisonTableStyle(variantCount: number): string {
@@ -59,10 +60,10 @@ function pdfVariantColumnWidth(variantCount: number, dataColPct: number): string
 
 function pdfHotelImageHtml(imageUrl: string | null, hotelName: string, lightBg: string, lightOrange: string): string {
   const resolved = resolvePdfImageUrl(imageUrl);
-  const frame = "width: 100%; aspect-ratio: 16/10; overflow: hidden;";
+  const frame = "width: 100%; height: 120px; overflow: hidden;";
   if (resolved) {
     return `<div style="${frame} background: #F3F4F6;">
-      <img src="${escapeAttr(resolved)}" alt="${escapeAttr(hotelName)}" style="width: 100%; height: 100%; object-fit: cover;" />
+      <img src="${escapeAttr(resolved)}" alt="${escapeAttr(hotelName)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
     </div>`;
   }
   return `<div style="${frame} background: linear-gradient(135deg, ${lightBg} 0%, ${lightOrange} 100%); display: flex; align-items: center; justify-content: center;">
@@ -369,8 +370,32 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
     // Hotel comparison rows
     const hotelRows = allDays.map((day, i) => {
+      const isLastDay = isLastItineraryDay(day, initialData?.itineraries);
       const cells = variants.map(v => {
         const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
+        const itinerary = initialData?.itineraries?.find(it => it.dayNumber === day);
+        const variantTransportDetails = (initialData as any)?.variantTransportDetails as Record<string, Record<string, any[]>> | undefined;
+        const transportDetails = variantTransportDetails?.[v.sourceVariantId]?.[itinerary?.id || ''] ||
+          variantTransportDetails?.[v.id]?.[itinerary?.id || ''] ||
+          itinerary?.transportDetails || [];
+
+        if (isLastDay) {
+          if (transportDetails.length > 0) {
+            const transportHtml = transportDetails.map((t: any) => {
+              const vehicleObj = t?.vehicleType || vehicleTypes.find(vt => vt.id === t?.vehicleTypeId);
+              const vehicleName = vehicleObj?.name || 'Vehicle';
+              return `<div style="font-size: 10px; color: ${brandColors.text}; line-height: 1.3;">
+                <span style="font-weight: 600;">🚗 ${vehicleName}</span>
+                ${(t.quantity || 1) > 1 ? `<span> ×${t.quantity}</span>` : ''}
+              </div>`;
+            }).join('');
+            return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">${transportHtml}</td>`;
+          }
+          return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
+            <span style="color: ${brandColors.muted}; font-size: 11px; font-style: italic;">Departure day — no overnight stay</span>
+          </td>`;
+        }
+
         return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};">
           ${h ? `
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -582,6 +607,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
 
     const buildChunkRows = (days: number[]) => days.map((day, i) => {
       const isEven = i % 2 === 0;
+      const isLastDay = isLastItineraryDay(day, initialData?.itineraries);
       // Hotel data cells
       const cells = variants.map((v, vidx) => {
         const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
@@ -600,6 +626,42 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
           itinerary?.transportDetails || [];
 
         const getName = (obj: any) => obj?.name || '';
+
+        const transportBlockHtml = transportDetails.length > 0 ? `
+                  <div style="border-top: 1px solid ${brandColors.border}; padding-top: 6px; margin-top: 4px;">
+                    <div style="font-size: 9px; font-weight: 800; color: ${brandColors.primary}; margin-bottom: 4px; text-transform: uppercase;">🚗 Transport</div>
+                    ${transportDetails.map((t: any) => {
+          const vehicleObj = t?.vehicleType || vehicleTypes.find(vt => vt.id === t?.vehicleTypeId);
+          const vehicleName = getName(vehicleObj) || 'Vehicle';
+          return `
+                        <div style="font-size: 9px; color: ${brandColors.text}; line-height: 1.3;">
+                          <span style="font-weight: 600;">${vehicleName}</span>
+                          ${(t.quantity || 1) > 1 ? `<span> ×${t.quantity}</span>` : ''}
+                          ${t.capacity ? `<span style="color: ${brandColors.muted};"> (${t.capacity})</span>` : ''}
+                          ${t.description ? `<div style="font-size: 9px; color: ${brandColors.muted}; margin-top: 2px;">${t.description}</div>` : ''}
+                        </div>
+                      `;
+        }).join('')}
+                  </div>
+                ` : '';
+
+        if (isLastDay) {
+          if (transportDetails.length === 0) {
+            return `<td style="${tdBase} background: ${isEven ? brandColors.white : brandColors.subtlePanel}; padding: 8px 6px; ${isSingleVariant ? "max-width: 300px; width: 300px;" : ""}">
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1.5px dashed ${brandColors.border}; border-radius: 8px; background: ${brandColors.subtlePanel}; padding: 16px 8px;">
+                <span style="color: ${brandColors.muted}; font-size: 9px; font-style: italic;">Departure day — no overnight stay</span>
+              </div>
+            </td>`;
+          }
+
+          return `<td style="${tdBase} background: ${isEven ? brandColors.white : brandColors.subtlePanel}; padding: 8px 6px; ${isSingleVariant ? "max-width: 300px; width: 300px;" : ""}">
+            <div style="border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; background: white;">
+              <div style="padding: 9px 10px; border-top: 2.5px solid ${accent};">
+                ${transportBlockHtml}
+              </div>
+            </div>
+          </td>`;
+        }
 
         return `<td style="${tdBase} background: ${isEven ? brandColors.white : brandColors.subtlePanel}; padding: 8px 6px; ${isSingleVariant ? "max-width: 300px; width: 300px;" : ""}">
           ${h ? `
@@ -644,23 +706,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   </div>
                 ` : ''}
                 
-                ${transportDetails.length > 0 ? `
-                  <div style="border-top: 1px solid ${brandColors.border}; padding-top: 6px; margin-top: 4px;">
-                    <div style="font-size: 9px; font-weight: 800; color: ${brandColors.primary}; margin-bottom: 4px; text-transform: uppercase;">🚗 Transport</div>
-                    ${transportDetails.map((t: any) => {
-          const vehicleObj = t?.vehicleType || vehicleTypes.find(vt => vt.id === t?.vehicleTypeId);
-          const vehicleName = getName(vehicleObj) || 'Vehicle';
-          return `
-                        <div style="font-size: 9px; color: ${brandColors.text}; line-height: 1.3;">
-                          <span style="font-weight: 600;">${vehicleName}</span>
-                          ${(t.quantity || 1) > 1 ? `<span> ×${t.quantity}</span>` : ''}
-                          ${t.capacity ? `<span style="color: ${brandColors.muted};"> (${t.capacity})</span>` : ''}
-                          ${t.description ? `<div style="font-size: 9px; color: ${brandColors.muted}; margin-top: 2px;">${t.description}</div>` : ''}
-                        </div>
-                      `;
-        }).join('')}
-                  </div>
-                ` : ''}
+                ${transportBlockHtml}
               </div>
             </div>
           ` : `

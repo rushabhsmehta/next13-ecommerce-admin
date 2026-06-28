@@ -21,6 +21,7 @@ import {
   buildQtySubtitle,
   PricingCalculationBreakdown,
 } from "@/components/tour-package-query/PricingCalculationBreakdown";
+import { isLastItineraryDay } from "@/lib/hotel-comparison-days";
 
 interface VariantHotelSnapshot {
   id: string;
@@ -82,6 +83,7 @@ interface VariantComparisonSectionProps {
 interface HotelNightCardProps {
   hotelInfo: VariantHotelSnapshot | null | undefined;
   accent: string;
+  isLastDay?: boolean;
   roomAllocations: any[];
   transportDetails: any[];
   roomTypes: any[];
@@ -108,9 +110,35 @@ const getName = (field: any): string => {
   return field?.name || "";
 };
 
+function TransportBlock({
+  transportDetails,
+  vehicleTypes,
+}: Pick<HotelNightCardProps, "transportDetails" | "vehicleTypes">) {
+  if (transportDetails.length === 0) return null;
+
+  return (
+    <div className="mt-2 pt-2 border-t border-gray-100 first:mt-0 first:pt-0 first:border-t-0">
+      <div className="text-[10px] font-bold text-orange-700 mb-1">🚗 Transport</div>
+      {transportDetails.map((t: any, ti: number) => {
+        const vehicleObj = t?.vehicleType || vehicleTypes.find((vt) => vt.id === t?.vehicleTypeId);
+        const vehicleName = getName(vehicleObj) || "Vehicle";
+        return (
+          <div key={ti} className="text-[10px] text-gray-700 leading-snug">
+            <span className="font-semibold">{vehicleName}</span>
+            {(t.quantity || 1) > 1 && <span> ×{t.quantity}</span>}
+            {t.capacity && <span className="text-gray-400"> ({t.capacity})</span>}
+            {t.description && <div className="text-[10px] text-gray-500 mt-0.5">{t.description}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function HotelNightCardContent({
   hotelInfo,
   accent,
+  isLastDay = false,
   roomAllocations,
   transportDetails,
   roomTypes,
@@ -118,6 +146,22 @@ function HotelNightCardContent({
   mealPlans,
   vehicleTypes,
 }: Omit<HotelNightCardProps, "hotelInfo"> & { hotelInfo: VariantHotelSnapshot }) {
+  if (isLastDay) {
+    if (transportDetails.length === 0) {
+      return (
+        <div className="p-3 text-center" style={{ borderTop: `3px solid ${accent}` }}>
+          <span className="text-gray-500 italic text-[10px]">Departure day — no overnight stay</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-3" style={{ borderTop: `3px solid ${accent}` }}>
+        <TransportBlock transportDetails={transportDetails} vehicleTypes={vehicleTypes} />
+      </div>
+    );
+  }
+
   return (
     <div className="p-3" style={{ borderTop: `3px solid ${accent}` }}>
       <div className="font-bold text-gray-900 text-sm leading-tight mb-0.5">{hotelInfo.hotelName}</div>
@@ -177,23 +221,7 @@ function HotelNightCardContent({
         </div>
       )}
 
-      {transportDetails.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-gray-100">
-          <div className="text-[10px] font-bold text-orange-700 mb-1">🚗 Transport</div>
-          {transportDetails.map((t: any, ti: number) => {
-            const vehicleObj = t?.vehicleType || vehicleTypes.find((vt) => vt.id === t?.vehicleTypeId);
-            const vehicleName = getName(vehicleObj) || "Vehicle";
-            return (
-              <div key={ti} className="text-[10px] text-gray-700 leading-snug">
-                <span className="font-semibold">{vehicleName}</span>
-                {(t.quantity || 1) > 1 && <span> ×{t.quantity}</span>}
-                {t.capacity && <span className="text-gray-400"> ({t.capacity})</span>}
-                {t.description && <div className="text-[10px] text-gray-500 mt-0.5">{t.description}</div>}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <TransportBlock transportDetails={transportDetails} vehicleTypes={vehicleTypes} />
     </div>
   );
 }
@@ -201,6 +229,7 @@ function HotelNightCardContent({
 function HotelNightCard({
   hotelInfo,
   accent,
+  isLastDay = false,
   roomAllocations,
   transportDetails,
   roomTypes,
@@ -208,9 +237,27 @@ function HotelNightCard({
   mealPlans,
   vehicleTypes,
 }: HotelNightCardProps) {
+  if (isLastDay) {
+    if (transportDetails.length === 0) {
+      return (
+        <div className="w-full flex flex-col items-center justify-center border border-dashed border-orange-200 rounded-lg bg-orange-50/30 py-6 px-3">
+          <span className="text-gray-500 italic text-[10px]">Departure day — no overnight stay</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="p-3" style={{ borderTop: `3px solid ${accent}` }}>
+          <TransportBlock transportDetails={transportDetails} vehicleTypes={vehicleTypes} />
+        </div>
+      </div>
+    );
+  }
+
   if (!hotelInfo) {
     return (
-      <div className="h-32 flex flex-col items-center justify-center border border-dashed border-orange-200 rounded-lg bg-orange-50/30">
+      <div className="w-full h-32 flex flex-col items-center justify-center border border-dashed border-orange-200 rounded-lg bg-orange-50/30">
         <span className="text-xl opacity-40">🏷️</span>
         <span className="text-gray-400 italic text-[10px] mt-1">Not specified</span>
       </div>
@@ -218,7 +265,7 @@ function HotelNightCard({
   }
 
   const imageSection = hotelInfo.imageUrl ? (
-    <div className="relative aspect-[16/10] bg-gray-100">
+    <div className="relative h-36 w-full overflow-hidden bg-gray-100">
       <Image
         src={hotelInfo.imageUrl}
         alt={hotelInfo.hotelName}
@@ -228,17 +275,18 @@ function HotelNightCard({
       />
     </div>
   ) : (
-    <div className="relative aspect-[16/10] bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
+    <div className="relative h-36 w-full overflow-hidden bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
       <span className="text-4xl">🏨</span>
     </div>
   );
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+    <div className="w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm">
       {imageSection}
       <HotelNightCardContent
         hotelInfo={hotelInfo}
         accent={accent}
+        isLastDay={isLastDay}
         roomAllocations={roomAllocations}
         transportDetails={transportDetails}
         roomTypes={roomTypes}
@@ -407,6 +455,7 @@ export function VariantComparisonSection({
                     </td>
                     {variants.map((variant: any, vidx) => {
                       const { hotelInfo, roomAllocations, transportDetails } = getNightContext(variant, day);
+                      const isLastDay = isLastItineraryDay(day, itineraries);
                       return (
                         <td
                           key={variant.id}
@@ -417,6 +466,7 @@ export function VariantComparisonSection({
                           <HotelNightCard
                             hotelInfo={hotelInfo}
                             accent={variantAccentColors[vidx % variantAccentColors.length]}
+                            isLastDay={isLastDay}
                             roomAllocations={roomAllocations}
                             transportDetails={transportDetails}
                             roomTypes={roomTypes}

@@ -24,6 +24,7 @@ import {
 } from "@/lib/pdf";
 import { /* renderItineraryImages, */ renderActivityImages } from "@/lib/itinerary-image-html";
 import { normalizeItineraryDays } from "@/lib/utils";
+import { isLastItineraryDay } from "@/lib/hotel-comparison-days";
 
 /** Keeps single-variant PDF tables from stretching full page width. */
 function pdfComparisonTableStyle(variantCount: number): string {
@@ -336,8 +337,31 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `).join('');
 
     const hotelRows = allDays.map((day, i) => {
+      const isLastDay = isLastItineraryDay(day, initialData?.itineraries);
       const cells = variants.map(v => {
         const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
+        const itinerary = initialData?.itineraries?.find(it => it.dayNumber === day);
+        const variantTransportDetails = (initialData as any)?.variantTransportDetails as Record<string, Record<string, any[]>> | undefined;
+        const transportDetails = variantTransportDetails?.[(v as any).sourceVariantId]?.[itinerary?.id || ''] ||
+          variantTransportDetails?.[v.id]?.[itinerary?.id || ''] ||
+          itinerary?.transportDetails || [];
+
+        if (isLastDay) {
+          if (transportDetails.length > 0) {
+            const transportHtml = transportDetails.map((t: any) => {
+              const vehicleName = t?.vehicleType?.name || 'Vehicle';
+              return `<div style="font-size: 10px; color: ${brandColors.text}; line-height: 1.3;">
+                <span style="font-weight: 600;">🚗 ${vehicleName}</span>
+                ${(t.quantity || 1) > 1 ? `<span> ×${t.quantity}</span>` : ''}
+              </div>`;
+            }).join('');
+            return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};${isSingleVariant ? " max-width: 300px; width: 300px;" : ""}">${transportHtml}</td>`;
+          }
+          return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};${isSingleVariant ? " max-width: 300px; width: 300px;" : ""}">
+            <span style="color: ${brandColors.muted}; font-size: 11px; font-style: italic;">Departure day — no overnight stay</span>
+          </td>`;
+        }
+
         return `<td style="${tdBase} background: ${i % 2 === 0 ? brandColors.white : brandColors.subtlePanel};${isSingleVariant ? " max-width: 300px; width: 300px;" : ""}">
           ${h ? `
             <div style="display: flex; align-items: center; gap: 10px;">

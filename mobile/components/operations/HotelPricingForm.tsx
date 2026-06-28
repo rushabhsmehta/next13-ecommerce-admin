@@ -278,7 +278,11 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
       await client.createHotelPricing(hotelId, buildPayload({}, applySplit));
       router.replace(`/admin/operations/hotels/${hotelId}/pricing` as never);
     } else if (pricingId) {
-      await client.updateHotelPricing(hotelId, pricingId, buildPayload({}, false));
+      await client.updateHotelPricing(
+        hotelId,
+        pricingId,
+        buildPayload({}, applySplit)
+      );
       router.replace(
         `/admin/operations/hotels/${hotelId}/pricing/${pricingId}` as never
       );
@@ -340,22 +344,26 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
       return;
     }
 
-    if (mode === "create") {
-      try {
-        const preview = await client.checkHotelPricingOverlap(
-          hotelId,
-          buildPayload({}, false)
-        );
-        if (preview.willSplit) {
-          Alert.alert("Overlap detected", preview.message, [
-            { text: "Cancel", style: "cancel" },
-            { text: "Apply split", onPress: () => void save(true) },
-          ]);
-          return;
-        }
-      } catch {
-        // If preview fails, save without split and let the API validation handle it.
+    try {
+      const preview = await client.checkHotelPricingOverlap(hotelId, {
+        ...buildPayload({}, false),
+        excludeId: mode === "edit" ? pricingId : undefined,
+      });
+      if (preview.willSplit) {
+        Alert.alert("Overlap detected", preview.message, [
+          { text: "Cancel", style: "cancel" },
+          { text: "Apply split", onPress: () => void save(true) },
+        ]);
+        return;
       }
+    } catch (err) {
+      Alert.alert(
+        "Overlap check failed",
+        err instanceof ApiError
+          ? err.message
+          : "Could not verify date overlap. Please try again."
+      );
+      return;
     }
 
     await save(false);

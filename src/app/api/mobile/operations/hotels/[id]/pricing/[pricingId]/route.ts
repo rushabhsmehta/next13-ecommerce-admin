@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
+import { upsertPricingWithSplit } from "@/lib/hotel-pricing-overlap";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import {
   requireOperationsRead,
@@ -19,6 +20,7 @@ const pricingSchema = z.object({
   mealPlanId: z.string().nullable().optional(),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   isActive: z.boolean().optional(),
+  applySplit: z.boolean().optional(),
   locationSeasonalPeriodId: z.string().nullable().optional(),
 });
 
@@ -144,44 +146,68 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string;
       );
     }
 
-    const pricing = await prismadb.hotelPricing.update({
-      where: { id: params.pricingId },
-      data: {
-        startDate,
-        endDate,
-        roomTypeId: v.roomTypeId,
-        occupancyTypeId: v.occupancyTypeId,
-        mealPlanId: v.mealPlanId || null,
-        price: v.price,
-        isActive: v.isActive ?? true,
-        locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
+    const pricingSelect = {
+      id: true,
+      hotelId: true,
+      startDate: true,
+      endDate: true,
+      price: true,
+      isActive: true,
+      roomTypeId: true,
+      occupancyTypeId: true,
+      mealPlanId: true,
+      locationSeasonalPeriodId: true,
+      roomType: { select: { id: true, name: true } },
+      occupancyType: { select: { id: true, name: true } },
+      mealPlan: { select: { id: true, name: true, code: true } },
+      locationSeasonalPeriod: {
+        select: { id: true, name: true, seasonType: true },
       },
-      select: {
-        id: true,
-        hotelId: true,
-        startDate: true,
-        endDate: true,
-        price: true,
-        isActive: true,
-        roomTypeId: true,
-        occupancyTypeId: true,
-        mealPlanId: true,
-        locationSeasonalPeriodId: true,
-        roomType: { select: { id: true, name: true } },
-        occupancyType: { select: { id: true, name: true } },
-        mealPlan: { select: { id: true, name: true, code: true } },
-        locationSeasonalPeriod: {
-          select: { id: true, name: true, seasonType: true },
-        },
-      },
-    });
+    } as const;
+
+    const pricing = v.applySplit
+      ? await prismadb.$transaction(async (tx) => {
+          const updated = await upsertPricingWithSplit(
+            tx,
+            {
+              hotelId: params.id,
+              startDate,
+              endDate,
+              roomTypeId: v.roomTypeId,
+              occupancyTypeId: v.occupancyTypeId,
+              mealPlanId: v.mealPlanId || null,
+              price: v.price,
+              locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
+              isActive: v.isActive ?? true,
+            },
+            { excludeId: params.pricingId }
+          );
+          return tx.hotelPricing.findUniqueOrThrow({
+            where: { id: updated.id },
+            select: pricingSelect,
+          });
+        })
+      : await prismadb.hotelPricing.update({
+          where: { id: params.pricingId },
+          data: {
+            startDate,
+            endDate,
+            roomTypeId: v.roomTypeId,
+            occupancyTypeId: v.occupancyTypeId,
+            mealPlanId: v.mealPlanId || null,
+            price: v.price,
+            isActive: v.isActive ?? true,
+            locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
+          },
+          select: pricingSelect,
+        });
 
     await recordMobileAudit({
       userId,
       entityType: "HotelPricing",
       entityId: pricing.id,
       action: "UPDATE",
-      metadata: { hotelId: params.id },
+      metadata: { hotelId: params.id, applySplit: !!v.applySplit },
     });
 
     return NextResponse.json({

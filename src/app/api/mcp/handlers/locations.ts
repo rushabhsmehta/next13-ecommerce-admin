@@ -1,5 +1,9 @@
 import prismadb from "@/lib/prismadb";
 import { z } from "zod";
+import {
+  hasOverlappingPeriods,
+  upsertPricingWithSplit,
+} from "@/lib/hotel-pricing-overlap";
 import type { ToolHandlerMap } from "../lib/schemas";
 import { NotFoundError } from "../lib/errors";
 
@@ -285,18 +289,25 @@ async function createHotelPricing(rawParams: unknown) {
   const hotel = await prismadb.hotel.findUnique({ where: { id: hotelId }, select: { id: true } });
   if (!hotel) throw new NotFoundError(`Hotel ${hotelId} not found`);
 
-  return prismadb.hotelPricing.create({
-    data: {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  const created = await prismadb.$transaction((tx) =>
+    upsertPricingWithSplit(tx, {
       hotelId,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: start,
+      endDate: end,
       roomTypeId,
       occupancyTypeId,
       price,
       mealPlanId: mealPlanId ?? null,
       locationSeasonalPeriodId: locationSeasonalPeriodId ?? null,
       isActive: true,
-    },
+    })
+  );
+
+  return prismadb.hotelPricing.findUniqueOrThrow({
+    where: { id: created.id },
     select: {
       id: true,
       startDate: true,
@@ -315,8 +326,80 @@ async function updateHotelPricing(rawParams: unknown) {
   const { hotelId, pricingId, startDate, endDate, roomTypeId, occupancyTypeId, price, mealPlanId, locationSeasonalPeriodId } =
     UpdateHotelPricingSchema.parse(rawParams);
 
-  const existing = await prismadb.hotelPricing.findUnique({ where: { id: pricingId }, select: { id: true, hotelId: true } });
-  if (!existing || existing.hotelId !== hotelId) throw new NotFoundError(`Hotel pricing ${pricingId} not found`);
+  const existing = await prismadb.hotelPricing.findUnique({
+    where: { id: pricingId },
+    select: {
+      id: true,
+      hotelId: true,
+      startDate: true,
+      endDate: true,
+      roomTypeId: true,
+      occupancyTypeId: true,
+      mealPlanId: true,
+      price: true,
+      locationSeasonalPeriodId: true,
+      isActive: true,
+    },
+  });
+  if (!existing || existing.hotelId !== hotelId) {
+    throw new NotFoundError(`Hotel pricing ${pricingId} not found`);
+  }
+
+  const merged = {
+    hotelId,
+    startDate: startDate !== undefined ? new Date(startDate) : existing.startDate,
+    endDate: endDate !== undefined ? new Date(endDate) : existing.endDate,
+    roomTypeId: roomTypeId ?? existing.roomTypeId!,
+    occupancyTypeId: occupancyTypeId ?? existing.occupancyTypeId!,
+    mealPlanId: mealPlanId !== undefined ? mealPlanId : existing.mealPlanId,
+    price: price !== undefined ? price : existing.price,
+    locationSeasonalPeriodId:
+      locationSeasonalPeriodId !== undefined
+        ? locationSeasonalPeriodId
+        : existing.locationSeasonalPeriodId,
+    isActive: existing.isActive,
+  };
+
+  const dimensionalOrDateChange =
+    startDate !== undefined ||
+    endDate !== undefined ||
+    roomTypeId !== undefined ||
+    occupancyTypeId !== undefined ||
+    mealPlanId !== undefined;
+
+  const needsSplit =
+    dimensionalOrDateChange &&
+    (await prismadb.$transaction((tx) =>
+      hasOverlappingPeriods(tx, {
+        hotelId: merged.hotelId,
+        roomTypeId: merged.roomTypeId,
+        occupancyTypeId: merged.occupancyTypeId,
+        mealPlanId: merged.mealPlanId,
+        startDate: merged.startDate,
+        endDate: merged.endDate,
+        excludeId: pricingId,
+      })
+    ));
+
+  if (needsSplit) {
+    const updated = await prismadb.$transaction((tx) =>
+      upsertPricingWithSplit(tx, merged, { excludeId: pricingId })
+    );
+    return prismadb.hotelPricing.findUniqueOrThrow({
+      where: { id: updated.id },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        price: true,
+        locationSeasonalPeriodId: true,
+        roomType: { select: { id: true, name: true } },
+        occupancyType: { select: { id: true, name: true } },
+        mealPlan: { select: { id: true, name: true } },
+        locationSeasonalPeriod: { select: { id: true, name: true, seasonType: true } },
+      },
+    });
+  }
 
   return prismadb.hotelPricing.update({
     where: { id: pricingId },

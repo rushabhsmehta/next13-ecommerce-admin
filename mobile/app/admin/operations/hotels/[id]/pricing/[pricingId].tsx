@@ -244,7 +244,8 @@ function Inner() {
       <View style={styles.noteCard}>
         <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
         <Text style={styles.noteText}>
-          New overlapping ranges are split automatically to preserve non-overlapping dates.
+          When dates overlap an existing range, confirm Apply split on create or edit
+          to preserve non-overlapping dates.
         </Text>
       </View>
     </AdminScreen>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { upsertPricingWithSplit } from "@/lib/hotel-pricing-overlap";
 import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET a specific pricing period
@@ -68,6 +69,7 @@ export async function PATCH(
       occupancyTypeId, 
       price, 
       mealPlanId,
+      applySplit,
       locationSeasonalPeriodId,
     } = body;
 
@@ -92,14 +94,49 @@ export async function PATCH(
 
     if (!hotel) {
       return new NextResponse("Hotel not found", { status: 404 });
-    }    // Update the hotel pricing record
+    }
+
+    const newStart = dateToUtc(startDate)!;
+    const newEnd = dateToUtc(endDate)!;
+
+    if (applySplit) {
+      const updatedPricing = await prismadb.$transaction(async (tx) =>
+        upsertPricingWithSplit(
+          tx,
+          {
+            hotelId: params.hotelId,
+            startDate: newStart,
+            endDate: newEnd,
+            roomTypeId,
+            occupancyTypeId,
+            mealPlanId: mealPlanId || null,
+            price,
+            locationSeasonalPeriodId: locationSeasonalPeriodId ?? null,
+            isActive: true,
+          },
+          { excludeId: params.pricingId }
+        )
+      );
+      const withRelations = await prismadb.hotelPricing.findUnique({
+        where: { id: updatedPricing.id },
+        include: {
+          roomType: true,
+          occupancyType: true,
+          mealPlan: true,
+          locationSeasonalPeriod: true,
+        },
+      });
+      return NextResponse.json(withRelations ?? updatedPricing);
+    }
+
     const updatedPricing = await prismadb.hotelPricing.update({
       where: {
         id: params.pricingId,
         hotelId: params.hotelId
       },
-      data: {        startDate: dateToUtc(startDate)!,
-        endDate: dateToUtc(endDate)!,
+      data: {
+        startDate: newStart,
+        endDate: newEnd,
         roomTypeId,
         occupancyTypeId,
         price,

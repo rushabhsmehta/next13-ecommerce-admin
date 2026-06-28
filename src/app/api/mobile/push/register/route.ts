@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
+import { linkDeviceTokenToTravelUser, upsertDevicePushToken } from "@/lib/device-push-token";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,14 @@ export async function POST(req: Request) {
         platform: typeof platform === "string" ? platform : undefined,
       },
     });
+
+    await upsertDevicePushToken({
+      expoPushToken,
+      platform: typeof platform === "string" ? platform : null,
+      appVariant: "public",
+      travelAppUserId,
+    });
+    await linkDeviceTokenToTravelUser(expoPushToken, travelAppUserId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

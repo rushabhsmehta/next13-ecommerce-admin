@@ -100,6 +100,14 @@ export async function sendExpoPushBatch(messages: ExpoPushMessage[]): Promise<Ex
       } catch (err) {
         console.error("[EXPO_PUSH] failed to clear stale admin tokens", err);
       }
+      try {
+        await prismadb.devicePushToken.updateMany({
+          where: { expoPushToken: { in: badTokens } },
+          data: { isActive: false },
+        });
+      } catch (err) {
+        console.error("[EXPO_PUSH] failed to deactivate stale device tokens", err);
+      }
     }
   }
 
@@ -197,4 +205,59 @@ export async function sendWhatsAppInboundPush(
   }));
 
   await sendExpoPushBatch(messages);
+}
+
+export interface MarketingPushPayload {
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+  appVariant?: string;
+}
+
+export interface MarketingPushResult {
+  recipientCount: number;
+  ticketOkCount: number;
+  ticketErrorCount: number;
+}
+
+/**
+ * Broadcast a marketing push to every active install token (logged in or not).
+ * Targets Aagam Holidays (`public` variant) devices with marketing opt-in.
+ */
+export async function sendMarketingBroadcast(
+  payload: MarketingPushPayload,
+): Promise<MarketingPushResult> {
+  const appVariant = payload.appVariant ?? "public";
+
+  const devices = await prismadb.devicePushToken.findMany({
+    where: {
+      isActive: true,
+      marketingOptIn: true,
+      appVariant,
+    },
+    select: { expoPushToken: true },
+  });
+
+  const recipientCount = devices.length;
+  if (recipientCount === 0) {
+    return { recipientCount: 0, ticketOkCount: 0, ticketErrorCount: 0 };
+  }
+
+  const messages: ExpoPushMessage[] = devices.map((d) => ({
+    to: d.expoPushToken,
+    title: payload.title,
+    body: payload.body,
+    data: {
+      type: "marketing",
+      ...(payload.data ?? {}),
+    },
+    sound: "default",
+    channelId: "marketing",
+  }));
+
+  const tickets = await sendExpoPushBatch(messages);
+  const ticketOkCount = tickets.filter((t) => t.status === "ok").length;
+  const ticketErrorCount = tickets.filter((t) => t.status === "error").length;
+
+  return { recipientCount, ticketOkCount, ticketErrorCount };
 }

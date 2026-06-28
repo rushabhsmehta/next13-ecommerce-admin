@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     const guard = await requireMobileAdminPermission(userId, "travelAppAdmin.read");
     if (!guard.ok) return guard.response;
 
-    const [users, chatGroups, adminTokens, mobileTokenCount, activeMobileTokenCount] = await Promise.all([
+    const [users, chatGroups, adminTokens, mobileTokenCount, activeMobileTokenCount, marketingDeviceCount] = await Promise.all([
       prismadb.travelAppUser.findMany({
         include: {
           _count: {
@@ -53,6 +53,9 @@ export async function GET(req: Request) {
       }),
       prismadb.mobilePushToken.count(),
       prismadb.mobilePushToken.count({ where: { isActive: true } }),
+      prismadb.devicePushToken.count({
+        where: { isActive: true, marketingOptIn: true, appVariant: "public" },
+      }),
     ]);
 
     return NextResponse.json({
@@ -101,6 +104,7 @@ export async function GET(req: Request) {
         })),
         mobileTokenCount,
         activeMobileTokenCount,
+        marketingDeviceCount,
       },
     });
   } catch (error) {

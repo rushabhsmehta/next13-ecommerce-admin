@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
-import { upsertPricingWithSplit } from "@/lib/hotel-pricing-overlap";
+import {
+  hasOverlappingPeriods,
+  upsertPricingWithSplit,
+} from "@/lib/hotel-pricing-overlap";
 import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET hotel pricing for a specific hotelId
@@ -119,6 +122,26 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
         })
       );
       return NextResponse.json(result);
+    }
+
+    const overlaps = await prismadb.$transaction((tx) =>
+      hasOverlappingPeriods(tx, {
+        hotelId: params.hotelId,
+        roomTypeId,
+        occupancyTypeId,
+        mealPlanId: mealPlanId || null,
+        startDate: newStart,
+        endDate: newEnd,
+      })
+    );
+    if (overlaps) {
+      return NextResponse.json(
+        {
+          message:
+            "Overlapping pricing period exists. Set applySplit to true or adjust dates.",
+        },
+        { status: 409 }
+      );
     }
 
     // Create the hotel pricing record without splitting

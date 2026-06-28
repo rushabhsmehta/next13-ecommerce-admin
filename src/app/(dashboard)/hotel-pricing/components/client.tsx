@@ -449,7 +449,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     }
   }
 
-  const submitPricing = async (row: EditingRow) => {
+  const submitPricing = async (row: EditingRow, applySplit = false) => {
     if (!selectedHotelId) return
 
     try {
@@ -467,7 +467,10 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
 
       if (row.id) {
         // Update existing
-        await axios.patch(`/api/hotels/${selectedHotelId}/pricing/${row.id}`, data)
+        await axios.patch(`/api/hotels/${selectedHotelId}/pricing/${row.id}`, {
+          ...data,
+          applySplit,
+        })
         toast.success("Pricing period updated")
       } else if (selectedSeasonalPeriods.length === 1) {
         const period = selectedSeasonalPeriods[0]
@@ -479,15 +482,15 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
             startDate: dateRange.start,
             endDate: dateRange.end,
             locationSeasonalPeriodId: period.id,
-            applySplit: true,
+            applySplit: applySplit || true,
           })
         }
         toast.success("Pricing period created")
       } else {
-        // Create new with splitting
+        // Create new
         await axios.post(`/api/hotels/${selectedHotelId}/pricing`, {
           ...data,
-          applySplit: true,
+          applySplit,
         })
         toast.success("Pricing period created")
       }
@@ -560,7 +563,7 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   const handleConfirmSplit = async () => {
     if (pendingSubmit) {
       setShowSplitDialog(false)
-      await submitPricing(pendingSubmit)
+      await submitPricing(pendingSubmit, true)
     }
   }
 

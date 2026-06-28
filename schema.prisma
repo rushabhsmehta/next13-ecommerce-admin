@@ -1902,6 +1902,7 @@ model TravelAppUser {
   chatInvitesAccepted ChatGroupInvite[]  @relation("ChatInvitesAccepted")
   pushSubscriptions   PushSubscription[]
   mobilePushTokens    MobilePushToken[]
+  devicePushTokens    DevicePushToken[]
   savedPackages       SavedPackage[]
 
   @@index([email])
@@ -2107,6 +2108,40 @@ model MobilePushToken {
   @@unique([travelAppUserId, expoPushToken])
   @@index([travelAppUserId])
   @@index([isActive])
+}
+
+/// Install-level Expo token for Aagam Holidays (public app). Registered on launch — no sign-in required.
+model DevicePushToken {
+  id              String         @id @default(uuid())
+  expoPushToken   String         @unique @db.VarChar(500)
+  platform        String?
+  appVariant      String         @default("public")
+  travelAppUserId String?
+  marketingOptIn  Boolean        @default(true)
+  isActive        Boolean        @default(true)
+  lastSeenAt      DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  travelAppUser   TravelAppUser? @relation(fields: [travelAppUserId], references: [id], onDelete: SetNull)
+
+  @@index([travelAppUserId])
+  @@index([isActive, appVariant])
+  @@index([marketingOptIn])
+}
+
+model MarketingPushBroadcast {
+  id               String   @id @default(uuid())
+  title            String
+  body             String   @db.Text
+  data             Json?
+  sentBy           String
+  recipientCount   Int      @default(0)
+  ticketOkCount    Int      @default(0)
+  ticketErrorCount Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([sentBy])
 }
 
 model AdminMobileToken {

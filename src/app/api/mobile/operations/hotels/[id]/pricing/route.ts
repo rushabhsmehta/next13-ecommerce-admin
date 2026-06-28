@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";
-import { dateToUtc, MILLISECONDS_PER_DAY } from "@/lib/timezone-utils";
+import { dateToUtc } from "@/lib/timezone-utils";
+import {
+  hasOverlappingPeriods,
+  upsertPricingWithSplit,
+} from "@/lib/hotel-pricing-overlap";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import {
   requireOperationsRead,
@@ -65,103 +69,6 @@ function formatPricingRow(row: {
     seasonalPeriodName: row.locationSeasonalPeriod?.name ?? null,
     seasonType: row.locationSeasonalPeriod?.seasonType ?? null,
   };
-}
-
-async function applyPricingSplit(input: {
-  hotelId: string;
-  startDate: Date;
-  endDate: Date;
-  roomTypeId: string;
-  occupancyTypeId: string;
-  mealPlanId: string | null;
-  price: number;
-  isActive: boolean;
-  locationSeasonalPeriodId?: string | null;
-}) {
-  return prismadb.$transaction(async (tx) => {
-    const overlappingPeriods = await tx.hotelPricing.findMany({
-      where: {
-        hotelId: input.hotelId,
-        roomTypeId: input.roomTypeId,
-        occupancyTypeId: input.occupancyTypeId,
-        mealPlanId: input.mealPlanId,
-        isActive: true,
-        AND: [
-          { startDate: { lte: input.endDate } },
-          { endDate: { gte: input.startDate } },
-        ],
-      },
-      orderBy: { startDate: "asc" },
-    });
-
-    for (const period of overlappingPeriods) {
-      await tx.hotelPricing.delete({ where: { id: period.id } });
-
-      if (period.startDate < input.startDate) {
-        await tx.hotelPricing.create({
-          data: {
-            hotelId: input.hotelId,
-            startDate: period.startDate,
-            endDate: new Date(input.startDate.getTime() - MILLISECONDS_PER_DAY),
-            roomTypeId: period.roomTypeId,
-            occupancyTypeId: period.occupancyTypeId,
-            mealPlanId: period.mealPlanId,
-            price: period.price,
-            locationSeasonalPeriodId: period.locationSeasonalPeriodId,
-            isActive: true,
-          },
-        });
-      }
-
-      if (period.endDate > input.endDate) {
-        await tx.hotelPricing.create({
-          data: {
-            hotelId: input.hotelId,
-            startDate: new Date(input.endDate.getTime() + MILLISECONDS_PER_DAY),
-            endDate: period.endDate,
-            roomTypeId: period.roomTypeId,
-            occupancyTypeId: period.occupancyTypeId,
-            mealPlanId: period.mealPlanId,
-            price: period.price,
-            locationSeasonalPeriodId: period.locationSeasonalPeriodId,
-            isActive: true,
-          },
-        });
-      }
-    }
-
-    return tx.hotelPricing.create({
-      data: {
-        hotelId: input.hotelId,
-        startDate: input.startDate,
-        endDate: input.endDate,
-        roomTypeId: input.roomTypeId,
-        occupancyTypeId: input.occupancyTypeId,
-        mealPlanId: input.mealPlanId,
-        price: input.price,
-        isActive: input.isActive,
-        locationSeasonalPeriodId: input.locationSeasonalPeriodId ?? null,
-      },
-      select: {
-        id: true,
-        hotelId: true,
-        startDate: true,
-        endDate: true,
-        price: true,
-        isActive: true,
-        roomTypeId: true,
-        occupancyTypeId: true,
-        mealPlanId: true,
-        locationSeasonalPeriodId: true,
-        roomType: { select: { id: true, name: true } },
-        occupancyType: { select: { id: true, name: true } },
-        mealPlan: { select: { id: true, name: true, code: true } },
-        locationSeasonalPeriod: {
-          select: { id: true, name: true, seasonType: true },
-        },
-      },
-    });
-  });
 }
 
 /** Hotel pricing rows — list (read). Mirrors web GET /api/hotels/[hotelId]/pricing. */
@@ -315,11 +222,52 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     } as const;
 
     const pricing = v.applySplit
-      ? await applyPricingSplit(input)
-      : await prismadb.hotelPricing.create({
-          data: input,
-          select: pricingSelect,
-        });
+      ? await prismadb.$transaction(async (tx) => {
+          const created = await upsertPricingWithSplit(tx, {
+            hotelId: params.id,
+            startDate,
+            endDate,
+            roomTypeId: v.roomTypeId,
+            occupancyTypeId: v.occupancyTypeId,
+            mealPlanId: v.mealPlanId || null,
+            price: v.price,
+            locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
+            isActive: v.isActive ?? true,
+          });
+          return tx.hotelPricing.findUniqueOrThrow({
+            where: { id: created.id },
+            select: pricingSelect,
+          });
+        })
+      : await (async () => {
+          const overlaps = await prismadb.$transaction((tx) =>
+            hasOverlappingPeriods(tx, {
+              hotelId: params.id,
+              roomTypeId: v.roomTypeId,
+              occupancyTypeId: v.occupancyTypeId,
+              mealPlanId: v.mealPlanId || null,
+              startDate,
+              endDate,
+            })
+          );
+          if (overlaps) {
+            return NextResponse.json(
+              {
+                error:
+                  "Overlapping pricing period exists. Set applySplit to true or adjust dates.",
+              },
+              { status: 409 }
+            );
+          }
+          return prismadb.hotelPricing.create({
+            data: input,
+            select: pricingSelect,
+          });
+        })();
+
+    if (pricing instanceof NextResponse) {
+      return pricing;
+    }
 
     await recordMobileAudit({
       userId,

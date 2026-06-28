@@ -17,6 +17,10 @@ import {
   unregisterChatPushToken,
 } from "@/lib/chat/push";
 import {
+  configureMarketingNotifications,
+  registerDevicePushToken,
+} from "@/lib/device-push";
+import {
   configureWhatsAppNotificationChannel,
   registerAdminPushToken,
   unregisterAdminPushToken,
@@ -24,6 +28,7 @@ import {
 import { UnreadProvider, useUnread } from "@/hooks/useUnread";
 import { WhatsAppUnreadProvider, useWhatsAppUnread } from "@/hooks/useWhatsAppUnread";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { isPublicApp } from "@/lib/app-variant";
 import { setDevAuthBypassToken } from "@/lib/dev-auth-bypass";
 
 const tokenCache = {
@@ -80,6 +85,12 @@ function PushController() {
   const lastChatRegisteredFor = useRef<boolean | null>(null);
   const lastAdminRegisteredFor = useRef<boolean | null>(null);
 
+  // Marketing / install-level push (public app): register on launch; re-register on sign-in to link user.
+  useEffect(() => {
+    if (!isPublicApp()) return;
+    void registerDevicePushToken(() => getToken());
+  }, [getToken, isSignedIn, travelUser?.id]);
+
   // Chat push: Clerk session or dev-bypass travel user (see resolveMobileAuthToken).
   const chatPushActive = !!(isSignedIn || travelUser?.id);
   useEffect(() => {
@@ -109,11 +120,12 @@ function PushController() {
   // Configure handlers, foreground receivers (bump unread badges), tap listeners (deep-link).
   useEffect(() => {
     configureChatNotifications();
+    configureMarketingNotifications();
     configureWhatsAppNotificationChannel();
 
     const tapSub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as
-        | { type?: string; groupId?: string; phone?: string }
+        | { type?: string; groupId?: string; phone?: string; linkPath?: string }
         | undefined;
       if (data?.type === "chat_message" && data.groupId) {
         try {
@@ -124,6 +136,12 @@ function PushController() {
       if (data?.type === "whatsapp_message" && data.phone) {
         try {
           router.push(`/whatsapp/${encodeURIComponent(data.phone)}`);
+        } catch {}
+        return;
+      }
+      if (data?.type === "marketing" && data.linkPath && typeof data.linkPath === "string") {
+        try {
+          router.push(data.linkPath as `/${string}`);
         } catch {}
       }
     });

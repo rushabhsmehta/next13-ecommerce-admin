@@ -26,18 +26,20 @@ export interface UpsertPricingInput {
 
 type PricingTx = Prisma.TransactionClient;
 
+export type OverlapLookupParams = {
+  hotelId: string;
+  roomTypeId: string;
+  occupancyTypeId: string;
+  mealPlanId: string | null;
+  startDate: Date;
+  endDate: Date;
+  excludeId?: string;
+};
+
 /** Find overlapping pricing periods for the same dimensional key */
 export async function findOverlappingPeriods(
   tx: PricingTx,
-  params: {
-    hotelId: string;
-    roomTypeId: string;
-    occupancyTypeId: string;
-    mealPlanId: string | null;
-    startDate: Date;
-    endDate: Date;
-    excludeId?: string;
-  }
+  params: OverlapLookupParams
 ) {
   return tx.hotelPricing.findMany({
     where: {
@@ -54,6 +56,15 @@ export async function findOverlappingPeriods(
     },
     orderBy: { startDate: "asc" },
   });
+}
+
+/** Whether any active pricing row overlaps the given range and dimensional key */
+export async function hasOverlappingPeriods(
+  tx: PricingTx,
+  params: OverlapLookupParams
+): Promise<boolean> {
+  const overlapping = await findOverlappingPeriods(tx, params);
+  return overlapping.length > 0;
 }
 
 /** Split overlapping periods and create the new pricing row */

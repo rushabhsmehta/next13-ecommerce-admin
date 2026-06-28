@@ -36,12 +36,17 @@ export async function POST(req: Request) {
     if (prior) {
       const existing = await prismadb.tourPackageQuery.findUnique({
         where: { id: prior },
-        select: { id: true, tourPackageQueryNumber: true },
+        select: {
+          id: true,
+          tourPackageQueryNumber: true,
+          tourPackageQueryName: true,
+        },
       });
       return NextResponse.json(
         {
           id: prior,
           tourPackageQueryNumber: existing?.tourPackageQueryNumber ?? null,
+          tourPackageQueryName: existing?.tourPackageQueryName ?? null,
           idempotentReplay: true,
         },
         { status: 200 }
@@ -116,6 +121,7 @@ export async function POST(req: Request) {
       {
         id: created.id,
         tourPackageQueryNumber: created.tourPackageQueryNumber,
+        tourPackageQueryName: created.tourPackageQueryName,
       },
       { status: 201 }
     );

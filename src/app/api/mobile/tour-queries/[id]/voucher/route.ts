@@ -70,8 +70,8 @@ export async function GET(
     });
 
     const safeName =
-      (existing.tourPackageQueryNumber ||
-        existing.tourPackageQueryName ||
+      (existing.tourPackageQueryName?.trim() ||
+        existing.tourPackageQueryNumber ||
         id)
         .toString()
         .replace(/[^a-zA-Z0-9_-]+/g, "-")

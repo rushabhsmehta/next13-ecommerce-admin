@@ -48,6 +48,7 @@ import {
   type TourQueryLifecycleAction,
 } from "@/lib/tour-query-lifecycle";
 import { downloadAndSharePdf } from "@/lib/pdf-download";
+import { resolveTourQueryLabel } from "@/lib/tour-query-label";
 import { TourQueryTabBar, TourQueryTabPanel } from "@/components/tour-queries/TourQueryTabShell";
 import { TourQueryVariantsPanel } from "@/components/tour-queries/TourQueryVariantsPanel";
 import { parseTourQueryTab } from "@/components/tour-queries/tab-config";
@@ -401,10 +402,7 @@ function TourQueryDetailScreenInner() {
 
   const handleShareTrip = useCallback(async () => {
     if (!data) return;
-    const title =
-      data.tourPackageQueryName ||
-      data.tourPackageQueryNumber ||
-      "Tour Query";
+    const title = resolveTourQueryLabel(data);
     try {
       await Share.share({
         title,
@@ -424,10 +422,7 @@ function TourQueryDetailScreenInner() {
       if (!id) return;
       setPdfBusy(kind);
       try {
-        const name =
-          data?.tourPackageQueryNumber ||
-          data?.tourPackageQueryName ||
-          "query";
+        const name = resolveTourQueryLabel(data ?? {}, "query");
         const endpoint =
           kind === "voucher"
             ? `/api/mobile/tour-queries/${encodeURIComponent(id)}/voucher`

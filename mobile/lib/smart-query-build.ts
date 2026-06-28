@@ -114,6 +114,7 @@ export function createSmartQueryBuildClient(authRequest: AuthenticatedRequest) {
     create(input: SmartBuildCreateInput): Promise<{
       id: string;
       tourPackageQueryNumber: string | null;
+      tourPackageQueryName: string | null;
     }> {
       return authRequest("/api/mobile/tour-queries/smart-build", {
         method: "POST",

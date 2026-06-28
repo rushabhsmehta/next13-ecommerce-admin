@@ -26,6 +26,7 @@ import {
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { downloadAndSharePdf } from "@/lib/pdf-download";
+import { resolveTourQueryLabel } from "@/lib/tour-query-label";
 import {
   createSmartQueryBuildClient,
   type SmartBuildPrefill,
@@ -168,7 +169,7 @@ function SmartBuildInner() {
         try {
           await downloadAndSharePdf({
             endpoint: `/api/mobile/tour-queries/${encodeURIComponent(created.id)}/pdf`,
-            fileName: created.tourPackageQueryNumber ?? "tour-query",
+            fileName: resolveTourQueryLabel(created, "tour-query"),
             getToken: () => getTokenRef.current(),
             dialogTitle: "Share tour query PDF",
           });

@@ -21,6 +21,8 @@ type VariantPricing = {
   transportDetails?: unknown;
   perPersonRates?: unknown;
   calculatedAt?: string;
+  subtotalBeforeDiscount?: number;
+  appliedDiscount?: { amount?: number } | null;
 };
 
 function normalizePricingComponents(value: unknown) {

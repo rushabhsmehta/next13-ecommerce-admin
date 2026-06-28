@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -21,26 +21,17 @@ import {
   AdminTopBar,
   AdminTopBarPrimaryButton,
 } from "@/components/admin";
+import { PricingSeasonGroup } from "@/components/operations/PricingSeasonGroup";
 import {
   createOperationsClient,
   type HotelPricingListResponse,
   type HotelPricingRow,
+  type HotelPricingLookups,
 } from "@/lib/operations";
+import { groupPricingBySeason } from "@/lib/pricing-season-groups";
 
 function inr(n: number): string {
   return `₹${Math.round(n).toLocaleString("en-IN")}`;
-}
-
-function fmtDate(s: string): string {
-  try {
-    return new Date(s).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return "—";
-  }
 }
 
 function rowSubtitle(row: HotelPricingRow): string {
@@ -75,6 +66,7 @@ function Inner() {
   );
 
   const [data, setData] = useState<HotelPricingListResponse | null>(null);
+  const [lookups, setLookups] = useState<HotelPricingLookups | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +78,12 @@ function Inner() {
       else setLoading(true);
       setError(null);
       try {
-        setData(await client.listHotelPricing(hotelId));
+        const pricing = await client.listHotelPricing(hotelId);
+        setData(pricing);
+        const periodLookups = await client.getHotelPricingLookups(
+          pricing.hotel.locationId
+        );
+        setLookups(periodLookups);
       } catch (err) {
         setError(
           err instanceof ApiError ? err.message : "Could not load hotel pricing."
@@ -102,6 +99,12 @@ function Inner() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const groups = useMemo(
+    () =>
+      groupPricingBySeason(data?.items ?? [], lookups?.seasonalPeriods ?? []),
+    [data?.items, lookups?.seasonalPeriods]
+  );
 
   const title = data?.hotel.name ?? "Hotel pricing";
 
@@ -145,11 +148,9 @@ function Inner() {
           />
         }
       />
-      <FlatList
+      <ScrollView
         testID="hotel-pricing-list"
         style={styles.list}
-        data={data?.items ?? []}
-        keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: insets.bottom + Spacing.xl },
@@ -161,17 +162,16 @@ function Inner() {
             tintColor={Colors.primary}
           />
         }
-        ListHeaderComponent={
-          <View style={styles.summary}>
-            <Text style={styles.summaryText}>
-              {data?.total ?? 0} active pricing row(s)
-            </Text>
-            <Text style={styles.summaryHint}>
-              Overlaps are split automatically when a new range is saved.
-            </Text>
-          </View>
-        }
-        ListEmptyComponent={
+      >
+        <View style={styles.summary}>
+          <Text style={styles.summaryText}>
+            {data?.total ?? 0} active pricing row(s)
+          </Text>
+          <Text style={styles.summaryHint}>
+            Overlaps are split automatically when a new range is saved.
+          </Text>
+        </View>
+        {groups.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="pricetag-outline" size={40} color={Colors.textTertiary} />
             <Text style={styles.emptyTitle}>No pricing rows</Text>
@@ -179,47 +179,46 @@ function Inner() {
               Add the first seasonal rate for this hotel.
             </Text>
           </View>
-        }
-        renderItem={({ item }) => (
-          <Pressable
-            testID={`hotel-pricing-row-${item.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`Pricing ${fmtDate(item.startDate)} to ${fmtDate(item.endDate)}, ${inr(item.price)}`}
-            style={styles.card}
-            onPress={() =>
-              router.push(
-                `/admin/operations/hotels/${hotelId}/pricing/${item.id}` as never
-              )
-            }
-          >
-            <View style={styles.cardTop}>
-              <View style={styles.cardTopLeft}>
-                {item.seasonalPeriodName ? (
-                  <Text style={styles.seasonBadge} numberOfLines={1}>
-                    {item.seasonalPeriodName}
-                  </Text>
-                ) : null}
-                <Text style={styles.cardDates}>
-                  {fmtDate(item.startDate)} – {fmtDate(item.endDate)}
-                </Text>
-              </View>
-              <Text style={styles.cardPrice}>{inr(item.price)}</Text>
-            </View>
-            <Text style={styles.cardSub} numberOfLines={2}>
-              {rowSubtitle(item)}
-            </Text>
-            {!item.isActive ? (
-              <Text style={styles.inactiveBadge}>Inactive</Text>
-            ) : null}
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={Colors.textTertiary}
-              style={styles.chevron}
+        ) : (
+          groups.map((group) => (
+            <PricingSeasonGroup
+              key={group.key}
+              group={group}
+              testID={`pricing-season-group-${group.key}`}
+              renderItem={(item) => (
+                <Pressable
+                  key={item.id}
+                  testID={`hotel-pricing-row-${item.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${rowSubtitle(item)}, ${inr(item.price)}`}
+                  style={styles.card}
+                  onPress={() =>
+                    router.push(
+                      `/admin/operations/hotels/${hotelId}/pricing/${item.id}` as never
+                    )
+                  }
+                >
+                  <View style={styles.cardTop}>
+                    <Text style={styles.cardSub} numberOfLines={2}>
+                      {rowSubtitle(item)}
+                    </Text>
+                    <Text style={styles.cardPrice}>{inr(item.price)}</Text>
+                  </View>
+                  {!item.isActive ? (
+                    <Text style={styles.inactiveBadge}>Inactive</Text>
+                  ) : null}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={Colors.textTertiary}
+                    style={styles.chevron}
+                  />
+                </Pressable>
+              )}
             />
-          </Pressable>
+          ))
         )}
-      />
+      </ScrollView>
     </AdminScreen>
   );
 }
@@ -252,10 +251,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    marginBottom: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -264,17 +262,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: Spacing.sm,
+    paddingRight: Spacing.lg,
   },
-  cardTopLeft: { flex: 1, gap: Spacing.xs },
-  seasonBadge: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-    color: Colors.primary,
-    textTransform: "capitalize",
-  },
-  cardDates: { fontSize: FontSize.md, fontWeight: "600", color: Colors.text },
   cardPrice: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
-  cardSub: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
+  cardSub: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.text,
+  },
   inactiveBadge: {
     marginTop: Spacing.xs,
     fontSize: FontSize.xs,

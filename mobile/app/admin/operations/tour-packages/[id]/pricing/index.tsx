@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -21,10 +21,12 @@ import {
   AdminTopBar,
   AdminTopBarPrimaryButton,
 } from "@/components/admin";
+import { PricingSeasonGroup } from "@/components/operations/PricingSeasonGroup";
 import {
   createTourPackagesClient,
   type TourPackagePricingRow,
 } from "@/lib/tour-packages";
+import { groupPricingBySeason } from "@/lib/pricing-season-groups";
 
 function firstParam(value?: string | string[]): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -32,18 +34,6 @@ function firstParam(value?: string | string[]): string | undefined {
 
 function inr(n: number): string {
   return `₹${Math.round(n).toLocaleString("en-IN")}`;
-}
-
-function fmtDate(s: string): string {
-  try {
-    return new Date(s).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return "—";
-  }
 }
 
 type ActiveFilter = "all" | "active" | "inactive";
@@ -79,6 +69,17 @@ function Inner() {
   );
 
   const [items, setItems] = useState<TourPackagePricingRow[]>([]);
+  const [seasonalPeriods, setSeasonalPeriods] = useState<
+    {
+      id: string;
+      name: string;
+      seasonType: string;
+      startMonth: number;
+      startDay: number;
+      endMonth: number;
+      endDay: number;
+    }[]
+  >([]);
   const [title, setTitle] = useState("Seasonal pricing");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,6 +101,18 @@ function Inner() {
         });
         setItems(res.items);
         setTitle(res.package.tourPackageName ?? "Seasonal pricing");
+        const lookups = await client.getLookups(res.package.locationId);
+        setSeasonalPeriods(
+          (lookups.seasonalPeriods ?? []).map((p) => ({
+            id: p.id,
+            name: p.name,
+            seasonType: p.seasonType ?? "",
+            startMonth: p.startMonth,
+            startDay: p.startDay,
+            endMonth: p.endMonth,
+            endDay: p.endDay,
+          }))
+        );
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Could not load pricing.");
       } finally {
@@ -124,6 +137,11 @@ function Inner() {
         return true;
       }),
     [activeFilter, items, scopeFilter]
+  );
+
+  const groups = useMemo(
+    () => groupPricingBySeason(filteredItems, seasonalPeriods),
+    [filteredItems, seasonalPeriods]
   );
 
   if (loading) {
@@ -171,9 +189,9 @@ function Inner() {
           />
         }
       />
-      <FlatList
-        data={filteredItems}
-        keyExtractor={(item) => item.id}
+      <ScrollView
+        testID="tour-package-pricing-list"
+        style={styles.list}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: insets.bottom + Spacing.xl },
@@ -181,33 +199,32 @@ function Inner() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => void load("refresh")} />
         }
-        ListHeaderComponent={
-          <View style={styles.filters}>
-            <View style={styles.filterGroup}>
-              {(["all", "active", "inactive"] as ActiveFilter[]).map((filter) => (
-                <FilterPill
-                  key={filter}
-                  label={filter === "all" ? "All" : filter === "active" ? "Active" : "Inactive"}
-                  active={activeFilter === filter}
-                  onPress={() => setActiveFilter(filter)}
-                />
-              ))}
-            </View>
-            <View style={styles.filterGroup}>
-              {(["all", "global", "variant"] as ScopeFilter[]).map((filter) => (
-                <FilterPill
-                  key={filter}
-                  label={
-                    filter === "all" ? "All scopes" : filter === "global" ? "Global" : "Variant"
-                  }
-                  active={scopeFilter === filter}
-                  onPress={() => setScopeFilter(filter)}
-                />
-              ))}
-            </View>
+      >
+        <View style={styles.filters}>
+          <View style={styles.filterGroup}>
+            {(["all", "active", "inactive"] as ActiveFilter[]).map((filter) => (
+              <FilterPill
+                key={filter}
+                label={filter === "all" ? "All" : filter === "active" ? "Active" : "Inactive"}
+                active={activeFilter === filter}
+                onPress={() => setActiveFilter(filter)}
+              />
+            ))}
           </View>
-        }
-        ListEmptyComponent={
+          <View style={styles.filterGroup}>
+            {(["all", "global", "variant"] as ScopeFilter[]).map((filter) => (
+              <FilterPill
+                key={filter}
+                label={
+                  filter === "all" ? "All scopes" : filter === "global" ? "Global" : "Variant"
+                }
+                active={scopeFilter === filter}
+                onPress={() => setScopeFilter(filter)}
+              />
+            ))}
+          </View>
+        </View>
+        {groups.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="pricetag-outline" size={40} color={Colors.textTertiary} />
             <Text style={styles.emptyTitle}>No pricing rows</Text>
@@ -217,58 +234,65 @@ function Inner() {
                 : "Add seasonal rates with meal plan and components."}
             </Text>
           </View>
-        }
-        renderItem={({ item }) => (
-          <Pressable
-            testID={`tour-package-pricing-row-${item.id}`}
-            style={styles.card}
-            onPress={() =>
-              router.push(
-                buildPricingRoute(
-                  `/admin/operations/tour-packages/${packageId}/pricing/${item.id}`,
-                  packageVariantId,
-                  variantName
-                ) as never
-              )
-            }
-          >
-            <View style={styles.cardTop}>
-              <Text style={styles.cardDates}>
-                {fmtDate(item.startDate)} – {fmtDate(item.endDate)}
-              </Text>
-              <Text style={styles.cardPrice}>{inr(item.totalPrice)}</Text>
-            </View>
-            <Text style={styles.cardSub} numberOfLines={2}>
-              {[
-                item.mealPlanName,
-                item.packageVariantName ?? "Global",
-                item.seasonalPeriodName,
-              ]
-                .filter(Boolean)
-                .join(" · ") || "—"}
-            </Text>
-            {!item.isActive ? <Text style={styles.inactive}>Inactive</Text> : null}
-            {item.pricingComponents.length ? (
-              <View style={styles.componentsPreview}>
-                {item.pricingComponents.slice(0, 3).map((component) => (
-                  <View key={component.id} style={styles.componentLine}>
-                    <Text style={styles.componentName} numberOfLines={1}>
-                      {component.pricingAttributeName}
+        ) : (
+          groups.map((group) => (
+            <PricingSeasonGroup
+              key={group.key}
+              group={group}
+              testID={`pricing-season-group-${group.key}`}
+              renderItem={(item) => (
+                <Pressable
+                  key={item.id}
+                  testID={`tour-package-pricing-row-${item.id}`}
+                  style={styles.card}
+                  onPress={() =>
+                    router.push(
+                      buildPricingRoute(
+                        `/admin/operations/tour-packages/${packageId}/pricing/${item.id}`,
+                        packageVariantId,
+                        variantName
+                      ) as never
+                    )
+                  }
+                >
+                  <View style={styles.cardTop}>
+                    <Text style={styles.cardSub} numberOfLines={2}>
+                      {[item.mealPlanName, item.packageVariantName ?? "Global"]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
                     </Text>
-                    <Text style={styles.componentPrice}>{inr(component.price)}</Text>
+                    <Text style={styles.cardPrice}>{inr(item.totalPrice)}</Text>
                   </View>
-                ))}
-                {item.pricingComponents.length > 3 ? (
-                  <Text style={styles.moreComponents}>
-                    +{item.pricingComponents.length - 3} more components
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
-            <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} style={styles.chevron} />
-          </Pressable>
+                  {!item.isActive ? <Text style={styles.inactive}>Inactive</Text> : null}
+                  {item.pricingComponents.length ? (
+                    <View style={styles.componentsPreview}>
+                      {item.pricingComponents.slice(0, 3).map((component) => (
+                        <View key={component.id} style={styles.componentLine}>
+                          <Text style={styles.componentName} numberOfLines={1}>
+                            {component.pricingAttributeName}
+                          </Text>
+                          <Text style={styles.componentPrice}>{inr(component.price)}</Text>
+                        </View>
+                      ))}
+                      {item.pricingComponents.length > 3 ? (
+                        <Text style={styles.moreComponents}>
+                          +{item.pricingComponents.length - 3} more components
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={Colors.textTertiary}
+                    style={styles.chevron}
+                  />
+                </Pressable>
+              )}
+            />
+          ))
         )}
-      />
+      </ScrollView>
     </AdminScreen>
   );
 }
@@ -309,6 +333,7 @@ function FilterPill({
 }
 
 const styles = StyleSheet.create({
+  list: { flex: 1 },
   listContent: { padding: Spacing.lg, flexGrow: 1 },
   filters: { gap: Spacing.sm, marginBottom: Spacing.md },
   filterGroup: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.xs },
@@ -345,10 +370,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    marginBottom: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -357,10 +381,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: Spacing.sm,
+    paddingRight: Spacing.lg,
   },
-  cardDates: { flex: 1, fontSize: FontSize.md, fontWeight: "600", color: Colors.text },
   cardPrice: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
-  cardSub: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
+  cardSub: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.text,
+  },
   componentsPreview: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.borderSubtle,

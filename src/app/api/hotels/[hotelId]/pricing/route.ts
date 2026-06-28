@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
-import { ROOM_TYPES, OCCUPANCY_TYPES, MEAL_PLANS } from "@/lib/constants";
-import { dateToUtc, MILLISECONDS_PER_DAY } from '@/lib/timezone-utils';
+import { upsertPricingWithSplit } from "@/lib/hotel-pricing-overlap";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET hotel pricing for a specific hotelId
 export async function GET(req: Request, props: { params: Promise<{ hotelId: string }> }) {
@@ -104,100 +104,20 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
       return new NextResponse("Invalid date format", { status: 400 });
     }
 
-    // If applySplit is true, handle period splitting
     if (applySplit) {
-      // Find overlapping pricing periods
-      const overlappingPeriods = await prismadb.hotelPricing.findMany({
-        where: {
+      const result = await prismadb.$transaction(async (tx) =>
+        upsertPricingWithSplit(tx, {
           hotelId: params.hotelId,
+          startDate: newStart,
+          endDate: newEnd,
           roomTypeId,
           occupancyTypeId,
           mealPlanId: mealPlanId || null,
+          price,
+          locationSeasonalPeriodId: locationSeasonalPeriodId || null,
           isActive: true,
-          AND: [
-            { startDate: { lte: newEnd } },
-            { endDate: { gte: newStart } }
-          ]
-        },
-        orderBy: {
-          startDate: 'asc'
-        }
-      });
-
-      // Use a transaction to handle all updates atomically
-      const result = await prismadb.$transaction(async (tx) => {
-        // For each overlapping period, split it
-        for (const period of overlappingPeriods) {
-          // Use the dates directly from the database (already stored as UTC)
-          const periodStart = period.startDate;
-          const periodEnd = period.endDate;
-
-          // Delete the original period
-          await tx.hotelPricing.delete({
-            where: { id: period.id }
-          });
-
-          // Create before segment if exists
-          if (periodStart < newStart) {
-            // Calculate beforeEnd by subtracting 1 day from newStart in UTC
-            const beforeEndTimestamp = newStart.getTime() - MILLISECONDS_PER_DAY;
-            const beforeEnd = new Date(beforeEndTimestamp);
-            
-            await tx.hotelPricing.create({
-              data: {
-                hotelId: params.hotelId,
-                startDate: periodStart,
-                endDate: beforeEnd,
-                roomTypeId: period.roomTypeId,
-                occupancyTypeId: period.occupancyTypeId,
-                price: period.price,
-                mealPlanId: period.mealPlanId,
-                locationSeasonalPeriodId: period.locationSeasonalPeriodId,
-                isActive: true
-              }
-            });
-          }
-
-          // Create after segment if exists
-          if (periodEnd > newEnd) {
-            // Calculate afterStart by adding 1 day to newEnd in UTC
-            const afterStartTimestamp = newEnd.getTime() + MILLISECONDS_PER_DAY;
-            const afterStart = new Date(afterStartTimestamp);
-            
-            await tx.hotelPricing.create({
-              data: {
-                hotelId: params.hotelId,
-                startDate: afterStart,
-                endDate: periodEnd,
-                roomTypeId: period.roomTypeId,
-                occupancyTypeId: period.occupancyTypeId,
-                price: period.price,
-                mealPlanId: period.mealPlanId,
-                locationSeasonalPeriodId: period.locationSeasonalPeriodId,
-                isActive: true
-              }
-            });
-          }
-        }
-
-        // Create the new pricing period
-        const hotelPricing = await tx.hotelPricing.create({
-          data: {
-            hotelId: params.hotelId,
-            startDate: newStart,
-            endDate: newEnd,
-            roomTypeId,
-            occupancyTypeId,
-            price,
-            mealPlanId: mealPlanId || null,
-            locationSeasonalPeriodId: locationSeasonalPeriodId || null,
-            isActive: true
-          }
-        });
-
-        return hotelPricing;
-      });
-
+        })
+      );
       return NextResponse.json(result);
     }
 

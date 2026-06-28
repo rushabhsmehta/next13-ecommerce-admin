@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
-import { importPayloadSchema, type ImportPreview, type ImportValidationError } from "@/lib/hotel-pricing-json";
+import { importPayloadSchema, expandPricingSheetsToEntries, type ImportPreview, type ImportValidationError } from "@/lib/hotel-pricing-json";
 import { dateRangesOverlap } from "@/lib/hotel-pricing-import";
 import { dateToUtc } from "@/lib/timezone-utils";
 
@@ -45,6 +45,10 @@ export async function POST(req: Request) {
       return jsonError("Hotel not found", 404, "NOT_FOUND");
     }
 
+    const pricingEntries = parsed.pricingEntries?.length
+      ? parsed.pricingEntries
+      : expandPricingSheetsToEntries(parsed.pricingSheets ?? []);
+
     // Build lookup maps
     const roomTypeMap = new Map(roomTypes.map(rt => [rt.id, rt]));
     const occupancyTypeMap = new Map(occupancyTypes.map(ot => [ot.id, ot]));
@@ -55,8 +59,8 @@ export async function POST(req: Request) {
     const warnings: string[] = [];
     const validEntries: any[] = [];
 
-    for (let i = 0; i < parsed.pricingEntries.length; i++) {
-      const entry = parsed.pricingEntries[i];
+    for (let i = 0; i < pricingEntries.length; i++) {
+      const entry = pricingEntries[i];
       const entryErrors: ImportValidationError[] = [];
 
       // Validate room type
@@ -190,7 +194,7 @@ export async function POST(req: Request) {
     // Step 6: Build Preview
     const preview: ImportPreview = {
       summary: {
-        totalEntries: parsed.pricingEntries.length,
+        totalEntries: pricingEntries.length,
         newEntries: validEntries.length,
         updates: 0,
         errors: errors.length,
@@ -274,7 +278,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       summary: {
-        totalEntries: parsed.pricingEntries.length,
+        totalEntries: pricingEntries.length,
         created,
         updated
       },

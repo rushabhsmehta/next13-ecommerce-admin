@@ -1,8 +1,13 @@
 import prismadb from "@/lib/prismadb";
 import { HotelPricingClient } from "./components/client";
 
-const HotelPricingDashboard = async () => {
-  // Fetch all active locations
+const HotelPricingDashboard = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ hotelId?: string }>;
+}) => {
+  const { hotelId: initialHotelId } = await searchParams;
+
   const locations = await prismadb.location.findMany({
     where: { isActive: true },
     orderBy: { label: 'asc' },
@@ -12,7 +17,6 @@ const HotelPricingDashboard = async () => {
     }
   });
 
-  // Fetch all active hotels with their locations
   const hotels = await prismadb.hotel.findMany({
     include: {
       location: true,
@@ -23,7 +27,6 @@ const HotelPricingDashboard = async () => {
     }
   });
 
-  // Fetch configuration data
   const roomTypes = await prismadb.roomType.findMany({
     where: { isActive: true },
     orderBy: { name: 'asc' }
@@ -48,6 +51,7 @@ const HotelPricingDashboard = async () => {
           roomTypes={roomTypes}
           occupancyTypes={occupancyTypes}
           mealPlans={mealPlans}
+          initialHotelId={initialHotelId}
         />
       </div>
     </div>

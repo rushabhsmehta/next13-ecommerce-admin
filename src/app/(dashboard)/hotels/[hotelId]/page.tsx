@@ -29,7 +29,7 @@ const HotelPage = async (
         <div className="flex-1 space-y-4 p-4 pt-4 md:p-8 md:pt-6">
           <div className="flex items-center justify-between">
             <div />
-            <Link href={`/hotels/${params.hotelId}/pricing`}>
+            <Link href={`/hotel-pricing?hotelId=${params.hotelId}`}>
               <Button variant="outline" className="flex items-center gap-2">
                 <CalendarRange className="h-4 w-4" />
                 Manage Seasonal Pricing

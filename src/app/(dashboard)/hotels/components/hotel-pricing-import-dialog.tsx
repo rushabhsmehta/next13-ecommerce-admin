@@ -65,7 +65,13 @@ const formatBytes = (bytes: number) => {
   return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 };
 
-export function HotelPricingImportDialog() {
+export function HotelPricingImportDialog({
+  hotelId,
+  onImportSuccess,
+}: {
+  hotelId?: string;
+  onImportSuccess?: () => void;
+} = {}) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -147,6 +153,7 @@ export function HotelPricingImportDialog() {
       setResult(successPayload);
       setWarnings(successPayload.warnings ?? []);
       toast.success("Hotel pricing imported");
+      onImportSuccess?.();
       router.refresh();
     } catch (error) {
       toast.error("Unexpected error while uploading pricing");
@@ -166,7 +173,10 @@ export function HotelPricingImportDialog() {
         <DialogHeader>
           <DialogTitle>Bulk update hotel pricing</DialogTitle>
           <DialogDescription>
-            Upload the CSV or Excel template generated from the pricing exporter to update rates in bulk.
+            Upload the CSV or Excel template to update rates in bulk.
+            {hotelId
+              ? " Ensure rows use this hotel's ID in the hotel_id column."
+              : " Each row must include a valid hotel_id."}
           </DialogDescription>
         </DialogHeader>
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
+import { groupPricingIntoSheets } from "@/lib/hotel-pricing-matrix";
 
 export const dynamic = "force-dynamic";
 
@@ -64,11 +65,27 @@ export async function POST(req: Request) {
       price: number;
       isActive: boolean;
     }> = [];
+    let pricingSheets: Array<{
+      startDate: string;
+      endDate: string;
+      roomTypeId: string;
+      mealPlanId: string | null;
+      locationSeasonalPeriodId: string | null;
+      isActive: boolean;
+      occupancyPrices: Array<{ occupancyTypeId: string; price: number }>;
+    }> = [];
+
     if (includeExistingPricing) {
       const existingPricing = await prismadb.hotelPricing.findMany({
         where: {
           hotelId,
           isActive: true
+        },
+        include: {
+          roomType: true,
+          occupancyType: true,
+          mealPlan: true,
+          locationSeasonalPeriod: true,
         },
         orderBy: [
           { startDate: 'asc' },
@@ -86,6 +103,19 @@ export async function POST(req: Request) {
         price: p.price,
         isActive: p.isActive,
         locationSeasonalPeriodId: p.locationSeasonalPeriodId,
+      }));
+
+      pricingSheets = groupPricingIntoSheets(existingPricing, occupancyTypes).map((sheet) => ({
+        startDate: sheet.startDate,
+        endDate: sheet.endDate,
+        roomTypeId: sheet.roomTypeId,
+        mealPlanId: sheet.mealPlanId,
+        locationSeasonalPeriodId: sheet.locationSeasonalPeriodId,
+        isActive: true,
+        occupancyPrices: sheet.occupancyPrices.map((o) => ({
+          occupancyTypeId: o.occupancyTypeId,
+          price: o.price,
+        })),
       }));
     } else {
       // Generate sample entries if reference data exists
@@ -119,7 +149,8 @@ export async function POST(req: Request) {
         hotelName: hotel.name
       },
       referenceData,
-      pricingEntries
+      pricingEntries,
+      ...(pricingSheets.length > 0 ? { pricingSheets } : {}),
     };
 
     return NextResponse.json(jsonExport);

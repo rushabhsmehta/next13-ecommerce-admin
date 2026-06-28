@@ -16,6 +16,19 @@ export interface JsonReferenceData {
   mealPlans: Array<{ id: string; code: string; name: string }>;
 }
 
+export interface JsonPricingSheet {
+  startDate: string;
+  endDate: string;
+  roomTypeId: string;
+  mealPlanId?: string | null;
+  locationSeasonalPeriodId?: string | null;
+  isActive?: boolean;
+  occupancyPrices: Array<{
+    occupancyTypeId: string;
+    price: number;
+  }>;
+}
+
 export interface JsonPricingEntry {
   startDate: string;
   endDate: string;
@@ -32,6 +45,7 @@ export interface JsonExportFormat {
   metadata: JsonExportMetadata;
   referenceData: JsonReferenceData;
   pricingEntries: JsonPricingEntry[];
+  pricingSheets?: JsonPricingSheet[];
 }
 
 export interface ImportValidationError {
@@ -85,14 +99,58 @@ const pricingEntrySchema = z.object({
   { message: "End date must be on or after start date", path: ["endDate"] }
 );
 
+const pricingSheetSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  roomTypeId: z.string().min(1, "Room type ID is required"),
+  mealPlanId: z.string().optional().nullable(),
+  locationSeasonalPeriodId: z.string().optional().nullable(),
+  isActive: z.boolean().default(true),
+  occupancyPrices: z.array(z.object({
+    occupancyTypeId: z.string().min(1),
+    price: z.number().min(0),
+  })).min(1, "At least one occupancy price is required"),
+}).refine(
+  (data) => data.startDate <= data.endDate,
+  { message: "End date must be on or after start date", path: ["endDate"] }
+);
+
 export const importPayloadSchema = z.object({
   version: z.string(),
   metadata: z.object({
     hotelId: z.string().min(1, "Hotel ID is required"),
     locationId: z.string().optional(),
   }),
-  pricingEntries: z.array(pricingEntrySchema).min(1, "At least one pricing entry is required")
-});
+  pricingEntries: z.array(pricingEntrySchema).optional(),
+  pricingSheets: z.array(pricingSheetSchema).optional(),
+}).refine(
+  (data) =>
+    (data.pricingEntries && data.pricingEntries.length > 0) ||
+    (data.pricingSheets && data.pricingSheets.length > 0),
+  { message: "Either pricingEntries or pricingSheets is required" }
+);
+
+/** Expand matrix sheets to flat pricing entries for import */
+export function expandPricingSheetsToEntries(
+  sheets: JsonPricingSheet[]
+): JsonPricingEntry[] {
+  const entries: JsonPricingEntry[] = [];
+  for (const sheet of sheets) {
+    for (const occ of sheet.occupancyPrices) {
+      entries.push({
+        startDate: sheet.startDate,
+        endDate: sheet.endDate,
+        roomTypeId: sheet.roomTypeId,
+        occupancyTypeId: occ.occupancyTypeId,
+        mealPlanId: sheet.mealPlanId ?? null,
+        price: occ.price,
+        isActive: sheet.isActive ?? true,
+        locationSeasonalPeriodId: sheet.locationSeasonalPeriodId ?? null,
+      });
+    }
+  }
+  return entries;
+}
 
 // ===== AI Prompt Generation =====
 
@@ -111,13 +169,29 @@ TARGET HOTEL INFORMATION:
 - Location ID: ${locationId}
 - Location: ${locationName}
 
-REQUIRED JSON STRUCTURE:
+REQUIRED JSON STRUCTURE (prefer pricingSheets matrix format):
 {
   "version": "1.0",
   "metadata": {
     "hotelId": "${hotelId}",
     "locationId": "${locationId}"
   },
+  "pricingSheets": [
+    {
+      "startDate": "YYYY-MM-DD",
+      "endDate": "YYYY-MM-DD",
+      "roomTypeId": "<ID from list below>",
+      "mealPlanId": "<ID from list below or null>",
+      "locationSeasonalPeriodId": "<optional or null>",
+      "isActive": true,
+      "occupancyPrices": [
+        { "occupancyTypeId": "<ID>", "price": <number> }
+      ]
+    }
+  ]
+}
+
+Alternatively you may use flat pricingEntries (one row per occupancy):
   "pricingEntries": [
     {
       "startDate": "YYYY-MM-DD",
@@ -130,7 +204,6 @@ REQUIRED JSON STRUCTURE:
       "locationSeasonalPeriodId": "<optional seasonal period ID or null>"
     }
   ]
-}
 
 AVAILABLE ROOM TYPES:
 ${referenceData.roomTypes.map(rt => `- ID: ${rt.id}, Name: ${rt.name}`).join('\n')}

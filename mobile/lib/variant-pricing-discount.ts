@@ -93,21 +93,26 @@ export function computeVariantDiscount(
 export function formatDiscountLabel(
   appliedDiscount: AppliedVariantDiscount | null | undefined
 ): string {
-  if (!appliedDiscount || appliedDiscount.amount <= 0) return "Discount";
+  if (!hasAppliedVariantDiscount(appliedDiscount) || !appliedDiscount) return "Discount";
 
+  const amount = Number(appliedDiscount.amount);
   const reasonSuffix = appliedDiscount.reason ? ` — ${appliedDiscount.reason}` : "";
 
   if (appliedDiscount.type === "percent") {
-    return `Discount (${appliedDiscount.inputValue}%)${reasonSuffix}`;
+    const pct = Number(appliedDiscount.inputValue);
+    const pctLabel = Number.isFinite(pct) ? pct : 0;
+    return `Discount (${pctLabel}%)${reasonSuffix}`;
   }
 
-  return `Discount (Rs. ${appliedDiscount.amount.toLocaleString("en-IN")})${reasonSuffix}`;
+  return `Discount (Rs. ${Math.round(amount).toLocaleString("en-IN")})${reasonSuffix}`;
 }
 
 export function hasAppliedVariantDiscount(
   appliedDiscount: AppliedVariantDiscount | null | undefined
 ): boolean {
-  return !!appliedDiscount && appliedDiscount.amount > 0;
+  if (!appliedDiscount) return false;
+  const amount = Number(appliedDiscount.amount);
+  return Number.isFinite(amount) && amount > 0;
 }
 
 export type PricingComponentItem = {

@@ -239,7 +239,13 @@ export function useTourQueryEditForm(queryId: string) {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (!id) return;
+      if (!id) {
+        if (!cancelled) {
+          setError("Missing query id");
+          setLoading(false);
+        }
+        return;
+      }
       try {
         const [d, locRes, pricingRes, vehicleRes, queriesRes] = await Promise.all([
           authRequest<DetailResponse>(

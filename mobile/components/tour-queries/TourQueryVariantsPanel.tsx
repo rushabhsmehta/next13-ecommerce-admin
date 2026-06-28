@@ -340,6 +340,15 @@ function TourQueryVariantsPanelInner({
     return <AdminLoadingState label="Loading variants…" testID="trip-variants-loading" />;
   }
   if (error || !data) {
+    if (embedded) {
+      return (
+        <AdminErrorState
+          message={error ?? "Variants not found"}
+          onRetry={() => void load()}
+          testID="trip-variants-error-state"
+        />
+      );
+    }
     return (
       <AdminScreen testID="trip-variants-error">
         <Stack.Screen options={{ title: "Variants", headerShown: false }} />
@@ -561,9 +570,9 @@ function TourQueryVariantsPanelInner({
                         <Text style={styles.splitVal}>{formatINR(activeVariant.pricing.transport)}</Text>
                       </View>
                     </View>
-                    {activeVariant.pricing.components.length ? (
+                    {activeVariant.pricing.components?.length ? (
                       <View style={styles.componentPreview}>
-                        {activeVariant.pricing.components.slice(0, 4).map((component, idx) => (
+                        {activeVariant.pricing.components!.slice(0, 4).map((component, idx) => (
                           <View key={`${activeVariant.id}-component-${idx}`} style={styles.componentRow}>
                             <View style={styles.componentText}>
                               <Text style={styles.componentName} numberOfLines={1}>
@@ -580,9 +589,9 @@ function TourQueryVariantsPanelInner({
                             </Text>
                           </View>
                         ))}
-                        {activeVariant.pricing.components.length > 4 ? (
+                        {activeVariant.pricing.components!.length > 4 ? (
                           <Text style={styles.moreComponents}>
-                            +{activeVariant.pricing.components.length - 4} more pricing items
+                            +{activeVariant.pricing.components!.length - 4} more pricing items
                           </Text>
                         ) : null}
                       </View>

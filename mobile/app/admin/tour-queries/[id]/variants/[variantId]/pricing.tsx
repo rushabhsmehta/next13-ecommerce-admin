@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
 import { Colors, Spacing } from "@/constants/theme";
+import { firstRouteParam } from "@/lib/route-params";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
   AdminBottomActionBar,
@@ -57,7 +58,9 @@ export default function VariantPricingScreen() {
 
 function VariantPricingScreenInner() {
   const router = useRouter();
-  const { id, variantId } = useLocalSearchParams<{ id: string; variantId: string }>();
+  const params = useLocalSearchParams<{ id?: string | string[]; variantId?: string | string[] }>();
+  const id = firstRouteParam(params.id);
+  const variantId = firstRouteParam(params.variantId);
   const { getToken } = useAuth();
   const getTokenRef = useRef(getToken);
 

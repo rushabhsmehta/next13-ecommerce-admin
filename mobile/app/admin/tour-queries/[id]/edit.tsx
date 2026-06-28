@@ -12,6 +12,7 @@ import {
 } from "@/components/admin";
 import { Spacing } from "@/constants/theme";
 import { parseTourQueryTab } from "@/components/tour-queries/tab-config";
+import { firstRouteParam } from "@/lib/route-params";
 import { TourQueryBasicTab } from "@/components/tour-queries/TourQueryBasicTab";
 import { TourQueryGuestsTab } from "@/components/tour-queries/TourQueryGuestsTab";
 import { TourQueryHotelsTab } from "@/components/tour-queries/TourQueryHotelsTab";
@@ -35,7 +36,8 @@ export default function EditTourQueryScreen() {
 
 function EditTourQueryScreenInner() {
   const router = useRouter();
-  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
+  const { id: rawId, tab } = useLocalSearchParams<{ id?: string | string[]; tab?: string }>();
+  const id = firstRouteParam(rawId);
   const [activeTab, setActiveTab] = useState<TourQueryTabId>(() => parseTourQueryTab(tab));
 
   useEffect(() => {
@@ -53,12 +55,20 @@ function EditTourQueryScreenInner() {
 
   if (!id) {
     return (
-      <AdminErrorState message="Missing query id" testID="tq-edit-error-state" />
+      <AdminScreen testID="tq-edit-missing-id">
+        <Stack.Screen options={{ title: "Edit Tour Package Query", headerShown: false }} />
+        <AdminErrorState message="Missing query id" testID="tq-edit-error-state" />
+      </AdminScreen>
     );
   }
 
   if (form.loading) {
-    return <AdminLoadingState label="Loading tour package query…" testID="tq-edit-loading" />;
+    return (
+      <AdminScreen testID="tq-edit-loading-screen">
+        <Stack.Screen options={{ title: "Edit Tour Package Query", headerShown: false }} />
+        <AdminLoadingState label="Loading tour package query…" testID="tq-edit-loading" />
+      </AdminScreen>
+    );
   }
 
   if (form.error) {

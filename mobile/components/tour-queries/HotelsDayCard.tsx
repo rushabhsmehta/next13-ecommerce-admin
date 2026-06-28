@@ -99,10 +99,10 @@ export function HotelsDayCard({
         </Pressable>
       </View>
 
-      {it.roomAllocations.length === 0 ? (
+      {!(it.roomAllocations ?? []).length ? (
         <Text style={styles.noRoomsText}>No rooms allocated for this day.</Text>
       ) : (
-        it.roomAllocations.map((ra, rIdx) => {
+        (it.roomAllocations ?? []).map((ra, rIdx) => {
           const roomTypeName =
             roomTypes.find((r) => r.id === ra.roomTypeId)?.name || "Select Room Type";
           const occupancyName =
@@ -206,10 +206,10 @@ export function HotelsDayCard({
         </Pressable>
       </View>
 
-      {it.transportDetails.length === 0 ? (
+      {!(it.transportDetails ?? []).length ? (
         <Text style={styles.noRoomsText}>No transport for this day.</Text>
       ) : (
-        it.transportDetails.map((td, tIdx) => {
+        (it.transportDetails ?? []).map((td, tIdx) => {
           const vehicleName =
             vehicleTypes.find((v) => v.id === td.vehicleTypeId)?.name || "Select Vehicle";
           return (

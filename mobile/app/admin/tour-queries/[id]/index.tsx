@@ -614,7 +614,7 @@ function TourQueryDetailScreenInner() {
               testID: "tour-query-edit",
               accessibilityHint: "Opens itinerary text and booking fields.",
               onPress: () =>
-                router.push(`/admin/tour-queries/${id}/edit?tab=${activeTab}` as never),
+                router.push(`/admin/tour-queries/${id}/edit?tab=basic` as never),
             },
           ]
         : []),
@@ -788,7 +788,7 @@ function TourQueryDetailScreenInner() {
   const confirmed = data.isFeatured && !data.isArchived;
   const editAtTop = canWriteSales && !data.isArchived;
   const openEdit = () =>
-    router.push(`/admin/tour-queries/${id}/edit?tab=${activeTab}` as never);
+    router.push(`/admin/tour-queries/${id}/edit?tab=basic` as never);
 
   let primary = derivePrimary(data, id!, router, canWriteSales);
   if (primary.key === "restore") {

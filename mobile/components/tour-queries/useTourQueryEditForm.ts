@@ -370,18 +370,22 @@ export function useTourQueryEditForm(queryId: string) {
     if (loading || !id || aiApplyDraftChecked.current) return;
     aiApplyDraftChecked.current = true;
     void (async () => {
-      const stored = await consumeAiDraft(AI_DRAFT_KEYS.queryApply);
-      if (!stored) return;
-      const mapped = mapAiDraftToQueryInitial(stored);
-      setName((prev) => mapped.tourPackageQueryName || prev);
-      setTransport((prev) => mapped.transport || prev);
-      setPickupLocation((prev) => mapped.pickupLocation || prev);
-      setDropLocation((prev) => mapped.dropLocation || prev);
-      if (mapped.itineraries.length) setItineraries(mapped.itineraries);
-      Alert.alert(
-        "AI Wizard",
-        "Applied AI-generated itinerary to this query. Review and save when ready."
-      );
+      try {
+        const stored = await consumeAiDraft(AI_DRAFT_KEYS.queryApply);
+        if (!stored) return;
+        const mapped = mapAiDraftToQueryInitial(stored);
+        setName((prev) => mapped.tourPackageQueryName || prev);
+        setTransport((prev) => mapped.transport || prev);
+        setPickupLocation((prev) => mapped.pickupLocation || prev);
+        setDropLocation((prev) => mapped.dropLocation || prev);
+        if (mapped.itineraries.length) setItineraries(mapped.itineraries);
+        Alert.alert(
+          "AI Wizard",
+          "Applied AI-generated itinerary to this query. Review and save when ready."
+        );
+      } catch {
+        // Draft storage unavailable on older native builds — edit still works.
+      }
     })();
   }, [loading, id]);
 

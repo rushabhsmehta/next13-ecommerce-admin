@@ -1,5 +1,69 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NativeModules } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import type { AiItineraryDraft } from "@/lib/ai-wizards";
+
+const SECURE_DRAFT_PREFIX = "ai-draft:";
+
+function asyncStorageNativeAvailable(): boolean {
+  return NativeModules.RNCAsyncStorage != null;
+}
+
+async function readDraftRaw(key: string): Promise<string | null> {
+  if (asyncStorageNativeAvailable()) {
+    try {
+      const { default: AsyncStorage } = await import(
+        "@react-native-async-storage/async-storage"
+      );
+      return await AsyncStorage.getItem(key);
+    } catch {
+      // Fall through to SecureStore.
+    }
+  }
+  try {
+    return await SecureStore.getItemAsync(`${SECURE_DRAFT_PREFIX}${key}`);
+  } catch {
+    return null;
+  }
+}
+
+async function writeDraftRaw(key: string, value: string): Promise<boolean> {
+  if (asyncStorageNativeAvailable()) {
+    try {
+      const { default: AsyncStorage } = await import(
+        "@react-native-async-storage/async-storage"
+      );
+      await AsyncStorage.setItem(key, value);
+      return true;
+    } catch {
+      // Fall through to SecureStore.
+    }
+  }
+  try {
+    await SecureStore.setItemAsync(`${SECURE_DRAFT_PREFIX}${key}`, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function deleteDraftRaw(key: string): Promise<void> {
+  if (asyncStorageNativeAvailable()) {
+    try {
+      const { default: AsyncStorage } = await import(
+        "@react-native-async-storage/async-storage"
+      );
+      await AsyncStorage.removeItem(key);
+      return;
+    } catch {
+      // Fall through to SecureStore.
+    }
+  }
+  try {
+    await SecureStore.deleteItemAsync(`${SECURE_DRAFT_PREFIX}${key}`);
+  } catch {
+    // Nothing persisted.
+  }
+}
 import type { TourPackageFormInitial } from "@/components/tour-packages/TourPackageForm";
 import type { TourPackageItineraryDayInput } from "@/lib/tour-packages";
 import type { ItineraryRow } from "@/components/tour-queries/types";
@@ -174,15 +238,15 @@ export async function storeAiDraft(
     locationId: payload.locationId,
     data: { ...payload.data, locationId: payload.locationId },
   };
-  await AsyncStorage.setItem(key, JSON.stringify(stored));
+  await writeDraftRaw(key, JSON.stringify(stored));
 }
 
 export async function consumeAiDraft(
   key: AiDraftStorageKey
 ): Promise<StoredAiDraft | null> {
-  const raw = await AsyncStorage.getItem(key);
+  const raw = await readDraftRaw(key);
   if (!raw) return null;
-  await AsyncStorage.removeItem(key);
+  await deleteDraftRaw(key);
   try {
     return JSON.parse(raw) as StoredAiDraft;
   } catch {
@@ -191,7 +255,7 @@ export async function consumeAiDraft(
 }
 
 export async function peekAiDraft(key: AiDraftStorageKey): Promise<StoredAiDraft | null> {
-  const raw = await AsyncStorage.getItem(key);
+  const raw = await readDraftRaw(key);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as StoredAiDraft;

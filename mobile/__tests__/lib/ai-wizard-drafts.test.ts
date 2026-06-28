@@ -1,4 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NativeModules } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import {
   AI_DRAFT_KEYS,
   consumeAiDraft,
@@ -7,12 +8,22 @@ import {
   storeAiDraft,
 } from "../../lib/ai-wizard-drafts";
 
+function setAsyncStorageNativeAvailable(available: boolean) {
+  Object.defineProperty(NativeModules, "RNCAsyncStorage", {
+    value: available ? {} : null,
+    configurable: true,
+    writable: true,
+  });
+}
+
 describe("ai-wizard-drafts", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    setAsyncStorageNativeAvailable(true);
   });
 
-  it("stores and consumes package create draft", async () => {
+  it("stores and consumes package create draft via SecureStore fallback", async () => {
+    setAsyncStorageNativeAvailable(false);
     const payload = {
       locationId: "loc-1",
       data: {
@@ -21,12 +32,12 @@ describe("ai-wizard-drafts", () => {
       },
     };
     await storeAiDraft(AI_DRAFT_KEYS.packageCreate, payload);
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-      AI_DRAFT_KEYS.packageCreate,
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
+      `ai-draft:${AI_DRAFT_KEYS.packageCreate}`,
       expect.stringContaining("Kerala Escape")
     );
 
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(
       JSON.stringify({
         timestamp: new Date().toISOString(),
         locationId: "loc-1",
@@ -35,7 +46,9 @@ describe("ai-wizard-drafts", () => {
     );
     const consumed = await consumeAiDraft(AI_DRAFT_KEYS.packageCreate);
     expect(consumed?.locationId).toBe("loc-1");
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith(AI_DRAFT_KEYS.packageCreate);
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
+      `ai-draft:${AI_DRAFT_KEYS.packageCreate}`
+    );
 
     const mapped = mapAiDraftToPackageInitial(
       { timestamp: "", locationId: "loc-1", data: payload.data },
@@ -43,6 +56,15 @@ describe("ai-wizard-drafts", () => {
     );
     expect(mapped.tourPackageName).toBe("Kerala Escape");
     expect(mapped.itineraries).toHaveLength(1);
+  });
+
+  it("returns null when AsyncStorage native module is unavailable", async () => {
+    setAsyncStorageNativeAvailable(false);
+    await expect(consumeAiDraft(AI_DRAFT_KEYS.queryApply)).resolves.toBeNull();
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith(
+      `ai-draft:${AI_DRAFT_KEYS.queryApply}`
+    );
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
   });
 
   it("maps query draft initial fields", () => {

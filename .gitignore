@@ -103,3 +103,8 @@ mobile/scripts/adb-pdf-test.mjs
 mobile/scripts/adb-prod-pdf-test.mjs
 tools/device-prod-pdf.sh
 tools/prod-pdf-page.html
+
+# Local Android app builds (release testing scratch in tools/)
+tools/aagam-*
+tools/aagam-apks/
+tools/bundletool.jar

@@ -123,45 +123,24 @@ const DatesTab: React.FC<DatesTabProps> = ({
           )}
         />
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <FormField
-            control={control}
-            name="numDaysNight"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Number of Days/Nights</FormLabel>
-                <FormControl>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Number of Days/Nights"
-                    disabled={loading}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={control}
-            name="period"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Period</FormLabel>
-                <FormControl>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Period (e.g. May 2023)"
-                    disabled={loading}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={control}
+          name="numDaysNight"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Number of Days/Nights</FormLabel>
+              <FormControl>
+                <input
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Number of Days/Nights"
+                  disabled={loading}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Add a helpful message about date selection */}
         <div className="text-sm text-muted-foreground p-3 bg-slate-50 rounded-md border border-slate-100">

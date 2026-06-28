@@ -120,6 +120,18 @@ model WhatsAppAnalyticsEvent {
   @@index([observedAt])
 }
 
+model WhatsAppStaffReadState {
+  id         String   @id @default(uuid())
+  userId     String
+  phone      String
+  lastReadAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, phone])
+  @@index([userId])
+}
+
 model WhatsAppTemplate {
   id           String   @id @default(uuid())
   name         String   @unique

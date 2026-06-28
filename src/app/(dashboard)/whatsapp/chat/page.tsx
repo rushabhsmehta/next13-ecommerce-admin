@@ -186,6 +186,9 @@ export default function WhatsAppSettingsPage() {
   const [messageOffset, setMessageOffset] = useState(0);
   const [isLoadingPreviousMessages, setIsLoadingPreviousMessages] = useState(false);
   const lastReadMapRef = useRef<Record<string, number>>({});
+  const persistReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPersistReadRef = useRef<Record<string, number>>({});
+  const [readStateHydrated, setReadStateHydrated] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [visibleMessageCounts, setVisibleMessageCounts] = useState<Record<string, number>>({});
   const [variableUploadState, setVariableUploadState] = useState<Record<string, { isLoading: boolean; error?: string; fileName?: string }>>({});
@@ -1807,6 +1810,55 @@ export default function WhatsAppSettingsPage() {
     }
   }, [messageOffset]);
 
+  const persistConversationRead = useCallback((contactId: string, lastReadAtMs?: number) => {
+    const ts = lastReadAtMs ?? Date.now();
+    lastReadMapRef.current[contactId] = Math.max(lastReadMapRef.current[contactId] ?? 0, ts);
+    pendingPersistReadRef.current[contactId] = lastReadMapRef.current[contactId];
+
+    if (persistReadTimerRef.current) {
+      clearTimeout(persistReadTimerRef.current);
+    }
+    persistReadTimerRef.current = setTimeout(() => {
+      const pending = { ...pendingPersistReadRef.current };
+      pendingPersistReadRef.current = {};
+      for (const [phone, lastMs] of Object.entries(pending)) {
+        void fetch('/api/whatsapp/conversations/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, lastReadAt: new Date(lastMs).toISOString() }),
+        }).catch((error) => console.error('Failed to persist read state', error));
+      }
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    const loadReadStates = async () => {
+      try {
+        const response = await fetch('/api/whatsapp/read-state');
+        const data = await response.json();
+        if (data.success && data.readStates) {
+          for (const [phone, iso] of Object.entries(data.readStates as Record<string, string>)) {
+            const readTs = new Date(iso).getTime();
+            if (!Number.isNaN(readTs)) {
+              lastReadMapRef.current[phone] = Math.max(lastReadMapRef.current[phone] ?? 0, readTs);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to hydrate read states', error);
+      } finally {
+        setReadStateHydrated(true);
+      }
+    };
+    void loadReadStates();
+
+    return () => {
+      if (persistReadTimerRef.current) {
+        clearTimeout(persistReadTimerRef.current);
+      }
+    };
+  }, []);
+
   // Debug Logging Helper
   const addDebugLog = useCallback((type: 'info' | 'success' | 'error' | 'warning', action: string, details: any = {}) => {
     const log: DebugLog = {
@@ -2389,7 +2441,13 @@ export default function WhatsAppSettingsPage() {
         const history = newConvos[resolvedActiveId] || [];
         const lastTs = history.length > 0 ? history[history.length - 1].ts : Date.now();
         lastReadMapRef.current[resolvedActiveId] = lastTs;
+        persistConversationRead(resolvedActiveId, lastTs);
         setActiveId(resolvedActiveId);
+      }
+
+      if (activeId && newConvos[activeId]?.length) {
+        const latest = newConvos[activeId][newConvos[activeId].length - 1].ts;
+        lastReadMapRef.current[activeId] = Math.max(lastReadMapRef.current[activeId] ?? 0, latest);
       }
 
       const unreadSummary: Record<string, number> = {};
@@ -2450,7 +2508,7 @@ export default function WhatsAppSettingsPage() {
       setVisibleMessageCounts({});
       console.log('⚠️ No contacts to display');
     }
-  }, [messages, templates, activeId, sortContactsByRecent]);
+  }, [messages, templates, activeId, sortContactsByRecent, readStateHydrated, persistConversationRead]);
 
   const activeContact = contacts.find(c => c.id === activeId) || null;
 
@@ -2519,6 +2577,7 @@ export default function WhatsAppSettingsPage() {
     const latestTimestamp = history[history.length - 1].ts;
     if ((lastReadMapRef.current[activeId] ?? 0) < latestTimestamp) {
       lastReadMapRef.current[activeId] = latestTimestamp;
+      persistConversationRead(activeId, latestTimestamp);
     }
 
     setUnreadCounts(prev => {
@@ -2527,7 +2586,7 @@ export default function WhatsAppSettingsPage() {
       delete next[activeId];
       return next;
     });
-  }, [activeId, convos]);
+  }, [activeId, convos, persistConversationRead]);
   const shouldShowTemplateDialog = showTemplatePreview && !!selectedTemplate;
   const orderedTemplateVariableKeys = orderTemplateVariableKeys(Object.keys(templateVariables));
 
@@ -3851,6 +3910,7 @@ export default function WhatsAppSettingsPage() {
     const history = convos[contactId] || [];
     const lastTs = history.length > 0 ? history[history.length - 1].ts : Date.now();
     lastReadMapRef.current[contactId] = lastTs;
+    persistConversationRead(contactId, lastTs);
 
     setUnreadCounts(prev => {
       if (!prev[contactId]) {
@@ -3874,7 +3934,7 @@ export default function WhatsAppSettingsPage() {
     });
 
     setActiveId(contactId);
-  }, [convos]);
+  }, [convos, persistConversationRead]);
 
   const handleLoadMoreMessages = useCallback((contactId: string) => {
     setVisibleMessageCounts(prev => {

@@ -57,6 +57,8 @@ export async function GET(req: Request) {
     const admin = await validateClerkAdmin(req);
     if (!admin) return new NextResponse("Unauthorized", { status: 401 });
 
+    const staffUserId = admin.userId;
+
     const { searchParams } = new URL(req.url);
     const limit = Math.min(
       Math.max(
@@ -143,9 +145,11 @@ export async function GET(req: Request) {
       unread AS (
         SELECT f.phone, COUNT(*)::bigint AS unread_count
         FROM filtered f
-        LEFT JOIN out_times o ON f.phone = o.phone
+        LEFT JOIN "WhatsAppStaffReadState" r
+          ON REGEXP_REPLACE(r.phone, '^\\+', '') = REGEXP_REPLACE(f.phone, '^\\+', '')
+          AND r."userId" = ${staffUserId}
         WHERE f.direction = 'inbound'
-          AND (o.last_outbound_at IS NULL OR f."createdAt" > o.last_outbound_at)
+          AND (r."lastReadAt" IS NULL OR f."createdAt" > r."lastReadAt")
         GROUP BY f.phone
       )
       SELECT

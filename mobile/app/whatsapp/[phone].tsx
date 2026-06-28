@@ -206,6 +206,17 @@ export default function WhatsAppConversation() {
     await refreshOutbox();
   }, [getToken, phone, refreshOutbox]);
 
+  const markConversationRead = useCallback(async () => {
+    try {
+      await api("/api/mobile/whatsapp/conversations/read", {
+        method: "POST",
+        body: { phone },
+      });
+    } catch (error) {
+      console.warn("Failed to mark conversation read", error);
+    }
+  }, [api, phone]);
+
   const fetchMessages = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
       try {
@@ -294,6 +305,7 @@ export default function WhatsAppConversation() {
       // notifications increment it, opening any thread is the correct
       // signal that admin is up to date.
       clearWhatsAppUnread();
+      void markConversationRead();
       fetchMessages();
       void flushOutbox();
       startPolling(POLL_ACTIVE_MS);
@@ -303,6 +315,7 @@ export default function WhatsAppConversation() {
       };
     }, [
       clearWhatsAppUnread,
+      markConversationRead,
       fetchMessages,
       flushOutbox,
       startPolling,

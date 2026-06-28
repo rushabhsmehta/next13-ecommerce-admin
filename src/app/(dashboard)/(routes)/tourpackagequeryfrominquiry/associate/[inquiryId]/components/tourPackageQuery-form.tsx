@@ -169,7 +169,6 @@ const formSchema = z.object({
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
-  period: z.string().optional(),
   tourStartsFrom: z.date().optional(),
   tourEndsOn: z.date().optional(),
   transport: z.string().optional().nullable().transform(val => val || ''),
@@ -314,7 +313,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     customerName: inquiry?.customerName || '',
     customerNumber: inquiry?.customerMobileNumber || '',
     numDaysNight: '',
-    period: '',
     locationId: inquiry?.locationId || '',
     pickup_location: '',
     drop_location: '',
@@ -1108,7 +1106,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 enableTourStartsFrom={false}
                 enableTourEndsOn={true}
                 enableNumDaysNight={false}
-                enablePeriod={false}
               />
             </TabsContent>
 

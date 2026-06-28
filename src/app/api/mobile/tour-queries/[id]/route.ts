@@ -248,7 +248,6 @@ export async function GET(
         customerName: true,
         customerNumber: true,
         numDaysNight: true,
-        period: true,
         tourStartsFrom: true,
         tourEndsOn: true,
         numAdults: true,

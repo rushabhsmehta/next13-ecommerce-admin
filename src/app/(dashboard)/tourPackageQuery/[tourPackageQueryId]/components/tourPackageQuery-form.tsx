@@ -191,7 +191,6 @@ const formSchema = z.object({
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
-  period: z.string().optional(),
   tourStartsFrom: z.date().optional(),
   tourEndsOn: z.date().optional(),
   transport: z.string().optional().nullable().transform(val => val || ''),
@@ -552,7 +551,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       customerName: '',
       customerNumber: '',
       numDaysNight: '',
-      period: '',
       tourStartsFrom: '',
       tourEndsOn: '',
       transport: '',
@@ -873,7 +871,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           shouldValidate: true,
           shouldDirty: true
         });
-        // Also update the period field if needed, or just the numDaysNight as requested
       }
     }
   }, [watchedItineraries, form]);

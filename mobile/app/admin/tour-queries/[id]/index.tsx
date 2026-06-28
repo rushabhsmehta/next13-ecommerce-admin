@@ -117,7 +117,6 @@ interface TourQueryDetail {
   customerName: string | null;
   customerNumber: string | null;
   numDaysNight: string | null;
-  period: string | null;
   tourStartsFrom: string | null;
   tourEndsOn: string | null;
   numAdults: string | null;

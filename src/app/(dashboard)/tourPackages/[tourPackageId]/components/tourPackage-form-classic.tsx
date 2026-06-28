@@ -567,7 +567,6 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     customerName: '',
     customerNumber: '',
     numDaysNight: '',
-    period: '',
     transport: '',
     pickup_location: '',
     drop_location: '',

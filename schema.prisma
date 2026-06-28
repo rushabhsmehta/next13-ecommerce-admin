@@ -216,7 +216,6 @@ model TourPackageQuery {
   customerName                     String?
   numDaysNight                     String?
   locationId                       String
-  period                           String?
   numAdults                        String?
   numChild5to12                    String?
   numChild0to5                     String?

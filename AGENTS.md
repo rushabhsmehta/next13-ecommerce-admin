@@ -182,3 +182,38 @@ See `.env` / `.env.local`. Notable:
 
 - No `prisma migrate reset`, `db push --force-reset`, or DROP against prod.
 - Confirm schema migrations with the user before `prisma migrate dev`.
+
+## Cursor Cloud specific instructions
+
+### Secrets and env files
+
+- There is no committed root `.env.example`; copy fields from `README.md` / `SECURITY.md` into **`.env.local`** (gitignored). Prisma CLI does **not** load `.env.local` automatically — run `set -a && source .env.local && set +a` before `npx prisma …`.
+- **Required for the web app:** `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`. **WhatsApp features** also need `WHATSAPP_DATABASE_URL` (PostgreSQL).
+- The test Clerk publishable key used in `mobile/.env.production` / `mobile/eas.json` is public; you still need a matching **`CLERK_SECRET_KEY`** from the Clerk dashboard for sign-in and protected admin routes.
+
+### Local databases (when secrets point at localhost)
+
+- **MySQL (main):** `sudo service mysql start` — this VM used DB `aagam_dev`, user `aagam` / password `aagam_dev`. Fresh schema: `npx prisma db push` (not only `migrations/`, which has a single incremental migration).
+- **PostgreSQL (WhatsApp):** e.g. `docker run -d --name aagam-postgres -e POSTGRES_PASSWORD=whatsapp_dev -e POSTGRES_DB=whatsapp_dev -p 5432:5432 postgres:16-alpine`, then `npx prisma db push --schema=prisma/whatsapp-schema.prisma`.
+
+### Running services
+
+| Service | Command | Port |
+|---------|---------|------|
+| Next.js (web + API) | `set -a && source .env.local && set +a && npm run dev` | 3000 |
+| Expo public / staff / finance | `cd mobile && npm run start:public` (or `start:staff` / `start:finance`) | 8081 / 8082 / 8083 |
+
+Use **tmux** for long-running dev servers. Public travel UI and APIs work without Clerk session cookies: `/travel/packages`, `/api/travel/packages`.
+
+### Verify (no UI)
+
+```bash
+set -a && source .env.local && set +a
+npm run test:accounts          # 11 tests, no DB
+cd mobile && npm run test:public   # Jest unit tests
+curl -s http://127.0.0.1:3000/api/travel/packages
+```
+
+### Lint caveat
+
+`npm run lint` currently fails with Next 16 (`no such directory: …/lint`) and direct `eslint` can hit a `zod` / `eslint-config-next` export mismatch — treat as a known toolchain issue until the repo fixes it; prefer `npm run test:accounts` and `npm run build` for CI-style checks when lint is broken.

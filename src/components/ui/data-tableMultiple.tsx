@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
+  type ColumnDef,
+  type FilterFn,
+  type SortingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -33,6 +33,7 @@ interface DataTableMultipleProps<TData, TValue> {
   onSearchChange?: (value: string) => void; // callback when search changes
   searchPlaceholder?: string;
   showPagination?: boolean;
+  manualFiltering?: boolean;
 }
 
 export function DataTableMultiple<TData, TValue>({
@@ -43,6 +44,7 @@ export function DataTableMultiple<TData, TValue>({
   onSearchChange,
   searchPlaceholder = "Search",
   showPagination = true,
+  manualFiltering = false,
 }: DataTableMultipleProps<TData, TValue>) {
   const [uncontrolledFilter, setUncontrolledFilter] = useState("");
   const globalFilter = searchValue !== undefined ? searchValue : uncontrolledFilter;
@@ -55,13 +57,20 @@ export function DataTableMultiple<TData, TValue>({
   };
   const [sorting, setSorting] = React.useState<SortingState>([])
 
+  const globalFilterFn: FilterFn<TData> = (row, _columnId, filterValue) => {
+    const normalizedFilter = String(filterValue ?? "").toLowerCase();
 
-  const table = useReactTable({
+    return searchKeys.some((key) =>
+      row.getValue(key)?.toString().toLowerCase().includes(normalizedFilter)
+    );
+  };
+
+  const table = useReactTable<TData>({
     data,
-    columns,
+    columns: columns as ColumnDef<TData, any>[],
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    ...(showPagination ? { getPaginationRowModel: getPaginationRowModel() } : {}),
+    ...(manualFiltering ? {} : { getFilteredRowModel: getFilteredRowModel() }),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     state: {
@@ -74,12 +83,11 @@ export function DataTableMultiple<TData, TValue>({
       },
     },
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: (row, columnIds, filterValue) => {
-      // Check if the row matches the filter value in any of the columns specified
-      return searchKeys.some((key) =>
-        row.getValue(key)?.toString().toLowerCase().includes(filterValue.toLowerCase())
-      );
-    },
+    ...(manualFiltering
+      ? {}
+      : {
+        globalFilterFn,
+      }),
   });
 
   return (

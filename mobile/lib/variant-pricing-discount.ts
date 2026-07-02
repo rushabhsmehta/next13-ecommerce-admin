@@ -4,7 +4,7 @@ export type AppliedVariantDiscount = {
   type: VariantDiscountType;
   inputValue: number;
   amount: number;
-  reason?: string;
+  reason?: string | null;
 };
 
 export type VariantDiscountInput = {

@@ -103,12 +103,14 @@ export function AdminTopBarPrimaryButton(props: {
   testID?: string;
   onPress: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
+  accessibilityHint?: string;
 }) {
   return (
     <Pressable
       testID={props.testID}
       accessibilityRole="button"
       accessibilityLabel={props.label}
+      accessibilityHint={props.accessibilityHint}
       onPress={props.onPress}
       style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
     >

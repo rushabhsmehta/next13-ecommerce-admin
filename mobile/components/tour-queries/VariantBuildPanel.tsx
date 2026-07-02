@@ -34,6 +34,7 @@ import {
   formatDiscountLabel,
   hasAppliedVariantDiscount,
 } from "@/lib/variant-pricing-discount";
+import { extractPlainText } from "@/lib/rich-text";
 
 function formatINR(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "Rs. 0";
@@ -411,7 +412,7 @@ export function VariantBuildPanel({
                 </Text>
                 {day.itineraryTitle ? (
                   <Text style={styles.muted} numberOfLines={2}>
-                    {day.itineraryTitle.replace(/<[^>]+>/g, "")}
+                    {extractPlainText(day.itineraryTitle)}
                   </Text>
                 ) : null}
               </View>

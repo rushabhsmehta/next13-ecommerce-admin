@@ -133,6 +133,7 @@ export function mapAiDraftToQueryItineraries(
   locationId: string
 ): ItineraryRow[] {
   return (data.itineraries ?? []).map((day, index) => ({
+    id: `ai-draft-day-${index + 1}`,
     dayNumber: day.dayNumber ?? index + 1,
     days: String(day.dayNumber ?? index + 1),
     locationId,

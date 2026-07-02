@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
@@ -313,7 +321,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
     selectedPackageId: null,
     setSelectedPackageId: noop as (id: string | null) => void,
     selectedVariantIds: [],
-    setSelectedVariantIds: noop as (ids: string[]) => void,
+    setSelectedVariantIds: noop as Dispatch<SetStateAction<string[]>>,
     selectedCopyQueryId: null,
     datesOk,
     datesOrderWarning,
@@ -335,7 +343,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
     pickerTitle,
     pickerSelectedId,
     handlePickerSelect,
-    loadHotelsForLocation: noop,
+    loadHotelsForLocation: async () => undefined,
     authRequest,
   };
 }

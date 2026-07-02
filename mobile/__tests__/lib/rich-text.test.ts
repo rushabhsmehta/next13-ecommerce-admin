@@ -24,6 +24,27 @@ describe("stripHtml", () => {
     expect(stripHtml(input)).toBe("Arrive in Srinagar.");
   });
 
+  it("strips editor headings with data attributes and empty paragraphs", () => {
+    const input =
+      '<h2 data-section-id="14rxe58" data-start="828" data-end="879">Day 2: Full Day Cruise \u2726 Leisure &amp; Entertainment</h2><p data-start="881" data-end="1191"><br></p>';
+    expect(stripHtml(input)).toBe(
+      "Day 2: Full Day Cruise \u2726 Leisure & Entertainment"
+    );
+  });
+
+  it("strips nested editor spans", () => {
+    const input =
+      '<p>Arrive in <span class="hover entity-accent entity-underline inline cursor-pointer align-baseline"><span class="whitespace-normal">Singapore</span></span> and complete immigration.</p>';
+    expect(stripHtml(input)).toBe(
+      "Arrive in Singapore and complete immigration."
+    );
+  });
+
+  it("drops empty html paragraphs", () => {
+    const input = '<p data-start="1"><br></p><p data-start="2"><br></p>';
+    expect(stripHtml(input)).toBe("");
+  });
+
   it("collapses whitespace and preserves paragraph breaks", () => {
     const input = "<p>One</p><p>Two</p>";
     expect(stripHtml(input)).toBe("One\n\nTwo");

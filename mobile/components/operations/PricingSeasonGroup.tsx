@@ -4,17 +4,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import {
   pricingGroupSubtitle,
+  type PricingGroupRow,
   type PricingSeasonGroup as PricingSeasonGroupData,
 } from "@/lib/pricing-season-groups";
 
-export interface PricingSeasonGroupProps<T> {
+export interface PricingSeasonGroupProps<T extends PricingGroupRow> {
   group: PricingSeasonGroupData<T>;
   renderItem: (item: T) => ReactNode;
   defaultExpanded?: boolean;
   testID?: string;
 }
 
-export function PricingSeasonGroup<T>({
+export function PricingSeasonGroup<T extends PricingGroupRow>({
   group,
   renderItem,
   defaultExpanded = false,

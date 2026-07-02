@@ -42,6 +42,12 @@ import {
   tourPackagePdfPath,
   tourPackagePdfWithVariantsPath,
 } from "@/lib/tour-packages-web-urls";
+import { extractPlainText } from "@/lib/rich-text";
+
+function displayText(value: unknown, fallback = ""): string {
+  const text = extractPlainText(value).replace(/\s+/g, " ").trim();
+  return text || fallback;
+}
 
 export default function TourPackageDetailScreen() {
   return (
@@ -92,7 +98,7 @@ function Inner() {
       setPdfBusy(variant ? "variants" : "plain");
       try {
         const name =
-          data?.tourPackageName?.trim().replace(/\s+/g, "-") || "tour-package";
+          displayText(data?.tourPackageName).replace(/\s+/g, "-") || "tour-package";
         await downloadAndSharePdf({
           endpoint: `/api/mobile/tour-packages/${encodeURIComponent(id)}/pdf${
             variant ? "?variant=1" : ""
@@ -235,17 +241,17 @@ function Inner() {
   }
 
   const summaryParts = [
-    data.location.label,
-    data.tourPackageType,
-    data.tourCategory,
-    data.numDaysNight,
+    displayText(data.location.label),
+    displayText(data.tourPackageType),
+    displayText(data.tourCategory),
+    displayText(data.numDaysNight),
   ].filter(Boolean);
 
   return (
     <AdminScreen testID="tour-package-detail-screen">
       <Stack.Screen options={{ title: "Tour package", headerShown: false }} />
       <AdminTopBar
-        title={data.tourPackageName?.trim() || "Tour package"}
+        title={displayText(data.tourPackageName, "Tour package")}
         subtitle={summaryParts.join(" · ") || "Package details"}
         onBackPress={() => router.back()}
         testID="tour-package-detail-header"
@@ -309,34 +315,40 @@ function Inner() {
           {data.itineraries.length === 0 ? (
             <Text style={styles.muted}>No itinerary days yet.</Text>
           ) : (
-            data.itineraries.map((day) => (
-              <View key={day.id} style={styles.dayBlock}>
-                <Text style={styles.dayLabel}>Day {day.dayNumber ?? "—"}</Text>
-                <Text style={styles.dayTitle}>{day.itineraryTitle ?? "Untitled"}</Text>
-                {day.images && day.images.length > 0 ? (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.dayImageRow}
-                  >
-                    {day.images.map((img) => (
-                      <RemoteImage
-                        key={img.id}
-                        uri={img.url}
-                        style={styles.dayImage}
-                        accessibilityLabel="Itinerary day photo"
-                      />
-                    ))}
-                  </ScrollView>
-                ) : null}
-                {day.itineraryDescription ? (
-                  <Text style={styles.dayDesc}>{day.itineraryDescription}</Text>
-                ) : null}
-                {day.mealsIncluded ? (
-                  <Text style={styles.dayMeals}>Meals: {day.mealsIncluded}</Text>
-                ) : null}
-              </View>
-            ))
+            data.itineraries.map((day) => {
+              const dayTitle = displayText(day.itineraryTitle, "Untitled");
+              const dayDescription = extractPlainText(day.itineraryDescription);
+              const mealsIncluded = displayText(day.mealsIncluded);
+
+              return (
+                <View key={day.id} style={styles.dayBlock}>
+                  <Text style={styles.dayLabel}>Day {day.dayNumber ?? "—"}</Text>
+                  <Text style={styles.dayTitle}>{dayTitle}</Text>
+                  {day.images && day.images.length > 0 ? (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.dayImageRow}
+                    >
+                      {day.images.map((img) => (
+                        <RemoteImage
+                          key={img.id}
+                          uri={img.url}
+                          style={styles.dayImage}
+                          accessibilityLabel="Itinerary day photo"
+                        />
+                      ))}
+                    </ScrollView>
+                  ) : null}
+                  {dayDescription ? (
+                    <Text style={styles.dayDesc}>{dayDescription}</Text>
+                  ) : null}
+                  {mealsIncluded ? (
+                    <Text style={styles.dayMeals}>Meals: {mealsIncluded}</Text>
+                  ) : null}
+                </View>
+              );
+            })
           )}
         </Section>
 
@@ -344,8 +356,8 @@ function Inner() {
           <Section title="Pricing table">
             {data.pricingSection.map((row, i) => (
               <View key={`pricing-${i}`} style={styles.policyRow}>
-                <Text style={styles.infoLabel}>{row.name}</Text>
-                <Text style={styles.infoValue}>{row.price || "—"}</Text>
+                <Text style={styles.infoLabel}>{displayText(row.name)}</Text>
+                <Text style={styles.infoValue}>{displayText(row.price, "—")}</Text>
               </View>
             ))}
           </Section>
@@ -478,10 +490,11 @@ function Section({
 }
 
 function PolicySection({ title, items }: { title: string; items: string[] }) {
-  if (!items.length) return null;
+  const cleanedItems = items.map((item) => extractPlainText(item)).filter(Boolean);
+  if (!cleanedItems.length) return null;
   return (
     <Section title={title}>
-      {items.map((item, i) => (
+      {cleanedItems.map((item, i) => (
         <Text key={`${title}-${i}`} style={styles.bullet}>
           • {item}
         </Text>
@@ -494,7 +507,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+      <Text style={styles.infoValue}>{displayText(value, "—")}</Text>
     </View>
   );
 }

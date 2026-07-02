@@ -1,8 +1,8 @@
 "use client";
 
 import { Plus, Sparkles, MapPin, Calendar, User, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -21,8 +21,21 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { CellAction } from "./cell-action";
 import Link from "next/link";
 
+type QueryStatusFilter = "all" | "confirmed" | "pending";
+
 interface TourPackageQueryClientProps {
   data: TourPackageQueryColumn[];
+  assignees: string[];
+  filters: {
+    search: string;
+    assignedTo: string;
+    status: QueryStatusFilter;
+  };
+  counts: {
+    total: number;
+    confirmed: number;
+    pending: number;
+  };
   pagination?: {
     page: number;
     pageSize: number;
@@ -33,49 +46,81 @@ interface TourPackageQueryClientProps {
 
 export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   data,
+  assignees,
+  filters,
+  counts,
   pagination,
 }) => {
   const router = useRouter();
-  const [filteredData, setFilteredData] = useState(data);
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
-  const [confirmationFilter, setConfirmationFilter] = useState("all");
-  const [mobileSearch, setMobileSearch] = useState("");
-
-  const uniqueAssignedTo = Array.from(
-    new Set(data.map((item) => item.assignedTo))
-  )
-    .filter(Boolean)
-    .sort();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [searchValue, setSearchValue] = useState(filters.search);
 
   useEffect(() => {
-    let result = [...data];
+    setSearchValue(filters.search);
+  }, [filters.search]);
 
-    if (assigneeFilter !== "all") {
-      result = result.filter((item) => item.assignedTo === assigneeFilter);
-    }
+  const updateQueryParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      params.set("page", "1");
 
-    if (confirmationFilter !== "all") {
-      const isConfirmed = confirmationFilter === "confirmed";
-      result = result.filter((item) => item.isFeatured === isConfirmed);
-    }
+      Object.entries(updates).forEach(([key, value]) => {
+        const normalized = value?.trim() ?? "";
+        if (!normalized || normalized === "all") {
+          params.delete(key);
+        } else {
+          params.set(key, normalized);
+        }
+      });
 
-    if (mobileSearch.trim()) {
-      const q = mobileSearch.toLowerCase();
-      result = result.filter(
-        (item) =>
-          item.customerName.toLowerCase().includes(q) ||
-          item.tourPackageQueryName.toLowerCase().includes(q) ||
-          item.tourPackageQueryNumber.toLowerCase().includes(q) ||
-          item.customerNumber.toLowerCase().includes(q) ||
-          item.assignedTo.toLowerCase().includes(q)
-      );
-    }
+      const queryString = params.toString();
+      router.push(queryString ? `${pathname}?${queryString}` : pathname);
+    },
+    [pathname, router, searchParams]
+  );
 
-    setFilteredData(result);
-  }, [assigneeFilter, confirmationFilter, mobileSearch, data]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextSearch = searchValue.trim();
+      if (nextSearch !== filters.search) {
+        updateQueryParams({ search: nextSearch });
+      }
+    }, 350);
 
-  const confirmedCount = data.filter((d) => d.isFeatured).length;
-  const pendingCount = data.filter((d) => !d.isFeatured).length;
+    return () => window.clearTimeout(timer);
+  }, [filters.search, searchValue, updateQueryParams]);
+
+  const handleAssigneeChange = (value: string) => {
+    updateQueryParams({
+      assignedTo: value,
+      search: searchValue.trim(),
+    });
+  };
+
+  const handleStatusChange = (value: string) => {
+    const nextStatus: QueryStatusFilter =
+      value === "confirmed" || value === "pending" ? value : "all";
+
+    updateQueryParams({
+      status: nextStatus,
+      search: searchValue.trim(),
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchValue("");
+    updateQueryParams({
+      search: null,
+      assignedTo: null,
+      status: null,
+    });
+  };
+
+  const hasActiveFilters =
+    Boolean(searchValue.trim()) ||
+    filters.assignedTo !== "all" ||
+    filters.status !== "all";
 
   return (
     <div className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
@@ -89,8 +134,8 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
             Tour Package Queries
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {data.length} total &middot; {confirmedCount} confirmed &middot;{" "}
-            {pendingCount} pending
+            {counts.total} total &middot; {counts.confirmed} confirmed &middot;{" "}
+            {counts.pending} pending
           </p>
         </div>
 
@@ -118,13 +163,13 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
       {/* ── Glassmorphic Filter Bar ────────────────────────── */}
       <div className="rounded-2xl border border-border/40 bg-background/60 backdrop-blur-md p-3 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+          <Select value={filters.assignedTo} onValueChange={handleAssigneeChange}>
             <SelectTrigger className="h-8 w-auto min-w-[160px] rounded-full border-border/50 bg-transparent text-xs transition-all duration-200 hover:bg-muted/30">
               <SelectValue placeholder="All Assignments" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               <SelectItem value="all">All Assignments</SelectItem>
-              {uniqueAssignedTo.map((a) => (
+              {assignees.map((a) => (
                 <SelectItem key={a} value={a}>
                   {a || "Unassigned"}
                 </SelectItem>
@@ -132,7 +177,7 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
             </SelectContent>
           </Select>
 
-          <Select value={confirmationFilter} onValueChange={setConfirmationFilter}>
+          <Select value={filters.status} onValueChange={handleStatusChange}>
             <SelectTrigger className="h-8 w-auto min-w-[140px] rounded-full border-border/50 bg-transparent text-xs transition-all duration-200 hover:bg-muted/30">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
@@ -148,19 +193,15 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search queries…"
-              value={mobileSearch}
-              onChange={(e) => setMobileSearch(e.target.value)}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               className="h-8 rounded-full pl-8 text-xs border-border/50 bg-transparent"
             />
           </div>
 
-          {(assigneeFilter !== "all" || confirmationFilter !== "all" || mobileSearch) && (
+          {hasActiveFilters && (
             <button
-              onClick={() => {
-                setAssigneeFilter("all");
-                setConfirmationFilter("all");
-                setMobileSearch("");
-              }}
+              onClick={clearFilters}
               className="text-xs text-muted-foreground underline-offset-2 hover:underline transition-all duration-150 ml-auto"
             >
               Clear filters
@@ -171,12 +212,12 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
 
       {/* ── Mobile Card Grid (hidden on md+) ──────────────── */}
       <div className="grid gap-3 sm:grid-cols-2 md:hidden">
-        {filteredData.length === 0 ? (
+        {data.length === 0 ? (
           <p className="col-span-full py-12 text-center text-sm text-muted-foreground">
             No queries found.
           </p>
         ) : (
-          filteredData.map((item, i) => (
+          data.map((item, i) => (
             <MobileQueryCard key={item.id} item={item} index={i} />
           ))
         )}
@@ -194,7 +235,11 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
             "assignedTo",
           ]}
           columns={columns}
-          data={filteredData}
+          data={data}
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          searchPlaceholder="Search queries..."
+          manualFiltering
           showPagination={!pagination}
         />
       </div>

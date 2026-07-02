@@ -124,7 +124,12 @@ export function createAssociateInquiryClient(
         dedupe: true,
         staleOnError: true,
       });
-      return items as AssociateInquiry[];
+      return items.map((item) => ({
+        ...item,
+        locationId: item.location?.id ?? "",
+        remarks: null,
+        updatedAt: item.createdAt,
+      }));
     },
     getInquiry(inquiryId: string): Promise<AssociateInquiry | null> {
       return authRequest<AssociateInquiry | null>(`/api/inquiries/${inquiryId}`);

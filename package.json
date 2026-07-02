@@ -6,7 +6,7 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "lint": "next lint",
+        "lint": "eslint src",
         "postinstall": "prisma generate && prisma generate --schema=prisma/whatsapp-schema.prisma",
         "update-accommodation-policies": "node update-accommodation-policies.js",
         "seed-whatsapp-templates": "node seed-whatsapp-templates.js",
@@ -116,7 +116,7 @@
         "twitter-api-v2": "^1.22.0",
         "typescript": "^5.9.3",
         "xlsx": "^0.18.5",
-        "zod": "^3.21.4",
+        "zod": "3.25.76",
         "zustand": "^4.5.7"
     },
     "devDependencies": {

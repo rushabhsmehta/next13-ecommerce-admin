@@ -235,7 +235,7 @@ function AiWizardsInner() {
       clearInterval(tick);
       setProgress(0);
       const message =
-        err instanceof ApiError && err.status === 429
+        err instanceof ApiError && err.statusCode === 429
           ? "AI generation limit reached. Please wait a minute and try again."
           : err instanceof ApiError
             ? err.message

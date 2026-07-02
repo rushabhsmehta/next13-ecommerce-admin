@@ -508,6 +508,7 @@ function SmartBuildInner() {
               <Text style={styles.fieldLabel}>Requirement date</Text>
               <DateField
                 testID={`smart-build-requirement-date-${index}`}
+                accessibilityLabel="Requirement date"
                 style={styles.input}
                 value={row.requirementDate ?? ""}
                 onChange={(value) =>

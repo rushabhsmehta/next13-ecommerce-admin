@@ -53,6 +53,7 @@ import { TourQueryTabBar, TourQueryTabPanel } from "@/components/tour-queries/To
 import { TourQueryVariantsPanel } from "@/components/tour-queries/TourQueryVariantsPanel";
 import { parseTourQueryTab } from "@/components/tour-queries/tab-config";
 import type { TourQueryTabId } from "@/components/tour-queries/types";
+import { extractPlainText } from "@/lib/rich-text";
 
 interface FlightDetail {
   id: string;
@@ -1376,7 +1377,7 @@ function TourQueryDetailScreenInner() {
                           <View key={`${b.title}-${i}`} style={styles.bulletRow}>
                             <Text style={styles.bulletDot}>·</Text>
                             <Text style={styles.bulletText}>
-                              {item.replace(/<[^>]+>/g, "")}
+                              {extractPlainText(item)}
                             </Text>
                           </View>
                         ))}
@@ -1525,16 +1526,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function stripHtml(html: string): string {
-  if (!html) return "";
-  return html
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
+  return extractPlainText(html);
 }
 
 function CollapsibleDayDescription({ text }: { text: string }) {

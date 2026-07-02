@@ -4,7 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/theme";
 import { tourQueryFormStyles as styles } from "./form-styles";
 import { FormField } from "./FormField";
-import type { ItineraryRow } from "./types";
+import type { ItineraryRow } from "./types";
+import { extractPlainText } from "@/lib/rich-text";
 
 export interface ItineraryDayCardProps {
   it: ItineraryRow;
@@ -24,7 +25,7 @@ export function ItineraryDayCard({
   onDeleteDay,
 }: ItineraryDayCardProps) {
   const [descOpen, setDescOpen] = useState(false);
-  const plainDesc = String(it.itineraryDescription ?? "").replace(/<[^>]+>/g, "");
+  const plainDesc = extractPlainText(it.itineraryDescription);
 
   const locationLabel = locations.find((l) => l.id === it.locationId)?.name || "Select Location";
 
@@ -94,6 +95,5 @@ export function ItineraryDayCard({
         onChange={(t) => onChange({ ...it, mealsIncluded: t })}
       />
     </View>
-  );
-}
-
+  );
+}

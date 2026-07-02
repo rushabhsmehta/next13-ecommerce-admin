@@ -137,7 +137,9 @@ export function groupPricingBySeason<T extends PricingGroupRow>(
   );
 }
 
-export function pricingGroupSubtitle(group: PricingSeasonGroup<PricingGroupRow>): string {
+export function pricingGroupSubtitle<T extends PricingGroupRow>(
+  group: PricingSeasonGroup<T>
+): string {
   const count = group.items.length;
   const rateLabel = count === 1 ? "rate" : "rates";
   return `${fmtPricingDateRange(group.startDate, group.endDate)} · ${count} ${rateLabel}`;

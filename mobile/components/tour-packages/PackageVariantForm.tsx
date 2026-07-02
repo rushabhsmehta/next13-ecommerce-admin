@@ -28,6 +28,7 @@ import {
   type PackageVariantInput,
   type VariantHotelMappingInput,
 } from "@/lib/tour-packages";
+import { extractPlainText } from "@/lib/rich-text";
 
 interface ItineraryDay {
   id: string;
@@ -285,10 +286,11 @@ export function PackageVariantForm({
               selected?.hotelName ||
               hotels.find((h) => h.id === selected?.hotelId)?.label ||
               "Choose hotel";
+            const dayTitle = extractPlainText(day.itineraryTitle) || "Untitled";
             return (
               <AdminFormField
                 key={day.id}
-                label={`Day ${day.dayNumber ?? "—"} — ${day.itineraryTitle ?? "Untitled"}`}
+                label={`Day ${day.dayNumber ?? "—"} — ${dayTitle}`}
               >
                 <Pressable
                   testID={`variant-form-hotel-day-${day.dayNumber}`}

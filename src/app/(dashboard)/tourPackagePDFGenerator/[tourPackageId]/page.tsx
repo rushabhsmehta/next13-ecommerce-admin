@@ -18,10 +18,40 @@ const tourPackagePage = async (
     },
     include: {
       images: true,
-      flightDetails: true,
+      flightDetails: {
+        include: {
+          images: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
       itineraries: {
         include: {
           itineraryImages: true,
+          roomAllocations: {
+            include: {
+              roomType: true,
+              occupancyType: true,
+              mealPlan: true,
+              extraBeds: {
+                include: {
+                  occupancyType: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+          transportDetails: {
+            include: {
+              vehicleType: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
           activities:
           {
             include: {
@@ -48,6 +78,8 @@ const tourPackagePage = async (
     
     include: {
       images: true,
+      location: true,
+      destination: true,
     }
   });
 

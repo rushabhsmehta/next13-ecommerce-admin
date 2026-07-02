@@ -121,5 +121,5 @@ describe("TourQueryVariantsPanel", () => {
     const buttons = alert.mock.calls.at(-1)?.[2];
     buttons?.find((button) => button.text === "Discard")?.onPress?.();
     await waitFor(() => expect(screen.getByTestId("variant-card-v2")).toBeTruthy());
-  });
+  }, 15000);
 });

@@ -1,22 +1,14 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { rateLimit } from "@/lib/rate-limit";
-import { generatePDF } from "@/utils/generatepdf";
-import { buildTourPackageBrochureHtml } from "@/lib/pdf/tour-package-brochure-html";
-import { companyInfo } from "@/lib/pdf/branding";
+import { generatePDFFromUrl } from "@/utils/generatepdf";
+import { resolvePdfBaseUrl } from "@/app/api/mobile/lib/pdf-base";
 import { sanitizeText } from "@/lib/pdf/text-utils";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const limiter = rateLimit("expensive");
-
-function publicPackagePageUrl(slugOrId: string): string {
-  const base = sanitizeText(companyInfo.AH.website, "https://aagamholidays.com").replace(
-    /\/$/,
-    ""
-  );
-  return `${base}/travel/packages/${encodeURIComponent(slugOrId)}`;
-}
 
 function attachmentFilename(pkgName: string): string {
   const safe = sanitizeText(pkgName, "tour-package")
@@ -39,26 +31,23 @@ export async function GET(
       return NextResponse.json({ error: "Package slug or id is required" }, { status: 400 });
     }
 
-    const include = {
-      location: true,
-      images: { select: { url: true }, take: 2 },
-      itineraries: {
-        orderBy: [
-          { dayNumber: "asc" as const },
-          { days: "asc" as const },
-        ],
-      },
-    };
-
     let tourPackage = await prismadb.tourPackage.findFirst({
       where: { slug: rawSlug, isArchived: false },
-      include,
+      select: {
+        id: true,
+        tourPackageName: true,
+        slug: true,
+      },
     });
 
     if (!tourPackage) {
       tourPackage = await prismadb.tourPackage.findFirst({
         where: { id: rawSlug, isArchived: false },
-        include,
+        select: {
+          id: true,
+          tourPackageName: true,
+          slug: true,
+        },
       });
     }
 
@@ -66,39 +55,14 @@ export async function GET(
       return NextResponse.json({ error: "Package not found" }, { status: 404 });
     }
 
-    const urlSegment = tourPackage.slug?.trim() || tourPackage.id;
-    const publicUrl = publicPackagePageUrl(urlSegment);
+    const base = resolvePdfBaseUrl(req);
+    const pageUrl = `${base}/tourPackagePDFGenerator/${encodeURIComponent(
+      tourPackage.id
+    )}?print=1&search=AH`;
 
-    const jsonToBrochureString = (v: unknown): string | null => {
-      if (v === null || v === undefined) return null;
-      if (typeof v === "string") return v;
-      try {
-        return JSON.stringify(v);
-      } catch {
-        return String(v);
-      }
-    };
-
-    const html = buildTourPackageBrochureHtml(
-      {
-        tourPackageName: tourPackage.tourPackageName,
-        numDaysNight: tourPackage.numDaysNight,
-        price: tourPackage.price,
-        pricePerAdult: tourPackage.pricePerAdult,
-        tourCategory: tourPackage.tourCategory,
-        inclusions: jsonToBrochureString(tourPackage.inclusions),
-        exclusions: jsonToBrochureString(tourPackage.exclusions),
-        slug: tourPackage.slug,
-        location: tourPackage.location,
-        images: tourPackage.images,
-        itineraries: tourPackage.itineraries,
-      },
-      publicUrl
-    );
-
-    const pdfBuffer = await generatePDF(html, {
-      margin: { top: "12px", right: "12px", bottom: "12px", left: "12px" },
-      scale: 0.92,
+    const pdfBuffer = await generatePDFFromUrl(pageUrl, {
+      waitMs: 2000,
+      waitForSelector: '[data-pdf-ready="1"]',
     });
 
     const filename = attachmentFilename(tourPackage.tourPackageName ?? "brochure");

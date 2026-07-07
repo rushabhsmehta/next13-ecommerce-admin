@@ -198,6 +198,24 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
   const allVariants = selectedTourPackage?.packageVariants || [];
   const selectedVariants = allVariants.filter(v => selectedVariantIds?.includes(v.id));
+  const getCopySourceVariants = (currentVariantId: string) => {
+    const sources = [
+      ...selectedVariants.map((variant) => ({
+        id: variant.id,
+        name: variant.name || `Package Variant ${variant.id.slice(0, 6)}`,
+      })),
+      ...((customQueryVariants || []) as any[]).map((variant) => ({
+        id: variant.id,
+        name: variant.name || `Custom Variant ${String(variant.id).slice(0, 6)}`,
+      })),
+    ];
+    const seen = new Set<string>();
+    return sources.filter((source) => {
+      if (!source.id || source.id === currentVariantId || seen.has(source.id)) return false;
+      seen.add(source.id);
+      return true;
+    });
+  };
 
   const itineraries = (queryItineraries && queryItineraries.length > 0)
     ? queryItineraries
@@ -1752,7 +1770,62 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       <AlertDescription>No itineraries found. Add itineraries to the query first.</AlertDescription>
                     </Alert>
                   ) : (
-                    <Accordion type="multiple" className="space-y-3">
+                    <div className="space-y-3">
+                      <Card className="shadow-sm border border-violet-200/60 bg-gradient-to-r from-violet-50/40 to-transparent">
+                        <CardContent className="pt-4 pb-3">
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => copyFirstDayToAllDays(cVariant.id)}
+                              className="h-9 text-xs border-violet-300 hover:bg-violet-50 text-violet-700"
+                              disabled={loading || !queryItineraries || queryItineraries.length === 0}
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-1.5" />
+                              Copy Day 1 (All)
+                            </Button>
+
+                            <div className="flex gap-2 flex-1">
+                              <Select
+                                value={copyFromVariantId[cVariant.id] || ""}
+                                onValueChange={(value) => setCopyFromVariantId({ ...copyFromVariantId, [cVariant.id]: value })}
+                              >
+                                <SelectTrigger className="h-9 text-xs flex-1 border-violet-300">
+                                  <SelectValue placeholder="Select variant to copy from..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {getCopySourceVariants(cVariant.id).map((source) => (
+                                    <SelectItem key={source.id} value={source.id} className="text-xs">
+                                      {source.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const fromId = copyFromVariantId[cVariant.id];
+                                  if (fromId) {
+                                    copyRoomAllocationsFromVariant(fromId, cVariant.id);
+                                  } else {
+                                    toast.error('Please select a variant to copy from');
+                                  }
+                                }}
+                                className="h-9 text-xs border-violet-300 hover:bg-violet-50 text-violet-700"
+                                disabled={loading || !copyFromVariantId[cVariant.id]}
+                              >
+                                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                Copy Details
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Accordion type="multiple" className="space-y-3">
                       {queryItineraries.map((itinerary: any, idx: number) => {
                         const variantRooms = variantRoomAllocations?.[cVariant.id]?.[itinerary.id] || [];
                         const variantTransports = variantTransportDetails?.[cVariant.id]?.[itinerary.id] || [];
@@ -2068,7 +2141,8 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                           </AccordionItem>
                         );
                       })}
-                    </Accordion>
+                      </Accordion>
+                    </div>
                   )}
                 </TabsContent>
 

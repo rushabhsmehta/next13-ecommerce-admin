@@ -26,6 +26,14 @@ import {
   createTourQueryEditClient,
   type TourQueryPricingItemEdit,
 } from "@/lib/tour-query-edit";
+import {
+  applyBasePricingAdjustment,
+  calculateBasePricingSubtotal,
+  clearBasePricingAdjustment,
+  getFirstPricingAdjustment,
+  hasBasePricingAdjustment,
+  type BasePricingDiscountType,
+} from "@/lib/base-pricing-adjustment";
 
 interface TourQueryPricingDetail {
   id: string;
@@ -54,6 +62,7 @@ type LocalPricingRow = TourQueryPricingItemEdit & { localId: string };
 
 function makeRow(seed?: TourQueryPricingItemEdit, index = 0): LocalPricingRow {
   return {
+    ...(seed ?? {}),
     localId: `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
     name: seed?.name ? String(seed.name) : "",
     price: seed?.price ? String(seed.price) : "",
@@ -143,6 +152,10 @@ function TourQueryPricingPanelInner({
   const [totalPrice, setTotalPrice] = useState("");
   const [calculationMethod, setCalculationMethod] = useState("manual");
   const [markup, setMarkup] = useState("0");
+  const [baseDiscountType, setBaseDiscountType] =
+    useState<BasePricingDiscountType>("percent");
+  const [baseDiscountValue, setBaseDiscountValue] = useState("0");
+  const [baseDiscountReason, setBaseDiscountReason] = useState("");
   const [calculation, setCalculation] =
     useState<TourQueryPricingCalculationResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,10 +172,17 @@ function TourQueryPricingPanelInner({
         `/api/mobile/tour-queries/${encodeURIComponent(id)}`,
         { retries: 1 }
       );
+      const nextRows = rowsFromDetail(res);
+      const adjustment = getFirstPricingAdjustment(nextRows);
       setData(res);
-      setRows(rowsFromDetail(res));
+      setRows(nextRows);
       setTotalPrice(res.totalPrice ?? "");
       setCalculationMethod(res.pricingCalculationMethod || "manual");
+      if (adjustment) {
+        setBaseDiscountType(adjustment.discountType);
+        setBaseDiscountValue(String(adjustment.inputValue));
+        setBaseDiscountReason(adjustment.reason || "");
+      }
       setCalculation(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not load pricing.");
@@ -175,15 +195,54 @@ function TourQueryPricingPanelInner({
     void load();
   }, [load]);
 
-  const itemTotal = useMemo(
-    () => rows.reduce((sum, row) => sum + parseMoney(row.price), 0),
+  const itemTotal = useMemo(() => calculateBasePricingSubtotal(rows), [rows]);
+  const activeBasePricingAdjustment = useMemo(
+    () => getFirstPricingAdjustment(rows),
     [rows]
   );
+
+  const clearBaseCalculation = useCallback(
+    (showAlert = false) => {
+      const hadCalculation = hasBasePricingAdjustment(rows);
+      setRows((prev) => clearBasePricingAdjustment(prev) as LocalPricingRow[]);
+      if (showAlert) {
+        Alert.alert(
+          hadCalculation ? "Calculation cleared" : "No calculation",
+          hadCalculation
+            ? "GST and discount metadata was removed from the pricing rows."
+            : "There is no saved GST or discount calculation on these rows."
+        );
+      }
+    },
+    [rows]
+  );
+
+  const applyBaseCalculation = useCallback(() => {
+    if (itemTotal <= 0) {
+      Alert.alert("Pricing", "Add at least one line item amount before applying GST.");
+      return;
+    }
+
+    const result = applyBasePricingAdjustment(rows, {
+      discountType: baseDiscountType,
+      inputValue: baseDiscountValue || 0,
+      reason: baseDiscountReason,
+    });
+
+    setRows(result.items as LocalPricingRow[]);
+    setTotalPrice(String(result.adjustment.totalIncludingGst));
+    Alert.alert(
+      "Calculation applied",
+      `Final total is ${formatINR(result.adjustment.totalIncludingGst)}.`
+    );
+  }, [baseDiscountReason, baseDiscountType, baseDiscountValue, itemTotal, rows]);
 
   const updateRow = useCallback(
     (localId: string, field: "name" | "price" | "description", value: string) => {
       setRows((prev) =>
-        prev.map((row) => (row.localId === localId ? { ...row, [field]: value } : row))
+        (clearBasePricingAdjustment(prev) as LocalPricingRow[]).map((row) =>
+          row.localId === localId ? { ...row, [field]: value } : row
+        )
       );
       setCalculationMethod("manual");
     },
@@ -191,13 +250,18 @@ function TourQueryPricingPanelInner({
   );
 
   const addRow = useCallback(() => {
-    setRows((prev) => [...prev, makeRow(undefined, prev.length)]);
+    setRows((prev) => [
+      ...(clearBasePricingAdjustment(prev) as LocalPricingRow[]),
+      makeRow(undefined, prev.length),
+    ]);
     setCalculationMethod("manual");
   }, []);
 
   const removeRow = useCallback((localId: string) => {
     setRows((prev) => {
-      const next = prev.filter((row) => row.localId !== localId);
+      const next = (clearBasePricingAdjustment(prev) as LocalPricingRow[]).filter(
+        (row) => row.localId !== localId
+      );
       return next.length ? next : [makeRow()];
     });
     setCalculationMethod("manual");
@@ -232,11 +296,15 @@ function TourQueryPricingPanelInner({
   const save = useCallback(async () => {
     if (!id || saving) return;
     const cleanRows = rows
-      .map((row) => ({
-        name: String(row.name ?? "").trim(),
-        price: String(row.price ?? "").trim(),
-        description: String(row.description ?? "").trim(),
-      }))
+      .map((row) => {
+        const { localId: _localId, ...rest } = row;
+        return {
+          ...rest,
+          name: String(row.name ?? "").trim(),
+          price: String(row.price ?? "").trim(),
+          description: String(row.description ?? "").trim(),
+        };
+      })
       .filter((row) => row.name || row.price || row.description);
     const explicitTotal = totalPrice.trim();
     const totalForSave = explicitTotal || (itemTotal > 0 ? String(Math.round(itemTotal)) : null);
@@ -439,12 +507,130 @@ function TourQueryPricingPanelInner({
         </Pressable>
       </AdminFormSection>
 
+      <AdminFormSection title="Discount and GST" testID="tq-pricing-adjustment-section">
+        <View style={styles.segmentRow}>
+          <Pressable
+            testID="tq-pricing-discount-type-percent"
+            accessibilityRole="button"
+            accessibilityLabel="Use percent discount"
+            style={[
+              styles.segmentButton,
+              baseDiscountType === "percent" ? styles.segmentButtonActive : null,
+            ]}
+            onPress={() => setBaseDiscountType("percent")}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                baseDiscountType === "percent" ? styles.segmentTextActive : null,
+              ]}
+            >
+              Percent
+            </Text>
+          </Pressable>
+          <Pressable
+            testID="tq-pricing-discount-type-fixed"
+            accessibilityRole="button"
+            accessibilityLabel="Use fixed discount"
+            style={[
+              styles.segmentButton,
+              baseDiscountType === "fixed" ? styles.segmentButtonActive : null,
+            ]}
+            onPress={() => setBaseDiscountType("fixed")}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                baseDiscountType === "fixed" ? styles.segmentTextActive : null,
+              ]}
+            >
+              Fixed
+            </Text>
+          </Pressable>
+        </View>
+        <TextInput
+          testID="tq-pricing-discount-value"
+          accessibilityLabel={
+            baseDiscountType === "percent" ? "Discount percentage" : "Discount amount"
+          }
+          value={baseDiscountValue}
+          onChangeText={setBaseDiscountValue}
+          placeholder={baseDiscountType === "percent" ? "Discount %" : "Discount amount"}
+          placeholderTextColor={Colors.textTertiary}
+          keyboardType="numeric"
+          style={styles.input}
+        />
+        <TextInput
+          testID="tq-pricing-discount-reason"
+          accessibilityLabel="Discount reason"
+          value={baseDiscountReason}
+          onChangeText={setBaseDiscountReason}
+          placeholder="Reason (optional)"
+          placeholderTextColor={Colors.textTertiary}
+          style={styles.input}
+        />
+        {activeBasePricingAdjustment ? (
+          <View style={styles.adjustmentSummary}>
+            <View style={styles.adjustmentMetric}>
+              <Text style={styles.adjustmentLabel}>Subtotal</Text>
+              <Text style={styles.adjustmentValue}>
+                {formatINR(activeBasePricingAdjustment.subtotalBeforeDiscount)}
+              </Text>
+            </View>
+            <View style={styles.adjustmentMetric}>
+              <Text style={styles.adjustmentLabel}>Discount</Text>
+              <Text style={styles.adjustmentValue}>
+                {formatINR(activeBasePricingAdjustment.discountAmount)}
+              </Text>
+            </View>
+            <View style={styles.adjustmentMetric}>
+              <Text style={styles.adjustmentLabel}>GST</Text>
+              <Text style={styles.adjustmentValue}>
+                {formatINR(activeBasePricingAdjustment.gstAmount)}
+              </Text>
+            </View>
+            <View style={styles.adjustmentMetric}>
+              <Text style={styles.adjustmentLabel}>Final</Text>
+              <Text style={styles.adjustmentValue}>
+                {formatINR(activeBasePricingAdjustment.totalIncludingGst)}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+        <View style={styles.buttonRow}>
+          <Pressable
+            testID="tq-pricing-apply-calculation"
+            accessibilityRole="button"
+            accessibilityLabel="Apply GST and discount calculation"
+            style={styles.calculateButton}
+            onPress={applyBaseCalculation}
+          >
+            <Ionicons name="checkmark-circle-outline" size={16} color={Colors.textInverse} />
+            <Text style={styles.calculateButtonText}>Apply calculation</Text>
+          </Pressable>
+          <Pressable
+            testID="tq-pricing-clear-calculation"
+            accessibilityRole="button"
+            accessibilityLabel="Clear GST and discount calculation"
+            style={styles.secondaryButton}
+            onPress={() => clearBaseCalculation(true)}
+          >
+            <Text style={styles.secondaryButtonText}>Clear calculation</Text>
+          </Pressable>
+        </View>
+      </AdminFormSection>
+
       <AdminFormSection title="Total" testID="tq-pricing-total-section">
         <TextInput
           testID="tq-pricing-total"
           accessibilityLabel="Total price"
           value={totalPrice}
-          onChangeText={setTotalPrice}
+          onChangeText={(value) => {
+            setTotalPrice(value);
+            if (activeBasePricingAdjustment) {
+              clearBaseCalculation(false);
+            }
+          }}
           placeholder="Total price"
           placeholderTextColor={Colors.textTertiary}
           keyboardType="numeric"
@@ -477,7 +663,12 @@ function TourQueryPricingPanelInner({
             accessibilityRole="button"
             accessibilityLabel="Use sum of line items as total"
             style={styles.addButton}
-            onPress={() => setTotalPrice(itemTotal > 0 ? String(Math.round(itemTotal)) : "")}
+            onPress={() => {
+              setTotalPrice(itemTotal > 0 ? String(Math.round(itemTotal)) : "");
+              if (activeBasePricingAdjustment) {
+                clearBaseCalculation(false);
+              }
+            }}
           >
             <Text style={styles.addButtonText}>Use sum of line items</Text>
           </Pressable>
@@ -505,7 +696,12 @@ function TourQueryPricingPanelInner({
           secondaryLabel="Use sum"
           secondaryIcon="calculator-outline"
           secondaryTestID="tq-pricing-use-sum"
-          onSecondaryPress={() => setTotalPrice(itemTotal > 0 ? String(Math.round(itemTotal)) : "")}
+          onSecondaryPress={() => {
+            setTotalPrice(itemTotal > 0 ? String(Math.round(itemTotal)) : "");
+            if (activeBasePricingAdjustment) {
+              clearBaseCalculation(false);
+            }
+          }}
         />
       }
     >
@@ -592,6 +788,76 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: "900",
     color: Colors.text,
+  },
+  segmentRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surfaceAlt,
+    overflow: "hidden",
+  },
+  segmentButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.md,
+  },
+  segmentButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  segmentText: {
+    fontSize: FontSize.sm,
+    fontWeight: "900",
+    color: Colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: Colors.textInverse,
+  },
+  adjustmentSummary: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+  adjustmentMetric: {
+    flexGrow: 1,
+    minWidth: "45%",
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.surfaceAlt,
+    padding: Spacing.sm,
+    gap: 2,
+  },
+  adjustmentLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: Colors.textTertiary,
+    textTransform: "uppercase",
+  },
+  adjustmentValue: {
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.text,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: Spacing.sm,
+  },
+  secondaryButton: {
+    minHeight: 46,
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.md,
+  },
+  secondaryButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: "900",
+    color: Colors.textSecondary,
   },
   rowCard: {
     borderWidth: StyleSheet.hairlineWidth,

@@ -390,11 +390,23 @@ function AdminInquiryDetailInner() {
   async function handleCreateTourQuery() {
     if (!inquiryId || !canWrite) return;
     const existingCount = detail?.tourPackageQueries?.length ?? 0;
+    const shortInquiryId = inquiryId.slice(0, 8);
+    const sourceSummary = [
+      detail?.customerName || "this inquiry",
+      detail?.customerMobileNumber ? `Mobile: ${detail.customerMobileNumber}` : null,
+      detail?.journeyDate ? `Journey: ${detail.journeyDate}` : null,
+      detail?.location?.label || detail?.locationId
+        ? `Location: ${detail?.location?.label || detail?.locationId}`
+        : null,
+      `Inquiry: ${shortInquiryId}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
     const title = existingCount > 0 ? "Create another tour query?" : "Create tour query";
     const message =
       existingCount > 0
-        ? `This inquiry already has ${existingCount} linked tour quer${existingCount === 1 ? "y" : "ies"}. Create another one anyway?`
-        : "Do you want to create a new Tour Package Query from this inquiry?";
+        ? `This inquiry already has ${existingCount} linked tour quer${existingCount === 1 ? "y" : "ies"}. Create another one anyway?\n\n${sourceSummary}`
+        : `Create a new Tour Package Query against this inquiry?\n\n${sourceSummary}`;
 
     Alert.alert(title, message, [
         { text: "Cancel", style: "cancel" },
@@ -405,9 +417,15 @@ function AdminInquiryDetailInner() {
             try {
               const queryClient = createTourQueryCreateClient(authRequest);
               const result = await queryClient.fromInquiry(inquiryId);
+              if (result.inquiryId !== inquiryId) {
+                throw new Error(
+                  "The query was created, but it was not linked to this inquiry. Please refresh and verify before using it."
+                );
+              }
+              await refresh();
               Alert.alert(
-                "Success",
-                `Tour Query ${result.tourPackageQueryNumber} created successfully!`,
+                "Created against inquiry",
+                `Tour Query ${result.tourPackageQueryNumber || result.id} created for ${detail?.customerName || "this inquiry"}.`,
                 [
                   {
                     text: "Open Query",
@@ -417,9 +435,6 @@ function AdminInquiryDetailInner() {
                   },
                   {
                     text: "Dismiss",
-                    onPress: () => {
-                      void refresh();
-                    },
                   },
                 ]
               );

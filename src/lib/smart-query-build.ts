@@ -637,6 +637,7 @@ export async function createSmartBuildTourQuery(
     },
     select: {
       id: true,
+      inquiryId: true,
       tourPackageQueryNumber: true,
       tourPackageQueryName: true,
     },

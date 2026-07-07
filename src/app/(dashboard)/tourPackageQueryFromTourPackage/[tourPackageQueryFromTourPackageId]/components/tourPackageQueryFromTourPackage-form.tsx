@@ -123,7 +123,7 @@ const pricingItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
   price: z.string().optional(), // Changed from required to optional
   description: z.string().optional(),
-});
+}).passthrough();
 
 const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),

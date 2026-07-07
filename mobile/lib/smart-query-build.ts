@@ -113,6 +113,7 @@ export function createSmartQueryBuildClient(authRequest: AuthenticatedRequest) {
 
     create(input: SmartBuildCreateInput): Promise<{
       id: string;
+      inquiryId?: string | null;
       tourPackageQueryNumber: string | null;
       tourPackageQueryName: string | null;
     }> {

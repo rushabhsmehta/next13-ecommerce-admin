@@ -565,7 +565,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { id: createdId, tourPackageQueryNumber: number },
+      {
+        id: createdId,
+        tourPackageQueryNumber: number,
+        inquiryId: mode === "inquiry" ? sourceId : null,
+      },
       { status: 201 }
     );
   } catch (error) {

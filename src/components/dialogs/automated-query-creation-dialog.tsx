@@ -69,7 +69,7 @@ interface AutomatedQueryCreationDialogProps {
   isOpen: boolean;
   onClose: () => void;
   inquiryId: string;
-  onSuccess?: (queryId: string) => void;
+  onSuccess?: (queryId: string, createdQuery?: any) => void;
 }
 
 interface TourPackageExtended extends TourPackage {
@@ -1082,12 +1082,20 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       console.log('9. Sending request to API...');
   const response = await axios.post('/api/tourPackageQuery', queryData);
       const createdQuery = response.data;
+      const createdInquiryId = createdQuery?.inquiryId || createdQuery?.inquiry?.id;
+      if (!createdQuery?.id) {
+        throw new Error("The query was created, but the API did not return a query ID.");
+      }
+      if (createdInquiryId !== inquiry.id) {
+        throw new Error("The query was created, but it was not linked to the selected inquiry. Please refresh and verify before using it.");
+      }
 
-      toast.success('Tour Package Query created successfully!');
-  addLog({ step: 'submit/success', data: { id: createdQuery?.id } });
+      const sourceLabel = inquiry.customerName || `inquiry ${shortInquiryId}`;
+      toast.success(`Created against inquiry ${sourceLabel}`);
+  addLog({ step: 'submit/success', data: { id: createdQuery?.id, inquiryId: createdInquiryId } });
       
       // Call success callback
-      onSuccess?.(createdQuery.id);
+      onSuccess?.(createdQuery.id, createdQuery);
       
       // Close dialog
       onClose();
@@ -1153,6 +1161,13 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   ];
 
   const stepIcons = [Package, Utensils, BedDouble, Calculator, Check];
+  const shortInquiryId = (inquiry?.id || inquiryId || "").slice(0, 8);
+  const inquiryLocationLabel =
+    inquiry?.location?.name ||
+    inquiry?.locationName ||
+    inquiry?.location ||
+    inquiry?.locationId ||
+    "";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -1168,6 +1183,14 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         {/* Inquiry summary banner */}
         {inquiry && (
           <div className="mb-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/30">
+                Creating against inquiry {shortInquiryId}
+              </Badge>
+              {inquiryLocationLabel ? (
+                <span className="text-xs font-medium text-muted-foreground">{inquiryLocationLabel}</span>
+              ) : null}
+            </div>
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <div className="flex items-center gap-2 text-foreground">
                 <User className="h-4 w-4 text-warning" />
@@ -2281,6 +2304,31 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     <CardTitle className="text-base">Final Review</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="rounded-lg border border-warning/20 bg-warning/5 p-3 text-sm">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/30">
+                          Source inquiry {shortInquiryId}
+                        </Badge>
+                        {inquiryLocationLabel ? (
+                          <span className="text-muted-foreground">{inquiryLocationLabel}</span>
+                        ) : null}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground">Customer</p>
+                          <p className="font-medium">{inquiry.customerName}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground">Mobile</p>
+                          <p className="font-medium">{inquiry.customerMobileNumber || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground">Journey</p>
+                          <p className="font-medium">{inquiry.journeyDate ? new Date(inquiry.journeyDate).toLocaleDateString() : "N/A"}</p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <h4 className="font-medium mb-2">Tour Package</h4>

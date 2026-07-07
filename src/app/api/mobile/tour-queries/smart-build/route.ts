@@ -38,6 +38,7 @@ export async function POST(req: Request) {
         where: { id: prior },
         select: {
           id: true,
+          inquiryId: true,
           tourPackageQueryNumber: true,
           tourPackageQueryName: true,
         },
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           id: prior,
+          inquiryId: existing?.inquiryId ?? null,
           tourPackageQueryNumber: existing?.tourPackageQueryNumber ?? null,
           tourPackageQueryName: existing?.tourPackageQueryName ?? null,
           idempotentReplay: true,
@@ -120,6 +122,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         id: created.id,
+        inquiryId: created.inquiryId,
         tourPackageQueryNumber: created.tourPackageQueryNumber,
         tourPackageQueryName: created.tourPackageQueryName,
       },

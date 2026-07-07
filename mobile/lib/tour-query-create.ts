@@ -30,6 +30,7 @@ export interface TourQueryCreateInput {
 export interface TourQueryCreateResult {
   id: string;
   tourPackageQueryNumber: string;
+  inquiryId?: string | null;
 }
 
 function makeIdempotencyKey(prefix: string): string {

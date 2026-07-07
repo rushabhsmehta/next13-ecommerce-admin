@@ -90,7 +90,7 @@ const pricingItemSchema = z.object({
   name: z.string().optional(),
   price: z.string().optional(),
   description: z.string().optional(),
-});
+}).passthrough();
 
 const activitySchema = z.object({
   activityTitle: z.string().optional(),

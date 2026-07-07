@@ -5,6 +5,14 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { utcToLocal } from "@/lib/timezone-utils";
+import {
+  applyBasePricingAdjustment,
+  calculateBasePricingSubtotal,
+  clearBasePricingAdjustment,
+  getFirstPricingAdjustment,
+  hasBasePricingAdjustment,
+  type BasePricingDiscountType,
+} from "@/lib/base-pricing-adjustment";
 
 // Import form value types
 import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
@@ -185,6 +193,75 @@ const PricingTab: React.FC<PricingTabProps> = ({
     initializeFromForm();
   }, [form, isInitialLoad]);
 
+  const pricingValues = form.watch('pricingSection') as any[] | undefined;
+  const activeBasePricingAdjustment = getFirstPricingAdjustment(pricingValues);
+  const [baseDiscountType, setBaseDiscountType] = useState<BasePricingDiscountType>(
+    activeBasePricingAdjustment?.discountType || "percent"
+  );
+  const [baseDiscountValue, setBaseDiscountValue] = useState(
+    activeBasePricingAdjustment ? String(activeBasePricingAdjustment.inputValue) : "0"
+  );
+  const [baseDiscountReason, setBaseDiscountReason] = useState(
+    activeBasePricingAdjustment?.reason || ""
+  );
+  const activeBaseDiscountCalculatedAt = activeBasePricingAdjustment?.calculatedAt;
+  const activeBaseDiscountType = activeBasePricingAdjustment?.discountType;
+  const activeBaseDiscountValue = activeBasePricingAdjustment?.inputValue;
+  const activeBaseDiscountReason = activeBasePricingAdjustment?.reason;
+
+  useEffect(() => {
+    if (!activeBaseDiscountCalculatedAt || !activeBaseDiscountType) return;
+    const timer = setTimeout(() => {
+      setBaseDiscountType(activeBaseDiscountType);
+      setBaseDiscountValue(String(activeBaseDiscountValue ?? 0));
+      setBaseDiscountReason(activeBaseDiscountReason || "");
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [
+    activeBaseDiscountCalculatedAt,
+    activeBaseDiscountReason,
+    activeBaseDiscountType,
+    activeBaseDiscountValue,
+  ]);
+
+  const clearBasePricingCalculation = useCallback((showToast = true) => {
+    const currentRows = (form.getValues('pricingSection') || []) as any[];
+    const hadCalculation = hasBasePricingAdjustment(currentRows);
+    form.setValue('pricingSection', clearBasePricingAdjustment(currentRows), {
+      shouldDirty: true,
+      shouldValidate: false,
+    });
+    if (showToast) {
+      if (hadCalculation) {
+        toast.success("Pricing calculation cleared");
+      } else {
+        toast("No saved pricing calculation to clear");
+      }
+    }
+  }, [form]);
+
+  const applyBasePricingCalculation = useCallback(() => {
+    const currentRows = (form.getValues('pricingSection') || []) as any[];
+    const subtotal = calculateBasePricingSubtotal(currentRows);
+    if (subtotal <= 0) {
+      toast.error("Add at least one pricing row with an amount before applying GST.");
+      return;
+    }
+
+    const { items, adjustment } = applyBasePricingAdjustment(currentRows, {
+      discountType: baseDiscountType,
+      inputValue: baseDiscountValue || 0,
+      reason: baseDiscountReason,
+    });
+
+    form.setValue('pricingSection', items, { shouldDirty: true, shouldValidate: true });
+    form.setValue('totalPrice', String(adjustment.totalIncludingGst), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    toast.success(`Applied pricing calculation. Final total: Rs. ${adjustment.totalIncludingGst.toLocaleString('en-IN')}`);
+  }, [baseDiscountReason, baseDiscountType, baseDiscountValue, form]);
+
   // Set up field array for pricing section
   const {
     fields: pricingFields,
@@ -199,6 +276,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // Function to handle adding a pricing item
   const handleAddPricingItem = (insertAtIndex?: number) => {
     const newItem = { name: '', price: '', description: '' };
+    clearBasePricingCalculation(false);
 
     if (insertAtIndex !== undefined) {
       // Insert after the specified index
@@ -213,6 +291,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
   // Function to handle removing a pricing item
   const handleRemovePricingItem = (indexToRemove: number) => {
+    clearBasePricingCalculation(false);
     removePricing(indexToRemove);
     console.log("Removed pricing item at index", indexToRemove);
   };  // Function to handle updating number of rooms
@@ -1476,6 +1555,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
                             disabled={loading} // Only disable when loading
                             placeholder="e.g., Per Person Cost"
                             className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              if (activeBasePricingAdjustment) {
+                                setTimeout(() => clearBasePricingCalculation(false), 0);
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1499,6 +1584,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
                             placeholder="e.g., 15000"
                             type="number"
                             className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              if (activeBasePricingAdjustment) {
+                                setTimeout(() => clearBasePricingCalculation(false), 0);
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1521,6 +1612,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
                             disabled={loading} // Only disable when loading
                             placeholder="e.g., 15000.00 × 3 occupancy × 3 rooms = Rs. 135000"
                             className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              if (activeBasePricingAdjustment) {
+                                setTimeout(() => clearBasePricingCalculation(false), 0);
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1564,6 +1661,105 @@ const PricingTab: React.FC<PricingTabProps> = ({
           </div>
         </div>
 
+        {/* Base pricing GST / discount calculation */}
+        <div className="bg-white rounded-xl border border-emerald-200 p-6 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Calculator className="h-5 w-5 text-emerald-600" />
+                <h3 className="text-lg font-semibold text-slate-800">GST & Discount Calculation</h3>
+              </div>
+              <p className="text-xs text-slate-500">
+                Applies subtotal - discount + GST 5%, then writes the GST-inclusive amount to the final total.
+              </p>
+            </div>
+            {activeBasePricingAdjustment ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2">
+                  <p className="font-semibold text-slate-500">Subtotal</p>
+                  <p className="font-bold text-slate-800">Rs. {activeBasePricingAdjustment.subtotalBeforeDiscount.toLocaleString('en-IN')}</p>
+                </div>
+                <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2">
+                  <p className="font-semibold text-slate-500">Discount</p>
+                  <p className="font-bold text-slate-800">Rs. {activeBasePricingAdjustment.discountAmount.toLocaleString('en-IN')}</p>
+                </div>
+                <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2">
+                  <p className="font-semibold text-slate-500">GST 5%</p>
+                  <p className="font-bold text-slate-800">Rs. {activeBasePricingAdjustment.gstAmount.toLocaleString('en-IN')}</p>
+                </div>
+                <div className="rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2">
+                  <p className="font-semibold text-emerald-700">Final</p>
+                  <p className="font-bold text-emerald-900">Rs. {activeBasePricingAdjustment.totalIncludingGst.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[11rem_1fr_1.5fr_auto] gap-3 mt-4 items-end">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">Discount Type</label>
+              <Select
+                value={baseDiscountType}
+                onValueChange={(value) => setBaseDiscountType(value as BasePricingDiscountType)}
+                disabled={loading}
+              >
+                <SelectTrigger className="h-10 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percent">Percent</SelectItem>
+                  <SelectItem value="fixed">Fixed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">
+                {baseDiscountType === "percent" ? "Discount %" : "Discount Amount"}
+              </label>
+              <Input
+                value={baseDiscountValue}
+                onChange={(event) => setBaseDiscountValue(event.target.value)}
+                disabled={loading}
+                type="number"
+                min={0}
+                max={baseDiscountType === "percent" ? 100 : undefined}
+                placeholder="0"
+                className="bg-white"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700">Reason (optional)</label>
+              <Input
+                value={baseDiscountReason}
+                onChange={(event) => setBaseDiscountReason(event.target.value)}
+                disabled={loading}
+                placeholder="e.g. Corporate discount"
+                className="bg-white"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                disabled={loading}
+                onClick={applyBasePricingCalculation}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Apply calculation
+              </Button>
+              <Button
+                type="button"
+                disabled={loading}
+                variant="outline"
+                onClick={() => clearBasePricingCalculation(true)}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Clear calculation
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Total Price Field (Always visible and editable, only disabled by loading) */}
         <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6 shadow-lg">
           <div className="flex items-center mb-3">
@@ -1588,6 +1784,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       placeholder="Total price for the package"
                       className="text-2xl font-bold pl-8 bg-white border-orange-300 focus:border-orange-500 h-14"
                       type="number" // Ensure type is number if appropriate
+                      onChange={(e) => {
+                        field.onChange(e);
+                        if (activeBasePricingAdjustment) {
+                          setTimeout(() => clearBasePricingCalculation(false), 0);
+                        }
+                      }}
                     />
                   </div>
                 </FormControl>

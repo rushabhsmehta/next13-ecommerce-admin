@@ -165,6 +165,11 @@ function SmartBuildInner() {
         totalPrice,
         tourPackageQueryNumber: queryNumber.trim() || undefined,
       });
+      if (created.inquiryId !== prefill.inquiry.id) {
+        throw new Error(
+          "The query was created, but it was not linked to this inquiry. Please refresh and verify before using it."
+        );
+      }
       if (downloadPdfAfter) {
         try {
           await downloadAndSharePdf({
@@ -182,6 +187,7 @@ function SmartBuildInner() {
           );
         }
       }
+      await client.loadPrefill(prefill.inquiry.id).catch(() => null);
       router.replace(`/admin/tour-queries/${created.id}/edit` as never);
     } catch (err) {
       Alert.alert(
@@ -550,6 +556,16 @@ function SmartBuildInner() {
       {step === "review" ? (
         <View style={styles.panel} testID="smart-build-review-panel">
           <Text style={styles.panelTitle}>Review & create</Text>
+          <View style={styles.card}>
+            <Text style={styles.fieldLabel}>Source inquiry</Text>
+            <Text style={styles.meta}>{prefill.inquiry.customerName}</Text>
+            <Text style={styles.meta}>{prefill.inquiry.customerMobileNumber}</Text>
+            <Text style={styles.meta}>
+              {prefill.inquiry.locationLabel}
+              {prefill.inquiry.journeyDate ? ` · ${prefill.inquiry.journeyDate}` : ""}
+            </Text>
+            <Text style={styles.meta}>Inquiry: {prefill.inquiry.id.slice(0, 8)}</Text>
+          </View>
           <Text style={styles.fieldLabel}>Query number (optional)</Text>
           <TextInput
             testID="smart-build-query-number"

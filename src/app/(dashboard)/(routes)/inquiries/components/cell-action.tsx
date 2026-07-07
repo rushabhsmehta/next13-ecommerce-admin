@@ -88,8 +88,8 @@ export const CellAction: React.FC<CellActionProps> = ({
   };
 
   const handleAutomatedQuerySuccess = (queryId: string) => {
-    toast.success(`Tour Package Query created successfully! ID: ${queryId}`);
     router.refresh();
+    router.push(`/tourPackageQuery/${queryId}`);
   };
 
 

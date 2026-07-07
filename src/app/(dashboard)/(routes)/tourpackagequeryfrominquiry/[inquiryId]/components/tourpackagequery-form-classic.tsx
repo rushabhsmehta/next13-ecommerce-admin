@@ -168,7 +168,7 @@ const pricingItemSchema = z.object({
   name: z.string().optional(), // Make optional to align
   price: z.string().optional(),
   description: z.string().optional(),
-});
+}).passthrough();
 
 const formSchema = z.object({
   inquiryId: z.string().nullable().optional(),

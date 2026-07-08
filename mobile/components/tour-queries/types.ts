@@ -30,6 +30,16 @@ export interface TransportDetailRow {
   description?: string | null;
 }
 
+export interface ActivityImageRow {
+  url: string;
+}
+
+export interface ActivityRow {
+  activityTitle?: string | null;
+  activityDescription?: string | null;
+  activityImages?: ActivityImageRow[];
+}
+
 export interface ItineraryRow {
   id: string;
   dayNumber: number | null;
@@ -41,6 +51,7 @@ export interface ItineraryRow {
   mealsIncluded: string | null;
   roomAllocations: RoomAllocationRow[];
   transportDetails: TransportDetailRow[];
+  activities: ActivityRow[];
 }
 
 export interface TourQueryDetailResponse {

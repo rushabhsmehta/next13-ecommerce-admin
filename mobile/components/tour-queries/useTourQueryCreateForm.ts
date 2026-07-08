@@ -51,7 +51,11 @@ function buildDraftFromForm(input: {
       itineraryTitle: day.itineraryTitle ?? "",
       itineraryDescription: day.itineraryDescription ?? "",
       mealsIncluded: day.mealsIncluded ?? "",
-      activities: [],
+      activities: (day.activities ?? []).map((activity) => ({
+        activityTitle: activity.activityTitle ?? "",
+        activityDescription: activity.activityDescription ?? "",
+        activityImages: activity.activityImages ?? [],
+      })),
     })),
   };
 }
@@ -161,6 +165,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
         mealsIncluded: "",
         roomAllocations: [],
         transportDetails: [],
+        activities: [],
       },
     ]);
   }, [queryLocationId]);

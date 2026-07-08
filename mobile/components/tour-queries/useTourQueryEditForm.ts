@@ -14,6 +14,7 @@ import {
 } from "@/lib/ai-wizard-drafts";
 import type {
   ActivePickerState,
+  ActivityRow,
   ItineraryRow,
   RoomAllocationRow,
   TransportDetailRow,
@@ -34,7 +35,27 @@ function ensureItineraryRoomDefaults(days: ItineraryRow[]): ItineraryRow[] {
     ...day,
     roomAllocations: day.roomAllocations.filter((ra) => ra.occupancyTypeId?.trim()),
     transportDetails: day.transportDetails ?? [],
+    activities: day.activities ?? [],
   }));
+}
+
+function mapActivitiesFromSource(
+  activities: unknown[] | undefined | null
+): ActivityRow[] {
+  return (activities ?? [])
+    .map((activity: any) => ({
+      activityTitle: activity?.activityTitle ?? "",
+      activityDescription: activity?.activityDescription ?? "",
+      activityImages: (activity?.activityImages ?? [])
+        .map((img: any) => ({ url: String(img?.url ?? "") }))
+        .filter((img: { url: string }) => img.url.trim().length > 0),
+    }))
+    .filter(
+      (activity) =>
+        String(activity.activityTitle ?? "").trim().length > 0 ||
+        String(activity.activityDescription ?? "").trim().length > 0 ||
+        activity.activityImages.length > 0
+    );
 }
 
 function mapItinerariesFromDetail(
@@ -65,6 +86,7 @@ function mapItinerariesFromDetail(
         description: td.description ?? "",
       }))
       .filter((td: TransportDetailRow) => td.vehicleTypeId?.trim()),
+    activities: mapActivitiesFromSource(it.activities),
   }));
 }
 
@@ -496,6 +518,7 @@ export function useTourQueryEditForm(queryId: string) {
         mealsIncluded: "",
         roomAllocations: initialAllocations,
         transportDetails: [],
+        activities: [],
       };
       if (newDay.locationId) {
         void loadHotelsForLocation(newDay.locationId);
@@ -768,6 +791,7 @@ export function useTourQueryEditForm(queryId: string) {
           mealsIncluded: it.mealsIncluded || "",
           roomAllocations: [],
           transportDetails: [],
+          activities: mapActivitiesFromSource(it.activities),
         }));
 
         if (newItineraries.length === 0) {
@@ -837,6 +861,7 @@ export function useTourQueryEditForm(queryId: string) {
             quantity: toInt(td.quantity, 1),
             description: td.description ?? "",
           })).filter((td: TransportDetailRow) => td.vehicleTypeId?.trim()),
+          activities: mapActivitiesFromSource(it.activities),
         }));
 
         for (const it of newItineraries) {
@@ -991,6 +1016,7 @@ export function useTourQueryEditForm(queryId: string) {
               quantity: toInt(td.quantity, 1) || 1,
               description: td.description?.trim() || null,
             })),
+          activities: mapActivitiesFromSource(it.activities),
         })),
       };
       for (const f of POLICY_FIELDS) {

@@ -125,6 +125,11 @@ export function mapAiDraftToPackageItineraries(
     itineraryTitle: day.itineraryTitle ?? `Day ${index + 1}`,
     itineraryDescription: day.itineraryDescription ?? "",
     mealsIncluded: day.mealsIncluded ?? "",
+    activities: (day.activities ?? []).map((activity) => ({
+      activityTitle: activity.activityTitle ?? "",
+      activityDescription: activity.activityDescription ?? "",
+      activityImages: activity.activityImages ?? [],
+    })),
   }));
 }
 
@@ -143,6 +148,11 @@ export function mapAiDraftToQueryItineraries(
     mealsIncluded: day.mealsIncluded ?? "",
     roomAllocations: [],
     transportDetails: [],
+    activities: (day.activities ?? []).map((activity) => ({
+      activityTitle: activity.activityTitle ?? "",
+      activityDescription: activity.activityDescription ?? "",
+      activityImages: activity.activityImages ?? [],
+    })),
   }));
 }
 

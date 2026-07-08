@@ -214,10 +214,16 @@ function Inner() {
       drop_location: data.drop_location ?? "",
       price: data.price ?? "",
       itineraries: data.itineraries.map((day) => ({
+        id: day.id,
         dayNumber: day.dayNumber ?? 1,
         itineraryTitle: day.itineraryTitle ?? "",
         itineraryDescription: day.itineraryDescription,
         mealsIncluded: day.mealsIncluded,
+        activities: (day.activities ?? []).map((activity) => ({
+          activityTitle: activity.activityTitle ?? "",
+          activityDescription: activity.activityDescription ?? "",
+          activityImages: activity.activityImages ?? [],
+        })),
       })),
       images: data.images.map((img) => ({ url: img.url })),
       pricingSection: data.pricingSection ?? [],

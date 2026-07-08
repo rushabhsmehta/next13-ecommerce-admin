@@ -4,10 +4,16 @@
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
 
 export interface TourPackageItineraryDayInput {
+  id?: string;
   dayNumber: number;
   itineraryTitle: string;
   itineraryDescription?: string | null;
   mealsIncluded?: string | null;
+  activities?: {
+    activityTitle?: string | null;
+    activityDescription?: string | null;
+    activityImages?: { url: string }[];
+  }[];
 }
 
 export interface TourPackageImageInput {
@@ -122,6 +128,12 @@ export interface TourPackageDetail {
     itineraryDescription: string | null;
     mealsIncluded: string | null;
     images?: { id: string; url: string }[];
+    activities?: {
+      id?: string;
+      activityTitle: string | null;
+      activityDescription: string | null;
+      activityImages?: { url: string }[];
+    }[];
   }[];
   variants: TourPackageVariantSummary[];
   createdAt: string;

@@ -188,6 +188,23 @@ export async function POST(req: Request) {
                 itineraryTitle: day.itineraryTitle.trim(),
                 itineraryDescription: day.itineraryDescription?.trim() || null,
                 mealsIncluded: day.mealsIncluded?.trim() || null,
+                activities: day.activities?.length
+                  ? {
+                      create: day.activities.map((activity) => ({
+                        locationId: v.locationId,
+                        activityTitle: activity.activityTitle?.trim() || "",
+                        activityDescription:
+                          activity.activityDescription?.trim() || null,
+                        activityImages: activity.activityImages?.length
+                          ? {
+                              create: activity.activityImages.map((img) => ({
+                                url: img.url.trim(),
+                              })),
+                            }
+                          : undefined,
+                      })),
+                    }
+                  : undefined,
               })),
             }
           : undefined,

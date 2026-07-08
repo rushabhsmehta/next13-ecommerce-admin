@@ -251,6 +251,7 @@ export function TourPackageForm({
         itineraryTitle: `Day ${prev.length + 1}`,
         itineraryDescription: "",
         mealsIncluded: "",
+        activities: [],
       },
     ]);
   }
@@ -287,10 +288,16 @@ export function TourPackageForm({
         drop_location: dropLocation.trim() || null,
         price: price.trim() || null,
         itineraries: itineraries.map((day) => ({
+          id: day.id,
           dayNumber: day.dayNumber,
           itineraryTitle: day.itineraryTitle.trim(),
           itineraryDescription: day.itineraryDescription?.trim() || null,
           mealsIncluded: day.mealsIncluded?.trim() || null,
+          activities: (day.activities ?? []).map((activity) => ({
+            activityTitle: activity.activityTitle?.trim() || "",
+            activityDescription: activity.activityDescription?.trim() || null,
+            activityImages: (activity.activityImages ?? []).filter((img) => img.url.trim()),
+          })),
         })),
         images: images.filter((img) => img.url.trim()),
         pricingSection: pricingSection

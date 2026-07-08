@@ -26,6 +26,7 @@ export interface AiGenerateInput {
 export interface AiItineraryActivity {
   activityTitle?: string | null;
   activityDescription?: string | null;
+  activityImages?: { url: string }[];
 }
 
 export interface AiItineraryDay {

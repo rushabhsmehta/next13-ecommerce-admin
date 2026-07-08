@@ -67,6 +67,18 @@ function sanitizeTransportDetails(rows: ParsedTransportDetail[] | undefined) {
   return (rows ?? []).filter((row) => row.vehicleTypeId?.trim().length > 0);
 }
 
+const activitySchema = z.object({
+  activityTitle: z.string().optional().nullable(),
+  activityDescription: z.string().optional().nullable(),
+  activityImages: z
+    .array(
+      z.object({
+        url: z.string().min(1),
+      })
+    )
+    .optional(),
+});
+
 const patchSchema = z.object({
   tourPackageQueryName: z.string().max(300).optional(),
   customerName: z.string().max(200).optional(),
@@ -117,6 +129,7 @@ const patchSchema = z.object({
         mealsIncluded: z.string().optional().nullable(),
         roomAllocations: z.array(roomAllocationSchema).optional(),
         transportDetails: z.array(transportDetailSchema).optional(),
+        activities: z.array(activitySchema).optional(),
       })
     )
     .optional(),

@@ -7,10 +7,26 @@ import {
 import { normalizeSlug } from "@/lib/location-slug";
 
 export const itineraryDaySchema = z.object({
+  id: z.string().optional(),
   dayNumber: z.coerce.number().int().min(1),
   itineraryTitle: z.string().min(1).max(500),
   itineraryDescription: z.string().max(5000).optional().nullable(),
   mealsIncluded: z.string().max(200).optional().nullable(),
+  activities: z
+    .array(
+      z.object({
+        activityTitle: z.string().max(5000).optional().nullable(),
+        activityDescription: z.string().max(10000).optional().nullable(),
+        activityImages: z
+          .array(
+            z.object({
+              url: z.string().min(1, "Image URL is required"),
+            })
+          )
+          .optional(),
+      })
+    )
+    .optional(),
 });
 
 export const imageSchema = z.object({
@@ -127,6 +143,12 @@ type PackageRow = {
     itineraryDescription: string | null;
     mealsIncluded: string | null;
     itineraryImages?: { id: string; url: string }[];
+    activities?: {
+      id: string;
+      activityTitle: string | null;
+      activityDescription: string | null;
+      activityImages?: { id: string; url: string }[];
+    }[];
   }[];
   packageVariants?: {
     id: string;
@@ -183,6 +205,12 @@ export function formatTourPackageDetail(row: PackageRow) {
       itineraryDescription: it.itineraryDescription,
       mealsIncluded: it.mealsIncluded,
       images: (it.itineraryImages ?? []).map((img) => ({ id: img.id, url: img.url })),
+      activities: (it.activities ?? []).map((activity) => ({
+        id: activity.id,
+        activityTitle: activity.activityTitle,
+        activityDescription: activity.activityDescription,
+        activityImages: (activity.activityImages ?? []).map((img) => ({ url: img.url })),
+      })),
     })),
     variants: (row.packageVariants ?? []).map((v) => ({
       id: v.id,
@@ -210,6 +238,18 @@ export const tourPackageDetailInclude = {
       itineraryDescription: true,
       mealsIncluded: true,
       itineraryImages: { select: { id: true, url: true }, orderBy: { createdAt: "asc" as const } },
+      activities: {
+        select: {
+          id: true,
+          activityTitle: true,
+          activityDescription: true,
+          activityImages: {
+            select: { id: true, url: true },
+            orderBy: { createdAt: "asc" as const },
+          },
+        },
+        orderBy: { createdAt: "asc" as const },
+      },
     },
     orderBy: [{ dayNumber: "asc" as const }, { days: "asc" as const }],
   },

@@ -28,6 +28,53 @@ const patchSchema = tourPackageWriteSchema.partial().refine(
   { message: "At least one field is required" }
 );
 
+type ActivityPayload = {
+  activityTitle?: string | null;
+  activityDescription?: string | null;
+  activityImages?: { url: string }[] | null;
+};
+
+function normalizeActivities(
+  activities: ActivityPayload[] | undefined | null
+): ActivityPayload[] {
+  return (activities ?? [])
+    .map((activity) => ({
+      activityTitle: activity.activityTitle?.trim() || "",
+      activityDescription: activity.activityDescription?.trim() || null,
+      activityImages: (activity.activityImages ?? [])
+        .map((img) => ({ url: img.url.trim() }))
+        .filter((img) => img.url.length > 0),
+    }))
+    .filter(
+      (activity) =>
+        activity.activityTitle.length > 0 ||
+        !!activity.activityDescription ||
+        !!activity.activityImages?.length
+    );
+}
+
+function buildActivitiesCreate(
+  activities: ActivityPayload[] | undefined | null,
+  locationId: string
+) {
+  const normalized = normalizeActivities(activities);
+  if (normalized.length === 0) return undefined;
+  return {
+    create: normalized.map((activity) => ({
+      locationId,
+      activityTitle: activity.activityTitle || "",
+      activityDescription: activity.activityDescription || null,
+      activityImages: activity.activityImages?.length
+        ? {
+            create: activity.activityImages.map((img) => ({
+              url: img.url,
+            })),
+          }
+        : undefined,
+    })),
+  };
+}
+
 export async function GET(
   req: Request,
   props: { params: Promise<{ id: string }> }
@@ -151,19 +198,49 @@ export async function PATCH(
       }
 
       if (v.itineraries !== undefined) {
+        const previousItineraries = await tx.itinerary.findMany({
+          where: { tourPackageId: params.id },
+          include: {
+            activities: {
+              include: {
+                activityImages: { select: { url: true } },
+              },
+              orderBy: { createdAt: "asc" },
+            },
+          },
+        });
+        const activitiesByItineraryId = new Map(
+          previousItineraries.map((day) => [day.id, day.activities])
+        );
+        const activitiesByDayNumber = new Map(
+          previousItineraries
+            .filter((day) => typeof day.dayNumber === "number")
+            .map((day) => [day.dayNumber as number, day.activities])
+        );
+
         await tx.itinerary.deleteMany({ where: { tourPackageId: params.id } });
         if (v.itineraries.length > 0) {
-          await tx.itinerary.createMany({
-            data: v.itineraries.map((day) => ({
-              locationId,
-              tourPackageId: params.id,
-              dayNumber: day.dayNumber,
-              days: String(day.dayNumber),
-              itineraryTitle: day.itineraryTitle.trim(),
-              itineraryDescription: day.itineraryDescription?.trim() || null,
-              mealsIncluded: day.mealsIncluded?.trim() || null,
-            })),
-          });
+          for (const day of v.itineraries) {
+            const activities =
+              day.activities !== undefined
+                ? day.activities
+                : day.id
+                  ? activitiesByItineraryId.get(day.id)
+                  : activitiesByDayNumber.get(day.dayNumber);
+
+            await tx.itinerary.create({
+              data: {
+                locationId,
+                tourPackageId: params.id,
+                dayNumber: day.dayNumber,
+                days: String(day.dayNumber),
+                itineraryTitle: day.itineraryTitle.trim(),
+                itineraryDescription: day.itineraryDescription?.trim() || null,
+                mealsIncluded: day.mealsIncluded?.trim() || null,
+                activities: buildActivitiesCreate(activities, locationId),
+              },
+            });
+          }
         }
       }
 

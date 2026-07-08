@@ -14,6 +14,12 @@ export interface RoomAllocationEdit {
   customRoomType?: string | null;
 }
 
+export interface ActivityEdit {
+  activityTitle?: string | null;
+  activityDescription?: string | null;
+  activityImages?: { url: string }[];
+}
+
 export interface TourQueryItineraryEdit {
   id?: string;
   dayNumber?: number;
@@ -30,6 +36,7 @@ export interface TourQueryItineraryEdit {
     quantity?: number;
     description?: string | null;
   }[];
+  activities?: ActivityEdit[];
 }
 
 export interface TourQueryPricingItemEdit {

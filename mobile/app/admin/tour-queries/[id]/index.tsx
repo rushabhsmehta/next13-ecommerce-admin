@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Pressable,
   RefreshControl,
@@ -97,6 +98,12 @@ interface PricingItem {
   [key: string]: unknown;
 }
 
+interface ActivityItem {
+  activityTitle: string | null;
+  activityDescription: string | null;
+  activityImages?: { url: string }[];
+}
+
 interface ItineraryItem {
   id: string;
   dayNumber: number | null;
@@ -107,6 +114,7 @@ interface ItineraryItem {
   hotel: { id: string; name: string } | null;
   roomAllocations: RoomAllocationDetail[];
   transportDetails: TransportDetailItem[];
+  activities: ActivityItem[];
 }
 
 interface TourQueryDetail {
@@ -1146,31 +1154,69 @@ function TourQueryDetailScreenInner() {
                 />
               </Pressable>
               <View style={styles.sectionBody}>
-                {itinerarySlice.map((it) => (
-                  <View key={it.id} style={styles.dayCard}>
-                    <View style={styles.dayHead}>
-                      <View style={styles.dayBadge}>
-                        <Text style={styles.dayBadgeText}>D{it.dayNumber ?? "?"}</Text>
-                      </View>
-                      <Text style={styles.dayTitle} numberOfLines={2}>
-                        {stripHtml(it.itineraryTitle ?? "Untitled")}
-                      </Text>
-                    </View>
-                    {it.mealsIncluded ?
-                      (
-                        <View style={styles.miniRow}>
-                          <Ionicons name="restaurant-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.miniRowText}>{it.mealsIncluded}</Text>
+                {itinerarySlice.map((it) => {
+                  const activities = getVisibleActivities(it.activities);
+                  return (
+                    <View key={it.id} style={styles.dayCard}>
+                      <View style={styles.dayHead}>
+                        <View style={styles.dayBadge}>
+                          <Text style={styles.dayBadgeText}>D{it.dayNumber ?? "?"}</Text>
                         </View>
-                      )
-                      : null}
-                    {it.itineraryDescription ?
-                      (
-                        <CollapsibleDayDescription text={stripHtml(it.itineraryDescription)} />
-                      )
-                      : null}
-                  </View>
-                ))}
+                        <Text style={styles.dayTitle} numberOfLines={2}>
+                          {stripHtml(it.itineraryTitle ?? "Untitled")}
+                        </Text>
+                      </View>
+                      {it.mealsIncluded ?
+                        (
+                          <View style={styles.miniRow}>
+                            <Ionicons name="restaurant-outline" size={14} color={Colors.textSecondary} />
+                            <Text style={styles.miniRowText}>{it.mealsIncluded}</Text>
+                          </View>
+                        )
+                        : null}
+                      {it.itineraryDescription ?
+                        (
+                          <CollapsibleDayDescription text={stripHtml(it.itineraryDescription)} />
+                        )
+                        : null}
+                      {activities.length ? (
+                        <View style={styles.activitiesBlock}>
+                          <View style={styles.activityHeader}>
+                            <Ionicons name="sparkles-outline" size={14} color={Colors.primary} />
+                            <Text style={styles.activityHeaderText}>
+                              Activities ({activities.length})
+                            </Text>
+                          </View>
+                          {activities.map((activity, activityIndex) => {
+                            const title = stripHtml(activity.activityTitle ?? "");
+                            const description = stripHtml(activity.activityDescription ?? "");
+                            return (
+                              <View key={`${it.id}-activity-${activityIndex}`} style={styles.activityItem}>
+                                {title ? (
+                                  <Text style={styles.activityTitle}>{title}</Text>
+                                ) : null}
+                                {description ? (
+                                  <Text style={styles.activityDescription}>{description}</Text>
+                                ) : null}
+                                {activity.activityImages?.length ? (
+                                  <View style={styles.activityImagesRow}>
+                                    {activity.activityImages.slice(0, 3).map((img, imgIndex) => (
+                                      <Image
+                                        key={`${it.id}-activity-${activityIndex}-image-${imgIndex}`}
+                                        source={{ uri: img.url }}
+                                        style={styles.activityThumb}
+                                      />
+                                    ))}
+                                  </View>
+                                ) : null}
+                              </View>
+                            );
+                          })}
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })}
                 {data.itineraries.length > 2 && !itineraryExpanded ?
                   (
                     <Pressable
@@ -1529,6 +1575,14 @@ function stripHtml(html: string): string {
   return extractPlainText(html);
 }
 
+function getVisibleActivities(activities: ActivityItem[] | null | undefined): ActivityItem[] {
+  return (activities ?? []).filter((activity) => {
+    const title = stripHtml(activity.activityTitle ?? "").trim();
+    const description = stripHtml(activity.activityDescription ?? "").trim();
+    return title.length > 0 || description.length > 0 || !!activity.activityImages?.length;
+  });
+}
+
 function CollapsibleDayDescription({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   if (!text.trim()) return null;
@@ -1779,6 +1833,48 @@ const styles = StyleSheet.create({
   dayDescToggle: { alignSelf: "flex-start", paddingVertical: 4 },
   dayDescToggleText: { fontSize: FontSize.xs, fontWeight: "800", color: Colors.primary },
   dayDescriptionFull: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
+  activitiesBlock: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: Spacing.sm,
+    gap: 8,
+  },
+  activityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  activityHeaderText: {
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    color: Colors.primary,
+    textTransform: "uppercase",
+  },
+  activityItem: {
+    gap: 4,
+    paddingLeft: 20,
+  },
+  activityTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.text,
+  },
+  activityDescription: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  activityImagesRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 2,
+  },
+  activityThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.background,
+  },
   showAllPress: { paddingVertical: Spacing.sm, alignItems: "center" },
   showAllText: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
   pricingTotal: { fontSize: FontSize.xxl, fontWeight: "900", color: Colors.text },

@@ -487,7 +487,9 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                             variantPricingData={(initialData as any)?.variantPricingData}
                             variantRoomAllocations={(initialData as any)?.variantRoomAllocations}
                             variantTransportDetails={(initialData as any)?.variantTransportDetails}
+                            variantHotelOverrides={(initialData as any)?.variantHotelOverrides}
                             itineraries={initialData.itineraries}
+                            hotels={hotels}
                             roomTypes={roomTypes}
                             occupancyTypes={occupancyTypes}
                             mealPlans={mealPlans}

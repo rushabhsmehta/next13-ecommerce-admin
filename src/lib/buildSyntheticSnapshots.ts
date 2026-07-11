@@ -15,6 +15,7 @@ interface SyntheticHotelSnapshot {
   locationLabel: string;
   imageUrl: string | null;
   roomCategory: string | null;
+  hotel?: { destination?: { name: string } | null } | null;
 }
 
 interface SyntheticPricingComponentSnapshot {
@@ -54,6 +55,7 @@ interface HotelData {
   name: string;
   location: { label: string };
   images: { url: string }[];
+  destination?: { name: string } | null;
 }
 
 interface VariantWithMappings {
@@ -106,13 +108,11 @@ export function buildSyntheticSnapshots({
   const result: SyntheticVariantSnapshot[] = [];
   const hotelMap = new Map(hotels.map(h => [h.id, h]));
 
-  // Build itineraryId → dayNumber map
+  // Build itineraryId → dayNumber map (null dayNumber → index + 1, same as display)
   const itineraryDayMap: Record<string, number> = {};
-  for (const it of itineraries) {
-    if (it.dayNumber != null) {
-      itineraryDayMap[it.id] = it.dayNumber;
-    }
-  }
+  itineraries.forEach((it, index) => {
+    itineraryDayMap[it.id] = it.dayNumber ?? index + 1;
+  });
 
   // Process template-derived variants
   const idsToProcess = (selectedVariantIds || []).filter(Boolean);
@@ -169,6 +169,29 @@ export function buildSyntheticSnapshots({
   return result;
 }
 
+function pushHotelSnapshot(
+  hotelSnapshots: SyntheticHotelSnapshot[],
+  processedDays: Set<number>,
+  id: string,
+  dayNumber: number,
+  hotel: HotelData,
+  hotelId: string,
+) {
+  hotelSnapshots.push({
+    id: `synth-hotel-${id}-${dayNumber}`,
+    dayNumber,
+    hotelId: hotel.id || hotelId,
+    hotelName: hotel.name,
+    locationLabel: hotel.location?.label || '',
+    imageUrl: hotel.images?.[0]?.url || null,
+    roomCategory: null,
+    hotel: hotel.destination?.name
+      ? { destination: { name: hotel.destination.name } }
+      : null,
+  });
+  processedDays.add(dayNumber);
+}
+
 function buildOneSnapshot(
   id: string,
   sourceVariantId: string,
@@ -184,10 +207,10 @@ function buildOneSnapshot(
   hotelMap: Map<string, HotelData>,
 ): SyntheticVariantSnapshot {
   // --- Build hotel snapshots ---
+  // Only explicit variant hotels: overrides, then package mappings. No itinerary fallback.
   const hotelSnapshots: SyntheticHotelSnapshot[] = [];
   const processedDays = new Set<number>();
 
-  // First, apply query-level hotel overrides (these take priority)
   if (hotelOverrides) {
     for (const [itineraryId, hotelId] of Object.entries(hotelOverrides)) {
       const dayNumber = itineraryDayMap[itineraryId];
@@ -195,37 +218,31 @@ function buildOneSnapshot(
       const hotel = hotelMap.get(hotelId);
       if (!hotel) continue;
 
+      pushHotelSnapshot(hotelSnapshots, processedDays, id, dayNumber, hotel, hotelId);
+    }
+  }
+
+  for (const mapping of templateHotelMappings || []) {
+    const dayNumber = mapping.itinerary?.dayNumber;
+    if (dayNumber == null || processedDays.has(dayNumber)) continue;
+
+    const hotel = mapping.hotel || hotelMap.get(mapping.hotelId);
+    if (hotel) {
+      pushHotelSnapshot(hotelSnapshots, processedDays, id, dayNumber, hotel, mapping.hotelId);
+    } else {
       hotelSnapshots.push({
         id: `synth-hotel-${id}-${dayNumber}`,
         dayNumber,
-        hotelId: hotel.id,
-        hotelName: hotel.name,
-        locationLabel: hotel.location?.label || '',
-        imageUrl: hotel.images?.[0]?.url || null,
+        hotelId: mapping.hotelId,
+        hotelName: 'Unknown Hotel',
+        locationLabel: '',
+        imageUrl: null,
         roomCategory: null,
       });
       processedDays.add(dayNumber);
     }
   }
 
-  // Then, fill in from template hotel mappings for days not overridden
-  for (const mapping of templateHotelMappings) {
-    const dayNumber = mapping.itinerary?.dayNumber;
-    if (dayNumber == null || processedDays.has(dayNumber)) continue;
-
-    hotelSnapshots.push({
-      id: `synth-hotel-${id}-${dayNumber}`,
-      dayNumber,
-      hotelId: mapping.hotelId,
-      hotelName: mapping.hotel?.name || 'Unknown Hotel',
-      locationLabel: mapping.hotel?.location?.label || '',
-      imageUrl: mapping.hotel?.images?.[0]?.url || null,
-      roomCategory: null,
-    });
-    processedDays.add(dayNumber);
-  }
-
-  // Sort by dayNumber
   hotelSnapshots.sort((a, b) => a.dayNumber - b.dayNumber);
 
   // --- Build pricing snapshots from variantPricingData JSON ---

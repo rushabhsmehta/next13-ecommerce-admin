@@ -1368,7 +1368,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     }
   };
 
-  // Copy first day's room allocations and transport details to all days for a variant
+  // Copy first day's room allocations, transport details, and hotel to all days for a variant
   const copyFirstDayToAllDays = (variantId: string) => {
     try {
       const currentRooms = variantRoomAllocations || {};
@@ -1386,20 +1386,30 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       const firstItinerary = itineraries[0];
       const firstDayRooms = roomVariantData[firstItinerary.id] || [];
       const firstDayTransports = transportVariantData[firstItinerary.id] || [];
+      const firstDayHotelId = resolveVariantHotelId(
+        { id: variantId, variantHotelMappings: [] },
+        firstItinerary,
+        0
+      );
 
-      if (firstDayRooms.length === 0 && firstDayTransports.length === 0) {
-        toast.error('No room allocations or transport details on first day to copy');
+      if (firstDayRooms.length === 0 && firstDayTransports.length === 0 && !firstDayHotelId) {
+        toast.error('No room allocations, transport, or hotel on first day to copy');
         return;
       }
 
       // Copy to all other days
       const newRoomVariantData = { ...roomVariantData };
       const newTransportVariantData = { ...transportVariantData };
+      const currentOverrides = variantHotelOverrides || {};
+      const newHotelOverrides = { ...(currentOverrides[variantId] || {}) };
 
       itineraries.forEach((itinerary) => {
         // Deep copy the allocations to avoid reference issues
         newRoomVariantData[itinerary.id] = JSON.parse(JSON.stringify(firstDayRooms));
         newTransportVariantData[itinerary.id] = JSON.parse(JSON.stringify(firstDayTransports));
+        if (firstDayHotelId) {
+          newHotelOverrides[itinerary.id] = firstDayHotelId;
+        }
       });
 
       form.setValue('variantRoomAllocations', {
@@ -1412,7 +1422,14 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
         [variantId]: newTransportVariantData
       }, { shouldValidate: false, shouldDirty: true });
 
-      toast.success(`Copied room & transport to all ${itineraries.length} days`);
+      if (firstDayHotelId) {
+        form.setValue('variantHotelOverrides', {
+          ...currentOverrides,
+          [variantId]: newHotelOverrides
+        }, { shouldValidate: false, shouldDirty: true });
+      }
+
+      toast.success(`Copied room, transport & hotel to all ${itineraries.length} days`);
     } catch (error) {
       console.error('Error copying details to all days:', error);
       toast.error('Failed to copy. Please try again.');
@@ -1522,7 +1539,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     }
 
     const mapping = getVariantHotelMapping(variant, itinerary, index);
-    return mapping?.hotelId || itinerary.hotelId || '';
+    return mapping?.hotelId || '';
   };
 
   const resolveVariantHotel = (variant: { id: string; variantHotelMappings?: any[] }, itinerary: any, index: number) => {

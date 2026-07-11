@@ -72,12 +72,22 @@ interface ItineraryData {
   transportDetails?: any[];
 }
 
+interface HotelLookup {
+  id: string;
+  name: string;
+  location?: { label?: string } | null;
+  images?: { url: string }[];
+  destination?: { name: string } | null;
+}
+
 interface VariantComparisonSectionProps {
   variants: VariantSnapshot[];
   variantPricingData?: Record<string, VariantPricingEntry> | null;
   variantRoomAllocations?: any;
   variantTransportDetails?: any;
+  variantHotelOverrides?: Record<string, Record<string, string>> | null;
   itineraries?: ItineraryData[];
+  hotels?: HotelLookup[];
   roomTypes?: any[];
   occupancyTypes?: any[];
   mealPlans?: any[];
@@ -362,7 +372,9 @@ export function VariantComparisonSection({
   variantPricingData,
   variantRoomAllocations,
   variantTransportDetails,
+  variantHotelOverrides,
   itineraries,
+  hotels = [],
   roomTypes = [],
   occupancyTypes = [],
   mealPlans = [],
@@ -429,9 +441,41 @@ export function VariantComparisonSection({
 
   const hasPricing = variants.some((v) => v.pricingSnapshots.length > 0 || !!getVpd(v)?.totalCost);
 
+  const hotelById = new Map(hotels.map((h) => [h.id, h]));
+
+  const resolveHotelSnapshot = (
+    variant: VariantSnapshot,
+    day: number,
+    itinerary: ItineraryData | undefined
+  ): VariantHotelSnapshot | null | undefined => {
+    const fromSnapshot = variant.hotelSnapshots.find((h) => h.dayNumber === day);
+    if (fromSnapshot) return fromSnapshot;
+
+    // Only use an explicit variant hotel override — never itinerary.hotelId
+    const variantKey = variant.sourceVariantId ?? variant.id;
+    const itineraryId = itinerary?.id;
+    const overrideHotelId =
+      (itineraryId ? variantHotelOverrides?.[variantKey]?.[itineraryId] : undefined) ||
+      (itineraryId ? variantHotelOverrides?.[variant.id]?.[itineraryId] : undefined);
+    if (!overrideHotelId) return undefined;
+
+    const hotel = hotelById.get(overrideHotelId);
+    if (!hotel) return undefined;
+
+    return {
+      id: `override-hotel-${variant.id}-${day}`,
+      dayNumber: day,
+      hotelName: hotel.name,
+      locationLabel: hotel.location?.label || "",
+      imageUrl: hotel.images?.[0]?.url || null,
+      roomCategory: null,
+      hotel: hotel.destination?.name ? { destination: { name: hotel.destination.name } } : null,
+    };
+  };
+
   const getNightContext = (variant: VariantSnapshot, day: number) => {
     const itinerary = itineraryByDay[day];
-    const hotelInfo = variant.hotelSnapshots.find((h) => h.dayNumber === day);
+    const hotelInfo = resolveHotelSnapshot(variant, day, itinerary);
     const variantKey = variant.sourceVariantId ?? variant.id;
     const itineraryId = itinerary?.id;
     const roomAllocations =

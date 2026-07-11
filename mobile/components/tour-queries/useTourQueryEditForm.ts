@@ -95,9 +95,18 @@ type DetailResponse = TourQueryDetailResponse;
 function mapPoliciesFromDetail(d: DetailResponse): Record<string, string> {
   const pol: Record<string, string> = {};
   for (const f of POLICY_FIELDS) {
-    pol[f.key as string] = ((d[f.listKey] as string[]) ?? []).join("\n");
+    pol[f.key as string] = ((d[f.listKey] as string[]) ?? [])
+      .filter((item) => String(item ?? "").trim())
+      .join("\n\n");
   }
   return pol;
+}
+
+function textToPolicyParagraphs(text: string): string[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/\s*\n\s*/g, " ").trim())
+    .filter(Boolean);
 }
 
 type BaselinePayload = {
@@ -872,7 +881,9 @@ export function useTourQueryEditForm(queryId: string) {
 
         const pol: Record<string, string> = {};
         for (const f of POLICY_FIELDS) {
-          pol[f.key as string] = ((srcQuery[f.listKey] as string[]) ?? []).join("\n");
+          pol[f.key as string] = ((srcQuery[f.listKey] as string[]) ?? [])
+            .filter((item) => String(item ?? "").trim())
+            .join("\n\n");
         }
         setPolicies(pol);
 
@@ -1020,10 +1031,9 @@ export function useTourQueryEditForm(queryId: string) {
         })),
       };
       for (const f of POLICY_FIELDS) {
-        payload[f.key] = (policies[f.key as string] ?? "")
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean) as never;
+        payload[f.key] = textToPolicyParagraphs(
+          policies[f.key as string] ?? ""
+        ) as never;
       }
       await editClient.update(id, payload);
       const refreshed = await authRequest<DetailResponse>(

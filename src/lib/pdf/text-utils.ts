@@ -1,7 +1,7 @@
 /**
  * Shared text utility functions for PDF generation.
- * Consolidates sanitizeText, extractText, parsePolicyField, and renderBulletList
- * that were duplicated across all PDF generators.
+ * Consolidates sanitizeText, extractText, parsePolicyField, renderBulletList,
+ * and renderParagraphList that were duplicated across all PDF generators.
  */
 
 import { brandColors } from "./branding";
@@ -112,6 +112,22 @@ export function renderBulletList(
         <span style="color: ${bulletColor}; font-size: 14px; line-height: 1; flex-shrink: 0;">&#8226;</span>
         <span style="color: ${textColor}; font-size: 13px; line-height: 1.5;">${item}</span>
       </div>
+    `
+    )
+    .join("");
+}
+
+/**
+ * Render an array of string items as stacked HTML paragraphs (no bullets).
+ */
+export function renderParagraphList(
+  items: string[],
+  textColor = brandColors.text
+): string {
+  return items
+    .map(
+      (item) => `
+      <p style="margin: 0 0 10px; color: ${textColor}; font-size: 13px; line-height: 1.5;">${item}</p>
     `
     )
     .join("");

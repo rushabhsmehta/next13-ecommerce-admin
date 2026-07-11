@@ -19,7 +19,7 @@ import {
   brandGradients,
   companyInfo,
   parsePolicyField,
-  renderBulletList,
+  renderParagraphList,
   sanitizeText,
 } from "@/lib/pdf";
 import { formatItineraryDayHeader } from "@/lib/utils";
@@ -624,7 +624,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                   <div style="background: ${section.tone[2]}; padding: 12px; border-bottom: 1px solid ${section.tone[1]};">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">${section.title}</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(section.items)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(section.items)}</div>
                 </div>
               `).join("")}
             </div>

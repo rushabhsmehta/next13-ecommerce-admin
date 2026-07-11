@@ -20,7 +20,7 @@ import {
   companyInfo as sharedCompanyInfo,
   sanitizeText,
   parsePolicyField,
-  renderBulletList,
+  renderParagraphList,
 } from "@/lib/pdf";
 
 interface TourPackagePDFGeneratorWithVariantsProps {
@@ -194,7 +194,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     break-before: page;
   `;
 
-  // sanitizeText, parsePolicyField, renderBulletList are imported from @/lib/pdf
+  // sanitizeText, parsePolicyField, renderParagraphList are imported from @/lib/pdf
 
   const formatINR = useCallback((val: string | number): string => {
     try {
@@ -461,7 +461,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                   <div style="background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); padding: 12px;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">✓ Inclusions</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(inclusionsArr)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(inclusionsArr)}</div>
                 </div>
               ` : ''}
               
@@ -470,7 +470,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                   <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 12px;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">✗ Exclusions</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(exclusionsArr)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(exclusionsArr)}</div>
                 </div>
               ` : ''}
             </div>
@@ -483,7 +483,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                   <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 12px;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">⚠ Important Notes</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(importantArr)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(importantArr)}</div>
                 </div>
               ` : ''}
               
@@ -492,7 +492,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                   <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 12px;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">💳 Payment Policy</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(paymentArr)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(paymentArr)}</div>
                 </div>
               ` : ''}
             </div>
@@ -504,7 +504,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
                 <div style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); padding: 12px;">
                   <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">📋 Terms and Conditions</h3>
                 </div>
-                <div style="padding: 16px;">${renderBulletList(termsArr)}</div>
+                <div style="padding: 16px;">${renderParagraphList(termsArr)}</div>
               </div>
             </div>
           ` : ''}

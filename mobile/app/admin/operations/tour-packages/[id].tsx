@@ -501,8 +501,8 @@ function PolicySection({ title, items }: { title: string; items: string[] }) {
   return (
     <Section title={title}>
       {cleanedItems.map((item, i) => (
-        <Text key={`${title}-${i}`} style={styles.bullet}>
-          • {item}
+        <Text key={`${title}-${i}`} style={styles.policyParagraph}>
+          {item}
         </Text>
       ))}
     </Section>
@@ -586,10 +586,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: Spacing.md,
   },
-  bullet: {
+  policyParagraph: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 22,
+    marginBottom: Spacing.sm,
   },
   muted: {
     fontSize: FontSize.sm,

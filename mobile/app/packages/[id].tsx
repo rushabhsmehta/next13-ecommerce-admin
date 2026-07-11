@@ -760,10 +760,9 @@ export default function PackageDetailScreen() {
                     <Text style={styles.listTitle}>Inclusions</Text>
                   </View>
                   {inclusions.map((item, i) => (
-                    <View key={i} style={styles.listItemRow}>
-                      <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
-                      <Text style={styles.listItem}>{item}</Text>
-                    </View>
+                    <Text key={i} style={styles.policyParagraph}>
+                      {item}
+                    </Text>
                   ))}
                 </View>
               )}
@@ -778,10 +777,9 @@ export default function PackageDetailScreen() {
                     <Text style={styles.listTitleRed}>Exclusions</Text>
                   </View>
                   {exclusions.map((item, i) => (
-                    <View key={i} style={styles.listItemRow}>
-                      <Ionicons name="close-circle" size={14} color={Colors.error} />
-                      <Text style={styles.listItem}>{item}</Text>
-                    </View>
+                    <Text key={i} style={styles.policyParagraph}>
+                      {item}
+                    </Text>
                   ))}
                 </View>
               )}
@@ -804,10 +802,9 @@ export default function PackageDetailScreen() {
                     <Text style={styles.listTitle}>Cancellation Policy</Text>
                   </View>
                   {cancellationPolicy.map((item, i) => (
-                    <View key={i} style={styles.listItemRow}>
-                      <View style={styles.bulletDot} />
-                      <Text style={styles.listItem}>{item}</Text>
-                    </View>
+                    <Text key={i} style={styles.policyParagraph}>
+                      {item}
+                    </Text>
                   ))}
                 </View>
               )}
@@ -822,10 +819,9 @@ export default function PackageDetailScreen() {
                     <Text style={styles.listTitle}>Payment Policy</Text>
                   </View>
                   {paymentPolicy.map((item, i) => (
-                    <View key={i} style={styles.listItemRow}>
-                      <View style={styles.bulletDot} />
-                      <Text style={styles.listItem}>{item}</Text>
-                    </View>
+                    <Text key={i} style={styles.policyParagraph}>
+                      {item}
+                    </Text>
                   ))}
                 </View>
               )}
@@ -1407,6 +1403,12 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 22,
     flex: 1,
+  },
+  policyParagraph: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: Spacing.sm,
   },
   bulletDot: {
     width: 6,

@@ -17,12 +17,12 @@ interface Props {
   testID?: string;
 }
 
-/** Editable bullet list for tour package policy fields (inclusions, exclusions, etc.). */
+/** Editable paragraph list for tour package policy fields (inclusions, exclusions, etc.). */
 export function PolicyListEditor({
   title,
   items,
   onChange,
-  placeholder = "Add item…",
+  placeholder = "Add paragraph…",
   testID,
 }: Props) {
   const [draft, setDraft] = useState("");
@@ -55,11 +55,12 @@ export function PolicyListEditor({
             placeholder={placeholder}
             placeholderTextColor={Colors.textTertiary}
             multiline
+            textAlignVertical="top"
           />
           <Pressable
             testID={testID ? `${testID}-remove-${index}` : undefined}
             accessibilityRole="button"
-            accessibilityLabel={`Remove ${title} item ${index + 1}`}
+            accessibilityLabel={`Remove ${title} paragraph ${index + 1}`}
             onPress={() => removeItem(index)}
             hitSlop={8}
           >
@@ -75,13 +76,13 @@ export function PolicyListEditor({
           onChangeText={setDraft}
           placeholder={placeholder}
           placeholderTextColor={Colors.textTertiary}
-          onSubmitEditing={addItem}
-          returnKeyType="done"
+          multiline
+          textAlignVertical="top"
         />
         <Pressable
           testID={testID ? `${testID}-add` : undefined}
           accessibilityRole="button"
-          accessibilityLabel={`Add ${title} item`}
+          accessibilityLabel={`Add ${title} paragraph`}
           style={styles.addBtn}
           onPress={addItem}
         >
@@ -115,11 +116,12 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.text,
     backgroundColor: Colors.surface,
-    minHeight: 40,
+    minHeight: 72,
+    lineHeight: 22,
   },
   addRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: Spacing.sm,
   },
   addInput: {
@@ -134,5 +136,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surface,
+    marginTop: 4,
   },
 });

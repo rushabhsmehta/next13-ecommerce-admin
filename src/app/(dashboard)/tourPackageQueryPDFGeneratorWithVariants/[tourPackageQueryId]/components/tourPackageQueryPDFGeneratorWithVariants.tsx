@@ -44,9 +44,9 @@ import {
   companyInfo as sharedCompanyInfo,
   sanitizeText,
   parsePolicyField,
-  renderBulletList,
+  renderParagraphList,
 } from "@/lib/pdf";
-import { isLastItineraryDay } from "@/lib/hotel-comparison-days";
+import { findItineraryByDayNumber, getHotelComparisonDayNumbers, isLastItineraryDay } from "@/lib/hotel-comparison-days";
 
 /** Keeps single-variant PDF tables from stretching full page width. */
 function pdfComparisonTableStyle(variantCount: number): string {
@@ -291,7 +291,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
   `;
 
   // Policy parsing helpers
-  // sanitizeText, parsePolicyField, renderBulletList are imported from @/lib/pdf
+  // sanitizeText, parsePolicyField, renderParagraphList are imported from @/lib/pdf
 
   const formatINR = useCallback((val: string | number): string => {
     try {
@@ -334,11 +334,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const getVpd = (v: typeof variants[0]) =>
       (variantPricingData?.[v.sourceVariantId] ?? variantPricingData?.[v.id]) as VariantPricingEntry | undefined;
 
-    const allDays = Array.from(new Set(
+    const allDays = getHotelComparisonDayNumbers(
+      initialData?.itineraries,
       variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
-    )).sort((a, b) => a - b);
-
-    // Flat list of all pricing component snapshots for a variant (across all pricing snapshots in order)
+    );
     const getCompsFlatGlance = (v: typeof variants[0]) =>
       v.pricingSnapshots.flatMap(ps => ps.pricingComponentSnapshots);
 
@@ -373,7 +372,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       const isLastDay = isLastItineraryDay(day, initialData?.itineraries);
       const cells = variants.map(v => {
         const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
-        const itinerary = initialData?.itineraries?.find(it => it.dayNumber === day);
+        const itinerary = findItineraryByDayNumber(initialData?.itineraries, day);
         const variantTransportDetails = (initialData as any)?.variantTransportDetails as Record<string, Record<string, any[]>> | undefined;
         const transportDetails = variantTransportDetails?.[v.sourceVariantId]?.[itinerary?.id || ''] ||
           variantTransportDetails?.[v.id]?.[itinerary?.id || ''] ||
@@ -575,9 +574,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const variants = initialData?.queryVariantSnapshots;
     if (!variants || variants.length < 1) return "";
 
-    const allDays = Array.from(new Set(
+    const allDays = getHotelComparisonDayNumbers(
+      initialData?.itineraries,
       variants.flatMap(v => v.hotelSnapshots.map(h => h.dayNumber))
-    )).sort((a, b) => a - b);
+    );
 
     if (allDays.length === 0) return "";
 
@@ -612,7 +612,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
       const cells = variants.map((v, vidx) => {
         const h = v.hotelSnapshots.find(hs => hs.dayNumber === day);
         const accent = variantAccents[vidx % variantAccents.length];
-        const itinerary = initialData?.itineraries?.find(it => it.dayNumber === day);
+        const itinerary = findItineraryByDayNumber(initialData?.itineraries, day);
 
         const variantRoomAllocations = (initialData as any)?.variantRoomAllocations as Record<string, Record<string, any[]>> | undefined;
         const variantTransportDetails = (initialData as any)?.variantTransportDetails as Record<string, Record<string, any[]>> | undefined;
@@ -706,6 +706,33 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   </div>
                 ` : ''}
                 
+                ${transportBlockHtml}
+              </div>
+            </div>
+          ` : (roomAllocations.length > 0 || transportDetails.length > 0) ? `
+            <div style="border: 1px solid ${brandColors.border}; border-radius: 6px; overflow: hidden; background: white;">
+              <div style="padding: 9px 10px; border-top: 2.5px solid ${accent};">
+                <div style="font-size: 9px; font-style: italic; color: ${brandColors.muted}; margin-bottom: 6px;">Hotel not specified</div>
+                ${roomAllocations.length > 0 ? `
+                  <div style="border-top: 1px solid ${brandColors.border}; padding-top: 6px; margin-top: 2px;">
+                    <div style="font-size: 9px; font-weight: 800; color: ${brandColors.primary}; margin-bottom: 4px; text-transform: uppercase;">🛏️ Rooms</div>
+                    ${roomAllocations.map((room: any) => {
+          const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+          const roomTypeObj = room?.roomType || roomTypes.find(rt => rt.id === room?.roomTypeId);
+          const occupancyObj = room?.occupancyType || occupancyTypes.find(ot => ot.id === room?.occupancyTypeId);
+          const mealPlanObj = room?.mealPlan || mealPlans.find(mp => mp.id === room?.mealPlanId);
+          const roomTypeName = customText || getName(roomTypeObj) || 'Standard';
+          const occupancy = getName(occupancyObj);
+          const mealPlanName = getName(mealPlanObj);
+          return `
+                        <div style="font-size: 9px; color: ${brandColors.text}; line-height: 1.3; margin-bottom: 3px;">
+                          <div style="font-weight: 600;">${roomTypeName}${occupancy ? ` · ${occupancy}` : ''}</div>
+                          <div style="color: ${brandColors.muted};">${room.quantity || 1} Room${(room.quantity || 1) > 1 ? 's' : ''}${mealPlanName ? ` · 🍽️ ${mealPlanName}` : ''}</div>
+                        </div>
+                      `;
+        }).join('')}
+                  </div>
+                ` : ''}
                 ${transportBlockHtml}
               </div>
             </div>
@@ -1326,7 +1353,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   <div style="background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); padding: 12px;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">✓ Inclusions</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(inclusionsArr)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(inclusionsArr)}</div>
                 </div>
               ` : ''}
               
@@ -1335,7 +1362,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 12px;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">✗ Exclusions</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(exclusionsArr)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(exclusionsArr)}</div>
                 </div>
               ` : ''}
             </div>
@@ -1348,7 +1375,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 12px;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">⚠ Important Notes</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(importantArr)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(importantArr)}</div>
                 </div>
               ` : ''}
               
@@ -1357,7 +1384,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                   <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 12px;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">💳 Payment Policy</h3>
                   </div>
-                  <div style="padding: 16px;">${renderBulletList(paymentArr)}</div>
+                  <div style="padding: 16px;">${renderParagraphList(paymentArr)}</div>
                 </div>
               ` : ''}
             </div>
@@ -1369,7 +1396,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
                 <div style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); padding: 12px;">
                   <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">📋 Terms and Conditions</h3>
                 </div>
-                <div style="padding: 16px;">${renderBulletList(termsArr)}</div>
+                <div style="padding: 16px;">${renderParagraphList(termsArr)}</div>
               </div>
             </div>
           ` : ''}

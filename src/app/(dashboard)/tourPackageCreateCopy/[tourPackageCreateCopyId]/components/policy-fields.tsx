@@ -47,7 +47,7 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({
             value={field.value || []}
             onChange={field.onChange}
             loading={loading}
-            placeholder={placeholder || `Add ${label.toLowerCase()} item...`}
+            placeholder={placeholder || `Add ${label.toLowerCase()} paragraph...`}
           />
         </FormControl>
         <FormMessage />

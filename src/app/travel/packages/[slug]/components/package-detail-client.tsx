@@ -529,14 +529,13 @@ export function PackageDetailClient({
                       </div>
                       Inclusions
                     </h3>
-                    <ul className="space-y-2">
+                    <div className="space-y-3">
                       {inclusions.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                          <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <p key={i} className="text-sm text-gray-600 leading-relaxed">
                           {item}
-                        </li>
+                        </p>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
                 {exclusions.length > 0 && (
@@ -547,27 +546,25 @@ export function PackageDetailClient({
                       </div>
                       Exclusions
                     </h3>
-                    <ul className="space-y-2">
+                    <div className="space-y-3">
                       {exclusions.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                          <XIcon className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                        <p key={i} className="text-sm text-gray-600 leading-relaxed">
                           {item}
-                        </li>
+                        </p>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
                 {importantNotes.length > 0 && (
                   <div className="md:col-span-2">
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Important Notes</h3>
-                    <ul className="space-y-2">
+                    <div className="space-y-3">
                       {importantNotes.map((note, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                          <Star className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <p key={i} className="text-sm text-gray-600 leading-relaxed">
                           {note}
-                        </li>
+                        </p>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
               </div>
@@ -581,13 +578,13 @@ export function PackageDetailClient({
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                       Cancellation Policy
                     </h3>
-                    <ul className="space-y-2">
+                    <div className="space-y-3">
                       {cancellationPolicy.map((item, i) => (
-                        <li key={i} className="text-sm text-gray-600 pl-4 border-l-2 border-orange-200">
+                        <p key={i} className="text-sm text-gray-600 leading-relaxed">
                           {item}
-                        </li>
+                        </p>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
                 {paymentPolicy.length > 0 && (
@@ -595,13 +592,13 @@ export function PackageDetailClient({
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                       Payment Policy
                     </h3>
-                    <ul className="space-y-2">
+                    <div className="space-y-3">
                       {paymentPolicy.map((item, i) => (
-                        <li key={i} className="text-sm text-gray-600 pl-4 border-l-2 border-orange-200">
+                        <p key={i} className="text-sm text-gray-600 leading-relaxed">
                           {item}
-                        </li>
+                        </p>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
               </div>

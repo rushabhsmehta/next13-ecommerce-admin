@@ -2526,7 +2526,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.inclusions}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)}
                           switchDescription="Use Switch to Copy Inclusions from the Selected Location"
-                          placeholder="Add inclusion item..."
+                          placeholder="Add inclusion paragraph..."
                         />
 
                         <PolicyField
@@ -2537,7 +2537,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.exclusions}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)}
                           switchDescription="Use Switch to Copy Exclusions from the Selected Location"
-                          placeholder="Add exclusion item..."
+                          placeholder="Add exclusion paragraph..."
                         />
                       </div>
                     </TabsContent>
@@ -2552,7 +2552,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.importantNotes}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)}
                           switchDescription="Use Switch to Copy Important Notes from the Selected Location"
-                          placeholder="Add important note..."
+                          placeholder="Add important note paragraph..."
                         />
 
                         <PolicyField
@@ -2563,7 +2563,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.usefulTip}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)}
                           switchDescription="Use Switch to Copy Useful Tips from the Selected Location"
-                          placeholder="Add useful tip..."
+                          placeholder="Add useful tip paragraph..."
                         />
                       </div>
                     </TabsContent>
@@ -2578,7 +2578,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.cancellationPolicy}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
                           switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
-                          placeholder="Add cancellation policy item..."
+                          placeholder="Add cancellation policy paragraph..."
                         />                        <PolicyField
                           control={form.control}
                           name="airlineCancellationPolicy"
@@ -2587,7 +2587,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.airlineCancellationPolicy}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
                           switchDescription="Use Switch to Copy Airline Cancellation Policy from the Selected Location"
-                          placeholder="Add airline cancellation policy item..."
+                          placeholder="Add airline cancellation policy paragraph..."
                         />
 
                         <PolicyField
@@ -2598,7 +2598,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.kitchenGroupPolicy}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('kitchenGroupPolicy', checked)}
                           switchDescription="Use Switch to Copy Kitchen Group Policy from the Selected Location"
-                          placeholder="Add kitchen group policy item..."
+                          placeholder="Add kitchen group policy paragraph..."
                         />
                       </div>
                     </TabsContent>
@@ -2613,7 +2613,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.paymentPolicy}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)}
                           switchDescription="Use Switch to Copy Payment Policy from the Selected Location"
-                          placeholder="Add payment policy item..."
+                          placeholder="Add payment policy paragraph..."
                         />
 
                         <PolicyField
@@ -2624,7 +2624,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                           checked={useLocationDefaults.termsconditions}
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)}
                           switchDescription="Use Switch to Copy Terms and Conditions from the Selected Location"
-                          placeholder="Add terms and conditions item..."
+                          placeholder="Add terms and conditions paragraph..."
                         />
                       </div>
                     </TabsContent>

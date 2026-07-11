@@ -203,29 +203,20 @@ const PolicySection = ({ title, items }: { title: string; items: string[] }) => 
       </CardHeader>
       <CardContent className="p-6">
         {items.length > 0 ? (
-          <ul className="space-y-3">
+          <div className="space-y-3">
             {items.map((item, index) => {
-              // Check if the item has a bullet point already
-              const hasPrefix =
-                item.startsWith("✔") ||
-                item.startsWith("➤") ||
-                item.startsWith("∎") ||
-                item.startsWith("-");
-
-              // Add appropriate styling based on the item type
-              let className = "flex items-start gap-2 text-gray-700 text-lg";
+              let className = "text-gray-700 text-lg leading-relaxed";
               if (item.startsWith("✔")) className += " text-green-700";
               else if (item.startsWith("➤")) className += " text-red-700";
               else if (item.startsWith("∎")) className += " text-blue-700";
 
               return (
-                <li key={index} className={className}>
-                  {!hasPrefix && <span className="text-orange-500 text-xl">•</span>}
-                  <span className="leading-relaxed">{item}</span>
-                </li>
+                <p key={index} className={className}>
+                  {item}
+                </p>
               );
             })}
-          </ul>
+          </div>
         ) : (
           <p className="text-gray-500 italic text-lg">No items available</p>
         )}
@@ -1029,13 +1020,11 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     <div className="flex items-center gap-3 px-4 py-3 border-b border-orange-100 bg-gradient-to-r from-orange-50 via-rose-50 to-pink-50">
                       <span className="text-lg font-semibold bg-gradient-to-r from-orange-500 to-red-500 text-transparent bg-clip-text print-gradient-fallback">{section.title}</span>
                     </div>
-                    <ul className="list-disc pl-6 pr-4 py-4 space-y-2 text-sm leading-relaxed text-gray-700">
+                    <div className="px-4 py-4 space-y-3 text-sm leading-relaxed text-gray-700">
                       {section.data.map((item, idx) => (
-                        <li key={idx} className="marker:text-orange-400">
-                          <span dangerouslySetInnerHTML={{ __html: item }} />
-                        </li>
+                        <p key={idx} dangerouslySetInnerHTML={{ __html: item }} />
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 ))}
               </div>

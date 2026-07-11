@@ -589,13 +589,11 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                   <div className="flex items-center gap-3 px-4 py-3 border-b border-orange-100 bg-gradient-to-r from-orange-50 via-rose-50 to-pink-50">
                     <span className="text-lg font-semibold bg-gradient-to-r from-orange-500 to-red-500 text-transparent bg-clip-text print-gradient-fallback">{section.title}</span>
                   </div>
-                  <ul className="list-disc pl-6 pr-4 py-4 space-y-2 text-sm leading-relaxed text-gray-700">
+                  <div className="px-4 py-4 space-y-3 text-sm leading-relaxed text-gray-700">
                     {section.data.map((item, index) => (
-                      <li key={index} className="marker:text-orange-400">
-                        <span dangerouslySetInnerHTML={{ __html: item }} />
-                      </li>
+                      <p key={index} dangerouslySetInnerHTML={{ __html: item }} />
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ))}
             </div>

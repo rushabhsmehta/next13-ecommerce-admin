@@ -245,7 +245,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add inclusion item..."
+                        placeholder="Add inclusion paragraph..."
                       />
                     )} />
 
@@ -255,7 +255,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add exclusion item..."
+                        placeholder="Add exclusion paragraph..."
                       />
                     )} />
                   </div>
@@ -269,7 +269,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add important note..."
+                        placeholder="Add important note paragraph..."
                       />
                     )} />
 
@@ -279,7 +279,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add useful tip..."
+                        placeholder="Add useful tip paragraph..."
                       />
                     )} />
                   </div>
@@ -291,7 +291,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add cancellation policy item..."
+                        placeholder="Add cancellation policy paragraph..."
                       />
                     )} />
 
@@ -301,7 +301,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add airline cancellation policy item..."
+                        placeholder="Add airline cancellation policy paragraph..."
                       />
                     )} />
 
@@ -311,7 +311,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add kitchen group policy item..."
+                        placeholder="Add kitchen group policy paragraph..."
                       />
                     )} />
                   </div>
@@ -325,7 +325,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add payment policy item..."
+                        placeholder="Add payment policy paragraph..."
                       />
                     )} />
 
@@ -335,7 +335,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         value={field.value || []}
                         onChange={field.onChange}
                         loading={loading}
-                        placeholder="Add terms and conditions item..."
+                        placeholder="Add terms and conditions paragraph..."
                       />
                     )} />
                   </div>

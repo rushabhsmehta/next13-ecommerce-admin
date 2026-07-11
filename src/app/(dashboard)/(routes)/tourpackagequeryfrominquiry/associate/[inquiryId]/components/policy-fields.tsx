@@ -1,12 +1,9 @@
-// filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\policy-fields.tsx
+import { useEffect, useState } from "react";
 import { FormControl, FormDescription, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { UseFormReturn } from "react-hook-form";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash } from "lucide-react";
-import { useState } from "react";
 
 interface PolicyFieldProps {
   form: UseFormReturn<any>;
@@ -18,7 +15,19 @@ interface PolicyFieldProps {
   onUseDefaultsChange: (checked: boolean) => void;
 }
 
-export const PolicyField: React.FC<PolicyFieldProps> = ({  form,
+function paragraphsToText(items: string[]): string {
+  return items.filter((item) => String(item ?? "").trim()).join("\n\n");
+}
+
+function textToParagraphs(text: string): string[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/\s*\n\s*/g, " ").trim())
+    .filter(Boolean);
+}
+
+export const PolicyField: React.FC<PolicyFieldProps> = ({
+  form,
   name,
   label,
   description,
@@ -27,22 +36,13 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({  form,
   onUseDefaultsChange,
 }) => {
   const watchedValue = form.watch(name);
-  // Ensure policyItems is always an array
   const policyItems = Array.isArray(watchedValue) ? watchedValue : [];
-  const [newPolicyItem, setNewPolicyItem] = useState('');
+  const [text, setText] = useState(() => paragraphsToText(policyItems));
 
-  const handleAddPolicyItem = () => {
-    if (!newPolicyItem.trim()) return;
-    const updatedPolicyItems = [...policyItems, newPolicyItem];
-    form.setValue(name, updatedPolicyItems);
-    setNewPolicyItem('');
-  };
-
-  const handleRemovePolicyItem = (index: number) => {
-    const updatedPolicyItems = [...policyItems];
-    updatedPolicyItems.splice(index, 1);
-    form.setValue(name, updatedPolicyItems);
-  };
+  useEffect(() => {
+    setText(paragraphsToText(policyItems));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(policyItems)]);
 
   return (
     <FormItem>
@@ -53,70 +53,35 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({  form,
           </AccordionTrigger>
           <AccordionContent className="space-y-4">
             <FormDescription>
-              {description}
+              {description} Separate paragraphs with a blank line.
             </FormDescription>
-            
+
             <div className="flex items-center space-x-2">
               <Switch
-                checked={useDefaultsChecked} 
+                checked={useDefaultsChecked}
                 onCheckedChange={onUseDefaultsChange}
                 disabled={loading}
               />
               <FormLabel className="!m-0">Use location defaults</FormLabel>
             </div>
-            
-            <div className="space-y-2">
-              {policyItems.map((item: string, index: number) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <FormControl>
-                    <Input 
-                      disabled={loading}
-                      value={item}
-                      onChange={(e) => {
-                        const updatedItems = [...policyItems];
-                        updatedItems[index] = e.target.value;
-                        form.setValue(name, updatedItems);
-                      }}
-                    />
-                  </FormControl>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    disabled={loading}
-                    onClick={() => handleRemovePolicyItem(index)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <FormControl>
-                <Input
-                  disabled={loading}
-                  placeholder="Add new item..."
-                  value={newPolicyItem}
-                  onChange={(e) => setNewPolicyItem(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddPolicyItem();
-                    }
-                  }}
-                />
-              </FormControl>
-              <Button
-                type="button"
-                size="sm"
+
+            <FormControl>
+              <Textarea
                 disabled={loading}
-                onClick={handleAddPolicyItem}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            
+                value={text}
+                rows={Math.min(16, Math.max(6, policyItems.length * 2 + 2))}
+                className="min-h-[140px] leading-relaxed"
+                placeholder="Write policy text as paragraphs. Separate paragraphs with a blank line."
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setText(next);
+                  form.setValue(name, textToParagraphs(next), {
+                    shouldDirty: true,
+                  });
+                }}
+              />
+            </FormControl>
+
             <FormMessage />
           </AccordionContent>
         </AccordionItem>

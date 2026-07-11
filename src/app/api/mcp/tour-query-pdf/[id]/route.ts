@@ -109,8 +109,7 @@ function buildStyles(): string {
       .room-chip { display: inline-block; background: ${c.lightOrange}; border: 1px solid ${c.border}; border-radius: 3px; padding: 2px 6px; margin: 2px 2px 0 0; font-size: 10px; }
       .variant-name { font-weight: 700; color: ${c.primary}; font-size: 13px; }
       .pricing-total { font-weight: 700; color: ${c.success}; }
-      .bullet-list { padding-left: 18px; }
-      .bullet-list li { margin-bottom: 3px; }
+      .policy-paragraphs p { margin: 0 0 8px; line-height: 1.5; }
       .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
       .policy-section { margin-bottom: 12px; }
       .footer { margin-top: 24px; border-top: 2px solid ${c.border}; padding-top: 10px; font-size: 10px; color: ${c.muted}; text-align: center; }
@@ -279,11 +278,11 @@ function buildVariants(q: QueryData): string {
 function buildPolicySection(title: string, items: unknown): string {
   const list = parsePolicyField(items);
   if (list.length === 0) return "";
-  const bullets = list.map(item => `<li>${esc(item)}</li>`).join("");
+  const paragraphs = list.map(item => `<p>${esc(item)}</p>`).join("");
   return `
     <div class="policy-section">
       <h3>${esc(title)}</h3>
-      <ul class="bullet-list">${bullets}</ul>
+      <div class="policy-paragraphs">${paragraphs}</div>
     </div>
   `;
 }

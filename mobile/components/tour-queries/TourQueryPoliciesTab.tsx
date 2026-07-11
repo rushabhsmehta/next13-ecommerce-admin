@@ -32,7 +32,7 @@ export function TourQueryPoliciesTab({ policies, setPolicies }: Props) {
         {fields.map((f) => (
           <View key={f.key as string} style={styles.policyCard}>
             <Text style={styles.policyTapTitle}>{f.label}</Text>
-            <Text style={styles.help}>One item per line</Text>
+            <Text style={styles.help}>Separate paragraphs with a blank line</Text>
             <TextInput
               testID={`tq-edit-policy-${String(f.key)}`}
               accessibilityLabel={f.label}
@@ -40,6 +40,7 @@ export function TourQueryPoliciesTab({ policies, setPolicies }: Props) {
               value={policies[f.key as string] ?? ""}
               onChangeText={(t) => setPolicies((p) => ({ ...p, [f.key as string]: t }))}
               multiline
+              placeholder="Write policy text as paragraphs…"
               placeholderTextColor={Colors.textTertiary}
             />
           </View>

@@ -85,17 +85,17 @@ export function buildTourPackageBrochureHtml(
 
   const inclHtml =
     inclusionLines.length > 0
-      ? `<ul style="margin:8px 0 0 16px;padding:0;font-size:11px;line-height:1.5;color:#374151;">
-          ${inclusionLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}
-        </ul>`
+      ? `<div style="margin:8px 0 0;padding:0;font-size:11px;line-height:1.5;color:#374151;">
+          ${inclusionLines.map((line) => `<p style="margin:0 0 8px;">${escapeHtml(line)}</p>`).join("")}
+        </div>`
       : `<p style="font-size:11px;color:#9ca3af;margin-top:6px;">See package page for full inclusions.</p>`;
 
   const exclHtml =
     exclusionLines.length > 0
       ? `<div style="margin-top:14px;"><div style="font-size:12px;font-weight:700;color:#b45309;">Exclusions</div>
-        <ul style="margin:6px 0 0 16px;padding:0;font-size:11px;line-height:1.45;color:#6b7280;">
-          ${exclusionLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}
-        </ul></div>`
+        <div style="margin:6px 0 0;padding:0;font-size:11px;line-height:1.45;color:#6b7280;">
+          ${exclusionLines.map((line) => `<p style="margin:0 0 8px;">${escapeHtml(line)}</p>`).join("")}
+        </div></div>`
       : "";
 
   const safeUrl = escapeHtml(publicPageUrl);

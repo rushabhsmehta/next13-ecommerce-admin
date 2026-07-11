@@ -20,7 +20,7 @@ import {
   companyInfo as sharedCompanyInfo,
   sanitizeText,
   parsePolicyField,
-  renderBulletList,
+  renderParagraphList,
 } from "@/lib/pdf";
 import { /* renderItineraryImages, */ renderActivityImages } from "@/lib/itinerary-image-html";
 import { normalizeItineraryDays } from "@/lib/utils";
@@ -288,7 +288,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     break-before: page;
   `;
 
-  // sanitizeText, parsePolicyField, renderBulletList are imported from @/lib/pdf
+  // sanitizeText, parsePolicyField, renderParagraphList are imported from @/lib/pdf
 
   // --- Build Variant Comparison Table ---
   const buildVariantComparisonTable = useCallback((): string => {
@@ -1287,7 +1287,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const cancelArr = withFallback(initialData.cancellationPolicy, loc?.cancellationPolicy);
     const airlineCancelArr = withFallback(initialData.airlineCancellationPolicy, loc?.airlineCancellationPolicy);
 
-    // renderBulletList is imported from @/lib/pdf
+    // renderParagraphList is imported from @/lib/pdf
 
     // Create a comprehensive policies section
     const policiesAndTermsSection = (inclusionsArr.length || exclusionsArr.length || importantArr.length || paymentArr.length || kitchenArr.length || termsArr.length || cancelArr.length || airlineCancelArr.length || usefulTipsArr.length) ? `
@@ -1310,7 +1310,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </h3>
                   </div>
                   <div style="padding: 16px;">
-                    ${renderBulletList(inclusionsArr)}
+                    ${renderParagraphList(inclusionsArr)}
                   </div>
                 </div>
               ` : ''}
@@ -1324,7 +1324,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </h3>
                   </div>
                   <div style="padding: 16px;">
-                    ${renderBulletList(exclusionsArr)}
+                    ${renderParagraphList(exclusionsArr)}
                   </div>
                 </div>
               ` : ''}
@@ -1342,7 +1342,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </h3>
                   </div>
                   <div style="padding: 16px;">
-                    ${renderBulletList(kitchenArr)}
+                    ${renderParagraphList(kitchenArr)}
                   </div>
                 </div>
               ` : ''}
@@ -1356,7 +1356,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </h3>
                   </div>
                   <div style="padding: 16px;">
-                    ${renderBulletList(usefulTipsArr)}
+                    ${renderParagraphList(usefulTipsArr)}
                   </div>
                 </div>
               ` : ''}
@@ -1375,7 +1375,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </h3>
                   </div>
                   <div style="padding: 16px;">
-                    ${renderBulletList(importantArr)}
+                    ${renderParagraphList(importantArr)}
                   </div>
                 </div>
               ` : ''}
@@ -1389,7 +1389,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </h3>
                   </div>
                   <div style="padding: 16px;">
-                    ${renderBulletList(paymentArr)}
+                    ${renderParagraphList(paymentArr)}
                   </div>
                 </div>
               ` : ''}
@@ -1408,7 +1408,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </h3>
                   </div>
                   <div style="padding: 16px;">
-                    ${renderBulletList(cancelArr)}
+                    ${renderParagraphList(cancelArr)}
                   </div>
                 </div>
               ` : ''}
@@ -1422,7 +1422,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </h3>
                   </div>
                   <div style="padding: 16px;">
-                    ${renderBulletList(airlineCancelArr)}
+                    ${renderParagraphList(airlineCancelArr)}
                   </div>
                 </div>
               ` : ''}
@@ -1440,7 +1440,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   </h3>
                 </div>
                 <div style="padding: 16px; page-break-inside: avoid; break-inside: avoid-page;">
-                  ${renderBulletList(termsArr)}
+                  ${renderParagraphList(termsArr)}
                 </div>
               </div>
             </div>

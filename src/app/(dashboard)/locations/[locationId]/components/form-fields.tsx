@@ -52,7 +52,7 @@ export const InclusionsField: React.FC<FieldProps> = ({ control, loading }) => (
       value={field.value || []}
       onChange={field.onChange}
       loading={loading}
-      placeholder="Add inclusion item..."
+      placeholder="Add inclusion paragraph..."
     />
   )} />
 );
@@ -64,7 +64,7 @@ export const ExclusionsField: React.FC<FieldProps> = ({ control, loading }) => (
       value={field.value || []}
       onChange={field.onChange}
       loading={loading}
-      placeholder="Add exclusion item..."
+      placeholder="Add exclusion paragraph..."
     />
   )} />
 );
@@ -76,7 +76,7 @@ export const ImportantNotesField: React.FC<FieldProps> = ({ control, loading }) 
       value={field.value || []}
       onChange={field.onChange}
       loading={loading}
-      placeholder="Add important note..."
+      placeholder="Add important note paragraph..."
     />
   )} />
 );
@@ -88,7 +88,7 @@ export const PaymentPolicyField: React.FC<FieldProps> = ({ control, loading }) =
       value={field.value || []}
       onChange={field.onChange}
       loading={loading}
-      placeholder="Add payment policy item..."
+      placeholder="Add payment policy paragraph..."
     />
   )} />
 );
@@ -100,7 +100,7 @@ export const UsefulTipField: React.FC<FieldProps> = ({ control, loading }) => (
       value={field.value || []}
       onChange={field.onChange}
       loading={loading}
-      placeholder="Add useful tip..."
+      placeholder="Add useful tip paragraph..."
     />
   )} />
 );
@@ -112,7 +112,7 @@ export const CancellationPolicyField: React.FC<FieldProps> = ({ control, loading
       value={field.value || []}
       onChange={field.onChange}
       loading={loading}
-      placeholder="Add cancellation policy item..."
+      placeholder="Add cancellation policy paragraph..."
     />
   )} />
 );
@@ -124,7 +124,7 @@ export const AirlineCancellationPolicyField: React.FC<FieldProps> = ({ control, 
       value={field.value || []}
       onChange={field.onChange}
       loading={loading}
-      placeholder="Add airline cancellation policy item..."
+      placeholder="Add airline cancellation policy paragraph..."
     />
   )} />
 );
@@ -136,7 +136,7 @@ export const TermsConditionsField: React.FC<FieldProps> = ({ control, loading })
       value={field.value || []}
       onChange={field.onChange}
       loading={loading}
-      placeholder="Add terms and conditions item..."
+      placeholder="Add terms and conditions paragraph..."
     />
   )} />
 );

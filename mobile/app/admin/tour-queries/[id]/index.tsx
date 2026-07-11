@@ -1308,15 +1308,12 @@ function TourQueryDetailScreenInner() {
                     {policyBlocks.map((b) => (
                       <View key={b.title} style={styles.policySub}>
                         <Text style={styles.policySubTitle}>
-                          {b.title} · {b.items.length} lines
+                          {b.title} · {b.items.length} paragraphs
                         </Text>
                         {b.items.map((item, i) => (
-                          <View key={`${b.title}-${i}`} style={styles.bulletRow}>
-                            <Text style={styles.bulletDot}>·</Text>
-                            <Text style={styles.bulletText}>
-                              {extractPlainText(item)}
-                            </Text>
-                          </View>
+                          <Text key={`${b.title}-${i}`} style={styles.policyParagraph}>
+                            {extractPlainText(item)}
+                          </Text>
                         ))}
                       </View>
                     ))}
@@ -1838,9 +1835,12 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 4,
   },
-  bulletRow: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
-  bulletDot: { color: Colors.textSecondary, fontSize: FontSize.sm, lineHeight: 20 },
-  bulletText: { flex: 1, fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
+  policyParagraph: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: 8,
+  },
   bodyText: { fontSize: FontSize.sm, color: Colors.text, lineHeight: 20 },
   metaFoot: {
     fontSize: FontSize.xs,

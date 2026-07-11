@@ -34,4 +34,5 @@ export {
   extractText,
   parsePolicyField,
   renderBulletList,
+  renderParagraphList,
 } from "./text-utils";

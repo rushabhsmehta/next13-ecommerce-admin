@@ -21,7 +21,10 @@ import {
   buildQtySubtitle,
   PricingCalculationBreakdown,
 } from "@/components/tour-package-query/PricingCalculationBreakdown";
-import { isLastItineraryDay } from "@/lib/hotel-comparison-days";
+import {
+  getHotelComparisonDayNumbers,
+  isLastItineraryDay,
+} from "@/lib/hotel-comparison-days";
 
 interface VariantHotelSnapshot {
   id: string;
@@ -63,6 +66,7 @@ interface VariantSnapshot {
 }
 
 interface ItineraryData {
+  id?: string;
   dayNumber: number | null;
   roomAllocations?: any[];
   transportDetails?: any[];
@@ -256,6 +260,46 @@ function HotelNightCard({
   }
 
   if (!hotelInfo) {
+    const hasRoomsOrTransport = roomAllocations.length > 0 || transportDetails.length > 0;
+    if (hasRoomsOrTransport) {
+      return (
+        <div className="w-full border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+          <div className="p-3" style={{ borderTop: `3px solid ${accent}` }}>
+            <div className="text-gray-400 italic text-[10px] mb-2">Hotel not specified</div>
+            {roomAllocations.length > 0 && (
+              <div className="mt-1">
+                <div className="text-[10px] font-bold text-orange-700 mb-1">🛏️ Room Allocation</div>
+                {roomAllocations.map((room: any, ri: number) => {
+                  const customText = typeof room?.customRoomType === "string" ? room.customRoomType.trim() : "";
+                  const roomTypeObj = room?.roomType || roomTypes.find((rt) => rt.id === room?.roomTypeId);
+                  const occupancyObj =
+                    room?.occupancyType || occupancyTypes.find((ot) => ot.id === room?.occupancyTypeId);
+                  const mealPlanObj = room?.mealPlan || mealPlans.find((mp) => mp.id === room?.mealPlanId);
+                  const roomTypeName = customText || getName(roomTypeObj) || "Standard";
+                  const occupancy = getName(occupancyObj) || "";
+                  const mealPlanName = getName(mealPlanObj) || "";
+
+                  return (
+                    <div key={ri} className="text-[10px] text-gray-700 leading-snug mb-1 last:mb-0">
+                      <div className="font-semibold text-gray-800">
+                        {roomTypeName}
+                        {occupancy ? ` · ${occupancy}` : ""}
+                      </div>
+                      <div className="text-gray-500">
+                        {room.quantity || 1} Room{(room.quantity || 1) > 1 ? "s" : ""}
+                        {mealPlanName ? ` · 🍽️ ${mealPlanName}` : ""}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <TransportBlock transportDetails={transportDetails} vehicleTypes={vehicleTypes} />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full h-32 flex flex-col items-center justify-center border border-dashed border-orange-200 rounded-lg bg-orange-50/30">
         <span className="text-xl opacity-40">🏷️</span>
@@ -339,16 +383,14 @@ export function VariantComparisonSection({
 
   const itineraryByDay: Record<number, ItineraryData> = {};
   if (itineraries) {
-    for (const it of itineraries) {
-      if (it.dayNumber != null) {
-        itineraryByDay[it.dayNumber] = it;
-      }
-    }
+    itineraries.forEach((it, index) => {
+      const day = it.dayNumber ?? index + 1;
+      itineraryByDay[day] = it;
+    });
   }
 
-  const allDayNumbers = Array.from(
-    new Set(variants.flatMap((v) => v.hotelSnapshots.map((h) => h.dayNumber)))
-  ).sort((a, b) => a - b);
+  const snapshotDayNumbers = variants.flatMap((v) => v.hotelSnapshots.map((h) => h.dayNumber));
+  const allDayNumbers = getHotelComparisonDayNumbers(itineraries, snapshotDayNumbers);
 
   const getSnapshotComponentsFlat = (v: VariantSnapshot) =>
     v.pricingSnapshots.flatMap((ps) =>
@@ -391,7 +433,7 @@ export function VariantComparisonSection({
     const itinerary = itineraryByDay[day];
     const hotelInfo = variant.hotelSnapshots.find((h) => h.dayNumber === day);
     const variantKey = variant.sourceVariantId ?? variant.id;
-    const itineraryId = (itinerary as { id?: string } | undefined)?.id;
+    const itineraryId = itinerary?.id;
     const roomAllocations =
       (itineraryId ? variantRoomAllocations?.[variantKey]?.[itineraryId] : undefined) ||
       (itineraryId ? variantRoomAllocations?.[variant.id]?.[itineraryId] : undefined) ||

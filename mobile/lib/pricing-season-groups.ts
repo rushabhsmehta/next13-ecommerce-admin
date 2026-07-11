@@ -144,3 +144,119 @@ export function pricingGroupSubtitle<T extends PricingGroupRow>(
   const rateLabel = count === 1 ? "rate" : "rates";
   return `${fmtPricingDateRange(group.startDate, group.endDate)} · ${count} ${rateLabel}`;
 }
+
+const MONTH_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/** Toggle a period in/out of a multi-select season list (CRM-style). */
+export function toggleSeasonSelection<T extends { id: string }>(
+  selected: T[],
+  period: T
+): T[] {
+  const isSelected = selected.some((p) => p.id === period.id);
+  return isSelected
+    ? selected.filter((p) => p.id !== period.id)
+    : [...selected, period];
+}
+
+/** Format month/day range for a seasonal period template, e.g. "May 1 - Jun 10". */
+export function formatPeriodRangeLabel(period: {
+  startMonth?: number;
+  startDay?: number;
+  endMonth?: number;
+  endDay?: number;
+}): string {
+  if (
+    !period.startMonth ||
+    !period.startDay ||
+    !period.endMonth ||
+    !period.endDay ||
+    period.startMonth < 1 ||
+    period.startMonth > 12 ||
+    period.endMonth < 1 ||
+    period.endMonth > 12
+  ) {
+    return "";
+  }
+  return `${MONTH_SHORT[period.startMonth - 1]} ${period.startDay} - ${MONTH_SHORT[period.endMonth - 1]} ${period.endDay}`;
+}
+
+/**
+ * If the selection exactly matches all periods of one season type, return that type.
+ * Otherwise return null (individual / mixed selection).
+ */
+export function resolveMatchingSeasonType<
+  T extends { id: string; seasonType?: string },
+>(selected: T[], allPeriods: T[]): string | null {
+  if (selected.length === 0) return null;
+  const type = selected[0]?.seasonType;
+  if (!type) return null;
+  if (!selected.every((p) => p.seasonType === type)) return null;
+  const typeCount = allPeriods.filter(
+    (p) => p.id !== "__none" && p.seasonType === type
+  ).length;
+  return selected.length === typeCount ? type : null;
+}
+
+export function getSeasonTypeColors(seasonType?: string): {
+  bg: string;
+  text: string;
+  border: string;
+  selectedBg: string;
+  selectedBorder: string;
+} {
+  switch (seasonType) {
+    case "HIGH_PEAK_SEASON":
+      return {
+        bg: "#ffe4e6",
+        text: "#881337",
+        border: "#fda4af",
+        selectedBg: "#fecdd3",
+        selectedBorder: "#e11d48",
+      };
+    case "PEAK_SEASON":
+      return {
+        bg: "#fee2e2",
+        text: "#991b1b",
+        border: "#fecaca",
+        selectedBg: "#fecaca",
+        selectedBorder: "#dc2626",
+      };
+    case "OFF_SEASON":
+      return {
+        bg: "#dbeafe",
+        text: "#1e40af",
+        border: "#bfdbfe",
+        selectedBg: "#bfdbfe",
+        selectedBorder: "#2563eb",
+      };
+    case "SHOULDER_SEASON":
+      return {
+        bg: "#fef9c3",
+        text: "#854d0e",
+        border: "#fde68a",
+        selectedBg: "#fde68a",
+        selectedBorder: "#ca8a04",
+      };
+    default:
+      return {
+        bg: "#f5f3f1",
+        text: "#1c1917",
+        border: "#e8e5e1",
+        selectedBg: "#fff7ed",
+        selectedBorder: "#e8612d",
+      };
+  }
+}

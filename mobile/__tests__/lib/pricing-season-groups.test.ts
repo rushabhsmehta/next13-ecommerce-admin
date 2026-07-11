@@ -1,6 +1,10 @@
 import {
   fmtPricingDateRange,
+  formatPeriodRangeLabel,
+  getSeasonTypeColors,
   groupPricingBySeason,
+  resolveMatchingSeasonType,
+  toggleSeasonSelection,
   type PricingGroupRow,
   type SeasonalPeriodLookup,
 } from "../../lib/pricing-season-groups";
@@ -153,5 +157,83 @@ describe("groupPricingBySeason", () => {
 
     expect(groups[0].items[0].id).toBe("summer");
     expect(groups[1].items[0].id).toBe("winter");
+  });
+});
+
+describe("toggleSeasonSelection", () => {
+  it("adds a period that is not selected", () => {
+    const winter = { id: "winter" };
+    const summer = { id: "summer" };
+    expect(toggleSeasonSelection([winter], summer)).toEqual([winter, summer]);
+  });
+
+  it("removes a period that is already selected", () => {
+    const winter = { id: "winter" };
+    const summer = { id: "summer" };
+    expect(toggleSeasonSelection([winter, summer], winter)).toEqual([summer]);
+  });
+});
+
+describe("formatPeriodRangeLabel", () => {
+  it("formats month/day ranges", () => {
+    expect(
+      formatPeriodRangeLabel({
+        startMonth: 5,
+        startDay: 1,
+        endMonth: 6,
+        endDay: 10,
+      })
+    ).toBe("May 1 - Jun 10");
+  });
+
+  it("returns empty string when month/day missing", () => {
+    expect(formatPeriodRangeLabel({ startMonth: 5, startDay: 1 })).toBe("");
+  });
+});
+
+describe("resolveMatchingSeasonType", () => {
+  const periods = [
+    { id: "__none", label: "Manual" },
+    { id: "a", seasonType: "PEAK_SEASON" },
+    { id: "b", seasonType: "PEAK_SEASON" },
+    { id: "c", seasonType: "OFF_SEASON" },
+  ];
+
+  it("returns season type when selection matches all of that type", () => {
+    expect(
+      resolveMatchingSeasonType(
+        [
+          { id: "a", seasonType: "PEAK_SEASON" },
+          { id: "b", seasonType: "PEAK_SEASON" },
+        ],
+        periods
+      )
+    ).toBe("PEAK_SEASON");
+  });
+
+  it("returns null for partial type selection", () => {
+    expect(
+      resolveMatchingSeasonType([{ id: "a", seasonType: "PEAK_SEASON" }], periods)
+    ).toBeNull();
+  });
+
+  it("returns null for mixed types", () => {
+    expect(
+      resolveMatchingSeasonType(
+        [
+          { id: "a", seasonType: "PEAK_SEASON" },
+          { id: "c", seasonType: "OFF_SEASON" },
+        ],
+        periods
+      )
+    ).toBeNull();
+  });
+});
+
+describe("getSeasonTypeColors", () => {
+  it("returns distinct colors for peak vs off season", () => {
+    expect(getSeasonTypeColors("PEAK_SEASON").bg).not.toBe(
+      getSeasonTypeColors("OFF_SEASON").bg
+    );
   });
 });

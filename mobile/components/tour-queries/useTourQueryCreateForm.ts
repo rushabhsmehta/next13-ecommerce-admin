@@ -250,7 +250,6 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
   const tabBadges = useMemo((): TabBadgeState => {
     return {
       trip: !datesOk || datesOrderWarning || (!startsFrom && !endsOn),
-      hotels: undefined,
       pricing: false,
       variants: false,
     };

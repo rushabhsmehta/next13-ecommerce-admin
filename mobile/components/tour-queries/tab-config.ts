@@ -10,7 +10,6 @@ export const TOUR_QUERY_TABS: TourQueryTabOption[] = [
   { id: "guests", label: "Guests" },
   { id: "trip", label: "Trip" },
   { id: "itinerary", label: "Itinerary" },
-  { id: "hotels", label: "Hotels" },
   { id: "pricing", label: "Pricing" },
   { id: "variants", label: "Variants" },
   { id: "policies", label: "Policies" },
@@ -25,6 +24,8 @@ export const VARIANT_BUILD_TABS = [
 const TAB_IDS = new Set<string>(TOUR_QUERY_TABS.map((t) => t.id));
 
 export function parseTourQueryTab(value: unknown): TourQueryTabId {
+  // Legacy deep-links to the removed top-level Hotels tab → Variants
+  if (value === "hotels") return "variants";
   if (typeof value === "string" && TAB_IDS.has(value)) {
     return value as TourQueryTabId;
   }
@@ -53,7 +54,7 @@ export function fieldPathToTab(fieldPath: string): TourQueryTabId {
     return "trip";
   }
   if (lower.includes("roomalloc") || lower.includes("hotel") || lower.includes("transportdetail")) {
-    return "hotels";
+    return "variants";
   }
   if (lower.includes("itinerar")) {
     return "itinerary";

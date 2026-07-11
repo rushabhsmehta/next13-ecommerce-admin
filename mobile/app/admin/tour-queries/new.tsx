@@ -93,7 +93,7 @@ function NewTourQueryScreenInner() {
           onTabChange={setActiveTab}
           badges={form.tabBadges}
           testIDPrefix="tq-new-tab"
-          hiddenTabs={["hotels", "pricing", "variants"]}
+          hiddenTabs={["pricing", "variants"]}
         >
           {activeTab === "basic" ? <TourQueryBasicTab {...form} /> : null}
           {activeTab === "guests" ? <TourQueryGuestsTab {...form} /> : null}

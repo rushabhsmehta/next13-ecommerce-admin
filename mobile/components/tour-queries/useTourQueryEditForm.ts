@@ -1069,17 +1069,12 @@ export function useTourQueryEditForm(queryId: string) {
   ]);
 
   const tabBadges = useMemo((): TabBadgeState => {
-    const daysMissingHotel = itineraries.reduce(
-      (acc, it) => (!it?.hotelId ? acc + 1 : acc),
-      0
-    );
     return {
       trip: !datesOk || datesOrderWarning || (!startsFrom && !endsOn),
-      hotels: daysMissingHotel > 0 ? daysMissingHotel : undefined,
       pricing: false,
       variants: selectedVariantIds.length > 0,
     };
-  }, [itineraries, datesOk, datesOrderWarning, startsFrom, endsOn, selectedVariantIds]);
+  }, [datesOk, datesOrderWarning, startsFrom, endsOn, selectedVariantIds]);
 
   const saveDisabledReason = saving
     ? selectedVariantIds.length > 0

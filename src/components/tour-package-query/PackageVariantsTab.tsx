@@ -1072,7 +1072,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
     });
 
     if (missingHotelDays.length > 0) {
-      toast(`Hotels applied, but no hotel is set for day(s): ${missingHotelDays.join(', ')} in the Hotels tab.`);
+      toast(`Hotels applied, but no hotel is set for day(s): ${missingHotelDays.join(', ')}.`);
     } else {
       toast.success("Hotels from this package applied to variant.");
     }
@@ -1329,7 +1329,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                       <span>Quick Apply Hotels from Hotels Tab</span>
                     </Button>
                     <p className="text-[10px] text-muted-foreground italic">
-                      💡 Applies the hotels you&apos;ve already selected in the Hotels tab to this variant with one click
+                      💡 Applies the hotels already selected on the itinerary to this variant with one click
                     </p>
                   </div>
 

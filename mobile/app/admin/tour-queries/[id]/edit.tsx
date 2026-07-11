@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
@@ -10,19 +9,16 @@ import {
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
-import { Spacing } from "@/constants/theme";
 import { parseTourQueryTab } from "@/components/tour-queries/tab-config";
 import { firstRouteParam } from "@/lib/route-params";
 import { TourQueryBasicTab } from "@/components/tour-queries/TourQueryBasicTab";
 import { TourQueryGuestsTab } from "@/components/tour-queries/TourQueryGuestsTab";
-import { TourQueryHotelsTab } from "@/components/tour-queries/TourQueryHotelsTab";
 import { TourQueryItineraryTab } from "@/components/tour-queries/TourQueryItineraryTab";
 import { TourQueryPoliciesTab } from "@/components/tour-queries/TourQueryPoliciesTab";
 import { TourQueryPricingTab } from "@/components/tour-queries/TourQueryPricingTab";
 import { TourQueryTabShell } from "@/components/tour-queries/TourQueryTabShell";
 import { TourQueryTripTab } from "@/components/tour-queries/TourQueryTripTab";
 import { TourQueryVariantsTab } from "@/components/tour-queries/TourQueryVariantsTab";
-import { tourQueryFormStyles as styles } from "@/components/tour-queries/form-styles";
 import { useTourQueryEditForm } from "@/components/tour-queries/useTourQueryEditForm";
 import type { TourQueryTabId } from "@/components/tour-queries/types";
 
@@ -125,7 +121,6 @@ function EditTourQueryScreenInner() {
           {activeTab === "guests" ? <TourQueryGuestsTab {...form} /> : null}
           {activeTab === "trip" ? <TourQueryTripTab {...form} /> : null}
           {activeTab === "itinerary" ? <TourQueryItineraryTab {...form} /> : null}
-          {activeTab === "hotels" ? <TourQueryHotelsTab {...form} /> : null}
           {activeTab === "pricing" ? (
             <TourQueryPricingTab queryId={id} embedded />
           ) : null}

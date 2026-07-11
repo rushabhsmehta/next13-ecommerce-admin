@@ -16,9 +16,6 @@ function tabLabel(opt: TourQueryTabOption, badges?: TabBadgeState): string {
   if (opt.id === "itinerary" && badges?.itinerary && badges.itinerary > 0) {
     return `${opt.label} (${badges.itinerary})`;
   }
-  if (opt.id === "hotels" && badges?.hotels && badges.hotels > 0) {
-    return `${opt.label} (${badges.hotels})`;
-  }
   if (opt.id === "trip" && badges?.trip) return `${opt.label} •`;
   if (opt.id === "pricing" && badges?.pricing) return `${opt.label} •`;
   if (opt.id === "variants" && badges?.variants) return `${opt.label} •`;

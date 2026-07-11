@@ -38,7 +38,6 @@ import {
 import {
   absoluteAdminUrl,
   tourQueryDisplayPath,
-  tourQueryHotelUpdatePath,
   tourQueryPdfPath,
   tourQueryPdfWithVariantsPath,
   tourQueryVoucherPath,
@@ -223,27 +222,6 @@ function pricingMethodLabel(method: string | null | undefined): string {
   return "Pricing";
 }
 
-function buildRoomLabel(r: RoomAllocationDetail): string {
-  const parts: string[] = [];
-  const qty = r.quantity && r.quantity > 0 ? `${r.quantity}x ` : "";
-  const rt = r.customRoomType || r.roomType?.name || "Room";
-  parts.push(`${qty}${rt}`);
-  if (r.occupancyType?.name) parts.push(r.occupancyType.name);
-  if (r.mealPlan?.name) parts.push(r.mealPlan.name);
-  return parts.join(" · ");
-}
-
-function buildTransportSummary(items: TransportDetailItem[]): string {
-  if (!items.length) return "";
-  return items
-    .map((t) => {
-      const qty = t.quantity && t.quantity > 0 ? `${t.quantity}x ` : "";
-      const vt = t.vehicleType?.name ?? "Vehicle";
-      return t.description ? `${qty}${vt}: ${t.description}` : `${qty}${vt}`;
-    })
-    .join("; ");
-}
-
 type PrimaryAction =
   | { key: "restore"; label: string; run: () => void }
   | { key: "variants"; label: string; run: () => void }
@@ -382,10 +360,6 @@ function TourQueryDetailScreenInner() {
     if (!id) return "";
     return absoluteAdminUrl(getAdminBase(), tourQueryVoucherPath(id));
   }, [id]);
-  const hotelEditUrl = useMemo(() => {
-    if (!id) return "";
-    return absoluteAdminUrl(getAdminBase(), tourQueryHotelUpdatePath(id));
-  }, [id]);
 
   const callCustomer = useCallback((phone: string | null | undefined) => {
     if (!phone) {
@@ -487,13 +461,6 @@ function TourQueryDetailScreenInner() {
   const openVoucher = useCallback(() => {
     void sharePdf("voucher", voucherUrl);
   }, [sharePdf, voucherUrl]);
-
-  const openHotelEditor = useCallback(() => {
-    if (!hotelEditUrl) return;
-    Linking.openURL(hotelEditUrl).catch(() => {
-      Alert.alert("Could not open page", "Opening the hotel editor failed.");
-    });
-  }, [hotelEditUrl]);
 
   const shareWebLink = useCallback(async () => {
     await handleShareTrip();
@@ -655,15 +622,6 @@ function TourQueryDetailScreenInner() {
             },
           ]
         : []),
-      {
-        id: "hotels-web",
-        label: "Hotels (web)",
-        icon: "bed-outline",
-        testID: "tour-query-web-hotels",
-        accessibilityHint:
-          "Opens the web admin hotel editor where pricing is rebuilt when needed.",
-        onPress: openHotelEditor,
-      },
     ];
 
     base.push({
@@ -765,7 +723,6 @@ function TourQueryDetailScreenInner() {
     activeTab,
     openPdfVariants,
     openVoucher,
-    openHotelEditor,
     router,
     shareWebLink,
     canWriteSales,
@@ -1233,72 +1190,6 @@ function TourQueryDetailScreenInner() {
             </View>
           )
           : null}
-        </>
-        ) : null}
-
-        {activeTab === "hotels" ? (
-        <>
-        {data.itineraries.length ?
-          (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitleStatic}>Hotels · {data.itineraries.length} days</Text>
-              <View style={styles.sectionBody}>
-                {data.itineraries.map((it) => (
-                  <View key={it.id} style={styles.dayCard}>
-                    <View style={styles.dayHead}>
-                      <View style={styles.dayBadge}>
-                        <Text style={styles.dayBadgeText}>D{it.dayNumber ?? "?"}</Text>
-                      </View>
-                      <Text style={styles.dayTitle} numberOfLines={2}>
-                        {stripHtml(it.itineraryTitle ?? `Day ${it.dayNumber ?? "?"}`)}
-                      </Text>
-                    </View>
-                    <View style={styles.miniRow}>
-                      <Ionicons name="bed-outline" size={14} color={Colors.textSecondary} />
-                      <Text style={styles.miniRowText}>{it.hotel?.name ?? "No hotel selected"}</Text>
-                    </View>
-                    {it.roomAllocations.length ?
-                      it.roomAllocations.map((r) => (
-                        <View key={r.id} style={styles.miniRow}>
-                          <Ionicons name="people-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.miniRowText}>{buildRoomLabel(r)}</Text>
-                        </View>
-                      ))
-                      : (
-                        <Text style={styles.helpInline}>No room allocations</Text>
-                      )}
-                    {buildTransportSummary(it.transportDetails) ?
-                      (
-                        <View style={styles.miniRow}>
-                          <Ionicons name="car-outline" size={14} color={Colors.textSecondary} />
-                          <Text style={styles.miniRowText}>
-                            {buildTransportSummary(it.transportDetails)}
-                          </Text>
-                        </View>
-                      )
-                      : (
-                        <Text style={styles.helpInline}>No transport</Text>
-                      )}
-                  </View>
-                ))}
-              </View>
-              {editAtTop ? (
-                <Pressable
-                  testID="tq-detail-hotels-edit"
-                  accessibilityRole="button"
-                  accessibilityLabel="Edit hotels and transport"
-                  style={styles.linkish}
-                  onPress={() => router.push(`/admin/tour-queries/${id}/edit?tab=hotels` as never)}
-                >
-                  <Text style={styles.linkishText}>Edit hotels & transport</Text>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
-                </Pressable>
-              ) : null}
-            </View>
-          )
-          : (
-            <Text style={styles.helpInline}>No itinerary days yet.</Text>
-          )}
         </>
         ) : null}
 

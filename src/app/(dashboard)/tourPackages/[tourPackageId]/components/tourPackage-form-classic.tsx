@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck, Building2, Sparkles } from "lucide-react"
+import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck, Sparkles } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -60,7 +60,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CaretSortIcon } from "@radix-ui/react-icons"
 import { Switch } from "@/components/ui/switch"
 import { PolicyField } from "./policy-fields";
-import HotelsTab from "@/components/tour-package-query/HotelsTab"
 import PackageVariantsTab from "@/components/tour-package-query/PackageVariantsTab"
 import { Calendar } from "@/components/ui/calendar"
 import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core"
@@ -68,8 +67,6 @@ import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } 
 import { CSS } from "@dnd-kit/utilities"
 import { isValid, parse } from "date-fns"
 import { formatLocalDate } from "@/lib/timezone-utils"
-// Hotels tab now reuses shared HotelsTab component (room/transport disabled for Tour Package)
-
 // This will be overridden in the component
 const defaultEditorConfig = {
   readonly: false, // all options from <https://xdsoft.net/jodit/do c/>
@@ -1096,7 +1093,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-9 w-full">
+            <TabsList className="grid grid-cols-8 w-full">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -1112,10 +1109,6 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
               <TabsTrigger value="itinerary" className="flex items-center gap-2">
                 <ListPlus className="h-4 w-4" />
                 Itinerary
-              </TabsTrigger>
-              <TabsTrigger value="hotels" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Hotels
               </TabsTrigger>
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />
@@ -1339,18 +1332,6 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                 </CardContent>
               </Card>
             </TabsContent>
-            <TabsContent value="hotels" className="space-y-4 mt-4">
-              <HotelsTab
-                control={form.control}
-                form={form}
-                loading={loading}
-                hotels={hotels}
-                enableRoomAllocations={false}
-                enableTransportDetails={false}
-                readOnly={readOnly}
-              />
-            </TabsContent>
-
             {/* Add similar TabsContent sections for other tabs */}
             <TabsContent value="location" className="space-y-4 mt-4">
               <Card>

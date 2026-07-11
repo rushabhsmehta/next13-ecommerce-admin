@@ -5,7 +5,6 @@ export type TourQueryTabId =
   | "guests"
   | "trip"
   | "itinerary"
-  | "hotels"
   | "pricing"
   | "variants"
   | "policies";
@@ -170,7 +169,6 @@ export type ActivePickerState =
 export interface TabBadgeState {
   trip?: boolean;
   itinerary?: number;
-  hotels?: number;
   pricing?: boolean;
   variants?: boolean;
 }

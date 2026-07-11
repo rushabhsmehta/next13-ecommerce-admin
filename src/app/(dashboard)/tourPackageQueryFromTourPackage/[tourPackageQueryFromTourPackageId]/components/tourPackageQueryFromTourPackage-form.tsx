@@ -44,8 +44,6 @@ import { Switch } from "@/components/ui/switch"
 import { CaretSortIcon } from "@radix-ui/react-icons"
 import { PolicyField } from "./policy-fields"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import HotelsTab from "@/components/tour-package-query/HotelsTab"
-
 const editorConfig = {
   readonly: false,
   contentStyle: `
@@ -568,7 +566,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-9 w-full"> {/* Increased to 9 due to Hotels tab */}
+            <TabsList className="grid grid-cols-8 w-full">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -588,21 +586,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
               <TabsTrigger value="itinerary" className="flex items-center gap-2">
                 <ListPlus className="h-4 w-4" />
                 Itinerary
-              </TabsTrigger>
-              <TabsTrigger value="hotels" className="flex items-center gap-2 relative">
-                <Users className="h-4 w-4" />
-                Hotels
-                {(() => {
-                  try {
-                    const its: any[] = form.watch('itineraries') || [];
-                    const missing = its.reduce((a, it) => !it?.hotelId ? a + 1 : a, 0);
-                    return missing > 0 ? (
-                      <span className="ml-1 bg-red-600 text-white rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium">
-                        {missing}
-                      </span>
-                    ) : null;
-                  } catch { return null; }
-                })()}
               </TabsTrigger>
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />
@@ -1853,26 +1836,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                         </div>
                       </FormItem>
                     )}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="hotels" className="space-y-4 mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Hotels</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <HotelsTab
-                    control={form.control as any}
-                    form={form as any}
-                    loading={loading || lookupLoading}
-                    hotels={hotels as any}
-                    roomTypes={roomTypes}
-                    occupancyTypes={occupancyTypes}
-                    mealPlans={mealPlans}
-                    vehicleTypes={vehicleTypes}
                   />
                 </CardContent>
               </Card>

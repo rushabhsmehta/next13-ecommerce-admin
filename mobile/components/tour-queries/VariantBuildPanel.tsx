@@ -390,7 +390,7 @@ export function VariantBuildPanel({
       {activeTab === "hotels" ? (
         <View style={styles.panel} testID={`variant-build-hotels-${variant.id}`}>
           {dayRows.length === 0 ? (
-            <Text style={styles.empty}>Add itinerary days on the Hotels tab first.</Text>
+            <Text style={styles.empty}>Add itinerary days on the Itinerary tab first.</Text>
           ) : (
             dayRows.map((day) => (
               <View key={day.id} style={styles.dayCard}>

@@ -13,7 +13,10 @@ describe("parseTourQueryTab", () => {
   it("accepts valid tab ids", () => {
     expect(parseTourQueryTab("pricing")).toBe("pricing");
     expect(parseTourQueryTab("itinerary")).toBe("itinerary");
-    expect(parseTourQueryTab("hotels")).toBe("hotels");
+  });
+
+  it("redirects legacy hotels tab to variants", () => {
+    expect(parseTourQueryTab("hotels")).toBe("variants");
   });
 });
 
@@ -22,11 +25,11 @@ describe("fieldPathToTab", () => {
     expect(fieldPathToTab("itineraries.0.itineraryTitle")).toBe("itinerary");
   });
 
-  it("maps hotel and room allocation paths", () => {
+  it("maps hotel and room allocation paths to variants", () => {
     expect(fieldPathToTab("itineraries.0.roomAllocations.0.occupancyTypeId")).toBe(
-      "hotels"
+      "variants"
     );
-    expect(fieldPathToTab("itineraries.0.hotelId")).toBe("hotels");
+    expect(fieldPathToTab("itineraries.0.hotelId")).toBe("variants");
   });
 
   it("maps guest fields", () => {

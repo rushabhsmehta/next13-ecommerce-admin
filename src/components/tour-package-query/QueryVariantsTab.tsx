@@ -1712,7 +1712,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       {(!queryItineraries || queryItineraries.length === 0) ? (
                         <div className="text-center py-6 text-sm text-muted-foreground">
                           <HotelIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                          No itineraries configured. Add itineraries in the Hotels tab first.
+                          No itineraries configured. Add itineraries in the Itinerary tab first.
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -2560,7 +2560,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       <div className="text-center py-8 text-sm text-muted-foreground">
                         <BedDouble className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
                         <p>No itineraries configured for this package.</p>
-                        <p className="text-xs mt-2">Add itineraries in the Hotels tab first.</p>
+                        <p className="text-xs mt-2">Add itineraries in the Itinerary tab first.</p>
                       </div>
                     </CardContent>
                   </Card>

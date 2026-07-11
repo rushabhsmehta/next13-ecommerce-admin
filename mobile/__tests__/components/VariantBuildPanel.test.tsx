@@ -2,6 +2,14 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 
+jest.mock("@/lib/api", () => ({
+  ApiError: class ApiError extends Error {},
+  withAuth: () =>
+    jest.fn(async () => ({
+      items: [{ id: "hotel1", name: "Test Hotel" }],
+    })),
+}));
+
 import React from "react";
 import { Alert } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
@@ -121,8 +129,15 @@ describe("VariantBuildPanel", () => {
       quantity: 1,
       description: "Airport pickup",
     });
+    expect(draft.hotelsByItinerary).toEqual({ day1: "", day2: "" });
     expect(draft.roomsByItinerary.day2).toEqual([]);
     expect(draft.transportByItinerary.day2).toEqual([]);
+  });
+
+  it("exposes hotel picker controls on the hotels tab", () => {
+    renderPanel();
+    expect(screen.getByTestId("variant-build-hotel-picker-luxury-snapshot-day1")).toBeTruthy();
+    expect(screen.getByTestId("variant-build-hotels-save-luxury-snapshot")).toBeTruthy();
   });
 
   it("copies Day 1 to all days with independent room and transport arrays", () => {

@@ -22,7 +22,10 @@ jest.mock("@/components/auth/PermissionGate", () => ({
 
 jest.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
-  withAuth: () => jest.fn(),
+  withAuth: () =>
+    jest.fn(async () => ({
+      items: [{ id: "hotel1", name: "Test Hotel" }],
+    })),
 }));
 
 jest.mock("@/constants/api", () => ({
@@ -39,6 +42,9 @@ jest.mock("@/lib/tour-query-pricing", () => ({
     compare: mockCompare,
     updateVariantBuild: jest.fn(),
     confirmVariant: jest.fn(),
+    createCustomVariant: jest.fn(),
+    updateCustomVariant: jest.fn(),
+    deleteCustomVariant: jest.fn(),
   }),
 }));
 
@@ -114,7 +120,7 @@ describe("TourQueryVariantsPanel", () => {
 
     expect(alert).toHaveBeenCalledWith(
       "Discard unsaved variant edits?",
-      "Room allocation or transport changes have not been saved.",
+      "Hotel, room allocation, or transport changes have not been saved.",
       expect.any(Array)
     );
 
@@ -122,4 +128,70 @@ describe("TourQueryVariantsPanel", () => {
     buttons?.find((button) => button.text === "Discard")?.onPress?.();
     await waitFor(() => expect(screen.getByTestId("variant-card-v2")).toBeTruthy());
   }, 15000);
+
+  it("shows comparison matrix and add-custom action when multiple variants exist", async () => {
+    mockCompare.mockResolvedValue({
+      tourPackageQueryId: "q1",
+      confirmedVariantId: null,
+      hasPricing: true,
+      variants: [
+        {
+          ...variants[0],
+          pricing: {
+            calculationMethod: "manual",
+            components: [{ name: "Per Person", price: "10000", description: "" }],
+            remarks: null,
+            totalCost: 20000,
+            basePrice: 18000,
+            markupPercentage: 10,
+            markupAmount: 2000,
+            accommodation: 15000,
+            transport: 3000,
+            calculatedAt: null,
+          },
+        },
+        {
+          ...variants[1],
+          pricing: {
+            calculationMethod: "manual",
+            components: [{ name: "Per Person", price: "12000", description: "" }],
+            remarks: null,
+            totalCost: 24000,
+            basePrice: 22000,
+            markupPercentage: 10,
+            markupAmount: 2000,
+            accommodation: 18000,
+            transport: 4000,
+            calculatedAt: null,
+          },
+        },
+      ],
+      build: {
+        itineraries: [
+          {
+            id: "day1",
+            dayNumber: 1,
+            itineraryTitle: "Arrival",
+            locationId: "loc1",
+            hotel: { id: "h1", name: "Hotel One" },
+          },
+        ],
+        variantRoomAllocations: {},
+        variantTransportDetails: {},
+        variantHotelOverrides: {},
+        lookups: {
+          roomTypes: [{ id: "rt1", name: "Deluxe" }],
+          occupancyTypes: [{ id: "oc1", name: "Double" }],
+          mealPlans: [{ id: "mp1", name: "CP" }],
+          vehicleTypes: [{ id: "vt1", name: "Innova" }],
+        },
+      },
+    });
+
+    render(<TourQueryVariantsPanel queryId="q1" embedded />);
+
+    await waitFor(() => expect(screen.getByTestId("variant-comparison-matrix")).toBeTruthy());
+    expect(screen.getByTestId("variant-hotel-day-compare")).toBeTruthy();
+    expect(screen.getByTestId("trip-variant-add-custom")).toBeTruthy();
+  });
 });

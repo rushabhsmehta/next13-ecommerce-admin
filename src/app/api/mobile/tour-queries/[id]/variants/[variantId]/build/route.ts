@@ -42,6 +42,8 @@ const transportDetailSchema = z
 const patchSchema = z.object({
   roomsByItinerary: z.record(z.array(roomAllocationSchema)).optional(),
   transportByItinerary: z.record(z.array(transportDetailSchema)).optional(),
+  /** itineraryId → hotelId (empty string clears / means no hotel) */
+  hotelsByItinerary: z.record(z.string()).optional(),
 });
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -58,6 +60,30 @@ function findVariant(
   return snapshots.find(
     (variant) => variant.id === variantId || variant.sourceVariantId === variantId
   );
+}
+
+function findCustomVariant(
+  customQueryVariants: unknown,
+  variantId: string
+): { id: string; name: string; sortOrder: number | null } | null {
+  if (!Array.isArray(customQueryVariants)) return null;
+  for (let index = 0; index < customQueryVariants.length; index += 1) {
+    const row = customQueryVariants[index];
+    if (row == null || typeof row !== "object" || Array.isArray(row)) continue;
+    const record = row as Record<string, unknown>;
+    const id = typeof record.id === "string" ? record.id : "";
+    if (!id || id !== variantId) continue;
+    const name =
+      typeof record.name === "string" && record.name.trim()
+        ? record.name.trim()
+        : "Custom variant";
+    const sortOrder =
+      typeof record.sortOrder === "number" && Number.isFinite(record.sortOrder)
+        ? record.sortOrder
+        : 1000 + index;
+    return { id, name, sortOrder };
+  }
+  return null;
 }
 
 function variantStorageKey(variant: { id: string; sourceVariantId: string | null }) {
@@ -108,6 +134,18 @@ function cleanTransportByItinerary(
   return next;
 }
 
+function cleanHotelsByItinerary(
+  value: Record<string, string>,
+  allowedItineraryIds: Set<string>
+) {
+  const next: Record<string, string> = {};
+  for (const [itineraryId, hotelId] of Object.entries(value)) {
+    if (!allowedItineraryIds.has(itineraryId)) continue;
+    next[itineraryId] = typeof hotelId === "string" ? hotelId : "";
+  }
+  return next;
+}
+
 export async function PATCH(
   req: Request,
   props: { params: Promise<{ id: string; variantId: string }> }
@@ -148,6 +186,8 @@ export async function PATCH(
         inquiry: { select: { associatePartnerId: true } },
         variantRoomAllocations: true,
         variantTransportDetails: true,
+        variantHotelOverrides: true,
+        customQueryVariants: true,
         itineraries: { select: { id: true } },
         queryVariantSnapshots: {
           select: {
@@ -166,12 +206,24 @@ export async function PATCH(
     }
 
     const variant = findVariant(tpq.queryVariantSnapshots, variantId);
-    if (!variant) return new NextResponse("Variant not found", { status: 404 });
+    const customVariant = !variant
+      ? findCustomVariant(tpq.customQueryVariants, variantId)
+      : null;
+    if (!variant && !customVariant) {
+      return new NextResponse("Variant not found", { status: 404 });
+    }
 
-    const key = variantStorageKey(variant);
+    const resolvedVariant = variant ?? {
+      id: customVariant!.id,
+      sourceVariantId: null as string | null,
+      name: customVariant!.name,
+      sortOrder: customVariant!.sortOrder,
+    };
+    const key = variantStorageKey(resolvedVariant);
     const allowedItineraryIds = new Set(tpq.itineraries.map((it) => it.id));
     const nextRooms = asRecord(tpq.variantRoomAllocations);
     const nextTransport = asRecord(tpq.variantTransportDetails);
+    const nextHotels = asRecord(tpq.variantHotelOverrides);
 
     const data: Record<string, unknown> = {};
     if (parsed.data.roomsByItinerary !== undefined) {
@@ -187,6 +239,13 @@ export async function PATCH(
         allowedItineraryIds
       );
       data.variantTransportDetails = nextTransport;
+    }
+    if (parsed.data.hotelsByItinerary !== undefined) {
+      nextHotels[key] = cleanHotelsByItinerary(
+        parsed.data.hotelsByItinerary,
+        allowedItineraryIds
+      );
+      data.variantHotelOverrides = nextHotels;
     }
 
     if (Object.keys(data).length > 0) {
@@ -211,14 +270,15 @@ export async function PATCH(
     return NextResponse.json({
       tourPackageQueryId: tpq.id,
       variant: {
-        id: variant.id,
-        sourceVariantId: variant.sourceVariantId,
-        name: variant.name,
-        sortOrder: variant.sortOrder,
+        id: resolvedVariant.id,
+        sourceVariantId: resolvedVariant.sourceVariantId,
+        name: resolvedVariant.name,
+        sortOrder: resolvedVariant.sortOrder,
       },
       build: {
         variantRoomAllocations: nextRooms,
         variantTransportDetails: nextTransport,
+        variantHotelOverrides: nextHotels,
       },
     });
   } catch (error) {

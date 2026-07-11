@@ -6,6 +6,7 @@ import {
   requireSalesTripsRead,
   requireSalesTripsWrite,
 } from "@/app/api/mobile/lib/assert-sales-trips-access";
+import { parseCustomQueryVariants } from "@/app/api/mobile/lib/custom-query-variants";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +40,36 @@ function normalizePricingComponents(value: unknown) {
     }));
 }
 
+function formatPricing(pricing: VariantPricing | null | undefined) {
+  if (!pricing) return null;
+  return {
+    calculationMethod:
+      typeof pricing.calculationMethod === "string" ? pricing.calculationMethod : null,
+    components: normalizePricingComponents(pricing.components),
+    remarks: typeof pricing.remarks === "string" ? pricing.remarks : null,
+    totalCost: Number(pricing.totalCost ?? 0),
+    basePrice: Number(pricing.basePrice ?? 0),
+    markupPercentage: Number(pricing.appliedMarkup?.percentage ?? 0),
+    markupAmount: Number(pricing.appliedMarkup?.amount ?? 0),
+    accommodation: Number(pricing.breakdown?.accommodation ?? 0),
+    transport: Number(pricing.breakdown?.transport ?? 0),
+    itineraryBreakdown: pricing.itineraryBreakdown ?? null,
+    transportDetails: pricing.transportDetails ?? null,
+    perPersonRates: pricing.perPersonRates ?? null,
+    calculatedAt: pricing.calculatedAt ?? null,
+    subtotalBeforeDiscount:
+      pricing.subtotalBeforeDiscount != null
+        ? Number(pricing.subtotalBeforeDiscount)
+        : null,
+    appliedDiscount: pricing.appliedDiscount ?? null,
+    discountAmount: Number(pricing.appliedDiscount?.amount ?? 0),
+  };
+}
+
 /**
  * Variant comparison for a tour query. Returns each variant snapshot paired
  * with the server-computed pricing the web stored in `variantPricingData`
- * (keyed by variant id). Read-only — pricing remains server-authoritative;
- * mobile only compares.
+ * (keyed by variant id). Also merges customQueryVariants as synthetic items.
  */
 export async function GET(
   req: Request,
@@ -70,6 +96,7 @@ export async function GET(
         variantRoomAllocations: true,
         variantTransportDetails: true,
         variantHotelOverrides: true,
+        customQueryVariants: true,
         associatePartnerId: true,
         inquiry: { select: { associatePartnerId: true } },
         itineraries: {
@@ -126,8 +153,7 @@ export async function GET(
       }),
     ]);
 
-    const variants = tpq.queryVariantSnapshots.map((snap) => {
-      // Pricing is keyed by the source variant id when present, else snapshot id.
+    const snapshotVariants = tpq.queryVariantSnapshots.map((snap) => {
       const pricing =
         (snap.sourceVariantId && pricingMap[snap.sourceVariantId]) ||
         pricingMap[snap.id] ||
@@ -137,6 +163,7 @@ export async function GET(
         name: snap.name,
         sortOrder: snap.sortOrder,
         sourceVariantId: snap.sourceVariantId,
+        isCustom: false,
         isConfirmed:
           tpq.confirmedVariantId != null &&
           (tpq.confirmedVariantId === snap.id ||
@@ -146,34 +173,32 @@ export async function GET(
           hotelId: row.hotelId,
           hotelName: row.hotelName,
         })),
-        pricing: pricing
-          ? {
-              calculationMethod:
-                typeof pricing.calculationMethod === "string"
-                  ? pricing.calculationMethod
-                  : null,
-              components: normalizePricingComponents(pricing.components),
-              remarks:
-                typeof pricing.remarks === "string" ? pricing.remarks : null,
-              totalCost: Number(pricing.totalCost ?? 0),
-              basePrice: Number(pricing.basePrice ?? 0),
-              markupPercentage: Number(pricing.appliedMarkup?.percentage ?? 0),
-              markupAmount: Number(pricing.appliedMarkup?.amount ?? 0),
-              accommodation: Number(pricing.breakdown?.accommodation ?? 0),
-              transport: Number(pricing.breakdown?.transport ?? 0),
-              itineraryBreakdown: pricing.itineraryBreakdown ?? null,
-              transportDetails: pricing.transportDetails ?? null,
-              perPersonRates: pricing.perPersonRates ?? null,
-              calculatedAt: pricing.calculatedAt ?? null,
-              subtotalBeforeDiscount:
-                pricing.subtotalBeforeDiscount != null
-                  ? Number(pricing.subtotalBeforeDiscount)
-                  : null,
-              appliedDiscount: pricing.appliedDiscount ?? null,
-              discountAmount: Number(pricing.appliedDiscount?.amount ?? 0),
-            }
-          : null,
+        pricing: formatPricing(pricing),
       };
+    });
+
+    const customVariants = parseCustomQueryVariants(tpq.customQueryVariants).map(
+      (custom) => ({
+        id: custom.id,
+        name: custom.name,
+        sortOrder: custom.sortOrder,
+        sourceVariantId: null as string | null,
+        isCustom: true,
+        isConfirmed: tpq.confirmedVariantId === custom.id,
+        hotelSnapshots: [] as Array<{
+          dayNumber: number;
+          hotelId: string;
+          hotelName: string;
+        }>,
+        pricing: formatPricing(pricingMap[custom.id] ?? null),
+      })
+    );
+
+    const variants = [...snapshotVariants, ...customVariants].sort((a, b) => {
+      const orderA = a.sortOrder ?? 999;
+      const orderB = b.sortOrder ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
     });
 
     return NextResponse.json({
@@ -244,6 +269,7 @@ export async function PATCH(
         inquiryId: true,
         associatePartnerId: true,
         inquiry: { select: { associatePartnerId: true } },
+        customQueryVariants: true,
         queryVariantSnapshots: {
           select: { id: true, sourceVariantId: true, name: true },
         },
@@ -257,18 +283,23 @@ export async function PATCH(
 
     let targetVariantId: string | null = null;
     if (confirmedVariantId) {
-      // Validate that the variant exists in the snapshots
-      const matched = existing.queryVariantSnapshots.find(
+      const matchedSnapshot = existing.queryVariantSnapshots.find(
         (v) => v.id === confirmedVariantId || v.sourceVariantId === confirmedVariantId
       );
-      if (!matched) {
-        return NextResponse.json(
-          { error: "Invalid variant ID" },
-          { status: 422 }
+      if (matchedSnapshot) {
+        targetVariantId = matchedSnapshot.sourceVariantId || matchedSnapshot.id;
+      } else {
+        const matchedCustom = parseCustomQueryVariants(existing.customQueryVariants).find(
+          (row) => row.id === confirmedVariantId
         );
+        if (!matchedCustom) {
+          return NextResponse.json(
+            { error: "Invalid variant ID" },
+            { status: 422 }
+          );
+        }
+        targetVariantId = matchedCustom.id;
       }
-      // Store the sourceVariantId if present, else the snapshot id
-      targetVariantId = matched.sourceVariantId || matched.id;
     }
 
     const wasFeatured = existing.isFeatured;
@@ -297,7 +328,8 @@ export async function PATCH(
           data: {
             inquiryId: row.inquiryId,
             actionType: "STATUS_CHANGE",
-            remarks: "Status updated to CONFIRMED automatically when variant was confirmed (mobile).",
+            remarks:
+              "Status updated to CONFIRMED automatically when variant was confirmed (mobile).",
           },
         });
       }

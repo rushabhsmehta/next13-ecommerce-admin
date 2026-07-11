@@ -10,6 +10,7 @@ import {
 import { calculatePricing, derivePerPersonRates } from "@/lib/pricing-calculator";
 import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
 import { applyPerPersonRatesToPricingItems } from "@/lib/variant-pricing-display";
+import { findCustomQueryVariant } from "@/app/api/mobile/lib/custom-query-variants";
 
 export const dynamic = "force-dynamic";
 
@@ -182,6 +183,7 @@ async function loadQuery(id: string) {
       variantRoomAllocations: true,
       variantTransportDetails: true,
       variantHotelOverrides: true,
+      customQueryVariants: true,
       associatePartnerId: true,
       inquiry: { select: { associatePartnerId: true } },
       queryVariantSnapshots: {
@@ -211,6 +213,14 @@ async function loadQuery(id: string) {
 
 type LoadedQuery = NonNullable<Awaited<ReturnType<typeof loadQuery>>>;
 
+type ResolvedVariant = {
+  id: string;
+  sourceVariantId: string | null;
+  name: string;
+  sortOrder: number | null;
+  hotelSnapshots: Array<{ dayNumber: number; hotelId: string }>;
+};
+
 function findVariant(
   snapshots: LoadedQuery["queryVariantSnapshots"],
   variantId: string
@@ -218,6 +228,31 @@ function findVariant(
   return snapshots.find(
     (variant) => variant.id === variantId || variant.sourceVariantId === variantId
   );
+}
+
+function resolveVariant(
+  tpq: LoadedQuery,
+  variantId: string
+): ResolvedVariant | null {
+  const snapshot = findVariant(tpq.queryVariantSnapshots, variantId);
+  if (snapshot) {
+    return {
+      id: snapshot.id,
+      sourceVariantId: snapshot.sourceVariantId,
+      name: snapshot.name,
+      sortOrder: snapshot.sortOrder,
+      hotelSnapshots: snapshot.hotelSnapshots,
+    };
+  }
+  const custom = findCustomQueryVariant(tpq.customQueryVariants, variantId);
+  if (!custom) return null;
+  return {
+    id: custom.id,
+    sourceVariantId: null,
+    name: custom.name,
+    sortOrder: custom.sortOrder,
+    hotelSnapshots: [],
+  };
 }
 
 function pricingKeyFor(variant: { id: string; sourceVariantId: string | null }) {
@@ -266,7 +301,7 @@ export async function GET(
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    const variant = findVariant(tpq.queryVariantSnapshots, variantId);
+    const variant = resolveVariant(tpq, variantId);
     if (!variant) return new NextResponse("Variant not found", { status: 404 });
 
     const pricingMap = asRecord(tpq.variantPricingData);
@@ -325,7 +360,7 @@ export async function PATCH(
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    const variant = findVariant(tpq.queryVariantSnapshots, variantId);
+    const variant = resolveVariant(tpq, variantId);
     if (!variant) return new NextResponse("Variant not found", { status: 404 });
 
     const pricingMap = asRecord(tpq.variantPricingData);
@@ -452,7 +487,7 @@ export async function POST(
       );
     }
 
-    const variant = findVariant(tpq.queryVariantSnapshots, variantId);
+    const variant = resolveVariant(tpq, variantId);
     if (!variant) return new NextResponse("Variant not found", { status: 404 });
 
     const key = pricingKeyFor(variant);

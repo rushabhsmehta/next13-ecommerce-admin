@@ -59,6 +59,7 @@ export interface VariantComparisonItem {
   sortOrder: number | null;
   sourceVariantId: string | null;
   isConfirmed: boolean;
+  isCustom?: boolean;
   pricing: VariantPricingBreakdown | null;
   hotelSnapshots: Array<{
     dayNumber: number;
@@ -117,11 +118,13 @@ export interface VariantTransportDetailInput {
 export interface VariantBuildUpdateInput {
   roomsByItinerary?: Record<string, VariantRoomAllocationInput[]>;
   transportByItinerary?: Record<string, VariantTransportDetailInput[]>;
+  hotelsByItinerary?: Record<string, string>;
 }
 
 export interface VariantBuildDraft {
   roomsByItinerary: Record<string, VariantRoomAllocationInput[]>;
   transportByItinerary: Record<string, VariantTransportDetailInput[]>;
+  hotelsByItinerary: Record<string, string>;
 }
 
 export interface VariantBuildUpdateResponse {
@@ -134,7 +137,7 @@ export interface VariantBuildUpdateResponse {
   };
   build: Pick<
     VariantBuildContext,
-    "variantRoomAllocations" | "variantTransportDetails"
+    "variantRoomAllocations" | "variantTransportDetails" | "variantHotelOverrides"
   >;
 }
 
@@ -214,6 +217,29 @@ export interface VariantPricingUpdateInput {
   appliedDiscount?: AppliedVariantDiscountPayload | null;
 }
 
+export interface CustomQueryVariantInput {
+  name: string;
+  description?: string | null;
+}
+
+export interface CustomQueryVariantResponse {
+  tourPackageQueryId: string;
+  variant: {
+    id: string;
+    name: string;
+    description?: string;
+    sortOrder: number | null;
+    sourceVariantId: null;
+    isCustom: true;
+  };
+  customQueryVariants: Array<{
+    id: string;
+    name: string;
+    description: string;
+    sortOrder: number | null;
+  }>;
+}
+
 export function createTourQueryPricingClient(authRequest: AuthenticatedRequest) {
   return {
     compare(tourQueryId: string): Promise<VariantComparisonResponse> {
@@ -230,6 +256,54 @@ export function createTourQueryPricingClient(authRequest: AuthenticatedRequest) 
         {
           method: "PATCH",
           body: { confirmedVariantId },
+        }
+      );
+    },
+    createCustomVariant(
+      tourQueryId: string,
+      input: CustomQueryVariantInput
+    ): Promise<CustomQueryVariantResponse> {
+      return authRequest<CustomQueryVariantResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(tourQueryId)}/custom-variants`,
+        {
+          method: "POST",
+          body: input,
+          timeout: TOUR_QUERY_WRITE_TIMEOUT,
+        }
+      );
+    },
+    updateCustomVariant(
+      tourQueryId: string,
+      customVariantId: string,
+      input: CustomQueryVariantInput
+    ): Promise<CustomQueryVariantResponse> {
+      return authRequest<CustomQueryVariantResponse>(
+        `/api/mobile/tour-queries/${encodeURIComponent(
+          tourQueryId
+        )}/custom-variants/${encodeURIComponent(customVariantId)}`,
+        {
+          method: "PATCH",
+          body: input,
+          timeout: TOUR_QUERY_WRITE_TIMEOUT,
+        }
+      );
+    },
+    deleteCustomVariant(
+      tourQueryId: string,
+      customVariantId: string
+    ): Promise<{
+      tourPackageQueryId: string;
+      deletedVariantId: string;
+      customQueryVariants: unknown[];
+      confirmedVariantId: string | null;
+    }> {
+      return authRequest(
+        `/api/mobile/tour-queries/${encodeURIComponent(
+          tourQueryId
+        )}/custom-variants/${encodeURIComponent(customVariantId)}`,
+        {
+          method: "DELETE",
+          timeout: TOUR_QUERY_WRITE_TIMEOUT,
         }
       );
     },

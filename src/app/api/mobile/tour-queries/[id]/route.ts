@@ -116,6 +116,16 @@ const patchSchema = z.object({
   selectedTemplateType: z.string().optional().nullable(),
   tourPackageTemplateName: z.string().optional().nullable(),
   selectedVariantIds: z.array(z.string()).optional(),
+  customQueryVariants: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        name: z.string().min(1).max(200),
+        description: z.string().max(2000).optional().nullable(),
+        sortOrder: z.number().optional().nullable(),
+      })
+    )
+    .optional(),
   itineraries: z
     .array(
       z.object({
@@ -297,6 +307,7 @@ export async function GET(
         selectedTemplateType: true,
         tourPackageTemplateName: true,
         selectedVariantIds: true,
+        customQueryVariants: true,
         assignedTo: true,
         assignedToMobileNumber: true,
         assignedToEmail: true,
@@ -410,6 +421,9 @@ export async function GET(
       pricingSection: parsePricingSection(tpq.pricingSection),
       variantPricingData: parseJsonRecord(tpq.variantPricingData),
       selectedVariantIds: parseSelectedVariantIds(tpq.selectedVariantIds),
+      customQueryVariants: Array.isArray(tpq.customQueryVariants)
+        ? tpq.customQueryVariants
+        : [],
       inclusionsList: parsePolicyField(tpq.inclusions),
       exclusionsList: parsePolicyField(tpq.exclusions),
       importantNotesList: parsePolicyField(tpq.importantNotes),
@@ -517,6 +531,7 @@ export async function PATCH(
     if (v.selectedTemplateType !== undefined) data.selectedTemplateType = v.selectedTemplateType;
     if (v.tourPackageTemplateName !== undefined) data.tourPackageTemplateName = v.tourPackageTemplateName;
     if (v.selectedVariantIds !== undefined) data.selectedVariantIds = v.selectedVariantIds;
+    if (v.customQueryVariants !== undefined) data.customQueryVariants = v.customQueryVariants;
 
     const policyKeys = [
       "inclusions",

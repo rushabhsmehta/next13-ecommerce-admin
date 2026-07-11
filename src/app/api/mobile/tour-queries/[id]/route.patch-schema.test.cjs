@@ -36,6 +36,16 @@ const patchSchema = z.object({
   selectedMealPlanId: z.string().optional().nullable(),
   variantPricingData: z.record(z.any()).optional().nullable(),
   selectedVariantIds: z.array(z.string()).optional(),
+  customQueryVariants: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        name: z.string().min(1).max(200),
+        description: z.string().max(2000).optional().nullable(),
+        sortOrder: z.number().optional().nullable(),
+      })
+    )
+    .optional(),
   itineraries: z
     .array(
       z.object({
@@ -127,5 +137,21 @@ assert(
   "pricing component passthrough survives",
   pricingPayload.data.pricingSection[0].extra === "kept"
 );
+
+const customVariantsPayload = patchSchema.safeParse({
+  customQueryVariants: [
+    { id: "c1", name: "Custom A", description: "desc", sortOrder: 1 },
+  ],
+});
+assert("customQueryVariants payload parses", customVariantsPayload.success);
+assert(
+  "custom variant name preserved",
+  customVariantsPayload.data.customQueryVariants[0].name === "Custom A"
+);
+
+const badCustom = patchSchema.safeParse({
+  customQueryVariants: [{ id: "", name: "Bad" }],
+});
+assert("empty custom variant id rejected", !badCustom.success);
 
 console.log("route.patch-schema.test.cjs: all passed");

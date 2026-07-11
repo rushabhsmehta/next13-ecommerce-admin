@@ -4,10 +4,12 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
@@ -37,6 +39,7 @@ import {
   hasAppliedVariantDiscount,
 } from "@/lib/variant-pricing-discount";
 import { VariantBuildPanel } from "./VariantBuildPanel";
+import { VariantComparisonMatrix } from "./VariantComparisonMatrix";
 
 function formatINR(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "Rs. 0";
@@ -64,26 +67,6 @@ export function TourQueryVariantsPanel({
       <TourQueryVariantsPanelInner queryId={queryId} embedded={embedded} />
     </PermissionGate>
   );
-}
-
-function pickComparePair(
-  list: VariantComparisonItem[],
-  cheapest: VariantComparisonItem | null
-): [VariantComparisonItem | null, VariantComparisonItem | null] {
-  const confirmed = list.find((v) => v.isConfirmed) ?? null;
-  const priced = [...list].filter((v) => v.pricing);
-  const byCost = [...priced].sort(
-    (a, b) =>
-      (a.pricing!.totalCost - b.pricing!.totalCost) ||
-      ((a.sortOrder ?? 999) - (b.sortOrder ?? 999))
-  );
-  const cheapestPriced = cheapest ?? byCost[0] ?? null;
-  let a = confirmed ?? cheapestPriced ?? list[0] ?? null;
-  let b =
-    cheapestPriced && cheapestPriced.id !== a?.id
-      ? cheapestPriced
-      : byCost.find((v) => v.id !== a?.id) ?? list.find((v) => v.id !== a?.id) ?? null;
-  return [a, b];
 }
 
 function TourQueryVariantsPanelInner({
@@ -122,6 +105,12 @@ function TourQueryVariantsPanelInner({
   const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
   const [buildSavingVariantId, setBuildSavingVariantId] = useState<string | null>(null);
   const [activeBuildDirty, setActiveBuildDirty] = useState(false);
+  const [customModal, setCustomModal] = useState<
+    null | { mode: "create" } | { mode: "rename"; variant: VariantComparisonItem }
+  >(null);
+  const [customName, setCustomName] = useState("");
+  const [customDescription, setCustomDescription] = useState("");
+  const [customSaving, setCustomSaving] = useState(false);
 
   const load = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -173,6 +162,8 @@ function TourQueryVariantsPanelInner({
                   ...prev.build,
                   variantRoomAllocations: res.build.variantRoomAllocations,
                   variantTransportDetails: res.build.variantTransportDetails,
+                  variantHotelOverrides:
+                    res.build.variantHotelOverrides ?? prev.build.variantHotelOverrides,
                 },
               }
             : prev
@@ -181,14 +172,14 @@ function TourQueryVariantsPanelInner({
         setActiveBuildDirty(false);
         Alert.alert(
           "Saved",
-          `Room allocations and transport saved for "${variant.name}".`
+          `Hotels, rooms, and transport saved for "${variant.name}".`
         );
       } catch (err) {
         Alert.alert(
           "Save failed",
           err instanceof ApiError
             ? err.message
-            : "Could not save room allocations and transport."
+            : "Could not save variant hotels, rooms, and transport."
         );
       } finally {
         setBuildSavingVariantId(null);
@@ -289,11 +280,6 @@ function TourQueryVariantsPanelInner({
     return { title: "Compare options", subtitle: "Review totals before confirming.", tone: "medium" as const };
   }, [data, cheapest]);
 
-  const [compareA, compareB] =
-    data && data.variants.length
-      ? pickComparePair(data.variants, cheapest ?? null)
-      : [null, null];
-
   const activeVariant = useMemo(() => {
     const variants = data?.variants ?? [];
     return (
@@ -312,7 +298,7 @@ function TourQueryVariantsPanelInner({
       }
       Alert.alert(
         "Discard unsaved variant edits?",
-        "Room allocation or transport changes have not been saved.",
+        "Hotel, room allocation, or transport changes have not been saved.",
         [
           { text: "Keep editing", style: "cancel" },
           {
@@ -328,6 +314,85 @@ function TourQueryVariantsPanelInner({
     },
     [activeBuildDirty, activeVariantId]
   );
+
+  const openCustomCreate = () => {
+    setCustomName("New Custom Variant");
+    setCustomDescription("");
+    setCustomModal({ mode: "create" });
+  };
+
+  const openCustomRename = (variant: VariantComparisonItem) => {
+    setCustomName(variant.name || "");
+    setCustomDescription("");
+    setCustomModal({ mode: "rename", variant });
+  };
+
+  const submitCustomModal = async () => {
+    if (!id || !customModal || customSaving) return;
+    const name = customName.trim();
+    if (!name) {
+      Alert.alert("Name required", "Enter a name for the custom variant.");
+      return;
+    }
+    setCustomSaving(true);
+    try {
+      if (customModal.mode === "create") {
+        const created = await client.createCustomVariant(id, {
+          name,
+          description: customDescription.trim() || null,
+        });
+        setCustomModal(null);
+        await load("refresh");
+        setActiveVariantId(created.variant.id);
+        Alert.alert("Created", `Custom variant "${name}" added.`);
+      } else {
+        await client.updateCustomVariant(id, customModal.variant.id, {
+          name,
+          description: customDescription.trim() || null,
+        });
+        setCustomModal(null);
+        await load("refresh");
+        Alert.alert("Updated", `Renamed to "${name}".`);
+      }
+    } catch (err) {
+      Alert.alert(
+        "Save failed",
+        err instanceof ApiError ? err.message : "Could not save custom variant."
+      );
+    } finally {
+      setCustomSaving(false);
+    }
+  };
+
+  const deleteCustomVariant = (variant: VariantComparisonItem) => {
+    if (!id) return;
+    Alert.alert(
+      "Delete custom variant?",
+      `Remove "${variant.name}" and its hotels, rooms, transport, and pricing?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setUpdating(variant.id);
+            try {
+              await client.deleteCustomVariant(id, variant.id);
+              await load("refresh");
+              Alert.alert("Deleted", `Custom variant "${variant.name}" removed.`);
+            } catch (err) {
+              Alert.alert(
+                "Delete failed",
+                err instanceof ApiError ? err.message : "Could not delete custom variant."
+              );
+            } finally {
+              setUpdating(null);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const openHotelsWeb = () => {
     if (!hotelEditUrl) return;
@@ -417,73 +482,37 @@ function TourQueryVariantsPanelInner({
           </View>
         ) : null}
 
-        {data.variants.length >= 2 &&
-        compareA &&
-        compareB &&
-        compareA.id !== compareB.id &&
-        (compareA.pricing || compareB.pricing) ?
-          (
-            <View style={styles.compareCard}>
-              <Text style={styles.compareHeading}>Quick compare</Text>
-              <View style={styles.compareGrid}>
-                <Text style={[styles.cell, styles.cellHead]} accessibilityRole="header"> </Text>
-                <Text style={[styles.cell, styles.cellHead]} numberOfLines={2}>
-                  {compareA?.name ?? "Variant A"}
-                </Text>
-                <Text style={[styles.cell, styles.cellHead]} numberOfLines={2}>
-                  {compareB?.name ?? "Variant B"}
-                </Text>
-                {(["totalCost", "basePrice", "markupAmount", "accommodation", "transport"] as const).map(
-                  (metric) => {
-                    const rows: Record<typeof metric, string> = {
-                      totalCost: "Total",
-                      basePrice: "Base",
-                      markupAmount: "Markup",
-                      accommodation: "Stay",
-                      transport: "Transport",
-                    };
-                    const v1 =
-                      metric === "markupAmount" && compareA?.pricing ?
-                        `${formatINR(compareA.pricing.markupAmount)} (${compareA.pricing.markupPercentage}%)`
-                      : compareA?.pricing ?
-                        formatINR(compareA.pricing[metric])
-                      : "—";
-                    const v2 =
-                      metric === "markupAmount" && compareB?.pricing ?
-                        `${formatINR(compareB.pricing.markupAmount)} (${compareB.pricing.markupPercentage}%)`
-                      : compareB?.pricing ?
-                        formatINR(compareB.pricing[metric])
-                      : "—";
-                    const lowA =
-                      cheapest &&
-                      compareA?.id === cheapest.id &&
-                      cheapest.pricing &&
-                      metric === "totalCost";
-                    const lowB =
-                      cheapest &&
-                      compareB?.id === cheapest.id &&
-                      cheapest.pricing &&
-                      metric === "totalCost";
-                    const hlA = compareA?.isConfirmed || lowA;
-                    const hlB = compareB?.isConfirmed || lowB;
-                    return (
-                      <React.Fragment key={metric}>
-                        <Text style={[styles.cell, styles.metricLabel]}>{rows[metric]}</Text>
-                        <Text style={[styles.cell, hlA ? styles.cellHighlight : null]}>{v1}</Text>
-                        <Text style={[styles.cell, hlB ? styles.cellHighlight : null]}>{v2}</Text>
-                      </React.Fragment>
-                    );
-                  }
-                )}
-              </View>
-            </View>
-          )
-          : null}
+        {data.variants.length >= 2 ? (
+          <VariantComparisonMatrix
+            variants={data.variants}
+            build={data.build}
+            cheapestId={cheapest?.id ?? null}
+          />
+        ) : null}
+
+        {canWriteSales ? (
+          <Pressable
+            testID="trip-variant-add-custom"
+            accessibilityRole="button"
+            accessibilityLabel="Add custom variant"
+            style={styles.addCustomBtn}
+            onPress={openCustomCreate}
+            disabled={customSaving || updating !== null}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <Text style={styles.addCustomBtnText}>Add custom variant</Text>
+          </Pressable>
+        ) : null}
 
         {data.variants.length === 0 ? (
           <View style={{ alignItems: "center", paddingTop: Spacing.lg }}>
             <Ionicons name="layers-outline" size={36} color={Colors.textTertiary} />
             <Text style={styles.errText}>This trip has no variants.</Text>
+            {canWriteSales ? (
+              <Text style={styles.emptyPricingMuted}>
+                Add a package variant on edit, or create a custom variant above.
+              </Text>
+            ) : null}
           </View>
         ) : (
           <>
@@ -520,6 +549,11 @@ function TourQueryVariantsPanelInner({
                 <View style={styles.badges}>
                   {updating === activeVariant.id ? (
                     <ActivityIndicator size="small" color={Colors.primary} style={{ marginRight: 4 }} />
+                  ) : null}
+                  {activeVariant.isCustom ? (
+                    <View style={[styles.badge, styles.badgeCustom]}>
+                      <Text style={styles.badgeCustomText}>Custom</Text>
+                    </View>
                   ) : null}
                   {activeVariant.isConfirmed ? (
                     <View style={[styles.badge, styles.badgeConfirmed]}>
@@ -639,6 +673,34 @@ function TourQueryVariantsPanelInner({
                       {activeVariant.pricing ? "Edit pricing" : "Add pricing"}
                     </Text>
                   </Pressable>
+                  {activeVariant.isCustom ? (
+                    <>
+                      <Pressable
+                        testID={`variant-custom-rename-${activeVariant.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Rename ${activeVariant.name}`}
+                        style={styles.actionButton}
+                        onPress={() => openCustomRename(activeVariant)}
+                        disabled={customSaving || updating !== null}
+                      >
+                        <Ionicons name="create-outline" size={15} color={Colors.primary} />
+                        <Text style={styles.actionButtonText}>Rename</Text>
+                      </Pressable>
+                      <Pressable
+                        testID={`variant-custom-delete-${activeVariant.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete ${activeVariant.name}`}
+                        style={styles.actionButton}
+                        onPress={() => deleteCustomVariant(activeVariant)}
+                        disabled={customSaving || updating !== null}
+                      >
+                        <Ionicons name="trash-outline" size={15} color={Colors.error} />
+                        <Text style={[styles.actionButtonText, { color: Colors.error }]}>
+                          Delete
+                        </Text>
+                      </Pressable>
+                    </>
+                  ) : null}
                   <Pressable
                     testID={`variant-confirm-${activeVariant.id}`}
                     accessibilityRole="button"
@@ -662,6 +724,66 @@ function TourQueryVariantsPanelInner({
             ) : null}
           </>
         )}
+
+      <Modal
+        visible={customModal != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => (customSaving ? undefined : setCustomModal(null))}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard} testID="trip-variant-custom-modal">
+            <Text style={styles.modalTitle}>
+              {customModal?.mode === "rename" ? "Rename custom variant" : "Add custom variant"}
+            </Text>
+            <Text style={styles.modalLabel}>Name</Text>
+            <TextInput
+              testID="trip-variant-custom-name"
+              style={styles.modalInput}
+              value={customName}
+              onChangeText={setCustomName}
+              editable={!customSaving}
+              placeholder="Variant name"
+              accessibilityLabel="Custom variant name"
+            />
+            <Text style={styles.modalLabel}>Description (optional)</Text>
+            <TextInput
+              testID="trip-variant-custom-description"
+              style={[styles.modalInput, styles.modalInputMultiline]}
+              value={customDescription}
+              onChangeText={setCustomDescription}
+              editable={!customSaving}
+              placeholder="Short description"
+              accessibilityLabel="Custom variant description"
+              multiline
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                testID="trip-variant-custom-cancel"
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+                style={styles.modalCancelBtn}
+                disabled={customSaving}
+                onPress={() => setCustomModal(null)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                testID="trip-variant-custom-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save custom variant"
+                style={[styles.modalSaveBtn, customSaving ? styles.modalSaveDisabled : null]}
+                disabled={customSaving}
+                onPress={() => void submitCustomModal()}
+              >
+                <Text style={styles.modalSaveText}>
+                  {customSaving ? "Saving…" : "Save"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 
@@ -813,6 +935,8 @@ const styles = StyleSheet.create({
   },
   badgeConfirmed: { backgroundColor: Colors.primary },
   badgeConfirmedText: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  badgeCustom: { backgroundColor: Colors.secondaryLight },
+  badgeCustomText: { color: "#fff", fontSize: 10, fontWeight: "800" },
   badgeCheap: { backgroundColor: "#dcfce7" },
   badgeCheapText: { color: "#16a34a", fontSize: 10, fontWeight: "800" },
   badgeWarn: { backgroundColor: "#fff7ed" },
@@ -877,13 +1001,15 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.borderSubtle,
     paddingTop: Spacing.sm,
   },
   actionButton: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "45%",
     minHeight: 40,
     borderRadius: BorderRadius.sm,
     borderWidth: StyleSheet.hairlineWidth,
@@ -935,4 +1061,91 @@ const styles = StyleSheet.create({
   },
   emptyPricingBtnText: { color: "#fff", fontWeight: "800", fontSize: FontSize.sm },
   emptyPricingMuted: { fontSize: FontSize.xs, color: Colors.textTertiary, fontWeight: "600" },
+  addCustomBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryBg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  addCustomBtnText: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: Colors.overlay,
+    justifyContent: "center",
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "900",
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  modalLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.textSecondary,
+  },
+  modalInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: FontSize.md,
+    color: Colors.text,
+    backgroundColor: Colors.surface,
+  },
+  modalInputMultiline: {
+    minHeight: 72,
+    textAlignVertical: "top",
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: BorderRadius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+  },
+  modalCancelText: {
+    fontWeight: "800",
+    color: Colors.textSecondary,
+  },
+  modalSaveBtn: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primary,
+  },
+  modalSaveDisabled: {
+    opacity: 0.6,
+  },
+  modalSaveText: {
+    fontWeight: "900",
+    color: Colors.textInverse,
+  },
 });

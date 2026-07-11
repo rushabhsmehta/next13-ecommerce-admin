@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -10,8 +10,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useAuth } from "@clerk/expo";
 import { AdminPickerSheet, AdminSegmentedControl } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { withAuth } from "@/lib/api";
 import { VARIANT_BUILD_TABS } from "./tab-config";
 import type { VariantBuildTabId } from "./types";
 import type {
@@ -27,7 +29,8 @@ import {
   createVariantBuildDraft,
   formatRoomAllocationLine,
   formatTransportLine,
-  resolveVariantHotelName,
+  isHotelOverridden,
+  resolveDraftHotelName,
 } from "./variant-build-utils";
 import { methodLabel } from "./variant-pricing/types";
 import {
@@ -99,6 +102,11 @@ type BuildPickerState =
       itineraryId: string;
       transportIndex: number;
     }
+  | {
+      type: "hotel";
+      itineraryId: string;
+      locationId: string | null;
+    }
   | { type: "copyVariant" };
 
 function defaultRoom(build: VariantBuildContext): VariantRoomAllocationInput {
@@ -148,11 +156,22 @@ export function VariantBuildPanel({
   savingBuild = false,
 }: VariantBuildPanelProps) {
   const router = useRouter();
+  const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+  const authRequest = useMemo(() => withAuth(() => getTokenRef.current()), []);
+
   const [activeTab, setActiveTab] = useState<VariantBuildTabId>("hotels");
   const [picker, setPicker] = useState<BuildPickerState | null>(null);
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>(() => ({
     [build.itineraries[0]?.id ?? ""]: true,
   }));
+  const [hotelsCache, setHotelsCache] = useState<
+    Record<string, Array<{ id: string; name: string }>>
+  >({});
+  const [loadingHotelsFor, setLoadingHotelsFor] = useState<string | null>(null);
 
   const persistedDraft = useMemo(
     () => createVariantBuildDraft(variant, build),
@@ -182,6 +201,40 @@ export function VariantBuildPanel({
     [onDirtyChange]
   );
 
+  const loadHotelsForLocation = useCallback(
+    async (locId: string) => {
+      if (!locId || hotelsCache[locId]) return;
+      setLoadingHotelsFor(locId);
+      try {
+        const response = await authRequest<{ items: { id: string; name: string }[] }>(
+          `/api/mobile/operations/list?type=hotels&locationId=${encodeURIComponent(locId)}&limit=100`
+        );
+        setHotelsCache((prev) => ({
+          ...prev,
+          [locId]: response?.items || [],
+        }));
+      } catch (err) {
+        console.log("Failed to load hotels for location", locId, err);
+      } finally {
+        setLoadingHotelsFor((current) => (current === locId ? null : current));
+      }
+    },
+    [authRequest, hotelsCache]
+  );
+
+  useEffect(() => {
+    const locationIds = Array.from(
+      new Set(
+        build.itineraries
+          .map((itinerary) => itinerary.locationId)
+          .filter((value): value is string => Boolean(value))
+      )
+    );
+    for (const locationId of locationIds) {
+      void loadHotelsForLocation(locationId);
+    }
+  }, [build.itineraries, loadHotelsForLocation]);
+
   const canEdit = canWriteSales && Boolean(onSaveBuild);
   const itineraryIds = useMemo(
     () => build.itineraries.map((itinerary) => itinerary.id),
@@ -190,20 +243,29 @@ export function VariantBuildPanel({
 
   const dayRows = useMemo(
     () =>
-      build.itineraries.map((itinerary, index) => ({
-        ...itinerary,
-        dayLabel: itinerary.dayNumber ?? index + 1,
-        hotelName: resolveVariantHotelName(
-          variant,
-          build,
-          itinerary.id,
-          itinerary.dayNumber,
-          itinerary.hotel
-        ),
-        rooms: draft.roomsByItinerary[itinerary.id] ?? [],
-        transport: draft.transportByItinerary[itinerary.id] ?? [],
-      })),
-    [build, draft, variant]
+      build.itineraries.map((itinerary, index) => {
+        const hotelId = draft.hotelsByItinerary[itinerary.id];
+        const locationHotels = itinerary.locationId
+          ? hotelsCache[itinerary.locationId]
+          : undefined;
+        return {
+          ...itinerary,
+          dayLabel: itinerary.dayNumber ?? index + 1,
+          hotelId: hotelId ?? "",
+          hotelName: resolveDraftHotelName(hotelId, {
+            hotels: locationHotels,
+            variant,
+            build,
+            itineraryId: itinerary.id,
+            dayNumber: itinerary.dayNumber,
+            fallbackHotel: itinerary.hotel,
+          }),
+          hotelModified: isHotelOverridden(variant, build, itinerary.id),
+          rooms: draft.roomsByItinerary[itinerary.id] ?? [],
+          transport: draft.transportByItinerary[itinerary.id] ?? [],
+        };
+      }),
+    [build, draft, hotelsCache, variant]
   );
 
   const setRoomsForDay = (
@@ -228,6 +290,16 @@ export function VariantBuildPanel({
       transportByItinerary: {
         ...previous.transportByItinerary,
         [itineraryId]: updater(previous.transportByItinerary[itineraryId] ?? []),
+      },
+    }));
+  };
+
+  const setHotelForDay = (itineraryId: string, hotelId: string) => {
+    setDraft((previous) => ({
+      ...previous,
+      hotelsByItinerary: {
+        ...previous.hotelsByItinerary,
+        [itineraryId]: hotelId,
       },
     }));
   };
@@ -274,13 +346,14 @@ export function VariantBuildPanel({
     const firstId = itineraryIds[0];
     const firstRooms = firstId ? draft.roomsByItinerary[firstId] ?? [] : [];
     const firstTransport = firstId ? draft.transportByItinerary[firstId] ?? [] : [];
-    if (firstRooms.length === 0 && firstTransport.length === 0) {
-      Alert.alert("Nothing to copy", "Add a room or transport entry to Day 1 first.");
+    const firstHotel = firstId ? draft.hotelsByItinerary[firstId] ?? "" : "";
+    if (firstRooms.length === 0 && firstTransport.length === 0 && !firstHotel) {
+      Alert.alert("Nothing to copy", "Add a hotel, room, or transport entry to Day 1 first.");
       return;
     }
     Alert.alert(
       "Copy Day 1 to all days?",
-      "This replaces the current room allocations and transport details on every day.",
+      "This replaces the current hotel, room allocations, and transport details on every day.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -294,7 +367,7 @@ export function VariantBuildPanel({
   const confirmCopyVariant = (sourceVariant: VariantComparisonItem) => {
     Alert.alert(
       "Copy variant details?",
-      `Replace the current room allocations and transport details with "${sourceVariant.name}"?`,
+      `Replace the current hotels, room allocations, and transport details with "${sourceVariant.name}"?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -305,12 +378,25 @@ export function VariantBuildPanel({
     );
   };
 
+  const openHotelPicker = (itineraryId: string, locationId: string | null) => {
+    if (!canEdit) return;
+    if (locationId) void loadHotelsForLocation(locationId);
+    setPicker({ type: "hotel", itineraryId, locationId });
+  };
+
   const pickerOptions = useMemo(() => {
     if (!picker) return [];
     if (picker.type === "copyVariant") {
       return variants
         .filter((item) => item.id !== variant.id)
         .map((item) => ({ id: item.id, label: item.name || "Unnamed variant" }));
+    }
+    if (picker.type === "hotel") {
+      const hotels = picker.locationId ? hotelsCache[picker.locationId] ?? [] : [];
+      return [
+        { id: "", label: "-- No hotel selected --" },
+        ...hotels.map((hotel) => ({ id: hotel.id, label: hotel.name })),
+      ];
     }
     if (picker.type === "transport") {
       return build.lookups.vehicleTypes.map((item) => ({ id: item.id, label: item.name }));
@@ -325,11 +411,12 @@ export function VariantBuildPanel({
       return build.lookups.occupancyTypes.map((item) => ({ id: item.id, label: item.name }));
     }
     return build.lookups.mealPlans.map((item) => ({ id: item.id, label: item.name }));
-  }, [build.lookups, picker, variant.id, variants]);
+  }, [build.lookups, hotelsCache, picker, variant.id, variants]);
 
   const pickerTitle = useMemo(() => {
     if (!picker) return "";
     if (picker.type === "copyVariant") return "Copy Details From Variant";
+    if (picker.type === "hotel") return "Select Hotel";
     if (picker.type === "transport") return "Select Vehicle Type";
     if (picker.type === "extraOccupancy") return "Select Additional Occupancy";
     if (picker.field === "roomTypeId") return "Select Room Type";
@@ -339,6 +426,9 @@ export function VariantBuildPanel({
 
   const pickerSelectedId = useMemo(() => {
     if (!picker || picker.type === "copyVariant") return undefined;
+    if (picker.type === "hotel") {
+      return draft.hotelsByItinerary[picker.itineraryId] ?? "";
+    }
     if (picker.type === "transport") {
       return draft.transportByItinerary[picker.itineraryId]?.[picker.transportIndex]
         ?.vehicleTypeId as string | undefined;
@@ -355,6 +445,10 @@ export function VariantBuildPanel({
     if (picker.type === "copyVariant") {
       const source = variants.find((item) => item.id === option.id);
       if (source) confirmCopyVariant(source);
+      return;
+    }
+    if (picker.type === "hotel") {
+      setHotelForDay(picker.itineraryId, option.id);
       return;
     }
     if (picker.type === "transport") {
@@ -392,31 +486,105 @@ export function VariantBuildPanel({
           {dayRows.length === 0 ? (
             <Text style={styles.empty}>Add itinerary days on the Itinerary tab first.</Text>
           ) : (
-            dayRows.map((day) => (
-              <View key={day.id} style={styles.dayCard}>
-                <View style={styles.hotelCardHead}>
-                  <View style={styles.nightBadge}>
-                    <Text style={styles.nightBadgeText}>Night {day.dayLabel}</Text>
+            <>
+              {canEdit ? (
+                <View style={styles.copyBar}>
+                  <Pressable
+                    testID={`variant-build-copy-day-one-hotels-${variant.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Copy Day 1 hotel to all days"
+                    style={styles.copyBtn}
+                    disabled={savingBuild}
+                    onPress={confirmCopyDayOne}
+                  >
+                    <Ionicons name="copy-outline" size={14} color={Colors.primary} />
+                    <Text style={styles.copyBtnText}>Copy Day 1 to all</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+              {dayRows.map((day) => (
+                <View key={day.id} style={styles.dayCard}>
+                  <View style={styles.hotelCardHead}>
+                    <View style={styles.nightBadge}>
+                      <Text style={styles.nightBadgeText}>Night {day.dayLabel}</Text>
+                    </View>
+                    <View style={styles.hotelBadgeRow}>
+                      {day.hotelModified ? (
+                        <View style={styles.modifiedBadge}>
+                          <Text style={styles.modifiedBadgeText}>Modified</Text>
+                        </View>
+                      ) : null}
+                      {day.rooms.length > 0 || day.transport.length > 0 ? (
+                        <Text style={styles.muted}>
+                          {day.rooms.length} room{day.rooms.length === 1 ? "" : "s"}
+                          {day.transport.length > 0
+                            ? ` · ${day.transport.length} transport`
+                            : ""}
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
-                  {day.rooms.length > 0 || day.transport.length > 0 ? (
-                    <Text style={styles.muted}>
-                      {day.rooms.length} room{day.rooms.length === 1 ? "" : "s"}
-                      {day.transport.length > 0
-                        ? ` · ${day.transport.length} transport`
-                        : ""}
+                  {canEdit ? (
+                    <Pressable
+                      testID={`variant-build-hotel-picker-${variant.id}-${day.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Select hotel for night ${day.dayLabel}: ${day.hotelName}`}
+                      accessibilityHint="Opens hotel picker for this night"
+                      style={[styles.fieldBox, savingBuild ? styles.readOnlyField : null]}
+                      disabled={savingBuild}
+                      onPress={() => openHotelPicker(day.id, day.locationId)}
+                    >
+                      <Text style={styles.fieldLabel}>Hotel</Text>
+                      <Text style={styles.fieldValue} numberOfLines={2}>
+                        {day.locationId && loadingHotelsFor === day.locationId
+                          ? "Loading hotels…"
+                          : day.hotelName}
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={styles.hotelName} numberOfLines={2}>
+                      {day.hotelName}
+                    </Text>
+                  )}
+                  {day.itineraryTitle ? (
+                    <Text style={styles.muted} numberOfLines={2}>
+                      {extractPlainText(day.itineraryTitle)}
                     </Text>
                   ) : null}
                 </View>
-                <Text style={styles.hotelName} numberOfLines={2}>
-                  {day.hotelName}
-                </Text>
-                {day.itineraryTitle ? (
-                  <Text style={styles.muted} numberOfLines={2}>
-                    {extractPlainText(day.itineraryTitle)}
-                  </Text>
-                ) : null}
-              </View>
-            ))
+              ))}
+              {canEdit ? (
+                <View style={styles.saveBar}>
+                  <Pressable
+                    testID={`variant-build-hotels-reset-${variant.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reset hotel edits"
+                    style={[styles.saveBtn, styles.resetBtn, !dirty ? styles.disabledBtn : null]}
+                    disabled={savingBuild || !dirty}
+                    onPress={() => setDraft(cloneVariantBuildDraft(persistedDraft))}
+                  >
+                    <Text style={styles.resetBtnText}>Reset</Text>
+                  </Pressable>
+                  <Pressable
+                    testID={`variant-build-hotels-save-${variant.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Save hotel overrides"
+                    style={[
+                      styles.saveBtn,
+                      styles.primarySaveBtn,
+                      !dirty || savingBuild ? styles.disabledBtn : null,
+                    ]}
+                    disabled={!dirty || savingBuild}
+                    onPress={saveBuild}
+                  >
+                    <Ionicons name="save-outline" size={15} color="#fff" />
+                    <Text style={styles.primarySaveText}>
+                      {savingBuild ? "Saving..." : "Save Hotels"}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </>
           )}
         </View>
       ) : null}
@@ -1093,6 +1261,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: Spacing.sm,
+  },
+  hotelBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    flexShrink: 1,
+  },
+  modifiedBadge: {
+    backgroundColor: "#FEF3C7",
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+  },
+  modifiedBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    color: Colors.warning,
   },
   nightBadge: {
     backgroundColor: Colors.primary,

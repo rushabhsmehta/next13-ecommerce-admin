@@ -38,17 +38,14 @@ export function createVariantBuildDraft(
   variant: VariantComparisonItem,
   build: VariantBuildContext
 ): VariantBuildDraft {
-  const roomsByItinerary = findNestedRecord(
-    build.variantRoomAllocations,
-    variantDataKeys(variant)
-  );
-  const transportByItinerary = findNestedRecord(
-    build.variantTransportDetails,
-    variantDataKeys(variant)
-  );
+  const keys = variantDataKeys(variant);
+  const roomsByItinerary = findNestedRecord(build.variantRoomAllocations, keys);
+  const transportByItinerary = findNestedRecord(build.variantTransportDetails, keys);
+  const hotelsByItinerary = findNestedRecord(build.variantHotelOverrides, keys);
   const draft: VariantBuildDraft = {
     roomsByItinerary: {},
     transportByItinerary: {},
+    hotelsByItinerary: {},
   };
 
   for (const itinerary of build.itineraries) {
@@ -60,6 +57,17 @@ export function createVariantBuildDraft(
     draft.transportByItinerary[itinerary.id] = Array.isArray(transport)
       ? (JSON.parse(JSON.stringify(transport)) as VariantTransportDetailInput[])
       : [];
+
+    const overrideHotelId = hotelsByItinerary[itinerary.id];
+    if (typeof overrideHotelId === "string") {
+      draft.hotelsByItinerary[itinerary.id] = overrideHotelId;
+    } else {
+      const snap = variant.hotelSnapshots.find(
+        (row) => row.dayNumber === (itinerary.dayNumber ?? -1)
+      );
+      draft.hotelsByItinerary[itinerary.id] =
+        snap?.hotelId ?? itinerary.hotel?.id ?? "";
+    }
   }
 
   return draft;
@@ -73,6 +81,7 @@ export function copyFirstDayBuildToAllDays(
   const firstId = itineraryIds[0];
   const firstRooms = draft.roomsByItinerary[firstId] ?? [];
   const firstTransport = draft.transportByItinerary[firstId] ?? [];
+  const firstHotel = draft.hotelsByItinerary[firstId] ?? "";
   const next = cloneVariantBuildDraft(draft);
 
   for (const itineraryId of itineraryIds) {
@@ -82,6 +91,7 @@ export function copyFirstDayBuildToAllDays(
     next.transportByItinerary[itineraryId] = JSON.parse(
       JSON.stringify(firstTransport)
     ) as VariantTransportDetailInput[];
+    next.hotelsByItinerary[itineraryId] = firstHotel;
   }
 
   return next;
@@ -104,6 +114,44 @@ export function resolveVariantHotelName(
   const snap = variant.hotelSnapshots.find((row) => row.dayNumber === (dayNumber ?? -1));
   if (snap?.hotelName) return snap.hotelName;
   return fallbackHotel?.name ?? "No hotel selected";
+}
+
+/** Resolve display name from draft hotel id + optional name cache. */
+export function resolveDraftHotelName(
+  hotelId: string | undefined,
+  options: {
+    hotels?: Array<{ id: string; name: string }>;
+    variant: VariantComparisonItem;
+    build: VariantBuildContext;
+    itineraryId: string;
+    dayNumber: number | null;
+    fallbackHotel: { id: string; name: string } | null;
+  }
+): string {
+  if (hotelId === "") return "No hotel selected";
+  if (typeof hotelId === "string" && hotelId) {
+    const cached = options.hotels?.find((hotel) => hotel.id === hotelId);
+    if (cached?.name) return cached.name;
+    const snap = options.variant.hotelSnapshots.find((row) => row.hotelId === hotelId);
+    if (snap?.hotelName) return snap.hotelName;
+    if (options.fallbackHotel?.id === hotelId) return options.fallbackHotel.name;
+  }
+  return resolveVariantHotelName(
+    options.variant,
+    options.build,
+    options.itineraryId,
+    options.dayNumber,
+    options.fallbackHotel
+  );
+}
+
+export function isHotelOverridden(
+  variant: VariantComparisonItem,
+  build: VariantBuildContext,
+  itineraryId: string
+): boolean {
+  const overrides = findNestedRecord(build.variantHotelOverrides, variantDataKeys(variant));
+  return overrides[itineraryId] !== undefined;
 }
 
 export function resolveVariantRooms(

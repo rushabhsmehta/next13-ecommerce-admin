@@ -27,7 +27,6 @@ interface TourPackageDisplayProps {
     images: Images[];
     itineraries: (Itinerary & {
       itineraryImages: Images[];
-      roomAllocations?: any[];
       transportDetails?: any[];
       activities: (Activity & {
         activityImages: Images[];
@@ -370,7 +369,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         <Card className="mb-8 break-inside-avoid bg-white shadow-xl rounded-xl overflow-hidden border-2 border-gray-100 avoid-break-inside page-break-before">
           <div className="bg-gray-50 p-8 border-b">
             <CardTitle className="text-4xl font-bold text-center flex items-center justify-center gap-4 bg-gradient-to-r from-red-500 to-orange-500 text-transparent bg-clip-text print-gradient-fallback">
-              <span>Hotel & Room Details</span>
+              <span>Hotel & Transport Details</span>
             </CardTitle>
             <p className="text-center text-gray-500 mt-2 text-lg">Day-wise accommodation overview</p>
           </div>
@@ -385,7 +384,6 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                 <tbody className="bg-white">
                   {initialData.itineraries.map((itinerary) => {
                     const hotel = hotels.find((item) => item.id === itinerary.hotelId);
-                    const roomAllocations = itinerary.roomAllocations ?? [];
                     const transportDetails = itinerary.transportDetails ?? [];
                     return (
                       <React.Fragment key={itinerary.id}>
@@ -422,59 +420,11 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                                     </Link>
                                     <div className="text-sm text-gray-600">{hotel.destination?.name || hotel.location?.label || location?.label}</div>
 
-                                    {roomAllocations.length > 0 ? (
-                                      <div className="mt-3 overflow-x-auto">
-                                        <table className="table-auto w-full text-left">
-                                          <thead>
-                                            <tr>
-                                              <th className="px-2 py-1 text-gray-900 font-semibold">Room Type</th>
-                                              <th className="px-2 py-1 text-gray-900 font-semibold">Occupancy</th>
-                                              <th className="px-2 py-1 text-gray-900 font-semibold text-center">Qty</th>
-                                              <th className="px-2 py-1 text-gray-900 font-semibold">Voucher No.</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {roomAllocations.map((room: any, roomIndex: number) => (
-                                              <React.Fragment key={room.id || roomIndex}>
-                                                <tr className="border-t border-gray-100 hover:bg-gray-50">
-                                                  <td className="px-2 py-1 whitespace-nowrap">
-                                                    {displayValue(room.customRoomType) || room?.roomType?.name || room.roomType || 'Standard'}
-                                                  </td>
-                                                  <td className="px-2 py-1 whitespace-nowrap">
-                                                    {room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-center whitespace-nowrap">{room.quantity || 1}</td>
-                                                  <td className="px-2 py-1 whitespace-nowrap text-sm text-gray-600">{room.voucherNumber || '-'}</td>
-                                                </tr>
-                                                {(room.extraBeds || []).map((extraBed: any, extraBedIndex: number) => (
-                                                  <tr key={`${room.id || roomIndex}-extra-${extraBedIndex}`} className="bg-amber-50/50">
-                                                    <td className="px-2 py-0.5 pl-6 text-xs text-amber-700">
-                                                      + {extraBed.occupancyType?.name || '-'}
-                                                    </td>
-                                                    <td colSpan={3} className="px-2 py-0.5 text-xs text-amber-600 italic">Extra Bed</td>
-                                                  </tr>
-                                                ))}
-                                              </React.Fragment>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                        {(() => {
-                                          const plans = Array.from(new Set(roomAllocations.map((room: any) => room?.mealPlan?.name || room.mealPlan).filter(Boolean)));
-                                          if (plans.length === 0) return null;
-                                          return (
-                                            <div className="mt-3 text-sm text-gray-700 italic">
-                                              <span className="font-semibold">Meal Plan:</span> {plans.join(' / ')}
-                                            </div>
-                                          );
-                                        })()}
-                                      </div>
-                                    ) : (
-                                      <div className="mt-3 grid sm:grid-cols-3 gap-2">
-                                        {itinerary.roomCategory && <InfoPill label="Room" value={itinerary.roomCategory} />}
-                                        {itinerary.numberofRooms && <InfoPill label="Rooms" value={itinerary.numberofRooms} />}
-                                        {itinerary.mealsIncluded && <InfoPill label="Meal Plan" value={itinerary.mealsIncluded} />}
-                                      </div>
-                                    )}
+                                    <div className="mt-3 grid sm:grid-cols-3 gap-2">
+                                      {itinerary.roomCategory && <InfoPill label="Room" value={itinerary.roomCategory} />}
+                                      {itinerary.numberofRooms && <InfoPill label="Rooms" value={itinerary.numberofRooms} />}
+                                      {itinerary.mealsIncluded && <InfoPill label="Meal Plan" value={itinerary.mealsIncluded} />}
+                                    </div>
                                   </div>
                                 </div>
                               ) : (

@@ -29,21 +29,6 @@ const tourPackagePage = async (
       itineraries: {
         include: {
           itineraryImages: true,
-          roomAllocations: {
-            include: {
-              roomType: true,
-              occupancyType: true,
-              mealPlan: true,
-              extraBeds: {
-                include: {
-                  occupancyType: true,
-                },
-              },
-            },
-            orderBy: {
-              createdAt: 'asc',
-            },
-          },
           transportDetails: {
             include: {
               vehicleType: true,

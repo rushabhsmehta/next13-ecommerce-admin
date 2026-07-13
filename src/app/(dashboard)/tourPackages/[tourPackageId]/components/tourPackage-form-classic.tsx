@@ -332,9 +332,6 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
-  // Lookup data for Hotels tab
-  // Removed lookupLoading since Hotels tab is not used in Tour Package form
-  // const [lookupLoading, setLookupLoading] = useState(true);
 
   const editor = useRef(null)
   const [itineraryOpenMap, setItineraryOpenMap] = useState<Record<number, boolean>>({ 0: true });
@@ -620,8 +617,6 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues
   });
-
-  // Fetch lookup data required for Hotels tab
 
   // Helper function to escape HTML and prevent XSS
   const escapeHtml = (text: string): string => {
@@ -2029,8 +2024,6 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                 </CardContent>
               </Card>
             </TabsContent>
-
-            {/* Hotels tab content removed */}
 
             <TabsContent value="flights" className="space-y-4 mt-4">
               <Card>

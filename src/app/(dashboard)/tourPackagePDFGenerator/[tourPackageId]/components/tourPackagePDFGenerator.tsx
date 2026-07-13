@@ -32,7 +32,6 @@ type PricingRow = {
 
 type ItineraryForPdf = Itinerary & {
   itineraryImages: Images[];
-  roomAllocations?: any[];
   transportDetails?: any[];
   activities: (Activity & {
     activityImages: Images[];
@@ -439,16 +438,14 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       ? `
         <div style="${cardStyle}; ${pageBreakBefore}">
           <div style="${headerStyleAlt}">
-            <h2 style="${sectionTitleStyle}">Hotel, Room Allocation & Transport Details</h2>
+            <h2 style="${sectionTitleStyle}">Hotel & Transport Details</h2>
           </div>
           <div style="${contentStyle}">
             ${sortedItineraries.map((itinerary, index) => {
               const hotel = hotels.find((item) => item.id === itinerary.hotelId);
               const hotelImage = imageUrl(hotel?.images?.[0]?.url);
               const hotelLocation = safe(hotel?.destination?.name || hotel?.location?.label || location?.label);
-              const roomAllocations = itinerary.roomAllocations ?? [];
               const transportDetails = itinerary.transportDetails ?? [];
-              const mealPlans = Array.from(new Set(roomAllocations.map((room: any) => room?.mealPlan?.name || room.mealPlan).filter(Boolean)));
 
               return `
                 <div style="padding: 16px 0; ${index < sortedItineraries.length - 1 ? `border-bottom: 1px solid ${brandColors.border};` : ""} ${avoidBreak}">
@@ -472,46 +469,11 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                       </div>
                     </div>
 
-                    ${roomAllocations.length > 0 ? `
-                      <div style="margin-left: 44px; margin-top: 16px;">
-                        <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Room Allocations</div>
-                        <table style="${tableStyle}">
-                          <thead>
-                            <tr>
-                              <th style="${tableHeaderStyle}">Room Type</th>
-                              <th style="${tableHeaderStyle}">Occupancy</th>
-                              <th style="${tableHeaderStyle}; text-align: center;">Qty</th>
-                              <th style="${tableHeaderStyle}">Voucher No.</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${roomAllocations.map((room: any, roomIndex: number) => `
-                              <tr style="${roomIndex % 2 === 0 ? "background: #fdfdfe;" : "background: white;"}">
-                                <td style="${tableCellStyle}; font-weight: 600;">${safe(room.customRoomType || room?.roomType?.name || room.roomType, "Standard")}</td>
-                                <td style="${tableCellStyle}">${safe(room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId, "-")}</td>
-                                <td style="${tableCellStyle}; text-align: center;"><span style="background: #e2e8f0; color: #334155; padding: 2px 8px; border-radius: 99px; font-weight: 600; font-size: 12px;">${safe(room.quantity, "1")}</span></td>
-                                <td style="${tableCellStyle}">${safe(room.voucherNumber, "-")}</td>
-                              </tr>
-                              ${(room.extraBeds || []).map((extraBed: any) => `
-                                <tr style="background: #fffbeb;">
-                                  <td style="${tableCellStyle}; padding-left: 20px; color: #92400e; font-size: 11px;">+ ${safe(extraBed.occupancyType?.name, "-")}</td>
-                                  <td style="${tableCellStyle}; color: #92400e; font-size: 11px; font-style: italic;">Extra Bed</td>
-                                  <td style="${tableCellStyle}; text-align: center;">${safe(extraBed.quantity, "1")}</td>
-                                  <td style="${tableCellStyle}"></td>
-                                </tr>
-                              `).join("")}
-                            `).join("")}
-                          </tbody>
-                        </table>
-                        ${mealPlans.length ? `<div style="margin-top: 12px; background: #f9fafb; padding: 10px 12px; border-radius: 4px;"><span style="font-weight: 600; color: #374151; font-size: 12px;">Meal Plan:</span> <span style="color: #1f2937; font-weight: 500; font-size: 12px;">${mealPlans.map((plan) => safe(plan)).join(" / ")}</span></div>` : ""}
-                      </div>
-                    ` : `
-                      <div style="margin-left: 44px; margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                        ${itinerary.roomCategory ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">ROOM</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.roomCategory)}</div></div>` : ""}
-                        ${itinerary.numberofRooms ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">ROOMS</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.numberofRooms)}</div></div>` : ""}
-                        ${itinerary.mealsIncluded ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">MEAL PLAN</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.mealsIncluded)}</div></div>` : ""}
-                      </div>
-                    `}
+                    <div style="margin-left: 44px; margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                      ${itinerary.roomCategory ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">ROOM</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.roomCategory)}</div></div>` : ""}
+                      ${itinerary.numberofRooms ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">ROOMS</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.numberofRooms)}</div></div>` : ""}
+                      ${itinerary.mealsIncluded ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">MEAL PLAN</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.mealsIncluded)}</div></div>` : ""}
+                    </div>
                   ` : `<div style="margin-left: 44px; margin-top: 12px; background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;"><span style="color: #6b7280; font-size: 13px;">No hotel assigned for this day.</span></div>`}
 
                   ${transportDetails.length > 0 ? `

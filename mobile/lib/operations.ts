@@ -451,16 +451,6 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       );
     },
 
-    checkHotelPricingOverlap(
-      hotelId: string,
-      input: HotelPricingInput & { excludeId?: string | null }
-    ): Promise<HotelPricingSplitPreview> {
-      return authRequest<HotelPricingSplitPreview>(
-        `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/pricing/check-overlap`,
-        { method: "POST", body: input }
-      );
-    },
-
     createHotelPricing(
       hotelId: string,
       input: HotelPricingInput
@@ -492,6 +482,69 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
     ): Promise<{ deleted: boolean; pricing: { id: string; hotelId: string } }> {
       return authRequest(
         `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/pricing/${encodeURIComponent(pricingId)}`,
+        { method: "DELETE" }
+      );
+    },
+
+    listHotelSpecialDatePricing(
+      hotelId: string,
+      filters: {
+        startDate?: string;
+        endDate?: string;
+        activeOnly?: boolean;
+      } = {}
+    ): Promise<HotelSpecialDatePricingListResponse> {
+      const qs = new URLSearchParams();
+      if (filters.startDate) qs.set("startDate", filters.startDate);
+      if (filters.endDate) qs.set("endDate", filters.endDate);
+      if (filters.activeOnly === false) qs.set("activeOnly", "false");
+      const q = qs.toString();
+      return authRequest<HotelSpecialDatePricingListResponse>(
+        `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/special-date-pricing${q ? `?${q}` : ""}`,
+        READ_CACHE
+      );
+    },
+
+    getHotelSpecialDatePricing(
+      hotelId: string,
+      specialPricingId: string
+    ): Promise<HotelSpecialDatePricingDetailResponse> {
+      return authRequest<HotelSpecialDatePricingDetailResponse>(
+        `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/special-date-pricing/${encodeURIComponent(specialPricingId)}`
+      );
+    },
+
+    createHotelSpecialDatePricing(
+      hotelId: string,
+      input: HotelSpecialDatePricingInput
+    ): Promise<HotelSpecialDatePricingRow> {
+      return authRequest(
+        `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/special-date-pricing`,
+        {
+          method: "POST",
+          body: input,
+          headers: { "Idempotency-Key": idemKey("hotel-special-date-pricing-create") },
+        }
+      );
+    },
+
+    updateHotelSpecialDatePricing(
+      hotelId: string,
+      specialPricingId: string,
+      input: HotelSpecialDatePricingInput
+    ): Promise<HotelSpecialDatePricingRow> {
+      return authRequest(
+        `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/special-date-pricing/${encodeURIComponent(specialPricingId)}`,
+        { method: "PATCH", body: input }
+      );
+    },
+
+    deleteHotelSpecialDatePricing(
+      hotelId: string,
+      specialPricingId: string
+    ): Promise<{ deleted: boolean; specialDatePricing: HotelSpecialDatePricingRow }> {
+      return authRequest(
+        `/api/mobile/operations/hotels/${encodeURIComponent(hotelId)}/special-date-pricing/${encodeURIComponent(specialPricingId)}`,
         { method: "DELETE" }
       );
     },
@@ -858,29 +911,39 @@ export interface HotelPricingInput {
   mealPlanId?: string | null;
   price: number;
   isActive?: boolean;
-  applySplit?: boolean;
   locationSeasonalPeriodId?: string | null;
 }
 
-export interface HotelPricingSplitPreview {
-  willSplit: boolean;
-  affectedPeriods: {
-    id: string;
-    startDate: string;
-    endDate: string;
-    price: number;
-    roomType: string;
-    occupancy: string;
-    mealPlan?: string;
-  }[];
-  resultingPeriods: {
-    startDate: string;
-    endDate: string;
-    price: number;
-    isNew: boolean;
-    isExisting: boolean;
-  }[];
-  message: string;
+export interface HotelSpecialDatePricingRow {
+  id: string;
+  hotelId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  price: number;
+  notes: string | null;
+  isActive: boolean;
+  roomTypeId: string;
+  roomTypeName: string | null;
+  occupancyTypeId: string;
+  occupancyTypeName: string | null;
+  mealPlanId: string | null;
+  mealPlanName: string | null;
+  mealPlanCode: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HotelSpecialDatePricingInput {
+  name: string;
+  startDate: string;
+  endDate: string;
+  roomTypeId: string;
+  occupancyTypeId: string;
+  mealPlanId?: string | null;
+  price: number;
+  notes?: string | null;
+  isActive?: boolean;
 }
 
 export interface OpsMasterListResponse<T> {
@@ -972,6 +1035,17 @@ export interface HotelPricingDetailResponse {
     createdAt: string;
     updatedAt: string;
   };
+}
+
+export interface HotelSpecialDatePricingListResponse {
+  hotel: { id: string; name: string; locationId: string };
+  items: HotelSpecialDatePricingRow[];
+  total: number;
+}
+
+export interface HotelSpecialDatePricingDetailResponse {
+  hotel: { id: string; name: string; locationId: string };
+  specialDatePricing: HotelSpecialDatePricingRow;
 }
 
 export interface HotelPricingLookups {

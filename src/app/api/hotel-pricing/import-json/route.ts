@@ -4,7 +4,7 @@ import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { importPayloadSchema, expandPricingSheetsToEntries, type ImportPreview, type ImportValidationError } from "@/lib/hotel-pricing-json";
 import { dateRangesOverlap } from "@/lib/hotel-pricing-import";
-import { upsertPricingWithSplit } from "@/lib/hotel-pricing-overlap";
+import { findOverlappingBasePricings } from "@/lib/hotel-effective-pricing";
 import { dateToUtc } from "@/lib/timezone-utils";
 
 export const dynamic = "force-dynamic";
@@ -258,16 +258,37 @@ export async function POST(req: Request) {
           });
           updated++;
         } else {
-          await upsertPricingWithSplit(tx, {
+          const conflicts = await findOverlappingBasePricings(tx, {
             hotelId: hotel.id,
             roomTypeId: valid.entry.roomTypeId,
             occupancyTypeId: valid.entry.occupancyTypeId,
             mealPlanId: valid.entry.mealPlanId,
             startDate: valid.startDateUtc,
             endDate: valid.endDateUtc,
-            price: valid.entry.price,
-            isActive: valid.entry.isActive,
-            locationSeasonalPeriodId: valid.entry.locationSeasonalPeriodId ?? null,
+          });
+          const blockingConflicts = conflicts.filter(
+            (conflict) =>
+              conflict.startDate.getTime() !== valid.startDateUtc.getTime() ||
+              conflict.endDate.getTime() !== valid.endDateUtc.getTime()
+          );
+          if (blockingConflicts.length > 0) {
+            throw Object.assign(new Error("PRICING_OVERLAP"), {
+              code: "PRICING_OVERLAP",
+              conflicts: blockingConflicts,
+            });
+          }
+          await tx.hotelPricing.create({
+            data: {
+              hotelId: hotel.id,
+              roomTypeId: valid.entry.roomTypeId,
+              occupancyTypeId: valid.entry.occupancyTypeId,
+              mealPlanId: valid.entry.mealPlanId,
+              startDate: valid.startDateUtc,
+              endDate: valid.endDateUtc,
+              price: valid.entry.price,
+              isActive: valid.entry.isActive,
+              locationSeasonalPeriodId: valid.entry.locationSeasonalPeriodId ?? null,
+            },
           });
           created++;
         }

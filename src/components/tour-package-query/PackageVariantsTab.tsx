@@ -300,19 +300,22 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
     maximumFractionDigits: 0,
   }), []);
 
-  // Helper: Fetch hotel pricing for a hotel, period, and meal plan
+  // Helper: Fetch effective hotel pricing for a hotel, period, and meal plan.
   const fetchHotelPricing = async (hotelId: string, startDate: string, endDate: string, mealPlanId?: string) => {
     try {
-      if (!hotelId) return [];
+      if (!hotelId) return { items: [], warnings: [] };
       const params = new URLSearchParams();
       params.set('startDate', startDate);
       params.set('endDate', endDate);
       if (mealPlanId) params.set('mealPlanId', mealPlanId);
-      const res = await axios.get(`/api/hotels/${hotelId}/pricing?${params.toString()}`);
-      return Array.isArray(res.data) ? res.data : [];
+      const res = await axios.get(`/api/hotels/${hotelId}/pricing/effective?${params.toString()}`);
+      return {
+        items: Array.isArray(res.data?.items) ? res.data.items : [],
+        warnings: Array.isArray(res.data?.warnings) ? res.data.warnings : [],
+      };
     } catch (err) {
       console.error('[HOTEL_PRICING_FETCH]', err);
-      return [];
+      return { items: [], warnings: [] };
     }
   };
   
@@ -392,7 +395,9 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
   });
   
   // State: Hotel pricing cache per variant/pricing/hotel
-  const [hotelPricingCache, setHotelPricingCache] = useState<Record<string, any>>({});
+  const [hotelPricingCache, setHotelPricingCache] = useState<
+    Record<string, { items: any[]; warnings: any[] }>
+  >({});
 
   // Effect: Fetch hotel pricing for all variants/pricings/hotels and cache results
   useEffect(() => {
@@ -407,7 +412,10 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
             const key = `${variantIdx}_${pricingIdx}_${hotelId}`;
             const p = fetchHotelPricing(hotelId, pricing.startDate, pricing.endDate, pricing.mealPlanId ?? undefined)
               .then((result) => { cache[key] = result; })
-              .catch((err) => { console.error('[HOTEL_PRICING_FETCH_ERROR]', err); cache[key] = []; });
+              .catch((err) => {
+                console.error('[HOTEL_PRICING_FETCH_ERROR]', err);
+                cache[key] = { items: [], warnings: [] };
+              });
             promises.push(p);
           });
         });
@@ -1638,7 +1646,8 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                 if (!hotelId) return null;
                                 const key = `${variantIndex}_${pricingIndex}_${hotelId}`;
                                 const hotel = hotels.find(h => h.id === hotelId);
-                                const pricingList = hotelPricingCache[key] || [];
+                                const pricingResult = hotelPricingCache[key] || { items: [], warnings: [] };
+                                const pricingList = pricingResult.items;
                                 return (
                                   <div key={hotelId} className="mb-2 border rounded p-2 bg-slate-50">
                                     <div className="font-medium text-xs mb-1 flex items-center gap-2">
@@ -1647,6 +1656,18 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                         <Image src={hotel.images[0].url} alt={hotel.name} width={32} height={24} className="rounded object-cover" />
                                       )}
                                     </div>
+                                    {pricingResult.warnings.length > 0 && (
+                                      <div className="mb-2 space-y-1">
+                                        {pricingResult.warnings.map((warning: any, warningIndex: number) => (
+                                          <div
+                                            key={`${warning.code}-${warningIndex}`}
+                                            className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] text-amber-800"
+                                          >
+                                            {warning.message}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                     {pricingList.length === 0 ? (
                                       <span className="text-[11px] text-muted-foreground">No pricing found for this period/meal plan.</span>
                                     ) : (
@@ -1654,8 +1675,10 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                         <thead>
                                           <tr>
                                             <th className="text-left">Room Type</th>
+                                            <th className="text-left">Applied Dates</th>
                                             <th className="text-left">Occupancy</th>
                                             <th className="text-left">Meal Plan</th>
+                                            <th className="text-left">Source</th>
                                             <th className="text-right">Price</th>
                                           </tr>
                                         </thead>
@@ -1663,8 +1686,22 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                           {pricingList.map((hp: any) => (
                                             <tr key={hp.id}>
                                               <td>{hp.roomType?.name || '-'}</td>
+                                              <td>{formatDateRange(hp.startDate, hp.endDate)}</td>
                                               <td>{hp.occupancyType?.name || '-'}</td>
                                               <td>{hp.mealPlan?.name || '-'}</td>
+                                              <td>
+                                                <span
+                                                  className={
+                                                    hp.priceSource === 'SPECIAL_DATE'
+                                                      ? 'rounded bg-amber-100 px-1.5 py-0.5 text-amber-800'
+                                                      : 'rounded bg-slate-100 px-1.5 py-0.5 text-slate-600'
+                                                  }
+                                                >
+                                                  {hp.priceSource === 'SPECIAL_DATE'
+                                                    ? hp.sourceLabel || `Special Date Pricing${hp.specialDateName ? `: ${hp.specialDateName}` : ''}`
+                                                    : 'Base Pricing'}
+                                                </span>
+                                              </td>
                                               <td className="text-right">{currencyFormatter.format(hp.price)}</td>
                                             </tr>
                                           ))}
@@ -1824,7 +1861,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                 rows={3}
                 value={pricingFormState.description || ''}
                 onChange={(event) => handlePricingFieldChange('description', event.target.value)}
-                placeholder="Highlight inclusions, blackout rules, or supplier-specific notes."
+                placeholder="Highlight inclusions, special-date pricing notes, or supplier-specific notes."
               />
             </div>
 

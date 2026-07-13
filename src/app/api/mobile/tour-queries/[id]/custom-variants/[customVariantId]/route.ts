@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
@@ -183,10 +184,10 @@ export async function DELETE(
       where: { id: tpq.id },
       data: {
         customQueryVariants: nextCustom,
-        variantHotelOverrides: stripped.variantHotelOverrides,
-        variantRoomAllocations: stripped.variantRoomAllocations,
-        variantTransportDetails: stripped.variantTransportDetails,
-        variantPricingData: stripped.variantPricingData,
+        variantHotelOverrides: stripped.variantHotelOverrides as Prisma.InputJsonObject,
+        variantRoomAllocations: stripped.variantRoomAllocations as Prisma.InputJsonObject,
+        variantTransportDetails: stripped.variantTransportDetails as Prisma.InputJsonObject,
+        variantPricingData: stripped.variantPricingData as Prisma.InputJsonObject,
         ...(clearConfirm
           ? { confirmedVariantId: null, isFeatured: false }
           : {}),

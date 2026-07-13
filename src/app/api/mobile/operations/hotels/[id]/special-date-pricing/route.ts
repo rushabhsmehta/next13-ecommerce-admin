@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
-import { findOverlappingBasePricings } from "@/lib/hotel-effective-pricing";
+import { findOverlappingSpecialDatePricings } from "@/lib/hotel-effective-pricing";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import {
   requireOperationsRead,
@@ -16,43 +16,44 @@ import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 
 export const dynamic = "force-dynamic";
 
-const pricingSchema = z.object({
+const specialDatePricingSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   startDate: z.union([z.string(), z.date()]),
   endDate: z.union([z.string(), z.date()]),
   roomTypeId: z.string().min(1, "Room type is required"),
   occupancyTypeId: z.string().min(1, "Occupancy type is required"),
   mealPlanId: z.string().nullable().optional(),
-  price: z.coerce.number().min(0, "Price must be a positive number"),
+  price: z.coerce.number().min(0, "Price must be non-negative"),
+  notes: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
-  locationSeasonalPeriodId: z.string().nullable().optional(),
 });
 
-function formatPricingRow(row: {
+function formatRow(row: {
   id: string;
   hotelId: string;
+  name: string;
   startDate: Date;
   endDate: Date;
   price: number;
+  notes: string | null;
   isActive: boolean;
-  roomTypeId: string | null;
-  occupancyTypeId: string | null;
+  roomTypeId: string;
+  occupancyTypeId: string;
   mealPlanId: string | null;
-  locationSeasonalPeriodId?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
   roomType: { id: string; name: string } | null;
   occupancyType: { id: string; name: string } | null;
   mealPlan: { id: string; name: string; code: string } | null;
-  locationSeasonalPeriod?: {
-    id: string;
-    name: string;
-    seasonType: string;
-  } | null;
 }) {
   return {
     id: row.id,
     hotelId: row.hotelId,
+    name: row.name,
     startDate: row.startDate.toISOString(),
     endDate: row.endDate.toISOString(),
     price: row.price,
+    notes: row.notes,
     isActive: row.isActive,
     roomTypeId: row.roomTypeId,
     roomTypeName: row.roomType?.name ?? null,
@@ -61,13 +62,11 @@ function formatPricingRow(row: {
     mealPlanId: row.mealPlanId,
     mealPlanName: row.mealPlan?.name ?? null,
     mealPlanCode: row.mealPlan?.code ?? null,
-    locationSeasonalPeriodId: row.locationSeasonalPeriodId ?? null,
-    seasonalPeriodName: row.locationSeasonalPeriod?.name ?? null,
-    seasonType: row.locationSeasonalPeriod?.seasonType ?? null,
+    createdAt: row.createdAt?.toISOString(),
+    updatedAt: row.updatedAt?.toISOString(),
   };
 }
 
-/** Hotel pricing rows — list (read). Mirrors web GET /api/hotels/[hotelId]/pricing. */
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
@@ -84,58 +83,55 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     if (!hotel) return new NextResponse("Hotel not found", { status: 404 });
 
     const { searchParams } = new URL(req.url);
-    const startDate = searchParams.get("startDate");
-    const endDate = searchParams.get("endDate");
     const activeOnly = searchParams.get("activeOnly") !== "false";
-
     const where: Record<string, unknown> = { hotelId: params.id };
     if (activeOnly) where.isActive = true;
 
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
     if (startDate && endDate) {
       const start = dateToUtc(startDate);
       const end = dateToUtc(endDate);
-      if (start && end) {
-        where.AND = [{ startDate: { lte: end } }, { endDate: { gte: start } }];
+      if (!start || !end) {
+        return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
       }
+      where.AND = [{ startDate: { lte: end } }, { endDate: { gte: start } }];
     }
 
-    const rows = await prismadb.hotelPricing.findMany({
+    const rows = await prismadb.hotelSpecialDatePricing.findMany({
       where,
       select: {
         id: true,
         hotelId: true,
+        name: true,
         startDate: true,
         endDate: true,
         price: true,
+        notes: true,
         isActive: true,
         roomTypeId: true,
         occupancyTypeId: true,
         mealPlanId: true,
-        locationSeasonalPeriodId: true,
+        createdAt: true,
+        updatedAt: true,
         roomType: { select: { id: true, name: true } },
         occupancyType: { select: { id: true, name: true } },
         mealPlan: { select: { id: true, name: true, code: true } },
-        locationSeasonalPeriod: {
-          select: { id: true, name: true, seasonType: true },
-        },
       },
-      orderBy: { startDate: "asc" },
+      orderBy: [{ startDate: "asc" }, { name: "asc" }],
     });
-
-    const items = rows.map(formatPricingRow);
 
     return NextResponse.json({
-      hotel: { id: hotel.id, name: hotel.name, locationId: hotel.locationId },
-      items,
-      total: items.length,
+      hotel,
+      items: rows.map(formatRow),
+      total: rows.length,
     });
   } catch (error) {
-    console.log("[MOBILE_OPS_HOTEL_PRICING_LIST_GET]", error);
+    console.log("[MOBILE_OPS_HOTEL_SPECIAL_DATE_PRICING_LIST_GET]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }
 
-/** Hotel pricing rows - create with optional overlap splitting. */
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
@@ -146,14 +142,14 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     if (!params.id) return new NextResponse("Missing hotel id", { status: 400 });
 
     const key = readIdempotencyKey(req);
-    const prior = await findPriorIdempotentEntityId("HotelPricing", key);
+    const prior = await findPriorIdempotentEntityId("HotelSpecialDatePricing", key);
     if (prior) {
-      const existing = await prismadb.hotelPricing.findUnique({
+      const existing = await prismadb.hotelSpecialDatePricing.findUnique({
         where: { id: prior },
-        select: { id: true, hotelId: true, startDate: true, endDate: true, price: true },
+        select: { id: true, hotelId: true, name: true, startDate: true, endDate: true, price: true },
       });
       return NextResponse.json(
-        { id: prior, pricing: existing, idempotentReplay: true },
+        { id: prior, specialDatePricing: existing, idempotentReplay: true },
         { status: 200 }
       );
     }
@@ -164,11 +160,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     });
     if (!hotel) return new NextResponse("Hotel not found", { status: 404 });
 
-    const body = await req.json();
-    const parsed = pricingSchema.safeParse(body);
+    const parsed = specialDatePricingSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid hotel pricing payload", details: parsed.error.flatten() },
+        { error: "Invalid special date pricing payload", details: parsed.error.flatten() },
         { status: 422 }
       );
     }
@@ -186,77 +181,72 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       );
     }
 
-    const input = {
-      hotelId: params.id,
-      startDate,
-      endDate,
-      roomTypeId: v.roomTypeId,
-      occupancyTypeId: v.occupancyTypeId,
-      mealPlanId: v.mealPlanId || null,
-      price: v.price,
-      isActive: v.isActive ?? true,
-      locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
-    };
-
-    const pricingSelect = {
-      id: true,
-      hotelId: true,
-      startDate: true,
-      endDate: true,
-      price: true,
-      isActive: true,
-      roomTypeId: true,
-      occupancyTypeId: true,
-      mealPlanId: true,
-      locationSeasonalPeriodId: true,
-      roomType: { select: { id: true, name: true } },
-      occupancyType: { select: { id: true, name: true } },
-      mealPlan: { select: { id: true, name: true, code: true } },
-      locationSeasonalPeriod: {
-        select: { id: true, name: true, seasonType: true },
-      },
-    } as const;
-
-    const overlaps = await prismadb.$transaction((tx) =>
-      findOverlappingBasePricings(tx, {
+    const mealPlanId = v.mealPlanId || null;
+    const conflicts = await prismadb.$transaction((tx) =>
+      findOverlappingSpecialDatePricings(tx, {
         hotelId: params.id,
         roomTypeId: v.roomTypeId,
         occupancyTypeId: v.occupancyTypeId,
-        mealPlanId: v.mealPlanId || null,
+        mealPlanId,
         startDate,
         endDate,
       })
     );
-    if (overlaps.length > 0) {
+    if (conflicts.length > 0) {
       return NextResponse.json(
         {
           error:
-            "Overlapping pricing period exists for the same room, occupancy, and meal plan. Add Special Date Pricing for event/holiday overrides, or adjust the normal pricing dates.",
-          conflicts: overlaps,
+            "Special date pricing overlaps an existing special date price for the same room, occupancy, and meal plan.",
+          conflicts: conflicts.map(formatRow),
         },
         { status: 409 }
       );
     }
 
-    const pricing = await prismadb.hotelPricing.create({
-      data: input,
-      select: pricingSelect,
+    const row = await prismadb.hotelSpecialDatePricing.create({
+      data: {
+        hotelId: params.id,
+        name: v.name.trim(),
+        startDate,
+        endDate,
+        roomTypeId: v.roomTypeId,
+        occupancyTypeId: v.occupancyTypeId,
+        mealPlanId,
+        price: v.price,
+        notes: v.notes?.trim() || null,
+        isActive: v.isActive ?? true,
+      },
+      select: {
+        id: true,
+        hotelId: true,
+        name: true,
+        startDate: true,
+        endDate: true,
+        price: true,
+        notes: true,
+        isActive: true,
+        roomTypeId: true,
+        occupancyTypeId: true,
+        mealPlanId: true,
+        createdAt: true,
+        updatedAt: true,
+        roomType: { select: { id: true, name: true } },
+        occupancyType: { select: { id: true, name: true } },
+        mealPlan: { select: { id: true, name: true, code: true } },
+      },
     });
 
     await recordMobileAudit({
       userId,
-      entityType: "HotelPricing",
-      entityId: pricing.id,
+      entityType: "HotelSpecialDatePricing",
+      entityId: row.id,
       action: "CREATE",
-      metadata: {
-        idempotencyKey: key ?? undefined,
-        hotelId: params.id,
-      },
+      metadata: { idempotencyKey: key ?? undefined, hotelId: params.id },
     });
 
-    return NextResponse.json(formatPricingRow(pricing), { status: 201 });
+    return NextResponse.json(formatRow(row), { status: 201 });
   } catch (error) {
-    console.log("[MOBILE_OPS_HOTEL_PRICING_POST]", error);
+    console.log("[MOBILE_OPS_HOTEL_SPECIAL_DATE_PRICING_POST]", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }

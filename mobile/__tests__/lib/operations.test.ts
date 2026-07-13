@@ -395,4 +395,52 @@ describe("createOperationsClient", () => {
       LOOKUP_CACHE
     );
   });
+
+  it("listHotelSpecialDatePricing builds query", async () => {
+    const request = jest.fn(async () => ({
+      hotel: { id: "h1", name: "Taj", locationId: "loc1" },
+      items: [],
+      total: 0,
+    }));
+    const client = createOperationsClient(request as any);
+    await client.listHotelSpecialDatePricing("h1", {
+      startDate: "2026-12-24",
+      endDate: "2026-12-25",
+      activeOnly: false,
+    });
+    expect(request).toHaveBeenCalledWith(
+      "/api/mobile/operations/hotels/h1/special-date-pricing?startDate=2026-12-24&endDate=2026-12-25&activeOnly=false",
+      READ_CACHE
+    );
+  });
+
+  it("creates and updates hotel special date pricing", async () => {
+    const request = jest.fn(async () => ({ id: "sp1" }));
+    const client = createOperationsClient(request as any);
+    const input = {
+      name: "New Year",
+      startDate: "2026-12-31",
+      endDate: "2026-12-31",
+      roomTypeId: "room1",
+      occupancyTypeId: "occ1",
+      mealPlanId: "meal1",
+      price: 22000,
+    };
+    await client.createHotelSpecialDatePricing("h 1", input);
+    await client.updateHotelSpecialDatePricing("h 1", "sp 1", input);
+    await client.deleteHotelSpecialDatePricing("h 1", "sp 1");
+
+    expect(request.mock.calls[0][0]).toBe(
+      "/api/mobile/operations/hotels/h%201/special-date-pricing"
+    );
+    expect(request.mock.calls[0][1].method).toBe("POST");
+    expect(request.mock.calls[1]).toEqual([
+      "/api/mobile/operations/hotels/h%201/special-date-pricing/sp%201",
+      { method: "PATCH", body: input },
+    ]);
+    expect(request.mock.calls[2]).toEqual([
+      "/api/mobile/operations/hotels/h%201/special-date-pricing/sp%201",
+      { method: "DELETE" },
+    ]);
+  });
 });

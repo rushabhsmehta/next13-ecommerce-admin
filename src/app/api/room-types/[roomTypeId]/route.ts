@@ -62,6 +62,12 @@ export async function DELETE(req: Request, props: { params: Promise<{ roomTypeId
         roomTypeId: params.roomTypeId
       }
     });
+
+    const specialDatePricingsCount = await prismadb.hotelSpecialDatePricing.count({
+      where: {
+        roomTypeId: params.roomTypeId
+      }
+    });
     
     // Check if room type is being used in any itineraries
     const itinerariesCount = await prismadb.itinerary.count({
@@ -70,7 +76,8 @@ export async function DELETE(req: Request, props: { params: Promise<{ roomTypeId
       }
     });
     
-    const totalUsageCount = roomAllocationsCount + hotelPricingsCount + itinerariesCount;
+    const totalUsageCount =
+      roomAllocationsCount + hotelPricingsCount + specialDatePricingsCount + itinerariesCount;
     
     if (totalUsageCount > 0) {
       // Set to inactive instead of deleting if in use

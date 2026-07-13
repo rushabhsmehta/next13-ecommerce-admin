@@ -9,7 +9,8 @@ import {
   groupPricingIntoSheets,
 } from "@/lib/hotel-pricing-matrix";
 import { flattenSheetToRows } from "@/lib/hotel-pricing-matrix";
-import { upsertPricingWithSplit } from "@/lib/hotel-pricing-overlap";
+import { upsertExactPricingRow } from "@/lib/hotel-pricing-overlap";
+import { findOverlappingBasePricings } from "@/lib/hotel-effective-pricing";
 import { generateDateRangesForYear, type SeasonalPeriod } from "@/lib/seasonal-periods";
 import { dateToUtc } from "@/lib/timezone-utils";
 
@@ -122,16 +123,30 @@ export async function POST(
             for (const row of flatRows) {
               const startDate = dateToUtc(row.startDate)!;
               const endDate = dateToUtc(row.endDate)!;
-              await upsertPricingWithSplit(tx, {
+              const conflicts = await findOverlappingBasePricings(tx, {
                 hotelId: params.hotelId,
                 startDate,
                 endDate,
                 roomTypeId: row.roomTypeId,
                 occupancyTypeId: row.occupancyTypeId,
                 mealPlanId: row.mealPlanId,
-                price: row.price,
+              });
+              const blockingConflicts = conflicts.filter(
+                (conflict) =>
+                  conflict.startDate.getTime() !== startDate.getTime() ||
+                  conflict.endDate.getTime() !== endDate.getTime()
+              );
+              if (blockingConflicts.length > 0) {
+                throw Object.assign(new Error("PRICING_OVERLAP"), {
+                  code: "PRICING_OVERLAP",
+                  conflicts: blockingConflicts,
+                });
+              }
+              await upsertExactPricingRow(tx, {
+                ...row,
+                startDate,
+                endDate,
                 locationSeasonalPeriodId: targetSeasonalPeriodId,
-                isActive: true,
               });
               created++;
             }
@@ -166,17 +181,27 @@ export async function POST(
         for (const row of flatRows) {
           const startDate = dateToUtc(row.startDate)!;
           const endDate = dateToUtc(row.endDate)!;
-          await upsertPricingWithSplit(tx, {
+          const conflicts = await findOverlappingBasePricings(tx, {
             hotelId: params.hotelId,
             startDate,
             endDate,
             roomTypeId: row.roomTypeId,
             occupancyTypeId: row.occupancyTypeId,
             mealPlanId: row.mealPlanId,
-            price: row.price,
-            locationSeasonalPeriodId: row.locationSeasonalPeriodId,
-            isActive: true,
-          }, { excludeId: row.rowId });
+            excludeId: row.rowId,
+          });
+          if (conflicts.length > 0) {
+            throw Object.assign(new Error("PRICING_OVERLAP"), {
+              code: "PRICING_OVERLAP",
+              conflicts,
+            });
+          }
+          await upsertExactPricingRow(tx, {
+            ...row,
+            startDate,
+            endDate,
+            rowId: row.rowId,
+          });
           updated++;
         }
       }

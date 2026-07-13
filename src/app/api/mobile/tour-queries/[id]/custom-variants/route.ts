@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
@@ -94,7 +95,7 @@ export async function POST(
       where: { id: tpq.id },
       data: {
         customQueryVariants: nextCustom,
-        variantPricingData: pricingMap,
+        variantPricingData: pricingMap as Prisma.InputJsonObject,
       },
     });
 

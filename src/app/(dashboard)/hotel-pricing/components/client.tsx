@@ -70,7 +70,6 @@ import {
   AlertTitle,
 } from "@/components/ui/alert"
 import { Check, ChevronsUpDown } from "lucide-react"
-import { PricingSplitDialog } from "./pricing-split-dialog"
 import { JsonImportExportDialog } from "./json-import-export-dialog"
 import { PricingMatrixView } from "./pricing-matrix-view"
 import { PricingSheetEditor } from "./pricing-sheet-editor"
@@ -147,6 +146,36 @@ interface EditingRow {
   locationSeasonalPeriodId: string;
 }
 
+interface SpecialDatePricing {
+  id: string;
+  hotelId: string;
+  name: string;
+  startDate: Date | string;
+  endDate: Date | string;
+  price: number;
+  notes?: string | null;
+  isActive: boolean;
+  roomTypeId: string;
+  occupancyTypeId: string;
+  mealPlanId: string | null;
+  roomType?: Pick<RoomType, "id" | "name"> | null;
+  occupancyType?: Pick<OccupancyType, "id" | "name"> | null;
+  mealPlan?: Pick<MealPlan, "id" | "name" | "code"> | null;
+}
+
+interface EditingSpecialDatePricing {
+  id: string | null;
+  name: string;
+  roomTypeId: string;
+  occupancyTypeId: string;
+  mealPlanId: string;
+  startDate: Date;
+  endDate: Date;
+  price: number;
+  notes: string;
+  isActive: boolean;
+}
+
 interface HotelPricingClientProps {
   locations: Location[];
   hotels: Hotel[];
@@ -154,27 +183,6 @@ interface HotelPricingClientProps {
   occupancyTypes: OccupancyType[];
   mealPlans: MealPlan[];
   initialHotelId?: string;
-}
-
-interface PricingSplitPreview {
-  willSplit: boolean;
-  affectedPeriods: Array<{
-    id: string;
-    startDate: Date | string;
-    endDate: Date | string;
-    price: number;
-    roomType: string;
-    occupancy: string;
-    mealPlan?: string;
-  }>;
-  resultingPeriods: Array<{
-    startDate: Date | string;
-    endDate: Date | string;
-    price: number;
-    isNew: boolean;
-    isExisting: boolean;
-  }>;
-  message: string;
 }
 
 export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
@@ -202,9 +210,8 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
   const [loading, setLoading] = useState(false)
   const [pricingPeriods, setPricingPeriods] = useState<PricingPeriod[]>([])
   const [editingRow, setEditingRow] = useState<EditingRow | null>(null)
-  const [splitPreview, setSplitPreview] = useState<PricingSplitPreview | null>(null)
-  const [showSplitDialog, setShowSplitDialog] = useState(false)
-  const [pendingSubmit, setPendingSubmit] = useState<EditingRow | null>(null)
+  const [specialDatePricings, setSpecialDatePricings] = useState<SpecialDatePricing[]>([])
+  const [editingSpecialDate, setEditingSpecialDate] = useState<EditingSpecialDatePricing | null>(null)
   const [seasonalPeriods, setSeasonalPeriods] = useState<SeasonalPeriod[]>([])
   const [selectedSeasonalPeriods, setSelectedSeasonalPeriods] = useState<SeasonalPeriod[]>([])
   const [selectedSeasonType, setSelectedSeasonType] = useState<string | null>(null)
@@ -222,6 +229,16 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     return `${start} - ${end}`
   }
 
+  const toDateInputValue = (date: Date | string) => {
+    const local = utcToLocal(date) || (date instanceof Date ? date : new Date(date))
+    return format(local, "yyyy-MM-dd")
+  }
+
+  const parseDateInput = (value: string) => {
+    const [year, month, day] = value.split("-").map(Number)
+    return new Date(year, month - 1, day, 12, 0, 0, 0)
+  }
+
   const fetchPricingPeriods = useCallback(async () => {
     if (!selectedHotelId) return
     
@@ -237,18 +254,36 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     }
   }, [selectedHotelId])
 
+  const fetchSpecialDatePricings = useCallback(async () => {
+    if (!selectedHotelId) {
+      setSpecialDatePricings([])
+      return
+    }
+
+    try {
+      const response = await axios.get(`/api/hotels/${selectedHotelId}/special-date-pricing`)
+      setSpecialDatePricings(response.data)
+    } catch (error) {
+      toast.error("Failed to fetch special date pricing")
+      console.error(error)
+    }
+  }, [selectedHotelId])
+
   // Fetch pricing when hotel is selected
   useEffect(() => {
     if (selectedHotelId) {
       const hotel = hotels.find(h => h.id === selectedHotelId)
       setSelectedHotel(hotel || null)
       fetchPricingPeriods()
+      fetchSpecialDatePricings()
     } else {
       setSelectedHotel(null)
       setPricingPeriods([])
+      setSpecialDatePricings([])
     }
     setEditingRow(null)
-  }, [selectedHotelId, hotels, fetchPricingPeriods])
+    setEditingSpecialDate(null)
+  }, [selectedHotelId, hotels, fetchPricingPeriods, fetchSpecialDatePricings])
 
   // Reset hotel selection when location changes
   useEffect(() => {
@@ -378,26 +413,6 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     }
   }
 
-  const checkForOverlaps = async (data: EditingRow): Promise<PricingSplitPreview | null> => {
-    if (!selectedHotelId) return null
-    
-    try {
-      const response = await axios.post(`/api/hotels/${selectedHotelId}/pricing/check-overlap`, {
-        startDate: data.startDate,
-        endDate: data.endDate,
-        roomTypeId: data.roomTypeId,
-        occupancyTypeId: data.occupancyTypeId,
-        mealPlanId: data.mealPlanId || null,
-        excludeId: data.id || undefined
-      })
-      
-      return response.data
-    } catch (error) {
-      console.error("Error checking overlaps:", error)
-      return null
-    }
-  }
-
   const handleSaveRow = async (row: EditingRow) => {
     if (!selectedHotelId) {
       toast.error("Please select a hotel first")
@@ -435,21 +450,10 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       return
     }
 
-    // Check for overlaps (single row)
-    const preview = await checkForOverlaps(row)
-    
-    if (preview && preview.willSplit) {
-      // Show confirmation dialog
-      setSplitPreview(preview)
-      setPendingSubmit(row)
-      setShowSplitDialog(true)
-    } else {
-      // No overlap, proceed directly
-      await submitPricing(row)
-    }
+    await submitPricing(row)
   }
 
-  const submitPricing = async (row: EditingRow, applySplit = false) => {
+  const submitPricing = async (row: EditingRow) => {
     if (!selectedHotelId) return
 
     try {
@@ -469,7 +473,6 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
         // Update existing
         await axios.patch(`/api/hotels/${selectedHotelId}/pricing/${row.id}`, {
           ...data,
-          applySplit,
         })
         toast.success("Pricing period updated")
       } else if (selectedSeasonalPeriods.length === 1) {
@@ -482,7 +485,6 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
             startDate: dateRange.start,
             endDate: dateRange.end,
             locationSeasonalPeriodId: period.id,
-            applySplit: applySplit || true,
           })
         }
         toast.success("Pricing period created")
@@ -490,7 +492,6 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
         // Create new
         await axios.post(`/api/hotels/${selectedHotelId}/pricing`, {
           ...data,
-          applySplit,
         })
         toast.success("Pricing period created")
       }
@@ -500,8 +501,6 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       
       // Reset editing state
       setEditingRow(null)
-      setPendingSubmit(null)
-      setSplitPreview(null)
       setSelectedSeasonalPeriods([])
       setSelectedSeasonType(null)
     } catch (error: unknown) {
@@ -533,7 +532,6 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
             price: row.price,
             mealPlanId: row.mealPlanId || null,
             locationSeasonalPeriodId: period.id,
-            applySplit: true,
           })
           createdCount++
         }
@@ -557,13 +555,6 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
       }
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleConfirmSplit = async () => {
-    if (pendingSubmit) {
-      setShowSplitDialog(false)
-      await submitPricing(pendingSubmit, true)
     }
   }
 
@@ -697,12 +688,121 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
     }
   }
 
+  const handleAddSpecialDatePricing = () => {
+    if (!selectedHotelId) {
+      toast.error("Please select a hotel first")
+      return
+    }
+    setEditingSpecialDate({
+      id: null,
+      name: "",
+      roomTypeId: roomTypes[0]?.id || "",
+      occupancyTypeId: occupancyTypes[0]?.id || "",
+      mealPlanId: "",
+      startDate: new Date(),
+      endDate: new Date(),
+      price: 0,
+      notes: "",
+      isActive: true,
+    })
+  }
+
+  const handleEditSpecialDatePricing = (row: SpecialDatePricing) => {
+    setEditingSpecialDate({
+      id: row.id,
+      name: row.name,
+      roomTypeId: row.roomTypeId,
+      occupancyTypeId: row.occupancyTypeId,
+      mealPlanId: row.mealPlanId || "",
+      startDate: utcToLocal(row.startDate) || new Date(),
+      endDate: utcToLocal(row.endDate) || new Date(),
+      price: row.price,
+      notes: row.notes || "",
+      isActive: row.isActive,
+    })
+  }
+
+  const handleSaveSpecialDatePricing = async () => {
+    if (!selectedHotelId || !editingSpecialDate) return
+    if (!editingSpecialDate.name.trim()) {
+      toast.error("Enter a special date name")
+      return
+    }
+    if (!editingSpecialDate.roomTypeId || !editingSpecialDate.occupancyTypeId) {
+      toast.error("Select room type and occupancy")
+      return
+    }
+    if (editingSpecialDate.endDate < editingSpecialDate.startDate) {
+      toast.error("End date must be on or after start date")
+      return
+    }
+    if (editingSpecialDate.price < 0) {
+      toast.error("Price cannot be negative")
+      return
+    }
+
+    const payload = {
+      name: editingSpecialDate.name,
+      startDate: editingSpecialDate.startDate,
+      endDate: editingSpecialDate.endDate,
+      roomTypeId: editingSpecialDate.roomTypeId,
+      occupancyTypeId: editingSpecialDate.occupancyTypeId,
+      mealPlanId: editingSpecialDate.mealPlanId || null,
+      price: editingSpecialDate.price,
+      notes: editingSpecialDate.notes || null,
+      isActive: editingSpecialDate.isActive,
+    }
+
+    try {
+      setLoading(true)
+      if (editingSpecialDate.id) {
+        await axios.patch(
+          `/api/hotels/${selectedHotelId}/special-date-pricing/${editingSpecialDate.id}`,
+          payload
+        )
+        toast.success("Special date pricing updated")
+      } else {
+        await axios.post(`/api/hotels/${selectedHotelId}/special-date-pricing`, payload)
+        toast.success("Special date pricing added")
+      }
+      setEditingSpecialDate(null)
+      await fetchSpecialDatePricings()
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        const message = error.response?.data?.message || error.response?.data?.error
+        toast.error(message || "Failed to save special date pricing")
+      } else {
+        toast.error("Failed to save special date pricing")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteSpecialDatePricing = async (row: SpecialDatePricing) => {
+    if (!selectedHotelId) return
+    if (!confirm(`Deactivate special date pricing "${row.name}"?`)) return
+
+    try {
+      setLoading(true)
+      await axios.delete(`/api/hotels/${selectedHotelId}/special-date-pricing/${row.id}`)
+      toast.success("Special date pricing deactivated")
+      await fetchSpecialDatePricings()
+      if (editingSpecialDate?.id === row.id) setEditingSpecialDate(null)
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to delete special date pricing")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <>
       <div className="space-y-4">
         <Heading
           title="Hotel Pricing Configuration"
-          description="Manage hotel pricing with location-based filtering and period splitting"
+          description="Manage broad hotel pricing periods and special date overrides"
         />
         <Separator />
 
@@ -908,6 +1008,228 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
               </div>
             </div>
 
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base">Special Date Pricing</CardTitle>
+                    <CardDescription>
+                      Event and holiday prices override normal pricing without splitting base periods.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddSpecialDatePricing}
+                    disabled={!!editingSpecialDate}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Special Date
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {editingSpecialDate && (
+                  <div className="rounded-md border bg-amber-50/50 p-3">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <Input
+                        value={editingSpecialDate.name}
+                        onChange={(e) =>
+                          setEditingSpecialDate({
+                            ...editingSpecialDate,
+                            name: e.target.value,
+                          })
+                        }
+                        placeholder="Christmas, New Year..."
+                      />
+                      <Input
+                        type="date"
+                        value={toDateInputValue(editingSpecialDate.startDate)}
+                        onChange={(e) =>
+                          setEditingSpecialDate({
+                            ...editingSpecialDate,
+                            startDate: parseDateInput(e.target.value),
+                          })
+                        }
+                      />
+                      <Input
+                        type="date"
+                        value={toDateInputValue(editingSpecialDate.endDate)}
+                        onChange={(e) =>
+                          setEditingSpecialDate({
+                            ...editingSpecialDate,
+                            endDate: parseDateInput(e.target.value),
+                          })
+                        }
+                      />
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editingSpecialDate.price}
+                        onChange={(e) =>
+                          setEditingSpecialDate({
+                            ...editingSpecialDate,
+                            price: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        placeholder="Price"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3">
+                      <select
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        value={editingSpecialDate.roomTypeId}
+                        onChange={(e) =>
+                          setEditingSpecialDate({
+                            ...editingSpecialDate,
+                            roomTypeId: e.target.value,
+                          })
+                        }
+                      >
+                        {roomTypes.map((room) => (
+                          <option key={room.id} value={room.id}>
+                            {room.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        value={editingSpecialDate.occupancyTypeId}
+                        onChange={(e) =>
+                          setEditingSpecialDate({
+                            ...editingSpecialDate,
+                            occupancyTypeId: e.target.value,
+                          })
+                        }
+                      >
+                        {occupancyTypes.map((occupancy) => (
+                          <option key={occupancy.id} value={occupancy.id}>
+                            {occupancy.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        value={editingSpecialDate.mealPlanId}
+                        onChange={(e) =>
+                          setEditingSpecialDate({
+                            ...editingSpecialDate,
+                            mealPlanId: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">No meal plan</option>
+                        {mealPlans.map((mealPlan) => (
+                          <option key={mealPlan.id} value={mealPlan.id}>
+                            {mealPlan.code} - {mealPlan.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          className="flex-1"
+                          onClick={handleSaveSpecialDatePricing}
+                          disabled={loading}
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          Save
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setEditingSpecialDate(null)}
+                          disabled={loading}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Input
+                      className="mt-3"
+                      value={editingSpecialDate.notes}
+                      onChange={(e) =>
+                        setEditingSpecialDate({
+                          ...editingSpecialDate,
+                          notes: e.target.value,
+                        })
+                      }
+                      placeholder="Optional notes"
+                    />
+                  </div>
+                )}
+
+                {specialDatePricings.length === 0 ? (
+                  <div className="text-sm text-muted-foreground border border-dashed rounded-md p-4">
+                    No special date pricing yet. Add holiday or event overrides here.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Dates</TableHead>
+                          <TableHead>Room</TableHead>
+                          <TableHead>Occupancy</TableHead>
+                          <TableHead>Meal</TableHead>
+                          <TableHead className="text-right">Price</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {specialDatePricings.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell className="font-medium">
+                              {row.name}
+                              {row.notes && (
+                                <div className="text-xs text-muted-foreground font-normal">
+                                  {row.notes}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>{formatDateRange(row.startDate, row.endDate)}</TableCell>
+                            <TableCell>{row.roomType?.name || "Unknown"}</TableCell>
+                            <TableCell>{row.occupancyType?.name || "Unknown"}</TableCell>
+                            <TableCell>
+                              {row.mealPlan
+                                ? `${row.mealPlan.code} - ${row.mealPlan.name}`
+                                : "No meal plan"}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              ₹{row.price.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditSpecialDatePricing(row)}
+                                  disabled={!!editingSpecialDate}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteSpecialDatePricing(row)}
+                                  disabled={loading}
+                                >
+                                  <Trash className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Seasonal period selection */}
             {seasonalPeriods.length > 0 ? (
               <Card className="border-blue-100 bg-blue-50/30">
@@ -1073,11 +1395,11 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
                 <CardTitle>
                   {viewMode === "matrix" ? "Pricing Sheets" : "Pricing Periods"}
                 </CardTitle>
-                <CardDescription>
-                  {viewMode === "matrix"
-                    ? "Edit rate sheets by season — each sheet shows all occupancy prices for a room and meal plan."
-                    : "Click edit to modify, or add new pricing periods. Overlapping periods will be automatically split."}
-                </CardDescription>
+                  <CardDescription>
+                    {viewMode === "matrix"
+                      ? "Edit rate sheets by season — each sheet shows all occupancy prices for a room and meal plan."
+                    : "Click edit to modify, or add broad pricing periods. Use Special Date Pricing for event and holiday overrides."}
+                  </CardDescription>
               </CardHeader>
               <CardContent className={viewMode === "list" ? "p-0" : "pt-0"}>
                 {viewMode === "matrix" ? (
@@ -1559,15 +1881,6 @@ export const HotelPricingClient: React.FC<HotelPricingClientProps> = ({
           </>
         )}
       </div>
-
-      {/* Pricing Split Confirmation Dialog */}
-      <PricingSplitDialog
-        open={showSplitDialog}
-        onOpenChange={setShowSplitDialog}
-        preview={splitPreview}
-        onConfirm={handleConfirmSplit}
-        loading={loading}
-      />
     </>
   )
 }

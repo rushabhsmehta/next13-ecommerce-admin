@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Alert,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
@@ -21,12 +15,12 @@ import {
 } from "@/components/admin";
 import {
   createOperationsClient,
-  type HotelPricingDetailResponse,
+  type HotelSpecialDatePricingDetailResponse,
 } from "@/lib/operations";
-import { HotelPricingForm } from "@/components/operations/HotelPricingForm";
+import { HotelSpecialDatePricingForm } from "@/components/operations/HotelSpecialDatePricingForm";
 
 function inr(n: number): string {
-  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+  return `Rs.${Math.round(n).toLocaleString("en-IN")}`;
 }
 
 function fmtDate(s: string): string {
@@ -37,7 +31,7 @@ function fmtDate(s: string): string {
       year: "numeric",
     });
   } catch {
-    return "—";
+    return "-";
   }
 }
 
@@ -50,7 +44,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function HotelPricingDetailScreen() {
+export default function HotelSpecialDatePricingDetailScreen() {
   return (
     <PermissionGate permission="operations.read">
       <Inner />
@@ -60,9 +54,9 @@ export default function HotelPricingDetailScreen() {
 
 function Inner() {
   const router = useRouter();
-  const { id: hotelId, pricingId, mode } = useLocalSearchParams<{
+  const { id: hotelId, specialPricingId, mode } = useLocalSearchParams<{
     id: string;
-    pricingId: string;
+    specialPricingId: string;
     mode?: string;
   }>();
   const { getToken } = useAuth();
@@ -75,30 +69,32 @@ function Inner() {
     []
   );
 
-  const [data, setData] = useState<HotelPricingDetailResponse | null>(null);
+  const [data, setData] = useState<HotelSpecialDatePricingDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(
-    async (mode: "initial" | "refresh" = "initial") => {
-      if (!hotelId || !pricingId) return;
-      if (mode === "refresh") setRefreshing(true);
+    async (loadMode: "initial" | "refresh" = "initial") => {
+      if (!hotelId || !specialPricingId) return;
+      if (loadMode === "refresh") setRefreshing(true);
       else setLoading(true);
       setError(null);
       try {
-        setData(await client.getHotelPricing(hotelId, pricingId));
+        setData(await client.getHotelSpecialDatePricing(hotelId, specialPricingId));
       } catch (err) {
         setError(
-          err instanceof ApiError ? err.message : "Could not load pricing row."
+          err instanceof ApiError
+            ? err.message
+            : "Could not load special date pricing."
         );
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [hotelId, pricingId, client]
+    [hotelId, specialPricingId, client]
   );
 
   useEffect(() => {
@@ -106,15 +102,17 @@ function Inner() {
   }, [load]);
 
   async function deletePricing() {
-    if (!hotelId || !pricingId) return;
+    if (!hotelId || !specialPricingId) return;
     setDeleting(true);
     try {
-      await client.deleteHotelPricing(hotelId, pricingId);
+      await client.deleteHotelSpecialDatePricing(hotelId, specialPricingId);
       router.replace(`/admin/operations/hotels/${hotelId}/pricing` as never);
     } catch (err) {
       Alert.alert(
         "Delete failed",
-        err instanceof ApiError ? err.message : "Could not delete pricing row."
+        err instanceof ApiError
+          ? err.message
+          : "Could not delete special date pricing."
       );
     } finally {
       setDeleting(false);
@@ -123,47 +121,49 @@ function Inner() {
 
   if (loading) {
     return (
-      <AdminLoadingState label="Loading pricing…" testID="hotel-pricing-detail-loading" />
+      <AdminLoadingState
+        label="Loading special date pricing..."
+        testID="hotel-special-date-pricing-detail-loading"
+      />
     );
   }
 
   if (error || !data) {
     return (
-      <AdminScreen testID="hotel-pricing-detail-error">
-        <Stack.Screen options={{ title: "Pricing detail", headerShown: false }} />
+      <AdminScreen testID="hotel-special-date-pricing-detail-error">
+        <Stack.Screen options={{ title: "Special date pricing", headerShown: false }} />
         <AdminErrorState
-          message={error ?? "Pricing row not found"}
+          message={error ?? "Special date pricing not found"}
           onRetry={() => void load()}
-          testID="hotel-pricing-detail-error-state"
+          testID="hotel-special-date-pricing-detail-error-state"
         />
       </AdminScreen>
     );
   }
 
-  const { hotel, pricing: p } = data;
-  const meal =
-    p.mealPlanName ?? (p.mealPlanCode ? p.mealPlanCode : "None");
+  const { hotel, specialDatePricing: p } = data;
+  const meal = p.mealPlanName ?? (p.mealPlanCode ? p.mealPlanCode : "None");
 
   if (String(mode ?? "") === "edit") {
     return (
       <PermissionGate permission="operations.write">
-        <HotelPricingForm
+        <HotelSpecialDatePricingForm
           hotelId={hotelId}
-          pricingId={pricingId}
+          specialPricingId={specialPricingId}
           mode="edit"
           initial={{
-            roomTypeId: p.roomTypeId ?? "",
+            name: p.name,
+            roomTypeId: p.roomTypeId,
             roomTypeName: p.roomTypeName ?? "",
-            occupancyTypeId: p.occupancyTypeId ?? "",
+            occupancyTypeId: p.occupancyTypeId,
             occupancyTypeName: p.occupancyTypeName ?? "",
             mealPlanId: p.mealPlanId ?? "",
             mealPlanName: meal,
             price: String(p.price),
+            notes: p.notes,
             startDate: new Date(p.startDate),
             endDate: new Date(p.endDate),
             isActive: p.isActive,
-            locationSeasonalPeriodId: p.locationSeasonalPeriodId ?? "",
-            seasonalPeriodName: p.seasonalPeriodName ?? "",
           }}
         />
       </PermissionGate>
@@ -172,7 +172,7 @@ function Inner() {
 
   return (
     <AdminScreen
-      testID="hotel-pricing-detail"
+      testID="hotel-special-date-pricing-detail"
       bottomInset={Spacing.xl}
       contentContainerStyle={styles.content}
       refreshControl={
@@ -183,69 +183,68 @@ function Inner() {
         />
       }
     >
-      <Stack.Screen options={{ title: "Pricing detail", headerShown: false }} />
+      <Stack.Screen options={{ title: "Special date pricing", headerShown: false }} />
       <AdminTopBar
-        title="Pricing detail"
+        title="Special date pricing"
         subtitle={hotel.name}
         onBackPress={() => router.back()}
-        testID="hotel-pricing-detail-header"
+        testID="hotel-special-date-pricing-detail-header"
         rightSlot={
           <View style={styles.headerActions}>
             <AdminTopBarIconButton
               icon="create-outline"
-              label="Edit hotel pricing"
-              testID="hotel-pricing-edit"
+              label="Edit special date pricing"
+              testID="hotel-special-date-pricing-edit"
               onPress={() =>
                 router.push(
-                  `/admin/operations/hotels/${hotelId}/pricing/${pricingId}?mode=edit` as never
+                  `/admin/operations/hotels/${hotelId}/special-date-pricing/${specialPricingId}?mode=edit` as never
                 )
               }
             />
             <AdminTopBarIconButton
               icon="trash-outline"
-              label="Delete hotel pricing"
-              testID="hotel-pricing-delete"
+              label="Delete special date pricing"
+              testID="hotel-special-date-pricing-delete"
               disabled={deleting}
               onPress={() =>
-                Alert.alert("Delete pricing?", "This removes the selected pricing period.", [
-                  { text: "Cancel", style: "cancel" },
-                  { text: "Delete", style: "destructive", onPress: () => void deletePricing() },
-                ])
+                Alert.alert(
+                  "Deactivate special date pricing?",
+                  "This removes the override from active pricing.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Deactivate",
+                      style: "destructive",
+                      onPress: () => void deletePricing(),
+                    },
+                  ]
+                )
               }
             />
           </View>
         }
       />
       <View style={styles.priceHero}>
-        <Text style={styles.priceLabel}>Nightly rate</Text>
+        <Text style={styles.priceLabel}>{p.name}</Text>
         <Text style={styles.priceValue}>{inr(p.price)}</Text>
         <Text style={styles.dateRange}>
-          {fmtDate(p.startDate)} – {fmtDate(p.endDate)}
+          {fmtDate(p.startDate)} - {fmtDate(p.endDate)}
         </Text>
       </View>
 
       <View style={styles.card}>
-        <Row label="Room type" value={p.roomTypeName ?? "—"} />
-        {p.roomTypeDescription ? (
-          <Row label="Room notes" value={p.roomTypeDescription} />
-        ) : null}
-        <Row label="Occupancy" value={p.occupancyTypeName ?? "—"} />
-        {p.occupancyMaxPersons != null ? (
-          <Row label="Max guests" value={String(p.occupancyMaxPersons)} />
-        ) : null}
+        <Row label="Room type" value={p.roomTypeName ?? "-"} />
+        <Row label="Occupancy" value={p.occupancyTypeName ?? "-"} />
         <Row label="Meal plan" value={meal} />
-        <Row
-          label="Season"
-          value={p.seasonalPeriodName ?? "Manual dates"}
-        />
         <Row label="Status" value={p.isActive ? "Active" : "Inactive"} />
+        {p.notes ? <Row label="Notes" value={p.notes} /> : null}
       </View>
 
       <View style={styles.noteCard}>
-        <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
+        <Ionicons name="sparkles-outline" size={18} color={Colors.primary} />
         <Text style={styles.noteText}>
-          Normal pricing should use broad non-overlapping periods. Add Special Date
-          Pricing for event and holiday overrides.
+          This rate overrides normal hotel pricing only for the selected dates and
+          matching room, occupancy, and meal plan.
         </Text>
       </View>
     </AdminScreen>

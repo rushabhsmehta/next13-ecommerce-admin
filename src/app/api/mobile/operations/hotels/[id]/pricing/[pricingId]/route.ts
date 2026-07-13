@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
-import { upsertPricingWithSplit } from "@/lib/hotel-pricing-overlap";
+import { findOverlappingBasePricings } from "@/lib/hotel-effective-pricing";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
 import {
   requireOperationsRead,
@@ -20,7 +20,6 @@ const pricingSchema = z.object({
   mealPlanId: z.string().nullable().optional(),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   isActive: z.boolean().optional(),
-  applySplit: z.boolean().optional(),
   locationSeasonalPeriodId: z.string().nullable().optional(),
 });
 
@@ -165,49 +164,49 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string;
       },
     } as const;
 
-    const pricing = v.applySplit
-      ? await prismadb.$transaction(async (tx) => {
-          const updated = await upsertPricingWithSplit(
-            tx,
-            {
-              hotelId: params.id,
-              startDate,
-              endDate,
-              roomTypeId: v.roomTypeId,
-              occupancyTypeId: v.occupancyTypeId,
-              mealPlanId: v.mealPlanId || null,
-              price: v.price,
-              locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
-              isActive: v.isActive ?? true,
-            },
-            { excludeId: params.pricingId }
-          );
-          return tx.hotelPricing.findUniqueOrThrow({
-            where: { id: updated.id },
-            select: pricingSelect,
-          });
-        })
-      : await prismadb.hotelPricing.update({
-          where: { id: params.pricingId },
-          data: {
-            startDate,
-            endDate,
-            roomTypeId: v.roomTypeId,
-            occupancyTypeId: v.occupancyTypeId,
-            mealPlanId: v.mealPlanId || null,
-            price: v.price,
-            isActive: v.isActive ?? true,
-            locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
-          },
-          select: pricingSelect,
-        });
+    const overlaps = await prismadb.$transaction((tx) =>
+      findOverlappingBasePricings(tx, {
+        hotelId: params.id,
+        roomTypeId: v.roomTypeId,
+        occupancyTypeId: v.occupancyTypeId,
+        mealPlanId: v.mealPlanId || null,
+        startDate,
+        endDate,
+        excludeId: params.pricingId,
+      })
+    );
+    if (overlaps.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Overlapping pricing period exists for the same room, occupancy, and meal plan. Add Special Date Pricing for event/holiday overrides, or adjust the normal pricing dates.",
+          conflicts: overlaps,
+        },
+        { status: 409 }
+      );
+    }
+
+    const pricing = await prismadb.hotelPricing.update({
+      where: { id: params.pricingId },
+      data: {
+        startDate,
+        endDate,
+        roomTypeId: v.roomTypeId,
+        occupancyTypeId: v.occupancyTypeId,
+        mealPlanId: v.mealPlanId || null,
+        price: v.price,
+        isActive: v.isActive ?? true,
+        locationSeasonalPeriodId: v.locationSeasonalPeriodId ?? null,
+      },
+      select: pricingSelect,
+    });
 
     await recordMobileAudit({
       userId,
       entityType: "HotelPricing",
       entityId: pricing.id,
       action: "UPDATE",
-      metadata: { hotelId: params.id, applySplit: !!v.applySplit },
+      metadata: { hotelId: params.id },
     });
 
     return NextResponse.json({

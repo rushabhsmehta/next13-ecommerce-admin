@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
-import { upsertPricingWithSplit } from "@/lib/hotel-pricing-overlap";
+import { findOverlappingBasePricings } from "@/lib/hotel-effective-pricing";
 import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET a specific pricing period
@@ -69,7 +69,6 @@ export async function PATCH(
       occupancyTypeId, 
       price, 
       mealPlanId,
-      applySplit,
       locationSeasonalPeriodId,
     } = body;
 
@@ -96,37 +95,37 @@ export async function PATCH(
       return new NextResponse("Hotel not found", { status: 404 });
     }
 
-    const newStart = dateToUtc(startDate)!;
-    const newEnd = dateToUtc(endDate)!;
+    const newStart = dateToUtc(startDate);
+    const newEnd = dateToUtc(endDate);
 
-    if (applySplit) {
-      const updatedPricing = await prismadb.$transaction(async (tx) =>
-        upsertPricingWithSplit(
-          tx,
-          {
-            hotelId: params.hotelId,
-            startDate: newStart,
-            endDate: newEnd,
-            roomTypeId,
-            occupancyTypeId,
-            mealPlanId: mealPlanId || null,
-            price,
-            locationSeasonalPeriodId: locationSeasonalPeriodId ?? null,
-            isActive: true,
-          },
-          { excludeId: params.pricingId }
-        )
-      );
-      const withRelations = await prismadb.hotelPricing.findUnique({
-        where: { id: updatedPricing.id },
-        include: {
-          roomType: true,
-          occupancyType: true,
-          mealPlan: true,
-          locationSeasonalPeriod: true,
+    if (!newStart || !newEnd) {
+      return new NextResponse("Invalid date format", { status: 400 });
+    }
+
+    if (newEnd < newStart) {
+      return new NextResponse("End date must be on or after start date", { status: 400 });
+    }
+
+    const overlaps = await prismadb.$transaction((tx) =>
+      findOverlappingBasePricings(tx, {
+        hotelId: params.hotelId,
+        roomTypeId,
+        occupancyTypeId,
+        mealPlanId: mealPlanId || null,
+        startDate: newStart,
+        endDate: newEnd,
+        excludeId: params.pricingId,
+      })
+    );
+    if (overlaps.length > 0) {
+      return NextResponse.json(
+        {
+          message:
+            "Overlapping pricing period exists for the same room, occupancy, and meal plan. Add Special Date Pricing for event/holiday overrides, or adjust the normal pricing dates.",
+          conflicts: overlaps,
         },
-      });
-      return NextResponse.json(withRelations ?? updatedPricing);
+        { status: 409 }
+      );
     }
 
     const updatedPricing = await prismadb.hotelPricing.update({

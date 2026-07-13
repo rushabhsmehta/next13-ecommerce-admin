@@ -24,11 +24,13 @@ import {
 import { PricingSeasonGroup } from "@/components/operations/PricingSeasonGroup";
 import {
   createOperationsClient,
+  type HotelSpecialDatePricingListResponse,
+  type HotelSpecialDatePricingRow,
   type HotelPricingListResponse,
   type HotelPricingRow,
   type HotelPricingLookups,
 } from "@/lib/operations";
-import { groupPricingBySeason } from "@/lib/pricing-season-groups";
+import { fmtPricingDateRange, groupPricingBySeason } from "@/lib/pricing-season-groups";
 
 function inr(n: number): string {
   return `₹${Math.round(n).toLocaleString("en-IN")}`;
@@ -41,6 +43,15 @@ function rowSubtitle(row: HotelPricingRow): string {
     row.mealPlanName ?? row.mealPlanCode,
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : "—";
+}
+
+function specialSubtitle(row: HotelSpecialDatePricingRow): string {
+  const parts = [
+    row.roomTypeName,
+    row.occupancyTypeName,
+    row.mealPlanName ?? row.mealPlanCode,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" Â· ") : "â€”";
 }
 
 export default function HotelPricingListScreen() {
@@ -66,6 +77,8 @@ function Inner() {
   );
 
   const [data, setData] = useState<HotelPricingListResponse | null>(null);
+  const [specialData, setSpecialData] =
+    useState<HotelSpecialDatePricingListResponse | null>(null);
   const [lookups, setLookups] = useState<HotelPricingLookups | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,8 +91,12 @@ function Inner() {
       else setLoading(true);
       setError(null);
       try {
-        const pricing = await client.listHotelPricing(hotelId);
+        const [pricing, specialPricing] = await Promise.all([
+          client.listHotelPricing(hotelId),
+          client.listHotelSpecialDatePricing(hotelId),
+        ]);
         setData(pricing);
+        setSpecialData(specialPricing);
         const periodLookups = await client.getHotelPricingLookups(
           pricing.hotel.locationId
         );
@@ -168,9 +185,61 @@ function Inner() {
             {data?.total ?? 0} active pricing row(s)
           </Text>
           <Text style={styles.summaryHint}>
-            Overlaps are split automatically when a new range is saved.
+            Use broad base periods here; event and holiday overrides live under Special Date Pricing.
           </Text>
+          <Pressable
+            testID="hotel-special-date-pricing-add"
+            accessibilityRole="button"
+            accessibilityLabel="Add special date pricing"
+            style={styles.specialAdd}
+            onPress={() =>
+              router.push(
+                `/admin/operations/hotels/${hotelId}/special-date-pricing/new` as never
+              )
+            }
+          >
+            <Ionicons name="sparkles-outline" size={16} color={Colors.primary} />
+            <Text style={styles.specialAddText}>Add Special Date Pricing</Text>
+          </Pressable>
         </View>
+        {(specialData?.items.length ?? 0) > 0 ? (
+          <View style={styles.specialSection}>
+            <Text style={styles.sectionTitle}>Special Date Pricing</Text>
+            {specialData?.items.map((item) => (
+              <Pressable
+                key={item.id}
+                testID={`hotel-special-date-pricing-row-${item.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.name}, ${specialSubtitle(item)}, ${inr(item.price)}`}
+                style={[styles.card, styles.specialCard]}
+                onPress={() =>
+                  router.push(
+                    `/admin/operations/hotels/${hotelId}/special-date-pricing/${item.id}` as never
+                  )
+                }
+              >
+                <View style={styles.cardTop}>
+                  <View style={styles.cardText}>
+                    <Text style={styles.cardTitle}>{item.name}</Text>
+                    <Text style={styles.cardSub} numberOfLines={2}>
+                      {specialSubtitle(item)}
+                    </Text>
+                  </View>
+                  <Text style={styles.cardPrice}>{inr(item.price)}</Text>
+                </View>
+                <Text style={styles.specialDates}>
+                  {fmtPricingDateRange(item.startDate, item.endDate)}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={Colors.textTertiary}
+                  style={styles.chevron}
+                />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         {groups.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="pricetag-outline" size={40} color={Colors.textTertiary} />
@@ -236,6 +305,28 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
+  specialAdd: {
+    marginTop: Spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+  },
+  specialAddText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.primary,
+  },
+  specialSection: { gap: Spacing.sm, marginBottom: Spacing.lg },
+  sectionTitle: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.text,
+  },
   empty: {
     flex: 1,
     alignItems: "center",
@@ -257,6 +348,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
+  specialCard: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+  },
   cardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -264,12 +359,24 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingRight: Spacing.lg,
   },
+  cardText: { flex: 1, gap: Spacing.xs },
+  cardTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.text,
+  },
   cardPrice: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
   cardSub: {
     flex: 1,
     fontSize: FontSize.sm,
     fontWeight: "600",
     color: Colors.text,
+  },
+  specialDates: {
+    marginTop: Spacing.xs,
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: "600",
   },
   inactiveBadge: {
     marginTop: Spacing.xs,

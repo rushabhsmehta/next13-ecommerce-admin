@@ -101,7 +101,6 @@ export function PricingSheetEditor({
         mealPlanId: sheet.mealPlanId,
         locationSeasonalPeriodId: sheet.locationSeasonalPeriodId,
         occupancyPrices,
-        applySplit: true,
         deleteMissingOccupancies: true,
       });
       toast.success("Pricing sheet saved");

@@ -243,8 +243,7 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
             : mealPlanId;
 
   function buildPayload(
-    overrides: Partial<HotelPricingInput> = {},
-    applySplit = false
+    overrides: Partial<HotelPricingInput> = {}
   ): HotelPricingInput {
     return {
       roomTypeId,
@@ -255,7 +254,6 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
       endDate: toIsoDate(endDate),
       isActive,
       locationSeasonalPeriodId: seasonalPeriodId || null,
-      applySplit,
       ...overrides,
     };
   }
@@ -310,15 +308,15 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
     applySelection(next, matchingType);
   }
 
-  async function saveSingle(applySplit = false) {
+  async function saveSingle() {
     if (mode === "create") {
-      await client.createHotelPricing(hotelId, buildPayload({}, applySplit));
+      await client.createHotelPricing(hotelId, buildPayload());
       router.replace(`/admin/operations/hotels/${hotelId}/pricing` as never);
     } else if (pricingId) {
       await client.updateHotelPricing(
         hotelId,
         pricingId,
-        buildPayload({}, applySplit)
+        buildPayload()
       );
       router.replace(
         `/admin/operations/hotels/${hotelId}/pricing/${pricingId}` as never
@@ -338,8 +336,7 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
             startDate: toIsoDate(range.start),
             endDate: toIsoDate(range.end),
             locationSeasonalPeriodId: period.id,
-          },
-          true
+          }
         )
       );
       createdCount++;
@@ -351,14 +348,14 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
     router.replace(`/admin/operations/hotels/${hotelId}/pricing` as never);
   }
 
-  async function save(applySplit = false) {
+  async function save() {
     setSubmitting(true);
     try {
       if (isMultiSeasonCreate) {
         await saveBulk();
         return;
       }
-      await saveSingle(applySplit);
+      await saveSingle();
     } catch (err) {
       Alert.alert(
         "Save failed",
@@ -373,7 +370,7 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
     if (!canSubmit) return;
 
     if (isMultiSeasonCreate) {
-      await save(false);
+      await save();
       return;
     }
 
@@ -382,29 +379,7 @@ export function HotelPricingForm({ hotelId, mode, pricingId, initial }: Props) {
       return;
     }
 
-    try {
-      const preview = await client.checkHotelPricingOverlap(hotelId, {
-        ...buildPayload({}, false),
-        excludeId: mode === "edit" ? pricingId : undefined,
-      });
-      if (preview.willSplit) {
-        Alert.alert("Overlap detected", preview.message, [
-          { text: "Cancel", style: "cancel" },
-          { text: "Apply split", onPress: () => void save(true) },
-        ]);
-        return;
-      }
-    } catch (err) {
-      Alert.alert(
-        "Overlap check failed",
-        err instanceof ApiError
-          ? err.message
-          : "Could not verify date overlap. Please try again."
-      );
-      return;
-    }
-
-    await save(false);
+    await save();
   }
 
   return (

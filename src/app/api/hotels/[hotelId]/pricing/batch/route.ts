@@ -4,10 +4,8 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { handleApi, jsonError } from "@/lib/api-response";
 import { flattenSheetToRows } from "@/lib/hotel-pricing-matrix";
-import {
-  upsertExactPricingRow,
-  upsertPricingWithSplit,
-} from "@/lib/hotel-pricing-overlap";
+import { upsertExactPricingRow } from "@/lib/hotel-pricing-overlap";
+import { findOverlappingBasePricings } from "@/lib/hotel-effective-pricing";
 import { dateToUtc } from "@/lib/timezone-utils";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +23,6 @@ const batchSheetSchema = z.object({
   mealPlanId: z.string().optional().nullable(),
   locationSeasonalPeriodId: z.string().optional().nullable(),
   occupancyPrices: z.array(occupancyPriceSchema).min(1),
-  applySplit: z.boolean().optional().default(true),
   deleteMissingOccupancies: z.boolean().optional().default(false),
 });
 
@@ -82,30 +79,43 @@ export async function POST(
       parsed.data.occupancyPrices.map((o) => o.occupancyTypeId)
     );
 
+    for (const row of flatRows) {
+      const rowInput = parsed.data.occupancyPrices.find(
+        (o) => o.occupancyTypeId === row.occupancyTypeId
+      );
+      const conflicts = await prismadb.$transaction((tx) =>
+        findOverlappingBasePricings(tx, {
+          hotelId: params.hotelId,
+          startDate,
+          endDate,
+          roomTypeId: row.roomTypeId,
+          occupancyTypeId: row.occupancyTypeId,
+          mealPlanId: row.mealPlanId,
+          excludeId: rowInput?.rowId,
+        })
+      );
+      if (conflicts.length > 0) {
+        return jsonError(
+          "Overlapping pricing period exists for the same room, occupancy, and meal plan. Add Special Date Pricing for event/holiday overrides, or adjust the normal pricing dates.",
+          409,
+          "PRICING_OVERLAP",
+          { conflicts }
+        );
+      }
+    }
+
     await prismadb.$transaction(async (tx) => {
       for (const row of flatRows) {
         const rowInput = parsed.data.occupancyPrices.find(
           (o) => o.occupancyTypeId === row.occupancyTypeId
         );
 
-        const result = parsed.data.applySplit
-          ? await upsertPricingWithSplit(tx, {
-              hotelId: params.hotelId,
-              startDate,
-              endDate,
-              roomTypeId: row.roomTypeId,
-              occupancyTypeId: row.occupancyTypeId,
-              mealPlanId: row.mealPlanId,
-              price: row.price,
-              locationSeasonalPeriodId: row.locationSeasonalPeriodId,
-              isActive: true,
-            }, { excludeId: rowInput?.rowId })
-          : await upsertExactPricingRow(tx, {
-              ...row,
-              startDate,
-              endDate,
-              rowId: rowInput?.rowId,
-            });
+        const result = await upsertExactPricingRow(tx, {
+          ...row,
+          startDate,
+          endDate,
+          rowId: rowInput?.rowId,
+        });
 
         savedIds.push(result.id);
       }

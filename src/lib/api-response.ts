@@ -21,6 +21,14 @@ export async function handleApi(fn: () => Promise<NextResponse>) {
     
     if (e?.code === 'FORBIDDEN') return jsonError('Forbidden', 403, 'FORBIDDEN');
     if (e?.code === 'NOT_FOUND') return jsonError('Not found', 404, 'NOT_FOUND');
+    if (e?.code === 'PRICING_OVERLAP') {
+      return jsonError(
+        'Overlapping pricing period exists for the same room, occupancy, and meal plan. Add Special Date Pricing for event/holiday overrides, or adjust the normal pricing dates.',
+        409,
+        'PRICING_OVERLAP',
+        { conflicts: e.conflicts ?? [] }
+      );
+    }
     if (e?.name === 'ZodError') {
       console.error('[API_ERROR] Validation issues:', e.issues?.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', '));
       const issue = e.issues?.[0];

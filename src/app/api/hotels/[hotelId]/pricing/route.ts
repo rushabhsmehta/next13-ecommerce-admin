@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
-import {
-  hasOverlappingPeriods,
-  upsertPricingWithSplit,
-} from "@/lib/hotel-pricing-overlap";
+import { findOverlappingBasePricings } from "@/lib/hotel-effective-pricing";
 import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET hotel pricing for a specific hotelId
@@ -18,23 +15,32 @@ export async function GET(req: Request, props: { params: Promise<{ hotelId: stri
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
+    const roomTypeId = url.searchParams.get("roomTypeId");
+    const occupancyTypeId = url.searchParams.get("occupancyTypeId");
+    const mealPlanId = url.searchParams.get("mealPlanId");
 
     // Build the filter based on available parameters
-    let dateFilter = {};
+    const filters: Record<string, unknown> = {};
     if (startDate && endDate) {
-      dateFilter = {
-        AND: [
-          { startDate: { lte: dateToUtc(endDate)! } },
-          { endDate: { gte: dateToUtc(startDate)! } }
-        ]
-      };
+      const start = dateToUtc(startDate);
+      const end = dateToUtc(endDate);
+      if (!start || !end) {
+        return new NextResponse("Invalid date format", { status: 400 });
+      }
+      filters.AND = [
+        { startDate: { lte: end } },
+        { endDate: { gte: start } }
+      ];
     }
+    if (roomTypeId) filters.roomTypeId = roomTypeId;
+    if (occupancyTypeId) filters.occupancyTypeId = occupancyTypeId;
+    if (url.searchParams.has("mealPlanId")) filters.mealPlanId = mealPlanId || null;
 
     const hotelPricing = await prismadb.hotelPricing.findMany({
       where: {
         hotelId: params.hotelId,
         isActive: true,
-        ...dateFilter
+        ...filters
       },
       include: {
         roomType: true,
@@ -73,7 +79,6 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
       occupancyTypeId, 
       price,
       mealPlanId,
-      applySplit,
       locationSeasonalPeriodId,
     } = body;
 
@@ -107,25 +112,8 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
       return new NextResponse("Invalid date format", { status: 400 });
     }
 
-    if (applySplit) {
-      const result = await prismadb.$transaction(async (tx) =>
-        upsertPricingWithSplit(tx, {
-          hotelId: params.hotelId,
-          startDate: newStart,
-          endDate: newEnd,
-          roomTypeId,
-          occupancyTypeId,
-          mealPlanId: mealPlanId || null,
-          price,
-          locationSeasonalPeriodId: locationSeasonalPeriodId || null,
-          isActive: true,
-        })
-      );
-      return NextResponse.json(result);
-    }
-
     const overlaps = await prismadb.$transaction((tx) =>
-      hasOverlappingPeriods(tx, {
+      findOverlappingBasePricings(tx, {
         hotelId: params.hotelId,
         roomTypeId,
         occupancyTypeId,
@@ -134,11 +122,12 @@ export async function POST(req: Request, props: { params: Promise<{ hotelId: str
         endDate: newEnd,
       })
     );
-    if (overlaps) {
+    if (overlaps.length > 0) {
       return NextResponse.json(
         {
           message:
-            "Overlapping pricing period exists. Set applySplit to true or adjust dates.",
+            "Overlapping pricing period exists for the same room, occupancy, and meal plan. Add Special Date Pricing for event/holiday overrides, or adjust the normal pricing dates.",
+          conflicts: overlaps,
         },
         { status: 409 }
       );

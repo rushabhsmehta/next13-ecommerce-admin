@@ -100,6 +100,7 @@ model Hotel {
   itineraries           Itinerary[]                 @relation("ItineraryToHotel")
   itinerariesMaster     ItineraryMaster[]           @relation("ItineraryMasterToHotel")
   seasonalPricing       HotelPricing[]
+  specialDatePricings   HotelSpecialDatePricing[]
   variantHotelMappings  VariantHotelMapping[]
   variantHotelSnapshots QueryVariantHotelSnapshot[]
 
@@ -108,14 +109,15 @@ model Hotel {
 }
 
 model MealPlan {
-  id                  String               @id @default(uuid())
+  id                  String                    @id @default(uuid())
   name                String
-  code                String               @unique
+  code                String                    @unique
   description         String
-  isActive            Boolean              @default(true)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  isActive            Boolean                   @default(true)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
   hotelPricings       HotelPricing[]
+  specialDatePricings HotelSpecialDatePricing[]
   roomAllocations     RoomAllocation[]
   itineraries         Itinerary[]
   itinerariesMaster   ItineraryMaster[]
@@ -123,32 +125,34 @@ model MealPlan {
 }
 
 model RoomType {
-  id                String            @id @default(uuid())
-  name              String            @unique
-  description       String?
-  isActive          Boolean           @default(true)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @default(now())
-  hotelPricings     HotelPricing[]
-  roomAllocations   RoomAllocation[]
-  itineraries       Itinerary[]
-  itinerariesMaster ItineraryMaster[]
+  id                  String                    @id @default(uuid())
+  name                String                    @unique
+  description         String?
+  isActive            Boolean                   @default(true)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @default(now())
+  hotelPricings       HotelPricing[]
+  specialDatePricings HotelSpecialDatePricing[]
+  roomAllocations     RoomAllocation[]
+  itineraries         Itinerary[]
+  itinerariesMaster   ItineraryMaster[]
 }
 
 model OccupancyType {
-  id                String            @id @default(uuid())
-  name              String            @unique
-  description       String?
-  maxPersons        Int
-  isActive          Boolean           @default(true)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @default(now())
-  rank              Int               @default(0)
-  hotelPricings     HotelPricing[]
-  roomAllocations   RoomAllocation[]
-  itineraries       Itinerary[]
-  itinerariesMaster ItineraryMaster[]
-  extraBeds         ExtraBed[]
+  id                  String                    @id @default(uuid())
+  name                String                    @unique
+  description         String?
+  maxPersons          Int
+  isActive            Boolean                   @default(true)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @default(now())
+  rank                Int                       @default(0)
+  hotelPricings       HotelPricing[]
+  specialDatePricings HotelSpecialDatePricing[]
+  roomAllocations     RoomAllocation[]
+  itineraries         Itinerary[]
+  itinerariesMaster   ItineraryMaster[]
+  extraBeds           ExtraBed[]
 }
 
 model VehicleType {
@@ -188,6 +192,31 @@ model HotelPricing {
   @@index([mealPlanId])
   @@index([startDate, endDate])
   @@index([locationSeasonalPeriodId])
+}
+
+model HotelSpecialDatePricing {
+  id              String        @id @default(uuid())
+  hotelId         String
+  name            String
+  startDate       DateTime
+  endDate         DateTime
+  price           Float
+  notes           String?       @db.Text
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  roomTypeId      String
+  occupancyTypeId String
+  mealPlanId      String?
+  hotel           Hotel         @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType        RoomType      @relation(fields: [roomTypeId], references: [id], onDelete: Restrict)
+  occupancyType   OccupancyType @relation(fields: [occupancyTypeId], references: [id], onDelete: Restrict)
+  mealPlan        MealPlan?     @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+
+  @@index([hotelId])
+  @@index([hotelId, startDate, endDate])
+  @@index([hotelId, roomTypeId, occupancyTypeId, mealPlanId])
+  @@index([isActive])
 }
 
 model TransportPricing {

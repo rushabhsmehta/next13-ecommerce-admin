@@ -1,9 +1,8 @@
 import prismadb from "@/lib/prismadb";
 import { z } from "zod";
 import {
-  hasOverlappingPeriods,
-  upsertPricingWithSplit,
-} from "@/lib/hotel-pricing-overlap";
+  findOverlappingBasePricings,
+} from "@/lib/hotel-effective-pricing";
 import type { ToolHandlerMap } from "../lib/schemas";
 import { NotFoundError } from "../lib/errors";
 
@@ -292,8 +291,24 @@ async function createHotelPricing(rawParams: unknown) {
   const start = new Date(startDate);
   const end = new Date(endDate);
 
-  const created = await prismadb.$transaction((tx) =>
-    upsertPricingWithSplit(tx, {
+  const conflicts = await prismadb.$transaction((tx) =>
+    findOverlappingBasePricings(tx, {
+      hotelId,
+      startDate: start,
+      endDate: end,
+      roomTypeId,
+      occupancyTypeId,
+      mealPlanId: mealPlanId ?? null,
+    })
+  );
+  if (conflicts.length > 0) {
+    throw new Error(
+      "Overlapping hotel pricing exists. Use Special Date Pricing for event/holiday overrides, or adjust the normal pricing dates."
+    );
+  }
+
+  const created = await prismadb.hotelPricing.create({
+    data: {
       hotelId,
       startDate: start,
       endDate: end,
@@ -303,8 +318,8 @@ async function createHotelPricing(rawParams: unknown) {
       mealPlanId: mealPlanId ?? null,
       locationSeasonalPeriodId: locationSeasonalPeriodId ?? null,
       isActive: true,
-    })
-  );
+    },
+  });
 
   return prismadb.hotelPricing.findUniqueOrThrow({
     where: { id: created.id },
@@ -367,10 +382,9 @@ async function updateHotelPricing(rawParams: unknown) {
     occupancyTypeId !== undefined ||
     mealPlanId !== undefined;
 
-  const needsSplit =
-    dimensionalOrDateChange &&
-    (await prismadb.$transaction((tx) =>
-      hasOverlappingPeriods(tx, {
+  if (dimensionalOrDateChange) {
+    const conflicts = await prismadb.$transaction((tx) =>
+      findOverlappingBasePricings(tx, {
         hotelId: merged.hotelId,
         roomTypeId: merged.roomTypeId,
         occupancyTypeId: merged.occupancyTypeId,
@@ -379,26 +393,12 @@ async function updateHotelPricing(rawParams: unknown) {
         endDate: merged.endDate,
         excludeId: pricingId,
       })
-    ));
-
-  if (needsSplit) {
-    const updated = await prismadb.$transaction((tx) =>
-      upsertPricingWithSplit(tx, merged, { excludeId: pricingId })
     );
-    return prismadb.hotelPricing.findUniqueOrThrow({
-      where: { id: updated.id },
-      select: {
-        id: true,
-        startDate: true,
-        endDate: true,
-        price: true,
-        locationSeasonalPeriodId: true,
-        roomType: { select: { id: true, name: true } },
-        occupancyType: { select: { id: true, name: true } },
-        mealPlan: { select: { id: true, name: true } },
-        locationSeasonalPeriod: { select: { id: true, name: true, seasonType: true } },
-      },
-    });
+    if (conflicts.length > 0) {
+      throw new Error(
+        "Overlapping hotel pricing exists. Use Special Date Pricing for event/holiday overrides, or adjust the normal pricing dates."
+      );
+    }
   }
 
   return prismadb.hotelPricing.update({

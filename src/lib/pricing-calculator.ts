@@ -212,8 +212,23 @@ export async function calculatePricing(
 
         if (!quantity || quantity <= 0) continue;
 
-        // Find applicable hotel pricing
-        const pricing = await prismadb.hotelPricing.findFirst({
+        // Find applicable special date pricing first; fall back to base hotel pricing.
+        const specialPricing = await prismadb.hotelSpecialDatePricing.findFirst({
+          where: {
+            hotelId,
+            roomTypeId,
+            occupancyTypeId,
+            mealPlanId,
+            isActive: true,
+            startDate: { lte: endDate },
+            endDate: { gte: startDate }
+          },
+          orderBy: {
+            startDate: 'desc'
+          }
+        });
+
+        const pricing = specialPricing ?? await prismadb.hotelPricing.findFirst({
           where: {
             hotelId,
             roomTypeId,
@@ -255,7 +270,19 @@ export async function calculatePricing(
               if (!eb.occupancyTypeId) continue;
 
               // Extra bed pricing lookup: hotel + occupancyType + mealPlan (no roomTypeId filter)
-              const ebPricing = await prismadb.hotelPricing.findFirst({
+              const ebSpecialPricing = await prismadb.hotelSpecialDatePricing.findFirst({
+                where: {
+                  hotelId,
+                  occupancyTypeId: eb.occupancyTypeId,
+                  mealPlanId,
+                  isActive: true,
+                  startDate: { lte: endDate },
+                  endDate: { gte: startDate }
+                },
+                orderBy: { startDate: 'desc' }
+              });
+
+              const ebPricing = ebSpecialPricing ?? await prismadb.hotelPricing.findFirst({
                 where: {
                   hotelId,
                   occupancyTypeId: eb.occupancyTypeId,
@@ -611,7 +638,18 @@ export async function derivePerPersonRates(params: {
     let total = 0;
     for (const ctx of dayContexts) {
       if (!ctx.hotelId || !ctx.mealPlanId) continue;
-      const pricing = await prismadb.hotelPricing.findFirst({
+      const specialPricing = await prismadb.hotelSpecialDatePricing.findFirst({
+        where: {
+          hotelId: ctx.hotelId,
+          occupancyTypeId: occupancyId,
+          mealPlanId: ctx.mealPlanId,
+          isActive: true,
+          startDate: { lte: endDate },
+          endDate: { gte: startDate },
+        },
+        orderBy: { startDate: 'desc' },
+      });
+      const pricing = specialPricing ?? await prismadb.hotelPricing.findFirst({
         where: {
           hotelId: ctx.hotelId,
           occupancyTypeId: occupancyId,

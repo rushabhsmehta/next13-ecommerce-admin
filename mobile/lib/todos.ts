@@ -12,6 +12,8 @@
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
 
 export type TodoStatus = "TODO" | "IN_PROGRESS" | "DONE";
+/** List filter: ACTIVE = TODO + IN_PROGRESS (excludes DONE). */
+export type TodoStatusFilter = TodoStatus | "ACTIVE";
 export type TodoPriority = "LOW" | "MEDIUM" | "HIGH";
 
 export interface Todo {
@@ -38,7 +40,7 @@ export interface TodoListResponse {
 }
 
 export interface TodoListFilters {
-  status?: TodoStatus;
+  status?: TodoStatusFilter;
   priority?: TodoPriority;
   /**
    * Operational staff id, or the literal "unassigned" to match todos with no

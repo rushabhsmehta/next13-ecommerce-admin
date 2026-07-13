@@ -10,7 +10,7 @@ describe("createTodosClient", () => {
     const client = createTodosClient(request as any);
 
     await client.list({
-      status: "TODO",
+      status: "ACTIVE",
       priority: "HIGH",
       limit: 25,
       offset: 50,
@@ -19,10 +19,26 @@ describe("createTodosClient", () => {
     expect(request).toHaveBeenCalledTimes(1);
     const [endpoint] = request.mock.calls[0];
     expect(endpoint).toMatch(/^\/api\/mobile\/todos\?/);
-    expect(endpoint).toContain("status=TODO");
+    expect(endpoint).toContain("status=ACTIVE");
     expect(endpoint).toContain("priority=HIGH");
     expect(endpoint).toContain("limit=25");
     expect(endpoint).toContain("offset=50");
+  });
+
+  it("encodes TODO status filter", async () => {
+    const request = makeRequest();
+    const client = createTodosClient(request as any);
+
+    await client.list({
+      status: "TODO",
+      priority: "HIGH",
+      limit: 25,
+      offset: 50,
+    });
+
+    const [endpoint] = request.mock.calls[0];
+    expect(endpoint).toContain("status=TODO");
+    expect(endpoint).toContain("priority=HIGH");
   });
 
   it("omits the query string when no filters are passed", async () => {

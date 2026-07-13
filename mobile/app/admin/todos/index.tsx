@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -37,11 +37,12 @@ import {
   createTodosClient,
   Todo,
   TodoPriority,
-  TodoStatus,
+  TodoStatusFilter,
 } from "@/lib/todos";
 import { fetchActiveOperationalStaff } from "@/lib/operational-staff";
 
 type DuePreset = "ANY" | "OVERDUE" | "TODAY" | "WEEK";
+type StatusTab = TodoStatusFilter | "ALL";
 
 const DUE_FILTERS: { id: DuePreset; label: string }[] = [
   { id: "ANY", label: "Any time" },
@@ -77,11 +78,12 @@ function resolveDuePreset(preset: DuePreset): { dueFrom?: string; dueTo?: string
   }
 }
 
-const STATUS_TABS: { id: TodoStatus | "ALL"; label: string }[] = [
-  { id: "ALL", label: "All" },
+const STATUS_TABS: { id: StatusTab; label: string }[] = [
+  { id: "ACTIVE", label: "Active" },
   { id: "TODO", label: "Open" },
   { id: "IN_PROGRESS", label: "In progress" },
   { id: "DONE", label: "Done" },
+  { id: "ALL", label: "All" },
 ];
 
 const PRIORITY_FILTERS: { id: TodoPriority | "ALL"; label: string }[] = [
@@ -93,11 +95,16 @@ const PRIORITY_FILTERS: { id: TodoPriority | "ALL"; label: string }[] = [
 
 const PAGE_SIZE = 50;
 
-function emptyStateHint(statusFilter: TodoStatus | "ALL"): string {
+function emptyStateHint(statusFilter: StatusTab): string {
   if (statusFilter === "DONE") return "Completed tasks will appear here.";
   if (statusFilter === "IN_PROGRESS") return "In-progress tasks will appear here.";
   if (statusFilter === "ALL") return "Tasks will appear here when created.";
+  if (statusFilter === "TODO") return "Open tasks will appear here.";
   return "Create a task to track follow-ups, calls, and reminders.";
+}
+
+function filterExcludesDone(statusFilter: StatusTab): boolean {
+  return statusFilter === "ACTIVE" || statusFilter === "TODO" || statusFilter === "IN_PROGRESS";
 }
 
 export default function TodosScreen() {
@@ -125,7 +132,7 @@ function TodosScreenInner() {
   );
 
   const [items, setItems] = useState<Todo[]>([]);
-  const [statusFilter, setStatusFilter] = useState<TodoStatus | "ALL">("TODO");
+  const [statusFilter, setStatusFilter] = useState<StatusTab>("ACTIVE");
   const [priorityFilter, setPriorityFilter] = useState<TodoPriority | "ALL">("ALL");
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
@@ -172,9 +179,12 @@ function TodosScreenInner() {
     [client, statusFilter, priorityFilter, assigneeId, duePreset]
   );
 
-  useEffect(() => {
-    if (!authLoading) void load("initial");
-  }, [authLoading, load]);
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading) return;
+      void load("initial");
+    }, [authLoading, load])
+  );
 
   const hasActiveFilters =
     priorityFilter !== "ALL" ||
@@ -201,7 +211,7 @@ function TodosScreenInner() {
   );
 
   function clearFilters() {
-    setStatusFilter("TODO");
+    setStatusFilter("ACTIVE");
     setPriorityFilter("ALL");
     setAssigneeId(null);
     setAssigneeName(null);
@@ -230,7 +240,12 @@ function TodosScreenInner() {
     setBusyId(todo.id);
     try {
       const updated = await client.complete(todo.id);
-      setItems((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setItems((prev) => {
+        if (filterExcludesDone(statusFilter)) {
+          return prev.filter((t) => t.id !== updated.id);
+        }
+        return prev.map((t) => (t.id === updated.id ? updated : t));
+      });
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Could not complete task.";

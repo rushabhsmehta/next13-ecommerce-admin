@@ -47,7 +47,9 @@ export async function GET(req: Request) {
     const offset = parseInt(url.searchParams.get("offset") || "0", 10);
 
     const where: Record<string, unknown> = { userId };
-    if (statusFilter && ["TODO", "IN_PROGRESS", "DONE"].includes(statusFilter)) {
+    if (statusFilter === "ACTIVE") {
+      where.status = { in: ["TODO", "IN_PROGRESS"] };
+    } else if (statusFilter && ["TODO", "IN_PROGRESS", "DONE"].includes(statusFilter)) {
       where.status = statusFilter;
     }
     if (priorityFilter && ["LOW", "MEDIUM", "HIGH"].includes(priorityFilter)) {

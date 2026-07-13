@@ -26,7 +26,7 @@ interface TodoClientProps {
 export const TodoClient: React.FC<TodoClientProps> = ({ data }) => {
   const router = useRouter();
 
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [assignedToFilter, setAssignedToFilter] = useState("all");
   const [dueDateFrom, setDueDateFrom] = useState("");
@@ -44,7 +44,11 @@ export const TodoClient: React.FC<TodoClientProps> = ({ data }) => {
   const filteredData = useMemo(
     () =>
       data.filter((todo) => {
-        if (statusFilter !== "all" && todo.status !== statusFilter) return false;
+        if (statusFilter === "active") {
+          if (todo.status === "DONE") return false;
+        } else if (statusFilter !== "all" && todo.status !== statusFilter) {
+          return false;
+        }
         if (priorityFilter !== "all" && todo.priority !== priorityFilter) return false;
         if (assignedToFilter === "unassigned" && todo.assignedToStaffName !== null) return false;
         if (
@@ -68,7 +72,7 @@ export const TodoClient: React.FC<TodoClientProps> = ({ data }) => {
   );
 
   const activeFilterCount = [
-    statusFilter !== "all",
+    statusFilter !== "active",
     priorityFilter !== "all",
     assignedToFilter !== "all",
     !!dueDateFrom,
@@ -77,7 +81,7 @@ export const TodoClient: React.FC<TodoClientProps> = ({ data }) => {
   ].filter(Boolean).length;
 
   const resetFilters = () => {
-    setStatusFilter("all");
+    setStatusFilter("active");
     setPriorityFilter("all");
     setAssignedToFilter("all");
     setDueDateFrom("");
@@ -86,7 +90,7 @@ export const TodoClient: React.FC<TodoClientProps> = ({ data }) => {
   };
 
   const headingTitle =
-    activeFilterCount > 0
+    statusFilter !== "all" || activeFilterCount > 0
       ? `Todos (${filteredData.length} / ${data.length})`
       : `Todos (${data.length})`;
 
@@ -108,10 +112,11 @@ export const TodoClient: React.FC<TodoClientProps> = ({ data }) => {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
             <SelectItem value="TODO">To Do</SelectItem>
             <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
             <SelectItem value="DONE">Done</SelectItem>
+            <SelectItem value="all">All Statuses</SelectItem>
           </SelectContent>
         </Select>
 

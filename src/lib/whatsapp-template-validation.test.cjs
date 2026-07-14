@@ -186,7 +186,20 @@ test('media headers reject public URLs as handles', () => {
   }));
 
   assert.equal(validation.success, false);
-  assert.match(validation.issues.map((issue) => issue.message).join('\n'), /not a public URL/);
+  assert.match(validation.issues.map((issue) => issue.message).join('\n'), /not a public URL or file name/);
+});
+
+test('media headers reject public file names as handles', () => {
+  const validation = validateWhatsAppTemplateDraft(baseDraft({
+    components: [
+      { type: 'HEADER', format: 'IMAGE', mediaHandle: 'GROUP-TOUR-1783778277251-9593c0a8f0f94ed187d4ba7f75ac58e0.jpeg' },
+      { type: 'BODY', text: 'Your holiday offer is ready.' },
+    ],
+    examples: {},
+  }));
+
+  assert.equal(validation.success, false);
+  assert.match(validation.issues.map((issue) => issue.message).join('\n'), /Upload button/);
 });
 
 test('URL button variables require examples', () => {

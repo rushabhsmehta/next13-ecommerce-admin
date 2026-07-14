@@ -41,6 +41,7 @@ import {
   TEMPLATE_BUTTON_TYPES,
   WHATSAPP_TEMPLATE_LIMITS,
   extractTemplateVariables,
+  isLikelyPublicMediaReference,
   validateWhatsAppTemplateDraft,
   type TemplateButtonDraft,
   type TemplateCategory,
@@ -167,6 +168,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
   const [authCodeExpiration, setAuthCodeExpiration] = useState(10);
   const [authButtonText, setAuthButtonText] = useState('Copy code');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaInputKey, setMediaInputKey] = useState(0);
   const [mediaUploading, setMediaUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submission, setSubmission] = useState<SubmissionState>({
@@ -212,6 +214,8 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
   const validation = useMemo(() => validateWhatsAppTemplateDraft(draft), [draft]);
   const blockingIssues = validation.issues.filter((issue) => issue.level === 'error');
   const warnings = validation.issues.filter((issue) => issue.level === 'warning');
+  const headerMediaHandle = headerComponent?.mediaHandle?.trim() ?? '';
+  const headerMediaLooksPublic = isLikelyPublicMediaReference(headerMediaHandle);
 
   const variableRows = useMemo(() => {
     const rows: Array<{ source: 'header' | 'body' | `button:${number}`; label: string; variable: string }> = [];
@@ -251,6 +255,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
 
   const upsertHeader = (format: TemplateHeaderFormat = 'TEXT') => {
     setMediaFile(null);
+    setMediaInputKey((current) => current + 1);
     setComponents((current) => {
       const nextHeader: TemplateComponentDraft = {
         type: 'HEADER',
@@ -270,6 +275,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
     setComponents((current) => current.filter((component) => component.type !== type));
     if (type === 'HEADER') {
       setMediaFile(null);
+      setMediaInputKey((current) => current + 1);
       setExamples((current) => ({ ...current, header: {} }));
     }
   };
@@ -456,6 +462,7 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
         fileName: media.fileName,
       } as Partial<TemplateComponentDraft>);
       setMediaFile(null);
+      setMediaInputKey((current) => current + 1);
       toast.success('Template media handle is ready.');
     } catch (error: any) {
       console.error('[template-builder] Media upload failed', error);
@@ -756,20 +763,88 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                       {['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format) && (
                         <div className="rounded-lg border border-dashed bg-muted/20 p-4">
                           <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-                            <div className="space-y-2">
-                              <Label>Template media handle</Label>
-                              <Input
-                                value={headerComponent.mediaHandle ?? ''}
-                                placeholder="Upload below or paste a Meta handle"
-                                onChange={(event) => updateComponent('HEADER', { mediaHandle: event.target.value } as Partial<TemplateComponentDraft>)}
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Public URLs are kept for preview; Meta submission uses this handle.
-                              </p>
+                            <div className="space-y-3">
+                              <div className="space-y-2">
+                                <Label>Meta upload handle</Label>
+                                <div
+                                  className={cn(
+                                    'flex min-h-10 items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm',
+                                    headerMediaHandle && !headerMediaLooksPublic
+                                      ? 'border-emerald-200 bg-emerald-50 text-emerald-950'
+                                      : 'text-muted-foreground'
+                                  )}
+                                >
+                                  {headerMediaHandle && !headerMediaLooksPublic ? (
+                                    <>
+                                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                                      <span className="break-all font-mono text-xs">{headerMediaHandle}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UploadCloud className="h-4 w-4 shrink-0" />
+                                      <span>No Meta handle yet. Upload the media file to generate one.</span>
+                                    </>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Public URLs and file names are only preview references. Meta approval requires the upload handle generated here.
+                                </p>
+                              </div>
+
+                              {headerMediaHandle && headerMediaLooksPublic && (
+                                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                                  <div className="flex items-start gap-2">
+                                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                                    <div className="space-y-2">
+                                      <p>
+                                        This looks like a public URL or file name, not a Meta upload handle. Choose the original file and click
+                                        Generate Meta handle.
+                                      </p>
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 border-red-200 bg-white text-red-700 hover:bg-red-50"
+                                        onClick={() =>
+                                          updateComponent('HEADER', {
+                                            mediaHandle: '',
+                                          } as Partial<TemplateComponentDraft>)
+                                        }
+                                      >
+                                        Clear invalid value
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <details className="rounded-md border bg-background p-3 text-xs">
+                                <summary className="cursor-pointer font-medium text-muted-foreground">
+                                  Advanced: paste an existing Meta handle
+                                </summary>
+                                <div className="mt-3 space-y-2">
+                                  <Input
+                                    value={headerComponent.mediaHandle ?? ''}
+                                    placeholder="Paste only a Meta upload handle, never a URL"
+                                    onChange={(event) =>
+                                      updateComponent('HEADER', { mediaHandle: event.target.value } as Partial<TemplateComponentDraft>)
+                                    }
+                                  />
+                                  <p className="text-muted-foreground">
+                                    Use this only for handles already returned by Meta template media upload.
+                                  </p>
+                                </div>
+                              </details>
                             </div>
                             <div className="space-y-2">
-                              <Label>Upload</Label>
-                              <Input type="file" accept={headerAccept(headerComponent.format)} onChange={handleMediaSelection} disabled={mediaUploading} />
+                              <Label>Upload to Meta</Label>
+                              <Input
+                                key={mediaInputKey}
+                                type="file"
+                                accept={headerAccept(headerComponent.format)}
+                                onChange={handleMediaSelection}
+                                disabled={mediaUploading}
+                              />
                               <Button
                                 type="button"
                                 variant="outline"
@@ -778,8 +853,13 @@ export default function TemplateBuilder({ onComplete }: { onComplete?: () => voi
                                 disabled={!mediaFile || mediaUploading}
                               >
                                 {mediaUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-                                Upload
+                                {mediaUploading ? 'Uploading...' : 'Generate Meta handle'}
                               </Button>
+                              {!mediaFile && !headerMediaHandle && (
+                                <p className="max-w-[18rem] text-xs text-muted-foreground">
+                                  Choose the image, video, or PDF file first.
+                                </p>
+                              )}
                             </div>
                           </div>
                           {(mediaFile || headerComponent.fileName || headerComponent.mediaUrl) && (

@@ -181,6 +181,24 @@ export default function WhatsAppTemplateList() {
         </View>
       ) : null}
 
+      <TouchableOpacity
+        style={styles.createCard}
+        onPress={() => router.push("/whatsapp/templates/create")}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Create WhatsApp template"
+        testID="wa-templates-create"
+      >
+        <View style={styles.createIcon}>
+          <Ionicons name="sparkles-outline" size={20} color="#075E54" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.createTitle}>Template Studio</Text>
+          <Text style={styles.createHint}>Create approval-ready templates for Meta review</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+      </TouchableOpacity>
+
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={18} color={Colors.textTertiary} />
         <TextInput
@@ -303,6 +321,28 @@ const styles = StyleSheet.create({
     borderBottomColor: "#A7E5BC",
   },
   contextText: { fontSize: 13, color: "#075E54", fontWeight: "600" },
+  createCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "#E0F7E9",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#A7E5BC",
+  },
+  createIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#C6F6D5",
+  },
+  createTitle: { fontSize: 15, fontWeight: "800", color: "#075E54" },
+  createHint: { fontSize: 12, color: "#128C7E", marginTop: 2 },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",

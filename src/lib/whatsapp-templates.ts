@@ -19,7 +19,7 @@ import { graphBusinessRequest } from './whatsapp';
 
 export type TemplateCategory = 'AUTHENTICATION' | 'MARKETING' | 'UTILITY';
 export type TemplateStatus = 'APPROVED' | 'PENDING' | 'REJECTED' | 'PAUSED' | 'DISABLED' | 'DELETED';
-export type ParameterFormat = 'named' | 'positional';
+export type ParameterFormat = 'NAMED' | 'POSITIONAL' | 'named' | 'positional';
 export type HeaderFormat = 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'LOCATION';
 export type ButtonType = 
   | 'QUICK_REPLY' 

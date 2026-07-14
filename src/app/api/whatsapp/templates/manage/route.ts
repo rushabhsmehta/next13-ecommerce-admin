@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { requireOrgAdmin } from '@/lib/authz';
 import { 
   listTemplates, 
   getAllTemplates, 
@@ -170,6 +172,17 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    await requireOrgAdmin(userId);
+
     const { searchParams } = new URL(request.url);
     const name = searchParams.get('name');
     const id = searchParams.get('id');
@@ -194,6 +207,13 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error deleting template:', error);
+
+    if (error?.code === 'FORBIDDEN') {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
     
     return NextResponse.json(
       {

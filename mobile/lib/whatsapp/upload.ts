@@ -12,6 +12,18 @@ export interface WhatsAppUploadResult {
   size: number;
 }
 
+export interface WhatsAppTemplateUploadResult {
+  url: string;
+  key: string;
+  bucket: string;
+  size: number;
+  fileName: string;
+  contentType: string;
+  mediaType: "image" | "video" | "document";
+  uploadedAt: string;
+  metaHandle: string;
+}
+
 interface UploadOpts {
   uri: string;
   fileName?: string;
@@ -87,4 +99,40 @@ export async function uploadWhatsAppMedia(opts: UploadOpts): Promise<WhatsAppUpl
   }
 
   return (await res.json()) as WhatsAppUploadResult;
+}
+
+export async function uploadWhatsAppTemplateMedia(
+  opts: Omit<UploadOpts, "kind"> & { kind: "image" | "video" | "document"; templateName?: string }
+): Promise<WhatsAppTemplateUploadResult> {
+  const token = await opts.getToken();
+  if (!token) throw new Error("Not signed in");
+
+  const fileName = opts.fileName ?? opts.uri.split("/").pop() ?? "template-media";
+  const contentType = opts.contentType ?? inferContentType(opts.uri, opts.kind);
+
+  const formData = new FormData();
+  formData.append("file", {
+    uri: opts.uri,
+    name: fileName,
+    type: contentType,
+  } as unknown as Blob);
+  if (opts.templateName) {
+    formData.append("templateName", opts.templateName);
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/mobile/whatsapp/templates/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...mobileAppVariantHeaders(),
+    },
+    body: formData,
+  });
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.error || `Template media upload failed (HTTP ${res.status})`);
+  }
+
+  return data.media as WhatsAppTemplateUploadResult;
 }

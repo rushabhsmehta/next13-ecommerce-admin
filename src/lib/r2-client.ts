@@ -30,6 +30,25 @@ type UploadTemplatePdfResult = {
   bucket: string;
 };
 
+export type TemplateMediaKind = 'image' | 'video' | 'document';
+
+export type UploadTemplateMediaAssetParams = {
+  buffer: Buffer;
+  fileName?: string;
+  templateName?: string | null;
+  contentType: string;
+  mediaType: TemplateMediaKind;
+  uploadedBy?: string;
+  objectKey?: string;
+  prefix?: string;
+};
+
+export type UploadTemplateMediaAssetResult = {
+  key: string;
+  url: string;
+  bucket: string;
+};
+
 type UploadR2ObjectParams = {
   buffer: Buffer;
   fileName?: string;
@@ -263,6 +282,37 @@ export async function uploadTemplatePdf(params: UploadTemplatePdfParams): Promis
       ...(params.templateName ? { 'template-name': toSlug(params.templateName) } : {}),
     },
     contentDisposition: `inline; filename="${safeFileName}"`,
+  });
+}
+
+export async function uploadTemplateMediaAsset(
+  params: UploadTemplateMediaAssetParams
+): Promise<UploadTemplateMediaAssetResult> {
+  const fallbackExtension =
+    params.mediaType === 'document'
+      ? '.pdf'
+      : params.mediaType === 'video'
+        ? '.mp4'
+        : inferExtensionFromMime(params.contentType);
+  const safeFileName = sanitizeFileName(params.fileName, fallbackExtension);
+  const contentDisposition =
+    params.mediaType === 'document' ? `inline; filename="${safeFileName}"` : undefined;
+
+  return uploadR2Object({
+    buffer: params.buffer,
+    fileName: safeFileName,
+    contentType: params.contentType,
+    prefix: params.prefix || DEFAULT_PREFIX,
+    segments: [params.templateName ? toSlug(params.templateName) : undefined, params.mediaType],
+    objectKey: params.objectKey,
+    extension: extractExtension(safeFileName) || fallbackExtension,
+    metadata: {
+      source: 'whatsapp-template-builder',
+      'media-type': params.mediaType,
+      ...(params.uploadedBy ? { 'uploaded-by': params.uploadedBy } : {}),
+      ...(params.templateName ? { 'template-name': toSlug(params.templateName) } : {}),
+    },
+    contentDisposition,
   });
 }
 

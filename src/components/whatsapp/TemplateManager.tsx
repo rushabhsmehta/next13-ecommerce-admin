@@ -14,7 +14,6 @@ import { toast } from 'react-hot-toast';
 import {
   Search,
   Plus,
-  Edit,
   Trash2,
   Eye,
   TrendingUp,
@@ -31,10 +30,7 @@ import {
   Link as LinkIcon,
   MessageSquare,
   Workflow,
-  BarChart3,
-  Filter,
-  Download,
-  Upload
+  RefreshCcw
 } from 'lucide-react';
 
 interface Template {
@@ -44,9 +40,12 @@ interface Template {
   category: string;
   language: string;
   components: any[];
+  rejected_reason?: string;
+  last_updated_time?: number;
   quality_score?: {
-    score: number;
-    status: 'high' | 'medium' | 'low';
+    score?: number | 'GREEN' | 'YELLOW' | 'RED' | 'UNKNOWN';
+    status?: 'high' | 'medium' | 'low' | string;
+    date?: number;
   };
 }
 
@@ -54,18 +53,17 @@ interface TemplateAnalytics {
   total: number;
   byStatus: { [key: string]: number };
   byCategory: { [key: string]: number };
-  byQuality: { high: number; medium: number; low: number };
+  byQuality: { [key: string]: number };
   averageAge: number;
 }
 
-export default function TemplateManager() {
+export default function TemplateManager({ onCreate }: { onCreate?: () => void }) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [analytics, setAnalytics] = useState<TemplateAnalytics | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -74,6 +72,16 @@ export default function TemplateManager() {
   useEffect(() => {
     fetchTemplates();
     fetchAnalytics();
+  }, []);
+
+  useEffect(() => {
+    const refreshTemplates = () => {
+      fetchTemplates();
+      fetchAnalytics();
+    };
+
+    window.addEventListener('whatsapp-template-created', refreshTemplates);
+    return () => window.removeEventListener('whatsapp-template-created', refreshTemplates);
   }, []);
 
   const fetchTemplates = async () => {
@@ -157,6 +165,7 @@ export default function TemplateManager() {
       REJECTED: { variant: 'destructive', icon: XCircle },
       PAUSED: { variant: 'outline', icon: AlertCircle },
       DISABLED: { variant: 'outline', icon: XCircle },
+      IN_APPEAL: { variant: 'secondary', icon: Clock },
     };
 
     const config = statusConfig[status] || { variant: 'outline', icon: AlertCircle };
@@ -170,20 +179,36 @@ export default function TemplateManager() {
     );
   };
 
-  const getQualityBadge = (score?: { score: number; status: string }) => {
-    if (!score || typeof score.score !== 'number') return null;
+  const getQualityBadge = (quality?: Template['quality_score']) => {
+    const rawScore = quality?.score ?? quality?.status;
+    if (!rawScore) return null;
 
+    const normalized = String(rawScore).toUpperCase();
     const colors: { [key: string]: string } = {
-      high: 'bg-green-500',
-      medium: 'bg-yellow-500',
-      low: 'bg-red-500',
+      GREEN: 'bg-green-600',
+      HIGH: 'bg-green-600',
+      YELLOW: 'bg-amber-500',
+      MEDIUM: 'bg-amber-500',
+      RED: 'bg-red-600',
+      LOW: 'bg-red-600',
+      UNKNOWN: 'bg-slate-500',
     };
 
     return (
-      <Badge className={`${colors[score.status]} text-white`}>
-        {score.score.toFixed(1)} / 10
+      <Badge className={`${colors[normalized] || colors.UNKNOWN} text-white`}>
+        {normalized}
       </Badge>
     );
+  };
+
+  const formatUpdatedTime = (seconds?: number) => {
+    if (!seconds) return 'Not available';
+    const date = new Date(seconds * 1000);
+    if (Number.isNaN(date.getTime())) return 'Not available';
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(date);
   };
 
   const getCategoryIcon = (category: string) => {
@@ -210,15 +235,29 @@ export default function TemplateManager() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Template Manager</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Template Library</h1>
           <p className="text-muted-foreground">
-            Manage WhatsApp message templates and flows
+            Review Meta status, quality, and approved template content
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Template
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              fetchTemplates();
+              fetchAnalytics();
+            }}
+            disabled={loading}
+            className="gap-2"
+          >
+            <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={onCreate} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Template
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -287,7 +326,7 @@ export default function TemplateManager() {
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No templates found</p>
                 <Button
-                  onClick={() => setShowCreateDialog(true)}
+                  onClick={onCreate}
                   variant="outline"
                   className="mt-4"
                 >
@@ -307,7 +346,7 @@ export default function TemplateManager() {
                       </div>
                       {getStatusBadge(template.status)}
                     </div>
-                    <CardDescription className="flex items-center gap-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground [&>span:first-of-type]:hidden">
                       {template.language}
                       {template.quality_score && (
                         <>
@@ -315,7 +354,13 @@ export default function TemplateManager() {
                           {getQualityBadge(template.quality_score)}
                         </>
                       )}
-                    </CardDescription>
+                      {template.last_updated_time && (
+                        <>
+                          <span>|</span>
+                          <span>{formatUpdatedTime(template.last_updated_time)}</span>
+                        </>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {/* Template Preview */}
@@ -323,6 +368,18 @@ export default function TemplateManager() {
                       {template.components?.find((c) => c.type === 'BODY')?.text ||
                         'No body content'}
                     </div>
+
+                    {template.status === 'REJECTED' && template.rejected_reason && (
+                      <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+                        <span className="font-semibold">Rejected:</span> {template.rejected_reason}
+                      </div>
+                    )}
+
+                    {template.status === 'PAUSED' && (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                        This template is paused by Meta quality enforcement.
+                      </div>
+                    )}
 
                     {/* Component Badges */}
                     <div className="flex flex-wrap gap-1">
@@ -458,23 +515,30 @@ export default function TemplateManager() {
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <div className="h-3 w-3 rounded-full bg-green-500" />
-                        High Quality
+                        Green Quality
                       </span>
-                      <Badge variant="secondary">{analytics.byQuality.high}</Badge>
+                      <Badge variant="secondary">{analytics.byQuality.GREEN || analytics.byQuality.high || 0}</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                        Medium Quality
+                        Yellow Quality
                       </span>
-                      <Badge variant="secondary">{analytics.byQuality.medium}</Badge>
+                      <Badge variant="secondary">{analytics.byQuality.YELLOW || analytics.byQuality.medium || 0}</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <div className="h-3 w-3 rounded-full bg-red-500" />
-                        Low Quality
+                        Red Quality
                       </span>
-                      <Badge variant="secondary">{analytics.byQuality.low}</Badge>
+                      <Badge variant="secondary">{analytics.byQuality.RED || analytics.byQuality.low || 0}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full bg-slate-500" />
+                        Unknown Quality
+                      </span>
+                      <Badge variant="secondary">{analytics.byQuality.UNKNOWN || 0}</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -523,7 +587,26 @@ export default function TemplateManager() {
                   <Label>Language</Label>
                   <p className="font-medium">{selectedTemplate.language}</p>
                 </div>
+                <div>
+                  <Label>Quality</Label>
+                  <div className="mt-1">
+                    {getQualityBadge(selectedTemplate.quality_score) || <Badge variant="outline">Unknown</Badge>}
+                  </div>
+                </div>
+                <div>
+                  <Label>Last Updated</Label>
+                  <p className="font-medium">{formatUpdatedTime(selectedTemplate.last_updated_time)}</p>
+                </div>
               </div>
+
+              {selectedTemplate.status === 'REJECTED' && selectedTemplate.rejected_reason && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Meta rejected this template: {selectedTemplate.rejected_reason}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <div className="border rounded-lg p-4 bg-muted/50 space-y-3">
                 {selectedTemplate.components?.map((component, idx) => (

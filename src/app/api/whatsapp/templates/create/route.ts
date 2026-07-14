@@ -1,199 +1,150 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { handleApi, jsonError, noStore } from '@/lib/api-response';
+import { requireOrgAdmin } from '@/lib/authz';
+import { GraphApiError } from '@/lib/whatsapp';
 import { createTemplate, type CreateTemplateRequest } from '@/lib/whatsapp-templates';
+import {
+  buildMetaTemplatePayload,
+  validateWhatsAppTemplateDraft,
+  WHATSAPP_TEMPLATE_LIMITS,
+} from '@/lib/whatsapp-template-validation';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/whatsapp/templates/create
- * Create a new WhatsApp message template
+ * Create and submit a WhatsApp message template for Meta review.
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body: CreateTemplateRequest = await request.json();
+  return handleApi(async () => {
+    const { userId } = await auth();
 
-    // Validate required fields
-    if (!body.name || !body.language || !body.category || !body.components) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Missing required fields: name, language, category, components' 
-        },
-        { status: 400 }
-      );
+    if (!userId) {
+      return jsonError('Unauthorized', 401, 'UNAUTHORIZED');
     }
 
-    // Validate template name
-    if (!/^[a-z0-9_]+$/.test(body.name)) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Template name must contain only lowercase alphanumeric characters and underscores' 
-        },
-        { status: 400 }
-      );
-    }
+    await requireOrgAdmin(userId);
 
-    // Validate components
-    if (!Array.isArray(body.components) || body.components.length === 0) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'At least one component is required' 
-        },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const validation = validateWhatsAppTemplateDraft(body);
 
-    // Ensure body component exists
-    const hasBody = body.components.some(c => c.type === 'BODY');
-    if (!hasBody) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Template must include a BODY component' 
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate media headers have example
-    const headerComponent: any = body.components.find(c => c.type === 'HEADER');
-    if (headerComponent && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerComponent.format || '')) {
-      if (!headerComponent.example || (typeof headerComponent.example === 'object' && !headerComponent.example.header_handle)) {
-        return NextResponse.json(
+    if (!validation.success || !validation.draft) {
+      return noStore(
+        NextResponse.json(
           {
             success: false,
-            error: `${headerComponent.format} header requires an example URL (provide in 'example' field)`
+            error: 'Template validation failed',
+            issues: validation.issues,
+            readinessScore: validation.readinessScore,
           },
-          { status: 400 }
-        );
-      }
+          { status: 422 }
+        )
+      );
     }
 
-    const result = await createTemplate(body);
+    const payload = validation.payload ?? buildMetaTemplatePayload(validation.draft);
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-      message: 'Template created successfully and submitted for review',
-    });
+    try {
+      const result = await createTemplate(payload as unknown as CreateTemplateRequest);
 
-  } catch (error: any) {
-    console.error('Error creating template:', error);
-    
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || 'Failed to create template',
-        details: error.response?.data || error,
-      },
-      { status: error.status || 500 }
-    );
-  }
+      return noStore(
+        NextResponse.json({
+          success: true,
+          data: result,
+          payload,
+          readinessScore: validation.readinessScore,
+          warnings: validation.issues.filter((issue) => issue.level === 'warning'),
+          message: 'Template created successfully and submitted for Meta review',
+        })
+      );
+    } catch (error: any) {
+      if (error instanceof GraphApiError) {
+        return noStore(
+          NextResponse.json(
+            {
+              success: false,
+              error: error.message || 'Meta rejected the template request',
+              provider: 'meta',
+              meta: {
+                status: error.status,
+                code: error.response?.error?.code ?? null,
+                subcode: error.response?.error?.error_subcode ?? null,
+                details: error.response?.error?.error_data?.details ?? null,
+                raw: error.response?.error ?? null,
+              },
+              payload,
+            },
+            { status: error.status >= 400 && error.status < 600 ? error.status : 502 }
+          )
+        );
+      }
+
+      throw error;
+    }
+  });
 }
 
 /**
  * GET /api/whatsapp/templates/create
- * Get documentation for creating templates
+ * Return the internal draft contract for the template studio.
  */
 export async function GET() {
-  return NextResponse.json({
-    message: 'Create WhatsApp Message Template',
-    method: 'POST',
-    documentation: 'https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates',
-    body: {
-      name: 'Template name (lowercase, alphanumeric, underscores only)',
-      language: 'Language code (e.g., en_US, es_ES)',
-      category: 'Template category (AUTHENTICATION, MARKETING, UTILITY)',
-      parameter_format: 'Optional: "named" or "positional" (default: positional)',
-      components: [
-        {
-          type: 'HEADER (optional)',
-          format: 'TEXT | IMAGE | VIDEO | DOCUMENT | LOCATION',
-          text: 'Header text (if TEXT format)',
-          example: 'Example values for parameters',
-        },
-        {
-          type: 'BODY (required)',
-          text: 'Body text with optional {{1}} variables',
-          example: {
-            body_text: [['Example value 1', 'Example value 2']],
+  return noStore(
+    NextResponse.json({
+      message: 'Create WhatsApp Message Template',
+      method: 'POST',
+      documentation: 'https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates',
+      limits: WHATSAPP_TEMPLATE_LIMITS,
+      body: {
+        name: 'Template name. Lowercase letters, numbers, and underscores only.',
+        language: 'Language code, for example en_US or hi.',
+        category: 'AUTHENTICATION, MARKETING, or UTILITY.',
+        parameterFormat: 'named or positional. New studio drafts default to named; Meta payloads use NAMED or POSITIONAL.',
+        allowCategoryChange: 'Optional boolean. Lets Meta recategorize the template when eligible.',
+        examples: {
+          header: { customer_name: 'Aagam Guest' },
+          body: { booking_id: 'BK-1024' },
+          buttons: {
+            0: { trip_slug: 'kashmir-summer' },
           },
         },
-        {
-          type: 'FOOTER (optional)',
-          text: 'Footer text (no variables)',
-        },
-        {
-          type: 'BUTTONS (optional)',
-          buttons: [
-            { type: 'QUICK_REPLY | PHONE_NUMBER | URL | COPY_CODE | FLOW | OTP' },
-          ],
-        },
-      ],
-    },
-    examples: {
-      simple_text: {
-        name: 'hello_world',
-        language: 'en_US',
-        category: 'UTILITY',
-        components: [
-          {
-            type: 'BODY',
-            text: 'Hello! Welcome to our service.',
-          },
-        ],
-      },
-      with_parameters: {
-        name: 'order_confirmation',
-        language: 'en_US',
-        category: 'UTILITY',
         components: [
           {
             type: 'HEADER',
-            format: 'TEXT',
-            text: 'Order #{{1}}',
-            example: { header_text: ['12345'] },
+            format: 'TEXT | IMAGE | VIDEO | DOCUMENT | LOCATION',
+            text: 'Required for TEXT headers.',
+            mediaHandle: 'Required for IMAGE, VIDEO, and DOCUMENT headers.',
+            mediaUrl: 'Optional public URL used only for preview.',
           },
           {
             type: 'BODY',
-            text: 'Thank you {{1}}! Your order has been confirmed. Total: ${{2}}',
-            example: { body_text: [['John Doe', '99.99']] },
+            text: 'Required message body. Supports {{named_param}} or {{1}} variables.',
           },
           {
             type: 'FOOTER',
-            text: 'Reply STOP to unsubscribe',
-          },
-          {
-            type: 'BUTTONS',
-            buttons: [
-              { type: 'QUICK_REPLY', text: 'Track Order' },
-              { type: 'URL', text: 'View Details', url: 'https://example.com/order/{{1}}', example: ['12345'] },
-            ],
-          },
-        ],
-      },
-      with_flow: {
-        name: 'booking_flow',
-        language: 'en_US',
-        category: 'UTILITY',
-        components: [
-          {
-            type: 'BODY',
-            text: 'Book your appointment now!',
+            text: 'Optional footer, no variables.',
           },
           {
             type: 'BUTTONS',
             buttons: [
               {
-                type: 'FLOW',
-                text: 'Book Now',
-                icon: 'PROMOTION',
-                flow_action: 'navigate',
-                navigate_screen: 'BOOKING_SCREEN',
+                type: 'QUICK_REPLY | PHONE_NUMBER | URL | FLOW | COPY_CODE',
+                text: 'Required except COPY_CODE.',
+                url: 'Required for URL buttons.',
+                phone_number: 'Required for PHONE_NUMBER buttons.',
+                flow_id: 'Required for FLOW buttons.',
+                example: 'Required for COPY_CODE and URL variables.',
               },
             ],
           },
         ],
+        auth: {
+          addSecurityRecommendation: true,
+          codeExpirationMinutes: 10,
+          copyCodeButtonText: 'Copy code',
+        },
       },
-    },
-  });
+    })
+  );
 }

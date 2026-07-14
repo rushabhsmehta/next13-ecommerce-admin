@@ -13,23 +13,22 @@ export default function WhatsAppTemplatesPage() {
 
   return (
     <div className="space-y-8 p-6">
-      {/* Enhanced Header with Gradient */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 p-8 text-white shadow-xl">
-        <div className="absolute inset-0 bg-grid-white/10" />
+      {/* Premium Header */}
+      <div className="relative overflow-hidden rounded-lg border bg-background p-6 shadow-sm">
         <div className="relative z-10 flex items-center justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <FileText className="h-8 w-8 text-white" />
+              <div className="rounded-lg bg-emerald-50 p-3 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                <FileText className="h-8 w-8" />
               </div>
-              <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
+              <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
                 Message Templates
               </Badge>
             </div>
             <div>
-              <h1 className="text-4xl font-bold">WhatsApp Templates</h1>
-              <p className="text-lg text-blue-50 mt-2">
-                Create and manage pre-approved message templates for WhatsApp Business
+              <h1 className="text-3xl font-semibold tracking-tight">WhatsApp Templates</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                Create approval-ready WhatsApp Business templates, preview them, and monitor Meta review states.
               </p>
             </div>
           </div>
@@ -51,7 +50,7 @@ export default function WhatsAppTemplatesPage() {
 
         {/* Templates List Tab */}
         <TabsContent value="list" className="space-y-4">
-          <TemplateManager />
+          <TemplateManager onCreate={() => setActiveTab('create')} />
         </TabsContent>
 
         {/* Create Template Tab */}

@@ -73,7 +73,7 @@ export function createVariantBuildDraft(
   return draft;
 }
 
-export function copyFirstDayBuildToAllDays(
+export function copyFirstDayRoomsAndTransportToAllDays(
   draft: VariantBuildDraft,
   itineraryIds: string[]
 ): VariantBuildDraft {
@@ -81,7 +81,6 @@ export function copyFirstDayBuildToAllDays(
   const firstId = itineraryIds[0];
   const firstRooms = draft.roomsByItinerary[firstId] ?? [];
   const firstTransport = draft.transportByItinerary[firstId] ?? [];
-  const firstHotel = draft.hotelsByItinerary[firstId] ?? "";
   const next = cloneVariantBuildDraft(draft);
 
   for (const itineraryId of itineraryIds) {
@@ -91,6 +90,21 @@ export function copyFirstDayBuildToAllDays(
     next.transportByItinerary[itineraryId] = JSON.parse(
       JSON.stringify(firstTransport)
     ) as VariantTransportDetailInput[];
+  }
+
+  return next;
+}
+
+export function copyFirstDayHotelToAllDays(
+  draft: VariantBuildDraft,
+  itineraryIds: string[]
+): VariantBuildDraft {
+  if (itineraryIds.length === 0) return cloneVariantBuildDraft(draft);
+  const firstId = itineraryIds[0];
+  const firstHotel = draft.hotelsByItinerary[firstId] ?? "";
+  const next = cloneVariantBuildDraft(draft);
+
+  for (const itineraryId of itineraryIds) {
     next.hotelsByItinerary[itineraryId] = firstHotel;
   }
 

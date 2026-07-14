@@ -34,6 +34,10 @@ import {
   type PricingComponentItem,
   type VariantDiscountType,
 } from "@/lib/variant-pricing-discount";
+import {
+  copyFirstDayHotelForVariant,
+  copyFirstDayRoomsAndTransportForVariant,
+} from "@/lib/tour-query-variant-copy";
 
 /** Returns a fresh shallow-clone of each DEFAULT_PRICING_SECTION item to avoid shared-reference mutations. */
 const cloneDefaultPricingSection = () => DEFAULT_PRICING_SECTION.map(item => ({ ...item }));
@@ -1368,70 +1372,86 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     }
   };
 
-  // Copy first day's room allocations, transport details, and hotel to all days for a variant
-  const copyFirstDayToAllDays = (variantId: string) => {
+  const copyFirstDayRoomsAndTransportToAllDays = (variantId: string, sourceItineraries = itineraries) => {
     try {
-      const currentRooms = variantRoomAllocations || {};
-      const roomVariantData = currentRooms[variantId] || {};
-
-      const currentTransport = variantTransportDetails || {};
-      const transportVariantData = currentTransport[variantId] || {};
-
-      if (!itineraries || itineraries.length === 0) {
+      if (!sourceItineraries || sourceItineraries.length === 0) {
         toast.error('No itineraries available');
         return;
       }
 
-      // Get first day's data
-      const firstItinerary = itineraries[0];
-      const firstDayRooms = roomVariantData[firstItinerary.id] || [];
-      const firstDayTransports = transportVariantData[firstItinerary.id] || [];
-      const firstDayHotelId = resolveVariantHotelId(
-        { id: variantId, variantHotelMappings: [] },
-        firstItinerary,
-        0
-      );
+      const copyResult = copyFirstDayRoomsAndTransportForVariant({
+        variantId,
+        itineraries: sourceItineraries,
+        variantRoomAllocations,
+        variantTransportDetails,
+      });
 
-      if (firstDayRooms.length === 0 && firstDayTransports.length === 0 && !firstDayHotelId) {
-        toast.error('No room allocations, transport, or hotel on first day to copy');
+      if (!copyResult) {
+        toast.error('No itineraries available');
         return;
       }
 
-      // Copy to all other days
-      const newRoomVariantData = { ...roomVariantData };
-      const newTransportVariantData = { ...transportVariantData };
-      const currentOverrides = variantHotelOverrides || {};
-      const newHotelOverrides = { ...(currentOverrides[variantId] || {}) };
-
-      itineraries.forEach((itinerary) => {
-        // Deep copy the allocations to avoid reference issues
-        newRoomVariantData[itinerary.id] = JSON.parse(JSON.stringify(firstDayRooms));
-        newTransportVariantData[itinerary.id] = JSON.parse(JSON.stringify(firstDayTransports));
-        if (firstDayHotelId) {
-          newHotelOverrides[itinerary.id] = firstDayHotelId;
-        }
-      });
-
-      form.setValue('variantRoomAllocations', {
-        ...currentRooms,
-        [variantId]: newRoomVariantData
-      }, { shouldValidate: false, shouldDirty: true });
-
-      form.setValue('variantTransportDetails', {
-        ...currentTransport,
-        [variantId]: newTransportVariantData
-      }, { shouldValidate: false, shouldDirty: true });
-
-      if (firstDayHotelId) {
-        form.setValue('variantHotelOverrides', {
-          ...currentOverrides,
-          [variantId]: newHotelOverrides
-        }, { shouldValidate: false, shouldDirty: true });
+      if (copyResult.firstDayRooms.length === 0 && copyResult.firstDayTransports.length === 0) {
+        toast.error('No room allocations or transport on first day to copy');
+        return;
       }
 
-      toast.success(`Copied room, transport & hotel to all ${itineraries.length} days`);
+      form.setValue('variantRoomAllocations', copyResult.variantRoomAllocations, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+
+      form.setValue('variantTransportDetails', copyResult.variantTransportDetails, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+
+      toast.success(`Copied room allocations and transport to all ${copyResult.copiedDayCount} days`);
     } catch (error) {
-      console.error('Error copying details to all days:', error);
+      console.error('Error copying room and transport details to all days:', error);
+      toast.error('Failed to copy. Please try again.');
+    }
+  };
+
+  const copyFirstDayHotelToAllDays = (
+    variantId: string,
+    variant: { id: string; variantHotelMappings?: any[] },
+    sourceItineraries = itineraries
+  ) => {
+    try {
+      if (!sourceItineraries || sourceItineraries.length === 0) {
+        toast.error('No itineraries available');
+        return;
+      }
+
+      const firstItinerary = sourceItineraries[0];
+      const firstDayHotelId = resolveVariantHotelId(variant, firstItinerary, 0);
+
+      if (!firstDayHotelId) {
+        toast.error('No hotel on first day to copy');
+        return;
+      }
+
+      const copyResult = copyFirstDayHotelForVariant({
+        variantId,
+        itineraries: sourceItineraries,
+        variantHotelOverrides,
+        hotelId: firstDayHotelId,
+      });
+
+      if (!copyResult) {
+        toast.error('No itineraries available');
+        return;
+      }
+
+      form.setValue('variantHotelOverrides', copyResult.variantHotelOverrides, {
+        shouldValidate: false,
+        shouldDirty: true,
+      });
+
+      toast.success(`Copied Day 1 hotel to all ${copyResult.copiedDayCount} days`);
+    } catch (error) {
+      console.error('Error copying hotel to all days:', error);
       toast.error('Failed to copy. Please try again.');
     }
   };
@@ -1720,10 +1740,25 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                 <TabsContent value="hotels" className="mt-4">
                   <Card className="shadow-sm border border-slate-200/70">
                     <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-100 to-transparent">
-                      <CardTitle className="text-sm flex items-center gap-2 font-semibold">
-                        <HotelIcon className="h-4 w-4 text-blue-600" />
-                        Hotel Selection per Day
-                      </CardTitle>
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                          <HotelIcon className="h-4 w-4 text-blue-600" />
+                          Hotel Selection per Day
+                        </CardTitle>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            copyFirstDayHotelToAllDays(cVariant.id, cVariant, queryItineraries || [])
+                          }
+                          className="h-8 text-xs border-blue-300 hover:bg-blue-50"
+                          disabled={loading || !queryItineraries || queryItineraries.length === 0}
+                        >
+                          <Copy className="h-3.5 w-3.5 mr-1.5" />
+                          Copy Day 1 Hotel
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent className="pt-4">
                       {(!queryItineraries || queryItineraries.length === 0) ? (
@@ -1795,12 +1830,17 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                               type="button"
                               size="sm"
                               variant="outline"
-                              onClick={() => copyFirstDayToAllDays(cVariant.id)}
+                              onClick={() =>
+                                copyFirstDayRoomsAndTransportToAllDays(
+                                  cVariant.id,
+                                  queryItineraries || []
+                                )
+                              }
                               className="h-9 text-xs border-violet-300 hover:bg-violet-50 text-violet-700"
                               disabled={loading || !queryItineraries || queryItineraries.length === 0}
                             >
                               <Copy className="h-3.5 w-3.5 mr-1.5" />
-                              Copy Day 1 (All)
+                              Copy Day 1 Rooms + Transport
                             </Button>
 
                             <div className="flex gap-2 flex-1">
@@ -2367,10 +2407,23 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
               <TabsContent value="hotels" className="mt-4">
                 <Card className="shadow-sm border border-slate-200/70">
                   <CardHeader className="pb-3 border-b bg-gradient-to-r from-blue-50 via-blue-100 to-transparent">
-                    <CardTitle className="text-sm flex items-center gap-2 font-semibold">
-                      <HotelIcon className="h-4 w-4 text-blue-600" />
-                      Hotel Selection ({itineraries.length})
-                    </CardTitle>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <CardTitle className="text-sm flex items-center gap-2 font-semibold">
+                        <HotelIcon className="h-4 w-4 text-blue-600" />
+                        Hotel Selection ({itineraries.length})
+                      </CardTitle>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyFirstDayHotelToAllDays(variant.id, variant)}
+                        className="h-8 text-xs border-blue-300 hover:bg-blue-50"
+                        disabled={itineraries.length === 0}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1.5" />
+                        Copy Day 1 Hotel
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-4">
                     {itineraries.length === 0 ? (
@@ -2591,12 +2644,12 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                             type="button"
                             size="sm"
                             variant="outline"
-                            onClick={() => copyFirstDayToAllDays(variant.id)}
+                            onClick={() => copyFirstDayRoomsAndTransportToAllDays(variant.id)}
                             className="h-9 text-xs border-blue-300 hover:bg-blue-50"
                             disabled={itineraries.length === 0}
                           >
                             <Copy className="h-3.5 w-3.5 mr-1.5" />
-                            Copy Day 1 (All)
+                            Copy Day 1 Rooms + Transport
                           </Button>
 
                           <div className="flex gap-2 flex-1">

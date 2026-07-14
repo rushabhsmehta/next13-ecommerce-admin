@@ -30,7 +30,7 @@ import { absoluteAdminUrl, tourQueryHotelUpdatePath } from "@/lib/tour-queries-w
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   createTourQueryPricingClient,
-  type VariantBuildDraft,
+  type VariantBuildUpdateInput,
   type VariantComparisonItem,
   type VariantComparisonResponse,
 } from "@/lib/tour-query-pricing";
@@ -38,7 +38,7 @@ import {
   formatDiscountLabel,
   hasAppliedVariantDiscount,
 } from "@/lib/variant-pricing-discount";
-import { VariantBuildPanel } from "./VariantBuildPanel";
+import { VariantBuildPanel, type VariantBuildSaveScope } from "./VariantBuildPanel";
 import { VariantComparisonMatrix } from "./VariantComparisonMatrix";
 
 function formatINR(n: number | null | undefined): string {
@@ -148,12 +148,13 @@ function TourQueryVariantsPanelInner({
   const saveVariantBuild = useCallback(
     async (
       variant: VariantComparisonItem,
-      draft: VariantBuildDraft
+      input: VariantBuildUpdateInput,
+      scope: VariantBuildSaveScope
     ) => {
       if (!id || buildSavingVariantId) return;
       setBuildSavingVariantId(variant.id);
       try {
-        const res = await client.updateVariantBuild(id, variant.id, draft);
+        const res = await client.updateVariantBuild(id, variant.id, input);
         setData((prev) =>
           prev?.build
             ? {
@@ -172,14 +173,18 @@ function TourQueryVariantsPanelInner({
         setActiveBuildDirty(false);
         Alert.alert(
           "Saved",
-          `Hotels, rooms, and transport saved for "${variant.name}".`
+          scope === "hotels"
+            ? `Hotels saved for "${variant.name}".`
+            : `Rooms and transport saved for "${variant.name}".`
         );
       } catch (err) {
         Alert.alert(
           "Save failed",
           err instanceof ApiError
             ? err.message
-            : "Could not save variant hotels, rooms, and transport."
+            : scope === "hotels"
+              ? "Could not save variant hotels."
+              : "Could not save variant rooms and transport."
         );
       } finally {
         setBuildSavingVariantId(null);

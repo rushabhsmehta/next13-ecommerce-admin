@@ -1,6 +1,7 @@
 import {
   cloneVariantBuildDraft,
-  copyFirstDayBuildToAllDays,
+  copyFirstDayHotelToAllDays,
+  copyFirstDayRoomsAndTransportToAllDays,
   createVariantBuildDraft,
   formatRoomAllocationLine,
   formatTransportLine,
@@ -103,16 +104,24 @@ describe("variant-build-utils", () => {
     );
   });
 
-  it("copies Day 1 hotels rooms and transport to every day", () => {
+  it("copies Day 1 rooms and transport to every day without changing hotels", () => {
     const source = createVariantBuildDraft(variant, build);
-    const copied = copyFirstDayBuildToAllDays(source, ["day1", "day2"]);
+    const copied = copyFirstDayRoomsAndTransportToAllDays(source, ["day1", "day2"]);
     expect(copied.roomsByItinerary.day2).toEqual(copied.roomsByItinerary.day1);
     expect(copied.transportByItinerary.day2).toEqual(copied.transportByItinerary.day1);
-    expect(copied.hotelsByItinerary.day2).toBe(copied.hotelsByItinerary.day1);
+    expect(copied.hotelsByItinerary.day2).toBe("hotel-day2");
     expect(copied.roomsByItinerary.day2).not.toBe(copied.roomsByItinerary.day1);
     expect(copied.roomsByItinerary.day2[0].extraBeds).not.toBe(
       copied.roomsByItinerary.day1[0].extraBeds
     );
+  });
+
+  it("copies Day 1 hotel to every day without changing rooms or transport", () => {
+    const source = createVariantBuildDraft(variant, build);
+    const copied = copyFirstDayHotelToAllDays(source, ["day1", "day2"]);
+    expect(copied.hotelsByItinerary.day2).toBe("hotel-override");
+    expect(copied.roomsByItinerary.day2).toEqual([]);
+    expect(copied.transportByItinerary.day2).toEqual([]);
   });
 
   it("deep clones a combined room and transport draft", () => {

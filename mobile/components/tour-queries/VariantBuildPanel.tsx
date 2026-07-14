@@ -19,13 +19,15 @@ import type { VariantBuildTabId } from "./types";
 import type {
   VariantBuildContext,
   VariantBuildDraft,
+  VariantBuildUpdateInput,
   VariantComparisonItem,
   VariantRoomAllocationInput,
   VariantTransportDetailInput,
 } from "@/lib/tour-query-pricing";
 import {
   cloneVariantBuildDraft,
-  copyFirstDayBuildToAllDays,
+  copyFirstDayHotelToAllDays,
+  copyFirstDayRoomsAndTransportToAllDays,
   createVariantBuildDraft,
   formatRoomAllocationLine,
   formatTransportLine,
@@ -139,11 +141,14 @@ export interface VariantBuildPanelProps {
   canWriteSales: boolean;
   onSaveBuild?: (
     variant: VariantComparisonItem,
-    draft: VariantBuildDraft
+    input: VariantBuildUpdateInput,
+    scope: VariantBuildSaveScope
   ) => Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
   savingBuild?: boolean;
 }
+
+export type VariantBuildSaveScope = "hotels" | "rooms";
 
 export function VariantBuildPanel({
   queryId,
@@ -188,6 +193,27 @@ export function VariantBuildPanel({
   const dirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(persistedDraft),
     [draft, persistedDraft]
+  );
+  const hotelsDirty = useMemo(
+    () => JSON.stringify(draft.hotelsByItinerary) !== JSON.stringify(persistedDraft.hotelsByItinerary),
+    [draft.hotelsByItinerary, persistedDraft.hotelsByItinerary]
+  );
+  const roomsTransportDirty = useMemo(
+    () =>
+      JSON.stringify({
+        roomsByItinerary: draft.roomsByItinerary,
+        transportByItinerary: draft.transportByItinerary,
+      }) !==
+      JSON.stringify({
+        roomsByItinerary: persistedDraft.roomsByItinerary,
+        transportByItinerary: persistedDraft.transportByItinerary,
+      }),
+    [
+      draft.roomsByItinerary,
+      draft.transportByItinerary,
+      persistedDraft.roomsByItinerary,
+      persistedDraft.transportByItinerary,
+    ]
   );
 
   useEffect(() => {
@@ -342,23 +368,45 @@ export function VariantBuildPanel({
     );
   };
 
-  const confirmCopyDayOne = () => {
+  const confirmCopyDayOneHotel = () => {
     const firstId = itineraryIds[0];
-    const firstRooms = firstId ? draft.roomsByItinerary[firstId] ?? [] : [];
-    const firstTransport = firstId ? draft.transportByItinerary[firstId] ?? [] : [];
     const firstHotel = firstId ? draft.hotelsByItinerary[firstId] ?? "" : "";
-    if (firstRooms.length === 0 && firstTransport.length === 0 && !firstHotel) {
-      Alert.alert("Nothing to copy", "Add a hotel, room, or transport entry to Day 1 first.");
+    if (!firstHotel) {
+      Alert.alert("Nothing to copy", "Select a hotel on Day 1 first.");
       return;
     }
     Alert.alert(
-      "Copy Day 1 to all days?",
-      "This replaces the current hotel, room allocations, and transport details on every day.",
+      "Copy Day 1 hotel to all days?",
+      "This replaces only the hotel selection on every day. Rooms and transport stay unchanged.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Copy",
-          onPress: () => setDraft((previous) => copyFirstDayBuildToAllDays(previous, itineraryIds)),
+          onPress: () => setDraft((previous) => copyFirstDayHotelToAllDays(previous, itineraryIds)),
+        },
+      ]
+    );
+  };
+
+  const confirmCopyDayOneRoomsAndTransport = () => {
+    const firstId = itineraryIds[0];
+    const firstRooms = firstId ? draft.roomsByItinerary[firstId] ?? [] : [];
+    const firstTransport = firstId ? draft.transportByItinerary[firstId] ?? [] : [];
+    if (firstRooms.length === 0 && firstTransport.length === 0) {
+      Alert.alert("Nothing to copy", "Add a room or transport entry to Day 1 first.");
+      return;
+    }
+    Alert.alert(
+      "Copy Day 1 rooms and transport?",
+      "This replaces only room allocations and transport details on every day. Hotels stay unchanged.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Copy",
+          onPress: () =>
+            setDraft((previous) =>
+              copyFirstDayRoomsAndTransportToAllDays(previous, itineraryIds)
+            ),
         },
       ]
     );
@@ -367,12 +415,20 @@ export function VariantBuildPanel({
   const confirmCopyVariant = (sourceVariant: VariantComparisonItem) => {
     Alert.alert(
       "Copy variant details?",
-      `Replace the current hotels, room allocations, and transport details with "${sourceVariant.name}"?`,
+      `Replace the current room allocations and transport details with "${sourceVariant.name}"? Hotels stay unchanged.`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Copy",
-          onPress: () => setDraft(createVariantBuildDraft(sourceVariant, build)),
+          onPress: () =>
+            setDraft((previous) => {
+              const sourceDraft = createVariantBuildDraft(sourceVariant, build);
+              return {
+                ...previous,
+                roomsByItinerary: sourceDraft.roomsByItinerary,
+                transportByItinerary: sourceDraft.transportByItinerary,
+              };
+            }),
         },
       ]
     );
@@ -466,9 +522,34 @@ export function VariantBuildPanel({
     updateRoom(picker.itineraryId, picker.roomIndex, { [picker.field]: option.id });
   };
 
-  const saveBuild = () => {
-    if (!onSaveBuild || savingBuild || !dirty) return;
-    void onSaveBuild(variant, normalizeBuildDraftForSave(draft));
+  const resetHotels = () => {
+    setDraft((previous) => ({
+      ...previous,
+      hotelsByItinerary: cloneVariantBuildDraft(persistedDraft).hotelsByItinerary,
+    }));
+  };
+
+  const resetRoomsAndTransport = () => {
+    const persisted = cloneVariantBuildDraft(persistedDraft);
+    setDraft((previous) => ({
+      ...previous,
+      roomsByItinerary: persisted.roomsByItinerary,
+      transportByItinerary: persisted.transportByItinerary,
+    }));
+  };
+
+  const saveBuild = (scope: VariantBuildSaveScope) => {
+    const scopeDirty = scope === "hotels" ? hotelsDirty : roomsTransportDirty;
+    if (!onSaveBuild || savingBuild || !scopeDirty) return;
+    const normalized = normalizeBuildDraftForSave(draft);
+    const input: VariantBuildUpdateInput =
+      scope === "hotels"
+        ? { hotelsByItinerary: normalized.hotelsByItinerary }
+        : {
+            roomsByItinerary: normalized.roomsByItinerary,
+            transportByItinerary: normalized.transportByItinerary,
+          };
+    void onSaveBuild(variant, input, scope);
   };
 
   return (
@@ -495,10 +576,10 @@ export function VariantBuildPanel({
                     accessibilityLabel="Copy Day 1 hotel to all days"
                     style={styles.copyBtn}
                     disabled={savingBuild}
-                    onPress={confirmCopyDayOne}
+                    onPress={confirmCopyDayOneHotel}
                   >
                     <Ionicons name="copy-outline" size={14} color={Colors.primary} />
-                    <Text style={styles.copyBtnText}>Copy Day 1 to all</Text>
+                    <Text style={styles.copyBtnText}>Copy Day 1 Hotel</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -559,9 +640,9 @@ export function VariantBuildPanel({
                     testID={`variant-build-hotels-reset-${variant.id}`}
                     accessibilityRole="button"
                     accessibilityLabel="Reset hotel edits"
-                    style={[styles.saveBtn, styles.resetBtn, !dirty ? styles.disabledBtn : null]}
-                    disabled={savingBuild || !dirty}
-                    onPress={() => setDraft(cloneVariantBuildDraft(persistedDraft))}
+                    style={[styles.saveBtn, styles.resetBtn, !hotelsDirty ? styles.disabledBtn : null]}
+                    disabled={savingBuild || !hotelsDirty}
+                    onPress={resetHotels}
                   >
                     <Text style={styles.resetBtnText}>Reset</Text>
                   </Pressable>
@@ -572,10 +653,10 @@ export function VariantBuildPanel({
                     style={[
                       styles.saveBtn,
                       styles.primarySaveBtn,
-                      !dirty || savingBuild ? styles.disabledBtn : null,
+                      !hotelsDirty || savingBuild ? styles.disabledBtn : null,
                     ]}
-                    disabled={!dirty || savingBuild}
-                    onPress={saveBuild}
+                    disabled={!hotelsDirty || savingBuild}
+                    onPress={() => saveBuild("hotels")}
                   >
                     <Ionicons name="save-outline" size={15} color="#fff" />
                     <Text style={styles.primarySaveText}>
@@ -603,10 +684,10 @@ export function VariantBuildPanel({
                     accessibilityLabel="Copy Day 1 rooms and transport to all days"
                     style={styles.copyBtn}
                     disabled={savingBuild}
-                    onPress={confirmCopyDayOne}
+                    onPress={confirmCopyDayOneRoomsAndTransport}
                   >
                     <Ionicons name="copy-outline" size={14} color={Colors.primary} />
-                    <Text style={styles.copyBtnText}>Copy Day 1</Text>
+                    <Text style={styles.copyBtnText}>Copy Day 1 Rooms + Transport</Text>
                   </Pressable>
                   <Pressable
                     testID={`variant-build-copy-variant-${variant.id}`}
@@ -1068,9 +1149,13 @@ export function VariantBuildPanel({
                     testID={`variant-build-reset-${variant.id}`}
                     accessibilityRole="button"
                     accessibilityLabel="Reset room and transport edits"
-                    style={[styles.saveBtn, styles.resetBtn, !dirty ? styles.disabledBtn : null]}
-                    disabled={savingBuild || !dirty}
-                    onPress={() => setDraft(cloneVariantBuildDraft(persistedDraft))}
+                    style={[
+                      styles.saveBtn,
+                      styles.resetBtn,
+                      !roomsTransportDirty ? styles.disabledBtn : null,
+                    ]}
+                    disabled={savingBuild || !roomsTransportDirty}
+                    onPress={resetRoomsAndTransport}
                   >
                     <Text style={styles.resetBtnText}>Reset</Text>
                   </Pressable>
@@ -1081,10 +1166,10 @@ export function VariantBuildPanel({
                     style={[
                       styles.saveBtn,
                       styles.primarySaveBtn,
-                      !dirty || savingBuild ? styles.disabledBtn : null,
+                      !roomsTransportDirty || savingBuild ? styles.disabledBtn : null,
                     ]}
-                    disabled={!dirty || savingBuild}
-                    onPress={saveBuild}
+                    disabled={!roomsTransportDirty || savingBuild}
+                    onPress={() => saveBuild("rooms")}
                   >
                     <Ionicons name="save-outline" size={15} color="#fff" />
                     <Text style={styles.primarySaveText}>

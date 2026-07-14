@@ -76,7 +76,7 @@ describe("VariantBuildPanel", () => {
     jest.restoreAllMocks();
   });
 
-  it("edits complete room and transport details and saves one atomic draft", () => {
+  it("edits complete room and transport details and saves only room payload", () => {
     const onSaveBuild = jest.fn(async () => {});
     const onDirtyChange = jest.fn();
     renderPanel({ onSaveBuild, onDirtyChange });
@@ -114,7 +114,8 @@ describe("VariantBuildPanel", () => {
 
     expect(onDirtyChange).toHaveBeenCalledWith(true);
     expect(onSaveBuild).toHaveBeenCalledTimes(1);
-    const [, draft] = onSaveBuild.mock.calls[0];
+    const [, draft, scope] = onSaveBuild.mock.calls[0];
+    expect(scope).toBe("rooms");
     expect(draft.roomsByItinerary.day1[0]).toMatchObject({
       customRoomType: "Family Suite",
       useCustomRoomType: true,
@@ -129,7 +130,7 @@ describe("VariantBuildPanel", () => {
       quantity: 1,
       description: "Airport pickup",
     });
-    expect(draft.hotelsByItinerary).toEqual({ day1: "", day2: "" });
+    expect(draft.hotelsByItinerary).toBeUndefined();
     expect(draft.roomsByItinerary.day2).toEqual([]);
     expect(draft.transportByItinerary.day2).toEqual([]);
   });
@@ -140,7 +141,7 @@ describe("VariantBuildPanel", () => {
     expect(screen.getByTestId("variant-build-hotels-save-luxury-snapshot")).toBeTruthy();
   });
 
-  it("copies Day 1 to all days with independent room and transport arrays", () => {
+  it("copies Day 1 rooms and transport without saving hotel overrides", () => {
     jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
       buttons?.find((button) => button.text === "Copy")?.onPress?.();
     });
@@ -153,11 +154,39 @@ describe("VariantBuildPanel", () => {
     fireEvent.press(screen.getByTestId("variant-build-copy-day-one-luxury-snapshot"));
     fireEvent.press(screen.getByTestId("variant-build-rooms-save-luxury-snapshot"));
 
-    const [, draft] = onSaveBuild.mock.calls[0];
+    const [, draft, scope] = onSaveBuild.mock.calls[0];
+    expect(scope).toBe("rooms");
     expect(draft.roomsByItinerary.day2).toEqual(draft.roomsByItinerary.day1);
     expect(draft.transportByItinerary.day2).toEqual(draft.transportByItinerary.day1);
+    expect(draft.hotelsByItinerary).toBeUndefined();
     expect(draft.roomsByItinerary.day2).not.toBe(draft.roomsByItinerary.day1);
     expect(draft.transportByItinerary.day2).not.toBe(draft.transportByItinerary.day1);
+  });
+
+  it("copies Day 1 hotel without saving room or transport payloads", () => {
+    jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
+      buttons?.find((button) => button.text === "Copy")?.onPress?.();
+    });
+    const onSaveBuild = jest.fn(async () => {});
+    renderPanel({
+      onSaveBuild,
+      variant: {
+        ...luxury,
+        hotelSnapshots: [
+          { dayNumber: 1, hotelId: "hotel-day1", hotelName: "Day 1 Hotel" },
+          { dayNumber: 2, hotelId: "hotel-day2", hotelName: "Day 2 Hotel" },
+        ],
+      },
+    });
+
+    fireEvent.press(screen.getByTestId("variant-build-copy-day-one-hotels-luxury-snapshot"));
+    fireEvent.press(screen.getByTestId("variant-build-hotels-save-luxury-snapshot"));
+
+    const [, draft, scope] = onSaveBuild.mock.calls[0];
+    expect(scope).toBe("hotels");
+    expect(draft.hotelsByItinerary).toEqual({ day1: "hotel-day1", day2: "hotel-day1" });
+    expect(draft.roomsByItinerary).toBeUndefined();
+    expect(draft.transportByItinerary).toBeUndefined();
   });
 
   it("renders persisted data read-only without mutation actions", () => {

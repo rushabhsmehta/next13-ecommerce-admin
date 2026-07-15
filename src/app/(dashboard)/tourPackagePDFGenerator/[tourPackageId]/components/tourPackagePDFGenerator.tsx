@@ -19,10 +19,17 @@ import {
   brandGradients,
   companyInfo,
   parsePolicyField,
-  renderParagraphList,
+  renderBulletList,
   sanitizeText,
 } from "@/lib/pdf";
 import { formatItineraryDayHeader } from "@/lib/utils";
+
+type FormattedPackageTitle = {
+  primary: string;
+  secondary: string;
+  duration: string;
+  meta: string[];
+};
 
 type PricingRow = {
   name?: string;
@@ -61,59 +68,62 @@ interface TourPackagePDFGeneratorProps {
 const containerStyle = `
   max-width: 820px;
   margin: 0 auto;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: ${brandColors.text};
   font-size: 14px;
+  line-height: 1.5;
 `;
 
 const cardStyle = `
   background: ${brandColors.white};
   border: 1px solid ${brandColors.border};
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 `;
 
 const headerStyleAlt = `
   background: ${brandColors.tableHeaderBg};
   border-bottom: 1px solid ${brandColors.border};
-  padding: 12px 16px;
+  padding: 14px 18px;
 `;
 
-const contentStyle = "padding: 16px;";
+const contentStyle = "padding: 18px;";
 
 const sectionTitleStyle = `
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: ${brandColors.text};
+  letter-spacing: 0.2px;
 `;
 
 const tableStyle = `
   width: 100%;
   border-collapse: collapse;
-  margin: 12px 0;
+  margin: 4px 0;
   background: ${brandColors.white};
   border: 1px solid ${brandColors.border};
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
 `;
 
 const tableHeaderStyle = `
   background: ${brandColors.tableHeaderBg};
-  color: ${brandColors.text};
-  padding: 10px 12px;
+  color: ${brandColors.slateText};
+  padding: 11px 14px;
   text-align: left;
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: 700;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  border-bottom: 1px solid ${brandColors.border};
 `;
 
 const tableCellStyle = `
-  padding: 10px 12px;
-  border-bottom: 1px solid ${brandColors.border};
+  padding: 12px 14px;
+  border-bottom: 1px solid ${brandColors.softDivider};
   color: ${brandColors.text};
   font-size: 13px;
   vertical-align: top;
@@ -199,6 +209,52 @@ function formatMoney(value: any): string {
   const numeric = Number.parseFloat(text.replace(/[^\d.-]/g, ""));
   if (Number.isNaN(numeric)) return text;
   return `INR ${numeric.toLocaleString("en-IN")}`;
+}
+
+/** Split pipe-heavy package names into a cleaner title hierarchy for PDF covers. */
+function formatPackageTitle(name: string): FormattedPackageTitle {
+  const parts = safe(name, "Tour Package")
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 1) {
+    return { primary: parts[0] || "Tour Package", secondary: "", duration: "", meta: [] };
+  }
+
+  const durationIdx = parts.findIndex((part) => /night|day/i.test(part));
+  const duration = durationIdx >= 0 ? parts[durationIdx] : "";
+  const rest = parts.filter((_, index) => index !== durationIdx);
+  const primary = rest[0] || parts[0];
+  const secondary = rest[1] || "";
+  const meta = rest.slice(2);
+
+  return { primary, secondary, duration, meta };
+}
+
+function activityDisplayTitle(activity: { activityTitle?: string | null; activityDescription?: string | null }, index: number): string {
+  const titled = cleanHtml(activity.activityTitle);
+  if (titled && !/^activity\s*\d+$/i.test(titled)) return titled;
+
+  const fromDescription = cleanHtml(activity.activityDescription)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (fromDescription) {
+    // Split roman / numbered list items: "i. Foo ii. Bar" → "Foo"
+    const items = fromDescription
+      .split(/(?:^|\s+)(?:[ivxlcdm]+|[0-9]+)[.)]\s+/i)
+      .map((part) => part.trim())
+      .filter((part) => part && !/^(i|ii|iii|iv|v|vi|vii|viii|ix|x|\d+)$/i.test(part));
+
+    const candidate = (items[0] || fromDescription).replace(/[.;,\s]+$/g, "").trim();
+    if (candidate) {
+      return candidate.length > 72 ? `${candidate.slice(0, 69)}…` : candidate;
+    }
+  }
+
+  return `Highlight ${index + 1}`;
 }
 
 function resolveCompany(selectedOption: string) {
@@ -291,45 +347,39 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     );
     const pricingRows = buildPricingRows(initialData);
     const showCommercials = selectedOption !== "Empty" && selectedOption !== "SupplierA" && selectedOption !== "SupplierB";
+    const packageTitle = formatPackageTitle(safe(initialData.tourPackageName, "Tour Package"));
+    const daysWithStayOrTransport = sortedItineraries.filter((itinerary) => {
+      const hotel = hotels.find((item) => item.id === itinerary.hotelId);
+      const transportDetails = itinerary.transportDetails ?? [];
+      return Boolean(hotel) || transportDetails.length > 0;
+    });
 
     const headerSection = `
       <div style="${cardStyle}; margin-bottom: 16px; text-align: center; position: relative;">
         ${heroImage ? `
-          <div style="width: 100%; aspect-ratio: 1/1; overflow: hidden; border-top-left-radius: 6px; border-top-right-radius: 6px; position: relative;">
-            <img src="${heroImage}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.9);" />
-            ${currentCompany.logo ? `<div style="position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.85); backdrop-filter: blur(4px); padding:6px 10px; border-radius:6px; display:flex; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.08);"><img src="${attr(currentCompany.logo)}" alt="${attr(currentCompany.name)} Logo" style="height:34px; width:auto; object-fit:contain;"/></div>` : ""}
+          <div style="width: 100%; height: 260px; overflow: hidden; border-top-left-radius: 10px; border-top-right-radius: 10px; position: relative;">
+            <img src="${heroImage}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover; object-position: center;" />
+            <div style="position:absolute; inset:0; background: linear-gradient(180deg, rgba(15,23,42,0.18) 0%, rgba(15,23,42,0.05) 42%, rgba(15,23,42,0.45) 100%);"></div>
+            ${currentCompany.logo ? `<div style="position:absolute; top:14px; left:14px; background:rgba(255,255,255,0.92); padding:7px 12px; border-radius:8px; display:flex; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.12);"><img src="${attr(currentCompany.logo)}" alt="${attr(currentCompany.name)} Logo" style="height:32px; width:auto; object-fit:contain;"/></div>` : ""}
           </div>
         ` : currentCompany.logo ? `
-          <div style="padding-top:24px; display:flex; justify-content:center;"><img src="${attr(currentCompany.logo)}" alt="${attr(currentCompany.name)} Logo" style="height:56px; width:auto; object-fit:contain;"/></div>
+          <div style="padding-top:28px; display:flex; justify-content:center;"><img src="${attr(currentCompany.logo)}" alt="${attr(currentCompany.name)} Logo" style="height:56px; width:auto; object-fit:contain;"/></div>
         ` : ""}
-        <div style="padding: 24px 24px 28px;">
-          <span style="background: ${brandColors.light}; color: ${brandColors.primary}; padding: 6px 16px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.65px;">
+        <div style="padding: 22px 28px 26px;">
+          <span style="display:inline-block; background: ${brandColors.light}; color: ${brandColors.primary}; padding: 5px 14px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px;">
             ${safe(initialData.tourPackageType, "Tour")} Package
           </span>
-          <h1 style="font-size: 30px; margin: 14px 0 0 0; font-weight: 800; line-height: 1.18; background:${brandGradients.primary}; -webkit-background-clip:text; color:transparent; letter-spacing:0.75px;">
-            ${safe(initialData.tourPackageName, "Tour Package")}
+          <h1 style="font-size: 28px; margin: 12px 0 0 0; font-weight: 800; line-height: 1.2; color:${brandColors.primary}; letter-spacing:0.3px;">
+            ${packageTitle.primary}
           </h1>
-          ${currentCompany.name ? `<div style="margin-top:10px; font-size:12px; font-weight:600; color:${brandColors.muted}; letter-spacing:1px; text-transform:uppercase;">Prepared by ${safe(currentCompany.name)}</div>` : ""}
-        </div>
-      </div>
-    `;
-
-    const packageDetailsSection = `
-      <div style="${cardStyle}">
-        <div style="${headerStyleAlt}">
-          <h3 style="${sectionTitleStyle}">Package Details</h3>
-        </div>
-        <div style="${contentStyle}">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
-              <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Package Reference</div>
-              <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${safe(initialData.slug || initialData.id, "N/A")}</div>
+          ${packageTitle.secondary ? `<div style="margin-top:8px; font-size:15px; font-weight:600; color:${brandColors.slateText}; letter-spacing:0.4px;">${packageTitle.secondary}</div>` : ""}
+          ${(packageTitle.duration || packageTitle.meta.length) ? `
+            <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;">
+              ${packageTitle.duration ? `<span style="background:${brandColors.lightOrange}; color:${brandColors.secondary}; border:1px solid #fed7aa; padding:4px 10px; border-radius:9999px; font-size:11px; font-weight:700;">${packageTitle.duration}</span>` : ""}
+              ${packageTitle.meta.map((item) => `<span style="background:${brandColors.panelBg}; color:${brandColors.muted}; border:1px solid ${brandColors.border}; padding:4px 10px; border-radius:9999px; font-size:11px; font-weight:600;">${item}</span>`).join("")}
             </div>
-            <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
-              <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Package</div>
-              <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${safe(initialData.tourPackageName, "Tour Package")}</div>
-            </div>
-          </div>
+          ` : ""}
+          ${currentCompany.name ? `<div style="margin-top:14px; font-size:11px; font-weight:600; color:${brandColors.muted}; letter-spacing:1.1px; text-transform:uppercase;">Prepared by ${safe(currentCompany.name)}</div>` : ""}
         </div>
       </div>
     `;
@@ -337,26 +387,26 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     const tourInfoSection = `
       <div style="${cardStyle}">
         <div style="${headerStyleAlt}">
-          <h2 style="${sectionTitleStyle}">Tour Information</h2>
+          <h2 style="${sectionTitleStyle}">Tour Overview</h2>
         </div>
         <div style="${contentStyle}">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
-              <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">DESTINATION</div>
-              <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${safe(location?.label, "Not specified")}</div>
+            <div style="background: ${brandColors.panelBg}; padding: 14px; border-radius: 8px; border-left: 3px solid ${brandColors.primary};">
+              <div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 700; margin-bottom: 4px; letter-spacing:0.5px;">DESTINATION</div>
+              <div style="font-size: 14px; font-weight: 700; color: ${brandColors.text};">${safe(location?.label, "Not specified")}</div>
             </div>
             ${initialData.numDaysNight ? `
-              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
-                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">DURATION</div>
-                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${safe(initialData.numDaysNight)}</div>
+              <div style="background: ${brandColors.panelBg}; padding: 14px; border-radius: 8px; border-left: 3px solid ${brandColors.primary};">
+                <div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 700; margin-bottom: 4px; letter-spacing:0.5px;">DURATION</div>
+                <div style="font-size: 14px; font-weight: 700; color: ${brandColors.text};">${safe(initialData.numDaysNight)}</div>
               </div>
             ` : ""}
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
-            ${initialData.tourCategory ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};"><div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">CATEGORY</div><div style="font-size: 12px; color: #1f2937; font-weight: 500;">${safe(initialData.tourCategory)}</div></div>` : ""}
-            ${initialData.transport ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};"><div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">TRANSPORT</div><div style="font-size: 12px; color: #1f2937; font-weight: 500;">${safe(initialData.transport)}</div></div>` : ""}
-            ${initialData.pickup_location ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};"><div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">PICKUP</div><div style="font-size: 12px; color: #1f2937; font-weight: 500;">${safe(initialData.pickup_location)}</div></div>` : ""}
-            ${initialData.drop_location ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};"><div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">DROP</div><div style="font-size: 12px; color: #1f2937; font-weight: 500;">${safe(initialData.drop_location)}</div></div>` : ""}
+            ${initialData.tourCategory ? `<div style="background: ${brandColors.subtlePanel}; padding: 12px; border-radius: 8px; border: 1px solid ${brandColors.border};"><div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 700; margin-bottom: 3px; letter-spacing:0.4px;">CATEGORY</div><div style="font-size: 12px; color: ${brandColors.text}; font-weight: 600;">${safe(initialData.tourCategory)}</div></div>` : ""}
+            ${initialData.transport ? `<div style="background: ${brandColors.subtlePanel}; padding: 12px; border-radius: 8px; border: 1px solid ${brandColors.border};"><div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 700; margin-bottom: 3px; letter-spacing:0.4px;">TRANSPORT</div><div style="font-size: 12px; color: ${brandColors.text}; font-weight: 600;">${safe(initialData.transport)}</div></div>` : ""}
+            ${initialData.pickup_location ? `<div style="background: ${brandColors.subtlePanel}; padding: 12px; border-radius: 8px; border: 1px solid ${brandColors.border};"><div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 700; margin-bottom: 3px; letter-spacing:0.4px;">PICKUP</div><div style="font-size: 12px; color: ${brandColors.text}; font-weight: 600;">${safe(initialData.pickup_location)}</div></div>` : ""}
+            ${initialData.drop_location ? `<div style="background: ${brandColors.subtlePanel}; padding: 12px; border-radius: 8px; border: 1px solid ${brandColors.border};"><div style="font-size: 10px; color: ${brandColors.muted}; font-weight: 700; margin-bottom: 3px; letter-spacing:0.4px;">DROP</div><div style="font-size: 12px; color: ${brandColors.text}; font-weight: 600;">${safe(initialData.drop_location)}</div></div>` : ""}
           </div>
         </div>
       </div>
@@ -410,24 +460,30 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       ? `
         <div style="${cardStyle}; ${avoidBreak}">
           <div style="${headerStyleAlt}">
-            <h3 style="${sectionTitleStyle}">Detailed Pricing Breakdown</h3>
+            <h3 style="${sectionTitleStyle}">Pricing</h3>
           </div>
           <div style="${contentStyle}">
-            ${pricingRows.map((item, index) => `
-              <div style="background: ${index % 2 === 0 ? "#f9fafb" : "white"}; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid ${brandColors.primary}; border: 1px solid #e5e7eb;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <div style="flex: 1;">
-                    <div style="font-size: 14px; font-weight: 600; color: #1f2937; margin-bottom: 2px;">${safe(item.name, "Pricing Component")}</div>
-                    ${item.description ? `<div style="font-size: 12px; color: #6b7280; line-height: 1.4;">${safe(item.description)}</div>` : ""}
-                  </div>
-                  <div style="text-align: right; margin-left: 12px;">
-                    <div style="font-size: 14px; font-weight: 600; color: #374151;">${formatMoney(item.price)}</div>
-                  </div>
-                </div>
-              </div>
-            `).join("")}
-            <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 4px; padding: 12px; margin-top: 12px; text-align: center;">
-              <div style="font-size: 12px; color: #ea580c; font-weight: 600;">* All prices are subject to availability & taxes including GST.</div>
+            <table style="${tableStyle}">
+              <thead>
+                <tr>
+                  <th style="${tableHeaderStyle}">Component</th>
+                  <th style="${tableHeaderStyle}; text-align:right; width:140px;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pricingRows.map((item, index) => `
+                  <tr style="background: ${index % 2 === 0 ? brandColors.subtlePanel : brandColors.white};">
+                    <td style="${tableCellStyle}">
+                      <div style="font-weight: 700; color: ${brandColors.text};">${safe(item.name, "Pricing Component")}</div>
+                      ${item.description ? `<div style="font-size: 12px; color: ${brandColors.muted}; margin-top: 3px; line-height: 1.4;">${safe(item.description)}</div>` : ""}
+                    </td>
+                    <td style="${tableCellStyle}; text-align:right; font-weight:700; white-space:nowrap; color:${brandColors.slateText};">${formatMoney(item.price)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+            <div style="background: ${brandColors.lightOrange}; border: 1px solid #fed7aa; border-radius: 8px; padding: 11px 14px; margin-top: 14px; text-align: center;">
+              <div style="font-size: 12px; color: ${brandColors.secondary}; font-weight: 600;">* Prices are subject to availability and applicable taxes including GST.</div>
             </div>
           </div>
         </div>
@@ -435,58 +491,59 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       : "";
 
     const hotelSummarySection = selectedOption !== "SupplierA" && sortedItineraries.length > 0
-      ? `
+      ? daysWithStayOrTransport.length > 0
+        ? `
         <div style="${cardStyle}; ${pageBreakBefore}">
           <div style="${headerStyleAlt}">
             <h2 style="${sectionTitleStyle}">Hotel & Transport Details</h2>
           </div>
           <div style="${contentStyle}">
-            ${sortedItineraries.map((itinerary, index) => {
+            ${daysWithStayOrTransport.map((itinerary, index) => {
               const hotel = hotels.find((item) => item.id === itinerary.hotelId);
               const hotelImage = imageUrl(hotel?.images?.[0]?.url);
               const hotelLocation = safe(hotel?.destination?.name || hotel?.location?.label || location?.label);
               const transportDetails = itinerary.transportDetails ?? [];
 
               return `
-                <div style="padding: 16px 0; ${index < sortedItineraries.length - 1 ? `border-bottom: 1px solid ${brandColors.border};` : ""} ${avoidBreak}">
-                  <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom: 12px;">
-                    <div style="width:32px; height:32px; background: ${brandColors.primary}; color: ${brandColors.white}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink: 0;">
+                <div style="padding: 14px 0; ${index < daysWithStayOrTransport.length - 1 ? `border-bottom: 1px solid ${brandColors.border};` : ""} ${avoidBreak}">
+                  <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom: 10px;">
+                    <div style="width:30px; height:30px; background: ${brandColors.primary}; color: ${brandColors.white}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink: 0;">
                       ${safe(itinerary.dayNumber ?? index + 1)}
                     </div>
                     <div>
-                      <h3 style="margin:0; font-size:16px; font-weight:800; line-height:1.2; color:${brandColors.slateText};">${formatItineraryDayHeader(itinerary)}</h3>
+                      <h3 style="margin:0; font-size:15px; font-weight:700; line-height:1.25; color:${brandColors.slateText};">${formatItineraryDayHeader(itinerary)}</h3>
                     </div>
                   </div>
 
                   ${hotel ? `
-                    <div style="margin-left: 44px; margin-top: 12px; display: grid; grid-template-columns: 100px 1fr; gap: 16px; align-items: center;">
-                      <div style="width: 100px; height: 75px; border-radius: 4px; overflow: hidden; background: #f3f4f6;">
-                        ${hotelImage ? `<img src="${hotelImage}" alt="${attr(hotel.name, "Hotel")}" style="width: 100%; height: 100%; object-fit: cover;" />` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px;">No Image</div>`}
+                    <div style="margin-left: 42px; margin-top: 10px; display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center;">
+                      <div style="width: 96px; height: 72px; border-radius: 8px; overflow: hidden; background: #f3f4f6;">
+                        ${hotelImage ? `<img src="${hotelImage}" alt="${attr(hotel.name, "Hotel")}" style="width: 100%; height: 100%; object-fit: cover;" />` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 11px;">No Image</div>`}
                       </div>
                       <div>
-                        <a href="${attr(hotel.link || "#")}" target="_blank" rel="noopener noreferrer" style="font-size:14px; font-weight:600; color:#1e293b; text-decoration:none;">${safe(hotel.name, "Hotel")}</a>
+                        <a href="${attr(hotel.link || "#")}" target="_blank" rel="noopener noreferrer" style="font-size:14px; font-weight:700; color:${brandColors.text}; text-decoration:none;">${safe(hotel.name, "Hotel")}</a>
                         ${hotelLocation ? `<div style="font-size:12px; color:${brandColors.muted}; margin-top:2px; font-weight:500;">${hotelLocation}</div>` : ""}
                       </div>
                     </div>
 
-                    <div style="margin-left: 44px; margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                      ${itinerary.roomCategory ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">ROOM</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.roomCategory)}</div></div>` : ""}
-                      ${itinerary.numberofRooms ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">ROOMS</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.numberofRooms)}</div></div>` : ""}
-                      ${itinerary.mealsIncluded ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:600;">MEAL PLAN</div><div style="font-size:12px; color:${brandColors.text}; font-weight:500; margin-top:3px;">${safe(itinerary.mealsIncluded)}</div></div>` : ""}
+                    <div style="margin-left: 42px; margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                      ${itinerary.roomCategory ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 8px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:700;">ROOM</div><div style="font-size:12px; color:${brandColors.text}; font-weight:600; margin-top:3px;">${safe(itinerary.roomCategory)}</div></div>` : ""}
+                      ${itinerary.numberofRooms ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 8px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:700;">ROOMS</div><div style="font-size:12px; color:${brandColors.text}; font-weight:600; margin-top:3px;">${safe(itinerary.numberofRooms)}</div></div>` : ""}
+                      ${itinerary.mealsIncluded ? `<div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 8px;"><div style="font-size:10px; color:${brandColors.muted}; font-weight:700;">MEAL PLAN</div><div style="font-size:12px; color:${brandColors.text}; font-weight:600; margin-top:3px;">${safe(itinerary.mealsIncluded)}</div></div>` : ""}
                     </div>
-                  ` : `<div style="margin-left: 44px; margin-top: 12px; background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;"><span style="color: #6b7280; font-size: 13px;">No hotel assigned for this day.</span></div>`}
+                  ` : ""}
 
                   ${transportDetails.length > 0 ? `
-                    <div style="margin-left: 44px; margin-top: 16px;">
-                      <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Transport Details</div>
+                    <div style="margin-left: 42px; margin-top: 12px;">
+                      <div style="font-size:12px; font-weight:700; color:${brandColors.slateText}; margin-bottom:8px;">Transport</div>
                       ${transportDetails.map((transport: any) => `
-                        <div style="display:flex; align-items:center; justify-content:space-between; background:${brandColors.lightOrange}; padding:10px 12px; border-radius:4px; margin-bottom:8px; border-left: 4px solid ${brandColors.secondary};">
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:${brandColors.lightOrange}; padding:10px 12px; border-radius:8px; margin-bottom:8px; border-left: 3px solid ${brandColors.secondary};">
                           <div>
-                            <div style="font-weight:600; color:${brandColors.secondary};">${safe(transport?.vehicleType?.name, "Vehicle")}</div>
+                            <div style="font-weight:700; color:${brandColors.secondary};">${safe(transport?.vehicleType?.name, "Vehicle")}</div>
                             ${transport.capacity ? `<div style="font-size:12px; color:${brandColors.muted}; margin-top:2px;">Capacity: ${safe(transport.capacity)}</div>` : ""}
                             ${transport.description ? `<div style="font-size:12px; color:${brandColors.muted}; margin-top:2px;">${safe(transport.description)}</div>` : ""}
                           </div>
-                          <span style="background: ${brandColors.accent}; color: ${brandColors.white}; padding: 2px 8px; border-radius: 99px; font-weight: 600; font-size: 12px;">Qty: ${safe(transport.quantity, "1")}</span>
+                          <span style="background: ${brandColors.accent}; color: ${brandColors.white}; padding: 2px 8px; border-radius: 99px; font-weight: 700; font-size: 11px;">Qty: ${safe(transport.quantity, "1")}</span>
                         </div>
                       `).join("")}
                     </div>
@@ -497,6 +554,19 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
           </div>
         </div>
       `
+        : `
+        <div style="${cardStyle}">
+          <div style="${headerStyleAlt}">
+            <h2 style="${sectionTitleStyle}">Accommodation</h2>
+          </div>
+          <div style="${contentStyle}">
+            <div style="background: ${brandColors.panelBg}; border: 1px solid ${brandColors.border}; border-radius: 8px; padding: 14px 16px;">
+              <div style="font-size: 13px; color: ${brandColors.slateText}; font-weight: 600;">Hotel stays will be confirmed at the time of booking.</div>
+              <div style="font-size: 12px; color: ${brandColors.muted}; margin-top: 4px;">Equivalent category properties will be arranged as per package inclusions.</div>
+            </div>
+          </div>
+        </div>
+      `
       : "";
 
     const itinerariesSection = sortedItineraries.length
@@ -504,44 +574,44 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
         <div style="${cardStyle}; ${pageBreakBefore}">
           <div style="${headerStyleAlt}; text-align: center;">
             <h2 style="${sectionTitleStyle}">Travel Itinerary</h2>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: ${brandColors.muted};">Your day-by-day adventure guide</p>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: ${brandColors.muted};">Day-by-day plan</p>
           </div>
         </div>
         ${sortedItineraries.map((itinerary, dayIndex) => `
-          <div style="${cardStyle}; margin-bottom: 24px; ${dayIndex > 0 ? pageBreakBefore : ""}">
-            <div style="display: flex; align-items: center; background: #f9fafb; padding: 16px; border-bottom: 1px solid ${brandColors.border}; ${avoidBreak}">
-              <div style="background: ${brandColors.primary}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;">
-                <span style="font-size: 10px; font-weight: 500;">DAY</span>
-                <span style="font-size: 16px; font-weight: 700;">${safe(itinerary.dayNumber ?? dayIndex + 1)}</span>
+          <div style="${cardStyle}; margin-bottom: 18px; ${dayIndex > 0 ? pageBreakBefore : ""}">
+            <div style="display: flex; align-items: center; background: ${brandColors.subtlePanel}; padding: 16px 18px; border-bottom: 1px solid ${brandColors.border}; ${avoidBreak}">
+              <div style="background: ${brandColors.primary}; color: white; width: 42px; height: 42px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;">
+                <span style="font-size: 9px; font-weight: 600; letter-spacing:0.4px;">DAY</span>
+                <span style="font-size: 16px; font-weight: 800;">${safe(itinerary.dayNumber ?? dayIndex + 1)}</span>
               </div>
-              <div style="margin-left: 16px;">
-                <h3 style="font-size: 20px; font-weight: 800; margin: 0; line-height:1.15; background: ${brandGradients.primary}; -webkit-background-clip: text; color: transparent; letter-spacing:0.3px;">
+              <div style="margin-left: 14px;">
+                <h3 style="font-size: 17px; font-weight: 800; margin: 0; line-height:1.25; color: ${brandColors.text}; letter-spacing:0.2px;">
                   ${formatItineraryDayHeader(itinerary)}
                 </h3>
-                <div style="height:6px; width:96px; max-width:96px; display:inline-block; background: ${brandGradients.secondary}; border-radius:4px; margin-top:8px;"></div>
+                <div style="height:3px; width:72px; max-width:72px; display:inline-block; background: ${brandGradients.secondary}; border-radius:4px; margin-top:8px;"></div>
               </div>
             </div>
 
-            <div style="padding: 16px;">
+            <div style="padding: 16px 18px;">
               ${safe(itinerary.itineraryDescription) ? `
-                <div style="margin-bottom: 20px;">
-                  <h4 style="font-size: 15px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 12px 0; border-bottom: 2px solid ${brandColors.light}; padding-bottom: 8px;">Day Overview</h4>
-                  <div style="font-size: 14px; line-height: 1.6; color: ${brandColors.muted};">${cleanHtml(itinerary.itineraryDescription)}</div>
+                <div style="margin-bottom: 18px;">
+                  <h4 style="font-size: 13px; font-weight: 700; color: ${brandColors.slateText}; margin: 0 0 10px 0; text-transform:uppercase; letter-spacing:0.4px;">Day Overview</h4>
+                  <div style="font-size: 13px; line-height: 1.65; color: ${brandColors.muted};">${cleanHtml(itinerary.itineraryDescription)}</div>
                 </div>
               ` : ""}
 
               ${itinerary.activities?.length ? `
                 <div>
-                  <h4 style="font-size: 15px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 12px 0; border-bottom: 2px solid ${brandColors.light}; padding-bottom: 8px;">Planned Activities</h4>
-                  <div style="display: grid; gap: 12px;">
+                  <h4 style="font-size: 13px; font-weight: 700; color: ${brandColors.slateText}; margin: 0 0 10px 0; text-transform:uppercase; letter-spacing:0.4px;">Planned Activities</h4>
+                  <div style="display: grid; gap: 10px;">
                     ${itinerary.activities.map((activity, activityIndex) => `
-                      <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; ${avoidBreak}">
+                      <div style="background: ${brandColors.panelBg}; padding: 12px 14px; border-radius: 8px; border: 1px solid ${brandColors.softDivider}; ${avoidBreak}">
                         <div style="display: flex; align-items: flex-start; gap: 12px;">
-                          <div style="background: ${brandColors.secondary}; color: ${brandColors.white}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px;">${activityIndex + 1}</div>
+                          <div style="background: ${brandColors.secondary}; color: ${brandColors.white}; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px;">${activityIndex + 1}</div>
                           <div style="flex: 1;">
-                            <h5 style="font-size: 14px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 4px 0;">${cleanHtml(activity.activityTitle) || `Activity ${activityIndex + 1}`}</h5>
+                            <h5 style="font-size: 14px; font-weight: 700; color: ${brandColors.text}; margin: 0 0 4px 0;">${activityDisplayTitle(activity, activityIndex)}</h5>
                             ${renderActivityImages(activity.activityImages, activity.activityTitle)}
-                            ${activity.activityDescription ? `<div style="font-size: 13px; color: ${brandColors.muted}; margin: 4px 0 0 0; line-height: 1.5;">${cleanHtml(activity.activityDescription)}</div>` : ""}
+                            ${activity.activityDescription ? `<div style="font-size: 13px; color: ${brandColors.muted}; margin: 4px 0 0 0; line-height: 1.55;">${cleanHtml(activity.activityDescription)}</div>` : ""}
                           </div>
                         </div>
                       </div>
@@ -561,37 +631,37 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     };
 
     const policyRows = [
-      { title: "Inclusions", items: withFallback(initialData.inclusions, location?.inclusions), tone: ["#fff7ed", "#fed7aa", brandGradients.secondary] },
-      { title: "Exclusions", items: withFallback(initialData.exclusions, location?.exclusions), tone: ["#fef2f2", "#fecaca", "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)"] },
-      { title: "Kitchen Group Policy", items: withFallback(initialData.kitchenGroupPolicy, location?.kitchenGroupPolicy), tone: ["#f5f3ff", "#c4b5fd", "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"] },
-      { title: "Useful Tips", items: withFallback(initialData.usefulTip, location?.usefulTip), tone: ["#ecfdf5", "#a7f3d0", "linear-gradient(135deg, #10b981 0%, #059669 100%)"] },
-      { title: "Important Notes", items: withFallback(initialData.importantNotes, location?.importantNotes), tone: ["#fefdf8", "#fde68a", "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"] },
-      { title: "Payment Policy", items: withFallback(initialData.paymentPolicy, location?.paymentPolicy), tone: ["#f0fdf4", "#bbf7d0", "linear-gradient(135deg, #059669 0%, #047857 100%)"] },
-      { title: "Cancellation Policy", items: withFallback(initialData.cancellationPolicy, location?.cancellationPolicy), tone: ["#fdf2f8", "#f9a8d4", "linear-gradient(135deg, #be185d 0%, #9d174d 100%)"] },
-      { title: "Airline Cancellation Policy", items: withFallback(initialData.airlineCancellationPolicy, location?.airlineCancellationPolicy), tone: ["#f0f9ff", "#bae6fd", "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"] },
-      { title: "Terms and Conditions", items: withFallback(initialData.termsconditions, location?.termsconditions), tone: ["#fafafa", "#e5e7eb", "linear-gradient(135deg, #374151 0%, #1f2937 100%)"] },
+      { title: "Inclusions", items: withFallback(initialData.inclusions, location?.inclusions), tone: [brandColors.lightOrange, "#fed7aa", brandGradients.secondary] },
+      { title: "Exclusions", items: withFallback(initialData.exclusions, location?.exclusions), tone: [brandColors.light, "#fecaca", brandGradients.primary] },
+      { title: "Kitchen Group Policy", items: withFallback(initialData.kitchenGroupPolicy, location?.kitchenGroupPolicy), tone: [brandColors.subtlePanel, brandColors.border, `linear-gradient(135deg, ${brandColors.slateText} 0%, ${brandColors.text} 100%)`] },
+      { title: "Useful Tips", items: withFallback(initialData.usefulTip, location?.usefulTip), tone: [brandColors.panelBg, "#fed7aa", brandGradients.secondary] },
+      { title: "Important Notes", items: withFallback(initialData.importantNotes, location?.importantNotes), tone: [brandColors.lightOrange, "#fde68a", `linear-gradient(135deg, ${brandColors.secondary} 0%, ${brandColors.accent} 100%)`] },
+      { title: "Payment Policy", items: withFallback(initialData.paymentPolicy, location?.paymentPolicy), tone: [brandColors.subtlePanel, brandColors.border, brandGradients.primary] },
+      { title: "Cancellation Policy", items: withFallback(initialData.cancellationPolicy, location?.cancellationPolicy), tone: [brandColors.light, "#fecaca", brandGradients.primary] },
+      { title: "Airline Cancellation Policy", items: withFallback(initialData.airlineCancellationPolicy, location?.airlineCancellationPolicy), tone: [brandColors.panelBg, brandColors.border, `linear-gradient(135deg, ${brandColors.slateText} 0%, ${brandColors.text} 100%)`] },
+      { title: "Terms and Conditions", items: withFallback(initialData.termsconditions, location?.termsconditions), tone: [brandColors.subtlePanel, brandColors.border, `linear-gradient(135deg, ${brandColors.slateText} 0%, ${brandColors.text} 100%)`] },
     ].filter((section) => section.items.length > 0);
 
     const policiesAndTermsSection = policyRows.length
       ? `
         <div style="${cardStyle}; ${pageBreakBefore}">
-          <div style="background: ${brandGradients.primary}; padding: 20px; text-align: center; margin-bottom: 0;">
-            <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: 0.5px;">Policies & Terms</h2>
-            <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 6px 0 0 0;">Comprehensive overview of inclusions, exclusions and important travel policies</p>
+          <div style="background: ${brandGradients.primary}; padding: 18px 20px; text-align: center;">
+            <h2 style="color: white; font-size: 20px; font-weight: 700; margin: 0; letter-spacing: 0.3px;">Policies & Terms</h2>
+            <p style="color: rgba(255,255,255,0.9); font-size: 12px; margin: 6px 0 0 0;">Inclusions, exclusions and booking policies</p>
           </div>
-          <div style="padding: 24px; background: #fefefe;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div style="padding: 18px; background: #fefefe;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
               ${policyRows.map((section) => `
-                <div style="background: ${section.tone[0]}; border: 1px solid ${section.tone[1]}; border-radius: 8px; overflow: hidden; ${avoidBreak}">
-                  <div style="background: ${section.tone[2]}; padding: 12px; border-bottom: 1px solid ${section.tone[1]};">
-                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0;">${section.title}</h3>
+                <div style="background: ${section.tone[0]}; border: 1px solid ${section.tone[1]}; border-radius: 10px; overflow: hidden; ${avoidBreak}">
+                  <div style="background: ${section.tone[2]}; padding: 11px 14px;">
+                    <h3 style="color: white; font-size: 14px; font-weight: 700; margin: 0;">${section.title}</h3>
                   </div>
-                  <div style="padding: 16px;">${renderParagraphList(section.items)}</div>
+                  <div style="padding: 14px;">${renderBulletList(section.items, brandColors.secondary, brandColors.slateText)}</div>
                 </div>
               `).join("")}
             </div>
-            <div style="background: #fef7f0; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px; text-align: center; margin-top: 20px;">
-              <p style="color: #ea580c; font-size: 12px; font-weight: 500; margin: 0; font-style: italic;">Policies are subject to change based on supplier terms & prevailing conditions at the time of booking.</p>
+            <div style="background: ${brandColors.lightOrange}; border: 1px solid #fed7aa; border-radius: 8px; padding: 12px; text-align: center; margin-top: 16px;">
+              <p style="color: ${brandColors.secondary}; font-size: 11px; font-weight: 500; margin: 0;">Policies may change based on supplier terms and conditions at the time of booking.</p>
             </div>
           </div>
         </div>
@@ -606,7 +676,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
         <body>
           <div style="${containerStyle}">
             ${headerSection}
-            ${packageDetailsSection}
             ${tourInfoSection}
             ${flightSection}
             ${pricingSection}

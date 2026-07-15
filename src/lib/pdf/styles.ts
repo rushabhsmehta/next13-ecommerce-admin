@@ -9,16 +9,17 @@ import { brandColors, BrandColors } from "./branding";
 export const containerStyle = `
   max-width: 820px;
   margin: 0 auto;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: ${brandColors.text};
   font-size: 14px;
+  line-height: 1.5;
 `;
 
 /** Card wrapper with subtle border and shadow */
 export const cardStyle = `
   background: ${brandColors.white};
   border: 1px solid ${brandColors.border};
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 `;

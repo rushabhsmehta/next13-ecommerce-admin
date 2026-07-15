@@ -1,18 +1,20 @@
 # AGENTS.md
 
+Short agent entrypoint for this repo. For deep inventories (full dashboard module list, API tables, financial model detail), see [CLAUDE.md](CLAUDE.md) and the skills under `.agents/skills/`.
+
 ## Project Overview
 
-Travel & tourism admin platform: CMS, admin dashboard, and API layer for tour packages, inquiries, hotel bookings, and financial transactions. Built on **Next.js 16** App Router with **Clerk** org RBAC, a custom **MCP** server (~139 tools), and three **Expo** mobile apps from one `mobile/` codebase.
+Travel & tourism admin platform: CMS, admin dashboard, and API layer for tour packages, inquiries, hotel bookings, and financial transactions. Built on **Next.js 16** App Router with **Clerk** org RBAC, a custom **MCP** server (139 tools), and three **Expo** mobile apps from one `mobile/` codebase.
 
 ## Tech Stack
 
 | Layer | Stack |
 |-------|--------|
-| Web | Next.js 16, React 19, TypeScript 5.9 |
-| Database | MySQL (`schema.prisma`) + PostgreSQL WhatsApp (`prisma/whatsapp-schema.prisma`) |
+| Web | Next.js 16.1.6, React 19.2.4, TypeScript 5.9.3 |
+| Database | MySQL (`schema.prisma`) + PostgreSQL WhatsApp (`prisma/whatsapp-schema.prisma`); Prisma 5.22 |
 | Auth | Clerk (`@clerk/nextjs`) — org roles in `OrganizationMember` |
 | UI | Shadcn/Radix, Tailwind 3.4 |
-| Mobile | Expo SDK 55, React Native 0.83, Expo Router, `@clerk/clerk-expo` |
+| Mobile | Expo SDK ~55, React Native 0.83.6, Expo Router, `@clerk/clerk-expo` |
 | Forms | React Hook Form + Zod |
 | PDF / Excel | Puppeteer, jsPDF, xlsx |
 | AI / MCP | OpenAI, Gemini; `mcp-server/` + `src/app/api/mcp/` |
@@ -22,9 +24,13 @@ Travel & tourism admin platform: CMS, admin dashboard, and API layer for tour pa
 ```bash
 # Web (repo root)
 npm run dev                              # Next.js dev server (:3000)
-npm run build                            # Prisma generate (both schemas) + next build
+npm run build                            # next build (Prisma clients via postinstall)
+npm run postinstall                      # prisma generate (main + whatsapp schemas)
 npm run lint
 npm run test:accounts                    # Accounting module tests
+npm run test:hotel-pricing-matrix        # Hotel pricing matrix tests
+npm run test:hotel-effective-pricing     # Effective hotel pricing tests
+npm run test:crm-route-access            # CRM route access rules tests
 npm run test:mobile-inquiry-crud         # Inquiry API CRUD smoke test (dev bypass)
 
 # Mobile (cd mobile — run npm install first)
@@ -59,6 +65,8 @@ Three installed apps; set `APP_VARIANT=public|staff|finance` (npm scripts set it
 - Android Gradle flavor for public is `publicApp` (Groovy keyword).
 - Icons: shared `logo-emblem-source.png` on cream; staff/finance add corner badges (`#c23a5e`, `#9b3a8d`). Regenerate: `npm run generate:icons` in `mobile/`.
 
+**Bearer mobile API surfaces (examples):** `/api/mobile/inquiries`, `/api/mobile/crm`, `/api/mobile/coupons` (plus admin/ops/finance/whatsapp segments under `/api/mobile/`).
+
 **Mobile dev bypass (physical device / Detox / adb scripts)**
 
 Server `.env.local`:
@@ -76,13 +84,16 @@ USB: `adb reverse tcp:<active-metro-port> tcp:<active-metro-port>` and `adb reve
 ```
 src/
   app/
-    (auth)/                 # Clerk sign-in
-    (dashboard)/            # Admin modules (50+)
-    api/                    # REST + mobile/* + mcp/
+    (auth)/                 # Clerk sign-in / sign-up
+    (dashboard)/            # Admin modules (50+); also coupons, follow-ups, website-management
+    (root)/                 # Public homepage
+    access-denied/          # RBAC access-denied page
+    api/                    # REST + mobile/* + mcp/ + coupons, follow-ups, website-inquiry, cron
     travel/                 # Public travel site
     ops/                    # Ops staff (ops.* host)
+    mcp/                    # MCP OAuth authorize
   components/
-  lib/                      # authz, prismadb, api-response, inquiry-access, …
+  lib/                      # Prefer this over root lib/ stubs — authz, prismadb, api-response, …
   proxy.ts                  # Clerk + host routing; bearer /api/inquiries
 mobile/
   app.config.js
@@ -90,10 +101,17 @@ mobile/
   app/                      # Shared screens
   components/inquiries/     # CreateInquiryForm
   scripts/                  # adb-*, generate-app-icons.mjs
-mcp-server/
-schema.prisma
+mcp-server/                 # MCP tool registration (139 tools)
+schema.prisma               # Main MySQL schema
 prisma/whatsapp-schema.prisma
-tools/test-mobile-inquiry-crud.mjs
+prisma/migrations/          # Prisma migrations
+migrations/                 # Ad-hoc SQL migrations (not Prisma)
+scripts/                    # WhatsApp, DB maintenance utilities
+tools/                      # test-mobile-inquiry-crud.mjs, data fixes, migrations
+cron/whatsapp-campaign-worker/  # Standalone campaign worker deploy
+docs/
+flow-keys/                  # WhatsApp Flow RSA keys
+instrumentation.ts
 .agents/skills/             # Cursor agent skills (mirrored in .claude/skills/)
 ```
 
@@ -113,6 +131,7 @@ Never run destructive Prisma commands against production. Schema changes → `pr
 - **Legacy routes:** `auth()` + try/catch + `console.log("[PREFIX]", error)`.
 - **Dates:** `dateToUtc()` / `formatSafeDate()` from `@/lib/timezone-utils.ts`.
 - **Currency:** INR via `formatPrice()` from `@/lib/utils`.
+- **Newer surfaces (paths only):** dashboard/API for coupons, follow-ups, website-management / website-inquiry.
 
 ### Auth & routing (`src/proxy.ts`)
 
@@ -120,6 +139,7 @@ Never run destructive Prisma commands against production. Schema changes → `pr
 - `/api/mobile/*` and `/api/chat/*` skip Clerk session middleware.
 - **`/api/inquiries*` with valid mobile Bearer** (Clerk JWT or dev bypass) skips session redirect — native apps have no cookies.
 - Org roles: `OWNER` > `ADMIN` > `FINANCE` > `OPERATIONS` > `VIEWER` (`src/lib/authz.ts`).
+- **CRM route gating:** `src/lib/crm-route-access-rules.ts` (client-safe path→roles; sidebar) and `src/lib/crm-route-access.ts` (server/API; includes Puppeteer/HeadlessChrome org-RBAC bypass for PDF automation).
 
 ### Inquiries (CRM + mobile staff)
 
@@ -136,8 +156,14 @@ Never run destructive Prisma commands against production. Schema changes → `pr
 
 ### MCP
 
-- Gateway: `src/app/api/mcp/route.ts`; tools in `mcp-server/src/tools/*.ts` (~139 registered tools).
+- Gateway: `src/app/api/mcp/route.ts`; 17 handler modules + `index.ts` dispatcher under `src/app/api/mcp/handlers/`.
+- Tools: `mcp-server/src/tools/*.ts` — **139** registered tools.
 - Auth: `x-mcp-api-secret` header.
+
+### Cron / campaigns
+
+- Standalone worker: `cron/whatsapp-campaign-worker/` (deploy path for campaign processing).
+- App cron/report routes use `CRON_SECRET` (see Environment Variables).
 
 ## Agent Skills
 

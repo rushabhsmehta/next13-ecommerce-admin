@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { escapeAttr } from "@/lib/html-escape";
-import { /* renderItineraryImages, */ renderActivityImages } from "@/lib/itinerary-image-html";
+import { /* renderItineraryImages, */ renderActivityImages, resolvePdfImageUrl } from "@/lib/itinerary-image-html";
 import {
   Activity,
   FlightDetails,
@@ -15,6 +15,12 @@ import {
   TourPackage,
   PackageVariant,
   TourDestination,
+  TourPackagePricing,
+  PricingComponent,
+  PricingAttribute,
+  MealPlan,
+  VehicleType,
+  LocationSeasonalPeriod,
 } from "@prisma/client";
 import {
   companyInfo as sharedCompanyInfo,
@@ -32,10 +38,25 @@ interface TourPackagePDFGeneratorWithVariantsProps {
         activityImages: Images[];
       })[];
     })[];
-    flightDetails: FlightDetails[];
+    flightDetails: (FlightDetails & {
+      images?: Images[];
+    })[];
     packageVariants?: (PackageVariant & {
       variantHotelMappings: (VariantHotelMapping & {
         itinerary: Itinerary | null;
+        hotel: (Hotel & {
+          images: Images[];
+          destination: TourDestination | null;
+          location: Location;
+        }) | null;
+      })[];
+      tourPackagePricings: (TourPackagePricing & {
+        mealPlan: MealPlan | null;
+        vehicleType: VehicleType | null;
+        locationSeasonalPeriod: LocationSeasonalPeriod | null;
+        pricingComponents: (PricingComponent & {
+          pricingAttribute: PricingAttribute | null;
+        })[];
       })[];
     })[];
   } | null;
@@ -47,6 +68,110 @@ interface TourPackagePDFGeneratorWithVariantsProps {
   })[];
   printMode?: boolean;
   initialSearchOption?: string;
+}
+
+type PricingRow = {
+  name?: string;
+  price?: string;
+  description?: string | null;
+};
+
+type PackageVariantForPdf = NonNullable<
+  NonNullable<TourPackagePDFGeneratorWithVariantsProps["initialData"]>["packageVariants"]
+>[number];
+
+function safe(value: any, fallback = ""): string {
+  return sanitizeText(value, fallback);
+}
+
+function attr(value: any, fallback = ""): string {
+  return escapeAttr(safe(value, fallback));
+}
+
+function imageUrl(value: any): string {
+  return escapeAttr(resolvePdfImageUrl(safe(value)));
+}
+
+function toPlainNumber(value: unknown): number {
+  if (value == null) return 0;
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value.replace(/[^\d.-]/g, ""));
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "object") {
+    const maybeNumber = (value as any).toNumber?.();
+    if (typeof maybeNumber === "number" && Number.isFinite(maybeNumber)) return maybeNumber;
+    const maybeString = (value as any).toString?.();
+    if (typeof maybeString === "string") {
+      const parsed = Number.parseFloat(maybeString.replace(/[^\d.-]/g, ""));
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+  }
+  return 0;
+}
+
+function formatMoney(value: any, fallback = "On Request"): string {
+  if (value == null || safe(value) === "") return fallback;
+  if (typeof value === "string") {
+    const numericText = value.replace(/[^\d.-]/g, "");
+    if (!numericText || numericText === "-" || numericText === "." || numericText === "-.") {
+      return safe(value, fallback);
+    }
+  }
+  const numeric = toPlainNumber(value);
+  if (!Number.isFinite(numeric)) return safe(value, fallback);
+  return `INR ${numeric.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+}
+
+function formatDate(value: any): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date not set";
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function parsePricingRows(pricingData: any): PricingRow[] {
+  if (!pricingData) return [];
+  try {
+    if (Array.isArray(pricingData)) return pricingData;
+    if (typeof pricingData === "string") {
+      const parsed = JSON.parse(pricingData);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+    if (typeof pricingData === "object") {
+      return Object.values(pricingData).filter(
+        (item: any) => item && typeof item === "object" && (item.name || item.price),
+      ) as PricingRow[];
+    }
+  } catch (error) {
+    console.error("Error parsing pricing section:", error);
+  }
+  return [];
+}
+
+function buildPricingRows(data: TourPackage): PricingRow[] {
+  const parsedRows = parsePricingRows(data.pricingSection);
+  if (parsedRows.length > 0) return parsedRows;
+
+  return [
+    { name: "Package Price", price: data.price || undefined },
+    { name: "Price per Adult", price: data.pricePerAdult || undefined },
+    { name: "Triple Occupancy / Extra Bed", price: data.pricePerChildOrExtraBed || undefined },
+    { name: "Child 5-12 Years (No Bed)", price: data.pricePerChild5to12YearsNoBed || undefined },
+    { name: "Child Below 5 Years With Seat", price: data.pricePerChildwithSeatBelow5Years || undefined },
+  ].filter((row) => safe(row.price));
+}
+
+function pricingTotal(pricing: PackageVariantForPdf["tourPackagePricings"][number]): number {
+  return (pricing.pricingComponents ?? []).reduce(
+    (sum, component) => sum + toPlainNumber(component.price),
+    0,
+  );
 }
 
 
@@ -130,14 +255,6 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     color: ${brandColors.text};
   `, [brandColors.text]);
 
-  const priceCardStyle = useMemo(() => `
-    background: ${brandColors.subtlePanel};
-    border: 1px solid ${brandColors.border};
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 8px;
-  `, [brandColors.subtlePanel, brandColors.border]);
-
   const pageStyle = `
     @media print {
       @page {
@@ -193,38 +310,6 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     page-break-before: always;
     break-before: page;
   `;
-
-  // sanitizeText, parsePolicyField, renderParagraphList are imported from @/lib/pdf
-
-  const formatINR = useCallback((val: string | number): string => {
-    try {
-      const n = parseFloat(String(val).replace(/[^\d.-]/g, ''));
-      if (isNaN(n)) return String(val);
-      return n.toLocaleString('en-IN');
-    } catch {
-      return String(val);
-    }
-  }, []);
-
-  const parsePricingSection = useCallback((pricingData: any): Array<{ name?: string; price?: string; description?: string }> => {
-    if (!pricingData) return [];
-    try {
-      if (Array.isArray(pricingData)) return pricingData;
-      if (typeof pricingData === 'string') {
-        const parsed = JSON.parse(pricingData);
-        return parsed;
-      }
-      if (typeof pricingData === 'object') {
-        const values = Object.values(pricingData).filter((item: any) =>
-          item && typeof item === 'object' && (item.name || item.price)
-        ) as Array<{ name?: string; price?: string; description?: string }>;
-        return values;
-      }
-    } catch (error) {
-      console.error('Error parsing pricing section:', error);
-    }
-    return [];
-  }, []);
 
   // BUILD SECTIONS
 
@@ -291,56 +376,236 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       </div>
     `;
 
-    // 3. Pricing Section
-    const pricingData = initialData.pricingSection;
-    let dynamicPricingSection = "";
-
-    if (pricingData) {
-      const parsedPricing = parsePricingSection(pricingData);
-
-      if (parsedPricing && parsedPricing.length > 0) {
-        const pricingItems = parsedPricing.map((item, index) => `
-          <div style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'}; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid ${brandColors.primary}; border: 1px solid #e5e7eb;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="flex: 1;">
-                <div style="font-size: 14px; font-weight: 600; color: #1f2937; margin-bottom: 2px;">
-                  ${item.name || 'Pricing Component'}
-                </div>
-                ${item.description ? `
-                  <div style="font-size: 12px; color: #6b7280; line-height: 1.4;">
-                    ${item.description}
+    // 3. Base Pricing Section
+    const pricingRows = buildPricingRows(initialData);
+    const basePricingSection = pricingRows.length > 0
+      ? `
+        <div style="${cardStyle}; page-break-inside: avoid; break-inside: avoid-page;">
+          <div style="${headerStyleAlt}">
+            <h3 style="${sectionTitleStyle}">Package Pricing</h3>
+          </div>
+          <div style="${contentStyle}; page-break-inside: avoid; break-inside: avoid-page;">
+            ${pricingRows.map((item, index) => `
+              <div style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'}; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid ${brandColors.primary}; border: 1px solid #e5e7eb;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="flex: 1;">
+                    <div style="font-size: 14px; font-weight: 600; color: #1f2937; margin-bottom: 2px;">
+                      ${safe(item.name, 'Pricing Component')}
+                    </div>
+                    ${item.description ? `
+                      <div style="font-size: 12px; color: #6b7280; line-height: 1.4;">
+                        ${safe(item.description)}
+                      </div>
+                    ` : ''}
                   </div>
-                ` : ''}
-              </div>
-              <div style="text-align: right; margin-left: 12px;">
-                <div style="font-size: 14px; font-weight: 600; color: #374151;">
-                  ${item.price || 'On Request'}
+                  <div style="text-align: right; margin-left: 12px;">
+                    <div style="font-size: 14px; font-weight: 600; color: #374151;">
+                      ${formatMoney(item.price)}
+                    </div>
+                  </div>
                 </div>
+              </div>
+            `).join('')}
+            <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 4px; padding: 12px; margin-top: 12px; text-align: center;">
+              <div style="font-size: 12px; color: #ea580c; font-weight: 600;">
+                * All prices are subject to availability & taxes including GST.
               </div>
             </div>
           </div>
-        `).join('');
-
-        dynamicPricingSection = `
-          <div style="${cardStyle}; page-break-inside: avoid; break-inside: avoid-page;">
-            <div style="${headerStyleAlt}">
-              <h3 style="${sectionTitleStyle}">Detailed Pricing Breakdown</h3>
-            </div>
-            <div style="${contentStyle}; page-break-inside: avoid; break-inside: avoid-page;">
-              ${pricingItems}
-              <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 4px; padding: 12px; margin-top: 12px; text-align: center;">
-                <div style="font-size: 12px; color: #ea580c; font-weight: 600;">
-                  * All prices are subject to availability & taxes including GST.
-                </div>
-              </div>
+        </div>
+      `
+      : `
+        <div style="${cardStyle}; page-break-inside: avoid; break-inside: avoid-page;">
+          <div style="${headerStyleAlt}">
+            <h3 style="${sectionTitleStyle}">Package Pricing</h3>
+          </div>
+          <div style="${contentStyle}">
+            <div style="background: ${brandColors.panelBg}; border: 1px dashed ${brandColors.border}; border-radius: 6px; padding: 14px; color: ${brandColors.muted}; font-size: 13px;">
+              Package pricing has not been entered for this tour package.
             </div>
           </div>
-        `;
-      }
-    }
+        </div>
+      `;
 
     // 4. Total Price
     const totalPriceSection = "";
+
+    const sortedItineraries = [...(initialData.itineraries ?? [])].sort(
+      (a, b) => (a.dayNumber ?? 0) - (b.dayNumber ?? 0),
+    );
+    const variants = [...(initialData.packageVariants ?? [])].sort(
+      (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+    );
+
+    const variantComparisonSection = variants.length > 0
+      ? `
+        <div style="${cardStyle}; ${pageBreakBefore}">
+          <div style="background: ${brandGradients.primary}; padding: 18px 20px;">
+            <h2 style="color: white; font-size: 22px; font-weight: 800; margin: 0; letter-spacing: 0.3px;">
+              Package Variants
+            </h2>
+            <p style="color: rgba(255,255,255,0.88); font-size: 13px; margin: 5px 0 0 0;">
+              Variant-specific hotel assignments and seasonal pricing
+            </p>
+          </div>
+          <div style="${contentStyle}">
+            ${variants.map((variant, variantIndex) => {
+              const mappings = variant.variantHotelMappings ?? [];
+              const pricingPeriods = variant.tourPackagePricings ?? [];
+              const mappingsByItineraryId = new Map(
+                mappings.map((mapping) => [mapping.itineraryId, mapping] as const),
+              );
+              const mappingsByDayNumber = new Map(
+                mappings
+                  .filter((mapping) => mapping.itinerary?.dayNumber != null)
+                  .map((mapping) => [mapping.itinerary!.dayNumber!, mapping] as const),
+              );
+
+              const hotelRows = sortedItineraries.map((itinerary, itineraryIndex) => {
+                const mapping =
+                  mappingsByItineraryId.get(itinerary.id) ||
+                  (itinerary.dayNumber != null ? mappingsByDayNumber.get(itinerary.dayNumber) : undefined);
+                const hotel =
+                  mapping?.hotel ||
+                  (mapping?.hotelId ? hotels.find((item) => item.id === mapping.hotelId) : undefined);
+                const hotelImage = imageUrl(hotel?.images?.[0]?.url);
+                const locationLabel = safe(
+                  hotel?.destination?.name || hotel?.location?.label || locations.find((loc) => loc.id === itinerary.locationId)?.label,
+                  "Location not specified",
+                );
+
+                return `
+                  <tr>
+                    <td style="${tableCellStyle}; width: 20%;">
+                      <div style="font-weight: 700; color: ${brandColors.primary};">Day ${safe(itinerary.dayNumber ?? itineraryIndex + 1)}</div>
+                      <div style="font-size: 11px; color: ${brandColors.muted}; margin-top: 3px;">${safe(itinerary.days || itinerary.itineraryTitle || "Tour day")}</div>
+                    </td>
+                    <td style="${tableCellStyle}; width: 45%;">
+                      ${hotel ? `
+                        <div style="display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: center;">
+                          <div style="width: 72px; height: 54px; overflow: hidden; border-radius: 4px; background: #f3f4f6;">
+                            ${hotelImage ? `<img src="${hotelImage}" alt="${attr(hotel.name, "Hotel")}" style="width: 100%; height: 100%; object-fit: cover;" />` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 11px;">No Image</div>`}
+                          </div>
+                          <div>
+                            <div style="font-size: 13px; font-weight: 700; color: ${brandColors.text};">${safe(hotel.name, "Hotel")}</div>
+                            <div style="font-size: 11px; color: ${brandColors.muted}; margin-top: 2px;">${locationLabel}</div>
+                          </div>
+                        </div>
+                      ` : `
+                        <div style="background: ${brandColors.panelBg}; border: 1px dashed ${brandColors.border}; border-radius: 4px; padding: 10px; color: ${brandColors.muted}; font-size: 12px;">
+                          No variant-specific hotel assigned for this day.
+                        </div>
+                      `}
+                    </td>
+                    <td style="${tableCellStyle}; width: 35%;">
+                      ${mapping?.itinerary?.roomCategory ? `<div style="font-size: 12px;"><strong>Room:</strong> ${safe(mapping.itinerary.roomCategory)}</div>` : ''}
+                      ${mapping?.itinerary?.numberofRooms ? `<div style="font-size: 12px; margin-top: 3px;"><strong>Rooms:</strong> ${safe(mapping.itinerary.numberofRooms)}</div>` : ''}
+                      ${mapping?.itinerary?.mealsIncluded ? `<div style="font-size: 12px; margin-top: 3px;"><strong>Meal Plan:</strong> ${safe(mapping.itinerary.mealsIncluded)}</div>` : ''}
+                      ${!mapping?.itinerary?.roomCategory && !mapping?.itinerary?.numberofRooms && !mapping?.itinerary?.mealsIncluded ? `<span style="color: ${brandColors.muted}; font-size: 12px;">No room details entered.</span>` : ''}
+                    </td>
+                  </tr>
+                `;
+              }).join("");
+
+              const pricingRowsHtml = pricingPeriods.map((pricing) => {
+                const total = pricingTotal(pricing);
+                const components = pricing.pricingComponents ?? [];
+                const componentHtml = components.length > 0
+                  ? components.map((component) => `
+                    <div style="display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid ${brandColors.softDivider}; padding: 3px 0;">
+                      <span>${safe(component.pricingAttribute?.name, "Component")}${component.description ? ` <span style="color: ${brandColors.muted};">- ${safe(component.description)}</span>` : ""}</span>
+                      <strong>${formatMoney(component.price)}</strong>
+                    </div>
+                  `).join("")
+                  : `<span style="color: ${brandColors.muted}; font-size: 12px;">No pricing components entered.</span>`;
+
+                return `
+                  <tr>
+                    <td style="${tableCellStyle}; width: 24%;">
+                      <div style="font-weight: 700;">${formatDate(pricing.startDate)} - ${formatDate(pricing.endDate)}</div>
+                      ${pricing.locationSeasonalPeriod?.name ? `<div style="font-size: 11px; color: ${brandColors.muted}; margin-top: 3px;">${safe(pricing.locationSeasonalPeriod.name)}</div>` : ''}
+                    </td>
+                    <td style="${tableCellStyle}; width: 24%;">
+                      <div>${safe(pricing.mealPlan?.name, "Meal plan not set")}</div>
+                      <div style="font-size: 11px; color: ${brandColors.muted}; margin-top: 3px;">${pricing.numberOfRooms || 1} room${(pricing.numberOfRooms || 1) === 1 ? "" : "s"}${pricing.vehicleType?.name ? ` / ${safe(pricing.vehicleType.name)}` : ""}</div>
+                      ${pricing.isGroupPricing ? `<div style="display: inline-block; margin-top: 5px; padding: 2px 6px; border-radius: 999px; background: #ecfdf5; color: #047857; font-size: 10px; font-weight: 700;">Group pricing</div>` : ''}
+                    </td>
+                    <td style="${tableCellStyle}; width: 36%;">${componentHtml}</td>
+                    <td style="${tableCellStyle}; width: 16%; text-align: right; font-size: 14px; font-weight: 800; color: ${brandColors.primary};">${formatMoney(total)}</td>
+                  </tr>
+                `;
+              }).join("");
+
+              return `
+                <div style="border: 1px solid ${brandColors.border}; border-radius: 8px; overflow: hidden; margin-bottom: ${variantIndex === variants.length - 1 ? "0" : "22px"}; page-break-inside: avoid;">
+                  <div style="background: ${brandColors.lightOrange}; border-bottom: 1px solid ${brandColors.border}; padding: 14px 16px;">
+                    <div style="display: flex; justify-content: space-between; gap: 16px; align-items: flex-start;">
+                      <div>
+                        <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: ${brandColors.primary};">${safe(variant.name, `Variant ${variantIndex + 1}`)}</h3>
+                        ${variant.description ? `<p style="margin: 5px 0 0 0; color: ${brandColors.muted}; font-size: 12px; line-height: 1.45;">${safe(variant.description)}</p>` : ''}
+                      </div>
+                      <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                        ${variant.isDefault ? `<span style="background: ${brandColors.primary}; color: white; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 700;">Default</span>` : ''}
+                        ${variant.priceModifier ? `<span style="background: white; color: ${brandColors.secondary}; border: 1px solid #fed7aa; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 700;">${variant.priceModifier > 0 ? "+" : ""}${variant.priceModifier}%</span>` : ''}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="padding: 16px;">
+                    <h4 style="font-size: 14px; font-weight: 800; color: ${brandColors.text}; margin: 0 0 8px 0;">Hotels by Day</h4>
+                    ${mappings.length === 0 ? `
+                      <div style="background: ${brandColors.panelBg}; border: 1px dashed ${brandColors.border}; border-radius: 6px; padding: 12px; color: ${brandColors.muted}; font-size: 12px; margin-bottom: 12px;">
+                        No hotels are assigned to this variant.
+                      </div>
+                    ` : ''}
+                    <table style="${tableStyle}">
+                      <thead>
+                        <tr>
+                          <th style="${tableHeaderStyle}">Day</th>
+                          <th style="${tableHeaderStyle}">Hotel</th>
+                          <th style="${tableHeaderStyle}">Room Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>${hotelRows}</tbody>
+                    </table>
+
+                    <h4 style="font-size: 14px; font-weight: 800; color: ${brandColors.text}; margin: 18px 0 8px 0;">Seasonal Pricing</h4>
+                    ${pricingPeriods.length === 0 ? `
+                      <div style="background: ${brandColors.panelBg}; border: 1px dashed ${brandColors.border}; border-radius: 6px; padding: 12px; color: ${brandColors.muted}; font-size: 12px;">
+                        No seasonal pricing is assigned to this variant.
+                      </div>
+                    ` : `
+                      <table style="${tableStyle}">
+                        <thead>
+                          <tr>
+                            <th style="${tableHeaderStyle}">Period</th>
+                            <th style="${tableHeaderStyle}">Plan</th>
+                            <th style="${tableHeaderStyle}">Components</th>
+                            <th style="${tableHeaderStyle}; text-align: right;">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>${pricingRowsHtml}</tbody>
+                      </table>
+                    `}
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `
+      : `
+        <div style="${cardStyle}; ${pageBreakBefore}">
+          <div style="${headerStyleAlt}">
+            <h2 style="${sectionTitleStyle}">Package Variants</h2>
+          </div>
+          <div style="${contentStyle}">
+            <div style="background: ${brandColors.panelBg}; border: 1px dashed ${brandColors.border}; border-radius: 6px; padding: 14px; color: ${brandColors.muted}; font-size: 13px;">
+              No variants are configured for this tour package.
+            </div>
+          </div>
+        </div>
+      `;
 
     // 5. Itinerary Section
     let itinerariesSection = "";
@@ -522,7 +787,9 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
           <div style="${containerStyle}">
             ${headerSection}
             ${tourInfoSection}
+            ${basePricingSection}
             ${totalPriceSection}
+            ${variantComparisonSection}
             ${itinerariesSection}
             ${policiesAndTermsSection}
           </div>
@@ -530,7 +797,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, sectionTitleStyle, parsePricingSection]);
+  }, [initialData, currentCompany, locations, hotels, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, sectionTitleStyle, tableCellStyle, tableHeaderStyle, tableStyle]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

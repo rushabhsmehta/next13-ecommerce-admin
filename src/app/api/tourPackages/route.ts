@@ -133,6 +133,144 @@ async function createItineraryAndActivities(
     return createdItinerary;
 }
 
+const numericDayFromValue = (value: unknown): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+    if (typeof value === 'string' && value.trim()) {
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) && String(parsed) === value.trim() ? parsed : null;
+    }
+    return null;
+};
+
+async function createInitialPackageVariants(
+    tx: TransactionClient,
+    params: {
+        tourPackageId: string;
+        packageVariants: any[];
+        sourceItineraries: any[];
+        createdItineraries: Array<{ id: string; dayNumber: number | null }>;
+    },
+) {
+    const { tourPackageId, packageVariants, sourceItineraries, createdItineraries } = params;
+    if (!Array.isArray(packageVariants) || packageVariants.length === 0) {
+        return;
+    }
+
+    const sourceKeyToDay = new Map<string, number>();
+    sourceItineraries.forEach((itinerary, index) => {
+        const dayNumber = numericDayFromValue(itinerary?.dayNumber) ?? index + 1;
+        if (itinerary?.id) {
+            sourceKeyToDay.set(String(itinerary.id), dayNumber);
+        }
+        sourceKeyToDay.set(String(dayNumber), dayNumber);
+    });
+
+    const dayToCreatedId = new Map<number, string>();
+    createdItineraries.forEach((itinerary) => {
+        if (itinerary.dayNumber != null) {
+            dayToCreatedId.set(itinerary.dayNumber, itinerary.id);
+        }
+    });
+
+    for (const variant of packageVariants) {
+        if (!variant?.name) {
+            continue;
+        }
+
+        const createdVariant = await tx.packageVariant.create({
+            data: {
+                name: variant.name,
+                description: variant.description || null,
+                isDefault: Boolean(variant.isDefault),
+                sortOrder: Number.isFinite(Number(variant.sortOrder)) ? Number(variant.sortOrder) : 0,
+                priceModifier: Number.isFinite(Number(variant.priceModifier)) ? Number(variant.priceModifier) : 0,
+                tourPackageId,
+            },
+        });
+
+        const hotelMappings = variant.hotelMappings && typeof variant.hotelMappings === 'object'
+            ? Object.entries(variant.hotelMappings)
+                .map(([sourceKey, hotelId]) => {
+                    if (!hotelId || typeof hotelId !== 'string') {
+                        return null;
+                    }
+
+                    const dayNumber = sourceKeyToDay.get(sourceKey) ?? numericDayFromValue(sourceKey);
+                    if (dayNumber == null) {
+                        return null;
+                    }
+
+                    const itineraryId = dayToCreatedId.get(dayNumber);
+                    if (!itineraryId) {
+                        return null;
+                    }
+
+                    return {
+                        packageVariantId: createdVariant.id,
+                        itineraryId,
+                        hotelId,
+                    };
+                })
+                .filter((mapping): mapping is { packageVariantId: string; itineraryId: string; hotelId: string } => Boolean(mapping))
+            : [];
+
+        if (hotelMappings.length > 0) {
+            await tx.variantHotelMapping.createMany({
+                data: hotelMappings,
+            });
+        }
+
+        if (variant.copiedFromTourPackageId) {
+            const sourcePricings = await tx.tourPackagePricing.findMany({
+                where: {
+                    tourPackageId: variant.copiedFromTourPackageId,
+                    packageVariantId: null,
+                },
+                include: {
+                    pricingComponents: true,
+                },
+                orderBy: {
+                    startDate: 'asc',
+                },
+            });
+
+            if (sourcePricings.length > 0) {
+                await Promise.all(
+                    sourcePricings.map((pricing) =>
+                        tx.tourPackagePricing.create({
+                            data: {
+                                tourPackageId,
+                                packageVariantId: createdVariant.id,
+                                startDate: pricing.startDate,
+                                endDate: pricing.endDate,
+                                isActive: pricing.isActive,
+                                description: pricing.description,
+                                mealPlanId: pricing.mealPlanId,
+                                numberOfRooms: pricing.numberOfRooms,
+                                locationSeasonalPeriodId: pricing.locationSeasonalPeriodId,
+                                isGroupPricing: pricing.isGroupPricing,
+                                vehicleTypeId: pricing.vehicleTypeId,
+                                pricingComponents: pricing.pricingComponents.length > 0
+                                    ? {
+                                        create: pricing.pricingComponents.map((component) => ({
+                                            pricingAttributeId: component.pricingAttributeId,
+                                            price: component.price,
+                                            purchasePrice: component.purchasePrice,
+                                            description: component.description,
+                                        })),
+                                    }
+                                    : undefined,
+                            },
+                        })
+                    )
+                );
+            }
+        }
+    }
+}
+
 export async function POST(
     req: Request,
 ) {
@@ -187,6 +325,7 @@ export async function POST(
             offerEndsAt,
             offerSortOrder,
             offerTerms,
+            packageVariants,
             isArchived } = body;
 
         if (!userId) {
@@ -293,13 +432,20 @@ export async function POST(
                 },
             } as any);
 
-            if (preparedItineraries.length > 0) {
-                await Promise.all(
+            const createdItineraries = preparedItineraries.length > 0
+                ? await Promise.all(
                     preparedItineraries.map((itinerary) =>
                         createItineraryAndActivities(tx, itinerary, tourPackageRecord.id)
                     )
-                );
-            }
+                )
+                : [];
+
+            await createInitialPackageVariants(tx, {
+                tourPackageId: tourPackageRecord.id,
+                packageVariants: Array.isArray(packageVariants) ? packageVariants : [],
+                sourceItineraries: preparedItineraries,
+                createdItineraries,
+            });
 
             return tx.tourPackage.findUnique({
                 where: { id: tourPackageRecord.id },
@@ -319,6 +465,43 @@ export async function POST(
                             { dayNumber: 'asc' },
                             { days: 'asc' },
                         ],
+                    },
+                    packageVariants: {
+                        include: {
+                            variantHotelMappings: {
+                                include: {
+                                    hotel: {
+                                        include: {
+                                            images: true,
+                                        },
+                                    },
+                                    itinerary: true,
+                                },
+                            },
+                            tourPackagePricings: {
+                                include: {
+                                    mealPlan: true,
+                                    vehicleType: true,
+                                    locationSeasonalPeriod: true,
+                                    pricingComponents: {
+                                        include: {
+                                            pricingAttribute: true,
+                                        },
+                                        orderBy: {
+                                            pricingAttribute: {
+                                                sortOrder: 'asc',
+                                            },
+                                        },
+                                    },
+                                },
+                                orderBy: {
+                                    startDate: 'asc',
+                                },
+                            },
+                        },
+                        orderBy: {
+                            sortOrder: 'asc',
+                        },
                     },
                 },
             });

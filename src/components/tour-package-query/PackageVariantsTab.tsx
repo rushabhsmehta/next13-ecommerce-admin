@@ -1376,7 +1376,8 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                 <CardContent className="space-y-3 pt-4">
                   {itineraries.map((itinerary, itineraryIndex) => {
                     // Support mappings keyed by itinerary.id or by dayNumber (string)
-                    const selectedHotelId = variant.hotelMappings[itinerary.id] || variant.hotelMappings[String(itinerary.dayNumber)] || "";
+                    const mappingKey = itinerary.id || String(itinerary.dayNumber ?? itineraryIndex + 1);
+                    const selectedHotelId = variant.hotelMappings[mappingKey] || variant.hotelMappings[String(itinerary.dayNumber)] || "";
                     const selectedHotel = hotels.find(h => h.id === selectedHotelId);
                     // Use itinerary.id as primary key, fallback to index to ensure unique popover keys
                     const popoverKey = `${variantIndex}-${itinerary.id || `index-${itineraryIndex}`}`;
@@ -1432,7 +1433,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                     <CommandItem
                                       value="none"
                                       onSelect={() => {
-                                        updateHotelMapping(variantIndex, itinerary.id, "");
+                                        updateHotelMapping(variantIndex, mappingKey, "");
                                         setOpenHotelPopover(null);
                                       }}
                                       className="text-xs text-muted-foreground italic"
@@ -1447,7 +1448,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                         key={h.id}
                                         value={h.name}
                                         onSelect={() => {
-                                          updateHotelMapping(variantIndex, itinerary.id, h.id);
+                                          updateHotelMapping(variantIndex, mappingKey, h.id);
                                           setOpenHotelPopover(null);
                                         }}
                                         className="text-xs cursor-pointer"

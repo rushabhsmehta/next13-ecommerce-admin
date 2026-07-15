@@ -15,10 +15,25 @@ const TourPackagePDFWithVariantsPage = async (
     },
     include: {
       images: true,
-      flightDetails: true,
+      flightDetails: {
+        include: {
+          images: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
       itineraries: {
         include: {
           itineraryImages: true,
+          transportDetails: {
+            include: {
+              vehicleType: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
           activities: {
             include: {
               activityImages: true,
@@ -36,12 +51,48 @@ const TourPackagePDFWithVariantsPage = async (
         include: {
           variantHotelMappings: {
             include: {
+              hotel: {
+                include: {
+                  images: {
+                    orderBy: {
+                      createdAt: 'asc',
+                    },
+                  },
+                  destination: true,
+                  location: true,
+                },
+              },
               itinerary: true,
+            },
+            orderBy: {
+              itinerary: {
+                dayNumber: 'asc',
+              },
+            },
+          },
+          tourPackagePricings: {
+            include: {
+              mealPlan: true,
+              vehicleType: true,
+              locationSeasonalPeriod: true,
+              pricingComponents: {
+                include: {
+                  pricingAttribute: true,
+                },
+                orderBy: {
+                  pricingAttribute: {
+                    sortOrder: 'asc',
+                  },
+                },
+              },
+            },
+            orderBy: {
+              startDate: 'asc',
             },
           },
         },
         orderBy: {
-          createdAt: 'asc',
+          sortOrder: 'asc',
         }
       }
     }

@@ -56,6 +56,33 @@ function queryLabel(q: CrmInquiryTourPackageQuerySummary): string {
   );
 }
 
+function formatTravelDate(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+
+  const match = raw.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    !Number.isFinite(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 const STATUS_FILTERS: { id: string; label: string }[] = [
   { id: "ALL", label: "All" },
   { id: "pending", label: "Pending" },
@@ -435,6 +462,7 @@ function InquiryCard({
   onDelete: () => void;
 }) {
   const queries = row.tourPackageQueries ?? [];
+  const travelDate = formatTravelDate(row.journeyDate);
 
   return (
     <Pressable
@@ -456,6 +484,9 @@ function InquiryCard({
       <Text style={styles.cardMeta}>
         {row.location?.label ?? "Unknown location"} · {row.customerMobileNumber}
       </Text>
+      {travelDate ? (
+        <Text style={styles.cardTravelDate}>Travel: {travelDate}</Text>
+      ) : null}
       {row.createdAt ? (
         <Text style={styles.cardCreated}>
           Created:{" "}
@@ -661,6 +692,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   cardMeta: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
+  cardTravelDate: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: "700",
+    marginTop: 2,
+  },
   cardCreated: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
   cardFollowUp: { fontSize: FontSize.xs, color: Colors.warning, fontWeight: "700", marginTop: 2 },
   cardAssociate: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },

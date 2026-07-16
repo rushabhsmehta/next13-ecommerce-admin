@@ -66,7 +66,7 @@ async function deleteDraftRaw(key: string): Promise<void> {
 }
 import type { TourPackageFormInitial } from "@/components/tour-packages/TourPackageForm";
 import type { TourPackageItineraryDayInput } from "@/lib/tour-packages";
-import type { ItineraryRow } from "@/components/tour-queries/types";
+import type { FlightDetailRow, ItineraryRow } from "@/components/tour-queries/types";
 
 export const AI_DRAFT_KEYS = {
   packageCreate: "aiPackageWizardDraft",
@@ -156,6 +156,23 @@ export function mapAiDraftToQueryItineraries(
   }));
 }
 
+function mapAiDraftToFlightDetails(data: AiItineraryDraft): FlightDetailRow[] {
+  return (data.flightDetails ?? []).map((flight, index) => ({
+    id: `ai-draft-flight-${index + 1}`,
+    date: flight.date ?? "",
+    flightName: flight.flightName ?? "",
+    flightNumber: flight.flightNumber ?? "",
+    from: flight.from ?? "",
+    to: flight.to ?? "",
+    departureTime: flight.departureTime ?? "",
+    arrivalTime: flight.arrivalTime ?? "",
+    flightDuration: flight.flightDuration ?? "",
+    images: (flight.images ?? [])
+      .map((img) => ({ url: String(img?.url ?? "") }))
+      .filter((img) => img.url.trim().length > 0),
+  }));
+}
+
 const DEFAULT_POLICIES = {
   inclusions: [] as string[],
   exclusions: [] as string[],
@@ -212,6 +229,7 @@ export interface AiQueryDraftInitial {
   transport: string;
   pickupLocation: string;
   dropLocation: string;
+  flightDetails: FlightDetailRow[];
   itineraries: ItineraryRow[];
   policies: Record<string, string>;
 }
@@ -235,6 +253,7 @@ export function mapAiDraftToQueryInitial(
     transport: data.transport ?? "",
     pickupLocation: data.pickup_location ?? "",
     dropLocation: data.drop_location ?? "",
+    flightDetails: mapAiDraftToFlightDetails(data),
     itineraries: mapAiDraftToQueryItineraries(data, locationId),
     policies: {},
   };

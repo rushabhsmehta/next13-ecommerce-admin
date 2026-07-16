@@ -4,6 +4,7 @@ export type TourQueryTabId =
   | "basic"
   | "guests"
   | "trip"
+  | "flights"
   | "itinerary"
   | "pricing"
   | "variants"
@@ -37,6 +38,19 @@ export interface ActivityRow {
   activityTitle?: string | null;
   activityDescription?: string | null;
   activityImages?: ActivityImageRow[];
+}
+
+export interface FlightDetailRow {
+  id?: string;
+  date?: string | null;
+  flightName?: string | null;
+  flightNumber?: string | null;
+  from?: string | null;
+  to?: string | null;
+  departureTime?: string | null;
+  arrivalTime?: string | null;
+  flightDuration?: string | null;
+  images?: ActivityImageRow[];
 }
 
 export interface ItineraryRow {
@@ -85,6 +99,7 @@ export interface TourQueryDetailResponse {
   selectedTemplateType: string | null;
   tourPackageTemplateName: string | null;
   selectedVariantIds: string[] | null;
+  flightDetails: FlightDetailRow[];
   itineraries: ItineraryRow[];
   inquiry: {
     id: string;

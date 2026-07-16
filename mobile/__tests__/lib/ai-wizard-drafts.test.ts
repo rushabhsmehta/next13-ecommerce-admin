@@ -77,6 +77,19 @@ describe("ai-wizard-drafts", () => {
         numAdults: 2,
         numChildren: 1,
         tourStartsFrom: "2026-07-01",
+        flightDetails: [
+          {
+            date: "2026-07-01",
+            flightName: "Indigo",
+            flightNumber: "6E 123",
+            from: "AMD",
+            to: "DEL",
+            departureTime: "08:30",
+            arrivalTime: "10:05",
+            flightDuration: "1h 35m",
+            images: [{ url: "https://example.com/ticket.jpg" }],
+          },
+        ],
         itineraries: [{ dayNumber: 1, itineraryTitle: "Beach day" }],
       },
     });
@@ -84,6 +97,20 @@ describe("ai-wizard-drafts", () => {
     expect(mapped.customerName).toBe("Sharma Family");
     expect(mapped.numAdults).toBe("2");
     expect(mapped.numChild512).toBe("1");
+    expect(mapped.flightDetails).toEqual([
+      {
+        id: "ai-draft-flight-1",
+        date: "2026-07-01",
+        flightName: "Indigo",
+        flightNumber: "6E 123",
+        from: "AMD",
+        to: "DEL",
+        departureTime: "08:30",
+        arrivalTime: "10:05",
+        flightDuration: "1h 35m",
+        images: [{ url: "https://example.com/ticket.jpg" }],
+      },
+    ]);
     expect(mapped.itineraries).toHaveLength(1);
   });
 });

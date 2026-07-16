@@ -102,8 +102,8 @@ export function parsePolicyField(field: any): string[] {
  */
 export function renderBulletList(
   items: string[],
-  bulletColor = brandColors.secondary,
-  textColor = brandColors.text
+  bulletColor: string = brandColors.secondary,
+  textColor: string = brandColors.text
 ): string {
   return items
     .map(
@@ -122,7 +122,7 @@ export function renderBulletList(
  */
 export function renderParagraphList(
   items: string[],
-  textColor = brandColors.text
+  textColor: string = brandColors.text
 ): string {
   return items
     .map(

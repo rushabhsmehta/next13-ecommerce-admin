@@ -150,6 +150,18 @@ type PackageRow = {
       activityImages?: { id: string; url: string }[];
     }[];
   }[];
+  flightDetails?: {
+    id: string;
+    date: string | null;
+    flightName: string | null;
+    flightNumber: string | null;
+    from: string | null;
+    to: string | null;
+    departureTime: string | null;
+    arrivalTime: string | null;
+    flightDuration: string | null;
+    images?: { id: string; url: string }[];
+  }[];
   packageVariants?: {
     id: string;
     name: string;
@@ -212,6 +224,18 @@ export function formatTourPackageDetail(row: PackageRow) {
         activityImages: (activity.activityImages ?? []).map((img) => ({ url: img.url })),
       })),
     })),
+    flightDetails: (row.flightDetails ?? []).map((flight) => ({
+      id: flight.id,
+      date: flight.date,
+      flightName: flight.flightName,
+      flightNumber: flight.flightNumber,
+      from: flight.from,
+      to: flight.to,
+      departureTime: flight.departureTime,
+      arrivalTime: flight.arrivalTime,
+      flightDuration: flight.flightDuration,
+      images: (flight.images ?? []).map((img) => ({ id: img.id, url: img.url })),
+    })),
     variants: (row.packageVariants ?? []).map((v) => ({
       id: v.id,
       name: v.name,
@@ -252,6 +276,21 @@ export const tourPackageDetailInclude = {
       },
     },
     orderBy: [{ dayNumber: "asc" as const }, { days: "asc" as const }],
+  },
+  flightDetails: {
+    select: {
+      id: true,
+      date: true,
+      flightName: true,
+      flightNumber: true,
+      from: true,
+      to: true,
+      departureTime: true,
+      arrivalTime: true,
+      flightDuration: true,
+      images: { select: { id: true, url: true }, orderBy: { createdAt: "asc" as const } },
+    },
+    orderBy: { createdAt: "asc" as const },
   },
   packageVariants: {
     select: {

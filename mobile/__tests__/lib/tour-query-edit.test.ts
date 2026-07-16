@@ -12,6 +12,19 @@ describe("createTourQueryEditClient", () => {
         { name: "Adult", price: "25000", description: "25000 x 2" },
       ],
       inclusions: ["one", "two"],
+      flightDetails: [
+        {
+          date: "2026-07-01",
+          flightName: "Indigo",
+          flightNumber: "6E 123",
+          from: "AMD",
+          to: "DEL",
+          departureTime: "08:30",
+          arrivalTime: "10:05",
+          flightDuration: "1h 35m",
+          images: [{ url: "https://example.com/ticket.jpg" }],
+        },
+      ],
       itineraries: [
         {
           id: "it1",
@@ -43,6 +56,19 @@ describe("createTourQueryEditClient", () => {
       { name: "Adult", price: "25000", description: "25000 x 2" },
     ]);
     expect(opts.body.inclusions).toEqual(["one", "two"]);
+    expect(opts.body.flightDetails).toEqual([
+      {
+        date: "2026-07-01",
+        flightName: "Indigo",
+        flightNumber: "6E 123",
+        from: "AMD",
+        to: "DEL",
+        departureTime: "08:30",
+        arrivalTime: "10:05",
+        flightDuration: "1h 35m",
+        images: [{ url: "https://example.com/ticket.jpg" }],
+      },
+    ]);
     expect(opts.body.itineraries[0]).toEqual({
       id: "it1",
       dayNumber: 1,

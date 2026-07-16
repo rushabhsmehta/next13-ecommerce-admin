@@ -21,10 +21,23 @@ interface Props {
   onChange: (images: { url: string }[]) => void;
   getToken: () => Promise<string | null>;
   testID?: string;
+  addAccessibilityLabel?: string;
+  addLabel?: string;
+  emptyHint?: string;
+  showRequiredHint?: boolean;
 }
 
 /** Multi-image gallery picker for hotel create/edit (mirrors web `images: { url }[]`). */
-export function OperationsImageGallery({ images, onChange, getToken, testID }: Props) {
+export function OperationsImageGallery({
+  images,
+  onChange,
+  getToken,
+  testID,
+  addAccessibilityLabel = "Add hotel image",
+  addLabel = "Add photo",
+  emptyHint = "At least one image is required *",
+  showRequiredHint = true,
+}: Props) {
   const [uploading, setUploading] = useState(false);
   const visibleImages = images
     .map((img, index) => ({ url: img.url.trim(), index }))
@@ -97,7 +110,7 @@ export function OperationsImageGallery({ images, onChange, getToken, testID }: P
         <Pressable
           testID={testID ? `${testID}-add` : undefined}
           accessibilityRole="button"
-          accessibilityLabel="Add hotel image"
+          accessibilityLabel={addAccessibilityLabel}
           style={styles.addTile}
           onPress={addImage}
           disabled={uploading}
@@ -107,13 +120,13 @@ export function OperationsImageGallery({ images, onChange, getToken, testID }: P
           ) : (
             <>
               <Ionicons name="add" size={28} color={Colors.primary} />
-              <Text style={styles.addText}>Add photo</Text>
+              <Text style={styles.addText}>{addLabel}</Text>
             </>
           )}
         </Pressable>
       </ScrollView>
       {visibleImages.length === 0 ? (
-        <Text style={styles.hint}>At least one image is required *</Text>
+        showRequiredHint ? <Text style={styles.hint}>{emptyHint}</Text> : null
       ) : (
         <Text style={styles.hint}>{visibleImages.length} image(s)</Text>
       )}

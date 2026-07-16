@@ -9,6 +9,7 @@ export const TOUR_QUERY_TABS: TourQueryTabOption[] = [
   { id: "basic", label: "Basic" },
   { id: "guests", label: "Guests" },
   { id: "trip", label: "Trip" },
+  { id: "flights", label: "Flights" },
   { id: "itinerary", label: "Itinerary" },
   { id: "pricing", label: "Pricing" },
   { id: "variants", label: "Variants" },
@@ -52,6 +53,9 @@ export function fieldPathToTab(fieldPath: string): TourQueryTabId {
     (lower.includes("location") && !lower.includes("itineraries"))
   ) {
     return "trip";
+  }
+  if (lower.includes("flight")) {
+    return "flights";
   }
   if (lower.includes("roomalloc") || lower.includes("hotel") || lower.includes("transportdetail")) {
     return "variants";

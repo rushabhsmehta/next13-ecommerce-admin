@@ -19,6 +19,26 @@ export const aiWizardItinerarySchema = z
   })
   .passthrough();
 
+export const aiWizardFlightDetailSchema = z
+  .object({
+    date: z.string().optional().nullable(),
+    flightName: z.string().optional().nullable(),
+    flightNumber: z.string().optional().nullable(),
+    from: z.string().optional().nullable(),
+    to: z.string().optional().nullable(),
+    departureTime: z.string().optional().nullable(),
+    arrivalTime: z.string().optional().nullable(),
+    flightDuration: z.string().optional().nullable(),
+    images: z
+      .array(
+        z.object({
+          url: z.string().min(1),
+        })
+      )
+      .optional(),
+  })
+  .passthrough();
+
 export const aiWizardDraftSchema = z
   .object({
     tourPackageName: z.string().min(1),
@@ -31,6 +51,7 @@ export const aiWizardDraftSchema = z
     estimatedBudget: z.any().optional(),
     highlights: z.array(z.string()).optional(),
     itineraries: z.array(aiWizardItinerarySchema).optional(),
+    flightDetails: z.array(aiWizardFlightDetailSchema).optional(),
     customerName: z.string().optional().nullable(),
     tourStartsFrom: z.string().optional().nullable(),
     numAdults: z.coerce.number().optional().nullable(),
@@ -90,6 +111,44 @@ export function buildItineraryCreates(locationId: string, draft: AiWizardDraft) 
   }));
 }
 
+function flightDetailHasContent(flight: AiWizardDraft["flightDetails"] extends (infer F)[] | undefined ? F : never) {
+  return Boolean(
+    flight &&
+      [
+        flight.date,
+        flight.flightName,
+        flight.flightNumber,
+        flight.from,
+        flight.to,
+        flight.departureTime,
+        flight.arrivalTime,
+        flight.flightDuration,
+      ].some((value) => String(value ?? "").trim().length > 0)
+  ) || Boolean(flight?.images?.some((image) => image.url.trim().length > 0));
+}
+
+export function buildFlightDetailCreates(draft: AiWizardDraft) {
+  return (draft.flightDetails ?? [])
+    .filter(flightDetailHasContent)
+    .map((flight) => {
+      const imageRows = (flight.images ?? [])
+        .map((image) => ({ url: image.url.trim() }))
+        .filter((image) => image.url.length > 0);
+
+      return {
+        date: flight.date?.trim() || null,
+        flightName: flight.flightName?.trim() || null,
+        flightNumber: flight.flightNumber?.trim() || null,
+        from: flight.from?.trim() || null,
+        to: flight.to?.trim() || null,
+        departureTime: flight.departureTime?.trim() || null,
+        arrivalTime: flight.arrivalTime?.trim() || null,
+        flightDuration: flight.flightDuration?.trim() || null,
+        images: imageRows.length ? { create: imageRows } : undefined,
+      };
+    });
+}
+
 type SaveAiWizardDraftInput = z.infer<typeof aiWizardSaveSchema>;
 
 export async function saveAiWizardDraft(
@@ -99,6 +158,7 @@ export async function saveAiWizardDraft(
   const { targetType, locationId, draft } = input;
   const price = budgetStringFromDraft(draft);
   const itineraryRows = buildItineraryCreates(locationId, draft);
+  const flightRows = buildFlightDetailCreates(draft);
 
   if (targetType === "tourPackage") {
     const saved = await db.tourPackage.create({
@@ -116,6 +176,7 @@ export async function saveAiWizardDraft(
         isFeatured: false,
         isArchived: false,
         itineraries: itineraryRows.length ? { create: itineraryRows } : undefined,
+        flightDetails: flightRows.length ? { create: flightRows } : undefined,
       },
       select: { id: true },
     });
@@ -141,6 +202,7 @@ export async function saveAiWizardDraft(
       isFeatured: false,
       isArchived: false,
       itineraries: itineraryRows.length ? { create: itineraryRows } : undefined,
+      flightDetails: flightRows.length ? { create: flightRows } : undefined,
     },
     select: { id: true },
   });

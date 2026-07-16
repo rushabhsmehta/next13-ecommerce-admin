@@ -79,6 +79,44 @@ const activitySchema = z.object({
     .optional(),
 });
 
+const flightDetailSchema = z.object({
+  id: z.string().optional(),
+  date: z.string().optional().nullable(),
+  flightName: z.string().optional().nullable(),
+  flightNumber: z.string().optional().nullable(),
+  from: z.string().optional().nullable(),
+  to: z.string().optional().nullable(),
+  departureTime: z.string().optional().nullable(),
+  arrivalTime: z.string().optional().nullable(),
+  flightDuration: z.string().optional().nullable(),
+  images: z
+    .array(
+      z.object({
+        url: z.string().min(1),
+      })
+    )
+    .optional(),
+});
+
+type ParsedFlightDetail = z.infer<typeof flightDetailSchema>;
+
+function sanitizeFlightDetails(rows: ParsedFlightDetail[] | undefined) {
+  return (rows ?? []).filter((row) => {
+    const hasText = [
+      row.date,
+      row.flightName,
+      row.flightNumber,
+      row.from,
+      row.to,
+      row.departureTime,
+      row.arrivalTime,
+      row.flightDuration,
+    ].some((value) => String(value ?? "").trim().length > 0);
+    const hasImages = row.images?.some((image) => image.url.trim().length > 0);
+    return hasText || hasImages;
+  });
+}
+
 const patchSchema = z.object({
   tourPackageQueryName: z.string().max(300).optional(),
   customerName: z.string().max(200).optional(),
@@ -126,6 +164,7 @@ const patchSchema = z.object({
       })
     )
     .optional(),
+  flightDetails: z.array(flightDetailSchema).optional(),
   itineraries: z
     .array(
       z.object({
@@ -349,6 +388,7 @@ export async function GET(
             departureTime: true,
             arrivalTime: true,
             flightDuration: true,
+            images: { select: { id: true, url: true } },
           },
           orderBy: { createdAt: "asc" },
         },
@@ -711,6 +751,34 @@ export async function PATCH(
           });
         }
       }
+
+      if (v.flightDetails !== undefined) {
+        await tx.flightDetails.deleteMany({
+          where: { tourPackageQueryId: id },
+        });
+
+        const flightRows = sanitizeFlightDetails(v.flightDetails);
+        for (const flight of flightRows) {
+          const imageRows = (flight.images ?? [])
+            .map((image) => ({ url: image.url.trim() }))
+            .filter((image) => image.url.length > 0);
+
+          await tx.flightDetails.create({
+            data: {
+              tourPackageQueryId: id,
+              date: flight.date?.trim() || null,
+              flightName: flight.flightName?.trim() || null,
+              flightNumber: flight.flightNumber?.trim() || null,
+              from: flight.from?.trim() || null,
+              to: flight.to?.trim() || null,
+              departureTime: flight.departureTime?.trim() || null,
+              arrivalTime: flight.arrivalTime?.trim() || null,
+              flightDuration: flight.flightDuration?.trim() || null,
+              images: imageRows.length ? { create: imageRows } : undefined,
+            },
+          });
+        }
+      }
       
       if (patchItineraries !== undefined) {
         // Step 1: Find existing itineraries for this tourPackageQuery
@@ -935,6 +1003,7 @@ export async function PATCH(
       action: "UPDATE",
       metadata: {
         fields: Object.keys(data),
+        flightDetailsTouched: v.flightDetails !== undefined,
         itinerariesTouched: patchItineraries?.length ?? 0,
       },
     });

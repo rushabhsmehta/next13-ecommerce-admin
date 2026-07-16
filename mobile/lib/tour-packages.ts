@@ -135,6 +135,18 @@ export interface TourPackageDetail {
       activityImages?: { url: string }[];
     }[];
   }[];
+  flightDetails: {
+    id: string;
+    date: string | null;
+    flightName: string | null;
+    flightNumber: string | null;
+    from: string | null;
+    to: string | null;
+    departureTime: string | null;
+    arrivalTime: string | null;
+    flightDuration: string | null;
+    images?: { id: string; url: string }[];
+  }[];
   variants: TourPackageVariantSummary[];
   createdAt: string;
   updatedAt: string;

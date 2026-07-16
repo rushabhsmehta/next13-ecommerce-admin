@@ -400,7 +400,7 @@ export function HotelSpecialDatePricingForm({
         primaryDisabled={submitting}
         secondaryLabel="Cancel"
         onSecondaryPress={() => router.back()}
-        testID="hotel-special-date-pricing-actions"
+        primaryTestID="hotel-special-date-pricing-actions"
       />
     </AdminScreen>
   );

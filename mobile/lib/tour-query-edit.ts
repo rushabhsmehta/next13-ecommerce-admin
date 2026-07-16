@@ -47,6 +47,19 @@ export interface TourQueryPricingItemEdit {
   [key: string]: unknown;
 }
 
+export interface TourQueryFlightDetailEdit {
+  id?: string;
+  date?: string | null;
+  flightName?: string | null;
+  flightNumber?: string | null;
+  from?: string | null;
+  to?: string | null;
+  departureTime?: string | null;
+  arrivalTime?: string | null;
+  flightDuration?: string | null;
+  images?: { url: string }[];
+}
+
 export interface TourQueryEditInput {
   tourPackageQueryName?: string;
   customerName?: string;
@@ -85,6 +98,7 @@ export interface TourQueryEditInput {
   selectedTemplateType?: string | null;
   tourPackageTemplateName?: string | null;
   selectedVariantIds?: string[];
+  flightDetails?: TourQueryFlightDetailEdit[];
   itineraries?: TourQueryItineraryEdit[];
 }
 

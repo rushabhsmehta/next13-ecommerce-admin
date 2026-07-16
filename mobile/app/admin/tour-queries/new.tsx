@@ -11,6 +11,7 @@ import {
 } from "@/components/admin";
 import { parseTourQueryTab } from "@/components/tour-queries/tab-config";
 import { TourQueryBasicTab } from "@/components/tour-queries/TourQueryBasicTab";
+import { TourQueryFlightsTab } from "@/components/tour-queries/TourQueryFlightsTab";
 import { TourQueryGuestsTab } from "@/components/tour-queries/TourQueryGuestsTab";
 import { TourQueryItineraryTab } from "@/components/tour-queries/TourQueryItineraryTab";
 import { TourQueryPoliciesTab } from "@/components/tour-queries/TourQueryPoliciesTab";
@@ -98,6 +99,7 @@ function NewTourQueryScreenInner() {
           {activeTab === "basic" ? <TourQueryBasicTab {...form} /> : null}
           {activeTab === "guests" ? <TourQueryGuestsTab {...form} /> : null}
           {activeTab === "trip" ? <TourQueryTripTab {...form} /> : null}
+          {activeTab === "flights" ? <TourQueryFlightsTab {...form} /> : null}
           {activeTab === "itinerary" ? <TourQueryItineraryTab {...form} /> : null}
           {activeTab === "policies" ? (
             <TourQueryPoliciesTab policies={form.policies} setPolicies={form.setPolicies} />

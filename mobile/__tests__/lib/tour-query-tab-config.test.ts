@@ -13,6 +13,7 @@ describe("parseTourQueryTab", () => {
   it("accepts valid tab ids", () => {
     expect(parseTourQueryTab("pricing")).toBe("pricing");
     expect(parseTourQueryTab("itinerary")).toBe("itinerary");
+    expect(parseTourQueryTab("flights")).toBe("flights");
   });
 
   it("redirects legacy hotels tab to variants", () => {
@@ -39,6 +40,10 @@ describe("fieldPathToTab", () => {
   it("maps trip fields", () => {
     expect(fieldPathToTab("tourStartsFrom")).toBe("trip");
     expect(fieldPathToTab("pickup_location")).toBe("trip");
+  });
+
+  it("maps flight detail fields", () => {
+    expect(fieldPathToTab("flightDetails.0.flightNumber")).toBe("flights");
   });
 
   it("maps pricing fields", () => {

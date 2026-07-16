@@ -18,6 +18,7 @@ import { ApiError, withAuth } from "@/lib/api";
 import { API_BASE_URL } from "@/constants/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { RemoteImage } from "@/components/ui/RemoteImage";
 import {
   AdminErrorState,
   AdminLoadingState,
@@ -65,6 +66,7 @@ interface FlightDetail {
   departureTime: string | null;
   arrivalTime: string | null;
   flightDuration: string | null;
+  images?: { id?: string; url: string }[];
 }
 
 interface VariantSnapshot {
@@ -1046,22 +1048,27 @@ function TourQueryDetailScreenInner() {
           {data.pickup_location ? <Row label="Pickup" value={data.pickup_location} /> : null}
           {data.drop_location ? <Row label="Drop" value={data.drop_location} /> : null}
         </Section>
-        {data.flightDetails.length ? (
-            <View style={styles.section}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={flightsOpen ? "Hide flights" : "Show flights"}
-                style={styles.sectionHeaderPress}
-                onPress={() => setFlightsOpen((v) => !v)}
-              >
-                <Text style={styles.sectionTitle}>Flights · {data.flightDetails.length}</Text>
-                <Ionicons
-                  name={flightsOpen ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  color={Colors.textTertiary}
-                />
-              </Pressable>
-              {flightsOpen ? (
+        </>
+        ) : null}
+
+        {activeTab === "flights" ? (
+          <View style={styles.section}>
+            {data.flightDetails.length ? (
+              <>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={flightsOpen ? "Hide flights" : "Show flights"}
+                  style={styles.sectionHeaderPress}
+                  onPress={() => setFlightsOpen((v) => !v)}
+                >
+                  <Text style={styles.sectionTitle}>Flights · {data.flightDetails.length}</Text>
+                  <Ionicons
+                    name={flightsOpen ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={Colors.textTertiary}
+                  />
+                </Pressable>
+                {flightsOpen ? (
                   <View style={styles.sectionBody}>
                     {data.flightDetails.map((f) => (
                       <View key={f.id} style={styles.flightCard}>
@@ -1078,13 +1085,27 @@ function TourQueryDetailScreenInner() {
                           {f.arrivalTime ? ` to ${f.arrivalTime}` : ""}
                           {f.flightDuration ? ` · ${f.flightDuration}` : ""}
                         </Text>
+                        {f.images?.length ? (
+                          <View style={styles.flightImagesRow}>
+                            {f.images.slice(0, 3).map((img, imgIndex) => (
+                              <RemoteImage
+                                key={`${f.id}-flight-image-${img.id ?? imgIndex}`}
+                                uri={img.url}
+                                style={styles.flightThumb}
+                                accessibilityLabel={`Flight ${f.flightNumber ?? imgIndex + 1} image`}
+                              />
+                            ))}
+                          </View>
+                        ) : null}
                       </View>
                     ))}
                   </View>
                 ) : null}
-            </View>
-          ) : null}
-        </>
+              </>
+            ) : (
+              <Text style={styles.bodyText}>No flight details yet.</Text>
+            )}
+          </View>
         ) : null}
 
         {activeTab === "itinerary" ? (
@@ -1828,6 +1849,17 @@ const styles = StyleSheet.create({
   flightHead: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.text },
   flightRoute: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: "700" },
   flightMeta: { fontSize: FontSize.xs, color: Colors.textTertiary },
+  flightImagesRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 4,
+  },
+  flightThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.background,
+  },
   policySub: { gap: 6, paddingBottom: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle },
   policySubTitle: {
     fontSize: FontSize.xs,

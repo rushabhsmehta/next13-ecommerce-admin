@@ -111,6 +111,43 @@ async function cloneItineraries(
   }
 }
 
+async function cloneFlightDetails(
+  tx: Prisma.TransactionClient,
+  fromWhere: Prisma.FlightDetailsWhereInput,
+  newQueryId: string
+) {
+  const flights = await tx.flightDetails.findMany({
+    where: fromWhere,
+    include: { images: { select: { url: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  for (const flight of flights) {
+    const imageRows = flight.images
+      .map((image) => ({ url: image.url.trim() }))
+      .filter((image) => image.url.length > 0);
+
+    await tx.flightDetails.create({
+      data: {
+        date: flight.date,
+        flightName: flight.flightName,
+        flightNumber: flight.flightNumber,
+        from: flight.from,
+        to: flight.to,
+        departureTime: flight.departureTime,
+        arrivalTime: flight.arrivalTime,
+        flightDuration: flight.flightDuration,
+        tourPackageQueryId: newQueryId,
+        images: imageRows.length
+          ? {
+              create: imageRows,
+            }
+          : undefined,
+      },
+    });
+  }
+}
+
 /**
  * Lightweight tour-query list for mobile. Supports search, status filter,
  * pagination. Status values:
@@ -373,6 +410,7 @@ export async function POST(req: Request) {
           { tourPackageId: pkg.id },
           created.id
         );
+        await cloneFlightDetails(tx, { tourPackageId: pkg.id }, created.id);
         return created.id;
       }, {
         maxWait: 20000,
@@ -476,6 +514,7 @@ export async function POST(req: Request) {
           { tourPackageQueryId: src.id },
           created.id
         );
+        await cloneFlightDetails(tx, { tourPackageQueryId: src.id }, created.id);
         return created.id;
       }, {
         maxWait: 20000,

@@ -20,6 +20,7 @@ import { createAiWizardsClient } from "@/lib/ai-wizards";
 import type { AiItineraryDraft } from "@/lib/ai-wizards";
 import type {
   ActivePickerState,
+  FlightDetailRow,
   ItineraryRow,
   TabBadgeState,
   TourQueryTabId,
@@ -35,6 +36,7 @@ function buildDraftFromForm(input: {
   transport: string;
   pickupLocation: string;
   dropLocation: string;
+  flightDetails: FlightDetailRow[];
   itineraries: ItineraryRow[];
 }): AiItineraryDraft {
   return {
@@ -46,6 +48,33 @@ function buildDraftFromForm(input: {
     transport: input.transport.trim() || null,
     pickup_location: input.pickupLocation.trim() || null,
     drop_location: input.dropLocation.trim() || null,
+    flightDetails: input.flightDetails
+      .map((flight) => ({
+        date: flight.date?.trim() || null,
+        flightName: flight.flightName?.trim() || null,
+        flightNumber: flight.flightNumber?.trim() || null,
+        from: flight.from?.trim() || null,
+        to: flight.to?.trim() || null,
+        departureTime: flight.departureTime?.trim() || null,
+        arrivalTime: flight.arrivalTime?.trim() || null,
+        flightDuration: flight.flightDuration?.trim() || null,
+        images: (flight.images ?? [])
+          .map((img) => ({ url: String(img.url ?? "").trim() }))
+          .filter((img) => img.url.length > 0),
+      }))
+      .filter((flight) =>
+        [
+          flight.date,
+          flight.flightName,
+          flight.flightNumber,
+          flight.from,
+          flight.to,
+          flight.departureTime,
+          flight.arrivalTime,
+          flight.flightDuration,
+        ].some((value) => String(value ?? "").trim().length > 0) ||
+        flight.images.length > 0
+      ),
     itineraries: input.itineraries.map((day, index) => ({
       dayNumber: day.dayNumber ?? index + 1,
       itineraryTitle: day.itineraryTitle ?? "",
@@ -92,13 +121,19 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
   const [dropLocation, setDropLocation] = useState("");
   const [remarks, setRemarks] = useState("");
   const [policies, setPolicies] = useState<Record<string, string>>({});
+  const [flightDetails, setFlightDetails] = useState<FlightDetailRow[]>([]);
   const [itineraries, setItineraries] = useState<ItineraryRow[]>([]);
   const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
   const [activePicker, setActivePicker] = useState<ActivePickerState>(null);
+  const getTokenForUpload = useCallback(() => getTokenRef.current(), []);
 
   const datesOk = !startsFrom || !endsOn || startsFrom <= endsOn;
   const datesOrderWarning = !!(startsFrom && endsOn && startsFrom > endsOn);
-  const dirty = name.trim().length > 0 || itineraries.length > 0 || draftLoaded;
+  const dirty =
+    name.trim().length > 0 ||
+    flightDetails.length > 0 ||
+    itineraries.length > 0 ||
+    draftLoaded;
   const saveBlocked =
     saving || !name.trim() || !queryLocationId || !datesOk || datesOrderWarning;
 
@@ -127,6 +162,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
             setTransport(mapped.transport);
             setPickupLocation(mapped.pickupLocation);
             setDropLocation(mapped.dropLocation);
+            setFlightDetails(mapped.flightDetails);
             setItineraries(mapped.itineraries);
             setDraftLoaded(true);
             Alert.alert(
@@ -195,6 +231,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
         transport,
         pickupLocation,
         dropLocation,
+        flightDetails,
         itineraries,
       });
       const saved = await aiClient.saveDraft({
@@ -212,6 +249,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
     aiClient,
     customerName,
     dropLocation,
+    flightDetails,
     itineraries,
     name,
     numAdults,
@@ -310,6 +348,8 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
     setRemarks,
     policies,
     setPolicies,
+    flightDetails,
+    setFlightDetails,
     itineraries,
     setItineraries,
     inquiry: null,
@@ -349,6 +389,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
     handlePickerSelect,
     loadHotelsForLocation: async () => undefined,
     authRequest,
+    getTokenForUpload,
   };
 }
 

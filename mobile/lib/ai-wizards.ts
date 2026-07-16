@@ -38,6 +38,18 @@ export interface AiItineraryDay {
   activities?: AiItineraryActivity[];
 }
 
+export interface AiFlightDetail {
+  date?: string | null;
+  flightName?: string | null;
+  flightNumber?: string | null;
+  from?: string | null;
+  to?: string | null;
+  departureTime?: string | null;
+  arrivalTime?: string | null;
+  flightDuration?: string | null;
+  images?: { url: string }[];
+}
+
 export interface AiItineraryDraft {
   tourPackageName: string;
   tourCategory?: string | null;
@@ -48,6 +60,7 @@ export interface AiItineraryDraft {
   drop_location?: string | null;
   highlights?: string[];
   itineraries?: AiItineraryDay[];
+  flightDetails?: AiFlightDetail[];
   estimatedBudget?: { perPerson?: string; total?: string; note?: string } | Record<string, unknown>;
   customerName?: string | null;
   tourStartsFrom?: string | null;

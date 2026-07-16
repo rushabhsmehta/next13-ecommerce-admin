@@ -15,6 +15,7 @@ import {
 import type {
   ActivePickerState,
   ActivityRow,
+  FlightDetailRow,
   ItineraryRow,
   RoomAllocationRow,
   TransportDetailRow,
@@ -90,6 +91,42 @@ function mapItinerariesFromDetail(
   }));
 }
 
+function mapFlightDetailsFromDetail(
+  flightDetails: any[] | undefined | null
+): FlightDetailRow[] {
+  return (flightDetails ?? []).map((flight: any) => ({
+    id: flight.id,
+    date: flight.date ?? "",
+    flightName: flight.flightName ?? "",
+    flightNumber: flight.flightNumber ?? "",
+    from: flight.from ?? "",
+    to: flight.to ?? "",
+    departureTime: flight.departureTime ?? "",
+    arrivalTime: flight.arrivalTime ?? "",
+    flightDuration: flight.flightDuration ?? "",
+    images: (flight.images ?? [])
+      .map((img: any) => ({ url: String(img?.url ?? "") }))
+      .filter((img: { url: string }) => img.url.trim().length > 0),
+  }));
+}
+
+function serializeFlightDetails(rows: FlightDetailRow[]): FlightDetailRow[] {
+  return rows.map((flight) => ({
+    id: flight.id,
+    date: flight.date ?? "",
+    flightName: flight.flightName ?? "",
+    flightNumber: flight.flightNumber ?? "",
+    from: flight.from ?? "",
+    to: flight.to ?? "",
+    departureTime: flight.departureTime ?? "",
+    arrivalTime: flight.arrivalTime ?? "",
+    flightDuration: flight.flightDuration ?? "",
+    images: (flight.images ?? [])
+      .map((img) => ({ url: String(img.url ?? "").trim() }))
+      .filter((img) => img.url.length > 0),
+  }));
+}
+
 type DetailResponse = TourQueryDetailResponse;
 
 function mapPoliciesFromDetail(d: DetailResponse): Record<string, string> {
@@ -124,6 +161,7 @@ type BaselinePayload = {
   dropLocation: string;
   remarks: string;
   policies: Record<string, string>;
+  flightDetails: FlightDetailRow[];
   itineraries: ItineraryRow[];
   selectedTemplateId: string | null;
   selectedVariantIds: string[];
@@ -140,6 +178,7 @@ function serializeBaseline(p: BaselinePayload): string {
 
 function buildBaselineFromDetail(
   d: DetailResponse,
+  flightDetails: FlightDetailRow[],
   itineraries: ItineraryRow[],
   selectedVariantIds: string[]
 ): BaselinePayload {
@@ -158,6 +197,7 @@ function buildBaselineFromDetail(
     dropLocation: d.drop_location ?? "",
     remarks: d.remarks ?? "",
     policies: mapPoliciesFromDetail(d),
+    flightDetails,
     itineraries,
     selectedTemplateId: d.selectedTemplateId || null,
     selectedVariantIds,
@@ -195,6 +235,7 @@ export function useTourQueryEditForm(queryId: string) {
   const [dropLocation, setDropLocation] = useState("");
   const [remarks, setRemarks] = useState("");
   const [policies, setPolicies] = useState<Record<string, string>>({});
+  const [flightDetails, setFlightDetails] = useState<FlightDetailRow[]>([]);
   const [itineraries, setItineraries] = useState<ItineraryRow[]>([]);
   const [inquiry, setInquiry] = useState<DetailResponse["inquiry"]>(null);
   const [saveErrorTab, setSaveErrorTab] = useState<TourQueryTabId | null>(null);
@@ -217,6 +258,7 @@ export function useTourQueryEditForm(queryId: string) {
   const [activePicker, setActivePicker] = useState<ActivePickerState>(null);
   const packagesLocationRef = useRef<string | null | undefined>(undefined);
   const aiApplyDraftChecked = useRef(false);
+  const getTokenForUpload = useCallback(() => getTokenRef.current(), []);
 
   const refreshPackagesList = useCallback(
     async (locId: string | null, keepSelectedId?: string | null) => {
@@ -349,11 +391,13 @@ export function useTourQueryEditForm(queryId: string) {
 
         const pol = mapPoliciesFromDetail(d);
         const itinerariesInit = mapItinerariesFromDetail(d.itineraries);
+        const flightDetailsInit = mapFlightDetailsFromDetail(d.flightDetails);
 
         baselineSerialized.current = serializeBaseline(
-          buildBaselineFromDetail(d, itinerariesInit, initVariantIds)
+          buildBaselineFromDetail(d, flightDetailsInit, itinerariesInit, initVariantIds)
         );
         setPolicies(pol);
+        setFlightDetails(flightDetailsInit);
         setItineraries(itinerariesInit);
 
         // Pre-fetch hotels for all unique locations in loaded itineraries
@@ -409,6 +453,7 @@ export function useTourQueryEditForm(queryId: string) {
         setTransport((prev) => mapped.transport || prev);
         setPickupLocation((prev) => mapped.pickupLocation || prev);
         setDropLocation((prev) => mapped.dropLocation || prev);
+        if (mapped.flightDetails.length) setFlightDetails(mapped.flightDetails);
         if (mapped.itineraries.length) setItineraries(mapped.itineraries);
         Alert.alert(
           "AI Wizard",
@@ -456,6 +501,7 @@ export function useTourQueryEditForm(queryId: string) {
         dropLocation,
         remarks,
         policies,
+        flightDetails: serializeFlightDetails(flightDetails),
         itineraries,
         selectedTemplateId: selectedPackageId,
         selectedVariantIds,
@@ -475,6 +521,7 @@ export function useTourQueryEditForm(queryId: string) {
       dropLocation,
       remarks,
       policies,
+      flightDetails,
       itineraries,
       selectedPackageId,
       selectedVariantIds,
@@ -830,6 +877,7 @@ export function useTourQueryEditForm(queryId: string) {
         const withRooms = ensureItineraryRoomDefaults(
           applyInquiryRoomAllocationsToAll(newItineraries)
         );
+        setFlightDetails(mapFlightDetailsFromDetail(pkg.flightDetails));
         setItineraries(withRooms);
       } catch (err) {
         Alert.alert("Error", "Could not load package template details.");
@@ -890,6 +938,7 @@ export function useTourQueryEditForm(queryId: string) {
         const withRooms = ensureItineraryRoomDefaults(
           applyInquiryRoomAllocationsToAll(newItineraries)
         );
+        setFlightDetails(mapFlightDetailsFromDetail(srcQuery.flightDetails));
         setItineraries(withRooms);
       } catch (err) {
         Alert.alert("Error", "Could not load query details to copy.");
@@ -937,6 +986,7 @@ export function useTourQueryEditForm(queryId: string) {
   const applySavedDetail = useCallback(
     (d: DetailResponse) => {
       const refreshedItineraries = mapItinerariesFromDetail(d.itineraries);
+      const refreshedFlightDetails = mapFlightDetailsFromDetail(d.flightDetails);
       const refreshedVariantIds = parseSelectedVariantIds(d.selectedVariantIds);
       const refreshedPolicies = mapPoliciesFromDetail(d);
 
@@ -957,9 +1007,10 @@ export function useTourQueryEditForm(queryId: string) {
       setSelectedPackageId(d.selectedTemplateId || null);
       setSelectedVariantIds(refreshedVariantIds);
       setPolicies(refreshedPolicies);
+      setFlightDetails(refreshedFlightDetails);
       setItineraries(refreshedItineraries);
       baselineSerialized.current = serializeBaseline(
-        buildBaselineFromDetail(d, refreshedItineraries, refreshedVariantIds)
+        buildBaselineFromDetail(d, refreshedFlightDetails, refreshedItineraries, refreshedVariantIds)
       );
     },
     []
@@ -1002,6 +1053,7 @@ export function useTourQueryEditForm(queryId: string) {
           ? packagesList.find((p) => p.id === selectedPackageId)?.name || null
           : null,
         selectedVariantIds: variantIdsForSave,
+        flightDetails: serializeFlightDetails(flightDetails),
         itineraries: itineraries.map((it) => ({
           id: it.id.startsWith("temp-") ? undefined : it.id,
           dayNumber: it.dayNumber ?? undefined,
@@ -1068,6 +1120,7 @@ export function useTourQueryEditForm(queryId: string) {
     dropLocation,
     remarks,
     policies,
+    flightDetails,
     itineraries,
     selectedPackageId,
     selectedVariantIds,
@@ -1141,6 +1194,8 @@ export function useTourQueryEditForm(queryId: string) {
     setRemarks,
     policies,
     setPolicies,
+    flightDetails,
+    setFlightDetails,
     itineraries,
     setItineraries,
     inquiry,
@@ -1180,6 +1235,7 @@ export function useTourQueryEditForm(queryId: string) {
     handlePickerSelect,
     loadHotelsForLocation,
     authRequest,
+    getTokenForUpload,
   };
 }
 

@@ -1247,9 +1247,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         </div>
       `;
 
-      itinerariesSection += initialData.itineraries.map((itinerary, dayIndex) => {
+      itinerariesSection += initialData.itineraries.map((itinerary) => {
         return `
-        <div style="${cardStyle}; margin-bottom: 20px; ${dayIndex > 0 ? pageBreakBefore : ''}">
+        <div style="${cardStyle}; margin-bottom: 20px;">
           <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid ${brandColors.border}; page-break-inside: avoid; break-inside: avoid-page;">
             <div style="background: ${brandColors.primary}; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;">
               <span style="font-size: 7px; font-weight: 700; text-transform: uppercase;">DAY</span>
@@ -1408,7 +1408,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     const hotelComparisonSection = buildHotelComparisonSection();
     const priceComparisonSection = buildPriceComparisonSection();
 
-    // Assemble Full HTML — strict order: header → tour info → hotel comparison → price comparison → itinerary → policies
+    // Assemble Full HTML — strict order: header → tour info → hotel comparison → price comparison → total/remarks → itinerary → policies
     const fullHtml = `
       <html>
         <head>
@@ -1421,6 +1421,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
             ${tourInfoSection}
             ${hotelComparisonSection}
             ${priceComparisonSection}
+            ${totalPriceSection}
+            ${remarksSection}
             ${itinerariesSection}
             ${policiesAndTermsSection}
           </div>

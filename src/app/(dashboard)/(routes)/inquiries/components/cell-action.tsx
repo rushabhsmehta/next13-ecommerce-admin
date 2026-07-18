@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react"
 import axios from "axios"
-import { Copy, Edit, MoreHorizontal, Trash, PackagePlus, Loader2, MessageCircle, Zap } from "lucide-react"
+import { Copy, Edit, MoreHorizontal, Trash, PackagePlus, Loader2, MessageCircle, Mail, Zap } from "lucide-react"
 import { toast } from "react-hot-toast"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { useAssociatePartner } from "@/hooks/use-associate-partner"
 import { WhatsAppSupplierButton } from "@/components/whatsapp-supplier-button"
+import { EmailSupplierButton } from "@/components/email-supplier-button"
 import { AutomatedQueryCreationDialog } from "@/components/dialogs/automated-query-creation-dialog"
 
 import { InquiryColumn } from "./columns"
@@ -33,6 +34,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const [loading, setLoading] = useState(false);
   const [creatingQuery, setCreatingQuery] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [automatedDialogOpen, setAutomatedDialogOpen] = useState(false);
   const { isAssociatePartner } = useAssociatePartner();
@@ -82,9 +84,27 @@ export const CellAction: React.FC<CellActionProps> = ({
     setWhatsappOpen(true);
   };
 
+  const onEmailSupplier = () => {
+    setMenuOpen(false);
+    setEmailOpen(true);
+  };
+
   const onAutomatedQuery = () => {
     setMenuOpen(false);
     setAutomatedDialogOpen(true);
+  };
+
+  const supplierInquiryData = {
+    id: data.id,
+    customerName: data.customerName,
+    customerMobileNumber: data.customerMobileNumber,
+    location: data.location,
+    journeyDate: data.journeyDate,
+    numAdults: 0, // Basic data from list view
+    numChildren5to11: 0,
+    numChildrenBelow5: 0,
+    remarks: null,
+    associatePartner: data.associatePartner,
   };
 
   const handleAutomatedQuerySuccess = (queryId: string) => {
@@ -102,22 +122,17 @@ export const CellAction: React.FC<CellActionProps> = ({
         loading={loading}
       />
 
-      {/* WhatsApp Supplier Component */}
+      {/* WhatsApp / Email Supplier dialogs (opened from menu) */}
       <WhatsAppSupplierButton
-        inquiryData={{
-          id: data.id,
-          customerName: data.customerName,
-          customerMobileNumber: data.customerMobileNumber,
-          location: data.location,
-          journeyDate: data.journeyDate,
-          numAdults: 0, // Basic data from list view
-          numChildren5to11: 0,
-          numChildrenBelow5: 0,
-          remarks: null,
-          associatePartner: data.associatePartner,
-        }}
+        inquiryData={supplierInquiryData}
         isOpen={whatsappOpen}
         onOpenChange={setWhatsappOpen}
+        hideButton={true}
+      />
+      <EmailSupplierButton
+        inquiryData={supplierInquiryData}
+        isOpen={emailOpen}
+        onOpenChange={setEmailOpen}
         hideButton={true}
       />
 
@@ -155,6 +170,11 @@ export const CellAction: React.FC<CellActionProps> = ({
             onClick={onWhatsAppSupplier}
           >
             <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp Message
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onEmailSupplier}
+          >
+            <Mail className="mr-2 h-4 w-4" /> Email Supplier
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {

@@ -9,9 +9,11 @@ import {
 import { firstTabForFieldErrors } from "./tab-config";
 import {
   AI_DRAFT_KEYS,
+  acknowledgeAiDraft,
   consumeAiDraft,
   mapAiDraftToQueryInitial,
 } from "@/lib/ai-wizard-drafts";
+import { buildTourQueryName } from "@/lib/tour-query-label";
 import type {
   ActivePickerState,
   ActivityRow,
@@ -455,6 +457,7 @@ export function useTourQueryEditForm(queryId: string) {
         setDropLocation((prev) => mapped.dropLocation || prev);
         if (mapped.flightDetails.length) setFlightDetails(mapped.flightDetails);
         if (mapped.itineraries.length) setItineraries(mapped.itineraries);
+        // Keep handoff until save so Strict Mode remounts can re-apply.
         Alert.alert(
           "AI Wizard",
           "Applied AI-generated itinerary to this query. Review and save when ready."
@@ -870,6 +873,11 @@ export function useTourQueryEditForm(queryId: string) {
           setSelectedVariantIds([defaultVar.id]);
         }
 
+        const packageName =
+          String(pkg.tourPackageName ?? option.label ?? "").trim() || null;
+        const nextName = buildTourQueryName(customerName, packageName);
+        if (nextName) setName(nextName);
+
         if (pkg.locationId) {
           void loadHotelsForLocation(pkg.locationId);
         }
@@ -981,7 +989,14 @@ export function useTourQueryEditForm(queryId: string) {
       copy[dayIndex] = day;
       return copy;
     });
-  }, [activePicker, loadHotelsForLocation, locations, authRequest, applyInquiryRoomAllocationsToAll, vehicleTypes]);
+  }, [
+    activePicker,
+    applyInquiryRoomAllocationsToAll,
+    authRequest,
+    customerName,
+    loadHotelsForLocation,
+    locations,
+  ]);
 
   const applySavedDetail = useCallback(
     (d: DetailResponse) => {
@@ -1088,6 +1103,7 @@ export function useTourQueryEditForm(queryId: string) {
         ) as never;
       }
       await editClient.update(id, payload);
+      acknowledgeAiDraft(AI_DRAFT_KEYS.queryApply);
       const refreshed = await authRequest<DetailResponse>(
         `/api/mobile/tour-queries/${encodeURIComponent(id)}`
       );

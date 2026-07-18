@@ -615,7 +615,10 @@ export async function createSmartBuildTourQuery(
       associatePartnerId,
       tourPackageQueryNumber:
         input.tourPackageQueryNumber?.trim() || generateTourPackageQueryNumber(),
-      tourPackageQueryName: `${inquiry.customerName} - ${tourPackage.tourPackageName}`,
+      tourPackageQueryName: [inquiry.customerName, tourPackage.tourPackageName]
+        .map((part) => String(part ?? "").trim())
+        .filter(Boolean)
+        .join(" - "),
       tourPackageQueryType: tourPackage.tourPackageType,
       tourCategory: tourPackage.tourCategory || "Domestic",
       customerName: inquiry.customerName,

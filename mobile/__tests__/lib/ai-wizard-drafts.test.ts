@@ -2,6 +2,7 @@ import { NativeModules } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import {
   AI_DRAFT_KEYS,
+  acknowledgeAiDraft,
   consumeAiDraft,
   mapAiDraftToPackageInitial,
   mapAiDraftToQueryInitial,
@@ -20,6 +21,10 @@ describe("ai-wizard-drafts", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setAsyncStorageNativeAvailable(true);
+    acknowledgeAiDraft(AI_DRAFT_KEYS.packageCreate);
+    acknowledgeAiDraft(AI_DRAFT_KEYS.packageApply);
+    acknowledgeAiDraft(AI_DRAFT_KEYS.queryCreate);
+    acknowledgeAiDraft(AI_DRAFT_KEYS.queryApply);
   });
 
   it("stores and consumes package create draft via SecureStore fallback", async () => {
@@ -60,6 +65,7 @@ describe("ai-wizard-drafts", () => {
 
   it("returns null when AsyncStorage native module is unavailable", async () => {
     setAsyncStorageNativeAvailable(false);
+    acknowledgeAiDraft(AI_DRAFT_KEYS.queryApply);
     await expect(consumeAiDraft(AI_DRAFT_KEYS.queryApply)).resolves.toBeNull();
     expect(SecureStore.getItemAsync).toHaveBeenCalledWith(
       `ai-draft:${AI_DRAFT_KEYS.queryApply}`
@@ -67,12 +73,45 @@ describe("ai-wizard-drafts", () => {
     expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
   });
 
+  it("keeps consumed draft in handoff cache until acknowledged", async () => {
+    setAsyncStorageNativeAvailable(false);
+    acknowledgeAiDraft(AI_DRAFT_KEYS.packageCreate);
+    const payload = {
+      locationId: "loc-handoff",
+      data: {
+        tourPackageName: "Handoff Package",
+        itineraries: [
+          { dayNumber: 1, itineraryTitle: "Arrival" },
+          { dayNumber: 2, itineraryTitle: "Sightseeing" },
+        ],
+      },
+    };
+    const storedJson = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      locationId: "loc-handoff",
+      data: payload.data,
+    });
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(storedJson);
+    const first = await consumeAiDraft(AI_DRAFT_KEYS.packageCreate);
+    expect(first?.data.itineraries).toHaveLength(2);
+
+    // Persistence already cleared; second consume (Strict Mode remount) uses handoff.
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(null);
+    const second = await consumeAiDraft(AI_DRAFT_KEYS.packageCreate);
+    expect(second?.data.tourPackageName).toBe("Handoff Package");
+    expect(second?.data.itineraries).toHaveLength(2);
+
+    acknowledgeAiDraft(AI_DRAFT_KEYS.packageCreate);
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(null);
+    await expect(consumeAiDraft(AI_DRAFT_KEYS.packageCreate)).resolves.toBeNull();
+  });
+
   it("maps query draft initial fields", () => {
     const mapped = mapAiDraftToQueryInitial({
       timestamp: "",
       locationId: "loc-2",
       data: {
-        tourPackageName: "Sharma Family - Goa",
+        tourPackageName: "Goa",
         customerName: "Sharma Family",
         numAdults: 2,
         numChildren: 1,

@@ -183,10 +183,19 @@ export async function saveAiWizardDraft(
     return { id: saved.id, targetType };
   }
 
+  const clientName = String(draft.customerName ?? "").trim();
+  const packageOrQueryName = String(draft.tourPackageName ?? "").trim();
+  const tourPackageQueryName =
+    clientName &&
+    packageOrQueryName &&
+    !packageOrQueryName.toLowerCase().startsWith(clientName.toLowerCase())
+      ? `${clientName} - ${packageOrQueryName}`
+      : packageOrQueryName || clientName;
+
   const saved = await db.tourPackageQuery.create({
     data: {
       locationId,
-      tourPackageQueryName: draft.tourPackageName,
+      tourPackageQueryName,
       customerName: draft.customerName || null,
       tourCategory: draft.tourCategory || "Domestic",
       tourPackageQueryType: draft.tourPackageType || "AI Draft",

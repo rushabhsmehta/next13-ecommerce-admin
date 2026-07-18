@@ -326,7 +326,8 @@ export async function POST(req: Request) {
           tourPackageQueryNumber: number,
           tourPackageQueryName:
             overrides?.tourPackageQueryName ||
-            `${inquiry.customerName} – Query`,
+            inquiry.customerName?.trim() ||
+            number,
           tourPackageQueryType: "Domestic",
           customerName: inquiry.customerName,
           customerNumber: inquiry.customerMobileNumber,
@@ -378,7 +379,8 @@ export async function POST(req: Request) {
             tourPackageQueryNumber: number,
             tourPackageQueryName:
               overrides?.tourPackageQueryName ||
-              `${pkg.tourPackageName ?? "Package"} – Query`,
+              pkg.tourPackageName?.trim() ||
+              number,
             tourPackageQueryType: pkg.tourPackageType ?? "Domestic",
             numDaysNight: pkg.numDaysNight,
             price: pkg.price,

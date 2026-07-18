@@ -13,6 +13,7 @@ import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
 import {
   AI_DRAFT_KEYS,
+  acknowledgeAiDraft,
   consumeAiDraft,
   mapAiDraftToQueryInitial,
 } from "@/lib/ai-wizard-drafts";
@@ -25,6 +26,7 @@ import type {
   TabBadgeState,
   TourQueryTabId,
 } from "./types";
+import { resolveTourQueryNameForSave } from "@/lib/tour-query-label";
 import { formatApiValidationError, toInt } from "./utils";
 
 function buildDraftFromForm(input: {
@@ -150,6 +152,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
         setLocations(locRes.items || []);
 
         if (!draftLoaded) {
+          // Handoff cache survives Strict Mode remounts after persistence is cleared.
           const stored = await consumeAiDraft(AI_DRAFT_KEYS.queryCreate);
           if (stored && !cancelled) {
             const mapped = mapAiDraftToQueryInitial(stored);
@@ -169,8 +172,8 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
               "AI Wizard",
               "Loaded properties from AI generation. Review and save when ready."
             );
-          } else if (defaultLocationId && !queryLocationId) {
-            setQueryLocationId(defaultLocationId);
+          } else if (defaultLocationId) {
+            setQueryLocationId((prev) => prev || defaultLocationId);
           }
         }
       } catch (err) {
@@ -185,7 +188,9 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
     return () => {
       cancelled = true;
     };
-  }, [authRequest, defaultLocationId, draftLoaded, queryLocationId]);
+    // Omit queryLocationId — draft apply sets it and would re-run/cancel this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per draftLoaded/defaultLocation
+  }, [authRequest, defaultLocationId, draftLoaded]);
 
   const addDay = useCallback(() => {
     setItineraries((prev) => [
@@ -223,7 +228,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
     setSaving(true);
     try {
       const draft = buildDraftFromForm({
-        name,
+        name: resolveTourQueryNameForSave(customerName, name),
         customerName,
         numAdults,
         numChild512,
@@ -239,6 +244,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
         locationId: queryLocationId,
         draft,
       });
+      acknowledgeAiDraft(AI_DRAFT_KEYS.queryCreate);
       router.replace(`/admin/tour-queries/${saved.id}/edit` as never);
     } catch (err) {
       Alert.alert("Create failed", formatApiValidationError(err));

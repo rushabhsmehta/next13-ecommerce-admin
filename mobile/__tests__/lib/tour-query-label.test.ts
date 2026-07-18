@@ -1,4 +1,42 @@
-import { resolveTourQueryLabel } from "../../lib/tour-query-label";
+import {
+  buildTourQueryName,
+  resolveTourQueryLabel,
+  resolveTourQueryNameForSave,
+} from "../../lib/tour-query-label";
+
+describe("buildTourQueryName", () => {
+  it("joins client and package with a hyphen", () => {
+    expect(buildTourQueryName("Sharma Family", "Goa 4N")).toBe(
+      "Sharma Family - Goa 4N"
+    );
+  });
+
+  it("uses only the available part when one side is missing", () => {
+    expect(buildTourQueryName("Sharma Family", null)).toBe("Sharma Family");
+    expect(buildTourQueryName("  ", "Goa 4N")).toBe("Goa 4N");
+    expect(buildTourQueryName("", "")).toBe("");
+  });
+
+  it("trims whitespace from both parts", () => {
+    expect(buildTourQueryName("  John  ", "  Kerala Escape  ")).toBe(
+      "John - Kerala Escape"
+    );
+  });
+});
+
+describe("resolveTourQueryNameForSave", () => {
+  it("composes client and package when name is not already composed", () => {
+    expect(resolveTourQueryNameForSave("Sharma Family", "Goa 4N")).toBe(
+      "Sharma Family - Goa 4N"
+    );
+  });
+
+  it("does not double-prefix an already composed name", () => {
+    expect(
+      resolveTourQueryNameForSave("Sharma Family", "Sharma Family - Goa 4N")
+    ).toBe("Sharma Family - Goa 4N");
+  });
+});
 
 describe("resolveTourQueryLabel", () => {
   it("prefers tourPackageQueryName over number", () => {

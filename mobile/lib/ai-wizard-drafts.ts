@@ -1,6 +1,7 @@
 import { NativeModules } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import type { AiItineraryDraft } from "@/lib/ai-wizards";
+import { buildTourQueryName } from "@/lib/tour-query-label";
 
 const SECURE_DRAFT_PREFIX = "ai-draft:";
 
@@ -116,18 +117,23 @@ function mapActivities(
   return [];
 }
 
+function clip(value: string | null | undefined, max: number): string {
+  const text = value ?? "";
+  return text.length > max ? text.slice(0, max) : text;
+}
+
 export function mapAiDraftToPackageItineraries(
   data: AiItineraryDraft,
-  locationId: string
+  _locationId: string
 ): TourPackageItineraryDayInput[] {
   return (data.itineraries ?? []).map((day, index) => ({
     dayNumber: day.dayNumber ?? index + 1,
-    itineraryTitle: day.itineraryTitle ?? `Day ${index + 1}`,
-    itineraryDescription: day.itineraryDescription ?? "",
-    mealsIncluded: day.mealsIncluded ?? "",
+    itineraryTitle: clip(day.itineraryTitle ?? `Day ${index + 1}`, 500) || `Day ${index + 1}`,
+    itineraryDescription: clip(day.itineraryDescription, 5000),
+    mealsIncluded: clip(day.mealsIncluded, 200),
     activities: (day.activities ?? []).map((activity) => ({
-      activityTitle: activity.activityTitle ?? "",
-      activityDescription: activity.activityDescription ?? "",
+      activityTitle: clip(activity.activityTitle, 5000),
+      activityDescription: clip(activity.activityDescription, 10000),
       activityImages: activity.activityImages ?? [],
     })),
   }));
@@ -244,7 +250,10 @@ export function mapAiDraftToQueryInitial(
       : "";
 
   return {
-    tourPackageQueryName: data.tourPackageName ?? "",
+    tourPackageQueryName:
+      buildTourQueryName(data.customerName, data.tourPackageName) ||
+      data.tourPackageName ||
+      "",
     customerName: data.customerName ?? "",
     numAdults: data.numAdults != null ? String(data.numAdults) : "",
     numChild512: data.numChildren != null ? String(data.numChildren) : "",
@@ -259,10 +268,14 @@ export function mapAiDraftToQueryInitial(
   };
 }
 
+/** In-memory handoff so React Strict Mode remounts still see a just-consumed draft. */
+const draftHandoffCache = new Map<AiDraftStorageKey, StoredAiDraft>();
+
 export async function storeAiDraft(
   key: AiDraftStorageKey,
   payload: { locationId: string; data: AiItineraryDraft }
 ): Promise<void> {
+  draftHandoffCache.delete(key);
   const stored: StoredAiDraft = {
     timestamp: new Date().toISOString(),
     locationId: payload.locationId,
@@ -271,20 +284,37 @@ export async function storeAiDraft(
   await writeDraftRaw(key, JSON.stringify(stored));
 }
 
+/**
+ * Moves a draft from persistent storage into an in-memory handoff cache, then
+ * deletes the persisted copy. Safe to call multiple times (e.g. Strict Mode /
+ * effect re-runs): later calls return the cached draft until acknowledged.
+ */
 export async function consumeAiDraft(
   key: AiDraftStorageKey
 ): Promise<StoredAiDraft | null> {
+  const cached = draftHandoffCache.get(key);
+  if (cached) return cached;
+
   const raw = await readDraftRaw(key);
   if (!raw) return null;
   await deleteDraftRaw(key);
   try {
-    return JSON.parse(raw) as StoredAiDraft;
+    const parsed = JSON.parse(raw) as StoredAiDraft;
+    draftHandoffCache.set(key, parsed);
+    return parsed;
   } catch {
     return null;
   }
 }
 
+/** Clears the in-memory handoff after the draft has been applied to form state. */
+export function acknowledgeAiDraft(key: AiDraftStorageKey): void {
+  draftHandoffCache.delete(key);
+}
+
 export async function peekAiDraft(key: AiDraftStorageKey): Promise<StoredAiDraft | null> {
+  const cached = draftHandoffCache.get(key);
+  if (cached) return cached;
   const raw = await readDraftRaw(key);
   if (!raw) return null;
   try {

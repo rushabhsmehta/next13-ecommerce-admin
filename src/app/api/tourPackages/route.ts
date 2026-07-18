@@ -79,6 +79,11 @@ async function createItineraryAndActivities(
         throw new Error(`Itinerary validation failed: ${validationErrors.join(', ')}`);
     }
 
+    const hotelId =
+        typeof itinerary.hotelId === 'string' && itinerary.hotelId.trim().length > 0
+            ? itinerary.hotelId.trim()
+            : null;
+
     const createdItinerary = await tx.itinerary.create({
         data: {
             itineraryTitle: itinerary.itineraryTitle,
@@ -88,7 +93,7 @@ async function createItineraryAndActivities(
             tourPackageQueryId: itinerary.tourPackageQueryId,
             dayNumber: itinerary.dayNumber,
             days: itinerary.days,
-            hotelId: itinerary.hotelId,
+            hotelId,
             numberofRooms: itinerary.numberofRooms,
             roomCategory: itinerary.roomCategory,
             mealsIncluded: itinerary.mealsIncluded,

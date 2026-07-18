@@ -25,7 +25,9 @@ export function VariantPricingTotalSection({
       <View style={styles.finalCard}>
         <Text style={styles.finalLabel}>Final amount</Text>
         <Text style={styles.finalValue}>{formatINR(totalCost)}</Text>
-        <Text style={styles.finalHint}>Including GST on applicable line items</Text>
+        <Text style={styles.finalHint}>
+          GST applies to package amount only; Air Fare is added without discount or GST
+        </Text>
       </View>
 
       {roomCount != null && roomCount > 0 ? (

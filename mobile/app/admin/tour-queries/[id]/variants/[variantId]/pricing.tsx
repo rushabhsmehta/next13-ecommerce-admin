@@ -25,7 +25,9 @@ import { cloneDefaultPricingSection } from "@/lib/variant-pricing-defaults";
 import {
   applyPercentDiscountToPricingComponents,
   clonePricingComponents,
-  computeVariantDiscount,
+  computeVariantDiscountWithAirFare,
+  sumAirFareAmount,
+  sumTaxablePricingAmount,
   type VariantDiscountType,
 } from "@/lib/variant-pricing-discount";
 import { parseMoney, pricingRowsTotal } from "@/lib/variant-pricing-utils";
@@ -162,15 +164,18 @@ function VariantPricingScreenInner() {
   }, [load]);
 
   const itemTotal = useMemo(() => pricingRowsTotal(rows), [rows]);
+  const taxableRowsTotal = useMemo(() => sumTaxablePricingAmount(rows), [rows]);
+  const airFareTotal = useMemo(() => sumAirFareAmount(rows), [rows]);
 
   const currentSubtotal = useMemo(() => {
     if (subtotalBeforeDiscount != null && subtotalBeforeDiscount > 0) {
       return subtotalBeforeDiscount;
     }
+    if (taxableRowsTotal > 0) return taxableRowsTotal;
     const explicit = parseMoney(totalCost);
-    if (explicit > 0) return explicit;
-    return itemTotal > 0 ? Math.round(itemTotal) : 0;
-  }, [itemTotal, subtotalBeforeDiscount, totalCost]);
+    if (explicit > 0) return Math.max(0, explicit - airFareTotal);
+    return itemTotal > 0 ? Math.max(0, Math.round(itemTotal) - airFareTotal) : 0;
+  }, [airFareTotal, itemTotal, subtotalBeforeDiscount, taxableRowsTotal, totalCost]);
 
   const updateRows = useCallback((next: LocalPricingRow[]) => {
     setRows(next);
@@ -207,20 +212,22 @@ function VariantPricingScreenInner() {
 
   const applySubtotal = useCallback(
     (
-      subtotal: number,
+      taxableSubtotal: number,
       method: VariantCalculationMethod,
       nextRows: LocalPricingRow[],
       calc?: VariantPricingCalculationResponse | null
     ) => {
+      const airFare = sumAirFareAmount(nextRows);
+      const safeTaxable = Math.round(taxableSubtotal);
       setRows(nextRows);
       setCalculationMethod(method);
       setCalculation(calc ?? null);
-      setSubtotalBeforeDiscount(Math.round(subtotal));
+      setSubtotalBeforeDiscount(safeTaxable);
       setAppliedDiscount(null);
       setComponentsBeforeDiscount(null);
       setDiscountValue("");
       setDiscountReason("");
-      setTotalCost(String(Math.round(subtotal)));
+      setTotalCost(String(safeTaxable + airFare));
     },
     []
   );
@@ -300,29 +307,29 @@ function VariantPricingScreenInner() {
   }, [client, fetchingComponents, id, mealPlanId, roomCount, variantId]);
 
   const applyPackageRows = useCallback(
-    (nextRows: LocalPricingRow[], subtotal: number) => {
-      applySubtotal(subtotal, "useTourPackagePricing", nextRows, null);
+    (nextRows: LocalPricingRow[], taxableSubtotal: number) => {
+      applySubtotal(taxableSubtotal, "useTourPackagePricing", nextRows, null);
     },
     [applySubtotal]
   );
 
   const handleApplyDiscount = useCallback(() => {
-    const subtotal =
+    const baseComponents = clonePricingComponents(
+      (componentsBeforeDiscount ?? rows).map(({ localId: _localId, ...row }) => row)
+    );
+    const airFare = sumAirFareAmount(baseComponents);
+    const taxableSubtotal =
       subtotalBeforeDiscount != null && subtotalBeforeDiscount > 0
         ? subtotalBeforeDiscount
-        : itemTotal > 0
-          ? Math.round(itemTotal)
-          : parseMoney(totalCost);
+        : taxableRowsTotal > 0
+          ? taxableRowsTotal
+          : Math.max(0, Math.round(itemTotal || parseMoney(totalCost)) - airFare);
 
-    const result = computeVariantDiscount(subtotal, {
+    const result = computeVariantDiscountWithAirFare(taxableSubtotal, airFare, {
       type: discountType,
       inputValue: parseMoney(discountValue),
       reason: discountReason.trim() || undefined,
     });
-
-    const baseComponents = clonePricingComponents(
-      (componentsBeforeDiscount ?? rows).map(({ localId: _localId, ...row }) => row)
-    );
 
     let nextRows = rows;
     if (result.appliedDiscount?.type === "percent") {
@@ -351,21 +358,23 @@ function VariantPricingScreenInner() {
     itemTotal,
     rows,
     subtotalBeforeDiscount,
+    taxableRowsTotal,
     totalCost,
   ]);
 
   const handleClearDiscount = useCallback(() => {
+    const restoredRows = componentsBeforeDiscount?.length ? componentsBeforeDiscount : rows;
     if (componentsBeforeDiscount?.length) {
       setRows(componentsBeforeDiscount);
     }
     setComponentsBeforeDiscount(null);
     setAppliedDiscount(null);
     if (subtotalBeforeDiscount != null) {
-      setTotalCost(String(subtotalBeforeDiscount));
+      setTotalCost(String(subtotalBeforeDiscount + sumAirFareAmount(restoredRows)));
     }
     setDiscountValue("");
     setDiscountReason("");
-  }, [componentsBeforeDiscount, subtotalBeforeDiscount]);
+  }, [componentsBeforeDiscount, rows, subtotalBeforeDiscount]);
 
   const save = useCallback(async () => {
     if (!id || !variantId || saving) return;
@@ -382,11 +391,14 @@ function VariantPricingScreenInner() {
       description: String(row.description ?? "").trim(),
     }));
     const explicitTotal = totalCost.trim();
+    const airFareForSave = sumAirFareAmount(components);
+    const taxableForSave =
+      subtotalBeforeDiscount != null
+        ? subtotalBeforeDiscount
+        : sumTaxablePricingAmount(components);
     const totalForSave = explicitTotal
       ? parseMoney(explicitTotal)
-      : itemTotal > 0
-        ? Math.round(itemTotal)
-        : 0;
+      : Math.round(taxableForSave + airFareForSave);
 
     setSaving(true);
     try {
@@ -395,8 +407,7 @@ function VariantPricingScreenInner() {
         components,
         totalCost: totalForSave,
         remarks: remarks.trim() || null,
-        subtotalBeforeDiscount:
-          subtotalBeforeDiscount != null ? subtotalBeforeDiscount : totalForSave,
+        subtotalBeforeDiscount: taxableForSave,
         appliedDiscount: appliedDiscount ?? null,
         componentsBeforeDiscount: componentsSnapshot,
         ...(calculation && calculationMethod === "autoHotelTransport"

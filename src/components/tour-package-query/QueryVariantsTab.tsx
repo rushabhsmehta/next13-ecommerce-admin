@@ -28,9 +28,12 @@ import {
 import {
   applyPercentDiscountToPricingComponents,
   clonePricingComponents,
-  computeVariantDiscount,
+  computeVariantDiscountWithAirFare,
   formatDiscountLabel,
   hasAppliedVariantDiscount,
+  isAirFarePricingLabel,
+  sumAirFareAmount,
+  sumTaxablePricingAmount,
   type PricingComponentItem,
   type VariantDiscountType,
 } from "@/lib/variant-pricing-discount";
@@ -583,7 +586,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
     const components = (variantAvailableComponents[variantId] || []).filter(comp => selectedIds.includes(comp.id));
     const finalComponents: { name: string; price: string; description: string }[] = [];
-    let totalPrice = 0;
+    let taxableSubtotal = 0;
 
     components.forEach((comp: any) => {
       const componentName = comp.pricingAttribute?.name || 'Pricing Component';
@@ -591,18 +594,22 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       const roomQuantity = (variantComponentQuantities[variantId] || {})[comp.id] || 1;
       const occupancyMultiplier = getOccupancyMultiplier(componentName);
       const totalComponentPrice = calculateComponentTotalPrice(comp, roomQuantity);
+      const isAirFare = isAirFarePricingLabel(componentName);
 
       finalComponents.push({
         name: componentName,
-        price: basePrice.toString(),
+        // Air Fare stores the full line total so discount math can add it back cleanly.
+        price: (isAirFare ? totalComponentPrice : basePrice).toString(),
         description: `${basePrice.toFixed(2)} x ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` x ${roomQuantity} rooms` : ''} = Rs.${totalComponentPrice.toFixed(2)}`
       });
 
-      totalPrice += totalComponentPrice;
+      if (!isAirFare) {
+        taxableSubtotal += totalComponentPrice;
+      }
     });
 
     const currentPricingData = form.getValues('variantPricingData') || {};
-    finalizeVariantSubtotal(variantId, totalPrice, {
+    finalizeVariantSubtotal(variantId, taxableSubtotal, {
       ...(currentPricingData[variantId] || {}),
       calculationMethod: 'useTourPackagePricing',
       components: finalComponents,
@@ -643,9 +650,9 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       return;
     }
 
-    const totalPrice = items.reduce((sum, item) => sum + Number(item.price || 0), 0);
+    const taxableSubtotal = sumTaxablePricingAmount(items);
     const currentPricingData = form.getValues('variantPricingData') || {};
-    finalizeVariantSubtotal(variantId, totalPrice, {
+    finalizeVariantSubtotal(variantId, taxableSubtotal, {
       ...(currentPricingData[variantId] || {}),
       calculationMethod: 'manual',
       components: items,
@@ -869,7 +876,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
       const selectedPricing = matchedPricings[0];
       const finalComponents: { name: string; price: string; description: string }[] = [];
-      let totalPrice = 0;
+      let taxableSubtotal = 0;
 
       if (selectedPricing.pricingComponents && selectedPricing.pricingComponents.length > 0) {
         selectedPricing.pricingComponents.forEach((comp: any) => {
@@ -877,14 +884,17 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
           const basePrice = parseFloat(comp.price || '0');
           const occupancyMultiplier = getOccupancyMultiplier(componentName);
           const totalComponentPrice = basePrice * occupancyMultiplier * roomCount;
+          const isAirFare = isAirFarePricingLabel(componentName);
 
           finalComponents.push({
             name: componentName,
-            price: basePrice.toString(),
+            price: (isAirFare ? totalComponentPrice : basePrice).toString(),
             description: `${basePrice.toFixed(2)} x ${occupancyMultiplier} occupancy x ${roomCount} room${roomCount > 1 ? 's' : ''} = INR ${totalComponentPrice.toFixed(2)}`
           });
 
-          totalPrice += totalComponentPrice;
+          if (!isAirFare) {
+            taxableSubtotal += totalComponentPrice;
+          }
         });
       }
 
@@ -897,7 +907,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       }
 
       const currentPricingData = form.getValues('variantPricingData') || {};
-      finalizeVariantSubtotal(variantId, totalPrice, {
+      finalizeVariantSubtotal(variantId, taxableSubtotal, {
         ...(currentPricingData[variantId] || {}),
         calculationMethod: 'useTourPackagePricing',
         components: finalComponents,
@@ -946,13 +956,36 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     return [];
   };
 
+  const resolveAirFareFromEntry = (
+    variantId: string,
+    baseEntry: Record<string, unknown>,
+    existingData: Record<string, unknown>
+  ): number => {
+    const components = resolveUndiscountedComponents(variantId, baseEntry, existingData);
+    if (components.length > 0) {
+      return sumAirFareAmount(components);
+    }
+    if (Array.isArray(baseEntry.components)) {
+      return sumAirFareAmount(baseEntry.components as PricingComponentItem[]);
+    }
+    return sumAirFareAmount(
+      (existingData.components as PricingComponentItem[] | undefined) ?? []
+    );
+  };
+
+  /**
+   * @param taxableSubtotal Package total excluding Air Fare (discount/GST base).
+   * Air Fare from breakdown rows is added back into stored totalCost.
+   */
   const buildVariantPricingWithDiscount = (
     variantId: string,
-    subtotal: number,
+    taxableSubtotal: number,
     baseEntry: Record<string, unknown>
   ) => {
     const discountInput = getVariantDiscountInput(variantId);
     const existingData = (form.getValues("variantPricingData") || {})[variantId] || {};
+    const airFareAmount = resolveAirFareFromEntry(variantId, baseEntry, existingData);
+    const safeTaxable = Math.max(0, Math.round(taxableSubtotal));
     const shouldApply =
       discountInput.inputValue > 0 ||
       hasAppliedVariantDiscount(existingData.appliedDiscount);
@@ -966,7 +999,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       } = baseEntry as Record<string, unknown>;
       return {
         ...rest,
-        totalCost: subtotal,
+        totalCost: safeTaxable + airFareAmount,
       };
     }
 
@@ -981,7 +1014,11 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
             }
           : discountInput;
 
-    const result = computeVariantDiscount(subtotal, effectiveInput);
+    const result = computeVariantDiscountWithAirFare(
+      safeTaxable,
+      airFareAmount,
+      effectiveInput
+    );
     const nextEntry: Record<string, unknown> = {
       ...baseEntry,
       subtotalBeforeDiscount: result.subtotalBeforeDiscount,
@@ -1147,17 +1184,25 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     const currentPricingData = form.getValues("variantPricingData") || {};
     const existingData = currentPricingData[variantId] || {};
     const calcResult = variantPriceCalculationResults[variantId];
+    const components = resolveUndiscountedComponents(variantId, existingData, existingData);
+    const airFareAmount = sumAirFareAmount(components);
 
-    const subtotal =
+    let taxableSubtotal =
       subtotalOverride ??
       (typeof existingData.subtotalBeforeDiscount === "number"
         ? existingData.subtotalBeforeDiscount
-        : (calcResult?.totalCost ??
-          (Number.isFinite(parseFloat(variantTotalPrices[variantId] || "0"))
-            ? parseFloat(variantTotalPrices[variantId] || "0")
-            : 0)));
+        : (calcResult?.totalCost ?? null));
 
-    if (subtotal <= 0) {
+    if (taxableSubtotal == null) {
+      const storedTotal = Number.isFinite(parseFloat(variantTotalPrices[variantId] || "0"))
+        ? parseFloat(variantTotalPrices[variantId] || "0")
+        : typeof existingData.totalCost === "number"
+          ? existingData.totalCost
+          : 0;
+      taxableSubtotal = Math.max(0, Math.round(storedTotal) - airFareAmount);
+    }
+
+    if (taxableSubtotal <= 0 && airFareAmount <= 0) {
       toast.error("Calculate or enter pricing before applying a discount.");
       return;
     }
@@ -1168,9 +1213,10 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
       return;
     }
 
-    const nextEntry = buildVariantPricingWithDiscount(variantId, subtotal, {
+    const nextEntry = buildVariantPricingWithDiscount(variantId, taxableSubtotal, {
       ...existingData,
-      subtotalBeforeDiscount: subtotal,
+      ...(components.length > 0 ? { components } : {}),
+      subtotalBeforeDiscount: taxableSubtotal,
     });
 
     persistVariantPricingEntry(variantId, nextEntry);
@@ -1179,12 +1225,12 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
 
   const finalizeVariantSubtotal = (
     variantId: string,
-    subtotal: number,
+    taxableSubtotal: number,
     baseEntry: Record<string, unknown>
   ) => {
-    const nextEntry = buildVariantPricingWithDiscount(variantId, subtotal, {
+    const nextEntry = buildVariantPricingWithDiscount(variantId, taxableSubtotal, {
       ...baseEntry,
-      subtotalBeforeDiscount: subtotal,
+      subtotalBeforeDiscount: taxableSubtotal,
     });
     persistVariantPricingEntry(variantId, nextEntry);
     return nextEntry;

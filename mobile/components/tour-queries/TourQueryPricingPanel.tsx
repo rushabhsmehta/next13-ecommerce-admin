@@ -508,6 +508,10 @@ function TourQueryPricingPanelInner({
       </AdminFormSection>
 
       <AdminFormSection title="Discount and GST" testID="tq-pricing-adjustment-section">
+        <Text style={styles.hint}>
+          Discount and GST apply to package rows only. Air Fare is excluded and added to the final
+          total without tax.
+        </Text>
         <View style={styles.segmentRow}>
           <Pressable
             testID="tq-pricing-discount-type-percent"
@@ -711,6 +715,13 @@ function TourQueryPricingPanelInner({
 }
 
 const styles = StyleSheet.create({
+  hint: {
+    fontSize: FontSize.xs,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.sm,
+  },
   summary: {
     flexDirection: "row",
     gap: Spacing.xs,

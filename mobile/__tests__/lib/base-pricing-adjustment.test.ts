@@ -57,4 +57,23 @@ describe("base pricing adjustment", () => {
     expect(getFirstPricingAdjustment(cleared)).toBeNull();
     expect(calculateBasePricingSubtotal(cleared)).toBe(20000);
   });
+
+  it("excludes Air Fare from discount and GST then adds it to the final total", () => {
+    const result = applyBasePricingAdjustment(
+      [
+        { name: "Adult", price: "10000", description: "10000 x 2 = Rs. 20,000" },
+        { name: "Air Fare", price: "5000", description: "" },
+      ],
+      { discountType: "percent", inputValue: 10, calculatedAt: "2026-07-07T00:00:00.000Z" }
+    );
+
+    expect(result.adjustment.subtotalBeforeDiscount).toBe(20000);
+    expect(result.adjustment.discountAmount).toBe(2000);
+    expect(result.adjustment.taxableAmount).toBe(18000);
+    expect(result.adjustment.gstAmount).toBe(900);
+    expect(result.adjustment.totalIncludingGst).toBe(23900); // 18000 + 900 + 5000
+    expect(result.items[0].description).toContain("GST (5%)");
+    expect(result.items[1].description).not.toContain("GST");
+    expect(result.items[1].description).not.toContain("Discount");
+  });
 });

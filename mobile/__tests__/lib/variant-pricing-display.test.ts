@@ -3,6 +3,10 @@ import {
   matchPricingItemRateKey,
 } from "../../lib/variant-pricing-display";
 import { DEFAULT_PRICING_SECTION } from "../../lib/variant-pricing-defaults";
+import {
+  computeSeasonalPricingTotals,
+  computeVariantDiscountWithAirFare,
+} from "../../lib/variant-pricing-discount";
 
 describe("variant-pricing-display", () => {
   it("maps pricing row labels to rate keys", () => {
@@ -39,5 +43,20 @@ describe("variant-pricing-display", () => {
     expect(rows[0].price).toBe("45313");
     expect(rows[0].description).toContain("2 Adults");
     expect(rows.find((row) => row.name === "Air Fare")?.price).toBe("");
+  });
+
+  it("keeps Air Fare outside discount/GST when building package-style totals", () => {
+    const discounted = computeVariantDiscountWithAirFare(100000, 12000, {
+      type: "percent",
+      inputValue: 10,
+    });
+    expect(discounted.totalCost).toBe(102000);
+
+    const seasonal = computeSeasonalPricingTotals([
+      { name: "Per Person Cost", price: 100000 },
+      { name: "Air Fare", price: 12000 },
+    ]);
+    // taxable + GST + air fare
+    expect(seasonal.grandTotal).toBe(100000 + 5000 + 12000);
   });
 });

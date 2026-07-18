@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { Prisma } from "@prisma/client";
 
 import prismadb from "@/lib/prismadb";
 import { normalizeTourPackageSlugInput } from "@/lib/location-slug";
-import { string } from "zod";
-import { Activity } from "@prisma/client";
+
+type TransactionClient = Prisma.TransactionClient;
 
 const toNullableDate = (value: unknown): Date | null => {
   if (!value || typeof value !== "string" || !value.trim()) {
@@ -12,6 +13,26 @@ const toNullableDate = (value: unknown): Date | null => {
   }
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date : null;
+};
+
+/** Coerce empty / whitespace hotel IDs to null so Prisma FK writes don't fail or clear silently. */
+const normalizeHotelId = (hotelId: unknown): string | null => {
+  if (typeof hotelId !== "string") {
+    return null;
+  }
+  const trimmed = hotelId.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const numericDayFromValue = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && String(parsed) === value.trim() ? parsed : null;
+  }
+  return null;
 };
 
 export async function GET(req: Request, props: { params: Promise<{ tourPackageId: string }> }) {
@@ -29,7 +50,6 @@ export async function GET(req: Request, props: { params: Promise<{ tourPackageId
         flightDetails: true,
         images: true,
         location: true,
-        //hotel: true,
         itineraries: {
           include: {
             itineraryImages: true,
@@ -100,8 +120,6 @@ export async function DELETE(req: Request, props: { params: Promise<{ tourPackag
       return new NextResponse("Tour Package  Id is required", { status: 400 });
     }
 
-
-
     const tourPackage = await prismadb.tourPackage.delete({
       where: {
         id: params.tourPackageId
@@ -115,44 +133,68 @@ export async function DELETE(req: Request, props: { params: Promise<{ tourPackag
   }
 };
 
-async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber: any; days: any; hotelId: any; numberofRooms: any; roomCategory: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageId: any) {
-  // First, create the itinerary and get its id
-  const createdItinerary = await prismadb.itinerary.create({
+async function createItineraryAndActivities(
+  tx: TransactionClient,
+  itinerary: {
+    itineraryTitle: any;
+    itineraryDescription: any;
+    locationId: any;
+    tourPackageQueryId: any;
+    dayNumber: any;
+    days: any;
+    hotelId: any;
+    numberofRooms: any;
+    roomCategory: any;
+    mealsIncluded: any;
+    itineraryImages: any[];
+    activities: any[];
+  },
+  tourPackageId: string,
+) {
+  const hotelId = normalizeHotelId(itinerary.hotelId);
+
+  const createdItinerary = await tx.itinerary.create({
     data: {
       itineraryTitle: itinerary.itineraryTitle,
       itineraryDescription: itinerary.itineraryDescription,
       locationId: itinerary.locationId,
-      tourPackageId: tourPackageId,
+      tourPackageId,
       tourPackageQueryId: itinerary.tourPackageQueryId,
       dayNumber: itinerary.dayNumber,
       days: itinerary.days,
-      hotelId: itinerary.hotelId,
+      hotelId,
       numberofRooms: itinerary.numberofRooms,
       roomCategory: itinerary.roomCategory,
       mealsIncluded: itinerary.mealsIncluded,
-      itineraryImages: {
-        createMany: {
-          data: itinerary.itineraryImages.map((image: { url: any; }) => ({ url: image.url })),
-        },
-      },
+      itineraryImages: Array.isArray(itinerary.itineraryImages) && itinerary.itineraryImages.length > 0
+        ? {
+          createMany: {
+            data: itinerary.itineraryImages
+              .filter((image: { url?: string }) => Boolean(image?.url))
+              .map((image: { url: string }) => ({ url: image.url })),
+          },
+        }
+        : undefined,
     },
   });
 
-  // Next, create activities linked to this itinerary
   if (itinerary.activities && itinerary.activities.length > 0) {
     await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
-      console.log("Received Activities is ", activity);
-      return prismadb.activity.create({
+      return tx.activity.create({
         data: {
-          itineraryId: createdItinerary.id, // Link to the created itinerary
+          itineraryId: createdItinerary.id,
           activityTitle: activity.activityTitle,
           activityDescription: activity.activityDescription,
           locationId: activity.locationId,
-          activityImages: {
-            createMany: {
-              data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
-            },
-          },
+          activityImages: Array.isArray(activity.activityImages) && activity.activityImages.length > 0
+            ? {
+              createMany: {
+                data: activity.activityImages
+                  .filter((img: { url?: string }) => Boolean(img?.url))
+                  .map((img: { url: string }) => ({ url: img.url })),
+              },
+            }
+            : undefined,
         },
       });
     }));
@@ -160,7 +202,6 @@ async function createItineraryAndActivities(itinerary: { itineraryTitle: any; it
 
   return createdItinerary;
 }
-
 
 export async function PATCH(req: Request, props: { params: Promise<{ tourPackageId: string }> }) {
   const params = await props.params;
@@ -181,10 +222,8 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       pricePerChildOrExtraBed,
       pricePerChild5to12YearsNoBed,
       pricePerChildwithSeatBelow5Years,
-      // totalPrice, // REMOVED
-      pricingSection, // Add this line
+      pricingSection,
       flightDetails,
-      //   hotelDetails,
       inclusions,
       exclusions,
       importantNotes,
@@ -193,9 +232,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       airlineCancellationPolicy,
       termsconditions,
       kitchenGroupPolicy,
-      //disclaimer,
-      locationId, // ADDED
-      // hotelId,
+      locationId,
       images,
       itineraries,
       isFeatured,
@@ -210,8 +247,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       offerEndsAt,
       offerSortOrder,
       offerTerms,
-      // assignedTo,
-      // assignedToEmail,
       slug,
       packageVariants,
     } = body;
@@ -226,90 +261,151 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       return new NextResponse("Tour Package id is required", { status: 400 });
     }
 
-    /*    if (!tourPackageName) {
-         return new NextResponse("Tour Package  Name is required", { status: 400 });
-       }
-   
-       if (!images || !images.length) {
-         return new NextResponse("Images are required", { status: 400 });
-       }
-   
-       if (!price) {
-         return new NextResponse("Price is required", { status: 400 });
-       } */
-
     if (!locationId) {
       return new NextResponse("Location id is required", { status: 400 });
     }
 
-    /* if (!hotelId) {
-      return new NextResponse("Hotel id is required", { status: 400 });
-    } */
-
-    // Process policy fields to ensure they're arrays and then convert to strings for Prisma
     const processedInclusions = Array.isArray(inclusions) ? inclusions : inclusions ? [inclusions] : [];
     const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
     const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
     const processedPaymentPolicy = Array.isArray(paymentPolicy) ? paymentPolicy : paymentPolicy ? [paymentPolicy] : [];
-    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : []; const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
+    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : [];
+    const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
     const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];
 
-    // Convert arrays to JSON strings for Prisma
     const inclusionsString = JSON.stringify(processedInclusions);
     const exclusionsString = JSON.stringify(processedExclusions);
     const importantNotesString = JSON.stringify(processedImportantNotes);
     const paymentPolicyString = JSON.stringify(processedPaymentPolicy);
-    const usefulTipString = JSON.stringify(processedUsefulTip); const cancellationPolicyString = JSON.stringify(processedCancellationPolicy);
+    const usefulTipString = JSON.stringify(processedUsefulTip);
+    const cancellationPolicyString = JSON.stringify(processedCancellationPolicy);
     const airlineCancellationPolicyString = JSON.stringify(processedAirlineCancellationPolicy);
     const termsConditionsString = JSON.stringify(processedTermsConditions);
     const kitchenGroupPolicyString = JSON.stringify(processedKitchenGroupPolicy);
     const normalizedSlug = normalizeTourPackageSlugInput(slug, tourPackageName);
 
-    // ===== CRITICAL: Get old itinerary data BEFORE deletion =====
-    // This is needed for variant hotel mapping remapping (old itinerary IDs → dayNumbers)
+    // Capture ALL old itinerary id→day mappings BEFORE deletion (for variant hotel remapping)
     const oldItineraryIdToDayMap = new Map<string, number>();
-
-    if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
-      // Get all old itinerary IDs from the variant hotel mappings
-      const allOldItineraryIds = new Set<string>();
-      for (const variant of packageVariants) {
-        if (variant.hotelMappings && Object.keys(variant.hotelMappings).length > 0) {
-          Object.keys(variant.hotelMappings).forEach(id => allOldItineraryIds.add(id));
-        }
+    const oldItineraries = await prismadb.itinerary.findMany({
+      where: { tourPackageId: params.tourPackageId },
+      select: { id: true, dayNumber: true },
+    });
+    oldItineraries.forEach((itin) => {
+      if (itin.dayNumber != null) {
+        oldItineraryIdToDayMap.set(itin.id, itin.dayNumber);
       }
-
-      console.log(`[VARIANTS PRE] Found ${allOldItineraryIds.size} unique old itinerary IDs in mappings`);
-
-      // Look up these old itineraries to get their dayNumbers BEFORE they're deleted
-      if (allOldItineraryIds.size > 0) {
-        const oldItineraries = await prismadb.itinerary.findMany({
-          where: {
-            id: { in: Array.from(allOldItineraryIds) },
-            tourPackageId: params.tourPackageId // Ensure they belong to this tour package
-          },
-          select: { id: true, dayNumber: true }
-        });
-
-        oldItineraries.forEach(itin => {
-          if (itin.dayNumber != null) {
-            oldItineraryIdToDayMap.set(itin.id, itin.dayNumber);
-            console.log(`[VARIANTS PRE] Old ID ${itin.id} → day ${itin.dayNumber}`);
+    });
+    // Also accept day numbers from the submitted payload (form preserves itinerary.id + dayNumber)
+    if (Array.isArray(itineraries)) {
+      itineraries.forEach((itin: any, index: number) => {
+        if (itin?.id && typeof itin.id === "string") {
+          const day = numericDayFromValue(itin.dayNumber) ?? index + 1;
+          if (!oldItineraryIdToDayMap.has(itin.id)) {
+            oldItineraryIdToDayMap.set(itin.id, day);
           }
-        });
-
-        console.log(`[VARIANTS PRE] Built old ID-to-day map with ${oldItineraryIdToDayMap.size} entries`);
-      }
+        }
+      });
     }
-    // ===== End of pre-deletion itinerary lookup =====
+    console.log(`[VARIANTS PRE] Built old ID-to-day map with ${oldItineraryIdToDayMap.size} entries`);
+
+    // Load existing variants once — used when the client omits variants or sends
+    // empty hotelMappings (common after Variants tab default init), so itinerary
+    // delete→cascade does not permanently wipe hotel assignments.
+    const existingVariantsForFallback = await prismadb.packageVariant.findMany({
+      where: { tourPackageId: params.tourPackageId },
+      include: {
+        variantHotelMappings: {
+          select: { itineraryId: true, hotelId: true },
+        },
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    const dbVariantHotelMappingsById = new Map<string, Record<string, string>>();
+    for (const variant of existingVariantsForFallback) {
+      dbVariantHotelMappingsById.set(
+        variant.id,
+        Object.fromEntries(
+          variant.variantHotelMappings
+            .filter((m) => m.itineraryId && m.hotelId)
+            .map((m) => [m.itineraryId, m.hotelId])
+        )
+      );
+    }
+
+    const toClientVariantShape = (variant: (typeof existingVariantsForFallback)[number]) => ({
+      id: variant.id,
+      name: variant.name,
+      description: variant.description,
+      isDefault: variant.isDefault,
+      sortOrder: variant.sortOrder,
+      priceModifier: variant.priceModifier,
+      hotelMappings: dbVariantHotelMappingsById.get(variant.id) ?? {},
+    });
+
+    let effectivePackageVariants = Array.isArray(packageVariants) ? [...packageVariants] : [];
+    const totalDbHotelMappings = [...dbVariantHotelMappingsById.values()].reduce(
+      (sum, mappings) => sum + Object.keys(mappings).length,
+      0
+    );
+    const totalSubmittedHotelMappings = effectivePackageVariants.reduce((sum, variant: any) => {
+      const mappings =
+        variant?.hotelMappings && typeof variant.hotelMappings === 'object'
+          ? variant.hotelMappings
+          : {};
+      return (
+        sum +
+        Object.values(mappings).filter((id) => typeof id === 'string' && id.trim().length > 0).length
+      );
+    }, 0);
+
+    if (effectivePackageVariants.length === 0 && existingVariantsForFallback.length > 0) {
+      effectivePackageVariants = existingVariantsForFallback.map(toClientVariantShape);
+      console.log(
+        `[VARIANTS PRE] Client sent no variants — restored ${effectivePackageVariants.length} from DB`
+      );
+    } else if (
+      totalSubmittedHotelMappings === 0 &&
+      totalDbHotelMappings > 0 &&
+      existingVariantsForFallback.length > 0
+    ) {
+      // Form/Variants tab often submits a default "Standard" with empty mappings;
+      // prefer DB so wipe-and-recreate does not drop hotels.
+      effectivePackageVariants = existingVariantsForFallback.map(toClientVariantShape);
+      console.log(
+        `[VARIANTS PRE] Client sent 0 hotel mappings but DB has ${totalDbHotelMappings} — restored variants from DB`
+      );
+    } else if (effectivePackageVariants.length > 0) {
+      // Fill empty hotelMappings from DB for existing variant ids only
+      effectivePackageVariants = effectivePackageVariants.map((variant: any) => {
+        const submittedMappings =
+          variant.hotelMappings && typeof variant.hotelMappings === 'object'
+            ? variant.hotelMappings
+            : {};
+        const submittedCount = Object.values(submittedMappings).filter(
+          (id) => typeof id === 'string' && id.trim().length > 0
+        ).length;
+        if (submittedCount > 0 || typeof variant.id !== 'string') {
+          return variant;
+        }
+        const dbMappings = dbVariantHotelMappingsById.get(variant.id);
+        if (!dbMappings || Object.keys(dbMappings).length === 0) {
+          return variant;
+        }
+        console.log(
+          `[VARIANTS PRE] Restored ${Object.keys(dbMappings).length} hotel mappings for variant ${variant.id} from DB`
+        );
+        return { ...variant, hotelMappings: dbMappings };
+      });
+    }
 
     // Preserve variant seasonal pricing before package variants are recreated.
-    // Deleting PackageVariant cascades to TourPackagePricing, so we snapshot the rows and clone them onto the recreated variants below.
     const existingVariantPricingById = new Map<string, any[]>();
 
-    if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
-      const existingVariantIds = packageVariants
+    if (effectivePackageVariants.length > 0) {
+      const existingVariantIds = effectivePackageVariants
         .map((variant: any) => variant?.id)
         .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
 
@@ -341,18 +437,15 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       }
     }
 
+    // Main package fields only — itineraries deleted/recreated inside the transaction
     const tourPackageUpdateData = {
-      //  await prismadb.tourPackage.update({
-      //  where: {
-      //    id: params.tourPackageId
-      //  },
-      //    data: {
       tourPackageName,
       tourPackageType,
       numDaysNight,
       locationId,
       transport,
       pickup_location,
+      drop_location,
       inclusions: inclusionsString,
       exclusions: exclusionsString,
       importantNotes: importantNotesString,
@@ -362,9 +455,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       airlineCancellationPolicy: airlineCancellationPolicyString,
       termsconditions: termsConditionsString,
       kitchenGroupPolicy: kitchenGroupPolicyString,
+      price,
+      pricePerAdult,
+      pricePerChildOrExtraBed,
+      pricePerChild5to12YearsNoBed,
       pricePerChildwithSeatBelow5Years,
-      pricingSection, // Add this line
-      // disclaimer,
+      pricingSection,
       isFeatured,
       isArchived,
       isOffer: Boolean(isOffer),
@@ -377,8 +473,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       offerEndsAt: toNullableDate(offerEndsAt),
       offerSortOrder: Number.isFinite(Number(offerSortOrder)) ? Number(offerSortOrder) : 0,
       offerTerms: Array.isArray(offerTerms) ? offerTerms.filter(Boolean) : null,
-      // assignedTo,
-      // assignedToEmail,
       slug: normalizedSlug,
       images: images && images.length > 0 ? {
         deleteMany: {},
@@ -388,62 +482,52 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
           ],
         },
       } : { deleteMany: {} },
-
-      itineraries: {
-        deleteMany: {},
-      }, flightDetails: {
+      flightDetails: {
         deleteMany: {},
         createMany: {
-          data: [
-            ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
+          data: Array.isArray(flightDetails)
+            ? flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail)
+            : [],
         }
       }
     };
 
-    await prismadb.tourPackage.update({
-      where: { id: params.tourPackageId },
-      data: tourPackageUpdateData as any
-    });
+    await prismadb.$transaction(async (tx) => {
+      await tx.tourPackage.update({
+        where: { id: params.tourPackageId },
+        data: tourPackageUpdateData as any,
+      });
 
+      // Delete existing itineraries (cascades VariantHotelMapping) inside the transaction
+      await tx.itinerary.deleteMany({
+        where: { tourPackageId: params.tourPackageId },
+      });
+      console.log('[TRANSACTION] Deleted existing itineraries');
 
-    /*  flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageId: string; }) => {
-       const flightDetailData =
-       {
-         date: flightDetail.date,
-         flightName: flightDetail.flightName,
-         flightNumber: flightDetail.flightNumber,
-         from: flightDetail.from,
-         to: flightDetail.to,
-         departureTime: flightDetail.departureTime,
-         arrivalTime: flightDetail.arrivalTime,
-         flightDuration: flightDetail.flightDuration,
-         tourPackageId: params.tourPackageId,
-       }
- 
-       operations.push(prismadb.flightDetails.create({ data: flightDetailData }));
-     }
-     );
-  */
+      if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
+        for (let i = 0; i < itineraries.length; i++) {
+          const itinerary = itineraries[i];
+          try {
+            await createItineraryAndActivities(tx, itinerary, params.tourPackageId);
+          } catch (itineraryError: any) {
+            console.error('[ITINERARY_CREATION_ERROR]', {
+              itineraryIndex: i,
+              itineraryTitle: itinerary?.itineraryTitle,
+              error: itineraryError,
+            });
+            throw new Error(
+              `Failed to create itinerary ${i + 1} "${itinerary?.itineraryTitle ?? 'unknown'}": ${itineraryError?.message || 'Unknown error'}`
+            );
+          }
+        }
+        console.log(`[TRANSACTION] Created ${itineraries.length} itineraries`);
+      }
 
+      // Recreate package variants + hotel mappings (errors must abort the transaction)
+      if (effectivePackageVariants.length > 0) {
+        console.log(`[VARIANTS] Processing ${effectivePackageVariants.length} package variants`);
 
-    if (itineraries && itineraries.length > 0) {
-      // Map each itinerary to a promise to create the itinerary and its activities
-      const itineraryPromises = itineraries.map((itinerary: any) =>
-        createItineraryAndActivities(itinerary, params.tourPackageId)
-      );
-
-      // Wait for all itinerary promises to resolve
-      await Promise.all(itineraryPromises);
-    }
-
-    // Handle Package Variants (after itineraries creation)
-    if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
-      try {
-        console.log(`[VARIANTS] Processing ${packageVariants.length} package variants`);
-        console.log(`[VARIANTS] Using pre-fetched old ID-to-day map with ${oldItineraryIdToDayMap.size} entries`);
-
-        // Fetch newly created itineraries
-        const newItineraries = await prismadb.itinerary.findMany({
+        const newItineraries = await tx.itinerary.findMany({
           where: { tourPackageId: params.tourPackageId },
           orderBy: [
             { dayNumber: 'asc' },
@@ -453,24 +537,20 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
         });
         console.log(`[VARIANTS] Found ${newItineraries.length} newly created itineraries`);
 
-        // Build dayNumber to new itinerary ID map
         const dayToNewIdMap = new Map<number, string>();
         newItineraries.forEach(itin => {
           if (itin.dayNumber != null) {
             dayToNewIdMap.set(itin.dayNumber, itin.id);
-            console.log(`[VARIANTS] Day ${itin.dayNumber} → new ID ${itin.id}`);
           }
         });
 
-        // Delete existing variants
-        await prismadb.packageVariant.deleteMany({
+        await tx.packageVariant.deleteMany({
           where: { tourPackageId: params.tourPackageId }
         });
         console.log('[VARIANTS] Deleted existing variants');
 
-        // Create new variants with remapped hotel mappings
-        for (const variant of packageVariants) {
-          const createdVariant = await prismadb.packageVariant.create({
+        for (const variant of effectivePackageVariants) {
+          const createdVariant = await tx.packageVariant.create({
             data: {
               name: variant.name,
               description: variant.description || null,
@@ -483,37 +563,38 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
 
           console.log(`[VARIANTS] Created variant: ${createdVariant.name}`);
 
-          // Create hotel mappings with ID remapping: old ID → dayNumber → new ID
           if (variant.hotelMappings && Object.keys(variant.hotelMappings).length > 0) {
             const mappings = Object.entries(variant.hotelMappings)
               .map(([oldItineraryId, hotelId]) => {
-                // Get dayNumber from old ID (using pre-fetched map)
-                // Fallback: if key is a plain day number string (e.g. "1", "2"), parse it directly
+                const normalizedHotelId = normalizeHotelId(hotelId);
+                if (!normalizedHotelId) {
+                  return null;
+                }
+
                 let dayNumber = oldItineraryIdToDayMap.get(oldItineraryId);
                 if (dayNumber == null) {
-                  const parsed = Number.parseInt(oldItineraryId, 10);
-                  if (Number.isFinite(parsed) && String(parsed) === oldItineraryId) {
+                  const parsed = numericDayFromValue(oldItineraryId);
+                  if (parsed != null) {
                     dayNumber = parsed;
-                    console.log(`[VARIANTS] 🔁 Key "${oldItineraryId}" treated as day number directly`);
+                    console.log(`[VARIANTS] Key "${oldItineraryId}" treated as day number directly`);
                   } else {
-                    console.log(`[VARIANTS] ⚠️ Cannot find dayNumber for old ID: ${oldItineraryId}`);
+                    console.log(`[VARIANTS] Cannot find dayNumber for old ID: ${oldItineraryId}`);
                     return null;
                   }
                 }
 
-                // Get new ID from dayNumber
                 const newItineraryId = dayToNewIdMap.get(dayNumber);
                 if (!newItineraryId) {
-                  console.log(`[VARIANTS] ⚠️ Cannot find new ID for day ${dayNumber}`);
+                  console.log(`[VARIANTS] Cannot find new ID for day ${dayNumber}`);
                   return null;
                 }
 
-                console.log(`[VARIANTS] ✅ Remapped: ${oldItineraryId} → day ${dayNumber} → ${newItineraryId}`);
+                console.log(`[VARIANTS] Remapped: ${oldItineraryId} → day ${dayNumber} → ${newItineraryId}`);
 
                 return {
                   packageVariantId: createdVariant.id,
                   itineraryId: newItineraryId,
-                  hotelId: hotelId as string,
+                  hotelId: normalizedHotelId,
                 };
               })
               .filter((m): m is { packageVariantId: string; itineraryId: string; hotelId: string } =>
@@ -521,12 +602,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
               );
 
             if (mappings.length > 0) {
-              await prismadb.variantHotelMapping.createMany({
+              await tx.variantHotelMapping.createMany({
                 data: mappings,
               });
-              console.log(`[VARIANTS] ✅ Created ${mappings.length} hotel mappings for variant: ${createdVariant.name}`);
+              console.log(`[VARIANTS] Created ${mappings.length} hotel mappings for variant: ${createdVariant.name}`);
             } else {
-              console.log(`[VARIANTS] ⚠️ No valid hotel mappings to create for variant: ${createdVariant.name}`);
+              console.log(`[VARIANTS] No valid hotel mappings to create for variant: ${createdVariant.name}`);
             }
           }
 
@@ -535,7 +616,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
           if (preservedPricings.length > 0) {
             await Promise.all(
               preservedPricings.map((pricing) =>
-                prismadb.tourPackagePricing.create({
+                tx.tourPackagePricing.create({
                   data: {
                     tourPackageId: params.tourPackageId,
                     packageVariantId: createdVariant.id,
@@ -564,68 +645,63 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
             );
             console.log(`[VARIANTS] Restored ${preservedPricings.length} seasonal pricing records for variant ${createdVariant.id}`);
           } else if (variant.copiedFromTourPackageId) {
-            try {
-              console.log(`[VARIANTS] Copying seasonal pricing for variant ${createdVariant.id} from package ${variant.copiedFromTourPackageId}`);
-              const sourcePricings = await prismadb.tourPackagePricing.findMany({
-                where: {
-                  tourPackageId: variant.copiedFromTourPackageId,
-                  packageVariantId: null,
-                },
-                include: {
-                  pricingComponents: true,
-                },
-                orderBy: {
-                  startDate: 'asc',
-                },
-              });
+            console.log(`[VARIANTS] Copying seasonal pricing for variant ${createdVariant.id} from package ${variant.copiedFromTourPackageId}`);
+            const sourcePricings = await tx.tourPackagePricing.findMany({
+              where: {
+                tourPackageId: variant.copiedFromTourPackageId,
+                packageVariantId: null,
+              },
+              include: {
+                pricingComponents: true,
+              },
+              orderBy: {
+                startDate: 'asc',
+              },
+            });
 
-              if (sourcePricings.length === 0) {
-                console.log(`[VARIANTS] ⚠️ No pricing records found to copy from package ${variant.copiedFromTourPackageId}`);
-              } else {
-                await Promise.all(
-                  sourcePricings.map((pricing) =>
-                    prismadb.tourPackagePricing.create({
-                      data: {
-                        tourPackageId: params.tourPackageId,
-                        packageVariantId: createdVariant.id,
-                        startDate: pricing.startDate,
-                        endDate: pricing.endDate,
-                        isActive: pricing.isActive,
-                        description: pricing.description,
-                        mealPlanId: pricing.mealPlanId,
-                        numberOfRooms: pricing.numberOfRooms,
-                        locationSeasonalPeriodId: pricing.locationSeasonalPeriodId,
-                        isGroupPricing: pricing.isGroupPricing,
-                        vehicleTypeId: pricing.vehicleTypeId,
-                        pricingComponents: pricing.pricingComponents.length > 0
-                          ? {
-                            create: pricing.pricingComponents.map((component) => ({
-                              pricingAttributeId: component.pricingAttributeId,
-                              price: component.price,
-                              purchasePrice: component.purchasePrice,
-                              description: component.description,
-                            })),
-                          }
-                          : undefined,
-                      },
-                    })
-                  )
-                );
-                console.log(`[VARIANTS] ✅ Copied ${sourcePricings.length} seasonal pricing records to variant ${createdVariant.id}`);
-              }
-            } catch (pricingCopyError) {
-              console.error('[VARIANTS] Failed to copy seasonal pricing', pricingCopyError);
+            if (sourcePricings.length === 0) {
+              console.log(`[VARIANTS] No pricing records found to copy from package ${variant.copiedFromTourPackageId}`);
+            } else {
+              await Promise.all(
+                sourcePricings.map((pricing) =>
+                  tx.tourPackagePricing.create({
+                    data: {
+                      tourPackageId: params.tourPackageId,
+                      packageVariantId: createdVariant.id,
+                      startDate: pricing.startDate,
+                      endDate: pricing.endDate,
+                      isActive: pricing.isActive,
+                      description: pricing.description,
+                      mealPlanId: pricing.mealPlanId,
+                      numberOfRooms: pricing.numberOfRooms,
+                      locationSeasonalPeriodId: pricing.locationSeasonalPeriodId,
+                      isGroupPricing: pricing.isGroupPricing,
+                      vehicleTypeId: pricing.vehicleTypeId,
+                      pricingComponents: pricing.pricingComponents.length > 0
+                        ? {
+                          create: pricing.pricingComponents.map((component) => ({
+                            pricingAttributeId: component.pricingAttributeId,
+                            price: component.price,
+                            purchasePrice: component.purchasePrice,
+                            description: component.description,
+                          })),
+                        }
+                        : undefined,
+                    },
+                  })
+                )
+              );
+              console.log(`[VARIANTS] Copied ${sourcePricings.length} seasonal pricing records to variant ${createdVariant.id}`);
             }
           }
         }
 
         console.log('[VARIANTS] Successfully saved all package variants');
-      } catch (variantError: any) {
-        console.error('[VARIANT_SAVE_ERROR]', variantError);
-        // Don't fail the entire request if variant save fails
-        // Variants are optional feature
       }
-    }
+    }, {
+      maxWait: 10000,
+      timeout: 50000,
+    });
 
     const tourPackage = await prismadb.tourPackage.findUnique({
       where: { id: params.tourPackageId },
@@ -684,11 +760,16 @@ export async function PATCH(req: Request, props: { params: Promise<{ tourPackage
       }
     });
 
-
-
     return NextResponse.json(tourPackage);
-  } catch (error) {
+  } catch (error: any) {
     console.log('[TOURPACKAGE_PATCH]', error);
-    return new NextResponse("Internal error", { status: 500 });
+    const message = typeof error?.message === 'string' && error.message.length > 0
+      ? error.message
+      : "Internal error";
+    // Surface itinerary/variant failures so the client does not treat a wiped save as success
+    if (message.startsWith('Failed to create itinerary') || message.includes('[VARIANTS]')) {
+      return new NextResponse(message, { status: 500 });
+    }
+    return new NextResponse(message.includes('Failed to') ? message : "Internal error", { status: 500 });
   }
 };

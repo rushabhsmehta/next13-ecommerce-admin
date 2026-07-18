@@ -8,7 +8,7 @@ const formatInr = (value: number): string =>
 type BreakdownLine = {
   label: string;
   value: string;
-  tone?: "base" | "discount" | "subtotal" | "gst" | "total";
+  tone?: "base" | "discount" | "subtotal" | "gst" | "airfare" | "total";
 };
 
 /** Muted qty × unit line shown above the breakdown stack (e.g. "7 Adults × ₹ 24,581"). */
@@ -24,32 +24,44 @@ export function buildBreakdownLines(
   baseLabel = "Base amount"
 ): BreakdownLine[] {
   const lines: BreakdownLine[] = [];
+  const airFareAmount = Math.max(0, Math.round(parts.airFareAmount ?? 0));
+  const hasTaxableBase = parts.lineBase > 0;
 
-  lines.push({
-    label: baseLabel,
-    value: formatInr(parts.lineBase),
-    tone: "base",
-  });
-
-  if (parts.discountAmount > 0) {
+  if (hasTaxableBase) {
     lines.push({
-      label:
-        parts.discountPercent > 0 ? `Discount (${parts.discountPercent}%)` : "Discount",
-      value: `− ${formatInr(parts.discountAmount)}`,
-      tone: "discount",
+      label: baseLabel,
+      value: formatInr(parts.lineBase),
+      tone: "base",
     });
+
+    if (parts.discountAmount > 0) {
+      lines.push({
+        label:
+          parts.discountPercent > 0 ? `Discount (${parts.discountPercent}%)` : "Discount",
+        value: `− ${formatInr(parts.discountAmount)}`,
+        tone: "discount",
+      });
+      lines.push({
+        label: "Net amount",
+        value: formatInr(parts.afterDiscount),
+        tone: "subtotal",
+      });
+    }
+
     lines.push({
-      label: "Net amount",
-      value: formatInr(parts.afterDiscount),
-      tone: "subtotal",
+      label: `GST (${VARIANT_PRICING_GST_PERCENT}%)`,
+      value: `+ ${formatInr(parts.gstAmount)}`,
+      tone: "gst",
     });
   }
 
-  lines.push({
-    label: `GST (${VARIANT_PRICING_GST_PERCENT}%)`,
-    value: `+ ${formatInr(parts.gstAmount)}`,
-    tone: "gst",
-  });
+  if (airFareAmount > 0) {
+    lines.push({
+      label: "Air Fare (excl. GST)",
+      value: `+ ${formatInr(airFareAmount)}`,
+      tone: "airfare",
+    });
+  }
 
   lines.push({
     label: "Total",
@@ -65,6 +77,7 @@ const toneClass: Record<NonNullable<BreakdownLine["tone"]>, string> = {
   discount: "text-emerald-700",
   subtotal: "text-slate-600",
   gst: "text-blue-700",
+  airfare: "text-amber-800",
   total: "text-red-800",
 };
 
@@ -73,6 +86,7 @@ const toneValueClass: Record<NonNullable<BreakdownLine["tone"]>, string> = {
   discount: "text-emerald-700 font-semibold",
   subtotal: "text-slate-700 font-medium",
   gst: "text-blue-700 font-semibold",
+  airfare: "text-amber-900 font-semibold",
   total: "text-red-800 font-bold",
 };
 
@@ -138,6 +152,7 @@ export function buildPricingCalculationBreakdownHtml(
     discount: "#047857",
     subtotal: "#475569",
     gst: "#1D4ED8",
+    airfare: "#92400E",
     total: primaryColor,
   };
 

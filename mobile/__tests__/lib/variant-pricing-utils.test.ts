@@ -57,19 +57,27 @@ describe("variant-pricing-utils", () => {
   });
 
   it("builds selected package component rows", () => {
-    const { items, totalPrice } = applySelectedPackageComponents(
+    const { items, totalPrice, taxableSubtotal, airFareTotal } = applySelectedPackageComponents(
       [
         {
           id: "c1",
           price: 5000,
           pricingAttributeName: "Per Person",
         },
+        {
+          id: "c2",
+          price: 3000,
+          pricingAttributeName: "Air Fare",
+        },
       ],
-      ["c1"],
-      { c1: 1 }
+      ["c1", "c2"],
+      { c1: 1, c2: 1 }
     );
-    expect(items).toHaveLength(1);
+    expect(items).toHaveLength(2);
     expect(items[0].name).toBe("Per Person");
-    expect(totalPrice).toBe(5000);
+    expect(totalPrice).toBe(8000);
+    expect(taxableSubtotal).toBe(5000);
+    expect(airFareTotal).toBe(3000);
+    expect(items[1].price).toBe("3000");
   });
 });

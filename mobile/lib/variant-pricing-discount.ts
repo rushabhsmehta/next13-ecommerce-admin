@@ -32,6 +32,14 @@ export type PricingLineAmounts = {
   gstAmount: number;
   netLineTotal: number;
   netUnitPrice: number;
+  /** Non-taxable Air Fare added after discount + GST (package totals). */
+  airFareAmount?: number;
+};
+
+export type NamedPricingAmount = {
+  name?: string | null;
+  attributeName?: string | null;
+  price?: string | number | null;
 };
 
 function parseNonNegativeNumber(value: unknown): number {
@@ -47,6 +55,40 @@ export function formatInrAmount(value: number): string {
   return `Rs. ${roundInr(value).toLocaleString("en-IN")}`;
 }
 
+/** Exact match for the Air Fare pricing row / attribute (case-insensitive). */
+export function isAirFarePricingLabel(label: string | null | undefined): boolean {
+  const n = (label || "").trim().toLowerCase().replace(/\s+/g, " ");
+  return n === "air fare" || n === "airfare";
+}
+
+function parseNamedPrice(value: string | number | null | undefined): number {
+  const n = Number.parseFloat(String(value ?? "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) && n >= 0 ? roundInr(n) : 0;
+}
+
+function resolvePricingLabel(item: NamedPricingAmount): string {
+  return (item.name || item.attributeName || "").trim();
+}
+
+/** Sum of Air Fare row prices (GST/discount excluded). */
+export function sumAirFareAmount(items: NamedPricingAmount[] | null | undefined): number {
+  return (items ?? []).reduce((sum, item) => {
+    if (!isAirFarePricingLabel(resolvePricingLabel(item))) return sum;
+    return sum + parseNamedPrice(item.price);
+  }, 0);
+}
+
+/** Sum of non–Air Fare row prices (discount/GST base). */
+export function sumTaxablePricingAmount(items: NamedPricingAmount[] | null | undefined): number {
+  return (items ?? []).reduce((sum, item) => {
+    if (isAirFarePricingLabel(resolvePricingLabel(item))) return sum;
+    return sum + parseNamedPrice(item.price);
+  }, 0);
+}
+
+/**
+ * Compute discount amount and final total from a pre-discount subtotal.
+ */
 export function computeVariantDiscount(
   subtotal: number,
   input: VariantDiscountInput
@@ -87,6 +129,51 @@ export function computeVariantDiscount(
             ...(reason ? { reason } : {}),
           }
         : null,
+  };
+}
+
+/**
+ * Apply discount to a taxable subtotal, then add Air Fare to the stored
+ * GST-exclusive total (`afterDiscount + airFare`).
+ */
+export function computeVariantDiscountWithAirFare(
+  taxableSubtotal: number,
+  airFareAmount: number,
+  input: VariantDiscountInput
+): VariantDiscountResult & { airFareAmount: number } {
+  const safeAirFare = Math.max(0, roundInr(parseNonNegativeNumber(airFareAmount)));
+  const result = computeVariantDiscount(taxableSubtotal, input);
+  return {
+    ...result,
+    totalCost: result.totalCost + safeAirFare,
+    airFareAmount: safeAirFare,
+  };
+}
+
+/** Seasonal / component totals with Air Fare excluded from GST. */
+export type SeasonalPricingTotals = {
+  taxableTotal: number;
+  airFareTotal: number;
+  gstAmount: number;
+  /** GST-exclusive: taxable + air fare */
+  totalExcludingGst: number;
+  /** taxable + GST + air fare */
+  grandTotal: number;
+};
+
+export function computeSeasonalPricingTotals(
+  items: NamedPricingAmount[] | null | undefined
+): SeasonalPricingTotals {
+  const taxableTotal = sumTaxablePricingAmount(items);
+  const airFareTotal = sumAirFareAmount(items);
+  const gstAmount =
+    taxableTotal > 0 ? roundInr(taxableTotal * (VARIANT_PRICING_GST_PERCENT / 100)) : 0;
+  return {
+    taxableTotal,
+    airFareTotal,
+    gstAmount,
+    totalExcludingGst: taxableTotal + airFareTotal,
+    grandTotal: taxableTotal + gstAmount + airFareTotal,
   };
 }
 
@@ -187,7 +274,7 @@ export function computePricingLineAmounts(input: {
 
 export function buildPricingLineDescription(
   amounts: PricingLineAmounts,
-  options: { label?: string } = {}
+  options: { label?: string; excludeGstAndDiscount?: boolean } = {}
 ): string {
   const {
     qty,
@@ -206,6 +293,10 @@ export function buildPricingLineDescription(
     prefix = `${qty} ${label} × ${formatInrAmount(unitBase)} = ${formatInrAmount(lineBase)}`;
   }
 
+  if (options.excludeGstAndDiscount) {
+    return prefix;
+  }
+
   if (discountPercent > 0) {
     return `${prefix} − Discount (${discountPercent}%) ${formatInrAmount(discountAmount)} = ${formatInrAmount(afterDiscount)} + GST (${VARIANT_PRICING_GST_PERCENT}%) ${formatInrAmount(gstAmount)} = ${formatInrAmount(netLineTotal)}`;
   }
@@ -217,6 +308,10 @@ export function clonePricingComponents(items: PricingComponentItem[]): PricingCo
   return items.map((item) => ({ ...item }));
 }
 
+/**
+ * Apply a percentage discount to each pricing breakdown row.
+ * Air Fare rows are left without discount or GST.
+ */
 export function applyPercentDiscountToPricingComponents(
   items: PricingComponentItem[],
   percent: number
@@ -233,6 +328,23 @@ export function applyPercentDiscountToPricingComponents(
     }
 
     const { qty, label } = parsePricingLineContext(item.description);
+    if (isAirFarePricingLabel(item.name)) {
+      const amounts = computePricingLineAmounts({
+        unitBase,
+        discountPercent: 0,
+        qty,
+        gstPercent: 0,
+      });
+      return {
+        ...item,
+        price: unitBase.toString(),
+        description: buildPricingLineDescription(amounts, {
+          label,
+          excludeGstAndDiscount: true,
+        }),
+      };
+    }
+
     const amounts = computePricingLineAmounts({
       unitBase,
       discountPercent: cappedPercent,
@@ -245,4 +357,35 @@ export function applyPercentDiscountToPricingComponents(
       description: buildPricingLineDescription(amounts, { label }),
     };
   });
+}
+
+/** Build discount + GST description for a single component row (display/editor). */
+export function buildComponentPricingDescription(
+  unitBase: number,
+  description: string | undefined | null,
+  appliedDiscount?: AppliedVariantDiscount | null,
+  options: { label?: string | null } = {}
+): { description: string; netUnitPrice: number } {
+  const { qty, label: qtyLabel } = parsePricingLineContext(description);
+  const rowLabel = options.label?.trim() || "";
+  const excludeAirFare = isAirFarePricingLabel(rowLabel);
+  const discountPercent =
+    !excludeAirFare &&
+    appliedDiscount?.type === "percent" &&
+    appliedDiscount.inputValue > 0
+      ? appliedDiscount.inputValue
+      : 0;
+  const amounts = computePricingLineAmounts({
+    unitBase,
+    discountPercent,
+    qty,
+    gstPercent: excludeAirFare ? 0 : undefined,
+  });
+  return {
+    description: buildPricingLineDescription(amounts, {
+      label: qtyLabel,
+      excludeGstAndDiscount: excludeAirFare,
+    }),
+    netUnitPrice: amounts.netUnitPrice,
+  };
 }

@@ -263,6 +263,11 @@ function Inner() {
                     </Text>
                     <Text style={styles.cardPrice}>{inr(item.totalPrice)}</Text>
                   </View>
+                  {item.airFareTotal != null && item.airFareTotal > 0 ? (
+                    <Text style={styles.airFareNote}>
+                      Incl. Air Fare {inr(item.airFareTotal)} (excl. GST)
+                    </Text>
+                  ) : null}
                   {!item.isActive ? <Text style={styles.inactive}>Inactive</Text> : null}
                   {item.pricingComponents.length ? (
                     <View style={styles.componentsPreview}>
@@ -384,6 +389,12 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.lg,
   },
   cardPrice: { fontSize: FontSize.md, fontWeight: "700", color: Colors.primary },
+  airFareNote: {
+    marginTop: Spacing.xs,
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.warning,
+  },
   cardSub: {
     flex: 1,
     fontSize: FontSize.sm,

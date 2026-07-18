@@ -173,8 +173,22 @@ const tourPackagePage = async (
     };
   });
 
-
-  // console.log("Fetched tourPackage:", tourPackage);
+  // Hydrate the package being edited the same way — hotels often live only on the default variant
+  const editDefaultVariant =
+    tourPackage?.packageVariants?.find((v) => v.isDefault) ?? tourPackage?.packageVariants?.[0];
+  const editDefaultVariantMappings: Record<string, string> = {};
+  editDefaultVariant?.variantHotelMappings?.forEach((m) => {
+    if (m.itineraryId && m.hotelId) editDefaultVariantMappings[m.itineraryId] = m.hotelId;
+  });
+  const tourPackageWithHydratedHotels = tourPackage
+    ? {
+        ...tourPackage,
+        itineraries: tourPackage.itineraries.map((itin) => ({
+          ...itin,
+          hotelId: itin.hotelId ?? editDefaultVariantMappings[itin.id] ?? null,
+        })),
+      }
+    : null;
 
   const locations = await prismadb.location.findMany({
 
@@ -227,7 +241,7 @@ const tourPackagePage = async (
               )}
             </div>
             <TourPackageForm
-              initialData={tourPackage}
+              initialData={tourPackageWithHydratedHotels}
               locations={locations}
               hotels={hotels}
               activitiesMaster={activitiesMaster}

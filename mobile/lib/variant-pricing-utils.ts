@@ -97,10 +97,25 @@ export function applySelectedPackageComponents(
   components: PackagePricingComponent[],
   selectedIds: string[],
   quantitiesById: Record<string, number>
-): { items: Array<{ name: string; price: string; description: string }>; totalPrice: number } {
+): {
+  items: Array<{ name: string; price: string; description: string }>;
+  /** Sum of all line totals including Air Fare (legacy). */
+  totalPrice: number;
+  /** Package total excluding Air Fare (discount/GST base). */
+  taxableSubtotal: number;
+  airFareTotal: number;
+} {
+  // Lazy import avoided — keep helper local to prevent circular deps in tests.
+  const isAirFare = (label: string) => {
+    const n = label.trim().toLowerCase().replace(/\s+/g, " ");
+    return n === "air fare" || n === "airfare";
+  };
+
   const selected = components.filter((comp) => selectedIds.includes(comp.id));
   const finalComponents: Array<{ name: string; price: string; description: string }> = [];
   let totalPrice = 0;
+  let taxableSubtotal = 0;
+  let airFareTotal = 0;
 
   for (const comp of selected) {
     const componentName = comp.pricingAttribute?.name || comp.pricingAttributeName || "Pricing Component";
@@ -111,19 +126,25 @@ export function applySelectedPackageComponents(
     const roomQuantity = quantitiesById[comp.id] || 1;
     const occupancyMultiplier = getOccupancyMultiplier(componentName);
     const totalComponentPrice = calculateComponentTotalPrice(comp, roomQuantity);
+    const airFare = isAirFare(componentName);
 
     finalComponents.push({
       name: componentName,
-      price: basePrice.toString(),
+      price: (airFare ? totalComponentPrice : basePrice).toString(),
       description: `${basePrice.toFixed(2)} x ${occupancyMultiplier} occupancy${
         roomQuantity > 1 ? ` x ${roomQuantity} rooms` : ""
       } = Rs.${totalComponentPrice.toFixed(2)}`,
     });
 
     totalPrice += totalComponentPrice;
+    if (airFare) {
+      airFareTotal += totalComponentPrice;
+    } else {
+      taxableSubtotal += totalComponentPrice;
+    }
   }
 
-  return { items: finalComponents, totalPrice };
+  return { items: finalComponents, totalPrice, taxableSubtotal, airFareTotal };
 }
 
 export function parseMoney(value: string | null | undefined): number {

@@ -9,6 +9,7 @@ import {
 } from "@/app/api/mobile/lib/assert-operations-access";
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 import { tourPackagePricingWriteSchema } from "@/app/api/mobile/tour-packages/schemas";
+import { computeSeasonalPricingTotals } from "@/lib/variant-pricing-discount";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,12 @@ function formatPricingRow(row: {
     pricingAttribute: { id: string; name: string; sortOrder: number };
   }[];
 }) {
-  const totalPrice = row.pricingComponents.reduce((sum, c) => sum + toAmount(c.price), 0);
+  const pricingTotals = computeSeasonalPricingTotals(
+    row.pricingComponents.map((c) => ({
+      name: c.pricingAttribute.name,
+      price: toAmount(c.price),
+    }))
+  );
   return {
     id: row.id,
     tourPackageId: row.tourPackageId,
@@ -66,7 +72,10 @@ function formatPricingRow(row: {
     vehicleTypeName: row.vehicleType?.name ?? null,
     locationSeasonalPeriodId: row.locationSeasonalPeriodId,
     seasonalPeriodName: row.locationSeasonalPeriod?.name ?? null,
-    totalPrice,
+    totalPrice: pricingTotals.grandTotal,
+    taxableTotal: pricingTotals.taxableTotal,
+    airFareTotal: pricingTotals.airFareTotal,
+    gstAmount: pricingTotals.gstAmount,
     pricingComponents: row.pricingComponents.map((c) => ({
       id: c.id,
       pricingAttributeId: c.pricingAttributeId,

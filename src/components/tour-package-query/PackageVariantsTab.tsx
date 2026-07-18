@@ -21,6 +21,11 @@ import { Plus, Trash2, Hotel as HotelIcon, Check, ChevronsUpDown, Sparkles, Copy
 import Image from "next/image";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "react-hot-toast";
+import {
+  computeSeasonalPricingTotals,
+  VARIANT_PRICING_GST_PERCENT,
+  type SeasonalPricingTotals,
+} from "@/lib/variant-pricing-discount";
 
 interface VariantPricingComponentDisplay {
   id: string;
@@ -46,7 +51,9 @@ interface VariantPricingDisplay {
   seasonName?: string | null;
   seasonType?: string | null;
   components: VariantPricingComponentDisplay[];
+  /** GST-exclusive: taxable + Air Fare */
   totalComponentPrice: number;
+  pricingTotals: SeasonalPricingTotals;
 }
 
 interface PackageVariant {
@@ -206,7 +213,8 @@ const normalizeSeasonalPricingEntries = (entries: any[]): VariantPricingDisplay[
       purchasePrice: component?.purchasePrice != null ? toNumber(component.purchasePrice) : null,
       description: component?.description ?? null,
     }));
-    const totalComponentPrice = components.reduce((sum, comp) => sum + comp.price, 0);
+    const pricingTotals = computeSeasonalPricingTotals(components);
+    const totalComponentPrice = pricingTotals.totalExcludingGst;
 
     const normalizedEntry: VariantPricingDisplay = {
       id: entry?.id ?? `${startDate}-${endDate}-${entry?.mealPlanId ?? ""}`,
@@ -224,6 +232,7 @@ const normalizeSeasonalPricingEntries = (entries: any[]): VariantPricingDisplay[
       seasonType: entry?.locationSeasonalPeriod?.seasonType ?? undefined,
       components,
       totalComponentPrice,
+      pricingTotals,
     };
 
     return normalizedEntry;
@@ -440,9 +449,16 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
   const [pricingFormState, setPricingFormState] = useState<VariantPricingFormState>(createEmptyPricingForm());
   const [savingPricing, setSavingPricing] = useState(false);
   const activeDialogVariant = pricingDialogState ? variants[pricingDialogState.variantIndex] : null;
-  const computeFormTotal = (state: VariantPricingFormState) =>
-    state.pricingComponents.reduce((sum, component) => sum + toNumber(component.price), 0);
-  const pricingFormTotal = computeFormTotal(pricingFormState);
+  const pricingFormTotals = useMemo(() => {
+    const named = pricingFormState.pricingComponents.map((component) => ({
+      name:
+        pricingAttributes.find((attr) => attr.id === component.pricingAttributeId)?.name ??
+        "",
+      price: component.price,
+    }));
+    return computeSeasonalPricingTotals(named);
+  }, [pricingAttributes, pricingFormState.pricingComponents]);
+  const pricingFormTotal = pricingFormTotals.grandTotal;
 
   const convertPricingToFormState = (pricing: VariantPricingDisplay): VariantPricingFormState => ({
     id: pricing.id,
@@ -1536,7 +1552,9 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                     <div className="space-y-3">
                       {variant.seasonalPricings.map((pricing, pricingIndex) => {
                         const components = pricing.components || [];
-                        const totalPriceLabel = currencyFormatter.format(pricing.totalComponentPrice || 0);
+                        const totals =
+                          pricing.pricingTotals ??
+                          computeSeasonalPricingTotals(components);
                         return (
                           <div
                             key={`${pricing.id}-${pricingIndex}`}
@@ -1631,12 +1649,36 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                              <span className="text-xs text-muted-foreground">Total Component Price</span>
-                              <span className="text-sm font-semibold text-slate-900 flex items-center gap-1">
-                                <IndianRupee className="h-3 w-3 text-emerald-600" />
-                                {totalPriceLabel}
-                              </span>
+                            <div className="space-y-1 border-t border-slate-100 pt-3 text-xs">
+                              <div className="flex items-center justify-between text-muted-foreground">
+                                <span>Package (excl. Air Fare)</span>
+                                <span className="font-medium text-slate-800">
+                                  {currencyFormatter.format(totals.taxableTotal)}
+                                </span>
+                              </div>
+                              {totals.taxableTotal > 0 ? (
+                                <div className="flex items-center justify-between text-muted-foreground">
+                                  <span>GST ({VARIANT_PRICING_GST_PERCENT}%)</span>
+                                  <span className="font-medium text-slate-800">
+                                    {currencyFormatter.format(totals.gstAmount)}
+                                  </span>
+                                </div>
+                              ) : null}
+                              {totals.airFareTotal > 0 ? (
+                                <div className="flex items-center justify-between text-amber-800">
+                                  <span>Air Fare (excl. GST)</span>
+                                  <span className="font-medium">
+                                    {currencyFormatter.format(totals.airFareTotal)}
+                                  </span>
+                                </div>
+                              ) : null}
+                              <div className="flex items-center justify-between pt-1">
+                                <span className="text-xs font-semibold text-slate-700">Grand Total</span>
+                                <span className="text-sm font-semibold text-slate-900 flex items-center gap-1">
+                                  <IndianRupee className="h-3 w-3 text-emerald-600" />
+                                  {currencyFormatter.format(totals.grandTotal)}
+                                </span>
+                              </div>
                             </div>
 
                             {/* Hotel Pricing Breakdown */}
@@ -1948,13 +1990,29 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-500/40 bg-emerald-50/60 px-4 py-3">
-              <div className="text-xs text-muted-foreground">
-                Variant total preview
+            <div className="space-y-1 rounded-lg border border-emerald-500/40 bg-emerald-50/60 px-4 py-3 text-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Package (excl. Air Fare)</span>
+                <span>{currencyFormatter.format(pricingFormTotals.taxableTotal)}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
-                <IndianRupee className="h-4 w-4" />
-                {currencyFormatter.format(pricingFormTotal)}
+              {pricingFormTotals.taxableTotal > 0 ? (
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>GST ({VARIANT_PRICING_GST_PERCENT}%)</span>
+                  <span>{currencyFormatter.format(pricingFormTotals.gstAmount)}</span>
+                </div>
+              ) : null}
+              {pricingFormTotals.airFareTotal > 0 ? (
+                <div className="flex items-center justify-between text-amber-800">
+                  <span>Air Fare (excl. GST)</span>
+                  <span>{currencyFormatter.format(pricingFormTotals.airFareTotal)}</span>
+                </div>
+              ) : null}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div className="text-xs font-semibold text-emerald-800">Grand total preview</div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                  <IndianRupee className="h-4 w-4" />
+                  {currencyFormatter.format(pricingFormTotal)}
+                </div>
               </div>
             </div>
           </div>
@@ -2043,7 +2101,10 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                   <div className="ml-2 mt-2 space-y-2">
                     {variant.seasonalPricings.map((pricing, pricingIdx) => {
                       const components = pricing.components || [];
-                      const totalPrice = currencyFormatter.format(pricing.totalComponentPrice || 0);
+                      const totals =
+                        pricing.pricingTotals ??
+                        computeSeasonalPricingTotals(components);
+                      const totalPrice = currencyFormatter.format(totals.grandTotal);
                       return (
                         <div key={`${pricing.id}-${pricingIdx}`} className="border border-emerald-200/60 bg-emerald-50/40 rounded-md p-2 space-y-1 text-[10px]">
                           <div className="flex items-center justify-between font-semibold text-emerald-900">
@@ -2052,6 +2113,11 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                               <IndianRupee className="h-3 w-3" />{totalPrice}
                             </span>
                           </div>
+                          {totals.airFareTotal > 0 ? (
+                            <div className="text-[9px] text-amber-800">
+                              Incl. Air Fare {currencyFormatter.format(totals.airFareTotal)} (excl. GST)
+                            </div>
+                          ) : null}
                           <div className="flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground">
                             {pricing.mealPlanName && (
                               <Badge variant="outline" className="text-[9px]">

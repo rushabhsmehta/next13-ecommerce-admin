@@ -86,7 +86,7 @@ const itinerarySchema = z.object({
   dayNumber: z.coerce.number().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
-  hotelId: z.string().optional(), // Array of hotel IDs
+  hotelId: z.string().optional().nullable(),
   locationId: z.string(), // Array of hotel IDs
   // Centralized allocations
   // hotel : z.string(),
@@ -892,6 +892,8 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
         ...itinerary,
+        // Empty string is not a valid FK — send null so save does not wipe/fail hotel links
+        hotelId: itinerary.hotelId && String(itinerary.hotelId).trim() ? itinerary.hotelId : null,
         locationId: data.locationId,
         mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join('-') : '',
         activities: itinerary.activities?.map((activity) => ({
@@ -903,7 +905,14 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
           //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
         }))
       })),
-      packageVariants: data.packageVariants || [], // Include variants
+      packageVariants: (data.packageVariants || []).map((variant) => ({
+        ...variant,
+        hotelMappings: Object.fromEntries(
+          Object.entries(variant.hotelMappings || {}).filter(
+            ([, hotelId]) => typeof hotelId === 'string' && hotelId.trim().length > 0
+          )
+        ),
+      })),
     };
 
     console.log('📦 [TOUR PACKAGE FORM] Formatted request payload', {

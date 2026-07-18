@@ -4,8 +4,10 @@ import type { PricingLineAmounts } from "@/lib/variant-pricing-discount";
 import {
   buildComponentPricingDescription,
   computePricingLineAmounts,
+  isAirFarePricingLabel,
   isGeneratedPricingLineDescription,
   parsePricingLineContext,
+  sumAirFareAmount,
   VARIANT_PRICING_GST_PERCENT,
 } from "@/lib/variant-pricing-discount";
 import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
@@ -50,6 +52,8 @@ export function matchPricingItemRateKey(
 
 export type PricingCalculationParts = PricingLineAmounts & {
   qtyLabel?: string;
+  /** Non-taxable Air Fare shown after GST on package totals. */
+  airFareAmount?: number;
 };
 
 export type PricingDisplayRow = {
@@ -64,69 +68,127 @@ export type PricingDisplayRow = {
 function buildCalculationParts(
   unitBase: number,
   description: string | undefined | null,
-  appliedDiscount?: AppliedVariantDiscount | null
+  appliedDiscount?: AppliedVariantDiscount | null,
+  options: { excludeGstAndDiscount?: boolean; airFareAmount?: number } = {}
 ): PricingCalculationParts {
   const { qty, label: qtyLabel } = parsePricingLineContext(description);
-  const discountPercent = resolveRowDiscountPercent(appliedDiscount);
+  const discountPercent = options.excludeGstAndDiscount
+    ? 0
+    : resolveRowDiscountPercent(appliedDiscount);
+  const amounts = computePricingLineAmounts({
+    unitBase,
+    discountPercent,
+    qty,
+    gstPercent: options.excludeGstAndDiscount ? 0 : undefined,
+  });
+  const airFareAmount = Math.max(0, Math.round(options.airFareAmount ?? 0));
+  const netLineTotal = amounts.netLineTotal + airFareAmount;
   return {
-    ...computePricingLineAmounts({
-      unitBase,
-      discountPercent,
-      qty,
-    }),
+    ...amounts,
+    netLineTotal,
+    netUnitPrice: qty > 1 ? Math.round(netLineTotal / qty) : netLineTotal,
     qtyLabel,
+    ...(airFareAmount > 0 ? { airFareAmount } : {}),
   };
 }
 
-
+function withAirFareOnParts(
+  parts: PricingCalculationParts,
+  airFareAmount: number
+): PricingCalculationParts {
+  const safeAirFare = Math.max(0, Math.round(airFareAmount));
+  if (safeAirFare <= 0) return parts;
+  const netLineTotal = parts.afterDiscount + parts.gstAmount + safeAirFare;
+  return {
+    ...parts,
+    airFareAmount: safeAirFare,
+    netLineTotal,
+    netUnitPrice: parts.qty > 1 ? Math.round(netLineTotal / parts.qty) : netLineTotal,
+  };
+}
 
 /** Per-unit breakdown for rate rows (Per Person, Per Couple, etc.) in price comparison cells. */
 export function toUnitDisplayParts(parts: PricingCalculationParts): PricingCalculationParts {
   if (parts.qty <= 1) return parts;
+  const unitParts = computePricingLineAmounts({
+    unitBase: parts.unitBase,
+    discountPercent: parts.discountPercent,
+    qty: 1,
+    gstPercent: parts.discountPercent === 0 && parts.gstAmount === 0 ? 0 : undefined,
+  });
   return {
-    ...computePricingLineAmounts({
-      unitBase: parts.unitBase,
-      discountPercent: parts.discountPercent,
-      qty: 1,
-    }),
+    ...unitParts,
     qtyLabel: parts.qtyLabel,
   };
 }
+
 /** Package-level breakdown for the Total Price row in price comparison. */
 export function buildPackageTotalCalculationParts(
   vpd: VariantPricingEntry | undefined | null
 ): PricingCalculationParts | null {
   if (!vpd) return null;
 
-  const lineBase = Math.round(
-    parseFloat(String(vpd.subtotalBeforeDiscount ?? vpd.totalCost ?? 0))
+  const components = vpd.componentsBeforeDiscount?.length
+    ? vpd.componentsBeforeDiscount
+    : vpd.components;
+  const airFareAmount = sumAirFareAmount(components);
+
+  // Taxable package base (excludes Air Fare). Prefer stored subtotalBeforeDiscount.
+  let taxableBase = Math.round(
+    parseFloat(String(vpd.subtotalBeforeDiscount ?? 0))
   );
-  if (!Number.isFinite(lineBase) || lineBase <= 0) return null;
+  if (!Number.isFinite(taxableBase) || taxableBase <= 0) {
+    const storedTotal = Math.round(parseFloat(String(vpd.totalCost ?? 0)));
+    if (Number.isFinite(storedTotal) && storedTotal > 0) {
+      taxableBase = Math.max(0, storedTotal - airFareAmount);
+    }
+  }
+  if (!Number.isFinite(taxableBase) || taxableBase < 0) return null;
+  if (taxableBase <= 0 && airFareAmount <= 0) return null;
 
   const applied = vpd.appliedDiscount;
   if (applied?.type === "percent" && applied.inputValue > 0) {
-    return buildCalculationParts(lineBase, null, applied);
+    return withAirFareOnParts(
+      buildCalculationParts(taxableBase, null, applied),
+      airFareAmount
+    );
   }
 
   if (applied?.type === "fixed" && applied.amount > 0) {
-    const discountAmount = Math.min(lineBase, Math.round(applied.amount));
-    const afterDiscount = Math.max(0, lineBase - discountAmount);
+    const discountAmount = Math.min(taxableBase, Math.round(applied.amount));
+    const afterDiscount = Math.max(0, taxableBase - discountAmount);
     const gstAmount = Math.round(afterDiscount * (VARIANT_PRICING_GST_PERCENT / 100));
-    const netLineTotal = afterDiscount + gstAmount;
+    const netLineTotal = afterDiscount + gstAmount + airFareAmount;
     return {
-      unitBase: lineBase,
+      unitBase: taxableBase,
       qty: 1,
-      lineBase,
+      lineBase: taxableBase,
       discountPercent: 0,
       discountAmount,
       afterDiscount,
       gstAmount,
       netLineTotal,
       netUnitPrice: netLineTotal,
+      ...(airFareAmount > 0 ? { airFareAmount } : {}),
     };
   }
 
-  return buildCalculationParts(lineBase, null, null);
+  if (taxableBase <= 0 && airFareAmount > 0) {
+    return {
+      unitBase: 0,
+      qty: 1,
+      lineBase: 0,
+      discountPercent: 0,
+      discountAmount: 0,
+      afterDiscount: 0,
+      gstAmount: 0,
+      netLineTotal: airFareAmount,
+      netUnitPrice: airFareAmount,
+      airFareAmount,
+    };
+  }
+
+  return withAirFareOnParts(buildCalculationParts(taxableBase, null, null), airFareAmount);
 }
 
 function parsePrice(value: string | number | undefined | null): number {
@@ -152,15 +214,21 @@ export function resolvePricingDisplayRow(
   const unitBase = parsePrice(beforeDiscountComp?.price ?? comp.price);
   if (unitBase <= 0) return null;
 
+  const isAirFare = isAirFarePricingLabel(label);
   const contextDescription = beforeDiscountComp?.description ?? comp.description;
   const storedDescription = comp.description || beforeDiscountComp?.description || undefined;
   const calculationParts = buildCalculationParts(
     unitBase,
     contextDescription,
-    appliedDiscount
+    isAirFare ? null : appliedDiscount,
+    { excludeGstAndDiscount: isAirFare }
   );
 
-  if (storedDescription && isGeneratedPricingLineDescription(storedDescription)) {
+  if (
+    !isAirFare &&
+    storedDescription &&
+    isGeneratedPricingLineDescription(storedDescription)
+  ) {
     return {
       label,
       price: unitBase,
@@ -174,7 +242,8 @@ export function resolvePricingDisplayRow(
   const built = buildComponentPricingDescription(
     unitBase,
     contextDescription,
-    appliedDiscount
+    isAirFare ? null : appliedDiscount,
+    { label }
   );
   return {
     label,

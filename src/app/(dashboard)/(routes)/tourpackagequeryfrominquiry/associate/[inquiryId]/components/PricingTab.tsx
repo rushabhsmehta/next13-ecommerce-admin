@@ -1670,7 +1670,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                 <h3 className="text-lg font-semibold text-slate-800">GST & Discount Calculation</h3>
               </div>
               <p className="text-xs text-slate-500">
-                Applies subtotal - discount + GST 5%, then writes the GST-inclusive amount to the final total.
+                Applies discount + GST 5% on package rows (Air Fare excluded), then adds Air Fare to the GST-inclusive final total.
               </p>
             </div>
             {activeBasePricingAdjustment ? (

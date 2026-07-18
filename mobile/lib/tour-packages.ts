@@ -239,7 +239,11 @@ export interface TourPackagePricingRow {
   vehicleTypeName: string | null;
   locationSeasonalPeriodId: string | null;
   seasonalPeriodName: string | null;
+  /** Grand total: taxable + GST + Air Fare */
   totalPrice: number;
+  taxableTotal?: number;
+  airFareTotal?: number;
+  gstAmount?: number;
   pricingComponents: {
     id: string;
     pricingAttributeId: string;

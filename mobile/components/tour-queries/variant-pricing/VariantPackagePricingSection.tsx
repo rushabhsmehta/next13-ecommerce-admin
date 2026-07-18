@@ -39,22 +39,23 @@ type Props = {
   componentQuantities: Record<string, number>;
   onComponentQuantityChange: (componentId: string, quantity: number) => void;
   onFetch: () => void;
-  onApplySelected: (rows: LocalPricingRow[], totalCost: number) => void;
-  onApplyAll: (rows: LocalPricingRow[], totalCost: number) => void;
+  /** Second arg is taxable subtotal (excludes Air Fare). */
+  onApplySelected: (rows: LocalPricingRow[], taxableSubtotal: number) => void;
+  onApplyAll: (rows: LocalPricingRow[], taxableSubtotal: number) => void;
 };
 
 function buildRowsFromComponents(
   components: PackagePricingComponentRow[],
   selectedIds: string[],
   quantities: Record<string, number>
-): { rows: LocalPricingRow[]; totalCost: number } {
+): { rows: LocalPricingRow[]; totalCost: number; taxableSubtotal: number } {
   const mapped = components.map((comp) => ({
     id: comp.id,
     price: comp.price,
     pricingAttributeName: comp.pricingAttributeName,
     pricingAttribute: comp.pricingAttribute,
   }));
-  const { items, totalPrice } = applySelectedPackageComponents(
+  const { items, totalPrice, taxableSubtotal } = applySelectedPackageComponents(
     mapped,
     selectedIds,
     quantities
@@ -62,6 +63,7 @@ function buildRowsFromComponents(
   return {
     rows: items.map((item, index) => makeRow(item, index)),
     totalCost: totalPrice,
+    taxableSubtotal,
   };
 }
 
@@ -249,12 +251,12 @@ export function VariantPackagePricingSection({
             ]}
             onPress={() => {
               if (!fetchResult) return;
-              const { rows, totalCost } = buildRowsFromComponents(
+              const { rows, taxableSubtotal } = buildRowsFromComponents(
                 fetchResult.components,
                 selectedComponentIds,
                 componentQuantities
               );
-              onApplySelected(rows, totalCost);
+              onApplySelected(rows, taxableSubtotal);
             }}
           >
             <Text style={styles.applyButtonText}>Apply selected components</Text>
@@ -267,12 +269,12 @@ export function VariantPackagePricingSection({
             onPress={() => {
               if (!fetchResult) return;
               const allIds = fetchResult.components.map((comp) => comp.id);
-              const { rows, totalCost } = buildRowsFromComponents(
+              const { rows, taxableSubtotal } = buildRowsFromComponents(
                 fetchResult.components,
                 allIds,
                 componentQuantities
               );
-              onApplyAll(rows, totalCost);
+              onApplyAll(rows, taxableSubtotal);
             }}
           >
             <Text style={styles.secondaryButtonText}>Apply all (legacy)</Text>

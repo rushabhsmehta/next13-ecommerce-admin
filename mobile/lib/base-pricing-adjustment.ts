@@ -1,4 +1,8 @@
-import { VARIANT_PRICING_GST_PERCENT, formatInrAmount } from "@/lib/variant-pricing-discount";
+import {
+  VARIANT_PRICING_GST_PERCENT,
+  formatInrAmount,
+  isAirFarePricingLabel,
+} from "@/lib/variant-pricing-discount";
 
 export type BasePricingDiscountType = "percent" | "fixed";
 
@@ -114,19 +118,27 @@ function parsePricingLines(items: BasePricingItem[]): ParsedPricingLine[] {
     .filter((line) => line.unitBase > 0 && line.lineBase > 0);
 }
 
-function buildLineDescription(line: ParsedPricingLine, input: {
-  discountType: BasePricingDiscountType;
-  lineDiscountAmount: number;
-  gstAmount: number;
-  taxableAmount: number;
-  totalIncludingGst: number;
-  percentInput?: number;
-}): string {
+function buildLineDescription(
+  line: ParsedPricingLine,
+  input: {
+    discountType: BasePricingDiscountType;
+    lineDiscountAmount: number;
+    gstAmount: number;
+    taxableAmount: number;
+    totalIncludingGst: number;
+    percentInput?: number;
+    excludeGstAndDiscount?: boolean;
+  }
+): string {
   const label = line.label?.trim() || (line.qty > 1 ? "unit(s)" : undefined);
   const prefix =
     line.qty > 1
       ? `${line.qty} ${label} x ${formatInrAmount(line.unitBase)} = ${formatInrAmount(line.lineBase)}`
       : formatInrAmount(line.unitBase);
+
+  if (input.excludeGstAndDiscount) {
+    return prefix;
+  }
 
   const discountAmount = roundInr(input.lineDiscountAmount);
   const discountPart =
@@ -173,8 +185,11 @@ export function applyBasePricingAdjustment<T extends BasePricingItem>(
 ): { items: T[]; adjustment: BasePricingAdjustment } {
   const sourceItems = items ?? [];
   const lines = parsePricingLines(sourceItems);
+  const taxableLines = lines.filter((line) => !isAirFarePricingLabel(String(line.item.name ?? "")));
+  const airFareLines = lines.filter((line) => isAirFarePricingLabel(String(line.item.name ?? "")));
+  const airFareTotal = airFareLines.reduce((sum, line) => sum + line.lineBase, 0);
   const normalized = normalizeDiscountInput(input);
-  const subtotalBeforeDiscount = lines.reduce((sum, line) => sum + line.lineBase, 0);
+  const subtotalBeforeDiscount = taxableLines.reduce((sum, line) => sum + line.lineBase, 0);
 
   let targetDiscountAmount = 0;
   if (subtotalBeforeDiscount > 0) {
@@ -187,14 +202,18 @@ export function applyBasePricingAdjustment<T extends BasePricingItem>(
   const lineDiscounts = new Map<BasePricingItem, number>();
   let allocatedDiscount = 0;
 
-  lines.forEach((line, index) => {
+  taxableLines.forEach((line, index) => {
     const remainingDiscount = Math.max(0, targetDiscountAmount - allocatedDiscount);
     const lineDiscount =
-      index === lines.length - 1
+      index === taxableLines.length - 1
         ? remainingDiscount
         : Math.min(
             line.lineBase,
-            roundInr(subtotalBeforeDiscount > 0 ? targetDiscountAmount * (line.lineBase / subtotalBeforeDiscount) : 0)
+            roundInr(
+              subtotalBeforeDiscount > 0
+                ? targetDiscountAmount * (line.lineBase / subtotalBeforeDiscount)
+                : 0
+            )
           );
     lineDiscounts.set(line.item, lineDiscount);
     allocatedDiscount += lineDiscount;
@@ -206,10 +225,16 @@ export function applyBasePricingAdjustment<T extends BasePricingItem>(
 
   const lineResults = new Map<
     BasePricingItem,
-    { lineDiscountAmount: number; taxableAmount: number; gstAmount: number; totalIncludingGst: number }
+    {
+      lineDiscountAmount: number;
+      taxableAmount: number;
+      gstAmount: number;
+      totalIncludingGst: number;
+      excludeGstAndDiscount?: boolean;
+    }
   >();
 
-  lines.forEach((line) => {
+  taxableLines.forEach((line) => {
     const lineDiscountAmount = Math.min(line.lineBase, lineDiscounts.get(line.item) ?? 0);
     const lineTaxableAmount = Math.max(0, line.lineBase - lineDiscountAmount);
     const lineGstAmount = roundInr(lineTaxableAmount * (VARIANT_PRICING_GST_PERCENT / 100));
@@ -225,6 +250,18 @@ export function applyBasePricingAdjustment<T extends BasePricingItem>(
       totalIncludingGst: lineTotalIncludingGst,
     });
   });
+
+  airFareLines.forEach((line) => {
+    lineResults.set(line.item, {
+      lineDiscountAmount: 0,
+      taxableAmount: line.lineBase,
+      gstAmount: 0,
+      totalIncludingGst: line.lineBase,
+      excludeGstAndDiscount: true,
+    });
+  });
+
+  totalIncludingGst += airFareTotal;
 
   const adjustment: BasePricingAdjustment = {
     schemaVersion: 1,
@@ -260,6 +297,7 @@ export function applyBasePricingAdjustment<T extends BasePricingItem>(
           taxableAmount: result.taxableAmount,
           totalIncludingGst: result.totalIncludingGst,
           percentInput: normalized.discountType === "percent" ? normalized.inputValue : undefined,
+          excludeGstAndDiscount: result.excludeGstAndDiscount,
         }),
         pricingAdjustment: adjustment,
       } as T;

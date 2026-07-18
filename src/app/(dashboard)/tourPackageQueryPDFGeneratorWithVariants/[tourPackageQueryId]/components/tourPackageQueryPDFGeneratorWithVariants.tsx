@@ -44,6 +44,7 @@ import {
   companyInfo as sharedCompanyInfo,
   sanitizeText,
   parsePolicyField,
+  renderRemarksHtml,
   renderParagraphList,
 } from "@/lib/pdf";
 import { findItineraryByDayNumber, getHotelComparisonDayNumbers, isLastItineraryDay } from "@/lib/hotel-comparison-days";

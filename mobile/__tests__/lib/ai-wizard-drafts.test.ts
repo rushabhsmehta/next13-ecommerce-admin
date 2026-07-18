@@ -3,6 +3,7 @@ import {
   AI_DRAFT_KEYS,
   acknowledgeAiDraft,
   consumeAiDraft,
+  getAiDraftHandoff,
   mapAiDraftToPackageInitial,
   mapAiDraftToPackageItineraries,
   mapAiDraftToQueryInitial,
@@ -24,7 +25,7 @@ describe("ai-wizard-drafts", () => {
   });
 
   it("keeps draft in memory on store so create form works even if SecureStore fails", async () => {
-    (SecureStore.setItemAsync as jest.Mock).mockRejectedValueOnce(
+    (SecureStore.setItemAsync as jest.Mock).mockRejectedValue(
       new Error("value too large")
     );
     const payload = {
@@ -45,6 +46,11 @@ describe("ai-wizard-drafts", () => {
     };
 
     await storeAiDraft(AI_DRAFT_KEYS.packageCreate, payload);
+
+    // Sync handoff available immediately for first paint of create form.
+    expect(getAiDraftHandoff(AI_DRAFT_KEYS.packageCreate)?.data.tourPackageName).toBe(
+      "Kerala Escape"
+    );
 
     // No need to read SecureStore — memory handoff should serve create screen.
     const consumed = await consumeAiDraft(AI_DRAFT_KEYS.packageCreate);

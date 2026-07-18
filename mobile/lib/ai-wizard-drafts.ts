@@ -1,26 +1,79 @@
 import * as SecureStore from "expo-secure-store";
 import type { AiItineraryDraft } from "@/lib/ai-wizards";
 import { buildTourQueryName } from "@/lib/tour-query-label";
-import type { TourPackageFormInitial } from "@/components/tour-packages/TourPackageForm";
 import type { TourPackageItineraryDayInput } from "@/lib/tour-packages";
 import type { FlightDetailRow, ItineraryRow } from "@/components/tour-queries/types";
 
+/** Avoid importing TourPackageForm (circular) — keep seed shape local. */
+export type AiPackageFormSeed = {
+  locationId: string;
+  locationLabel: string;
+  tourPackageName: string;
+  tourPackageType: string;
+  tourCategory: string;
+  numDaysNight: string;
+  transport: string;
+  pickup_location: string;
+  drop_location: string;
+  price: string;
+  itineraries: TourPackageItineraryDayInput[];
+  images: { url: string }[];
+  pricingSection: { name: string; price?: string | null; description?: string | null }[];
+  inclusions: string[];
+  exclusions: string[];
+  importantNotes: string[];
+  paymentPolicy: string[];
+  usefulTip: string[];
+  cancellationPolicy: string[];
+  airlineCancellationPolicy: string[];
+  termsconditions: string[];
+  kitchenGroupPolicy: string[];
+};
+
 const SECURE_DRAFT_PREFIX = "ai-draft:";
 
-/**
- * Prefer AsyncStorage for large AI drafts. Do not gate on NativeModules.RNCAsyncStorage —
- * under New Architecture that probe is often null even when AsyncStorage works, which
- * previously forced SecureStore and silently dropped oversized itineraries.
- */
-async function getAsyncStorage(): Promise<{
+type DraftAsyncStorage = {
   getItem: (key: string) => Promise<string | null>;
   setItem: (key: string, value: string) => Promise<void>;
   removeItem: (key: string) => Promise<void>;
-} | null> {
+};
+
+/** Cached probe — never re-import after a failed native check (import throws fatally on some RN builds). */
+let asyncStorageCache: DraftAsyncStorage | null | undefined;
+
+/**
+ * AsyncStorage's JS module throws at import-time when the native module is missing,
+ * and on bridgeless RN that can destroy the React host even inside try/catch.
+ * Only import when TurboModuleRegistry / NativeModules reports the native module.
+ */
+function hasNativeAsyncStorage(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const RN = require("react-native") as {
+      NativeModules?: { RNCAsyncStorage?: unknown };
+      TurboModuleRegistry?: { get?: (name: string) => unknown };
+    };
+    if (RN.TurboModuleRegistry?.get?.("RNCAsyncStorage")) return true;
+    if (RN.NativeModules?.RNCAsyncStorage) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+async function getAsyncStorage(): Promise<DraftAsyncStorage | null> {
+  if (asyncStorageCache !== undefined) return asyncStorageCache;
+  if (!hasNativeAsyncStorage()) {
+    asyncStorageCache = null;
+    return null;
+  }
   try {
     const mod = await import("@react-native-async-storage/async-storage");
-    return mod.default ?? null;
+    const storage = (mod.default ?? null) as DraftAsyncStorage | null;
+    asyncStorageCache = storage;
+    return storage;
   } catch {
+    asyncStorageCache = null;
     return null;
   }
 }
@@ -207,7 +260,7 @@ const DEFAULT_POLICIES = {
 export function mapAiDraftToPackageInitial(
   stored: StoredAiDraft,
   locationLabel = ""
-): Partial<TourPackageFormInitial> {
+): Partial<AiPackageFormSeed> {
   const { data, locationId } = stored;
   const budget =
     data.estimatedBudget && typeof data.estimatedBudget === "object"
@@ -290,6 +343,11 @@ export function mapAiDraftToQueryInitial(
 /** In-memory handoff so navigation + Strict Mode remounts keep the draft. */
 const draftHandoffCache = new Map<AiDraftStorageKey, StoredAiDraft>();
 
+/** Synchronous read of the in-memory handoff (same JS session after storeAiDraft). */
+export function getAiDraftHandoff(key: AiDraftStorageKey): StoredAiDraft | null {
+  return draftHandoffCache.get(key) ?? null;
+}
+
 /**
  * Stores draft in memory immediately (required for same-session Create flow),
  * then best-effort persists. Large AI itineraries often exceed SecureStore limits;
@@ -305,12 +363,18 @@ export async function storeAiDraft(
     data: { ...payload.data, locationId: payload.locationId },
   };
   draftHandoffCache.set(key, stored);
-  const persisted = await writeDraftRaw(key, JSON.stringify(stored));
-  if (!persisted) {
-    console.warn(
-      `[ai-wizard-drafts] Persistence failed for ${key}; using in-memory handoff only`
-    );
-  }
+  // Persist in background so navigation is not blocked by large AsyncStorage writes.
+  void writeDraftRaw(key, JSON.stringify(stored))
+    .then((persisted) => {
+      if (!persisted) {
+        console.warn(
+          `[ai-wizard-drafts] Persistence failed for ${key}; using in-memory handoff only`
+        );
+      }
+    })
+    .catch(() => {
+      /* never let persistence reject kill the JS runtime */
+    });
   return true;
 }
 

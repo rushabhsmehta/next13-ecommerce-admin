@@ -33,6 +33,7 @@ export {
   sanitizeText,
   extractText,
   parsePolicyField,
+  renderRemarksHtml,
   renderBulletList,
   renderParagraphList,
 } from "./text-utils";

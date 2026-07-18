@@ -87,8 +87,7 @@ after_back.xml
 tmp/
 
 # Mobile adb UI dumps
-mobile/ui_dump*.xml
-mobile/ui_current.xml
+mobile/ui_*.xml
 mobile/hub_now.xml
 mobile/inquiries_list.xml
 

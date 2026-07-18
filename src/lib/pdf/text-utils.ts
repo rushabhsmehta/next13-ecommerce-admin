@@ -28,6 +28,30 @@ export function sanitizeText(value: any, fallback = ""): string {
  * Extract text from an object by trying common text-like keys.
  * Falls back to String(obj) if no known key is found.
  */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function containsHtml(value: string): boolean {
+  return /<\/?[a-z][\s\S]*>/i.test(value);
+}
+
+/**
+ * Render free-form remarks for HTML-based PDFs.
+ * Preserves existing rich HTML while converting plain-text newlines to <br />.
+ */
+export function renderRemarksHtml(value: any): string {
+  const text = sanitizeText(value);
+  if (!text) return "";
+  if (containsHtml(text)) return text;
+  return escapeHtml(text).replace(/\r\n|\r|\n/g, "<br />");
+}
+
 export function extractText(obj: any): string {
   if (!obj) return "";
   if (typeof obj === "string") return obj;

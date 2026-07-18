@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   BorderRadius,
@@ -24,7 +24,13 @@ interface PermissionGateProps {
 
 export function PermissionGate({ permission, children, fallback }: PermissionGateProps) {
   const { permissions, isLoading } = useCurrentUser();
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer} testID="permission-loading">
+        <ActivityIndicator color={Colors.primary} />
+      </View>
+    );
+  }
   if (permissions.includes(permission)) return <>{children}</>;
   return <>{fallback ?? <DefaultDenied />}</>;
 }
@@ -74,6 +80,12 @@ function DefaultOfflineFallback() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.xl,
+  },
   deniedContainer: {
     alignItems: "center",
     justifyContent: "center",

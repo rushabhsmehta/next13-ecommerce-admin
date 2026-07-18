@@ -33,6 +33,7 @@ import {
   AI_DRAFT_KEYS,
   acknowledgeAiDraft,
   consumeAiDraft,
+  getAiDraftHandoff,
   mapAiDraftToPackageInitial,
   mapAiDraftToPackageItineraries,
 } from "@/lib/ai-wizard-drafts";
@@ -99,6 +100,36 @@ interface Props {
   defaultLocationId?: string;
 }
 
+function resolveCreateSeed(
+  initial: TourPackageFormInitial | undefined,
+  defaultLocationId?: string
+): { seed: TourPackageFormInitial; fromAiDraft: boolean } {
+  if (initial) {
+    return { seed: { ...EMPTY, ...initial }, fromAiDraft: false };
+  }
+  try {
+    const stored = getAiDraftHandoff(AI_DRAFT_KEYS.packageCreate);
+    if (stored) {
+      const mapped = mapAiDraftToPackageInitial(stored, "");
+      return {
+        seed: {
+          ...EMPTY,
+          ...mapped,
+          locationId: mapped.locationId || defaultLocationId || "",
+          itineraries: mapped.itineraries ?? [],
+        },
+        fromAiDraft: (mapped.itineraries?.length ?? 0) > 0,
+      };
+    }
+  } catch (err) {
+    console.error("[TourPackageForm] sync AI seed failed", err);
+  }
+  return {
+    seed: { ...EMPTY, locationId: defaultLocationId || "" },
+    fromAiDraft: false,
+  };
+}
+
 export function TourPackageForm({
   mode,
   packageId,
@@ -121,7 +152,13 @@ export function TourPackageForm({
     []
   );
 
-  const seed = initial ?? EMPTY;
+  // Seed once from props or in-memory AI handoff so itineraries exist on first paint.
+  const [{ seed, fromAiDraft: seededFromAi }] = useState(() =>
+    mode === "create"
+      ? resolveCreateSeed(initial, defaultLocationId)
+      : { seed: initial ?? EMPTY, fromAiDraft: false }
+  );
+
   const [locationId, setLocationId] = useState(
     seed.locationId || defaultLocationId || ""
   );
@@ -135,33 +172,36 @@ export function TourPackageForm({
   const [dropLocation, setDropLocation] = useState(seed.drop_location);
   const [price, setPrice] = useState(seed.price);
   const [itineraries, setItineraries] = useState<TourPackageItineraryDayInput[]>(
-    seed.itineraries
+    seed.itineraries ?? []
   );
-  const [images, setImages] = useState<{ url: string }[]>(seed.images);
+  const [images, setImages] = useState<{ url: string }[]>(seed.images ?? []);
   const [pricingSection, setPricingSection] = useState<TourPackagePricingSectionRow[]>(
-    seed.pricingSection
+    seed.pricingSection ?? []
   );
-  const [inclusions, setInclusions] = useState<string[]>(seed.inclusions);
-  const [exclusions, setExclusions] = useState<string[]>(seed.exclusions);
-  const [importantNotes, setImportantNotes] = useState<string[]>(seed.importantNotes);
-  const [paymentPolicy, setPaymentPolicy] = useState<string[]>(seed.paymentPolicy);
-  const [usefulTip, setUsefulTip] = useState<string[]>(seed.usefulTip);
+  const [inclusions, setInclusions] = useState<string[]>(seed.inclusions ?? []);
+  const [exclusions, setExclusions] = useState<string[]>(seed.exclusions ?? []);
+  const [importantNotes, setImportantNotes] = useState<string[]>(seed.importantNotes ?? []);
+  const [paymentPolicy, setPaymentPolicy] = useState<string[]>(seed.paymentPolicy ?? []);
+  const [usefulTip, setUsefulTip] = useState<string[]>(seed.usefulTip ?? []);
   const [cancellationPolicy, setCancellationPolicy] = useState<string[]>(
-    seed.cancellationPolicy
+    seed.cancellationPolicy ?? []
   );
   const [airlineCancellationPolicy, setAirlineCancellationPolicy] = useState<string[]>(
-    seed.airlineCancellationPolicy
+    seed.airlineCancellationPolicy ?? []
   );
-  const [termsconditions, setTermsconditions] = useState<string[]>(seed.termsconditions);
+  const [termsconditions, setTermsconditions] = useState<string[]>(
+    seed.termsconditions ?? []
+  );
   const [kitchenGroupPolicy, setKitchenGroupPolicy] = useState<string[]>(
-    seed.kitchenGroupPolicy
+    seed.kitchenGroupPolicy ?? []
   );
   const [submitting, setSubmitting] = useState(false);
   const [locationOptions, setLocationOptions] = useState<
     { id: string; label: string }[]
   >([]);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
-  const [aiDraftLoaded, setAiDraftLoaded] = useState(false);
+  const [aiDraftLoaded, setAiDraftLoaded] = useState(seededFromAi);
+  const aiAlertShownRef = useRef(false);
 
   const loadLocations = useCallback(async () => {
     try {
@@ -191,8 +231,30 @@ export function TourPackageForm({
   }, [locationId, locationLabel, locationOptions]);
 
   useEffect(() => {
-    // Prefill from query/manual initial already includes itineraries — do not overlay AI draft.
-    if (aiDraftLoaded || (mode === "create" && initial?.itineraries?.length)) {
+    if (seededFromAi && mode === "create" && !aiAlertShownRef.current) {
+      aiAlertShownRef.current = true;
+      const days = seed.itineraries ?? [];
+      const activityCount = days.reduce(
+        (sum, day) => sum + (day.activities?.length ?? 0),
+        0
+      );
+      const timer = setTimeout(() => {
+        Alert.alert(
+          "AI Wizard",
+          days.length
+            ? `Loaded ${days.length} itinerary day(s) and ${activityCount} activit${activityCount === 1 ? "y" : "ies"}. Review and save when ready.`
+            : "AI draft loaded but had no itinerary days. Add days manually or regenerate."
+        );
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [mode, seed.itineraries, seededFromAi]);
+
+  useEffect(() => {
+    // Sync seed already applied itineraries for create; only async-consume for apply/edit
+    // or when create had no in-memory handoff (cold start from persisted draft).
+    if (aiDraftLoaded || seededFromAi || (mode === "create" && initial?.itineraries?.length)) {
       if (!aiDraftLoaded && mode === "create" && initial?.itineraries?.length) {
         setAiDraftLoaded(true);
       }
@@ -204,8 +266,10 @@ export function TourPackageForm({
 
     async function loadAiDraft() {
       try {
-        // Memory handoff is set in storeAiDraft before navigation; persist is best-effort.
-        const stored = await consumeAiDraft(draftKey);
+        // Prefer sync handoff again (Strict Mode remount). Avoid storage until needed —
+        // storage used to import AsyncStorage and crash the whole JS runtime on this build.
+        const handoff = getAiDraftHandoff(draftKey);
+        const stored = handoff ?? (await consumeAiDraft(draftKey));
         if (!stored || cancelled) return;
 
         const label =
@@ -233,12 +297,18 @@ export function TourPackageForm({
             (sum, day) => sum + (day.activities?.length ?? 0),
             0
           );
-          Alert.alert(
-            "AI Wizard",
-            days.length
-              ? `Loaded ${days.length} itinerary day(s) and ${activityCount} activit${activityCount === 1 ? "y" : "ies"}. Review and save when ready.`
-              : "AI draft loaded but had no itinerary days. Add days manually or regenerate."
-          );
+          if (!aiAlertShownRef.current) {
+            aiAlertShownRef.current = true;
+            setTimeout(() => {
+              if (cancelled) return;
+              Alert.alert(
+                "AI Wizard",
+                days.length
+                  ? `Loaded ${days.length} itinerary day(s) and ${activityCount} activit${activityCount === 1 ? "y" : "ies"}. Review and save when ready.`
+                  : "AI draft loaded but had no itinerary days. Add days manually or regenerate."
+              );
+            }, 400);
+          }
         } else {
           if (mapped.tourPackageName) setTourPackageName(mapped.tourPackageName);
           if (mapped.tourCategory) setTourCategory(mapped.tourCategory);
@@ -250,19 +320,25 @@ export function TourPackageForm({
           setItineraries(
             mapAiDraftToPackageItineraries(stored.data, stored.locationId || locationId)
           );
-          Alert.alert(
-            "AI Wizard",
-            "Applied AI-generated itinerary to this package. Review and save when ready."
-          );
+          setTimeout(() => {
+            if (!cancelled) {
+              Alert.alert(
+                "AI Wizard",
+                "Applied AI-generated itinerary to this package. Review and save when ready."
+              );
+            }
+          }, 400);
         }
         if (!cancelled) setAiDraftLoaded(true);
       } catch (err) {
         console.error("[TourPackageForm] AI draft load failed", err);
         if (!cancelled) {
-          Alert.alert(
-            "AI Wizard",
-            "Could not load the AI itinerary into this form. Go back and tap Create new package again."
-          );
+          setTimeout(() => {
+            Alert.alert(
+              "AI Wizard",
+              "Could not load the AI itinerary into this form. Go back and tap Create new package again."
+            );
+          }, 400);
         }
       }
     }
@@ -271,10 +347,8 @@ export function TourPackageForm({
     return () => {
       cancelled = true;
     };
-    // Intentionally omit locationOptions/locationId — those update after mount and
-    // previously cancelled the effect after the draft was already deleted from storage.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load AI draft once per mode
-  }, [aiDraftLoaded, initial?.itineraries?.length, mode]);
+  }, [aiDraftLoaded, initial?.itineraries?.length, mode, seededFromAi]);
 
   const screenTitle = mode === "create" ? "New package" : "Edit package";
   const canSubmit =

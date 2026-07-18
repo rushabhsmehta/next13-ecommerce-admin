@@ -33,3 +33,6 @@ artifacts/
 # Local dev screenshots
 home-sim-screenshot.png
 *-sim-screenshot.png
+
+# Adb uiautomator dumps from local device tests
+ui_*.xml

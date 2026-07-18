@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { WhatsAppSupplierButton } from "@/components/whatsapp-supplier-button";
+import { EmailSupplierButton } from "@/components/email-supplier-button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1431,24 +1432,42 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
           )}
 
           <div className="flex items-center justify-end gap-4 md:gap-6">
-            {/* WhatsApp Supplier Button - only show for existing inquiries */}
+            {/* Supplier messaging — only show for existing inquiries */}
             {initialData && (
-              <WhatsAppSupplierButton
-                inquiryData={{
-                  id: initialData.id,
-                  customerName: form.watch("customerName"),
-                  customerMobileNumber: form.watch("customerMobileNumber"),
-                  location: locations.find(loc => loc.id === form.watch("locationId"))?.label || "",
-                  journeyDate: form.watch("journeyDate")?.toISOString() || null,
-                  numAdults: form.watch("numAdults"),
-                  numChildren5to11: form.watch("numChildren5to11"),
-                  numChildrenBelow5: form.watch("numChildrenBelow5"),
-                  remarks: form.watch("remarks"),
-                  associatePartner: associates.find(assoc => assoc.id === form.watch("associatePartnerId"))?.name || null,
-                }}
-                variant="outline"
-                size="default"
-              />
+              <>
+                <EmailSupplierButton
+                  inquiryData={{
+                    id: initialData.id,
+                    customerName: form.watch("customerName"),
+                    customerMobileNumber: form.watch("customerMobileNumber"),
+                    location: locations.find(loc => loc.id === form.watch("locationId"))?.label || "",
+                    journeyDate: form.watch("journeyDate")?.toISOString() || null,
+                    numAdults: form.watch("numAdults"),
+                    numChildren5to11: form.watch("numChildren5to11"),
+                    numChildrenBelow5: form.watch("numChildrenBelow5"),
+                    remarks: form.watch("remarks"),
+                    associatePartner: associates.find(assoc => assoc.id === form.watch("associatePartnerId"))?.name || null,
+                  }}
+                  variant="outline"
+                  size="default"
+                />
+                <WhatsAppSupplierButton
+                  inquiryData={{
+                    id: initialData.id,
+                    customerName: form.watch("customerName"),
+                    customerMobileNumber: form.watch("customerMobileNumber"),
+                    location: locations.find(loc => loc.id === form.watch("locationId"))?.label || "",
+                    journeyDate: form.watch("journeyDate")?.toISOString() || null,
+                    numAdults: form.watch("numAdults"),
+                    numChildren5to11: form.watch("numChildren5to11"),
+                    numChildrenBelow5: form.watch("numChildrenBelow5"),
+                    remarks: form.watch("remarks"),
+                    associatePartner: associates.find(assoc => assoc.id === form.watch("associatePartnerId"))?.name || null,
+                  }}
+                  variant="outline"
+                  size="default"
+                />
+              </>
             )}
 
             {/* Cancel button - more prominent on mobile */}

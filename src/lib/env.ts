@@ -29,6 +29,12 @@ const serverEnvSchema = z.object({
   CLOUDFLARE_R2_ENDPOINT: z.string().optional(),
   CLOUDFLARE_R2_PUBLIC_URL: z.string().optional(),
 
+  // Gmail API (optional — inquiry Email Supplier)
+  GMAIL_CLIENT_ID: z.string().optional(),
+  GMAIL_CLIENT_SECRET: z.string().optional(),
+  GMAIL_REFRESH_TOKEN: z.string().optional(),
+  GMAIL_SENDER_EMAIL: z.string().optional(),
+
   // Node environment
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });

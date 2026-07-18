@@ -197,6 +197,7 @@ See `.env` / `.env.local`. Notable:
 - `CLERK_*`, `MCP_API_SECRET`, `CRON_SECRET`
 - `MOBILE_DEV_AUTH_BYPASS_*` — dev only, never production
 - `EXPO_STAFF_EAS_PROJECT_ID`, `EXPO_FINANCE_EAS_PROJECT_ID` — separate EAS projects for staff/finance builds
+- `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` — optional; inquiry **Email Supplier** (send as `aagamholiday@gmail.com`). Also set on Railway for production. Refresh token from OAuth (`~/.gmail-mcp/credentials.json`).
 
 ## Linting & Git
 

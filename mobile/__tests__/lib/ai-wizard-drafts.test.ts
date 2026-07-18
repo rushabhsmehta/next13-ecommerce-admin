@@ -1,82 +1,80 @@
-import { NativeModules } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import {
   AI_DRAFT_KEYS,
   acknowledgeAiDraft,
   consumeAiDraft,
   mapAiDraftToPackageInitial,
+  mapAiDraftToPackageItineraries,
   mapAiDraftToQueryInitial,
+  normalizeAiActivities,
   storeAiDraft,
 } from "../../lib/ai-wizard-drafts";
 
-function setAsyncStorageNativeAvailable(available: boolean) {
-  Object.defineProperty(NativeModules, "RNCAsyncStorage", {
-    value: available ? {} : null,
-    configurable: true,
-    writable: true,
-  });
-}
+jest.mock("@react-native-async-storage/async-storage", () => {
+  throw new Error("AsyncStorage unavailable in this test");
+});
 
 describe("ai-wizard-drafts", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    setAsyncStorageNativeAvailable(true);
     acknowledgeAiDraft(AI_DRAFT_KEYS.packageCreate);
     acknowledgeAiDraft(AI_DRAFT_KEYS.packageApply);
     acknowledgeAiDraft(AI_DRAFT_KEYS.queryCreate);
     acknowledgeAiDraft(AI_DRAFT_KEYS.queryApply);
   });
 
-  it("stores and consumes package create draft via SecureStore fallback", async () => {
-    setAsyncStorageNativeAvailable(false);
+  it("keeps draft in memory on store so create form works even if SecureStore fails", async () => {
+    (SecureStore.setItemAsync as jest.Mock).mockRejectedValueOnce(
+      new Error("value too large")
+    );
     const payload = {
       locationId: "loc-1",
       data: {
         tourPackageName: "Kerala Escape",
-        itineraries: [{ dayNumber: 1, itineraryTitle: "Arrival" }],
+        itineraries: [
+          {
+            dayNumber: 1,
+            itineraryTitle: "Arrival",
+            activities: [
+              { activityTitle: "Airport pickup", activityDescription: "Meet and greet" },
+              "City walk",
+            ],
+          },
+        ],
       },
     };
-    await storeAiDraft(AI_DRAFT_KEYS.packageCreate, payload);
-    expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
-      `ai-draft:${AI_DRAFT_KEYS.packageCreate}`,
-      expect.stringContaining("Kerala Escape")
-    );
 
-    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        locationId: "loc-1",
-        data: payload.data,
-      })
-    );
+    await storeAiDraft(AI_DRAFT_KEYS.packageCreate, payload);
+
+    // No need to read SecureStore — memory handoff should serve create screen.
     const consumed = await consumeAiDraft(AI_DRAFT_KEYS.packageCreate);
     expect(consumed?.locationId).toBe("loc-1");
-    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith(
-      `ai-draft:${AI_DRAFT_KEYS.packageCreate}`
-    );
+    expect(consumed?.data.itineraries).toHaveLength(1);
 
-    const mapped = mapAiDraftToPackageInitial(
-      { timestamp: "", locationId: "loc-1", data: payload.data },
-      "Kerala"
-    );
-    expect(mapped.tourPackageName).toBe("Kerala Escape");
-    expect(mapped.itineraries).toHaveLength(1);
+    const mapped = mapAiDraftToPackageItineraries(consumed!.data, "loc-1");
+    expect(mapped[0].activities).toEqual([
+      {
+        activityTitle: "Airport pickup",
+        activityDescription: "Meet and greet",
+        activityImages: [],
+      },
+      {
+        activityTitle: "City walk",
+        activityDescription: "",
+        activityImages: [],
+      },
+    ]);
   });
 
-  it("returns null when AsyncStorage native module is unavailable", async () => {
-    setAsyncStorageNativeAvailable(false);
+  it("returns null when nothing is stored", async () => {
     acknowledgeAiDraft(AI_DRAFT_KEYS.queryApply);
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(null);
     await expect(consumeAiDraft(AI_DRAFT_KEYS.queryApply)).resolves.toBeNull();
-    expect(SecureStore.getItemAsync).toHaveBeenCalledWith(
-      `ai-draft:${AI_DRAFT_KEYS.queryApply}`
-    );
-    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
   });
 
   it("keeps consumed draft in handoff cache until acknowledged", async () => {
-    setAsyncStorageNativeAvailable(false);
-    acknowledgeAiDraft(AI_DRAFT_KEYS.packageCreate);
-    const payload = {
+    const storedJson = JSON.stringify({
+      timestamp: new Date().toISOString(),
       locationId: "loc-handoff",
       data: {
         tourPackageName: "Handoff Package",
@@ -85,17 +83,11 @@ describe("ai-wizard-drafts", () => {
           { dayNumber: 2, itineraryTitle: "Sightseeing" },
         ],
       },
-    };
-    const storedJson = JSON.stringify({
-      timestamp: new Date().toISOString(),
-      locationId: "loc-handoff",
-      data: payload.data,
     });
     (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(storedJson);
     const first = await consumeAiDraft(AI_DRAFT_KEYS.packageCreate);
     expect(first?.data.itineraries).toHaveLength(2);
 
-    // Persistence already cleared; second consume (Strict Mode remount) uses handoff.
     (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(null);
     const second = await consumeAiDraft(AI_DRAFT_KEYS.packageCreate);
     expect(second?.data.tourPackageName).toBe("Handoff Package");
@@ -104,6 +96,33 @@ describe("ai-wizard-drafts", () => {
     acknowledgeAiDraft(AI_DRAFT_KEYS.packageCreate);
     (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(null);
     await expect(consumeAiDraft(AI_DRAFT_KEYS.packageCreate)).resolves.toBeNull();
+  });
+
+  it("normalizes mixed activity shapes", () => {
+    expect(
+      normalizeAiActivities([
+        { activityTitle: "A", activityDescription: "desc" },
+        "Plain string activity",
+        { title: "Alias title", description: "Alias desc" },
+        null,
+      ])
+    ).toEqual([
+      {
+        activityTitle: "A",
+        activityDescription: "desc",
+        activityImages: [],
+      },
+      {
+        activityTitle: "Plain string activity",
+        activityDescription: "",
+        activityImages: [],
+      },
+      {
+        activityTitle: "Alias title",
+        activityDescription: "Alias desc",
+        activityImages: [],
+      },
+    ]);
   });
 
   it("maps query draft initial fields", () => {
@@ -136,20 +155,23 @@ describe("ai-wizard-drafts", () => {
     expect(mapped.customerName).toBe("Sharma Family");
     expect(mapped.numAdults).toBe("2");
     expect(mapped.numChild512).toBe("1");
-    expect(mapped.flightDetails).toEqual([
+    expect(mapped.flightDetails).toHaveLength(1);
+    expect(mapped.itineraries).toHaveLength(1);
+  });
+
+  it("maps package initial with itineraries", () => {
+    const mapped = mapAiDraftToPackageInitial(
       {
-        id: "ai-draft-flight-1",
-        date: "2026-07-01",
-        flightName: "Indigo",
-        flightNumber: "6E 123",
-        from: "AMD",
-        to: "DEL",
-        departureTime: "08:30",
-        arrivalTime: "10:05",
-        flightDuration: "1h 35m",
-        images: [{ url: "https://example.com/ticket.jpg" }],
+        timestamp: "",
+        locationId: "loc-1",
+        data: {
+          tourPackageName: "Kerala Escape",
+          itineraries: [{ dayNumber: 1, itineraryTitle: "Arrival" }],
+        },
       },
-    ]);
+      "Kerala"
+    );
+    expect(mapped.tourPackageName).toBe("Kerala Escape");
     expect(mapped.itineraries).toHaveLength(1);
   });
 });

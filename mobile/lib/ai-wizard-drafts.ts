@@ -1,21 +1,36 @@
-import { NativeModules } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import type { AiItineraryDraft } from "@/lib/ai-wizards";
 import { buildTourQueryName } from "@/lib/tour-query-label";
+import type { TourPackageFormInitial } from "@/components/tour-packages/TourPackageForm";
+import type { TourPackageItineraryDayInput } from "@/lib/tour-packages";
+import type { FlightDetailRow, ItineraryRow } from "@/components/tour-queries/types";
 
 const SECURE_DRAFT_PREFIX = "ai-draft:";
 
-function asyncStorageNativeAvailable(): boolean {
-  return NativeModules.RNCAsyncStorage != null;
+/**
+ * Prefer AsyncStorage for large AI drafts. Do not gate on NativeModules.RNCAsyncStorage —
+ * under New Architecture that probe is often null even when AsyncStorage works, which
+ * previously forced SecureStore and silently dropped oversized itineraries.
+ */
+async function getAsyncStorage(): Promise<{
+  getItem: (key: string) => Promise<string | null>;
+  setItem: (key: string, value: string) => Promise<void>;
+  removeItem: (key: string) => Promise<void>;
+} | null> {
+  try {
+    const mod = await import("@react-native-async-storage/async-storage");
+    return mod.default ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function readDraftRaw(key: string): Promise<string | null> {
-  if (asyncStorageNativeAvailable()) {
+  const asyncStorage = await getAsyncStorage();
+  if (asyncStorage) {
     try {
-      const { default: AsyncStorage } = await import(
-        "@react-native-async-storage/async-storage"
-      );
-      return await AsyncStorage.getItem(key);
+      const value = await asyncStorage.getItem(key);
+      if (value != null) return value;
     } catch {
       // Fall through to SecureStore.
     }
@@ -28,12 +43,10 @@ async function readDraftRaw(key: string): Promise<string | null> {
 }
 
 async function writeDraftRaw(key: string, value: string): Promise<boolean> {
-  if (asyncStorageNativeAvailable()) {
+  const asyncStorage = await getAsyncStorage();
+  if (asyncStorage) {
     try {
-      const { default: AsyncStorage } = await import(
-        "@react-native-async-storage/async-storage"
-      );
-      await AsyncStorage.setItem(key, value);
+      await asyncStorage.setItem(key, value);
       return true;
     } catch {
       // Fall through to SecureStore.
@@ -48,13 +61,10 @@ async function writeDraftRaw(key: string, value: string): Promise<boolean> {
 }
 
 async function deleteDraftRaw(key: string): Promise<void> {
-  if (asyncStorageNativeAvailable()) {
+  const asyncStorage = await getAsyncStorage();
+  if (asyncStorage) {
     try {
-      const { default: AsyncStorage } = await import(
-        "@react-native-async-storage/async-storage"
-      );
-      await AsyncStorage.removeItem(key);
-      return;
+      await asyncStorage.removeItem(key);
     } catch {
       // Fall through to SecureStore.
     }
@@ -65,9 +75,6 @@ async function deleteDraftRaw(key: string): Promise<void> {
     // Nothing persisted.
   }
 }
-import type { TourPackageFormInitial } from "@/components/tour-packages/TourPackageForm";
-import type { TourPackageItineraryDayInput } from "@/lib/tour-packages";
-import type { FlightDetailRow, ItineraryRow } from "@/components/tour-queries/types";
 
 export const AI_DRAFT_KEYS = {
   packageCreate: "aiPackageWizardDraft",
@@ -84,42 +91,58 @@ export interface StoredAiDraft {
   data: AiItineraryDraft & { locationId?: string };
 }
 
-function mapActivities(
-  activities: AiItineraryDraft["itineraries"] extends (infer D)[] | undefined
-    ? D extends { activities?: infer A }
-      ? A
-      : never
-    : never
-): { activityTitle: string; activityDescription: string }[] {
-  if (!Array.isArray(activities) || activities.length === 0) return [];
-
-  const first = activities[0] as
-    | { activityTitle?: string | null; activityDescription?: string | null }
-    | string
-    | undefined;
-
-  if (typeof first === "object" && first && "activityDescription" in first) {
-    return [
-      {
-        activityTitle: first.activityTitle ?? "",
-        activityDescription: first.activityDescription ?? "",
-      },
-    ];
-  }
-
-  if (typeof first === "string") {
-    return activities.map((act) => ({
-      activityTitle: String(act),
-      activityDescription: "",
-    }));
-  }
-
-  return [];
-}
-
 function clip(value: string | null | undefined, max: number): string {
   const text = value ?? "";
   return text.length > max ? text.slice(0, max) : text;
+}
+
+/** Normalize AI activity shapes (objects, strings, title/description aliases). */
+export function normalizeAiActivities(
+  activities: unknown
+): NonNullable<TourPackageItineraryDayInput["activities"]> {
+  if (!Array.isArray(activities) || activities.length === 0) return [];
+
+  return activities.flatMap((act, index) => {
+    if (typeof act === "string") {
+      const title = act.trim();
+      if (!title) return [];
+      return [
+        {
+          activityTitle: clip(title, 5000),
+          activityDescription: "",
+          activityImages: [] as { url: string }[],
+        },
+      ];
+    }
+    if (!act || typeof act !== "object") return [];
+    const row = act as Record<string, unknown>;
+    const title = String(
+      row.activityTitle ?? row.title ?? row.name ?? `Activity ${index + 1}`
+    ).trim();
+    const description = String(
+      row.activityDescription ?? row.description ?? ""
+    );
+    const images = Array.isArray(row.activityImages)
+      ? row.activityImages
+          .map((img) => {
+            if (typeof img === "string") return { url: img.trim() };
+            if (img && typeof img === "object" && "url" in img) {
+              return { url: String((img as { url?: unknown }).url ?? "").trim() };
+            }
+            return { url: "" };
+          })
+          .filter((img) => img.url.length > 0)
+      : [];
+
+    if (!title && !description.trim()) return [];
+    return [
+      {
+        activityTitle: clip(title || `Activity ${index + 1}`, 5000),
+        activityDescription: clip(description, 10000),
+        activityImages: images,
+      },
+    ];
+  });
 }
 
 export function mapAiDraftToPackageItineraries(
@@ -131,11 +154,7 @@ export function mapAiDraftToPackageItineraries(
     itineraryTitle: clip(day.itineraryTitle ?? `Day ${index + 1}`, 500) || `Day ${index + 1}`,
     itineraryDescription: clip(day.itineraryDescription, 5000),
     mealsIncluded: clip(day.mealsIncluded, 200),
-    activities: (day.activities ?? []).map((activity) => ({
-      activityTitle: clip(activity.activityTitle, 5000),
-      activityDescription: clip(activity.activityDescription, 10000),
-      activityImages: activity.activityImages ?? [],
-    })),
+    activities: normalizeAiActivities(day.activities),
   }));
 }
 
@@ -154,7 +173,7 @@ export function mapAiDraftToQueryItineraries(
     mealsIncluded: day.mealsIncluded ?? "",
     roomAllocations: [],
     transportDetails: [],
-    activities: (day.activities ?? []).map((activity) => ({
+    activities: normalizeAiActivities(day.activities).map((activity) => ({
       activityTitle: activity.activityTitle ?? "",
       activityDescription: activity.activityDescription ?? "",
       activityImages: activity.activityImages ?? [],
@@ -268,26 +287,36 @@ export function mapAiDraftToQueryInitial(
   };
 }
 
-/** In-memory handoff so React Strict Mode remounts still see a just-consumed draft. */
+/** In-memory handoff so navigation + Strict Mode remounts keep the draft. */
 const draftHandoffCache = new Map<AiDraftStorageKey, StoredAiDraft>();
 
+/**
+ * Stores draft in memory immediately (required for same-session Create flow),
+ * then best-effort persists. Large AI itineraries often exceed SecureStore limits;
+ * memory handoff ensures Create new package still receives itineraries/activities.
+ */
 export async function storeAiDraft(
   key: AiDraftStorageKey,
   payload: { locationId: string; data: AiItineraryDraft }
-): Promise<void> {
-  draftHandoffCache.delete(key);
+): Promise<boolean> {
   const stored: StoredAiDraft = {
     timestamp: new Date().toISOString(),
     locationId: payload.locationId,
     data: { ...payload.data, locationId: payload.locationId },
   };
-  await writeDraftRaw(key, JSON.stringify(stored));
+  draftHandoffCache.set(key, stored);
+  const persisted = await writeDraftRaw(key, JSON.stringify(stored));
+  if (!persisted) {
+    console.warn(
+      `[ai-wizard-drafts] Persistence failed for ${key}; using in-memory handoff only`
+    );
+  }
+  return true;
 }
 
 /**
- * Moves a draft from persistent storage into an in-memory handoff cache, then
- * deletes the persisted copy. Safe to call multiple times (e.g. Strict Mode /
- * effect re-runs): later calls return the cached draft until acknowledged.
+ * Reads draft from memory first, then storage. Safe to call multiple times
+ * (Strict Mode / effect re-runs) until acknowledgeAiDraft().
  */
 export async function consumeAiDraft(
   key: AiDraftStorageKey
@@ -307,7 +336,7 @@ export async function consumeAiDraft(
   }
 }
 
-/** Clears the in-memory handoff after the draft has been applied to form state. */
+/** Clears the in-memory handoff after the draft has been applied/saved. */
 export function acknowledgeAiDraft(key: AiDraftStorageKey): void {
   draftHandoffCache.delete(key);
 }

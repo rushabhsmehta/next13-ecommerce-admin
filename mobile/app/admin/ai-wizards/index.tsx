@@ -683,16 +683,22 @@ function AiWizardsInner() {
                   </View>
                   {expanded && (day.activities ?? []).length > 0 ? (
                     <View style={styles.activityList}>
-                      {(day.activities ?? []).map((act, actIndex) => (
-                        <View key={`act-${actIndex}`} style={styles.activityCard}>
-                          <Text style={styles.activityTitle}>
-                            {act.activityTitle || `Activity ${actIndex + 1}`}
-                          </Text>
-                          {act.activityDescription ? (
-                            <Text style={styles.activityDesc}>{act.activityDescription}</Text>
-                          ) : null}
-                        </View>
-                      ))}
+                      {(day.activities ?? []).map((act, actIndex) => {
+                        const title =
+                          typeof act === "string"
+                            ? act
+                            : act?.activityTitle || `Activity ${actIndex + 1}`;
+                        const description =
+                          typeof act === "string" ? "" : act?.activityDescription || "";
+                        return (
+                          <View key={`act-${actIndex}`} style={styles.activityCard}>
+                            <Text style={styles.activityTitle}>{title}</Text>
+                            {description ? (
+                              <Text style={styles.activityDesc}>{description}</Text>
+                            ) : null}
+                          </View>
+                        );
+                      })}
                     </View>
                   ) : null}
                 </View>

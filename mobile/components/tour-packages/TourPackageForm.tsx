@@ -203,51 +203,68 @@ export function TourPackageForm({
       mode === "create" ? AI_DRAFT_KEYS.packageCreate : AI_DRAFT_KEYS.packageApply;
 
     async function loadAiDraft() {
-      // consumeAiDraft keeps an in-memory handoff so Strict Mode / effect
-      // re-runs still receive the draft after persistence is cleared.
-      const stored = await consumeAiDraft(draftKey);
-      if (!stored || cancelled) return;
+      try {
+        // Memory handoff is set in storeAiDraft before navigation; persist is best-effort.
+        const stored = await consumeAiDraft(draftKey);
+        if (!stored || cancelled) return;
 
-      const label =
-        locationOptions.find((l) => l.id === stored.locationId)?.label ??
-        stored.locationId;
-      const mapped = mapAiDraftToPackageInitial(stored, label);
+        const label =
+          locationOptions.find((l) => l.id === stored.locationId)?.label ??
+          stored.locationId;
+        const mapped = mapAiDraftToPackageInitial(stored, label);
+        const days = mapped.itineraries ?? [];
 
-      if (mode === "create") {
-        if (mapped.locationId) setLocationId(mapped.locationId);
-        if (mapped.locationLabel) setLocationLabel(mapped.locationLabel);
-        if (mapped.tourPackageName) setTourPackageName(mapped.tourPackageName);
-        if (mapped.tourCategory) setTourCategory(mapped.tourCategory);
-        if (mapped.tourPackageType) setTourPackageType(mapped.tourPackageType);
-        if (mapped.numDaysNight) setNumDaysNight(mapped.numDaysNight);
-        if (mapped.transport) setTransport(mapped.transport);
-        if (mapped.pickup_location) setPickupLocation(mapped.pickup_location);
-        if (mapped.drop_location) setDropLocation(mapped.drop_location);
-        if (mapped.price) setPrice(mapped.price);
-        if (mapped.itineraries?.length) setItineraries(mapped.itineraries);
-        if (mapped.inclusions?.length) setInclusions(mapped.inclusions);
-        if (mapped.exclusions?.length) setExclusions(mapped.exclusions);
-        if (mapped.importantNotes?.length) setImportantNotes(mapped.importantNotes);
-        Alert.alert("AI Wizard", "Loaded itinerary from AI Wizard. Review and save when ready.");
-      } else {
-        if (mapped.tourPackageName) setTourPackageName(mapped.tourPackageName);
-        if (mapped.tourCategory) setTourCategory(mapped.tourCategory);
-        if (mapped.tourPackageType) setTourPackageType(mapped.tourPackageType);
-        if (mapped.numDaysNight) setNumDaysNight(mapped.numDaysNight);
-        if (mapped.transport) setTransport(mapped.transport);
-        if (mapped.pickup_location) setPickupLocation(mapped.pickup_location);
-        if (mapped.drop_location) setDropLocation(mapped.drop_location);
-        setItineraries(
-          mapAiDraftToPackageItineraries(stored.data, stored.locationId || locationId)
-        );
-        Alert.alert(
-          "AI Wizard",
-          "Applied AI-generated itinerary to this package. Review and save when ready."
-        );
+        if (mode === "create") {
+          if (mapped.locationId) setLocationId(mapped.locationId);
+          if (mapped.locationLabel) setLocationLabel(mapped.locationLabel);
+          if (mapped.tourPackageName) setTourPackageName(mapped.tourPackageName);
+          if (mapped.tourCategory) setTourCategory(mapped.tourCategory);
+          if (mapped.tourPackageType) setTourPackageType(mapped.tourPackageType);
+          if (mapped.numDaysNight) setNumDaysNight(mapped.numDaysNight);
+          if (mapped.transport) setTransport(mapped.transport);
+          if (mapped.pickup_location) setPickupLocation(mapped.pickup_location);
+          if (mapped.drop_location) setDropLocation(mapped.drop_location);
+          if (mapped.price) setPrice(mapped.price);
+          setItineraries(days);
+          if (mapped.inclusions?.length) setInclusions(mapped.inclusions);
+          if (mapped.exclusions?.length) setExclusions(mapped.exclusions);
+          if (mapped.importantNotes?.length) setImportantNotes(mapped.importantNotes);
+          const activityCount = days.reduce(
+            (sum, day) => sum + (day.activities?.length ?? 0),
+            0
+          );
+          Alert.alert(
+            "AI Wizard",
+            days.length
+              ? `Loaded ${days.length} itinerary day(s) and ${activityCount} activit${activityCount === 1 ? "y" : "ies"}. Review and save when ready.`
+              : "AI draft loaded but had no itinerary days. Add days manually or regenerate."
+          );
+        } else {
+          if (mapped.tourPackageName) setTourPackageName(mapped.tourPackageName);
+          if (mapped.tourCategory) setTourCategory(mapped.tourCategory);
+          if (mapped.tourPackageType) setTourPackageType(mapped.tourPackageType);
+          if (mapped.numDaysNight) setNumDaysNight(mapped.numDaysNight);
+          if (mapped.transport) setTransport(mapped.transport);
+          if (mapped.pickup_location) setPickupLocation(mapped.pickup_location);
+          if (mapped.drop_location) setDropLocation(mapped.drop_location);
+          setItineraries(
+            mapAiDraftToPackageItineraries(stored.data, stored.locationId || locationId)
+          );
+          Alert.alert(
+            "AI Wizard",
+            "Applied AI-generated itinerary to this package. Review and save when ready."
+          );
+        }
+        if (!cancelled) setAiDraftLoaded(true);
+      } catch (err) {
+        console.error("[TourPackageForm] AI draft load failed", err);
+        if (!cancelled) {
+          Alert.alert(
+            "AI Wizard",
+            "Could not load the AI itinerary into this form. Go back and tap Create new package again."
+          );
+        }
       }
-      if (!cancelled) setAiDraftLoaded(true);
-      // Keep handoff cached until save (or a newer storeAiDraft) so Strict Mode
-      // remounts can re-apply itineraries. Do not acknowledge here.
     }
 
     void loadAiDraft();
@@ -593,6 +610,66 @@ export function TourPackageForm({
                 placeholderTextColor={Colors.textTertiary}
               />
             </AdminFormField>
+            <Text style={styles.activitiesHeading}>
+              Activities ({day.activities?.length ?? 0})
+            </Text>
+            {(day.activities ?? []).length === 0 ? (
+              <Text style={styles.emptyHint}>No activities for this day.</Text>
+            ) : (
+              (day.activities ?? []).map((activity, actIndex) => (
+                <View
+                  key={`day-${index}-act-${actIndex}`}
+                  style={styles.activityCard}
+                  testID={`tour-package-day-${index + 1}-activity-${actIndex + 1}`}
+                >
+                  <AdminFormField label={`Activity ${actIndex + 1} title`}>
+                    <TextInput
+                      testID={`tour-package-day-${index + 1}-activity-title-${actIndex + 1}`}
+                      style={styles.input}
+                      value={activity.activityTitle ?? ""}
+                      onChangeText={(text) => {
+                        setItineraries((prev) =>
+                          prev.map((d, di) => {
+                            if (di !== index) return d;
+                            const nextActs = [...(d.activities ?? [])];
+                            nextActs[actIndex] = {
+                              ...nextActs[actIndex],
+                              activityTitle: text,
+                            };
+                            return { ...d, activities: nextActs };
+                          })
+                        );
+                      }}
+                      placeholder="Activity title"
+                      placeholderTextColor={Colors.textTertiary}
+                    />
+                  </AdminFormField>
+                  <AdminFormField label="Description">
+                    <TextInput
+                      testID={`tour-package-day-${index + 1}-activity-desc-${actIndex + 1}`}
+                      style={[styles.input, styles.textarea]}
+                      value={activity.activityDescription ?? ""}
+                      onChangeText={(text) => {
+                        setItineraries((prev) =>
+                          prev.map((d, di) => {
+                            if (di !== index) return d;
+                            const nextActs = [...(d.activities ?? [])];
+                            nextActs[actIndex] = {
+                              ...nextActs[actIndex],
+                              activityDescription: text,
+                            };
+                            return { ...d, activities: nextActs };
+                          })
+                        );
+                      }}
+                      placeholder="Activity details"
+                      placeholderTextColor={Colors.textTertiary}
+                      multiline
+                    />
+                  </AdminFormField>
+                </View>
+              ))
+            )}
           </View>
         ))}
         <Pressable
@@ -821,6 +898,20 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textTertiary,
     lineHeight: 20,
+  },
+  activitiesHeading: {
+    marginTop: Spacing.sm,
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  activityCard: {
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
   },
   dayCard: {
     gap: Spacing.sm,

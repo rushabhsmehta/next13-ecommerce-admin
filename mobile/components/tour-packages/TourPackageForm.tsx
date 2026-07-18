@@ -31,6 +31,7 @@ import {
 } from "@/lib/tour-packages";
 import {
   AI_DRAFT_KEYS,
+  acknowledgeAiDraft,
   consumeAiDraft,
   mapAiDraftToPackageInitial,
   mapAiDraftToPackageItineraries,
@@ -182,14 +183,28 @@ export function TourPackageForm({
     void loadLocations();
   }, [loadLocations]);
 
+  // Resolve location label once options arrive (do not re-trigger draft consume).
   useEffect(() => {
-    if (aiDraftLoaded) return;
+    if (!locationId || (locationLabel && locationLabel !== locationId)) return;
+    const match = locationOptions.find((l) => l.id === locationId);
+    if (match) setLocationLabel(match.label);
+  }, [locationId, locationLabel, locationOptions]);
+
+  useEffect(() => {
+    // Prefill from query/manual initial already includes itineraries — do not overlay AI draft.
+    if (aiDraftLoaded || (mode === "create" && initial?.itineraries?.length)) {
+      if (!aiDraftLoaded && mode === "create" && initial?.itineraries?.length) {
+        setAiDraftLoaded(true);
+      }
+      return;
+    }
     let cancelled = false;
+    const draftKey =
+      mode === "create" ? AI_DRAFT_KEYS.packageCreate : AI_DRAFT_KEYS.packageApply;
 
     async function loadAiDraft() {
-      const draftKey =
-        mode === "create" ? AI_DRAFT_KEYS.packageCreate : AI_DRAFT_KEYS.packageApply;
-
+      // consumeAiDraft keeps an in-memory handoff so Strict Mode / effect
+      // re-runs still receive the draft after persistence is cleared.
       const stored = await consumeAiDraft(draftKey);
       if (!stored || cancelled) return;
 
@@ -231,13 +246,18 @@ export function TourPackageForm({
         );
       }
       if (!cancelled) setAiDraftLoaded(true);
+      // Keep handoff cached until save (or a newer storeAiDraft) so Strict Mode
+      // remounts can re-apply itineraries. Do not acknowledge here.
     }
 
     void loadAiDraft();
     return () => {
       cancelled = true;
     };
-  }, [aiDraftLoaded, locationId, locationOptions, mode]);
+    // Intentionally omit locationOptions/locationId — those update after mount and
+    // previously cancelled the effect after the draft was already deleted from storage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load AI draft once per mode
+  }, [aiDraftLoaded, initial?.itineraries?.length, mode]);
 
   const screenTitle = mode === "create" ? "New package" : "Edit package";
   const canSubmit =
@@ -322,11 +342,13 @@ export function TourPackageForm({
 
       if (mode === "create") {
         const saved = await pkgClient.create(payload);
+        acknowledgeAiDraft(AI_DRAFT_KEYS.packageCreate);
         router.replace(
           `/admin/operations/tour-packages/${saved.id}` as never
         );
       } else if (packageId) {
         await pkgClient.update(packageId, payload);
+        acknowledgeAiDraft(AI_DRAFT_KEYS.packageApply);
         router.back();
       }
     } catch (err) {

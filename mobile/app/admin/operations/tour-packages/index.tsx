@@ -29,6 +29,7 @@ import {
   createTourPackagesClient,
   type TourPackageListItem,
 } from "@/lib/tour-packages";
+import { AI_DRAFT_KEYS, acknowledgeAiDraft } from "@/lib/ai-wizard-drafts";
 
 const PAGE_SIZE = 30;
 
@@ -114,6 +115,8 @@ function Inner() {
   }, [debounced, locationFilter]);
 
   const openManualCreate = useCallback(() => {
+    // Clear any leftover AI handoff so a blank manual create stays blank.
+    acknowledgeAiDraft(AI_DRAFT_KEYS.packageCreate);
     router.push(
       locationFilter
         ? (`/admin/operations/tour-packages/new?locationId=${locationFilter}` as never)

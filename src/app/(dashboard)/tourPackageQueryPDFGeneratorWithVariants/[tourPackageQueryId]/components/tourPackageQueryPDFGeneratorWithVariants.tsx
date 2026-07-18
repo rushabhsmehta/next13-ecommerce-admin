@@ -1157,6 +1157,8 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     }
 
     // 4. Total Price
+    const remarksHtml = renderRemarksHtml(initialData.remarks);
+    const hasRemarks = remarksHtml !== "";
     const totalPriceSection = initialData.totalPrice && initialData.totalPrice.trim() !== "" ? `
       <div style="${priceCardStyle}; text-align: center;">
         <div style="margin-bottom: 8px;">
@@ -1176,13 +1178,13 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
           </div>
         </div>
 
-        ${initialData.remarks && initialData.remarks.trim() !== "" ? `
+        ${hasRemarks ? `
           <div style="text-align: left; margin-top: 16px; padding-top: 16px; border-top: 1px solid ${brandColors.border};">
             <h4 style="font-size: 14px; font-weight: 600; color: ${brandColors.slateText}; margin: 0 0 8px 0; display:flex; align-items:center;">
               <span style="display:inline-block; margin-right:6px; color:${brandColors.primary};">ℹ</span> Remarks
             </h4>
             <div style="font-size: 13px; line-height: 1.5; color: ${brandColors.text}; background: white; padding: 12px; border-radius: 4px; border: 1px solid ${brandColors.border};">
-               ${initialData.remarks}
+               ${remarksHtml}
             </div>
           </div>
         ` : ''}
@@ -1203,10 +1205,10 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     // 5. Standalone Remarks & Disclaimer Section (Render only if NOT visible in price section)
     const isPriceVisible = initialData.totalPrice && initialData.totalPrice.trim() !== "";
     const remarksSection =
-      (!isPriceVisible && ((initialData.remarks && initialData.remarks.trim() !== "") || (initialData.disclaimer && initialData.disclaimer.trim() !== "")))
+      (!isPriceVisible && (hasRemarks || (initialData.disclaimer && initialData.disclaimer.trim() !== "")))
         ? `
       <div style="${cardStyle};">
-        ${initialData.remarks && initialData.remarks.trim() !== "" ? `
+        ${hasRemarks ? `
           <div style="${headerStyleAlt};">
             <h3 style="${sectionTitleStyle};">
               Important Notes & Remarks
@@ -1214,7 +1216,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
           </div>
           <div style="${contentStyle};">
             <div style="font-size: 14px; line-height: 1.5; color: ${brandColors.text}; background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
-              ${initialData.remarks}
+              ${remarksHtml}
             </div>
           </div>
         ` : ''}

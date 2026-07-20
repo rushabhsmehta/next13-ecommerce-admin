@@ -17,11 +17,13 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
 import { createOperationsClient } from "@/lib/operations";
 import {
   createTourPackagesClient,
@@ -96,6 +98,8 @@ export function PackageVariantForm({
   );
   const [hotels, setHotels] = useState<{ id: string; label: string }[]>([]);
   const [pickerDayId, setPickerDayId] = useState<string | null>(null);
+  const [showHotelCreate, setShowHotelCreate] = useState(false);
+  const [creatingHotel, setCreatingHotel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const loadHotels = useCallback(async () => {
@@ -382,7 +386,63 @@ export function PackageVariantForm({
           setPickerDayId(null);
         }}
         onClose={() => setPickerDayId(null)}
+        footerAction={{
+          label: "Add hotel",
+          testID: "variant-hotel-picker-add",
+          disabled: !locationId,
+          onPress: () => setShowHotelCreate(true),
+        }}
         testID="variant-hotel-picker"
+      />
+      <AdminQuickCreateModal
+        visible={showHotelCreate}
+        title="Add hotel"
+        hint="Creates a hotel for this package location and selects it for the day."
+        fields={[
+          {
+            key: "name",
+            label: "Hotel name",
+            placeholder: "e.g. Taj Exotica",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create hotel"
+        loading={creatingHotel}
+        onClose={() => setShowHotelCreate(false)}
+        onSubmit={async (values) => {
+          const hotelName = values.name?.trim();
+          if (!hotelName || !locationId) return;
+          setCreatingHotel(true);
+          try {
+            const saved = await opsClient.createHotel({
+              name: hotelName,
+              locationId,
+              images: [{ url: DEFAULT_OPS_IMAGE_URL }],
+            });
+            setHotels((prev) => {
+              if (prev.some((h) => h.id === saved.id)) return prev;
+              return [{ id: saved.id, label: saved.name }, ...prev];
+            });
+            if (pickerDayId) {
+              setMappings((prev) => ({
+                ...prev,
+                [pickerDayId]: { hotelId: saved.id, hotelName: saved.name },
+              }));
+            }
+            setShowHotelCreate(false);
+            setPickerDayId(null);
+          } catch (err) {
+            Alert.alert(
+              "Create failed",
+              err instanceof ApiError ? err.message : "Could not create the hotel."
+            );
+          } finally {
+            setCreatingHotel(false);
+          }
+        }}
+        testID="variant-hotel-quick-create"
       />
     </AdminScreen>
   );

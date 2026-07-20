@@ -128,12 +128,14 @@ export const CellAction: React.FC<CellActionProps> = ({
         isOpen={whatsappOpen}
         onOpenChange={setWhatsappOpen}
         hideButton={true}
+        onSuccess={() => router.refresh()}
       />
       <EmailSupplierButton
         inquiryData={supplierInquiryData}
         isOpen={emailOpen}
         onOpenChange={setEmailOpen}
         hideButton={true}
+        onSuccess={() => router.refresh()}
       />
 
       {/* Automated Query Creation Dialog */}

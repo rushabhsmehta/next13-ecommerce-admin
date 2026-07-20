@@ -1139,7 +1139,7 @@ model InquiryAction {
   id         String   @id @default(uuid())
   inquiryId  String
   actionType String
-  remarks    String
+  remarks    String   @db.Text
   actionDate DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

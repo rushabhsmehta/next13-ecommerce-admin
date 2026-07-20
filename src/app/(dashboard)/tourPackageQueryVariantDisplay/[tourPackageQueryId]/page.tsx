@@ -6,6 +6,8 @@ import { buildSyntheticSnapshots } from "@/lib/buildSyntheticSnapshots";
 import {
     filterVariantSnapshotsForDisplay,
     getActiveVariantIds,
+    getMissingActiveVariantIds,
+    mergeVariantSnapshotsWithSynthetics,
     parseSelectedVariantIds,
 } from "@/lib/variant-display-utils";
 import { enrichVariantPricingData } from "@/lib/enrich-variant-pricing-data";
@@ -135,27 +137,42 @@ const tourPackageQueryVariantPage = async (
         if (activeVariantIds.length === 0) {
             (tourPackageQuery as any).queryVariantSnapshots = [];
         } else {
-            (tourPackageQuery as any).queryVariantSnapshots = filterVariantSnapshotsForDisplay(
+            const filteredSnapshots = filterVariantSnapshotsForDisplay(
                 tourPackageQuery.queryVariantSnapshots,
                 activeVariantIds
             );
+            const missingIds = getMissingActiveVariantIds(
+                filteredSnapshots,
+                activeVariantIds
+            );
 
-            if (!tourPackageQuery.queryVariantSnapshots?.length) {
+            if (missingIds.length === 0) {
+                (tourPackageQuery as any).queryVariantSnapshots = filteredSnapshots;
+            } else {
                 const selectedVariantIds = parseSelectedVariantIds(
                     (tourPackageQuery as any).selectedVariantIds
                 );
-                const customQueryVariants = (tourPackageQuery as any).customQueryVariants as any[] | null;
+                const customQueryVariants = (tourPackageQuery as any)
+                    .customQueryVariants as any[] | null;
+                const missingSelected = selectedVariantIds.filter((id) =>
+                    missingIds.includes(id)
+                );
+                const missingCustoms = Array.isArray(customQueryVariants)
+                    ? customQueryVariants.filter(
+                          (cv) => cv?.id && missingIds.includes(cv.id)
+                      )
+                    : [];
 
                 let packageVariants: any[] = [];
-                if (selectedVariantIds.length > 0) {
+                if (missingSelected.length > 0) {
                     packageVariants = await prismadb.packageVariant.findMany({
-                        where: { id: { in: selectedVariantIds } },
+                        where: { id: { in: missingSelected } },
                         include: {
                             variantHotelMappings: {
                                 include: {
                                     hotel: {
                                         include: {
-                                            images: { orderBy: { createdAt: 'asc' }, take: 1 },
+                                            images: { orderBy: { createdAt: "asc" }, take: 1 },
                                             location: true,
                                         },
                                     },
@@ -163,24 +180,29 @@ const tourPackageQueryVariantPage = async (
                                 },
                             },
                         },
-                        orderBy: { sortOrder: 'asc' },
+                        orderBy: { sortOrder: "asc" },
                     });
                 }
 
                 const syntheticSnapshots = buildSyntheticSnapshots({
-                    selectedVariantIds,
+                    selectedVariantIds: missingSelected,
                     packageVariants,
                     variantHotelOverrides: (tourPackageQuery as any).variantHotelOverrides,
                     variantPricingData: (tourPackageQuery as any).variantPricingData,
-                    customQueryVariants,
+                    customQueryVariants: missingCustoms,
                     itineraries: tourPackageQuery.itineraries,
                     hotels: hotels as any,
                 });
 
-                (tourPackageQuery as any).queryVariantSnapshots = filterVariantSnapshotsForDisplay(
-                    syntheticSnapshots,
-                    activeVariantIds
-                );
+                (tourPackageQuery as any).queryVariantSnapshots =
+                    mergeVariantSnapshotsWithSynthetics(
+                        filteredSnapshots,
+                        filterVariantSnapshotsForDisplay(
+                            syntheticSnapshots,
+                            activeVariantIds
+                        ),
+                        activeVariantIds
+                    );
             }
         }
     }

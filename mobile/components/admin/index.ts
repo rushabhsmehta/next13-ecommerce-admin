@@ -28,7 +28,17 @@ export { AdminFormField } from "./AdminFormField";
 export type { AdminFormFieldProps } from "./AdminFormField";
 
 export { AdminPickerSheet } from "./AdminPickerSheet";
-export type { AdminPickerOption, AdminPickerSheetProps } from "./AdminPickerSheet";
+export type {
+  AdminPickerFooterAction,
+  AdminPickerOption,
+  AdminPickerSheetProps,
+} from "./AdminPickerSheet";
+
+export { AdminQuickCreateModal } from "./AdminQuickCreateModal";
+export type {
+  AdminQuickCreateField,
+  AdminQuickCreateModalProps,
+} from "./AdminQuickCreateModal";
 
 export { AdminFilterSheet } from "./AdminFilterSheet";
 export type { AdminFilterSheetProps } from "./AdminFilterSheet";

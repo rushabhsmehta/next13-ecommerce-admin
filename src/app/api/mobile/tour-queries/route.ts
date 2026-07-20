@@ -310,7 +310,6 @@ export async function POST(req: Request) {
           numChildren5to11: true,
           numChildrenBelow5: true,
           journeyDate: true,
-          remarks: true,
           associatePartnerId: true,
         },
       });
@@ -342,7 +341,8 @@ export async function POST(req: Request) {
           tourEndsOn: overrides?.tourEndsOn
             ? new Date(overrides.tourEndsOn)
             : null,
-          remarks: overrides?.remarks ?? inquiry.remarks ?? null,
+          // Do not copy Inquiry.remarks (CRM/supplier text) into TPQ remarks.
+          remarks: overrides?.remarks ?? null,
           isFeatured: false,
           isArchived: false,
         },

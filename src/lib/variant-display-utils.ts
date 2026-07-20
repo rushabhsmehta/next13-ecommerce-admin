@@ -52,3 +52,62 @@ export function filterVariantSnapshotsForDisplay<T extends { id?: string; source
     return activeSet.has(sourceId) || activeSet.has(snapshotId);
   });
 }
+
+/** Active variant IDs that have no matching snapshot (by sourceVariantId or id). */
+export function getMissingActiveVariantIds<
+  T extends { id?: string; sourceVariantId?: string | null }
+>(
+  snapshots: T[] | null | undefined,
+  activeVariantIds: string[]
+): string[] {
+  if (activeVariantIds.length === 0) return [];
+  const covered = new Set<string>();
+  for (const snapshot of snapshots || []) {
+    if (snapshot.sourceVariantId) covered.add(snapshot.sourceVariantId);
+    if (snapshot.id) covered.add(snapshot.id);
+  }
+  return activeVariantIds.filter((id) => !covered.has(id));
+}
+
+/**
+ * Prefer existing snapshots for covered IDs; append synthetics for missing active IDs.
+ * Dedupes by active id (sourceVariantId preferred, else snapshot id).
+ */
+export function mergeVariantSnapshotsWithSynthetics<
+  T extends { id?: string; sourceVariantId?: string | null; sortOrder?: number }
+>(existing: T[], synthetics: T[], activeVariantIds: string[]): T[] {
+  const activeSet = new Set(activeVariantIds);
+  const byActiveId = new Map<string, T>();
+
+  const keyFor = (snap: T): string | null => {
+    if (snap.sourceVariantId && activeSet.has(snap.sourceVariantId)) {
+      return snap.sourceVariantId;
+    }
+    if (snap.id && activeSet.has(snap.id)) return snap.id;
+    return null;
+  };
+
+  for (const snap of existing) {
+    const key = keyFor(snap);
+    if (key) byActiveId.set(key, snap);
+  }
+  for (const snap of synthetics) {
+    const key = keyFor(snap);
+    if (key && !byActiveId.has(key)) {
+      byActiveId.set(key, snap);
+    }
+  }
+
+  const merged = activeVariantIds
+    .map((id) => byActiveId.get(id))
+    .filter((s): s is T => !!s);
+
+  // Include any leftovers not keyed by active order (shouldn't happen often)
+  for (const [id, snap] of byActiveId) {
+    if (!activeVariantIds.includes(id) && !merged.includes(snap)) {
+      merged.push(snap);
+    }
+  }
+
+  return merged.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+}

@@ -13,6 +13,7 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
@@ -30,6 +31,7 @@ import {
   type CustomerRecord,
 } from "@/lib/customers";
 import {
+  createAssociatePartnersClient,
   fetchAssociatePartners,
   type AssociatePartnerOption,
 } from "@/lib/associate-partners";
@@ -75,6 +77,10 @@ export function CustomerForm({ mode, customerId, initial, title }: Props) {
     []
   );
   const client = useMemo(() => createCustomersClient(authRequest), [authRequest]);
+  const partnersClient = useMemo(
+    () => createAssociatePartnersClient(authRequest),
+    [authRequest]
+  );
 
   const seed = initial ?? EMPTY;
   const [name, setName] = useState(seed.name);
@@ -95,6 +101,8 @@ export function CustomerForm({ mode, customerId, initial, title }: Props) {
   const [partnerPickerOpen, setPartnerPickerOpen] = useState(false);
   const [partnerList, setPartnerList] = useState<AssociatePartnerOption[]>([]);
   const [partnerLoading, setPartnerLoading] = useState(false);
+  const [partnerCreateOpen, setPartnerCreateOpen] = useState(false);
+  const [creatingPartner, setCreatingPartner] = useState(false);
 
   const screenTitle = title ?? (mode === "create" ? "New customer" : "Edit customer");
   const birthdateOk = !birthdate || ISO_DATE.test(birthdate);
@@ -126,6 +134,33 @@ export function CustomerForm({ mode, customerId, initial, title }: Props) {
       );
     } finally {
       setPartnerLoading(false);
+    }
+  }
+
+  async function createPartnerQuick(values: Record<string, string>) {
+    const partnerName = values.name?.trim();
+    const mobileNumber = values.mobileNumber?.trim();
+    if (!partnerName || !mobileNumber) return;
+    setCreatingPartner(true);
+    try {
+      const saved = await partnersClient.create({
+        name: partnerName,
+        mobileNumber,
+      });
+      setPartnerList((prev) =>
+        prev.some((p) => p.id === saved.id) ? prev : [saved, ...prev]
+      );
+      setAssociatePartnerId(saved.id);
+      setAssociatePartnerName(saved.name);
+      setPartnerCreateOpen(false);
+      setPartnerPickerOpen(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the partner."
+      );
+    } finally {
+      setCreatingPartner(false);
     }
   }
 
@@ -310,7 +345,41 @@ export function CustomerForm({ mode, customerId, initial, title }: Props) {
           setAssociatePartnerId(opt.id);
           setAssociatePartnerName(opt.label);
         }}
+        footerAction={{
+          label: "Add partner",
+          testID: "customer-form-partner-add",
+          onPress: () => setPartnerCreateOpen(true),
+        }}
         testID="customer-form-partner-sheet"
+      />
+      <AdminQuickCreateModal
+        visible={partnerCreateOpen}
+        title="Add associate partner"
+        hint="Creates a partner and selects them for this customer."
+        fields={[
+          {
+            key: "name",
+            label: "Partner name",
+            placeholder: "e.g. Travel Partners Co",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+          {
+            key: "mobileNumber",
+            label: "Mobile number",
+            placeholder: "+91 9XXXXXXXXX",
+            required: true,
+            keyboardType: "phone-pad",
+            autoCapitalize: "none",
+            maxLength: 20,
+          },
+        ]}
+        submitLabel="Create partner"
+        loading={creatingPartner}
+        onClose={() => setPartnerCreateOpen(false)}
+        onSubmit={createPartnerQuick}
+        testID="customer-form-partner-quick-create"
       />
     </AdminScreen>
   );

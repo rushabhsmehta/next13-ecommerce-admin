@@ -21,6 +21,13 @@ export interface AdminPickerOption {
   subtitle?: string;
 }
 
+export interface AdminPickerFooterAction {
+  label: string;
+  onPress: () => void;
+  testID?: string;
+  disabled?: boolean;
+}
+
 export interface AdminPickerSheetProps {
   visible: boolean;
   title: string;
@@ -32,6 +39,8 @@ export interface AdminPickerSheetProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   emptyLabel?: string;
+  /** Sticky bottom CTA for mid-flow create (e.g. "Add destination"). */
+  footerAction?: AdminPickerFooterAction;
   testID?: string;
 }
 
@@ -46,6 +55,7 @@ export function AdminPickerSheet({
   searchable = true,
   searchPlaceholder = "Search",
   emptyLabel = "No matches",
+  footerAction,
   testID = "admin-picker-sheet",
 }: AdminPickerSheetProps) {
   const insets = useSafeAreaInsets();
@@ -64,6 +74,9 @@ export function AdminPickerSheet({
         (o.subtitle?.toLowerCase().includes(q) ?? false)
     );
   }, [options, query]);
+
+  const listBottomPad =
+    insets.bottom + Spacing.lg + (footerAction ? 64 : 0);
 
   return (
     <Modal
@@ -135,7 +148,7 @@ export function AdminPickerSheet({
               offset: OPTION_ROW_HEIGHT * index,
               index,
             })}
-            contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.lg }}
+            contentContainerStyle={{ paddingBottom: listBottomPad }}
             ListHeaderComponent={
               selectedOption ? (
                 <View style={styles.selectedSummary}>
@@ -185,6 +198,44 @@ export function AdminPickerSheet({
             }}
           />
         )}
+        {footerAction ? (
+          <View
+            style={[
+              styles.footer,
+              { paddingBottom: Math.max(insets.bottom, Spacing.md) },
+            ]}
+          >
+            <Pressable
+              testID={footerAction.testID ?? `${testID}-add`}
+              accessibilityRole="button"
+              accessibilityLabel={footerAction.label}
+              accessibilityState={{ disabled: !!footerAction.disabled }}
+              disabled={footerAction.disabled}
+              onPress={footerAction.onPress}
+              style={({ pressed }) => [
+                styles.footerBtn,
+                footerAction.disabled && styles.footerBtnDisabled,
+                pressed && !footerAction.disabled && styles.footerBtnPressed,
+              ]}
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={18}
+                color={footerAction.disabled ? Colors.textTertiary : Colors.primary}
+                accessibilityElementsHidden
+              />
+              <Text
+                style={[
+                  styles.footerBtnText,
+                  footerAction.disabled && styles.footerBtnTextDisabled,
+                ]}
+                allowFontScaling={false}
+              >
+                {footerAction.label}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     </Modal>
   );
@@ -266,4 +317,30 @@ const styles = StyleSheet.create({
   optionLabel: { fontSize: FontSize.md, fontWeight: "700", color: Colors.text },
   optionSubtitle: { fontSize: FontSize.xs, color: Colors.textTertiary },
   pressed: { backgroundColor: Colors.surfaceAlt },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderSubtle,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    backgroundColor: Colors.background,
+  },
+  footerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.primarySoft,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.primaryLight,
+  },
+  footerBtnDisabled: { opacity: 0.45 },
+  footerBtnPressed: { opacity: 0.85 },
+  footerBtnText: {
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.primary,
+  },
+  footerBtnTextDisabled: { color: Colors.textTertiary },
 });

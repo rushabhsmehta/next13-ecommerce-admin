@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { ApiError, withAuth } from "@/lib/api";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
 import {
   createOperationsClient,
   type OpsActivityInput,
@@ -26,6 +27,7 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
@@ -74,6 +76,8 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
   const [days, setDays] = useState(itineraryInitial?.days ?? "");
   const [locations, setLocations] = useState<InquiryLookupOption[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [showLocationCreate, setShowLocationCreate] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const loadLocations = useCallback(async () => {
@@ -90,6 +94,33 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
   useEffect(() => {
     void loadLocations();
   }, [loadLocations]);
+
+  async function createLocationQuick(values: Record<string, string>) {
+    const label = values.name?.trim();
+    if (!label) return;
+    setCreatingLocation(true);
+    try {
+      const saved = await client.createLocation({
+        label,
+        imageUrl: DEFAULT_OPS_IMAGE_URL,
+      });
+      setLocations((prev) => {
+        if (prev.some((o) => o.id === saved.id)) return prev;
+        return [{ id: saved.id, label: saved.label }, ...prev];
+      });
+      setLocationId(saved.id);
+      setLocationLabel(saved.label);
+      setShowLocationCreate(false);
+      setPickerOpen(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the location."
+      );
+    } finally {
+      setCreatingLocation(false);
+    }
+  }
 
   const canSubmit =
     !!locationId && title.trim().length > 0 && description.trim().length > 0 && !submitting;
@@ -254,7 +285,32 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
           setLocationId(opt.id);
           setLocationLabel(opt.label);
         }}
+        footerAction={{
+          label: "Add location",
+          testID: `${kind}-location-picker-add`,
+          onPress: () => setShowLocationCreate(true),
+        }}
         testID={`${kind}-location-picker`}
+      />
+      <AdminQuickCreateModal
+        visible={showLocationCreate}
+        title="Add location"
+        hint="Creates a location and selects it for this record."
+        fields={[
+          {
+            key: "name",
+            label: "Location name",
+            placeholder: "e.g. Kolkata",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create location"
+        loading={creatingLocation}
+        onClose={() => setShowLocationCreate(false)}
+        onSubmit={createLocationQuick}
+        testID={`${kind}-location-quick-create`}
       />
     </AdminScreen>
   );

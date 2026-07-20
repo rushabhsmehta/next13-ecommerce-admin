@@ -16,11 +16,13 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
 import {
   createOperationsClient,
   type DestinationInput,
@@ -85,6 +87,8 @@ export function DestinationForm({
     []
   );
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showLocationCreate, setShowLocationCreate] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
 
   const loadLocations = useCallback(async () => {
     try {
@@ -105,6 +109,33 @@ export function DestinationForm({
   useEffect(() => {
     void loadLocations();
   }, [loadLocations]);
+
+  async function createLocationQuick(values: Record<string, string>) {
+    const label = values.name?.trim();
+    if (!label) return;
+    setCreatingLocation(true);
+    try {
+      const saved = await client.createLocation({
+        label,
+        imageUrl: DEFAULT_OPS_IMAGE_URL,
+      });
+      setLocationOptions((prev) => {
+        if (prev.some((o) => o.id === saved.id)) return prev;
+        return [{ id: saved.id, label: saved.label }, ...prev];
+      });
+      setLocationId(saved.id);
+      setLocationLabel(saved.label);
+      setShowLocationCreate(false);
+      setShowLocationPicker(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the location."
+      );
+    } finally {
+      setCreatingLocation(false);
+    }
+  }
 
   const screenTitle = mode === "create" ? "New destination" : "Edit destination";
   const canSubmit = name.trim().length > 0 && locationId.length > 0 && !submitting;
@@ -244,7 +275,32 @@ export function DestinationForm({
           setLocationId(opt.id);
           setLocationLabel(opt.label);
         }}
+        footerAction={{
+          label: "Add location",
+          testID: "destination-location-picker-add",
+          onPress: () => setShowLocationCreate(true),
+        }}
         testID="destination-location-picker"
+      />
+      <AdminQuickCreateModal
+        visible={showLocationCreate}
+        title="Add location"
+        hint="Creates a location and selects it for this destination."
+        fields={[
+          {
+            key: "name",
+            label: "Location name",
+            placeholder: "e.g. Kolkata",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create location"
+        loading={creatingLocation}
+        onClose={() => setShowLocationCreate(false)}
+        onSubmit={createLocationQuick}
+        testID="destination-location-quick-create"
       />
     </AdminScreen>
   );

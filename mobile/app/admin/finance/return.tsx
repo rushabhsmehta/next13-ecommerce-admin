@@ -17,15 +17,18 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminSegmentedControl,
   AdminTopBar,
 } from "@/components/admin";
+import { createCustomersClient } from "@/lib/customers";
 import {
   createFinanceClient,
   type FinanceParty,
   type AllocatableItem,
 } from "@/lib/finance";
+import { createOperationsClient } from "@/lib/operations";
 
 type Mode = "sale" | "purchase";
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -51,9 +54,18 @@ function Inner() {
   useEffect(() => {
     getTokenRef.current = getToken;
   }, [getToken]);
-  const client = useMemo(
-    () => createFinanceClient(withAuth(() => getTokenRef.current())),
+  const authRequest = useMemo(
+    () => withAuth(() => getTokenRef.current()),
     []
+  );
+  const client = useMemo(() => createFinanceClient(authRequest), [authRequest]);
+  const customersClient = useMemo(
+    () => createCustomersClient(authRequest),
+    [authRequest]
+  );
+  const opsClient = useMemo(
+    () => createOperationsClient(authRequest),
+    [authRequest]
   );
 
   const [mode, setMode] = useState<Mode>(
@@ -75,6 +87,8 @@ function Inner() {
   const [docPickerOpen, setDocPickerOpen] = useState(false);
   const [partyResults, setPartyResults] = useState<FinanceParty[]>([]);
   const [partyLoading, setPartyLoading] = useState(false);
+  const [partyCreateOpen, setPartyCreateOpen] = useState(false);
+  const [creatingParty, setCreatingParty] = useState(false);
 
   const partyType = mode === "sale" ? "customer" : "supplier";
   const allocKind = mode === "sale" ? "sales" : "purchases";
@@ -118,6 +132,38 @@ function Inner() {
     if (!partyPickerOpen) return;
     void loadParties("");
   }, [partyPickerOpen, loadParties]);
+
+  async function createPartyQuick(values: Record<string, string>) {
+    const name = values.name?.trim();
+    if (!name) return;
+    setCreatingParty(true);
+    try {
+      let next: FinanceParty;
+      if (partyType === "customer") {
+        const saved = await customersClient.create({ name });
+        next = { id: saved.id, name: saved.name, subtitle: saved.contact ?? "" };
+      } else {
+        const saved = await opsClient.createSupplier({ name });
+        next = { id: saved.id, name: saved.name, subtitle: "" };
+      }
+      setPartyResults((prev) =>
+        prev.some((p) => p.id === next.id) ? prev : [next, ...prev]
+      );
+      setParty(next);
+      setDoc(null);
+      setPartyCreateOpen(false);
+      setPartyPickerOpen(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError
+          ? err.message
+          : `Could not create the ${partyType}.`
+      );
+    } finally {
+      setCreatingParty(false);
+    }
+  }
 
   const partyOptions = useMemo(
     () => partyResults.map((p) => ({ id: p.id, label: p.name, subtitle: p.subtitle })),
@@ -354,7 +400,34 @@ function Inner() {
         }}
         searchPlaceholder={`Search ${partyType}…`}
         emptyLabel="No matches."
+        footerAction={{
+          label: partyType === "customer" ? "Add customer" : "Add supplier",
+          testID: "finance-return-party-add",
+          onPress: () => setPartyCreateOpen(true),
+        }}
         testID="finance-return-party-sheet"
+      />
+
+      <AdminQuickCreateModal
+        visible={partyCreateOpen}
+        title={partyType === "customer" ? "Add customer" : "Add supplier"}
+        hint={`Creates a ${partyType} and selects them for this return.`}
+        fields={[
+          {
+            key: "name",
+            label: "Name",
+            placeholder:
+              partyType === "customer" ? "e.g. Ravi Sharma" : "e.g. Himalaya Transports",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel={partyType === "customer" ? "Create customer" : "Create supplier"}
+        loading={creatingParty}
+        onClose={() => setPartyCreateOpen(false)}
+        onSubmit={createPartyQuick}
+        testID="finance-return-party-quick-create"
       />
 
       <AdminPickerSheet

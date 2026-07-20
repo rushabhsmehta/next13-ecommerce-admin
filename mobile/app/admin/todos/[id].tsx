@@ -20,6 +20,7 @@ import {
   AdminFormSection,
   AdminLoadingState,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminSegmentedControl,
   AdminTopBar,
@@ -35,6 +36,7 @@ import { ApiError, withAuth } from "@/lib/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { DateField } from "@/components/ui/DateField";
+import { createOperationsClient } from "@/lib/operations";
 import { fetchActiveOperationalStaff } from "@/lib/operational-staff";
 import {
   createTodosClient,
@@ -79,6 +81,10 @@ function TodoDetailScreenInner() {
     []
   );
   const client = useMemo(() => createTodosClient(authRequest), [authRequest]);
+  const opsClient = useMemo(
+    () => createOperationsClient(authRequest),
+    [authRequest]
+  );
 
   const [todo, setTodo] = useState<Todo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +96,8 @@ function TodoDetailScreenInner() {
     { id: string; name: string; email: string }[]
   >([]);
   const [staffLoading, setStaffLoading] = useState(false);
+  const [staffCreateOpen, setStaffCreateOpen] = useState(false);
+  const [creatingStaff, setCreatingStaff] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -150,6 +158,31 @@ function TodoDetailScreenInner() {
       );
     } finally {
       setStaffLoading(false);
+    }
+  }
+
+  async function createStaffQuick(values: Record<string, string>) {
+    const name = values.name?.trim();
+    const email = values.email?.trim();
+    const password = values.password?.trim();
+    if (!name || !email || !password) return;
+    setCreatingStaff(true);
+    try {
+      const saved = await opsClient.createStaff({ name, email, password });
+      setStaffList((prev) => {
+        if (prev.some((s) => s.id === saved.id)) return prev;
+        return [{ id: saved.id, name: saved.name, email: saved.email }, ...prev];
+      });
+      setStaffCreateOpen(false);
+      setStaffPickerOpen(false);
+      await patch({ assignedToStaffId: saved.id });
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create staff."
+      );
+    } finally {
+      setCreatingStaff(false);
     }
   }
 
@@ -390,7 +423,50 @@ function TodoDetailScreenInner() {
         loading={staffLoading}
         onClose={() => setStaffPickerOpen(false)}
         onSelect={(opt) => void patch({ assignedToStaffId: opt.id })}
+        footerAction={{
+          label: "Add staff",
+          testID: "todo-detail-staff-add",
+          onPress: () => setStaffCreateOpen(true),
+        }}
         testID="todo-detail-staff-sheet"
+      />
+      <AdminQuickCreateModal
+        visible={staffCreateOpen}
+        title="Add staff"
+        hint="Creates operational staff and assigns them to this task."
+        fields={[
+          {
+            key: "name",
+            label: "Name",
+            placeholder: "e.g. Priya Shah",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+          {
+            key: "email",
+            label: "Email",
+            placeholder: "staff@example.com",
+            required: true,
+            keyboardType: "email-address",
+            autoCapitalize: "none",
+            maxLength: 200,
+          },
+          {
+            key: "password",
+            label: "Password",
+            placeholder: "Temporary password",
+            required: true,
+            secureTextEntry: true,
+            autoCapitalize: "none",
+            maxLength: 100,
+          },
+        ]}
+        submitLabel="Create staff"
+        loading={creatingStaff}
+        onClose={() => setStaffCreateOpen(false)}
+        onSubmit={createStaffQuick}
+        testID="todo-detail-staff-quick-create"
       />
     </AdminScreen>
   );

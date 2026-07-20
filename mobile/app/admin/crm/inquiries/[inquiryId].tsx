@@ -35,12 +35,16 @@ import {
   AdminFormSection,
   AdminLoadingState,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminSegmentedControl,
   AdminTopBar,
 } from "@/components/admin";
 import { DateField } from "@/components/ui/DateField";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
+import { createOperationsClient } from "@/lib/operations";
+import { SupplierOutreachActions } from "@/components/inquiries/SupplierOutreachActions";
 
 const STATUS_SEGMENT_OPTIONS = INQUIRY_STATUSES.map((st) => ({
   id: st,
@@ -127,6 +131,10 @@ function AdminInquiryDetailInner() {
     () => createAssociateInquiryClient(authRequest),
     [authRequest]
   );
+  const opsClient = useMemo(
+    () => createOperationsClient(authRequest),
+    [authRequest]
+  );
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -150,10 +158,14 @@ function AdminInquiryDetailInner() {
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [locationId, setLocationId] = useState("");
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  const [locationCreateOpen, setLocationCreateOpen] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
 
   const [staffPickerOpen, setStaffPickerOpen] = useState(false);
   const [staffList, setStaffList] = useState<StaffRow[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
+  const [staffCreateOpen, setStaffCreateOpen] = useState(false);
+  const [creatingStaff, setCreatingStaff] = useState(false);
 
   const load = useCallback(async () => {
     if (!inquiryId) return;
@@ -247,6 +259,59 @@ function AdminInquiryDetailInner() {
       );
     } finally {
       setStaffLoading(false);
+    }
+  }
+
+  async function createLocationQuick(values: Record<string, string>) {
+    const label = values.name?.trim();
+    if (!label) return;
+    setCreatingLocation(true);
+    try {
+      const saved = await opsClient.createLocation({
+        label,
+        imageUrl: DEFAULT_OPS_IMAGE_URL,
+      });
+      setLocations((prev) => {
+        if (prev.some((l) => l.id === saved.id)) return prev;
+        return [{ id: saved.id, label: saved.label }, ...prev];
+      });
+      setLocationId(saved.id);
+      setLocationCreateOpen(false);
+      setLocationPickerOpen(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the location."
+      );
+    } finally {
+      setCreatingLocation(false);
+    }
+  }
+
+  async function createStaffQuick(values: Record<string, string>) {
+    const name = values.name?.trim();
+    const email = values.email?.trim();
+    const password = values.password?.trim();
+    if (!name || !email || !password) return;
+    setCreatingStaff(true);
+    try {
+      const saved = await opsClient.createStaff({ name, email, password });
+      setStaffList((prev) => {
+        if (prev.some((s) => s.id === saved.id)) return prev;
+        return [
+          { id: saved.id, name: saved.name, email: saved.email, isActive: saved.isActive },
+          ...prev,
+        ];
+      });
+      setStaffCreateOpen(false);
+      await assignStaff(saved.id);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create staff."
+      );
+    } finally {
+      setCreatingStaff(false);
     }
   }
 
@@ -886,6 +951,21 @@ function AdminInquiryDetailInner() {
           </View>
         )}
 
+      <SupplierOutreachActions
+        inquiry={{
+          id: detail.id,
+          locationLabel: detail.location?.label,
+          journeyDate: detail.journeyDate,
+          numAdults: detail.numAdults,
+          numChildren5to11: detail.numChildren5to11,
+          numChildrenBelow5: detail.numChildrenBelow5,
+          remarks: detail.remarks,
+        }}
+        actions={detail.actions ?? []}
+        canWrite={canWrite}
+        onChanged={() => void refresh()}
+      />
+
       <AdminFormSection title="Timeline" testID="inquiry-detail-timeline">
         {(detail.actions ?? []).length === 0 ? (
           <Text style={styles.muted}>No activity yet.</Text>
@@ -893,12 +973,40 @@ function AdminInquiryDetailInner() {
           (detail.actions ?? []).map((a) => (
             <View key={a.id} style={styles.timelineCard}>
               <View style={styles.timelineHead}>
-                <Text style={styles.timelineType}>{a.actionType}</Text>
+                <Text style={styles.timelineType}>
+                  {a.actionType === "EMAIL_SUPPLIER"
+                    ? "Email Supplier"
+                    : a.actionType === "WHATSAPP_SUPPLIER"
+                      ? "WhatsApp Supplier"
+                      : a.actionType === "SUPPLIER_QUOTE_RECEIVED"
+                        ? "Supplier Quote Received"
+                        : a.actionType}
+                </Text>
                 <Text style={styles.timelineDate}>
                   {a.actionDate ? a.actionDate.slice(0, 10) : ""}
                 </Text>
               </View>
-              <Text style={styles.timelineBody}>{a.remarks}</Text>
+              <Text style={styles.timelineBody}>
+                {a.remarks?.startsWith("SUPPLIER_OUTREACH_V1:")
+                  ? (() => {
+                      try {
+                        const raw = JSON.parse(
+                          a.remarks.slice("SUPPLIER_OUTREACH_V1:".length)
+                        );
+                        return [
+                          raw.supplierName,
+                          raw.channel,
+                          raw.contact,
+                          raw.subject || raw.notes || raw.messagePreview,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ");
+                      } catch {
+                        return a.remarks;
+                      }
+                    })()
+                  : a.remarks}
+              </Text>
               {canWrite ? (
                 <Pressable
                   testID={`inquiry-delete-action-${a.id}`}
@@ -922,7 +1030,33 @@ function AdminInquiryDetailInner() {
         selectedId={locationId}
         onClose={() => setLocationPickerOpen(false)}
         onSelect={(opt) => setLocationId(opt.id)}
+        footerAction={{
+          label: "Add location",
+          testID: "inquiry-location-add",
+          onPress: () => setLocationCreateOpen(true),
+        }}
         testID="inquiry-location-sheet"
+      />
+
+      <AdminQuickCreateModal
+        visible={locationCreateOpen}
+        title="Add location"
+        hint="Creates a location and selects it for this inquiry."
+        fields={[
+          {
+            key: "name",
+            label: "Location name",
+            placeholder: "e.g. Kolkata",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create location"
+        loading={creatingLocation}
+        onClose={() => setLocationCreateOpen(false)}
+        onSubmit={createLocationQuick}
+        testID="inquiry-location-quick-create"
       />
 
       <AdminPickerSheet
@@ -933,7 +1067,51 @@ function AdminInquiryDetailInner() {
         loading={staffLoading}
         onClose={() => setStaffPickerOpen(false)}
         onSelect={(opt) => void assignStaff(opt.id)}
+        footerAction={{
+          label: "Add staff",
+          testID: "inquiry-staff-add",
+          onPress: () => setStaffCreateOpen(true),
+        }}
         testID="inquiry-staff-sheet"
+      />
+
+      <AdminQuickCreateModal
+        visible={staffCreateOpen}
+        title="Add staff"
+        hint="Creates operational staff and assigns them to this inquiry."
+        fields={[
+          {
+            key: "name",
+            label: "Name",
+            placeholder: "e.g. Priya Shah",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+          {
+            key: "email",
+            label: "Email",
+            placeholder: "staff@example.com",
+            required: true,
+            keyboardType: "email-address",
+            autoCapitalize: "none",
+            maxLength: 200,
+          },
+          {
+            key: "password",
+            label: "Password",
+            placeholder: "Temporary password",
+            required: true,
+            secureTextEntry: true,
+            autoCapitalize: "none",
+            maxLength: 100,
+          },
+        ]}
+        submitLabel="Create staff"
+        loading={creatingStaff}
+        onClose={() => setStaffCreateOpen(false)}
+        onSubmit={createStaffQuick}
+        testID="inquiry-staff-quick-create"
       />
     </AdminScreen>
   );

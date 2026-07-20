@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, BorderRadius, FontSize, Spacing } from "@/constants/theme";
 import { DateField } from "@/components/ui/DateField";
+import { AdminQuickCreateModal } from "@/components/admin";
 import { ApiError, withAuth } from "@/lib/api";
 import {
   createAssociateInquiryClient,
@@ -24,7 +25,13 @@ import {
   type AuthenticatedRequest,
   type LocationOption,
 } from "@/lib/associate-inquiries";
-import { fetchAssociatePartners, type AssociatePartnerOption } from "@/lib/associate-partners";
+import {
+  createAssociatePartnersClient,
+  fetchAssociatePartners,
+  type AssociatePartnerOption,
+} from "@/lib/associate-partners";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
+import { createOperationsClient } from "@/lib/operations";
 import {
   fetchInquiryFormLookups,
   lookupLabel,
@@ -97,6 +104,14 @@ export function CreateInquiryForm({
   );
 
   const client = useMemo(() => createAssociateInquiryClient(authRequest), [authRequest]);
+  const opsClient = useMemo(
+    () => createOperationsClient(authRequest),
+    [authRequest]
+  );
+  const partnersClient = useMemo(
+    () => createAssociatePartnersClient(authRequest),
+    [authRequest]
+  );
 
   const [submitting, setSubmitting] = useState(false);
   const [loadingLocations, setLoadingLocations] = useState(true);
@@ -106,6 +121,8 @@ export function CreateInquiryForm({
   const [transportRows, setTransportRows] = useState<TransportDraftRow[]>([]);
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [locationSearch, setLocationSearch] = useState("");
+  const [locationCreateOpen, setLocationCreateOpen] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerMobileNumber, setCustomerMobileNumber] = useState("");
   const [journeyDate, setJourneyDate] = useState("");
@@ -121,6 +138,8 @@ export function CreateInquiryForm({
   const [associatePartners, setAssociatePartners] = useState<AssociatePartnerOption[]>([]);
   const [associateLoading, setAssociateLoading] = useState(false);
   const [associateSearch, setAssociateSearch] = useState("");
+  const [associateCreateOpen, setAssociateCreateOpen] = useState(false);
+  const [creatingAssociate, setCreatingAssociate] = useState(false);
   const [selectedAssociateId, setSelectedAssociateId] = useState<string | null>(null);
   const [selectedAssociateName, setSelectedAssociateName] = useState<string | null>(null);
 
@@ -155,6 +174,55 @@ export function CreateInquiryForm({
       );
     } finally {
       setAssociateLoading(false);
+    }
+  }
+
+  async function createLocationQuick(values: Record<string, string>) {
+    const label = values.name?.trim();
+    if (!label) return;
+    setCreatingLocation(true);
+    try {
+      const saved = await opsClient.createLocation({
+        label,
+        imageUrl: DEFAULT_OPS_IMAGE_URL,
+      });
+      setLocations((prev) => {
+        if (prev.some((l) => l.id === saved.id)) return prev;
+        return [{ id: saved.id, label: saved.label }, ...prev];
+      });
+      setLocationId(saved.id);
+      setLocationCreateOpen(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the location."
+      );
+    } finally {
+      setCreatingLocation(false);
+    }
+  }
+
+  async function createAssociateQuick(values: Record<string, string>) {
+    const name = values.name?.trim();
+    const mobileNumber = values.mobileNumber?.trim();
+    if (!name || !mobileNumber) return;
+    setCreatingAssociate(true);
+    try {
+      const saved = await partnersClient.create({ name, mobileNumber });
+      setAssociatePartners((prev) =>
+        prev.some((p) => p.id === saved.id) ? prev : [saved, ...prev]
+      );
+      setSelectedAssociateId(saved.id);
+      setSelectedAssociateName(saved.name);
+      setAssociateCreateOpen(false);
+      setAssociateModal(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the partner."
+      );
+    } finally {
+      setCreatingAssociate(false);
     }
   }
 
@@ -464,6 +532,16 @@ export function CreateInquiryForm({
               </Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            testID="inquiry-create-location-add"
+            accessibilityRole="button"
+            accessibilityLabel="Add location"
+            style={styles.locationAddPill}
+            onPress={() => setLocationCreateOpen(true)}
+          >
+            <Ionicons name="add" size={14} color={Colors.primary} />
+            <Text style={styles.locationAddText}>Add location</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -520,6 +598,16 @@ export function CreateInquiryForm({
           >
             <Text style={styles.modalDirectText}>Direct booking (no associate)</Text>
           </Pressable>
+          <Pressable
+            testID="inquiry-create-associate-add"
+            accessibilityRole="button"
+            accessibilityLabel="Add associate partner"
+            style={styles.modalAddRow}
+            onPress={() => setAssociateCreateOpen(true)}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <Text style={styles.modalAddText}>Add partner</Text>
+          </Pressable>
           <TextInput
             style={styles.modalSearch}
             value={associateSearch}
@@ -563,6 +651,57 @@ export function CreateInquiryForm({
           )}
         </View>
       </Modal>
+
+      <AdminQuickCreateModal
+        visible={locationCreateOpen}
+        title="Add location"
+        hint="Creates a location and selects it for this inquiry."
+        fields={[
+          {
+            key: "name",
+            label: "Location name",
+            placeholder: "e.g. Kolkata",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create location"
+        loading={creatingLocation}
+        onClose={() => setLocationCreateOpen(false)}
+        onSubmit={createLocationQuick}
+        testID="inquiry-create-location-quick-create"
+      />
+
+      <AdminQuickCreateModal
+        visible={associateCreateOpen}
+        title="Add associate partner"
+        hint="Creates a partner and selects them for this inquiry."
+        fields={[
+          {
+            key: "name",
+            label: "Partner name",
+            placeholder: "e.g. Travel Partners Co",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+          {
+            key: "mobileNumber",
+            label: "Mobile number",
+            placeholder: "+91 9XXXXXXXXX",
+            required: true,
+            keyboardType: "phone-pad",
+            autoCapitalize: "none",
+            maxLength: 20,
+          },
+        ]}
+        submitLabel="Create partner"
+        loading={creatingAssociate}
+        onClose={() => setAssociateCreateOpen(false)}
+        onSubmit={createAssociateQuick}
+        testID="inquiry-create-associate-quick-create"
+      />
     </>
   );
 }
@@ -656,6 +795,18 @@ const styles = StyleSheet.create({
   locationPillActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryBg },
   locationPillText: { color: Colors.textSecondary, fontSize: FontSize.xs },
   locationPillTextActive: { color: Colors.primary, fontSize: FontSize.xs, fontWeight: "700" },
+  locationAddPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: Colors.primaryLight,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.primarySoft,
+  },
+  locationAddText: { color: Colors.primary, fontSize: FontSize.xs, fontWeight: "700" },
   button: {
     marginTop: Spacing.lg,
     backgroundColor: Colors.primary,
@@ -697,6 +848,20 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
   },
   modalDirectText: { textAlign: "center", fontWeight: "800", color: Colors.primary, fontSize: FontSize.sm },
+  modalAddRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primarySoft,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.primaryLight,
+  },
+  modalAddText: { fontWeight: "800", color: Colors.primary, fontSize: FontSize.sm },
   modalSearch: {
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,

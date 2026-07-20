@@ -56,6 +56,8 @@ interface WhatsAppSupplierButtonProps {
   hideButton?: boolean;
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon";
+  /** Called after outreach is logged successfully (status may be ASKED_TO_SUPPLIER). */
+  onSuccess?: (inquiryStatus?: string) => void;
 }
 
 // Default message template (customer name/number intentionally omitted for privacy)
@@ -82,7 +84,8 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   onOpenChange,
   hideButton = false,
   variant = "outline",
-  size = "sm"
+  size = "sm",
+  onSuccess,
 }) => {
   const [open, setOpen] = useState(isOpen);
   const [supplierPhone, setSupplierPhone] = useState('');
@@ -321,7 +324,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     handleSendWhatsApp();
   };
 
-  const handleSendWhatsApp = () => {
+  const handleSendWhatsApp = async () => {
     if (!supplierPhone || !message) {
       toast.error("Please fill in all required fields");
       return;
@@ -339,20 +342,43 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
         return;
       }
 
+      const selected = suppliers.find((s) => s.id === selectedSupplier);
+      const logRes = await fetch(
+        `/api/inquiries/${inquiryData.id}/whatsapp-supplier`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: formattedPhone,
+            supplierId: selectedSupplier || null,
+            supplierName: selected?.name || null,
+            messagePreview: message.trim().slice(0, 500),
+          }),
+        }
+      );
+      const logData = await logRes.json().catch(() => ({}));
+      if (!logRes.ok) {
+        toast.error(
+          logData?.error || "Could not log WhatsApp outreach. WhatsApp was not opened."
+        );
+        return;
+      }
+
       // Encode message for URL
       const encodedMessage = encodeURIComponent(message);
       
       // Create WhatsApp URL
       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
       
-      // Open WhatsApp
+      // Open WhatsApp only after logging succeeds
       window.open(whatsappUrl, '_blank');
       
-      toast.success("WhatsApp opened with message");
+      toast.success("WhatsApp opened — marked as Asked to Supplier");
       
       // Reset form and close dialog
       resetForm();
       handleOpenChange(false);
+      onSuccess?.(logData?.inquiryStatus);
       
     } catch (error) {
       toast.error("Failed to open WhatsApp");
@@ -421,7 +447,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                   searchInputRef.current?.focus();
                 }}
               >
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput
                     ref={searchInputRef}
                     placeholder="Search suppliers..."
@@ -439,7 +465,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                       {filteredSuppliers.map((supplier) => (
                         <CommandItem
                           key={supplier.id}
-                          value={supplier.id}
+                          value={`${supplier.name} ${getSupplierPhone(supplier)}`}
                           onSelect={() => handleSupplierSelect(supplier.id)}
                         >
                           <Check

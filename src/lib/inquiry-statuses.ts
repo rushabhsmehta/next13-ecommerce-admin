@@ -9,16 +9,18 @@ export const INQUIRY_STATUSES = [
   "CANCELLED",
   "HOT_QUERY",
   "QUERY_SENT",
+  "ASKED_TO_SUPPLIER",
 ] as const;
 
 export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
 
 export const INQUIRY_STATUS_LABELS: Record<InquiryStatus, string> = {
-  PENDING:    "Pending",
-  CONFIRMED:  "Confirmed",
-  CANCELLED:  "Cancelled",
-  HOT_QUERY:  "Hot Query",
+  PENDING: "Pending",
+  CONFIRMED: "Confirmed",
+  CANCELLED: "Cancelled",
+  HOT_QUERY: "Hot Query",
   QUERY_SENT: "Query Sent",
+  ASKED_TO_SUPPLIER: "Asked to Supplier",
 };
 
 /** { value, label } pairs for use in Select / DropdownMenu components. */

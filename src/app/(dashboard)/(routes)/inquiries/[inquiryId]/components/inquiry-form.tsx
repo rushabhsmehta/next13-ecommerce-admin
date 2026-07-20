@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ActionHistory } from "./action-history";
+import { SuppliersContactedPanel } from "@/components/suppliers-contacted-panel";
 import {
   Command,
   CommandEmpty,
@@ -87,7 +88,7 @@ const transportDetailSchema = z.object({
 });
 
 const formSchema = z.object({
-  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"]),
+  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT", "ASKED_TO_SUPPLIER"]),
   customerName: z.string().min(1),
   customerMobileNumber: z.string()
     .min(1, "Phone number is required")
@@ -179,7 +180,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
   const action = initialData ? "Save changes" : "Create"; const form = useForm<InquiryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
-      status: initialData.status as "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT",
+      status: initialData.status as "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT" | "ASKED_TO_SUPPLIER",
       customerName: initialData.customerName,
       customerMobileNumber: initialData.customerMobileNumber,
       locationId: initialData.locationId,
@@ -828,7 +829,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select disabled={loading} onValueChange={(value: "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT") => field.onChange(value)} value={field.value} defaultValue={field.value}>
+                  <Select disabled={loading} onValueChange={(value: "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT" | "ASKED_TO_SUPPLIER") => field.onChange(value)} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue defaultValue={field.value} placeholder="Select status" />
@@ -837,6 +838,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     <SelectContent>
                       <SelectItem value="PENDING">Pending</SelectItem>
                       <SelectItem value="HOT_QUERY">Hot Query</SelectItem>
+                      <SelectItem value="ASKED_TO_SUPPLIER">Asked to Supplier</SelectItem>
                       <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                       <SelectItem value="CANCELLED">Cancelled</SelectItem>
                       <SelectItem value="QUERY_SENT">Query Sent</SelectItem>
@@ -1425,10 +1427,16 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
 
           <Separator className="my-8" />
           {initialData && (
-            <ActionHistory
-              inquiryId={initialData.id}
-              actions={actions}
-            />
+            <div className="space-y-6">
+              <SuppliersContactedPanel
+                inquiryId={initialData.id}
+                actions={actions}
+              />
+              <ActionHistory
+                inquiryId={initialData.id}
+                actions={actions}
+              />
+            </div>
           )}
 
           <div className="flex items-center justify-end gap-4 md:gap-6">
@@ -1450,6 +1458,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                   }}
                   variant="outline"
                   size="default"
+                  onSuccess={() => router.refresh()}
                 />
                 <WhatsAppSupplierButton
                   inquiryData={{
@@ -1466,6 +1475,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                   }}
                   variant="outline"
                   size="default"
+                  onSuccess={() => router.refresh()}
                 />
               </>
             )}

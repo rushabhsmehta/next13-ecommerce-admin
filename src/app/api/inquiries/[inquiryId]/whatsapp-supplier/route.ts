@@ -7,32 +7,16 @@ import {
   canAccessInquiryForContext,
   resolveInquiryAccessContext,
 } from "@/lib/inquiry-access";
-import { sendGmailMessage } from "@/lib/gmail-send";
 import { recordSupplierOutreach } from "@/lib/inquiry-supplier-outreach";
 
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
-  to: z.string().email("Valid supplier email is required"),
-  subject: z.string().min(1, "Subject is required").max(500),
-  body: z.string().min(1, "Message body is required").max(20000),
-  htmlBody: z.string().max(50000).optional(),
+  phone: z.string().min(5, "Phone number is required").max(30),
   supplierId: z.string().optional().nullable(),
   supplierName: z.string().optional().nullable(),
+  messagePreview: z.string().max(2000).optional().nullable(),
 });
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function textToSimpleHtml(text: string): string {
-  const escaped = escapeHtml(text);
-  return `<!DOCTYPE html><html><body style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;white-space:pre-wrap;">${escaped}</body></html>`;
-}
 
 export async function POST(
   req: Request,
@@ -54,7 +38,6 @@ export async function POST(
         id: true,
         status: true,
         associatePartnerId: true,
-        location: { select: { label: true } },
       },
     });
 
@@ -75,7 +58,7 @@ export async function POST(
     if (parsed.supplierId) {
       const supplier = await prismadb.supplier.findUnique({
         where: { id: parsed.supplierId },
-        select: { id: true, email: true, name: true },
+        select: { id: true, name: true },
       });
       if (!supplier) {
         return jsonError("Supplier not found", 404, "NOT_FOUND");
@@ -83,59 +66,31 @@ export async function POST(
       supplierName = supplier.name;
     }
     if (!supplierName) {
-      supplierName = parsed.to;
+      supplierName = parsed.phone;
     }
 
-    const html = parsed.htmlBody?.trim() || textToSimpleHtml(parsed.body);
-
-    let messageId: string;
-    try {
-      const result = await sendGmailMessage({
-        to: parsed.to,
-        subject: parsed.subject,
-        text: parsed.body,
-        html,
-      });
-      messageId = result.id;
-    } catch (error: unknown) {
-      const err = error as Error & { code?: string };
-      console.error("[INQUIRY_EMAIL_SUPPLIER]", err);
-      if (err.code === "GMAIL_NOT_CONFIGURED") {
-        return jsonError(err.message, 503, "GMAIL_NOT_CONFIGURED");
-      }
-      return jsonError(
-        err.message || "Failed to send email",
-        502,
-        "GMAIL_SEND_FAILED"
-      );
-    }
-
-    const locationLabel = inquiry.location?.label || "Unknown location";
     const { action, inquiryStatus } = await recordSupplierOutreach({
       inquiryId: inquiry.id,
-      actionType: "EMAIL_SUPPLIER",
+      actionType: "WHATSAPP_SUPPLIER",
       currentStatus: inquiry.status,
       payload: {
         supplierId: parsed.supplierId ?? null,
         supplierName,
-        channel: "EMAIL",
-        contact: parsed.to,
-        subject: parsed.subject,
-        messagePreview: `${parsed.subject} (${locationLabel})`,
-        externalId: messageId,
+        channel: "WHATSAPP",
+        contact: parsed.phone,
+        messagePreview: parsed.messagePreview ?? null,
       },
     });
 
     return NextResponse.json({
       success: true,
-      messageId,
       action,
       inquiryStatus,
       outreach: {
         supplierId: parsed.supplierId ?? null,
         supplierName,
-        channel: "EMAIL",
-        contact: parsed.to,
+        channel: "WHATSAPP",
+        contact: parsed.phone,
       },
     });
   });

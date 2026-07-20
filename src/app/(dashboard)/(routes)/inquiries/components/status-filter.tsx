@@ -41,6 +41,8 @@ export const StatusFilter = () => {
         return "bg-yellow-50 text-yellow-700 border border-yellow-200";
       case "QUERY_SENT":
         return "bg-blue-50 text-blue-700 border border-blue-200";
+      case "ASKED_TO_SUPPLIER":
+        return "bg-teal-50 text-teal-700 border border-teal-200";
       default:
         return "bg-gray-100 text-gray-800 border border-gray-200";
     }

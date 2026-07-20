@@ -67,6 +67,8 @@ const StatusCell = ({ row }: { row: any }) => {
         return "bg-orange-50 text-orange-700 border border-orange-200";
       case "QUERY_SENT":
         return "bg-blue-50 text-blue-700 border border-blue-200";
+      case "ASKED_TO_SUPPLIER":
+        return "bg-teal-50 text-teal-700 border border-teal-200";
       default:
         return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     }
@@ -94,6 +96,7 @@ const StatusCell = ({ row }: { row: any }) => {
                 status.value === "CANCELLED" ? "text-red-600" :
                 status.value === "HOT_QUERY" ? "text-orange-600" :
                 status.value === "QUERY_SENT" ? "text-blue-600" :
+                status.value === "ASKED_TO_SUPPLIER" ? "text-teal-600" :
                 "text-yellow-600"
               }
             >
@@ -371,6 +374,8 @@ export const columns: ColumnDef<InquiryColumn>[] = [
             return "bg-orange-50 text-orange-700 border border-orange-200";
           case "QUERY_SENT":
             return "bg-blue-50 text-blue-700 border border-blue-200";
+          case "ASKED_TO_SUPPLIER":
+            return "bg-teal-50 text-teal-700 border border-teal-200";
           case "PENDING":
             return "bg-yellow-50 text-yellow-700 border border-yellow-200";
           default:
@@ -403,6 +408,7 @@ export const columns: ColumnDef<InquiryColumn>[] = [
                   status.value === "CANCELLED" ? "text-red-600" :
                   status.value === "HOT_QUERY" ? "text-orange-600" :
                   status.value === "QUERY_SENT" ? "text-blue-600" :
+                  status.value === "ASKED_TO_SUPPLIER" ? "text-teal-600" :
                   "text-yellow-600"
                 }
               >

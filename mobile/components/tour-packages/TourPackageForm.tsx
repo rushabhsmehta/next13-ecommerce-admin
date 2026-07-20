@@ -15,11 +15,13 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
 import { createOperationsClient, type OpsLocation } from "@/lib/operations";
 import { OperationsImageGallery } from "@/components/operations/OperationsImageGallery";
 import { PolicyListEditor } from "@/components/tour-packages/PolicyListEditor";
@@ -200,6 +202,8 @@ export function TourPackageForm({
     { id: string; label: string }[]
   >([]);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showLocationCreate, setShowLocationCreate] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
   const [aiDraftLoaded, setAiDraftLoaded] = useState(seededFromAi);
   const aiAlertShownRef = useRef(false);
 
@@ -222,6 +226,33 @@ export function TourPackageForm({
   useEffect(() => {
     void loadLocations();
   }, [loadLocations]);
+
+  async function createLocationQuick(values: Record<string, string>) {
+    const label = values.name?.trim();
+    if (!label) return;
+    setCreatingLocation(true);
+    try {
+      const saved = await opsClient.createLocation({
+        label,
+        imageUrl: DEFAULT_OPS_IMAGE_URL,
+      });
+      setLocationOptions((prev) => {
+        if (prev.some((o) => o.id === saved.id)) return prev;
+        return [{ id: saved.id, label: saved.label }, ...prev];
+      });
+      setLocationId(saved.id);
+      setLocationLabel(saved.label);
+      setShowLocationCreate(false);
+      setShowLocationPicker(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the location."
+      );
+    } finally {
+      setCreatingLocation(false);
+    }
+  }
 
   // Resolve location label once options arrive (do not re-trigger draft consume).
   useEffect(() => {
@@ -901,7 +932,32 @@ export function TourPackageForm({
           setShowLocationPicker(false);
         }}
         onClose={() => setShowLocationPicker(false)}
+        footerAction={{
+          label: "Add location",
+          testID: "tour-package-location-picker-add",
+          onPress: () => setShowLocationCreate(true),
+        }}
         testID="tour-package-location-picker"
+      />
+      <AdminQuickCreateModal
+        visible={showLocationCreate}
+        title="Add location"
+        hint="Creates a location and selects it for this package."
+        fields={[
+          {
+            key: "name",
+            label: "Location name",
+            placeholder: "e.g. Kolkata",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create location"
+        loading={creatingLocation}
+        onClose={() => setShowLocationCreate(false)}
+        onSubmit={createLocationQuick}
+        testID="tour-package-location-quick-create"
       />
     </AdminScreen>
   );

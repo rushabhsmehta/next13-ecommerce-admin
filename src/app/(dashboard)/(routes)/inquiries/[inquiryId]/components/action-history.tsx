@@ -19,6 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Trash } from "lucide-react";
 import { AlertModal } from "@/components/modals/alert-modal";
+import {
+  outreachActionLabel,
+  parseOutreachRemarks,
+} from "@/lib/inquiry-supplier-outreach";
 
 interface ActionHistoryProps {
   inquiryId: string;
@@ -93,12 +97,30 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
       case "MESSAGE":
         return "border-blue-500 bg-blue-50";
       case "EMAIL":
+      case "EMAIL_SUPPLIER":
         return "border-yellow-500 bg-yellow-50";
+      case "WHATSAPP_SUPPLIER":
+        return "border-emerald-500 bg-emerald-50";
+      case "SUPPLIER_QUOTE_RECEIVED":
+        return "border-teal-500 bg-teal-50";
       case "MEETING":
         return "border-purple-500 bg-purple-50";
       default:
         return "border-gray-500 bg-gray-50";
     }
+  };
+
+  const formatRemarks = (actionType: string, remarks: string) => {
+    const parsed = parseOutreachRemarks(remarks);
+    if (!parsed) return remarks;
+    const parts = [
+      parsed.supplierName,
+      parsed.channel,
+      parsed.contact,
+      parsed.subject,
+      parsed.notes || parsed.messagePreview,
+    ].filter(Boolean);
+    return parts.join(" · ");
   };
 
   return (
@@ -180,15 +202,15 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                 <div className="flex items-center">
                   <span className="font-medium mr-2">
-                    {action.actionType}
+                    {outreachActionLabel(action.actionType)}
                   </span>
                 </div>
                 <div className="text-sm text-muted-foreground mt-1 sm:mt-0">
                   {format(new Date(action.actionDate), "PPP")}
                 </div>
               </div>
-              <div className="text-sm mt-1">
-                {action.remarks}
+              <div className="text-sm mt-1 pr-8">
+                {formatRemarks(action.actionType, action.remarks)}
               </div>
               <Button
                 variant="ghost"

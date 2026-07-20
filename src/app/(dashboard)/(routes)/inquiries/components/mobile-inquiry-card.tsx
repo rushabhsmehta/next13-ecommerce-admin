@@ -35,6 +35,8 @@ const getStatusColor = (status: string) => {
       return "bg-orange-100 text-orange-800 hover:bg-orange-200";
     case "QUERY_SENT":
       return "bg-blue-100 text-blue-800 hover:bg-blue-200";
+    case "ASKED_TO_SUPPLIER":
+      return "bg-teal-100 text-teal-800 hover:bg-teal-200";
     default:
       return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
   }
@@ -142,7 +144,7 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data, isAs
 
                   <div className="ml-2">
                     <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(inquiry.status)}`}>
-                      {inquiry.status === 'PENDING' ? 'Pending' : inquiry.status === 'HOT_QUERY' ? 'Hot Query' : inquiry.status === 'CONFIRMED' ? 'Confirmed' : inquiry.status === 'QUERY_SENT' ? 'Query Sent' : 'Cancelled'}
+                      {inquiry.status === 'PENDING' ? 'Pending' : inquiry.status === 'HOT_QUERY' ? 'Hot Query' : inquiry.status === 'CONFIRMED' ? 'Confirmed' : inquiry.status === 'QUERY_SENT' ? 'Query Sent' : inquiry.status === 'ASKED_TO_SUPPLIER' ? 'Asked to Supplier' : 'Cancelled'}
                     </div>
                   </div>
                 </div>
@@ -303,7 +305,7 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data, isAs
               <div className="flex items-center gap-2">
                 <Select defaultValue={inquiry.status} onValueChange={(v)=> onStatusChange(inquiry.id, v)}>
                   <SelectTrigger className={`h-8 text-xs ${getStatusColor(inquiry.status)}`} style={{ minWidth: 110 }}><SelectValue placeholder="Change status"/></SelectTrigger>
-                  <SelectContent>{statusOptions.map(s => <SelectItem key={s.value} value={s.value} className={s.value === 'CONFIRMED' ? 'text-green-600' : s.value === 'CANCELLED' ? 'text-red-600' : s.value === 'HOT_QUERY' ? 'text-orange-600' : s.value === 'QUERY_SENT' ? 'text-blue-600' : 'text-yellow-600'}>{s.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>{statusOptions.map(s => <SelectItem key={s.value} value={s.value} className={s.value === 'CONFIRMED' ? 'text-green-600' : s.value === 'CANCELLED' ? 'text-red-600' : s.value === 'HOT_QUERY' ? 'text-orange-600' : s.value === 'QUERY_SENT' ? 'text-blue-600' : s.value === 'ASKED_TO_SUPPLIER' ? 'text-teal-600' : 'text-yellow-600'}>{s.label}</SelectItem>)}</SelectContent>
                 </Select>
                 <CellAction data={inquiry} />
               </div>

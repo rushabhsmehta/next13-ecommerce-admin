@@ -15,12 +15,14 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   type AdminPickerOption,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
 import {
   createOperationsClient,
   type SupplierInput,
@@ -76,6 +78,8 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
   const [locationOptions, setLocationOptions] = useState<AdminPickerOption[]>([]);
   const [pickersLoading, setPickersLoading] = useState(true);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showLocationCreate, setShowLocationCreate] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const labelById = useMemo(() => {
@@ -105,6 +109,32 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
   useEffect(() => {
     void loadLocations();
   }, [loadLocations]);
+
+  async function createLocationQuick(values: Record<string, string>) {
+    const label = values.name?.trim();
+    if (!label) return;
+    setCreatingLocation(true);
+    try {
+      const saved = await client.createLocation({
+        label,
+        imageUrl: DEFAULT_OPS_IMAGE_URL,
+      });
+      setLocationOptions((prev) => {
+        if (prev.some((o) => o.id === saved.id)) return prev;
+        return [{ id: saved.id, label: saved.label }, ...prev];
+      });
+      addLocation(saved.id);
+      setShowLocationCreate(false);
+      setShowLocationPicker(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the location."
+      );
+    } finally {
+      setCreatingLocation(false);
+    }
+  }
 
   const screenTitle = mode === "create" ? "New supplier" : "Edit supplier";
   const canSubmit = name.trim().length > 0 && !submitting;
@@ -275,21 +305,17 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
             accessibilityHint="Opens a list of tour locations to link to this supplier"
             style={[
               styles.addLocationBtn,
-              availableLocationOptions.length === 0 && !pickersLoading
-                ? styles.addLocationBtnDisabled
-                : null,
+              pickersLoading ? styles.addLocationBtnDisabled : null,
             ]}
             onPress={() => setShowLocationPicker(true)}
-            disabled={pickersLoading || availableLocationOptions.length === 0}
+            disabled={pickersLoading}
           >
             <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
             <Text style={styles.addLocationText}>
               {pickersLoading
                 ? "Loading locations…"
-                : availableLocationOptions.length === 0
-                  ? locationIds.length > 0
-                    ? "All locations added"
-                    : "No locations available"
+                : availableLocationOptions.length === 0 && locationIds.length > 0
+                  ? "Add another location"
                   : "Add location"}
             </Text>
           </Pressable>
@@ -303,7 +329,32 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
         loading={pickersLoading}
         onClose={() => setShowLocationPicker(false)}
         onSelect={(opt) => addLocation(opt.id)}
+        footerAction={{
+          label: "Add location",
+          testID: "supplier-form-location-picker-add",
+          onPress: () => setShowLocationCreate(true),
+        }}
         testID="supplier-form-location-picker"
+      />
+      <AdminQuickCreateModal
+        visible={showLocationCreate}
+        title="Add location"
+        hint="Creates a location and links it to this supplier."
+        fields={[
+          {
+            key: "name",
+            label: "Location name",
+            placeholder: "e.g. Kolkata",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create location"
+        loading={creatingLocation}
+        onClose={() => setShowLocationCreate(false)}
+        onSubmit={createLocationQuick}
+        testID="supplier-form-location-quick-create"
       />
     </AdminScreen>
   );

@@ -20,11 +20,13 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
 import {
   createOperationsClient,
   type TransportPricingInput,
@@ -120,6 +122,10 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
   const [pickersLoading, setPickersLoading] = useState(true);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
+  const [showLocationCreate, setShowLocationCreate] = useState(false);
+  const [showVehicleCreate, setShowVehicleCreate] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
+  const [creatingVehicle, setCreatingVehicle] = useState(false);
   const [dateField, setDateField] = useState<"start" | "end" | null>(null);
 
   const loadPickers = useCallback(async () => {
@@ -367,6 +373,11 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
           setLocationId(opt.id);
           setLocationLabel(opt.label);
         }}
+        footerAction={{
+          label: "Add location",
+          testID: "transport-pricing-location-picker-add",
+          onPress: () => setShowLocationCreate(true),
+        }}
         testID="transport-pricing-location-picker"
       />
       <AdminPickerSheet
@@ -380,7 +391,99 @@ export function TransportPricingForm({ mode, pricingId, initial }: Props) {
           setVehicleTypeId(opt.id);
           setVehicleTypeName(opt.label);
         }}
+        footerAction={{
+          label: "Add vehicle type",
+          testID: "transport-pricing-vehicle-picker-add",
+          onPress: () => setShowVehicleCreate(true),
+        }}
         testID="transport-pricing-vehicle-picker"
+      />
+      <AdminQuickCreateModal
+        visible={showLocationCreate}
+        title="Add location"
+        fields={[
+          {
+            key: "name",
+            label: "Location name",
+            placeholder: "e.g. Kolkata",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create location"
+        loading={creatingLocation}
+        onClose={() => setShowLocationCreate(false)}
+        onSubmit={async (values) => {
+          const label = values.name?.trim();
+          if (!label) return;
+          setCreatingLocation(true);
+          try {
+            const saved = await client.createLocation({
+              label,
+              imageUrl: DEFAULT_OPS_IMAGE_URL,
+            });
+            setLocationOptions((prev) => {
+              if (prev.some((o) => o.id === saved.id)) return prev;
+              return [{ id: saved.id, label: saved.label }, ...prev];
+            });
+            setLocationId(saved.id);
+            setLocationLabel(saved.label);
+            setShowLocationCreate(false);
+            setShowLocationPicker(false);
+          } catch (err) {
+            Alert.alert(
+              "Create failed",
+              err instanceof ApiError ? err.message : "Could not create the location."
+            );
+          } finally {
+            setCreatingLocation(false);
+          }
+        }}
+        testID="transport-pricing-location-quick-create"
+      />
+      <AdminQuickCreateModal
+        visible={showVehicleCreate}
+        title="Add vehicle type"
+        fields={[
+          {
+            key: "name",
+            label: "Vehicle type name",
+            placeholder: "e.g. Innova Crysta",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create vehicle type"
+        loading={creatingVehicle}
+        onClose={() => setShowVehicleCreate(false)}
+        onSubmit={async (values) => {
+          const vehicleName = values.name?.trim();
+          if (!vehicleName) return;
+          setCreatingVehicle(true);
+          try {
+            const saved = await client.createVehicleType({ name: vehicleName });
+            setVehicleOptions((prev) => {
+              if (prev.some((o) => o.id === saved.id)) return prev;
+              return [{ id: saved.id, label: saved.name }, ...prev];
+            });
+            setVehicleTypeId(saved.id);
+            setVehicleTypeName(saved.name);
+            setShowVehicleCreate(false);
+            setShowVehiclePicker(false);
+          } catch (err) {
+            Alert.alert(
+              "Create failed",
+              err instanceof ApiError
+                ? err.message
+                : "Could not create the vehicle type."
+            );
+          } finally {
+            setCreatingVehicle(false);
+          }
+        }}
+        testID="transport-pricing-vehicle-quick-create"
       />
     </AdminScreen>
   );

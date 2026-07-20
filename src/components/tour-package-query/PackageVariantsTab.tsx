@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, Hotel as HotelIcon, Check, ChevronsUpDown, Sparkles, Copy, AlertCircle, Loader2, Calendar, IndianRupee, Edit3, Trash } from "lucide-react";
+import { Plus, Trash2, Hotel as HotelIcon, Check, ChevronsUpDown, Sparkles, Copy, AlertCircle, Loader2, Calendar, IndianRupee, Edit3, Trash, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "react-hot-toast";
@@ -289,7 +289,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
   control,
   form,
   loading,
-  hotels,
+  hotels: hotelsProp,
   availableTourPackages,
   variantPricingLookup,
   tourPackageId,
@@ -302,6 +302,18 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
   const availablePackages = Array.isArray(availableTourPackages) ? availableTourPackages : [];
   const pricingLookup = useMemo(() => variantPricingLookup ?? EMPTY_PRICING_LOOKUP, [variantPricingLookup]);
   const locationId = useWatch({ control, name: "locationId" }) as string | undefined;
+  const [createdHotels, setCreatedHotels] = useState<Array<Hotel & { images: Images[] }>>([]);
+  const hotels = useMemo(() => {
+    const seen = new Set(createdHotels.map((h) => h.id));
+    return [...createdHotels, ...hotelsProp.filter((h) => !seen.has(h.id))];
+  }, [createdHotels, hotelsProp]);
+  const [addHotelOpen, setAddHotelOpen] = useState(false);
+  const [newHotelName, setNewHotelName] = useState("");
+  const [savingHotel, setSavingHotel] = useState(false);
+  const [addHotelTarget, setAddHotelTarget] = useState<{
+    variantIndex: number;
+    mappingKey: string;
+  } | null>(null);
   const currencyFormatter = useMemo(() => new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -924,6 +936,44 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
     setVariants(updated);
   };
 
+  const handleAddHotel = async () => {
+    const name = newHotelName.trim();
+    if (!name) {
+      toast.error("Hotel name is required.");
+      return;
+    }
+    if (!locationId) {
+      toast.error("Select a package location before creating a hotel.");
+      return;
+    }
+    setSavingHotel(true);
+    try {
+      const res = await axios.post("/api/hotels", {
+        name,
+        locationId,
+        images: [{ url: "https://admin.aagamholidays.com/aagamholidays.png" }],
+      });
+      const created = res.data as Hotel & { images: Images[] };
+      setCreatedHotels((prev) => [created, ...prev.filter((h) => h.id !== created.id)]);
+      if (addHotelTarget) {
+        updateHotelMapping(
+          addHotelTarget.variantIndex,
+          addHotelTarget.mappingKey,
+          created.id
+        );
+      }
+      setAddHotelOpen(false);
+      setNewHotelName("");
+      setAddHotelTarget(null);
+      setOpenHotelPopover(null);
+      toast.success("Hotel created.");
+    } catch (error: any) {
+      toast.error(error?.response?.data || "Could not create hotel.");
+    } finally {
+      setSavingHotel(false);
+    }
+  };
+
   const normalizeItineraryOrder = (list: any[]) => {
     return (Array.isArray(list) ? list : []).map((entry, index) => {
       const rawDay = entry?.dayNumber;
@@ -1117,6 +1167,50 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
 
   return (
     <div className="space-y-5">
+      <Dialog open={addHotelOpen} onOpenChange={setAddHotelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Hotel</DialogTitle>
+            <DialogDescription>
+              Creates a hotel for the package location and selects it for this day.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Label htmlFor="package-variant-hotel-name">Hotel name</Label>
+            <Input
+              id="package-variant-hotel-name"
+              placeholder="Hotel name"
+              value={newHotelName}
+              onChange={(e) => setNewHotelName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleAddHotel();
+                }
+              }}
+              disabled={savingHotel}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAddHotelOpen(false)}
+              disabled={savingHotel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleAddHotel()}
+              disabled={savingHotel || !newHotelName.trim() || !locationId}
+            >
+              {savingHotel ? "Adding..." : "Add Hotel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Header */}
       <Card className="shadow-sm border border-slate-200/70 bg-gradient-to-r from-white to-slate-50">
         <CardHeader className="pb-3">
@@ -1484,6 +1578,22 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                     ))}
                                   </CommandGroup>
                                 </CommandList>
+                                <div className="border-t p-1">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="w-full justify-start text-xs h-8"
+                                    disabled={!locationId}
+                                    onClick={() => {
+                                      setAddHotelTarget({ variantIndex, mappingKey });
+                                      setNewHotelName("");
+                                      setAddHotelOpen(true);
+                                    }}
+                                  >
+                                    <PlusCircle className="mr-2 h-3.5 w-3.5" />
+                                    Add new hotel
+                                  </Button>
+                                </div>
                               </Command>
                             </PopoverContent>
                           </Popover>

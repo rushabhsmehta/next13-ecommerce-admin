@@ -54,6 +54,7 @@ interface EmailSupplierButtonProps {
   hideButton?: boolean;
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon";
+  onSuccess?: (inquiryStatus?: string) => void;
 }
 
 const DEFAULT_MESSAGE_TEMPLATE = `New Travel Inquiry
@@ -84,6 +85,7 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
   hideButton = false,
   variant = "outline",
   size = "sm",
+  onSuccess,
 }) => {
   const [open, setOpen] = useState(isOpen);
   const [supplierEmail, setSupplierEmail] = useState("");
@@ -304,6 +306,8 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
             subject: subject.trim(),
             body: message.trim(),
             supplierId: selectedSupplier || null,
+            supplierName:
+              suppliers.find((s) => s.id === selectedSupplier)?.name || null,
           }),
         }
       );
@@ -320,12 +324,13 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
         return;
       }
 
-      toast.success("Email sent to supplier");
+      toast.success("Email sent — marked as Asked to Supplier");
       setSelectedSupplier("");
       setSupplierEmail("");
       setSubject("");
       setMessage("");
       handleOpenChange(false);
+      onSuccess?.(data?.inquiryStatus);
     } catch {
       toast.error("Failed to send email");
     } finally {
@@ -401,7 +406,7 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
                   searchInputRef.current?.focus();
                 }}
               >
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput
                     ref={searchInputRef}
                     placeholder="Search suppliers..."
@@ -426,7 +431,7 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
                       {filteredSuppliers.map((supplier) => (
                         <CommandItem
                           key={supplier.id}
-                          value={supplier.id}
+                          value={`${supplier.name} ${getSupplierEmail(supplier)}`}
                           onSelect={() => handleSupplierSelect(supplier.id)}
                         >
                           <Check

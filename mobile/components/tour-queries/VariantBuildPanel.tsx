@@ -11,9 +11,15 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
-import { AdminPickerSheet, AdminSegmentedControl } from "@/components/admin";
+import {
+  AdminPickerSheet,
+  AdminQuickCreateModal,
+  AdminSegmentedControl,
+} from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
-import { withAuth } from "@/lib/api";
+import { ApiError, withAuth } from "@/lib/api";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
+import { createOperationsClient } from "@/lib/operations";
 import { VARIANT_BUILD_TABS } from "./tab-config";
 import type { VariantBuildTabId } from "./types";
 import type {
@@ -167,6 +173,7 @@ export function VariantBuildPanel({
     getTokenRef.current = getToken;
   }, [getToken]);
   const authRequest = useMemo(() => withAuth(() => getTokenRef.current()), []);
+  const opsClient = useMemo(() => createOperationsClient(authRequest), [authRequest]);
 
   const [activeTab, setActiveTab] = useState<VariantBuildTabId>("hotels");
   const [picker, setPicker] = useState<BuildPickerState | null>(null);
@@ -177,6 +184,13 @@ export function VariantBuildPanel({
     Record<string, Array<{ id: string; name: string }>>
   >({});
   const [loadingHotelsFor, setLoadingHotelsFor] = useState<string | null>(null);
+  const [showHotelCreate, setShowHotelCreate] = useState(false);
+  const [showVehicleCreate, setShowVehicleCreate] = useState(false);
+  const [creatingHotel, setCreatingHotel] = useState(false);
+  const [creatingVehicle, setCreatingVehicle] = useState(false);
+  const [localVehicleTypes, setLocalVehicleTypes] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
 
   const persistedDraft = useMemo(
     () => createVariantBuildDraft(variant, build),
@@ -455,7 +469,14 @@ export function VariantBuildPanel({
       ];
     }
     if (picker.type === "transport") {
-      return build.lookups.vehicleTypes.map((item) => ({ id: item.id, label: item.name }));
+      const base = build.lookups.vehicleTypes.map((item) => ({
+        id: item.id,
+        label: item.name,
+      }));
+      const extras = localVehicleTypes
+        .filter((item) => !base.some((b) => b.id === item.id))
+        .map((item) => ({ id: item.id, label: item.name }));
+      return [...extras, ...base];
     }
     if (picker.type === "extraOccupancy") {
       return build.lookups.occupancyTypes.map((item) => ({ id: item.id, label: item.name }));
@@ -467,7 +488,7 @@ export function VariantBuildPanel({
       return build.lookups.occupancyTypes.map((item) => ({ id: item.id, label: item.name }));
     }
     return build.lookups.mealPlans.map((item) => ({ id: item.id, label: item.name }));
-  }, [build.lookups, hotelsCache, picker, variant.id, variants]);
+  }, [build.lookups, hotelsCache, localVehicleTypes, picker, variant.id, variants]);
 
   const pickerTitle = useMemo(() => {
     if (!picker) return "";
@@ -1252,8 +1273,122 @@ export function VariantBuildPanel({
           testID={`variant-build-picker-${variant.id}`}
           onSelect={handlePickerSelect}
           onClose={() => setPicker(null)}
+          footerAction={
+            picker.type === "hotel"
+              ? {
+                  label: "Add hotel",
+                  testID: `variant-build-hotel-add-${variant.id}`,
+                  disabled: !picker.locationId,
+                  onPress: () => setShowHotelCreate(true),
+                }
+              : picker.type === "transport"
+                ? {
+                    label: "Add vehicle type",
+                    testID: `variant-build-vehicle-add-${variant.id}`,
+                    onPress: () => setShowVehicleCreate(true),
+                  }
+                : undefined
+          }
         />
       ) : null}
+
+      <AdminQuickCreateModal
+        visible={showHotelCreate}
+        title="Add hotel"
+        hint="Creates a hotel for this day location and selects it."
+        fields={[
+          {
+            key: "name",
+            label: "Hotel name",
+            placeholder: "e.g. Taj Exotica",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create hotel"
+        loading={creatingHotel}
+        onClose={() => setShowHotelCreate(false)}
+        onSubmit={async (values) => {
+          const hotelName = values.name?.trim();
+          const locId =
+            picker?.type === "hotel" ? picker.locationId : null;
+          const itineraryId =
+            picker?.type === "hotel" ? picker.itineraryId : null;
+          if (!hotelName || !locId || !itineraryId) return;
+          setCreatingHotel(true);
+          try {
+            const saved = await opsClient.createHotel({
+              name: hotelName,
+              locationId: locId,
+              images: [{ url: DEFAULT_OPS_IMAGE_URL }],
+            });
+            setHotelsCache((prev) => ({
+              ...prev,
+              [locId]: [
+                { id: saved.id, name: saved.name },
+                ...(prev[locId] ?? []).filter((h) => h.id !== saved.id),
+              ],
+            }));
+            setHotelForDay(itineraryId, saved.id);
+            setShowHotelCreate(false);
+            setPicker(null);
+          } catch (err) {
+            Alert.alert(
+              "Create failed",
+              err instanceof ApiError ? err.message : "Could not create the hotel."
+            );
+          } finally {
+            setCreatingHotel(false);
+          }
+        }}
+        testID={`variant-build-hotel-quick-create-${variant.id}`}
+      />
+
+      <AdminQuickCreateModal
+        visible={showVehicleCreate}
+        title="Add vehicle type"
+        fields={[
+          {
+            key: "name",
+            label: "Vehicle type name",
+            placeholder: "e.g. Innova Crysta",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create vehicle type"
+        loading={creatingVehicle}
+        onClose={() => setShowVehicleCreate(false)}
+        onSubmit={async (values) => {
+          const vehicleName = values.name?.trim();
+          if (!vehicleName || picker?.type !== "transport") return;
+          setCreatingVehicle(true);
+          try {
+            const saved = await opsClient.createVehicleType({ name: vehicleName });
+            setLocalVehicleTypes((prev) => {
+              if (prev.some((v) => v.id === saved.id)) return prev;
+              return [{ id: saved.id, name: saved.name }, ...prev];
+            });
+            updateTransport(picker.itineraryId, picker.transportIndex, {
+              vehicleTypeId: saved.id,
+            });
+            setShowVehicleCreate(false);
+            setPicker(null);
+          } catch (err) {
+            Alert.alert(
+              "Create failed",
+              err instanceof ApiError
+                ? err.message
+                : "Could not create the vehicle type."
+            );
+          } finally {
+            setCreatingVehicle(false);
+          }
+        }}
+        testID={`variant-build-vehicle-quick-create-${variant.id}`}
+      />
     </View>
   );
 }

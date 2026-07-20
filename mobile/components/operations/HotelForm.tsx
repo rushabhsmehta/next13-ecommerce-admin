@@ -15,11 +15,13 @@ import {
   AdminFormField,
   AdminFormSection,
   AdminPickerSheet,
+  AdminQuickCreateModal,
   AdminScreen,
   AdminTopBar,
 } from "@/components/admin";
 import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { ApiError, withAuth } from "@/lib/api";
+import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
 import {
   createOperationsClient,
   type HotelInput,
@@ -87,6 +89,10 @@ export function HotelForm({ mode, hotelId, initial, defaultLocationId }: Props) 
   >([]);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showDestinationPicker, setShowDestinationPicker] = useState(false);
+  const [showLocationCreate, setShowLocationCreate] = useState(false);
+  const [showDestinationCreate, setShowDestinationCreate] = useState(false);
+  const [creatingLocation, setCreatingLocation] = useState(false);
+  const [creatingDestination, setCreatingDestination] = useState(false);
 
   const loadLocations = useCallback(async () => {
     try {
@@ -164,6 +170,66 @@ export function HotelForm({ mode, hotelId, initial, defaultLocationId }: Props) 
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function selectLocation(id: string, label: string) {
+    setLocationId(id);
+    setLocationLabel(label);
+    setDestinationId("");
+    setDestinationLabel("");
+  }
+
+  async function createLocationQuick(values: Record<string, string>) {
+    const label = values.name?.trim();
+    if (!label) return;
+    setCreatingLocation(true);
+    try {
+      const saved = await client.createLocation({
+        label,
+        imageUrl: DEFAULT_OPS_IMAGE_URL,
+      });
+      setLocationOptions((prev) => {
+        if (prev.some((o) => o.id === saved.id)) return prev;
+        return [{ id: saved.id, label: saved.label }, ...prev];
+      });
+      selectLocation(saved.id, saved.label);
+      setShowLocationCreate(false);
+      setShowLocationPicker(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the location."
+      );
+    } finally {
+      setCreatingLocation(false);
+    }
+  }
+
+  async function createDestinationQuick(values: Record<string, string>) {
+    const destName = values.name?.trim();
+    if (!destName || !locationId) return;
+    setCreatingDestination(true);
+    try {
+      const saved = await client.createDestination({
+        name: destName,
+        locationId,
+      });
+      setDestinationOptions((prev) => {
+        if (prev.some((o) => o.id === saved.id)) return prev;
+        return [{ id: saved.id, label: saved.name }, ...prev];
+      });
+      setDestinationId(saved.id);
+      setDestinationLabel(saved.name);
+      setShowDestinationCreate(false);
+      setShowDestinationPicker(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the destination."
+      );
+    } finally {
+      setCreatingDestination(false);
     }
   }
 
@@ -298,11 +364,11 @@ export function HotelForm({ mode, hotelId, initial, defaultLocationId }: Props) 
         options={locationOptions}
         selectedId={locationId}
         onClose={() => setShowLocationPicker(false)}
-        onSelect={(opt) => {
-          setLocationId(opt.id);
-          setLocationLabel(opt.label);
-          setDestinationId("");
-          setDestinationLabel("");
+        onSelect={(opt) => selectLocation(opt.id, opt.label)}
+        footerAction={{
+          label: "Add location",
+          testID: "hotel-location-picker-add",
+          onPress: () => setShowLocationCreate(true),
         }}
         testID="hotel-location-picker"
       />
@@ -316,7 +382,58 @@ export function HotelForm({ mode, hotelId, initial, defaultLocationId }: Props) 
           setDestinationId(opt.id);
           setDestinationLabel(opt.label);
         }}
+        footerAction={{
+          label: "Add destination",
+          testID: "hotel-destination-picker-add",
+          disabled: !locationId,
+          onPress: () => setShowDestinationCreate(true),
+        }}
         testID="hotel-destination-picker"
+      />
+
+      <AdminQuickCreateModal
+        visible={showLocationCreate}
+        title="Add location"
+        hint="Creates a location and selects it for this hotel."
+        fields={[
+          {
+            key: "name",
+            label: "Location name",
+            placeholder: "e.g. Kolkata",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create location"
+        loading={creatingLocation}
+        onClose={() => setShowLocationCreate(false)}
+        onSubmit={createLocationQuick}
+        testID="hotel-location-quick-create"
+      />
+      <AdminQuickCreateModal
+        visible={showDestinationCreate}
+        title="Add destination"
+        hint={
+          locationLabel
+            ? `Will be created under ${locationLabel}.`
+            : "Select a location first."
+        }
+        fields={[
+          {
+            key: "name",
+            label: "Destination name",
+            placeholder: "e.g. North Goa",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+        ]}
+        submitLabel="Create destination"
+        loading={creatingDestination}
+        onClose={() => setShowDestinationCreate(false)}
+        onSubmit={createDestinationQuick}
+        testID="hotel-destination-quick-create"
       />
     </AdminScreen>
   );

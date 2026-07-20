@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Control, useWatch } from "react-hook-form";
 import { Hotel, Images, PackageVariant, VariantHotelMapping, Itinerary, TourPackagePricing, PricingComponent, PricingAttribute, MealPlan, VehicleType, LocationSeasonalPeriod } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Check, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign, Copy, ChevronsUpDown } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Sparkles, Hotel as HotelIcon, IndianRupee, Calendar, Info, AlertCircle, Check, Utensils as UtensilsIcon, Car, Receipt, BedDouble, Users, Calculator, Plus, Trash, Settings, Package, CreditCard, ShoppingCart, Wallet, CheckCircle, RefreshCw, Target, Star, Trophy, DollarSign, Copy, ChevronsUpDown, PlusCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form";
@@ -88,7 +90,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   form,
   loading,
   tourPackages,
-  hotels,
+  hotels: hotelsProp,
   roomTypes = [],
   occupancyTypes = [],
   mealPlans = [],
@@ -111,6 +113,20 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
   const numChild0to5 = parseInt(numChild0to5Raw || '0') || 0;
   const confirmedVariantId = useWatch({ control, name: "confirmedVariantId" }) as string | null | undefined;
   const customQueryVariants = useWatch({ control, name: "customQueryVariants" }) as any[] | undefined;
+
+  const [createdHotels, setCreatedHotels] = useState<Array<Hotel & { images: Images[] }>>([]);
+  const hotels = useMemo(() => {
+    const seen = new Set(createdHotels.map((h) => h.id));
+    return [...createdHotels, ...hotelsProp.filter((h) => !seen.has(h.id))];
+  }, [createdHotels, hotelsProp]);
+  const [addHotelOpen, setAddHotelOpen] = useState(false);
+  const [newHotelName, setNewHotelName] = useState("");
+  const [savingHotel, setSavingHotel] = useState(false);
+  const [addHotelTarget, setAddHotelTarget] = useState<{
+    variantId: string;
+    itineraryId: string;
+    locationId: string;
+  } | null>(null);
 
   const [variantCalcMethods, setVariantCalcMethods] = useState<Record<string, CalculationMethod>>({});
   const [copyFromVariantId, setCopyFromVariantId] = useState<Record<string, string>>({});
@@ -1627,9 +1643,94 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
     }, { shouldDirty: true });
   };
 
+  const handleAddHotel = async () => {
+    const name = newHotelName.trim();
+    const locationId =
+      addHotelTarget?.locationId ||
+      selectedTourPackage?.locationId ||
+      "";
+    if (!name) {
+      toast.error("Hotel name is required.");
+      return;
+    }
+    if (!locationId) {
+      toast.error("A location is required to create a hotel.");
+      return;
+    }
+    setSavingHotel(true);
+    try {
+      const res = await axios.post("/api/hotels", {
+        name,
+        locationId,
+        images: [{ url: "https://admin.aagamholidays.com/aagamholidays.png" }],
+      });
+      const created = res.data as Hotel & { images: Images[] };
+      setCreatedHotels((prev) => [created, ...prev.filter((h) => h.id !== created.id)]);
+      if (addHotelTarget) {
+        setVariantHotelOverride(
+          addHotelTarget.variantId,
+          addHotelTarget.itineraryId,
+          created.id
+        );
+      }
+      setAddHotelOpen(false);
+      setNewHotelName("");
+      setAddHotelTarget(null);
+      toast.success("Hotel created.");
+    } catch (error: any) {
+      toast.error(error?.response?.data || "Could not create hotel.");
+    } finally {
+      setSavingHotel(false);
+    }
+  };
+
 
   return (
     <div className="space-y-5">
+      <Dialog open={addHotelOpen} onOpenChange={setAddHotelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Hotel</DialogTitle>
+            <DialogDescription>
+              Creates a hotel and selects it as the variant override for this day.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Label htmlFor="query-variant-hotel-name">Hotel name</Label>
+            <Input
+              id="query-variant-hotel-name"
+              placeholder="Hotel name"
+              value={newHotelName}
+              onChange={(e) => setNewHotelName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleAddHotel();
+                }
+              }}
+              disabled={savingHotel}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAddHotelOpen(false)}
+              disabled={savingHotel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleAddHotel()}
+              disabled={savingHotel || !newHotelName.trim()}
+            >
+              {savingHotel ? "Adding..." : "Add Hotel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Card className="shadow-sm border border-slate-200/70 bg-gradient-to-r from-white to-slate-50">
         <CardHeader className="pb-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
@@ -1844,6 +1945,27 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                       ))}
                                     </SelectContent>
                                   </Select>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-0 text-[10px] text-primary"
+                                    onClick={() => {
+                                      setAddHotelTarget({
+                                        variantId: cVariant.id,
+                                        itineraryId: itinerary.id,
+                                        locationId:
+                                          itinerary.locationId ||
+                                          selectedTourPackage?.locationId ||
+                                          "",
+                                      });
+                                      setNewHotelName("");
+                                      setAddHotelOpen(true);
+                                    }}
+                                  >
+                                    <PlusCircle className="mr-1 h-3 w-3" />
+                                    Add new hotel
+                                  </Button>
                                   {selectedHotel && (
                                     <p className="text-[10px] text-blue-600 mt-1 flex items-center gap-1">
                                       <HotelIcon className="h-2.5 w-2.5" /> {selectedHotel.name}
@@ -2653,6 +2775,27 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                                         ))}
                                       </SelectContent>
                                     </Select>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 text-xs w-full"
+                                      onClick={() => {
+                                        setAddHotelTarget({
+                                          variantId: variant.id,
+                                          itineraryId: itinerary.id,
+                                          locationId:
+                                            itinerary.locationId ||
+                                            selectedTourPackage?.locationId ||
+                                            "",
+                                        });
+                                        setNewHotelName("");
+                                        setAddHotelOpen(true);
+                                      }}
+                                    >
+                                      <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
+                                      Add new hotel
+                                    </Button>
                                     <p className="text-[10px] text-slate-500">
                                       Saved as a variant-specific hotel override for this day.
                                     </p>

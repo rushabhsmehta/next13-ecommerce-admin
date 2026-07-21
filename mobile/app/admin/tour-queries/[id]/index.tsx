@@ -302,6 +302,7 @@ function TourQueryDetailScreenInner() {
   const [lifecycleBusy, setLifecycleBusy] = useState<TourQueryLifecycleAction | null>(
     null
   );
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [pdfBusy, setPdfBusy] = useState<"plain" | "variants" | "voucher" | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [itineraryExpanded, setItineraryExpanded] = useState(false);
@@ -531,6 +532,38 @@ function TourQueryDetailScreenInner() {
     [id, lifecycleClient]
   );
 
+  const runDelete = useCallback(() => {
+    if (!id) return;
+    Alert.alert(
+      "Delete this query?",
+      "This permanently deletes the query and related itinerary data. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              setDeleteBusy(true);
+              try {
+                await lifecycleClient.delete(id);
+                router.replace("/admin/tour-queries" as never);
+              } catch (err) {
+                const message =
+                  err instanceof ApiError
+                    ? err.message
+                    : "Could not delete this query.";
+                Alert.alert("Delete failed", message);
+              } finally {
+                setDeleteBusy(false);
+              }
+            })();
+          },
+        },
+      ]
+    );
+  }, [id, lifecycleClient, router]);
+
   const menuSections = useMemo((): TripActionMenuSection[] => {
     if (!data || !id) return [];
     const pk = primaryActionKind(data, canWriteSales);
@@ -671,7 +704,7 @@ function TourQueryDetailScreenInner() {
               testID: "tour-query-unarchive",
               accessibilityHint: "Unarchives this query so it appears in active lists.",
               onPress: () => void runLifecycle("unarchive"),
-              disabled: lifecycleBusy !== null,
+              disabled: lifecycleBusy !== null || deleteBusy,
             },
           ]
       : [
@@ -684,7 +717,7 @@ function TourQueryDetailScreenInner() {
                   testID: "tour-query-confirm",
                   accessibilityHint: "Locks this quote as confirmed for ops and finance.",
                   onPress: () => void runLifecycle("confirm"),
-                  disabled: lifecycleBusy !== null,
+                  disabled: lifecycleBusy !== null || deleteBusy,
                 },
               ]
             : [
@@ -696,7 +729,7 @@ function TourQueryDetailScreenInner() {
                   accessibilityHint: "Clears confirmation on this quote.",
                   onPress: () => void runLifecycle("unconfirm"),
                   destructive: true,
-                  disabled: lifecycleBusy !== null,
+                  disabled: lifecycleBusy !== null || deleteBusy,
                 },
               ]),
           {
@@ -707,9 +740,20 @@ function TourQueryDetailScreenInner() {
             accessibilityHint:
               "Archived queries stay hidden from active work until restored.",
             onPress: () => void runLifecycle("archive"),
-            disabled: lifecycleBusy !== null,
+            disabled: lifecycleBusy !== null || deleteBusy,
           },
         ];
+
+    lifecycleRows.push({
+      id: "delete",
+      label: "Delete query",
+      icon: "trash-outline",
+      testID: "tour-query-delete",
+      accessibilityHint: "Permanently deletes this query. Cannot be undone.",
+      onPress: runDelete,
+      destructive: true,
+      disabled: lifecycleBusy !== null || deleteBusy,
+    });
 
     if (lifecycleRows.length) {
       base.push({
@@ -730,7 +774,9 @@ function TourQueryDetailScreenInner() {
     canWriteSales,
     canWriteOperations,
     runLifecycle,
+    runDelete,
     lifecycleBusy,
+    deleteBusy,
     pdfBusy,
   ]);
 

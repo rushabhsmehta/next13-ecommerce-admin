@@ -1030,3 +1030,65 @@ export async function PATCH(
     return new NextResponse("Internal error", { status: 500 });
   }
 }
+
+/**
+ * Permanent hard-delete for a tour package query (matches web DELETE
+ * /api/tourPackageQuery/[id]). Requires `salesTrips.write` and the same
+ * associate row scope as GET/lifecycle.
+ */
+export async function DELETE(
+  req: Request,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userId = await verifyMobileBearerUserId(req);
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const accessResult = await requireSalesTripsWrite(userId);
+    if (!accessResult.ok) return accessResult.response;
+    const { access } = accessResult;
+
+    const params = await props.params;
+    const id = params.id?.trim();
+    if (!id) return new NextResponse("Missing id", { status: 400 });
+
+    const existing = await prismadb.tourPackageQuery.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        tourPackageQueryNumber: true,
+        tourPackageQueryName: true,
+        associatePartnerId: true,
+        inquiry: {
+          select: { associatePartnerId: true },
+        },
+      },
+    });
+
+    if (!existing) return new NextResponse("Not found", { status: 404 });
+
+    if (!associateCanViewTourPackageQuery(access, existing)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    await prismadb.tourPackageQuery.delete({
+      where: { id },
+    });
+
+    await recordMobileAudit({
+      userId,
+      entityType: "TourPackageQuery",
+      entityId: id,
+      action: "DELETE",
+      metadata: {
+        tourPackageQueryNumber: existing.tourPackageQueryNumber,
+        tourPackageQueryName: existing.tourPackageQueryName,
+      },
+    });
+
+    return NextResponse.json({ deleted: true, id });
+  } catch (error) {
+    console.log("[MOBILE_TOUR_QUERY_DELETE]", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}

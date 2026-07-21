@@ -12,6 +12,11 @@ export interface TourQueryLifecycleResult {
   isArchived: boolean;
 }
 
+export interface TourQueryDeleteResult {
+  deleted: boolean;
+  id: string;
+}
+
 function makeIdempotencyKey(prefix: string): string {
   const rand = Math.random().toString(36).slice(2, 10);
   return `${prefix}-${Date.now().toString(36)}-${rand}`;
@@ -30,6 +35,18 @@ export function createTourQueryLifecycleClient(authRequest: AuthenticatedRequest
           body: { action },
           headers: {
             "Idempotency-Key": makeIdempotencyKey(`tpq-${action}`),
+          },
+        }
+      );
+    },
+
+    delete(tourPackageQueryId: string): Promise<TourQueryDeleteResult> {
+      return authRequest<TourQueryDeleteResult>(
+        `/api/mobile/tour-queries/${encodeURIComponent(tourPackageQueryId)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Idempotency-Key": makeIdempotencyKey("tpq-delete"),
           },
         }
       );

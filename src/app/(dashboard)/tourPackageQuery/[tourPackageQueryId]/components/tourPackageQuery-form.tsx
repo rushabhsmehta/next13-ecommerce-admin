@@ -62,6 +62,7 @@ import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 
 import { cn } from "@/lib/utils"
+import { mapAiActivitiesForWebForm } from "@/lib/ai/map-ai-activities"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { format } from "date-fns"
@@ -604,52 +605,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // This useFieldArray is now handled in the PricingTab component
   // Removing unused code
 
-  // Helper function to escape HTML entities to prevent XSS
-  // Using explicit string replacement for reliable cross-environment behavior
-  const escapeHtml = (text: string): string => {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  };
-
-  // Helper function to map AI-generated activities to form format
-  const mapActivities = (activities: any[]): any[] => {
-    if (!Array.isArray(activities) || activities.length === 0) {
-      return [];
-    }
-
-    const firstActivity = activities[0];
-
-    // Check if activities are in AI-generated format (object with activityDescription)
-    if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
-      // Escape HTML first to prevent XSS, then convert newlines to <br>
-      const description = firstActivity.activityDescription;
-      const escapedDescription = typeof description === 'string' ? escapeHtml(description) : '';
-      const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
-
-      return [{
-        activityTitle: firstActivity.activityTitle || '',
-        activityDescription: descriptionWithLineBreaks,
-        activityImages: []
-      }];
-    }
-
-    // Legacy format: array of strings
-    if (typeof firstActivity === 'string') {
-      return activities.map((act: string) => ({
-        activityTitle: act,
-        activityDescription: '',
-        activityImages: []
-      }));
-    }
-
-    // Unknown format
-    return [];
-  };
-
   // Auto-load draft from Auto Builder
   useEffect(() => {
     const loadDraft = () => {
@@ -702,8 +657,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             itineraryTitle: day.itineraryTitle || '',
             itineraryDescription: day.itineraryDescription || '',
             mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(' & ') : [],
-            // Use helper function to map activities
-            activities: mapActivities(day.activities),
+            activities: mapAiActivitiesForWebForm(day.activities),
             itineraryImages: [],
             hotelId: '',
             locationId: foundLocationId, // Set location ID for itineraries too
@@ -772,7 +726,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           itineraryTitle: day.itineraryTitle || '',
           itineraryDescription: day.itineraryDescription || '',
           mealsIncluded: day.mealsIncluded ? day.mealsIncluded.split(' & ') : [],
-          activities: mapActivities(day.activities),
+          activities: mapAiActivitiesForWebForm(day.activities),
           itineraryImages: [],
           hotelId: '',
           locationId: resolvedLocationId,

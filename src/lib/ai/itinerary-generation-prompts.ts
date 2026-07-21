@@ -46,8 +46,8 @@ const JSON_OUTPUT_SCHEMA = `{
       "suggestedHotel": "string",
       "activities": [
         {
-          "activityTitle": "",
-          "activityDescription": "i. First activity...\\nii. Second... (Roman numerals, each on new line with \\\\n)"
+          "activityTitle": "string - short activity name",
+          "activityDescription": "string - details, timings, notes"
         }
       ]
     }
@@ -60,7 +60,7 @@ const JSON_OUTPUT_SCHEMA = `{
 }`;
 
 const ACTIVITY_RULE =
-  "Each day must have EXACTLY ONE activity object. Leave activityTitle as empty string. List all activities in activityDescription using Roman numerals (i., ii., iii.) with EACH activity on a NEW LINE (use \\n for newlines).";
+  "Each day must include one or more activity objects in activities[]. Every activity needs a non-empty activityTitle and may include activityDescription. Prefer discrete titled activities (do not merge a day's activities into a single empty-title blob or Roman-numeral list).";
 
 export const STRICT_SOURCE_FIDELITY_RULES = `
 ## SOURCE FIDELITY MODE (mandatory when pasted content is provided)

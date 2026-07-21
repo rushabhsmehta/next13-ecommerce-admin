@@ -56,6 +56,7 @@ import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLU
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { mapAiActivitiesForWebForm } from "@/lib/ai/map-ai-activities"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { CaretSortIcon } from "@radix-ui/react-icons"
 import { Switch } from "@/components/ui/switch"
@@ -618,53 +619,6 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     defaultValues
   });
 
-  // Helper function to escape HTML and prevent XSS
-  const escapeHtml = (text: string): string => {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  };
-
-  // Helper function to map AI-generated activities to form format
-  const mapActivities = (activities: any[]): any[] => {
-    if (!Array.isArray(activities) || activities.length === 0) {
-      return [];
-    }
-
-    const firstActivity = activities[0];
-
-    // Check if activities are in AI-generated format (object with activityDescription)
-    if (typeof firstActivity === 'object' && firstActivity.activityDescription) {
-      // Escape HTML first to prevent XSS, then convert newlines to <br>
-      const description = firstActivity.activityDescription;
-      const escapedDescription = typeof description === 'string' ? escapeHtml(description) : '';
-      const descriptionWithLineBreaks = escapedDescription.replace(/\n/g, '<br>');
-
-      return [{
-        activityTitle: firstActivity.activityTitle || '',
-        activityDescription: descriptionWithLineBreaks,
-        activityImages: [],
-        locationId: firstActivity.locationId || '',
-      }];
-    }
-
-    // Legacy format: array of strings
-    if (typeof firstActivity === 'string') {
-      return activities.map((act: string) => ({
-        activityTitle: act,
-        activityDescription: '',
-        activityImages: [],
-        locationId: '',
-      }));
-    }
-
-    // Unknown format: align with tourPackageQuery-form by returning an empty array
-    return [];
-  };
-
   // Helper to map AI draft data to form itineraries
   const mapDraftToItineraries = (data: any, locationId: string) => {
     return Array.isArray(data.itineraries) ? data.itineraries.map((day: any) => ({
@@ -674,7 +628,10 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
       mealsIncluded: day.mealsIncluded ? (typeof day.mealsIncluded === 'string' ? day.mealsIncluded.split(' & ') : day.mealsIncluded) : [],
       hotelId: '',
       locationId: locationId || '',
-      activities: mapActivities(day.activities),
+      activities: mapAiActivitiesForWebForm(day.activities, {
+        includeLocationId: true,
+        fallbackLocationId: locationId || '',
+      }),
       itineraryImages: [],
     })) : [];
   };

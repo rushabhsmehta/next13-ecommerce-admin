@@ -564,6 +564,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `;
 
     // 3. Clean Tour Information Section
+    const nightsMatch = (initialData.numDaysNight ?? "").match(/^(\d+)N/i);
+    const numNights = nightsMatch?.[1] ?? (initialData.numDaysNight || null);
+
     const tourInfoSection = `
       <div style="${cardStyle};">
         <div style="${headerStyleAlt}">
@@ -584,6 +587,34 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">DURATION</div>
                 <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numDaysNight}</div>
+              </div>
+            ` : ''}
+
+            ${numNights ? `
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">NO. OF NIGHTS</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${numNights}</div>
+              </div>
+            ` : ''}
+
+            ${initialData.numAdults ? `
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">ADULTS</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numAdults}</div>
+              </div>
+            ` : ''}
+
+            ${initialData.numChild5to12 ? `
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">CHILDREN (5-12)</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numChild5to12}</div>
+              </div>
+            ` : ''}
+
+            ${initialData.numChild0to5 ? `
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">CHILDREN (0-5)</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numChild0to5}</div>
               </div>
             ` : ''}
           </div>
@@ -633,32 +664,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               </div>
             ` : ''}
           </div>
-
-          ${(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) ? `
-            <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; margin-top: 12px; border-left: 4px solid ${brandColors.primary};">
-              <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 8px;">TRAVELLERS</div>
-              <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                ${initialData.numAdults ? `
-                  <div style="text-align: center;">
-                    <div style="font-size: 16px; font-weight: 600; color: #1f2937;">${initialData.numAdults}</div>
-                    <div style="font-size: 10px; color: #6b7280; font-weight: 500;">Adults</div>
-                  </div>
-                ` : ''}
-                ${initialData.numChild5to12 ? `
-                  <div style="text-align: center;">
-                    <div style="font-size: 16px; font-weight: 600; color: #1f2937;">${initialData.numChild5to12}</div>
-                    <div style="font-size: 10px; color: #6b7280; font-weight: 500;">Children (5-12)</div>
-                  </div>
-                ` : ''}
-                ${initialData.numChild0to5 ? `
-                  <div style="text-align: center;">
-                    <div style="font-size: 16px; font-weight: 600; color: #1f2937;">${initialData.numChild0to5}</div>
-                    <div style="font-size: 10px; color: #6b7280; font-weight: 500;">Children (0-5)</div>
-                  </div>
-                ` : ''}
-              </div>
-            </div>
-          ` : ''}
         </div>
       </div>
     `;

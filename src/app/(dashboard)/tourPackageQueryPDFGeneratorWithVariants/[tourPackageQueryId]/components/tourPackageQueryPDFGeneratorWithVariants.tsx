@@ -1060,6 +1060,9 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     ` : '';
 
     // 3. Tour Information
+    const nightsMatch = (initialData.numDaysNight ?? "").match(/^(\d+)N/i);
+    const numNights = nightsMatch?.[1] ?? (initialData.numDaysNight || null);
+
     const tourInfoSection = `
       <div style="${cardStyle}">
         <div style="${headerStyleAlt}">
@@ -1078,6 +1081,34 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
               <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">DURATION</div>
                 <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numDaysNight}</div>
+              </div>
+            ` : ''}
+
+            ${numNights ? `
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">NO. OF NIGHTS</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${numNights}</div>
+              </div>
+            ` : ''}
+
+            ${initialData.numAdults ? `
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">ADULTS</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numAdults}</div>
+              </div>
+            ` : ''}
+
+            ${initialData.numChild5to12 ? `
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">CHILDREN (5-12)</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numChild5to12}</div>
+              </div>
+            ` : ''}
+
+            ${initialData.numChild0to5 ? `
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+                <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">CHILDREN (0-5)</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numChild0to5}</div>
               </div>
             ` : ''}
           </div>

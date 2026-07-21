@@ -1,7 +1,7 @@
 import type { AuthenticatedRequest } from "@/lib/associate-inquiries";
 
 export interface EmailSupplierPayload {
-  to: string;
+  to: string | string[];
   subject: string;
   body: string;
   supplierId?: string | null;
@@ -166,6 +166,7 @@ export function summarizeMobileOutreach(
 }
 
 export function buildSupplierInquiryMessage(parts: {
+  customerName?: string | null;
   location?: string;
   journeyDate?: string | null;
   numAdults?: number;
@@ -181,12 +182,15 @@ export function buildSupplierInquiryMessage(parts: {
     .filter(Boolean)
     .join(", ");
 
+  const customerName = parts.customerName?.trim() || null;
   const location = parts.location || "—";
   const journey =
     parts.journeyDate?.slice(0, 10) || "Not specified";
   const remarks = parts.remarks?.trim() || "None";
 
-  const subject = `Travel inquiry — ${location} — ${journey}`;
+  const subject = ["Travel inquiry", customerName, location, journey]
+    .filter(Boolean)
+    .join(" — ");
   const body = `New Travel Inquiry
 
 Destination: ${location}

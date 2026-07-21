@@ -220,7 +220,14 @@ function Inner() {
         {supplier.email ? (
           <Pressable
             style={styles.contactRow}
-            onPress={() => Linking.openURL(`mailto:${supplier.email}`)}
+            onPress={() => {
+              const emails = supplier.email!
+                .split(/[,;\n\r]+/)
+                .map((e) => e.trim())
+                .filter(Boolean);
+              if (emails.length === 0) return;
+              Linking.openURL(`mailto:${emails.join(",")}`);
+            }}
           >
             <Ionicons name="mail" size={16} color={Colors.primary} />
             <Text style={styles.contactText}>{supplier.email}</Text>

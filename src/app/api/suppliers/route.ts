@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { assertCrmApiAccessForRequest, crmAccessErrorResponse } from "@/lib/crm-route-access";
+import { formatSupplierEmails, isValidEmailAddress, parseSupplierEmails } from "@/lib/supplier-emails";
 
 export async function POST(req: Request) {
   try {
@@ -19,10 +20,19 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, contact, email, locationIds, gstNumber, address, contacts, phoneNumber } = body;
+    const { name, contact, email, emails, locationIds, gstNumber, address, contacts, phoneNumber } = body;
 
     // Validation
     if (!name) return new NextResponse("Name is required", { status: 400 });
+
+    const emailList = Array.isArray(emails)
+      ? parseSupplierEmails(emails.join(","))
+      : parseSupplierEmails(email ?? "");
+    const invalidEmails = emailList.filter((e) => !isValidEmailAddress(e));
+    if (invalidEmails.length > 0) {
+      return new NextResponse(`Invalid email: ${invalidEmails.join(", ")}`, { status: 400 });
+    }
+    const normalizedEmail = formatSupplierEmails(emailList);
 
     // Define location connections if provided
     let locationData = {};
@@ -52,7 +62,7 @@ export async function POST(req: Request) {
       data: {
         name,
         contact,
-        email,
+        email: normalizedEmail,
         gstNumber,
         address,
         ...locationData,

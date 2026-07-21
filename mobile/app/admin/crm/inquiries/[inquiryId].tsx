@@ -954,6 +954,7 @@ function AdminInquiryDetailInner() {
       <SupplierOutreachActions
         inquiry={{
           id: detail.id,
+          customerName: detail.customerName,
           locationLabel: detail.location?.label,
           journeyDate: detail.journeyDate,
           numAdults: detail.numAdults,

@@ -22,9 +22,13 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Mail, Send, Check, ChevronsUpDown } from "lucide-react";
+import { Mail, Send, Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import {
+  isValidEmailAddress,
+  parseSupplierEmails,
+} from "@/lib/supplier-emails";
 
 interface Supplier {
   id: string;
@@ -74,8 +78,14 @@ Looking forward to your response.
 Best regards,
 Aagam Holidays Team`;
 
-function getSupplierEmail(supplier: Supplier): string {
-  return (supplier.email || "").trim();
+function getSupplierEmails(supplier: Supplier): string[] {
+  return parseSupplierEmails(supplier.email);
+}
+
+function formatEmailsPreview(emails: string[]): string {
+  if (emails.length === 0) return "";
+  if (emails.length === 1) return emails[0];
+  return `${emails[0]} +${emails.length - 1} more`;
 }
 
 export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
@@ -88,7 +98,7 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
   onSuccess,
 }) => {
   const [open, setOpen] = useState(isOpen);
-  const [supplierEmail, setSupplierEmail] = useState("");
+  const [supplierEmails, setSupplierEmails] = useState<string[]>([""]);
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
@@ -110,7 +120,7 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
     onOpenChange?.(newOpen);
     if (!newOpen) {
       setSelectedSupplier("");
-      setSupplierEmail("");
+      setSupplierEmails([""]);
       setSupplierDropdownOpen(false);
       setSearchTerm("");
     }
@@ -122,8 +132,8 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
       const response = await fetch("/api/suppliers");
       if (response.ok) {
         const suppliersData = await response.json();
-        const validSuppliers = (suppliersData as Supplier[]).filter((s) =>
-          getSupplierEmail(s)
+        const validSuppliers = (suppliersData as Supplier[]).filter(
+          (s) => getSupplierEmails(s).length > 0
         );
         setSuppliers(validSuppliers);
         setFilteredSuppliers(validSuppliers);
@@ -146,7 +156,7 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
         suppliers.filter(
           (s) =>
             s.name.toLowerCase().includes(q) ||
-            getSupplierEmail(s).toLowerCase().includes(q)
+            getSupplierEmails(s).some((email) => email.toLowerCase().includes(q))
         )
       );
     }
@@ -162,19 +172,45 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
     const supplier = suppliers.find((s) => s.id === value);
     if (supplier) {
       setSelectedSupplier(supplier.id);
-      setSupplierEmail(getSupplierEmail(supplier));
+      const emails = getSupplierEmails(supplier);
+      setSupplierEmails(emails.length > 0 ? emails : [""]);
     } else {
       setSelectedSupplier("");
-      setSupplierEmail("");
+      setSupplierEmails([""]);
     }
     setSupplierDropdownOpen(false);
   };
 
   const handleClearSelection = () => {
     setSelectedSupplier("");
-    setSupplierEmail("");
+    setSupplierEmails([""]);
     setSearchTerm("");
     setSupplierDropdownOpen(false);
+  };
+
+  const updateEmailAt = (index: number, value: string) => {
+    setSupplierEmails((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+    if (selectedSupplier) {
+      setSelectedSupplier("");
+    }
+  };
+
+  const addEmailRow = () => {
+    setSupplierEmails((prev) => [...prev, ""]);
+  };
+
+  const removeEmailRow = (index: number) => {
+    setSupplierEmails((prev) => {
+      if (prev.length <= 1) return [""];
+      return prev.filter((_, i) => i !== index);
+    });
+    if (selectedSupplier) {
+      setSelectedSupplier("");
+    }
   };
 
   const populateFromData = (data: InquiryData | Record<string, unknown>) => {
@@ -229,7 +265,18 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
         ? String(remarksRaw).trim()
         : "None specified";
 
-    setSubject(`Travel Inquiry — ${locationName} — ${formattedDate}`);
+    const customerName =
+      String((data as InquiryData).customerName || "").trim() || null;
+    setSubject(
+      [
+        "Travel Inquiry",
+        customerName,
+        locationName,
+        formattedDate,
+      ]
+        .filter(Boolean)
+        .join(" — ")
+    );
     setMessage(
       DEFAULT_MESSAGE_TEMPLATE.replace("{{location}}", locationName)
         .replace("{{journeyDate}}", formattedDate)
@@ -272,17 +319,19 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
   }, [open, inquiryData, fetchCompleteInquiryData]);
 
   const isValidEmail = (email: string): boolean =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    isValidEmailAddress(email);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!supplierEmail.trim()) {
-      toast.error("Please enter supplier email");
+    const recipients = parseSupplierEmails(supplierEmails.join(","));
+    if (recipients.length === 0) {
+      toast.error("Please enter at least one supplier email");
       return;
     }
-    if (!isValidEmail(supplierEmail)) {
-      toast.error("Please enter a valid email address");
+    const invalid = recipients.filter((email) => !isValidEmail(email));
+    if (invalid.length > 0) {
+      toast.error(`Invalid email: ${invalid.join(", ")}`);
       return;
     }
     if (!subject.trim()) {
@@ -302,7 +351,7 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            to: supplierEmail.trim(),
+            to: recipients,
             subject: subject.trim(),
             body: message.trim(),
             supplierId: selectedSupplier || null,
@@ -324,9 +373,13 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
         return;
       }
 
-      toast.success("Email sent — marked as Asked to Supplier");
+      toast.success(
+        recipients.length > 1
+          ? `Email sent to ${recipients.length} addresses — marked as Asked to Supplier`
+          : "Email sent — marked as Asked to Supplier"
+      );
       setSelectedSupplier("");
-      setSupplierEmail("");
+      setSupplierEmails([""]);
       setSubject("");
       setMessage("");
       handleOpenChange(false);
@@ -384,7 +437,7 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
                         <div className="flex flex-col items-start text-left">
                           <span className="font-medium">{supplier.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {getSupplierEmail(supplier)}
+                            {formatEmailsPreview(getSupplierEmails(supplier))}
                           </span>
                         </div>
                       ) : (
@@ -428,28 +481,31 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
                           Clear selection
                         </CommandItem>
                       )}
-                      {filteredSuppliers.map((supplier) => (
-                        <CommandItem
-                          key={supplier.id}
-                          value={`${supplier.name} ${getSupplierEmail(supplier)}`}
-                          onSelect={() => handleSupplierSelect(supplier.id)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedSupplier === supplier.id
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          <div className="flex flex-col">
-                            <span className="font-medium">{supplier.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {getSupplierEmail(supplier)}
-                            </span>
-                          </div>
-                        </CommandItem>
-                      ))}
+                      {filteredSuppliers.map((supplier) => {
+                        const emails = getSupplierEmails(supplier);
+                        return (
+                          <CommandItem
+                            key={supplier.id}
+                            value={`${supplier.name} ${emails.join(" ")}`}
+                            onSelect={() => handleSupplierSelect(supplier.id)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedSupplier === supplier.id
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{supplier.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatEmailsPreview(emails)}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
                     </CommandGroup>
                   </CommandList>
                 </Command>
@@ -458,22 +514,49 @@ export const EmailSupplierButton: React.FC<EmailSupplierButtonProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="supplier-email">Supplier Email</Label>
-            <Input
-              id="supplier-email"
-              type="email"
-              placeholder="supplier@example.com"
-              value={supplierEmail}
-              onChange={(e) => {
-                setSupplierEmail(e.target.value);
-                if (selectedSupplier) {
-                  setSelectedSupplier("");
-                }
-              }}
-              required
-            />
+            <div className="flex items-center justify-between gap-2">
+              <Label>Supplier Email(s)</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={addEmailRow}
+                disabled={busy}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add email
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {supplierEmails.map((email, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    id={index === 0 ? "supplier-email" : `supplier-email-${index}`}
+                    type="email"
+                    placeholder="supplier@example.com"
+                    value={email}
+                    onChange={(e) => updateEmailAt(index, e.target.value)}
+                    required={index === 0}
+                  />
+                  {supplierEmails.length > 1 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => removeEmailRow(index)}
+                      disabled={busy}
+                      aria-label={`Remove email ${index + 1}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Sent from aagamholiday@gmail.com
+              Sent from aagamholiday@gmail.com to all listed addresses
             </p>
           </div>
 

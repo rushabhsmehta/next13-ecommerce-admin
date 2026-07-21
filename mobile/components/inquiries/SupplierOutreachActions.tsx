@@ -26,10 +26,16 @@ import {
   summarizeMobileOutreach,
   type MobileOutreachItem,
 } from "@/lib/inquiry-supplier";
+import {
+  emailsForFormDisplay,
+  isValidEmailAddress,
+  parseSupplierEmails,
+} from "@/lib/supplier-emails";
 import type { InquiryActionItem } from "@/lib/associate-inquiries";
 
 export interface SupplierOutreachInquiryContext {
   id: string;
+  customerName?: string | null;
   locationLabel?: string;
   journeyDate?: string | null;
   numAdults?: number;
@@ -91,6 +97,7 @@ export function SupplierOutreachActions({
   const templates = useMemo(
     () =>
       buildSupplierInquiryMessage({
+        customerName: inquiry.customerName,
         location: inquiry.locationLabel,
         journeyDate: inquiry.journeyDate,
         numAdults: inquiry.numAdults,
@@ -142,20 +149,34 @@ export function SupplierOutreachActions({
   }, [suppliers, mode]);
 
   async function submitEmail() {
-    if (!contact.trim() || !subject.trim() || !message.trim()) {
-      Alert.alert("Required", "Email, subject, and message are required.");
+    const recipients = parseSupplierEmails(contact);
+    if (recipients.length === 0 || !subject.trim() || !message.trim()) {
+      Alert.alert(
+        "Required",
+        "At least one email, subject, and message are required."
+      );
+      return;
+    }
+    const invalid = recipients.filter((email) => !isValidEmailAddress(email));
+    if (invalid.length > 0) {
+      Alert.alert("Invalid email", invalid.join(", "));
       return;
     }
     setSubmitting(true);
     try {
       await supplierClient.emailSupplier(inquiry.id, {
-        to: contact.trim(),
+        to: recipients,
         subject: subject.trim(),
         body: message.trim(),
         supplierId: selectedId || null,
         supplierName: selectedName || null,
       });
-      Alert.alert("Sent", "Email sent. Status set to Asked to Supplier.");
+      Alert.alert(
+        "Sent",
+        recipients.length > 1
+          ? `Email sent to ${recipients.length} addresses. Status set to Asked to Supplier.`
+          : "Email sent. Status set to Asked to Supplier."
+      );
       closeModal();
       onChanged();
     } catch (err) {
@@ -345,20 +366,29 @@ export function SupplierOutreachActions({
           </AdminFormField>
 
           <AdminFormField
-            label={mode === "email" ? "Email" : "Phone"}
+            label={mode === "email" ? "Email(s)" : "Phone"}
             required
+            hint={
+              mode === "email"
+                ? "One email per line — all will receive the message."
+                : undefined
+            }
           >
             <TextInput
               testID="supplier-outreach-contact"
-              style={styles.input}
+              style={[styles.input, mode === "email" ? styles.textarea : null]}
               value={contact}
               onChangeText={setContact}
               placeholder={
-                mode === "email" ? "supplier@example.com" : "WhatsApp number"
+                mode === "email"
+                  ? "supplier@example.com\naccounts@example.com"
+                  : "WhatsApp number"
               }
               placeholderTextColor={Colors.textTertiary}
               keyboardType={mode === "email" ? "email-address" : "phone-pad"}
               autoCapitalize="none"
+              multiline={mode === "email"}
+              textAlignVertical={mode === "email" ? "top" : "center"}
             />
           </AdminFormField>
 
@@ -418,7 +448,7 @@ export function SupplierOutreachActions({
             if (found) {
               setContact(
                 mode === "email"
-                  ? found.email?.trim() || ""
+                  ? emailsForFormDisplay(found.email)
                   : found.contact?.trim() || ""
               );
             }

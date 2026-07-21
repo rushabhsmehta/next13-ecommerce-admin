@@ -30,6 +30,11 @@ import { Heading } from "@/components/ui/heading";
 import { AlertModal } from "@/components/modals/alert-modal";
 import { MultiSelect } from "@/components/ui/multi-select"; // You'll need to implement this component
 import { normalizePhoneNumber } from "@/lib/phone-utils";
+import {
+  formatSupplierEmails,
+  isValidEmailAddress,
+  parseSupplierEmails,
+} from "@/lib/supplier-emails";
 
 const formSchema = z.object({
   name: z.string().min(1),
@@ -38,7 +43,7 @@ const formSchema = z.object({
   gstNumber: z.string().optional(),
   address: z.string().optional(),
   contacts: z.array(z.string()).optional(),
-  email: z.string().optional().or(z.literal('')),
+  emails: z.array(z.string()).optional(),
   locationIds: z.array(z.string()).optional(),
 });
 
@@ -60,6 +65,10 @@ interface SupplierFormProps {
     email?: string | null;
     locations?: Array<{ location: Location }>;
   } | null;
+}
+
+function emailsFromSupplier(email?: string | null): string[] {
+  return parseSupplierEmails(email);
 }
 
 function resolveSupplierPhoneContacts(
@@ -125,10 +134,10 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
       gstNumber: initialData.gstNumber || "",
       address: initialData.address || "",
       contacts: initialOtherContacts,
-      email: initialData.email || "",
+      emails: emailsFromSupplier(initialData.email),
       locationIds: initialData.locations?.map(l => l.location.id) || [],
     }
-    : { name: "", contact: "", phoneNumber: "", gstNumber: "", address: "", contacts: [], email: "", locationIds: [] };
+    : { name: "", contact: "", phoneNumber: "", gstNumber: "", address: "", contacts: [], emails: [], locationIds: [] };
 
   const form = useForm<SupplierFormValues>({
     resolver: zodResolver(formSchema),
@@ -149,8 +158,22 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
         return;
       }
 
+      const emails = parseSupplierEmails((data.emails || []).join(","));
+      const invalidEmails = emails.filter((e) => !isValidEmailAddress(e));
+      if (invalidEmails.length > 0) {
+        form.setError("emails", {
+          type: "manual",
+          message: `Invalid email: ${invalidEmails.join(", ")}`,
+        });
+        toast.error("Please enter valid email addresses.");
+        setLoading(false);
+        return;
+      }
+
+      const { emails: _emails, ...rest } = data;
       const submitData = {
-        ...data,
+        ...rest,
+        email: formatSupplierEmails(emails),
         phoneNumber: normalizedPhone ? normalizedPhone.e164 : "",
       };
 
@@ -301,12 +324,26 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
             />
             <FormField
               control={form.control}
-              name="email"
+              name="emails"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Emails (one per line)</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Email address" {...field} />
+                    <textarea
+                      disabled={loading}
+                      placeholder={"supplier@example.com\naccounts@example.com"}
+                      className="w-full p-2 rounded border"
+                      value={(field.value || []).join("\n")}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value
+                            .split(/\r?\n/)
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                        )
+                      }
+                      rows={4}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

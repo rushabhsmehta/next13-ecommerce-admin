@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { formatSupplierEmails, isValidEmailAddress, parseSupplierEmails } from "@/lib/supplier-emails";
 
 export async function GET(req: Request, props: { params: Promise<{ supplierId: string }> }) {
   const params = await props.params;
@@ -68,8 +69,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ supplierId:
     if (!params.supplierId) return new NextResponse("Supplier ID is required", { status: 400 });
 
     const body = await req.json();
-    const { name, contact, email, locationIds, gstNumber, address, contacts, phoneNumber } = body;
+    const { name, contact, email, emails, locationIds, gstNumber, address, contacts, phoneNumber } = body;
     if (!name) return new NextResponse("Name is required", { status: 400 });
+
+    const emailList = Array.isArray(emails)
+      ? parseSupplierEmails(emails.join(","))
+      : parseSupplierEmails(email ?? "");
+    const invalidEmails = emailList.filter((e) => !isValidEmailAddress(e));
+    if (invalidEmails.length > 0) {
+      return new NextResponse(`Invalid email: ${invalidEmails.join(", ")}`, { status: 400 });
+    }
+    const normalizedEmail = formatSupplierEmails(emailList);
 
     // Delete existing supplier-location relationships
     await prismadb.supplierLocation.deleteMany({
@@ -106,7 +116,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ supplierId:
       data: {
         name,
         contact,
-        email,
+        email: normalizedEmail,
         gstNumber,
         address,
         ...locationData,

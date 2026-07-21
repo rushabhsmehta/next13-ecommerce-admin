@@ -11,13 +11,38 @@ import {
   mapSupplierLocations,
   supplierLocationsSelect,
 } from "@/app/api/mobile/lib/supplier-locations";
+import {
+  formatSupplierEmails,
+  isValidEmailAddress,
+  parseSupplierEmails,
+} from "@/lib/supplier-emails";
 
 export const dynamic = "force-dynamic";
+
+const optionalMultiEmail = z
+  .string()
+  .optional()
+  .nullable()
+  .or(z.literal(""))
+  .superRefine((value, ctx) => {
+    if (!value || !String(value).trim()) return;
+    const emails = parseSupplierEmails(String(value));
+    const invalid = emails.filter((email) => !isValidEmailAddress(email));
+    if (emails.length === 0 || invalid.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          invalid.length > 0
+            ? `Invalid email: ${invalid.join(", ")}`
+            : "Invalid email",
+      });
+    }
+  });
 
 const updateSchema = z.object({
   name: z.string().min(1).max(200),
   contact: z.string().max(40).optional().nullable(),
-  email: z.string().email().optional().nullable().or(z.literal("")),
+  email: optionalMultiEmail,
   gstNumber: z.string().max(30).optional().nullable(),
   address: z.string().max(2000).optional().nullable(),
   locationIds: z.array(z.string().min(1)).optional(),
@@ -110,7 +135,7 @@ export async function PATCH(
         data: {
           name: v.name.trim(),
           contact: v.contact?.trim() || null,
-          email: v.email && v.email.trim() ? v.email.trim() : null,
+          email: formatSupplierEmails(v.email),
           gstNumber: v.gstNumber?.trim() || null,
           address: v.address?.trim() || null,
         },

@@ -28,6 +28,12 @@ import {
   type SupplierInput,
   type SupplierLocationRef,
 } from "@/lib/operations";
+import {
+  emailsForFormDisplay,
+  formatSupplierEmails,
+  isValidEmailAddress,
+  parseSupplierEmails,
+} from "@/lib/supplier-emails";
 
 interface InitialValues {
   name: string;
@@ -69,7 +75,7 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
   const seed = initial ?? EMPTY;
   const [name, setName] = useState(seed.name);
   const [contact, setContact] = useState(seed.contact);
-  const [email, setEmail] = useState(seed.email);
+  const [email, setEmail] = useState(() => emailsForFormDisplay(seed.email));
   const [gstNumber, setGstNumber] = useState(seed.gstNumber);
   const [address, setAddress] = useState(seed.address);
   const [locationIds, setLocationIds] = useState<string[]>(
@@ -149,12 +155,18 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
 
   async function submit() {
     if (!canSubmit) return;
+    const emails = parseSupplierEmails(email);
+    const invalid = emails.filter((item) => !isValidEmailAddress(item));
+    if (invalid.length > 0) {
+      Alert.alert("Invalid email", invalid.join(", "));
+      return;
+    }
     setSubmitting(true);
     try {
       const payload: SupplierInput = {
         name: name.trim(),
         contact: contact.trim() || null,
-        email: email.trim() || null,
+        email: formatSupplierEmails(emails),
         gstNumber: gstNumber.trim() || null,
         address: address.trim() || null,
         locationIds,
@@ -231,18 +243,23 @@ export function SupplierForm({ mode, supplierId, initial }: Props) {
             autoCorrect={false}
           />
         </AdminFormField>
-        <AdminFormField label="Email">
+        <AdminFormField
+          label="Emails"
+          hint="One email per line. All addresses are saved on this supplier."
+        >
           <TextInput
             testID="supplier-form-email"
-            accessibilityLabel="Email"
-            style={styles.input}
-            placeholder="supplier@example.com"
+            accessibilityLabel="Emails"
+            style={[styles.input, styles.textarea]}
+            placeholder={"supplier@example.com\naccounts@example.com"}
             placeholderTextColor={Colors.textTertiary}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            multiline
+            textAlignVertical="top"
           />
         </AdminFormField>
         <AdminFormField label="GST number">

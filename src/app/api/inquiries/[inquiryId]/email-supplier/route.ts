@@ -9,11 +9,18 @@ import {
 } from "@/lib/inquiry-access";
 import { sendGmailMessage } from "@/lib/gmail-send";
 import { recordSupplierOutreach } from "@/lib/inquiry-supplier-outreach";
+import {
+  formatSupplierEmails,
+  requireValidSupplierEmails,
+} from "@/lib/supplier-emails";
 
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
-  to: z.string().email("Valid supplier email is required"),
+  to: z.union([
+    z.string().min(1, "Valid supplier email is required"),
+    z.array(z.string().min(1)).min(1, "Valid supplier email is required"),
+  ]),
   subject: z.string().min(1, "Subject is required").max(500),
   body: z.string().min(1, "Message body is required").max(20000),
   htmlBody: z.string().max(50000).optional(),
@@ -47,6 +54,18 @@ export async function POST(
 
     const accessContext = await resolveInquiryAccessContext(userId);
     const parsed = bodySchema.parse(await req.json());
+
+    let recipients: string[];
+    try {
+      recipients = requireValidSupplierEmails(parsed.to);
+    } catch (err) {
+      return jsonError(
+        err instanceof Error ? err.message : "Valid supplier email is required",
+        422,
+        "VALIDATION_ERROR"
+      );
+    }
+    const toContact = formatSupplierEmails(recipients) || recipients[0];
 
     const inquiry = await prismadb.inquiry.findUnique({
       where: { id: params.inquiryId },
@@ -83,7 +102,7 @@ export async function POST(
       supplierName = supplier.name;
     }
     if (!supplierName) {
-      supplierName = parsed.to;
+      supplierName = toContact;
     }
 
     const html = parsed.htmlBody?.trim() || textToSimpleHtml(parsed.body);
@@ -91,7 +110,7 @@ export async function POST(
     let messageId: string;
     try {
       const result = await sendGmailMessage({
-        to: parsed.to,
+        to: recipients,
         subject: parsed.subject,
         text: parsed.body,
         html,
@@ -119,7 +138,7 @@ export async function POST(
         supplierId: parsed.supplierId ?? null,
         supplierName,
         channel: "EMAIL",
-        contact: parsed.to,
+        contact: toContact,
         subject: parsed.subject,
         messagePreview: `${parsed.subject} (${locationLabel})`,
         externalId: messageId,
@@ -135,7 +154,8 @@ export async function POST(
         supplierId: parsed.supplierId ?? null,
         supplierName,
         channel: "EMAIL",
-        contact: parsed.to,
+        contact: toContact,
+        recipients,
       },
     });
   });

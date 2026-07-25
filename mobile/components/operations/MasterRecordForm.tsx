@@ -67,6 +67,7 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
   const [locationLabel, setLocationLabel] = useState(initial?.locationLabel ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [notes, setNotes] = useState(itineraryInitial?.notes ?? "");
   const [imageUrl, setImageUrl] = useState(initial?.images?.[0]?.url ?? "");
   const [dayNumber, setDayNumber] = useState(
     itineraryInitial?.dayNumber != null
@@ -135,6 +136,7 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
           locationId,
           itineraryMasterTitle: title.trim(),
           itineraryMasterDescription: description.trim(),
+          notes: notes.trim() || null,
           dayNumber: dayNumber.trim() ? Number(dayNumber) : null,
           days: days.trim() || null,
           images,
@@ -230,6 +232,21 @@ export function MasterRecordForm({ kind, mode, recordId, initial }: Props) {
           multiline
         />
         </AdminFormField>
+
+        {kind === "itinerary" ? (
+          <AdminFormField label="Notes (optional)">
+            <TextInput
+              testID="itinerary-form-notes"
+              accessibilityLabel="Notes"
+              style={[styles.input, styles.textarea]}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Special notes for this day"
+              placeholderTextColor={Colors.textTertiary}
+              multiline
+            />
+          </AdminFormField>
+        ) : null}
 
         {kind === "itinerary" ? (
           <View style={styles.inlineRow}>

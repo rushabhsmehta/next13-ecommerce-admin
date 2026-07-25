@@ -190,6 +190,7 @@ function buildItinerary(q: QueryData): string {
         <td style="width:22%">
           <strong>${esc(it.itineraryTitle)}</strong>
           ${it.itineraryDescription ? `<div style="color:#6B7280;font-size:10px;margin-top:2px">${esc(it.itineraryDescription)}</div>` : ""}
+          ${it.notes ? `<div style="color:#6B7280;font-size:10px;margin-top:2px"><strong>Notes:</strong> ${esc(it.notes)}</div>` : ""}
         </td>
         <td style="width:18%">${esc((it as any).hotel?.name)}</td>
         <td style="width:30%">${activitiesHtml}</td>

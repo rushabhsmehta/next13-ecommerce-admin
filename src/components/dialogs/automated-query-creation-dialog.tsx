@@ -1008,6 +1008,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             // Use actual field values without fallbacks - validation will catch missing data
             itineraryTitle: itinerary.itineraryTitle || itinerary.dayTitle,
             itineraryDescription: itinerary.itineraryDescription,
+            notes: itinerary.notes ?? null,
             locationId: itinerary.locationId,
             tourPackageId: selectedTourPackage.id,
             dayNumber: itinerary.dayNumber || itinerary.day,

@@ -218,6 +218,7 @@ function Inner() {
         dayNumber: day.dayNumber ?? 1,
         itineraryTitle: day.itineraryTitle ?? "",
         itineraryDescription: day.itineraryDescription,
+        notes: day.notes,
         mealsIncluded: day.mealsIncluded,
         activities: (day.activities ?? []).map((activity) => ({
           activityTitle: activity.activityTitle ?? "",
@@ -324,6 +325,7 @@ function Inner() {
             data.itineraries.map((day) => {
               const dayTitle = displayText(day.itineraryTitle, "Untitled");
               const dayDescription = extractPlainText(day.itineraryDescription);
+              const dayNotes = extractPlainText(day.notes);
               const mealsIncluded = displayText(day.mealsIncluded);
 
               return (
@@ -348,6 +350,9 @@ function Inner() {
                   ) : null}
                   {dayDescription ? (
                     <Text style={styles.dayDesc}>{dayDescription}</Text>
+                  ) : null}
+                  {dayNotes ? (
+                    <Text style={styles.dayDesc}>Notes: {dayNotes}</Text>
                   ) : null}
                   {mealsIncluded ? (
                     <Text style={styles.dayMeals}>Meals: {mealsIncluded}</Text>

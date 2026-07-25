@@ -85,6 +85,7 @@ interface ActivityData {
 interface ItineraryData {
   itineraryTitle?: string;
   itineraryDescription?: string;
+  notes?: string | null;
   activities?: ActivityData[];
   itineraryImages?: { url: string }[];
   [key: string]: unknown; // Allow additional properties with better type safety
@@ -262,6 +263,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
       const masterItineraryData = {
         itineraryMasterTitle: itinerary.itineraryTitle,
         itineraryMasterDescription: itinerary.itineraryDescription,
+        notes: itinerary.notes || null,
         locationId: itinerary.locationId,
         itineraryMasterImages: itinerary.itineraryImages,
         activities: itinerary.activities.map((activity: any) => ({
@@ -508,6 +510,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                                   ...itinerary,
                                                   itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
                                                   itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
+                                                  notes: itineraryMaster.notes || '',
                                                   itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
                                                   activities: itineraryMaster.activities?.map(activity => ({
                                                     activityTitle: activity.activityTitle || '',
@@ -570,6 +573,24 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                           onChange(newItineraries);
                                         };
                                         return <StableJoditEditor value={itinerary.itineraryDescription || ''} onBlurRef={ref} readonly={loading} />;
+                                      })()}
+                                    </FormControl>
+                                  </FormItem>
+                                  <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
+                                    <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
+                                      <AlignLeft className="h-4 w-4" />
+                                      <span>Notes</span>
+                                      <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                                    </FormLabel>
+                                    <FormControl>
+                                      {(() => {
+                                        const ref = getJoditRef(`notes-${index}`);
+                                        ref.current = (newContent) => {
+                                          const newItineraries = [...value];
+                                          newItineraries[index] = { ...itinerary, notes: newContent };
+                                          onChange(newItineraries);
+                                        };
+                                        return <StableJoditEditor value={itinerary.notes || ''} onBlurRef={ref} readonly={loading} />;
                                       })()}
                                     </FormControl>
                                   </FormItem>
@@ -1050,6 +1071,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                     itineraryImages: [],
                     itineraryTitle: '',
                     itineraryDescription: '',
+                    notes: '',
                     activities: [],
                     roomAllocations: [],
                     transportDetails: [],

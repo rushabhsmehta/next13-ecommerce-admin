@@ -84,6 +84,7 @@ const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
   itineraryDescription: z.string().optional(),
+  notes: z.string().nullable().optional(),
   dayNumber: z.coerce.number().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
@@ -348,6 +349,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
     itineraryImages: [],
     itineraryTitle: '',
     itineraryDescription: '',
+    notes: '',
     activities: [],
     mealsIncluded: [],
     hotelId: '',
@@ -529,6 +531,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
         itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
+        notes: itinerary.notes ?? '',
         hotelId: itinerary.hotelId ?? '',
         numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
@@ -625,6 +628,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
       dayNumber: day.dayNumber,
       itineraryTitle: day.itineraryTitle || '',
       itineraryDescription: day.itineraryDescription || '',
+      notes: day.notes || '',
       mealsIncluded: day.mealsIncluded ? (typeof day.mealsIncluded === 'string' ? day.mealsIncluded.split(' & ') : day.mealsIncluded) : [],
       hotelId: '',
       locationId: locationId || '',
@@ -1592,6 +1596,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                                                                 ...current,
                                                                 itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
                                                                 itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
+                                                                notes: itineraryMaster.notes || '',
                                                                 itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
                                                                 activities: itineraryMaster.activities?.map((activity) => ({
                                                                   activityTitle: activity.activityTitle || '',
@@ -1644,6 +1649,21 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                                                       ref={editor}
                                                       value={itinerary.itineraryDescription || ''}
                                                       onBlur={(content) => updateItinerary(index, (current) => ({ ...current, itineraryDescription: content }))}
+                                                      onChange={() => { }}
+                                                    />
+                                                  </FormControl>
+                                                </FormItem>
+                                                <FormItem className="bg-white rounded-lg p-4 border shadow-sm">
+                                                  <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
+                                                    <AlignLeft className="h-4 w-4" />
+                                                    Notes
+                                                    <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                                                  </FormLabel>
+                                                  <FormControl>
+                                                    <JoditEditor
+                                                      ref={editor}
+                                                      value={itinerary.notes || ''}
+                                                      onBlur={(content) => updateItinerary(index, (current) => ({ ...current, notes: content }))}
                                                       onChange={() => { }}
                                                     />
                                                   </FormControl>

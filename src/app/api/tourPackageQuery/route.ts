@@ -15,6 +15,7 @@ export const revalidate = 300;
 async function createItineraryAndActivities(itinerary: {
     itineraryTitle: any;
     itineraryDescription: any;
+    notes?: any;
     locationId: any;
     tourPackageId: any;
     dayNumber: any;
@@ -62,6 +63,7 @@ async function createItineraryAndActivities(itinerary: {
             data: {
                 itineraryTitle: itinerary.itineraryTitle,
                 itineraryDescription: itinerary.itineraryDescription,
+                notes: itinerary.notes ?? null,
                 locationId: itinerary.locationId,
                 tourPackageId: itinerary.tourPackageId,
                 tourPackageQueryId: tourPackageQueryId,

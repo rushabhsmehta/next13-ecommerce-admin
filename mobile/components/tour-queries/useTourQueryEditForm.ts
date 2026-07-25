@@ -72,6 +72,7 @@ function mapItinerariesFromDetail(
     hotelId: it.hotelId ?? it.hotel?.id ?? null,
     itineraryTitle: it.itineraryTitle ?? "",
     itineraryDescription: it.itineraryDescription ?? "",
+    notes: it.notes ?? "",
     mealsIncluded: it.mealsIncluded ?? "",
     roomAllocations: (it.roomAllocations ?? []).map((ra: any) => ({
       id: ra.id,
@@ -574,6 +575,7 @@ export function useTourQueryEditForm(queryId: string) {
         hotelId: null,
         itineraryTitle: "",
         itineraryDescription: "",
+        notes: "",
         mealsIncluded: "",
         roomAllocations: initialAllocations,
         transportDetails: [],
@@ -847,6 +849,7 @@ export function useTourQueryEditForm(queryId: string) {
           hotelId: null,
           itineraryTitle: it.itineraryTitle || "",
           itineraryDescription: it.itineraryDescription || "",
+          notes: it.notes || "",
           mealsIncluded: it.mealsIncluded || "",
           roomAllocations: [],
           transportDetails: [],
@@ -913,6 +916,7 @@ export function useTourQueryEditForm(queryId: string) {
           hotelId: it.hotelId || it.hotel?.id || null,
           itineraryTitle: it.itineraryTitle || "",
           itineraryDescription: it.itineraryDescription || "",
+          notes: it.notes || "",
           mealsIncluded: it.mealsIncluded || "",
           roomAllocations: (it.roomAllocations ?? []).map((ra: any) => ({
             roomTypeId: ra.roomTypeId,
@@ -1077,6 +1081,7 @@ export function useTourQueryEditForm(queryId: string) {
           hotelId: it.hotelId,
           itineraryTitle: it.itineraryTitle ?? "",
           itineraryDescription: it.itineraryDescription ?? "",
+          notes: it.notes ?? "",
           mealsIncluded: it.mealsIncluded ?? "",
           roomAllocations: it.roomAllocations
             .filter((ra) => ra.occupancyTypeId?.trim())

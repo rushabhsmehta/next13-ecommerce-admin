@@ -77,6 +77,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ itineraryMa
     const {
       itineraryMasterTitle,
       itineraryMasterDescription,
+      notes,
       itineraryMasterImages,
       activities,
       locationId,
@@ -118,6 +119,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ itineraryMa
       tourPackageQueryId,
       itineraryMasterTitle,
       itineraryMasterDescription,
+      notes: notes ?? null,
       dayNumber,
       days,
       hotelId,

@@ -57,6 +57,7 @@ Wrap in \`\`\`json fenced block. This JSON must strictly follow the schema struc
       "dayNumber": number,
       "itineraryTitle": string, // Short title for the day
       "itineraryDescription": string, // Detailed narrative for the day (2-3 sentences)
+      "notes": string, // Optional special notes for the day; use "" if none
       "hotelName": string, // Suggested hotel name
       "mealsIncluded": string, // e.g., "Breakfast & Dinner", "Breakfast only"
       "activities": string[] // Array of activity titles for that day

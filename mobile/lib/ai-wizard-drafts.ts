@@ -206,6 +206,7 @@ export function mapAiDraftToPackageItineraries(
     dayNumber: day.dayNumber ?? index + 1,
     itineraryTitle: clip(day.itineraryTitle ?? `Day ${index + 1}`, 500) || `Day ${index + 1}`,
     itineraryDescription: clip(day.itineraryDescription, 5000),
+    notes: clip((day as { notes?: string | null }).notes, 10000),
     mealsIncluded: clip(day.mealsIncluded, 200),
     activities: normalizeAiActivities(day.activities),
   }));
@@ -223,6 +224,7 @@ export function mapAiDraftToQueryItineraries(
     hotelId: null,
     itineraryTitle: day.itineraryTitle ?? "",
     itineraryDescription: day.itineraryDescription ?? "",
+    notes: (day as { notes?: string | null }).notes ?? "",
     mealsIncluded: day.mealsIncluded ?? "",
     roomAllocations: [],
     transportDetails: [],

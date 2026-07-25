@@ -42,6 +42,7 @@ const JSON_OUTPUT_SCHEMA = `{
       "dayNumber": 1,
       "itineraryTitle": "string",
       "itineraryDescription": "string",
+      "notes": "optional string — special day notes; omit if none",
       "mealsIncluded": "string",
       "suggestedHotel": "string",
       "activities": [

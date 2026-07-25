@@ -334,7 +334,9 @@ function AiWizardsInner() {
       "",
       ...(draft.itineraries ?? []).map(
         (day, index) =>
-          `Day ${day.dayNumber ?? index + 1}: ${day.itineraryTitle ?? ""}\n${day.itineraryDescription ?? ""}`
+          `Day ${day.dayNumber ?? index + 1}: ${day.itineraryTitle ?? ""}\n${day.itineraryDescription ?? ""}${
+            day.notes ? `\nNotes: ${day.notes}` : ""
+          }`
       ),
     ].filter(Boolean);
     await Share.share({ title: draft.tourPackageName, message: lines.join("\n") });
@@ -677,6 +679,11 @@ function AiWizardsInner() {
                   <Text style={styles.dayDescription} numberOfLines={expanded ? undefined : 3}>
                     {day.itineraryDescription ?? "No description"}
                   </Text>
+                  {day.notes ? (
+                    <Text style={styles.dayDescription} numberOfLines={expanded ? undefined : 2}>
+                      Notes: {day.notes}
+                    </Text>
+                  ) : null}
                   <View style={styles.badgeRow}>
                     {day.mealsIncluded ? <Badge text={day.mealsIncluded} /> : null}
                     {day.suggestedHotel ? <Badge text={`🏨 ${day.suggestedHotel}`} /> : null}

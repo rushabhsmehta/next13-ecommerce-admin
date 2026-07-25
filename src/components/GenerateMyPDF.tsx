@@ -662,6 +662,25 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                 }
               </Text>
 
+              {itinerary.notes && itinerary.notes.replace(/<[^>]*>/g, '').trim() ? (
+                <>
+                  <Text style={styles.cardTitle}>Notes</Text>
+                  <Text style={styles.cardText}>
+                    {itinerary.notes
+                      ?.replace(/<\/?ul>/g, '')
+                      .replace(/<\/li>/g, '\n')
+                      .replace(/<br\s*\/?>/g, '\n')
+                      .replace(/<li>/g, '➔  ')
+                      .replace(/<\/?strong>/g, '')
+                      .replace(/➔/g, '')
+                      .replace(/”/g, '')
+                      .trim()
+                      || ''
+                    }
+                  </Text>
+                </>
+              ) : null}
+
 
               {/* Hotel Section */}
               {itinerary.hotelId && hotels?.find(hotel => hotel.id === itinerary.hotelId) && (

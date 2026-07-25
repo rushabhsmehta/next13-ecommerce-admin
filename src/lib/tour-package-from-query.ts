@@ -69,6 +69,7 @@ export async function loadTourPackagePrefillFromQuery(queryId: string) {
       dayNumber: itinerary.dayNumber ?? index + 1,
       itineraryTitle: itinerary.itineraryTitle || `Day ${index + 1}`,
       itineraryDescription: itinerary.itineraryDescription || "",
+      notes: itinerary.notes || "",
       mealsIncluded: itinerary.mealsIncluded || "",
     })),
   };

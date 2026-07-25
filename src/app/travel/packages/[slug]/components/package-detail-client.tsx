@@ -471,6 +471,17 @@ export function PackageDetailClient({
                               />
                             )}
 
+                            {day.notes && String(day.notes).replace(/<[^>]*>/g, "").trim() && (
+                              <div className="mb-4">
+                                <h4 className="text-sm font-semibold text-gray-700 mb-2">Notes</h4>
+                                <RichHtml
+                                  as="div"
+                                  html={day.notes}
+                                  className="text-gray-600 text-sm leading-relaxed prose prose-sm max-w-none"
+                                />
+                              </div>
+                            )}
+
                             {/* Activities */}
                             {day.activities?.length > 0 && (
                               <div className="space-y-3 mb-4">

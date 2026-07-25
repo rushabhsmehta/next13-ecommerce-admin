@@ -85,6 +85,7 @@ interface ActivityData {
 interface ItineraryData {
   itineraryTitle?: string;
   itineraryDescription?: string | null;
+  notes?: string | null;
   activities?: ActivityData[];
   itineraryImages?: { url: string }[];
   [key: string]: unknown; // Allow additional properties with better type safety
@@ -230,6 +231,7 @@ function ItineraryTab({
       const masterItineraryData = {
         itineraryMasterTitle: itinerary.itineraryTitle,
         itineraryMasterDescription: itinerary.itineraryDescription,
+        notes: itinerary.notes || null,
         locationId: itinerary.locationId,
         itineraryMasterImages: itinerary.itineraryImages,
         activities: itinerary.activities.map((activity: any) => ({
@@ -337,6 +339,7 @@ function ItineraryTab({
     id: it?.id || crypto.randomUUID(),
     itineraryTitle: typeof it?.itineraryTitle === 'string' ? it.itineraryTitle : '',
     itineraryDescription: typeof it?.itineraryDescription === 'string' ? it.itineraryDescription : '',
+    notes: typeof it?.notes === 'string' ? it.notes : '',
     days: typeof it?.days === 'string' ? it.days : '',
     itineraryImages: Array.isArray(it?.itineraryImages) ? it.itineraryImages : [],
     activities: Array.isArray(it?.activities) ? it.activities.map(normalizeActivity) : [],
@@ -566,6 +569,7 @@ function ItineraryTab({
                                                     ...itinerary,
                                                     itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
                                                     itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
+                                                    notes: itineraryMaster.notes || '',
                                                     itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
                                                     activities: itineraryMaster.activities?.map(activity => ({
                                                       activityTitle: activity.activityTitle || '',
@@ -626,6 +630,24 @@ function ItineraryTab({
                                             onChange(newItineraries);
                                           };
                                           return <StableJoditEditor value={itinerary.itineraryDescription || ''} onBlurRef={ref} />;
+                                        })()}
+                                      </FormControl>
+                                    </FormItem>
+                                    <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
+                                      <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
+                                        <AlignLeft className="h-4 w-4" />
+                                        <span>Notes</span>
+                                        <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                                      </FormLabel>
+                                      <FormControl>
+                                        {(() => {
+                                          const ref = getJoditRef(`notes-${index}`);
+                                          ref.current = (newContent) => {
+                                            const newItineraries = [...value];
+                                            newItineraries[index] = { ...itinerary, notes: newContent };
+                                            onChange(newItineraries);
+                                          };
+                                          return <StableJoditEditor value={itinerary.notes || ''} onBlurRef={ref} />;
                                         })()}
                                       </FormControl>
                                     </FormItem>
@@ -962,6 +984,7 @@ function ItineraryTab({
                       itineraryImages: [],
                       itineraryTitle: '',
                       itineraryDescription: '',
+                      notes: '',
                       activities: [],
                       roomAllocations: [],
                       transportDetails: [],

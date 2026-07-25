@@ -86,6 +86,7 @@ interface GeneratedItinerary {
         dayNumber: number;
         itineraryTitle: string;
         itineraryDescription: string;
+        notes?: string;
         mealsIncluded: string;
         suggestedHotel: string;
         activities: Array<{
@@ -873,6 +874,14 @@ export function AIPackageWizard({ locations, mode = "tourPackage" }: AIPackageWi
                                             <p className="text-sm text-muted-foreground leading-relaxed">
                                                 {day.itineraryDescription}
                                             </p>
+                                            {day.notes && day.notes.replace(/<[^>]*>/g, "").trim() ? (
+                                                <div className="mt-2 rounded-md border bg-muted/40 p-3">
+                                                    <p className="text-xs font-medium text-muted-foreground mb-1">NOTES</p>
+                                                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                                        {day.notes.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
+                                                    </p>
+                                                </div>
+                                            ) : null}
                                             <div className="flex flex-wrap gap-2 mt-2">
                                                 <Badge variant="outline" className="text-xs">{day.mealsIncluded}</Badge>
                                                 <Badge variant="outline" className="text-xs">🏨 {day.suggestedHotel}</Badge>

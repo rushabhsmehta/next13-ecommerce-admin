@@ -10,6 +10,7 @@ export async function POST(
     const { 
       itineraryMasterTitle,
       itineraryMasterDescription,
+      notes,
       locationId,
       itineraryMasterImages,
       activities
@@ -28,6 +29,7 @@ export async function POST(
       data: {
         itineraryMasterTitle,
         itineraryMasterDescription: itineraryMasterDescription || '',
+        notes: notes ?? null,
         locationId,
         itineraryMasterImages: {
           createMany: {

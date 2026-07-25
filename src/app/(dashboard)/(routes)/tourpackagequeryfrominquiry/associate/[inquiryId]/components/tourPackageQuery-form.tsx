@@ -114,6 +114,7 @@ const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
   itineraryDescription: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   dayNumber: z.coerce.number().optional(),
   days: z.string().optional(),
   activities: z.array(activitySchema),
@@ -576,6 +577,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
         itineraryTitle: itinerary.itineraryTitle || '',
         itineraryDescription: itinerary.itineraryDescription || '',
+        notes: itinerary.notes || '',
         dayNumber: itinerary.dayNumber || 0,
         days: itinerary.days || '',
         activities: itinerary.activities?.map(activity => ({

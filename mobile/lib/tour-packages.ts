@@ -8,6 +8,7 @@ export interface TourPackageItineraryDayInput {
   dayNumber: number;
   itineraryTitle: string;
   itineraryDescription?: string | null;
+  notes?: string | null;
   mealsIncluded?: string | null;
   activities?: {
     activityTitle?: string | null;
@@ -126,6 +127,7 @@ export interface TourPackageDetail {
     dayNumber: number | null;
     itineraryTitle: string | null;
     itineraryDescription: string | null;
+    notes: string | null;
     mealsIncluded: string | null;
     images?: { id: string; url: string }[];
     activities?: {

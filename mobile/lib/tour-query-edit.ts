@@ -28,6 +28,7 @@ export interface TourQueryItineraryEdit {
   hotelId?: string | null;
   itineraryTitle?: string;
   itineraryDescription?: string;
+  notes?: string;
   mealsIncluded?: string;
   roomAllocations?: RoomAllocationEdit[];
   transportDetails?: {

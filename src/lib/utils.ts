@@ -48,6 +48,13 @@ export function cleanItineraryTitle(title: string | null | undefined): string {
   return title?.replace(/^<p>/, "").replace(/<\/p>$/, "") ?? "";
 }
 
+/** True when HTML/text notes have meaningful content (ignores empty Jodit markup). */
+export function hasItineraryNotes(notes: string | null | undefined): boolean {
+  if (!notes) return false;
+  const text = notes.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").trim();
+  return text.length > 0;
+}
+
 /** e.g. "Day 3 : 15-06-2026 - Shimla" or "Day 3 - Shimla" when date is missing. */
 export function formatItineraryDayHeader(itinerary: {
   dayNumber?: number | null;

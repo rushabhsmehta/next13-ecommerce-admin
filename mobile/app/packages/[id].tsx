@@ -633,6 +633,15 @@ export default function PackageDetailScreen() {
                             <Text style={styles.dayDescription}>{description}</Text>
                           ) : null}
 
+                          {extractPlainText(day.notes) ? (
+                            <View style={{ marginBottom: 12 }}>
+                              <Text style={styles.sectionLabelText}>Notes</Text>
+                              <Text style={styles.dayDescription}>
+                                {extractPlainText(day.notes)}
+                              </Text>
+                            </View>
+                          ) : null}
+
                           {hotel && (
                             <View style={styles.hotelSection}>
                               <View style={styles.sectionLabelRow}>

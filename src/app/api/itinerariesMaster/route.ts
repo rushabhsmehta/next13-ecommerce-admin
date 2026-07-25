@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     const body = await req.json();    const {
       itineraryMasterTitle,
       itineraryMasterDescription,
+      notes,
       itineraryMasterImages,
       activities,
       locationId,
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
         tourPackageQueryId,
         itineraryMasterTitle,
         itineraryMasterDescription,
+        notes: notes ?? null,
         dayNumber,
         days,
         hotelId,

@@ -111,6 +111,7 @@ interface ItineraryItem {
   days: string | null;
   itineraryTitle: string | null;
   itineraryDescription: string | null;
+  notes: string | null;
   mealsIncluded: string | null;
   hotel: { id: string; name: string } | null;
   roomAllocations: RoomAllocationDetail[];
@@ -1201,6 +1202,14 @@ function TourQueryDetailScreenInner() {
                       {it.itineraryDescription ?
                         (
                           <CollapsibleDayDescription text={stripHtml(it.itineraryDescription)} />
+                        )
+                        : null}
+                      {it.notes && stripHtml(it.notes) ?
+                        (
+                          <View style={{ marginTop: 8 }}>
+                            <Text style={styles.activityHeaderText}>Notes</Text>
+                            <CollapsibleDayDescription text={stripHtml(it.notes)} />
+                          </View>
                         )
                         : null}
                       {activities.length ? (

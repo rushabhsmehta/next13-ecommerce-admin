@@ -61,6 +61,7 @@ export interface ItineraryRow {
   hotelId: string | null;
   itineraryTitle: string | null;
   itineraryDescription: string | null;
+  notes: string | null;
   mealsIncluded: string | null;
   roomAllocations: RoomAllocationRow[];
   transportDetails: TransportDetailRow[];

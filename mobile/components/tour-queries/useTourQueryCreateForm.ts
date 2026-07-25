@@ -81,6 +81,7 @@ function buildDraftFromForm(input: {
       dayNumber: day.dayNumber ?? index + 1,
       itineraryTitle: day.itineraryTitle ?? "",
       itineraryDescription: day.itineraryDescription ?? "",
+      notes: day.notes ?? "",
       mealsIncluded: day.mealsIncluded ?? "",
       activities: (day.activities ?? []).map((activity) => ({
         activityTitle: activity.activityTitle ?? "",
@@ -203,6 +204,7 @@ export function useTourQueryCreateForm(defaultLocationId?: string) {
         hotelId: null,
         itineraryTitle: `Day ${prev.length + 1}`,
         itineraryDescription: "",
+        notes: "",
         mealsIncluded: "",
         roomAllocations: [],
         transportDetails: [],

@@ -222,6 +222,8 @@ async function getTourPackage(rawParams: unknown) {
           id: true,
           dayNumber: true,
           itineraryTitle: true,
+          itineraryDescription: true,
+          notes: true,
           hotel: { select: { id: true, name: true } },
           itineraryImages: { select: { id: true, url: true } },
         },

@@ -48,6 +48,7 @@ async function createItineraryAndActivities(
     itinerary: {
         itineraryTitle: any;
         itineraryDescription: any;
+        notes?: any;
         locationId: any;
         tourPackageQueryId: any;
         dayNumber: any;
@@ -88,6 +89,7 @@ async function createItineraryAndActivities(
         data: {
             itineraryTitle: itinerary.itineraryTitle,
             itineraryDescription: itinerary.itineraryDescription,
+            notes: itinerary.notes ?? null,
             locationId: itinerary.locationId,
             tourPackageId,
             tourPackageQueryId: itinerary.tourPackageQueryId,
@@ -510,6 +512,9 @@ export async function POST(
                     },
                 },
             });
+        }, {
+            // Match PATCH; AI drafts create many nested itineraries/activities
+            timeout: 50000,
         });
 
         return NextResponse.json(createdTourPackage);

@@ -135,6 +135,7 @@ async function createQueryItineraryWithRelations(
   itinerary: {
     itineraryTitle: string;
     itineraryDescription?: string | null;
+    notes?: string | null;
     locationId: string;
     tourPackageId?: string | null;
     dayNumber: number;
@@ -177,6 +178,7 @@ async function createQueryItineraryWithRelations(
     data: {
       itineraryTitle: itinerary.itineraryTitle,
       itineraryDescription: itinerary.itineraryDescription,
+      notes: itinerary.notes ?? null,
       locationId: itinerary.locationId,
       tourPackageId: itinerary.tourPackageId,
       tourPackageQueryId,
@@ -567,6 +569,7 @@ export async function createSmartBuildTourQuery(
   const itineraries = (tourPackage.itineraries ?? []).map((itinerary, index) => ({
     itineraryTitle: itinerary.itineraryTitle || `Day ${index + 1}`,
     itineraryDescription: itinerary.itineraryDescription,
+    notes: itinerary.notes,
     locationId: itinerary.locationId,
     tourPackageId: tourPackage.id,
     dayNumber: itinerary.dayNumber ?? index + 1,

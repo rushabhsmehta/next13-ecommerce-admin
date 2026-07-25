@@ -7,6 +7,7 @@ const itineraryDaySchema = z.object({
   dayNumber: z.number().int().min(1).describe("Day number (1, 2, 3, ...)"),
   itineraryTitle: z.string().describe("Title for this day e.g. 'Day 1: Arrival in Goa & Beach Visit'"),
   itineraryDescription: z.string().optional().describe("Brief description of the day's plan"),
+  notes: z.string().optional().describe("Optional special notes for this day (rich text / HTML allowed)"),
   locationId: z.string().optional().describe("Override location for this specific day (defaults to query destination)"),
   hotelId: z.string().optional().describe("Hotel ID from list_hotels"),
   hotelName: z.string().optional().describe("Hotel name as fallback (searched at destination) — use list_hotels first"),

@@ -64,6 +64,7 @@ async function cloneItineraries(
         tourPackageQueryId: newQueryId,
         itineraryTitle: it.itineraryTitle,
         itineraryDescription: it.itineraryDescription,
+        notes: it.notes,
         days: it.days,
         dayNumber: it.dayNumber,
         hotelId: it.hotelId,

@@ -57,6 +57,7 @@ const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
   itineraryDescription: z.string().optional(),
+  notes: z.string().nullable().optional(),
   dayNumber: z.number().optional(),
   days: z.string().optional(),
   activities: z.array(activitySchema),
@@ -266,6 +267,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
         itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
+        notes: itinerary.notes ?? '',
         hotelId: itinerary.hotelId ?? '',
         numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
@@ -984,6 +986,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                                     ...updatedItineraries[index],
                                                     itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
                                                     itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
+                                                    notes: itineraryMaster.notes || '',
                                                     itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
                                                     activities: itineraryMaster.activities?.map(activity => ({
                                                       activityTitle: activity.activityTitle || '',
@@ -1092,6 +1095,22 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           onBlur={(content) => {
                                             const newItineraries = [...value]
                                             newItineraries[index] = { ...itinerary, itineraryDescription: content }
+                                            onChange(newItineraries)
+                                          }}
+                                          onChange={() => { }}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+
+                                    <FormItem>
+                                      <FormLabel>Notes <span className="text-xs font-normal text-muted-foreground">(optional)</span></FormLabel>
+                                      <FormControl>
+                                        <JoditEditor
+                                          ref={editor}
+                                          value={itinerary.notes || ''}
+                                          onBlur={(content) => {
+                                            const newItineraries = [...value]
+                                            newItineraries[index] = { ...itinerary, notes: content }
                                             onChange(newItineraries)
                                           }}
                                           onChange={() => { }}
@@ -1361,6 +1380,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                               itineraryImages: [],
                               itineraryTitle: '',
                               itineraryDescription: '',
+                      notes: '',
                               activities: [],
                               mealsIncluded: [],
                               hotelId: '',

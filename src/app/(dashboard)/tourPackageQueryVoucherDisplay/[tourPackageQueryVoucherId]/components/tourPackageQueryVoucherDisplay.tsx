@@ -542,6 +542,12 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                             <div className="vchr-day-text">
                               <strong>{cleanedTitle || '-'}</strong>
                             </div>
+                            {stripHtml(itinerary.notes || '') && (
+                              <div className="vchr-day-text" style={{ marginTop: '0.5rem' }}>
+                                <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Notes</div>
+                                <div dangerouslySetInnerHTML={{ __html: itinerary.notes || '' }} />
+                              </div>
+                            )}
                           </div>
                         </div>
 

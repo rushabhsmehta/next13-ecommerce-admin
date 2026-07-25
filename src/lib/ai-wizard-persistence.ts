@@ -13,6 +13,7 @@ export const aiWizardItinerarySchema = z
     dayNumber: z.coerce.number().int().min(1).optional(),
     itineraryTitle: z.string().optional().nullable(),
     itineraryDescription: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
     mealsIncluded: z.string().optional().nullable(),
     suggestedHotel: z.string().optional().nullable(),
     activities: z.array(aiWizardActivitySchema).optional(),
@@ -98,6 +99,7 @@ export function buildItineraryCreates(locationId: string, draft: AiWizardDraft) 
     days: String(itinerary.dayNumber ?? index + 1),
     itineraryTitle: itinerary.itineraryTitle ?? `Day ${index + 1}`,
     itineraryDescription: itinerary.itineraryDescription ?? "",
+    notes: itinerary.notes ?? null,
     mealsIncluded: itinerary.mealsIncluded ?? null,
     activities: (itinerary.activities ?? []).length
       ? {

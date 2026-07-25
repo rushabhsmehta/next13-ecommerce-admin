@@ -20,6 +20,7 @@ export type BrochureItinerary = {
   days?: string | null;
   itineraryTitle?: string | null;
   itineraryDescription?: string | null;
+  notes?: string | null;
 };
 
 export type BrochurePackageInput = {
@@ -71,10 +72,13 @@ export function buildTourPackageBrochureHtml(
         ? stripHtml(String(it.itineraryDescription))
         : "";
       const desc = descRaw ? escapeHtml(descRaw.slice(0, 280)) : "";
+      const notesRaw = it.notes ? stripHtml(String(it.notes)) : "";
+      const notes = notesRaw ? escapeHtml(notesRaw.slice(0, 160)) : "";
       return `<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;">
         <div style="font-size:11px;font-weight:700;color:#ea580c;text-transform:uppercase;">${escapeHtml(dayLabel)}</div>
         <div style="font-size:13px;font-weight:700;color:#111827;margin-top:4px;">${escapeHtml(heading)}</div>
         ${desc ? `<div style="font-size:11px;color:#4b5563;line-height:1.45;margin-top:4px;">${desc}${descRaw.length >= 280 ? "…" : ""}</div>` : ""}
+        ${notes ? `<div style="font-size:11px;color:#6b7280;line-height:1.45;margin-top:4px;"><strong>Notes:</strong> ${notes}${notesRaw.length >= 160 ? "…" : ""}</div>` : ""}
       </div>`;
     }) ?? [];
 

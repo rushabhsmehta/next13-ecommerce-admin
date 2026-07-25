@@ -658,6 +658,23 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
               </div>
             ` : ''}
 
+            ${(itinerary.notes && itinerary.notes.trim()) ? `
+              <div style="margin-bottom: 20px;">
+                <h4 style="font-size: 15px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 12px 0; display: flex; align-items: center; border-bottom: 2px solid ${brandColors.light}; padding-bottom: 8px;">
+                  <span style="${iconStyle}">📝</span>
+                  Notes
+                </h4>
+                <div style="font-size: 14px; line-height: 1.6; color: ${brandColors.muted};">
+                  ${(itinerary.notes || "")
+            .replace(/<\/?p>/gi, "<br>")
+            .replace(/(<br>\s*)+/gi, "<br>")
+            .replace(/\s+/g, " ")
+            .trim()
+          }
+                </div>
+              </div>
+            ` : ''}
+
             ${itinerary.activities && itinerary.activities.length > 0 ? `
               <div>
                 <h4 style="font-size: 15px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 12px 0; display: flex; align-items: center; border-bottom: 2px solid ${brandColors.light}; padding-bottom: 8px;">

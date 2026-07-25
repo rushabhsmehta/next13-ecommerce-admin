@@ -175,6 +175,7 @@ const patchSchema = z.object({
         hotelId: z.string().optional().nullable(),
         itineraryTitle: z.string().optional().nullable(),
         itineraryDescription: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
         mealsIncluded: z.string().optional().nullable(),
         roomAllocations: z.array(roomAllocationSchema).optional(),
         transportDetails: z.array(transportDetailSchema).optional(),
@@ -421,6 +422,7 @@ export async function GET(
             locationId: true,
             itineraryTitle: true,
             itineraryDescription: true,
+            notes: true,
             mealsIncluded: true,
             hotel: { select: { id: true, name: true } },
             roomAllocations: {
@@ -669,6 +671,7 @@ export async function PATCH(
               days: true,
               itineraryTitle: true,
               itineraryDescription: true,
+              notes: true,
               mealsIncluded: true,
               itineraryImages: { select: { url: true } },
               activities: {
@@ -722,6 +725,7 @@ export async function PATCH(
         hotelId: null,
         itineraryTitle: it.itineraryTitle ?? "",
         itineraryDescription: it.itineraryDescription ?? "",
+        notes: it.notes ?? "",
         mealsIncluded: it.mealsIncluded ?? "",
         roomAllocations: [],
         itineraryImages: it.itineraryImages.map((img) => ({ url: img.url })),
@@ -820,6 +824,7 @@ export async function PATCH(
                 hotelId: it.hotelId,
                 itineraryTitle: it.itineraryTitle,
                 itineraryDescription: it.itineraryDescription,
+                notes: it.notes,
                 mealsIncluded: it.mealsIncluded,
               }
             });
@@ -885,6 +890,7 @@ export async function PATCH(
                 hotelId: it.hotelId,
                 itineraryTitle: it.itineraryTitle || "",
                 itineraryDescription: it.itineraryDescription || "",
+                notes: it.notes || "",
                 mealsIncluded: it.mealsIncluded || "",
               }
             });

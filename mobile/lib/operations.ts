@@ -961,6 +961,7 @@ export interface OpsItineraryMaster {
   id: string;
   title: string | null;
   description: string | null;
+  notes?: string | null;
   locationId: string;
   locationLabel: string | null;
   dayNumber: number | null;
@@ -980,6 +981,7 @@ export interface OpsItineraryInput {
   locationId: string;
   itineraryMasterTitle: string;
   itineraryMasterDescription: string;
+  notes?: string | null;
   dayNumber?: number | null;
   days?: string | null;
   hotelId?: string | null;

@@ -13,6 +13,7 @@ export async function POST(
     const body = await req.json();    const {
       itineraryTitle,
       itineraryDescription,
+      notes,
       itineraryImages,
       activities,
       locationId,
@@ -62,6 +63,7 @@ export async function POST(
         tourPackageQueryId,
         itineraryTitle,
         itineraryDescription,
+        notes: notes ?? null,
         dayNumber,
         days,
         hotelId,

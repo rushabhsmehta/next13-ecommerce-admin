@@ -20,7 +20,7 @@ import {
   TourPackage,
 } from '@prisma/client';
 import { useSearchParams } from 'next/navigation';
-import { formatItineraryDayHeader } from '@/lib/utils';
+import { formatItineraryDayHeader, hasItineraryNotes } from '@/lib/utils';
 
 interface TourPackageDisplayProps {
   initialData: TourPackage & {
@@ -479,6 +479,12 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           </div>
           <div className="flex-grow p-8">
             <div className="text-2xl text-justify mb-6" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }} />
+            {hasItineraryNotes(itinerary.notes) && (
+              <div className="mt-4">
+                <div className="text-xl font-semibold mb-2">Notes</div>
+                <div className="text-lg text-justify" dangerouslySetInnerHTML={{ __html: itinerary.notes || '' }} />
+              </div>
+            )}
           </div>
 
           <CardContent className="p-8">

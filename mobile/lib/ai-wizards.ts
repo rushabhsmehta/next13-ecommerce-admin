@@ -33,6 +33,7 @@ export interface AiItineraryDay {
   dayNumber?: number;
   itineraryTitle?: string | null;
   itineraryDescription?: string | null;
+  notes?: string | null;
   mealsIncluded?: string | null;
   suggestedHotel?: string | null;
   activities?: AiItineraryActivity[];

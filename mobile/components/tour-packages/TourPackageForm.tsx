@@ -392,6 +392,7 @@ export function TourPackageForm({
         dayNumber: prev.length + 1,
         itineraryTitle: `Day ${prev.length + 1}`,
         itineraryDescription: "",
+        notes: "",
         mealsIncluded: "",
         activities: [],
       },
@@ -434,6 +435,7 @@ export function TourPackageForm({
           dayNumber: day.dayNumber,
           itineraryTitle: day.itineraryTitle.trim(),
           itineraryDescription: day.itineraryDescription?.trim() || null,
+          notes: day.notes?.trim() || null,
           mealsIncluded: day.mealsIncluded?.trim() || null,
           activities: (day.activities ?? []).map((activity) => ({
             activityTitle: activity.activityTitle?.trim() || "",
@@ -703,6 +705,18 @@ export function TourPackageForm({
                 placeholder="What happens on this day?"
                 placeholderTextColor={Colors.textTertiary}
                 multiline
+              />
+            </AdminFormField>
+            <AdminFormField label="Notes (optional)">
+              <TextInput
+                testID={`tour-package-day-notes-${index + 1}`}
+                style={[styles.input, styles.textarea]}
+                value={day.notes ?? ""}
+                onChangeText={(text) => updateDay(index, { notes: text })}
+                placeholder="Special notes for this day"
+                placeholderTextColor={Colors.textTertiary}
+                multiline
+                accessibilityLabel={`Day ${index + 1} notes`}
               />
             </AdminFormField>
             <AdminFormField label="Meals included">

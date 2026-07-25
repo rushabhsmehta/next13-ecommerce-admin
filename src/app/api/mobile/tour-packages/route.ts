@@ -187,6 +187,7 @@ export async function POST(req: Request) {
                 days: String(day.dayNumber),
                 itineraryTitle: day.itineraryTitle.trim(),
                 itineraryDescription: day.itineraryDescription?.trim() || null,
+                notes: day.notes?.trim() || null,
                 mealsIncluded: day.mealsIncluded?.trim() || null,
                 activities: day.activities?.length
                   ? {

@@ -11,6 +11,7 @@ export const itineraryDaySchema = z.object({
   dayNumber: z.coerce.number().int().min(1),
   itineraryTitle: z.string().min(1).max(500),
   itineraryDescription: z.string().max(5000).optional().nullable(),
+  notes: z.string().max(10000).optional().nullable(),
   mealsIncluded: z.string().max(200).optional().nullable(),
   activities: z
     .array(
@@ -141,6 +142,7 @@ type PackageRow = {
     dayNumber: number | null;
     itineraryTitle: string | null;
     itineraryDescription: string | null;
+    notes: string | null;
     mealsIncluded: string | null;
     itineraryImages?: { id: string; url: string }[];
     activities?: {
@@ -215,6 +217,7 @@ export function formatTourPackageDetail(row: PackageRow) {
       dayNumber: it.dayNumber,
       itineraryTitle: it.itineraryTitle,
       itineraryDescription: it.itineraryDescription,
+      notes: it.notes,
       mealsIncluded: it.mealsIncluded,
       images: (it.itineraryImages ?? []).map((img) => ({ id: img.id, url: img.url })),
       activities: (it.activities ?? []).map((activity) => ({
@@ -260,6 +263,7 @@ export const tourPackageDetailInclude = {
       dayNumber: true,
       itineraryTitle: true,
       itineraryDescription: true,
+      notes: true,
       mealsIncluded: true,
       itineraryImages: { select: { id: true, url: true }, orderBy: { createdAt: "asc" as const } },
       activities: {

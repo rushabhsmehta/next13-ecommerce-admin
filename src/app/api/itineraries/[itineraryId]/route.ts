@@ -79,6 +79,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ itineraryId
     const body = await req.json();    const {
       itineraryTitle,
       itineraryDescription,
+      notes,
       itineraryImages,
       activities,
       locationId,
@@ -143,6 +144,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ itineraryId
       tourPackageQueryId,  // Update tourPackageQueryId
       itineraryTitle,
       itineraryDescription,
+      notes: notes ?? null,
       dayNumber,  // Update dayNumber
       days,  // Update days
       hotelId,  // Update hotelId

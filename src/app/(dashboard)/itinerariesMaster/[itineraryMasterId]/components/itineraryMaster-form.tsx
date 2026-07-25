@@ -61,6 +61,7 @@ const activitySchema = z.object({
 const formSchema = z.object({
   itineraryMasterTitle: z.string().optional(),
   itineraryMasterDescription: z.string().optional(),
+  notes: z.string().nullable().optional(),
   itineraryMasterImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().min(1),
   hotelId: z.string().optional(),
@@ -151,6 +152,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
     tourPackageQueryId: '',
     itineraryMasterTitle: '',
     itineraryMasterDescription: '',
+    notes: '',
     itineraryMasterImages: [],
     dayNumber: 0,
     days: '',
@@ -336,6 +338,20 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea rows={10} disabled={loading} placeholder="Description" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes <span className="text-xs font-normal text-muted-foreground">(optional)</span></FormLabel>
+                  <FormControl>
+                    <Textarea rows={4} disabled={loading} placeholder="Special notes for this day" {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

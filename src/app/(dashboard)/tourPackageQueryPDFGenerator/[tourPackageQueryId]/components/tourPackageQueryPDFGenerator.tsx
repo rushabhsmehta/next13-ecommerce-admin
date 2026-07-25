@@ -1160,6 +1160,31 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             </div>
           ` : ''}
 
+          ${(itinerary.notes && itinerary.notes.trim()) ? `
+            <div style="margin-bottom: 20px;">
+              <h4 style="font-size: 15px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 12px 0; display: flex; align-items: center; border-bottom: 2px solid ${brandColors.light}; padding-bottom: 8px;">
+                <span style="${iconStyle}">📝</span>
+                Notes
+              </h4>
+              <div style="font-size: 14px; line-height: 1.6; color: ${brandColors.muted};">
+                ${(itinerary.notes || "")
+              .replace(/<\/?p>/gi, "<br>")
+              .replace(/(<br>\s*)+/gi, "<br>")
+              .replace(/\s+/g, " ")
+              .trim().replace(/<\/?(html|body)>/gi, '')
+              .replace(/<!--StartFragment-->/gi, '')
+              .replace(/<!--EndFragment-->/gi, '')
+              .replace(/<p>/gi, '<br>')
+              .replace(/<\/p>/gi, '')
+              .replace(/<br\s*[^>]*>/gi, '<br>')
+              .replace(/(<br>\s*){2,}/gi, '<br>')
+              .replace(/\s+/g, ' ')
+              .trim()
+            }
+              </div>
+            </div>
+          ` : ''}
+
           <!-- Enhanced Activities Section -->
           ${itinerary.activities && itinerary.activities.length > 0 ? `
             <div>

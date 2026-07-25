@@ -159,6 +159,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ tourPackag
 async function createItineraryAndActivities(itinerary: {
   itineraryTitle: any;
   itineraryDescription: any;
+  notes?: any;
   locationId: any;
   tourPackageId: any;
   dayNumber: any;
@@ -180,6 +181,7 @@ async function createItineraryAndActivities(itinerary: {
     data: {
       itineraryTitle: itinerary.itineraryTitle,
       itineraryDescription: itinerary.itineraryDescription,
+      notes: itinerary.notes ?? null,
       locationId: itinerary.locationId,
       tourPackageId: itinerary.tourPackageId,
       tourPackageQueryId: tourPackageQueryId,
@@ -284,6 +286,7 @@ async function createItineraryAndActivities(itinerary: {
 async function createItineraryAndActivitiesInTransaction(itinerary: {
   itineraryTitle: any;
   itineraryDescription: any;
+  notes?: any;
   locationId: any;
   tourPackageId: any;
   dayNumber: any;
@@ -303,6 +306,7 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
       data: {
         itineraryTitle: itinerary.itineraryTitle,
         itineraryDescription: itinerary.itineraryDescription,
+        notes: itinerary.notes ?? null,
         locationId: itinerary.locationId,
         tourPackageId: itinerary.tourPackageId,
         tourPackageQueryId: tourPackageQueryId,

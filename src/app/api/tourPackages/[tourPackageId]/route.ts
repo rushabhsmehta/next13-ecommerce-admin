@@ -138,6 +138,7 @@ async function createItineraryAndActivities(
   itinerary: {
     itineraryTitle: any;
     itineraryDescription: any;
+    notes?: any;
     locationId: any;
     tourPackageQueryId: any;
     dayNumber: any;
@@ -157,6 +158,7 @@ async function createItineraryAndActivities(
     data: {
       itineraryTitle: itinerary.itineraryTitle,
       itineraryDescription: itinerary.itineraryDescription,
+      notes: itinerary.notes ?? null,
       locationId: itinerary.locationId,
       tourPackageId,
       tourPackageQueryId: itinerary.tourPackageQueryId,

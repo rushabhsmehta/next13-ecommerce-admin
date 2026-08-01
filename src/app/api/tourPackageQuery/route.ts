@@ -7,6 +7,7 @@ import { createAuditLog } from "@/lib/utils/audit-logger";
 import { createVariantSnapshots, applyVariantHotelOverrides } from '@/lib/variant-snapshot';
 import { carryForwardInquiryCouponToTourQuery } from '@/lib/coupons';
 import { buildItineraryIdMap, remapVariantDataKeys } from '@/lib/variant-data-remap';
+import { resolveQueryQuoteTotal } from '@/lib/resolve-query-quote-total';
 
 // Enable caching for GET requests - revalidate every 5 minutes
 export const revalidate = 300;
@@ -259,14 +260,6 @@ export async function POST(
             numAdults,
             numChild5to12,
             numChild0to5,
-            price,
-            pricePerAdult,
-            pricePerChildOrExtraBed,
-            pricePerChild5to12YearsNoBed,
-            pricePerChildwithSeatBelow5Years,
-            totalPrice,
-            pricingSection, // Add this line
-            pricingCalculationMethod,
             remarks,
             flightDetails,
             inclusions,
@@ -474,14 +467,6 @@ export async function POST(
                 numAdults,
                 numChild5to12,
                 numChild0to5,
-                price,
-                pricePerAdult,
-                pricePerChildOrExtraBed,
-                pricePerChild5to12YearsNoBed,
-                pricePerChildwithSeatBelow5Years,
-                totalPrice,
-                pricingSection, // use exactly what client sends (no server fallback)
-                pricingCalculationMethod: pricingCalculationMethod || null,
                 remarks,
                 //  hotelDetails,                inclusions: processedInclusions,
                 exclusions: processedExclusions,
@@ -679,10 +664,14 @@ export async function POST(
 
         if (inquiryId) {
             try {
+                const quote = resolveQueryQuoteTotal({
+                    confirmedVariantId: confirmedVariantId || null,
+                    variantPricingData,
+                });
                 await carryForwardInquiryCouponToTourQuery({
                     inquiryId,
                     tourPackageQueryId: newTourPackageQuery.id,
-                    bookingAmount: Number.parseFloat(String(totalPrice || price || "0")) || null,
+                    bookingAmount: quote.total,
                     locationId,
                     tourPackageId: selectedTemplateId || null,
                     tourCategory,
@@ -802,8 +791,6 @@ export async function GET(
                 numAdults: true,
                 numChild5to12: true,
                 numChild0to5: true,
-                price: true,
-                totalPrice: true,
                 remarks: true,
                 assignedTo: true,
                 assignedToMobileNumber: true,

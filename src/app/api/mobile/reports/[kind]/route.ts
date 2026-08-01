@@ -3,6 +3,7 @@ import prismadb from "@/lib/prismadb";
 import { buildMobileAdminProfile } from "@/lib/mobile-admin-access";
 import { resolveInquiryAccessContext } from "@/lib/inquiry-access";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 export const dynamic = "force-dynamic";
 
@@ -51,20 +52,27 @@ async function upcomingTrips(): Promise<{ summary: Summary[]; rows: Row[] }> {
       customerName: true,
       tourStartsFrom: true,
       tourEndsOn: true,
-      totalPrice: true,
+      confirmedVariantId: true,
+      variantPricingData: true,
     },
     orderBy: { tourStartsFrom: "asc" },
     take: 50,
   });
   return {
     summary: [{ label: "Upcoming trips", value: rows.length, tone: "ok" }],
-    rows: rows.map((r) => ({
-      id: r.id,
-      title: r.tourPackageQueryName || r.tourPackageQueryNumber || "Trip",
-      subtitle: `${r.customerName ?? "Customer TBD"} - ${iso(r.tourStartsFrom)?.slice(0, 10) ?? "Date TBD"}`,
-      amount: typeof r.totalPrice === "string" ? Number.parseFloat(r.totalPrice) : (r.totalPrice as any),
-      status: "confirmed",
-    })),
+    rows: rows.map((r) => {
+      const quote = resolveQueryQuoteTotal({
+        confirmedVariantId: r.confirmedVariantId,
+        variantPricingData: r.variantPricingData,
+      });
+      return {
+        id: r.id,
+        title: r.tourPackageQueryName || r.tourPackageQueryNumber || "Trip",
+        subtitle: `${r.customerName ?? "Customer TBD"} - ${iso(r.tourStartsFrom)?.slice(0, 10) ?? "Date TBD"}`,
+        amount: quote.total,
+        status: "confirmed",
+      };
+    }),
   };
 }
 
@@ -77,20 +85,27 @@ async function queryList(confirmed: boolean): Promise<{ summary: Summary[]; rows
       tourPackageQueryName: true,
       customerName: true,
       tourStartsFrom: true,
-      totalPrice: true,
+      confirmedVariantId: true,
+      variantPricingData: true,
     },
     orderBy: { updatedAt: "desc" },
     take: 75,
   });
   return {
     summary: [{ label: confirmed ? "Confirmed queries" : "Unconfirmed queries", value: rows.length }],
-    rows: rows.map((r) => ({
-      id: r.id,
-      title: r.tourPackageQueryName || r.tourPackageQueryNumber || "Query",
-      subtitle: `${r.customerName ?? "Customer TBD"} - ${iso(r.tourStartsFrom)?.slice(0, 10) ?? "Date TBD"}`,
-      amount: typeof r.totalPrice === "string" ? Number.parseFloat(r.totalPrice) : (r.totalPrice as any),
-      status: confirmed ? "confirmed" : "draft",
-    })),
+    rows: rows.map((r) => {
+      const quote = resolveQueryQuoteTotal({
+        confirmedVariantId: r.confirmedVariantId,
+        variantPricingData: r.variantPricingData,
+      });
+      return {
+        id: r.id,
+        title: r.tourPackageQueryName || r.tourPackageQueryNumber || "Query",
+        subtitle: `${r.customerName ?? "Customer TBD"} - ${iso(r.tourStartsFrom)?.slice(0, 10) ?? "Date TBD"}`,
+        amount: quote.total,
+        status: confirmed ? "confirmed" : "draft",
+      };
+    }),
   };
 }
 

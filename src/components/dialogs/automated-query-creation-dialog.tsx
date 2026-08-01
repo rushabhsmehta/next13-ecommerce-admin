@@ -997,8 +997,33 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         numAdults: inquiry.numAdults.toString(),
     numChild5to12: (inquiry.numChildren5to11 || 0).toString(),
         numChild0to5: (inquiry.numChildrenBelow5 || 0).toString(),
-  // Only include totalPrice if we calculated it; otherwise omit
-  ...(calculatedPrice !== null ? { totalPrice: calculatedPrice.toString() } : {}),
+  // Pricing stored as a custom variant (no query-level totalPrice / pricingSection)
+  ...(calculatedPrice !== null
+    ? {
+        customQueryVariants: [
+          {
+            id: "auto-build-pricing",
+            name: "Auto Build Pricing",
+            description: "Calculated during automated query creation",
+            sortOrder: 0,
+            source: "automated_query",
+          },
+        ],
+        variantPricingData: {
+          "auto-build-pricing": {
+            calculationMethod: "manual",
+            components: (priceCalculationDetails ?? []).map((detail: any) => ({
+              name: detail.name,
+              price: (detail.totalPrice ?? detail.basePrice ?? 0).toString(),
+              description: detail.description,
+            })),
+            totalCost: calculatedPrice,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+        confirmedVariantId: "auto-build-pricing",
+      }
+    : {}),
         journeyDate: inquiry.journeyDate,
         tourStartsFrom: inquiry.journeyDate,
         numDaysNight: selectedTourPackage.numDaysNight || '1',
@@ -1055,21 +1080,37 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         }) || [],
         debugSessionId,
       };
-      // attach top-level pricing details and log snapshot
+      // attach top-level variant pricing details and log snapshot
       if (calculatedPrice !== null && priceCalculationDetails && priceCalculationDetails.length > 0) {
-        queryData.pricingSection = priceCalculationDetails.map((detail: any) => ({
-          name: detail.name,
-          price: (detail.totalPrice ?? detail.basePrice ?? 0).toString(),
-          description: detail.description // already includes base × occupancy × rooms
-        }));
-        queryData.totalPrice = calculatedPrice.toString();
+        queryData.customQueryVariants = [
+          {
+            id: "auto-build-pricing",
+            name: "Auto Build Pricing",
+            description: "Calculated during automated query creation",
+            sortOrder: 0,
+            source: "automated_query",
+          },
+        ];
+        queryData.variantPricingData = {
+          "auto-build-pricing": {
+            calculationMethod: "manual",
+            components: priceCalculationDetails.map((detail: any) => ({
+              name: detail.name,
+              price: (detail.totalPrice ?? detail.basePrice ?? 0).toString(),
+              description: detail.description,
+            })),
+            totalCost: calculatedPrice,
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        queryData.confirmedVariantId = "auto-build-pricing";
       }
       // attach a compact client debug log (last 200 entries)
       queryData.clientDebugLog = debugLog.slice(-200);
       addLog({ step: 'submit/payloadBuilt', data: {
         itineraries: queryData.itineraries?.length || 0,
-        totalPrice: queryData.totalPrice,
-        hasPricingSection: !!queryData.pricingSection,
+        totalCost: calculatedPrice,
+        hasVariantPricing: !!queryData.variantPricingData,
       }});
       
       console.log('8. Final Query Data Structure:');

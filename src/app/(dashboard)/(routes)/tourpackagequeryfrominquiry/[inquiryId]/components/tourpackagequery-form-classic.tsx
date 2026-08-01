@@ -92,7 +92,6 @@ import GuestsTab from '@/components/tour-package-query/GuestsTab';
 import ItineraryTab from '@/components/tour-package-query/ItineraryTab';
 import LocationTab from '@/components/tour-package-query/LocationTab';
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab';
-import PricingTab from '@/components/tour-package-query/PricingTab';
 import QueryVariantsTab from '@/components/tour-package-query/QueryVariantsTab';
 import { REMARKS_DEFAULT } from "@/app/(dashboard)/tourPackageQueryFromTourPackage/[tourPackageQueryFromTourPackageId]/components/defaultValues"
 import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues"
@@ -204,8 +203,6 @@ const formSchema = z.object({
   numAdults: guestCountField,
   numChild5to12: guestCountField,
   numChild0to5: guestCountField,
-
-  totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),
   locationId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
@@ -229,10 +226,7 @@ const formSchema = z.object({
   variantTransportDetails: z.record(z.record(z.array(z.any()))).optional(),
   variantPricingData: z.record(z.any()).optional(),
   confirmedVariantId: z.string().optional().nullable(),
-  customQueryVariants: z.array(z.any()).optional(),
-  pricingSection: z.array(pricingItemSchema).optional().default([]), // Use adjusted schema
-  pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
-  customMarkup: z.string().optional(), // Added for custom markup percentage
+  customQueryVariants: z.array(z.any()).optional(),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -439,7 +433,6 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     termsconditions: false,
     kitchenGroupPolicy: false,
   });
-  const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const [lookupLoading, setLookupLoading] = useState(true); // Initialize as true
   // --- ADDED STATE FOR LOOKUP DATA ---
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -478,8 +471,6 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     tourStartsFrom: convertJourneyDateToTourStart(inquiry?.journeyDate),
     tourEndsOn: undefined,
     remarks: REMARKS_DEFAULT,
-
-    totalPrice: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
     importantNotes: IMPORTANT_NOTES_DEFAULT,
@@ -489,10 +480,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
     airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
-    disclaimer: DISCLAIMER_DEFAULT,
-    pricingSection: DEFAULT_PRICING_SECTION,
-    pricingTier: 'standard', // Add default
-    customMarkup: '', // Add default
+    disclaimer: DISCLAIMER_DEFAULT,
     images: [],
     flightDetails: [],
     itineraries: [],
@@ -697,7 +685,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     form.setValue('transport', String(selectedTourPackage.transport || ''));
     form.setValue('pickup_location', String(selectedTourPackage.pickup_location || ''));
     form.setValue('drop_location', String(selectedTourPackage.drop_location || ''));
-    // form.setValue('totalPrice', String(selectedTourPackage.totalPrice || '')); // REMOVED
+    // // REMOVED
     form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
     form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
     form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -738,9 +726,6 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
       arrivalTime: flight.arrivalTime || undefined,
       flightDuration: flight.flightDuration || undefined,
     })));
-    form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
-    form.setValue('pricingTier', (selectedTourPackage as any).pricingTier || 'standard');
-    form.setValue('customMarkup', (selectedTourPackage as any).customMarkup || '');
 
     handleTourPackageVariantSelection(selectedTourPackageId, []);
     const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem) => variantItem.isDefault);
@@ -772,7 +757,6 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
       form.setValue('transport', String(selectedTourPackageQuery.transport || ''));
       form.setValue('pickup_location', String(selectedTourPackageQuery.pickup_location || ''));
       form.setValue('drop_location', String(selectedTourPackageQuery.drop_location || ''));
-      form.setValue('totalPrice', String(selectedTourPackageQuery.totalPrice || ''));
       //form.setValue('numAdults', String(selectedTourPackageQuery.numAdults || ''));
       //form.setValue('numChild5to12', String(selectedTourPackageQuery.numChild5to12 || ''));
       //form.setValue('numChild0to5', String(selectedTourPackageQuery.numChild0to5 || ''));
@@ -838,14 +822,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
         form.setValue('itineraries', []); // Clear if template has none
       }
 
-      // Attempt to parse and set pricing section if available
-      try {
-        if (selectedTourPackageQuery.pricingSection) {
-          form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection));
-        }
-      } catch (error) {
-        console.error("Error parsing pricing section:", error);
-      }
+      // Pricing now lives only on Variants; nothing to copy from query templates here.
     }
   };
 
@@ -880,7 +857,6 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
       transport: data.transport || '',
       pickup_location: data.pickup_location || '',
       drop_location: data.drop_location || '',
-      totalPrice: data.totalPrice || '',
       disclaimer: data.disclaimer || '',
       // Apply timezone normalization to date fields
       tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
@@ -903,7 +879,6 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
           quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
         })),
       })),
-      pricingSection: data.pricingSection || [],
     };
 
     // --- END ADJUST onSubmit ---
@@ -1008,10 +983,6 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
                     <Plane className="h-4 w-4" />
                     <span className="truncate">Flights</span>
                   </TabsTrigger>
-                  <TabsTrigger value="pricing" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
-                    <Tag className="h-4 w-4" />
-                    <span className="truncate">Pricing</span>
-                  </TabsTrigger>
                   <TabsTrigger value="variants" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
                     <Sparkles className="h-4 w-4" />
                     <span className="truncate">Variants</span>
@@ -1101,23 +1072,6 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
             </TabsContent>
 
             {/* Use PricingTab from shared components */}
-            <TabsContent value="pricing" className="space-y-4 mt-4">
-              <PricingTab
-                control={sharedControl}
-                loading={loading}
-                form={form}
-                hotels={hotels}
-                roomTypes={roomTypes}
-                occupancyTypes={occupancyTypes}
-                mealPlans={mealPlans}
-                vehicleTypes={vehicleTypes}
-                priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult}
-                selectedTemplateId={form.watch('selectedTemplateId')}
-                selectedTemplateType={form.watch('selectedTemplateType')}
-                selectedTourPackageVariantId={form.watch('selectedTourPackageVariantId')}
-              />
-            </TabsContent>
 
             <TabsContent value="variants" className="space-y-4 mt-4">
               <QueryVariantsTab

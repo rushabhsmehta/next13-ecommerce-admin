@@ -5,6 +5,7 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryDisplayClient } from "./components/client";
 import { TourPackageQueryDisplayColumn } from "./components/columns";
 import { isCurrentUserAssociate } from "@/lib/associate-utils";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 // Enable ISR - revalidate every 5 minutes (300 seconds)
 export const revalidate = 300;
@@ -17,7 +18,8 @@ const TourPackageQueryDisplayPage = async () => {
       tourPackageQueryName: true,
       customerName: true,
       assignedTo: true,
-      totalPrice: true,
+      confirmedVariantId: true,
+      variantPricingData: true,
       createdAt: true,
       updatedAt: true,
       location: {
@@ -42,17 +44,23 @@ const TourPackageQueryDisplayPage = async () => {
     // based on how you determine which queries belong to which associate
   }
 
-  const formattedTourPackageQueries: TourPackageQueryDisplayColumn[] = filteredQueries.map((item) => ({
-    id: item.id,
-    tourPackageQueryNumber: item.tourPackageQueryNumber ?? '',
-    tourPackageQueryName: item.tourPackageQueryName ?? '',
-    customerName: item.customerName ?? '',
-    assignedTo: item.assignedTo ?? 'Unassigned',
-    location: item.location?.label ?? '',
-    totalPrice: item.totalPrice ?? '',
-    createdAt: formatLocalDate(item.createdAt, 'MMMM d, yyyy'),
-    updatedAt: formatLocalDate(item.updatedAt, 'MMMM d, yyyy'),
-  }));
+  const formattedTourPackageQueries: TourPackageQueryDisplayColumn[] = filteredQueries.map((item) => {
+    const quote = resolveQueryQuoteTotal({
+      confirmedVariantId: item.confirmedVariantId,
+      variantPricingData: item.variantPricingData,
+    });
+    return {
+      id: item.id,
+      tourPackageQueryNumber: item.tourPackageQueryNumber ?? '',
+      tourPackageQueryName: item.tourPackageQueryName ?? '',
+      customerName: item.customerName ?? '',
+      assignedTo: item.assignedTo ?? 'Unassigned',
+      location: item.location?.label ?? '',
+      totalPrice: quote.totalDisplay ?? '',
+      createdAt: formatLocalDate(item.createdAt, 'MMMM d, yyyy'),
+      updatedAt: formatLocalDate(item.updatedAt, 'MMMM d, yyyy'),
+    };
+  });
 
   return (
     <div className="flex-col">

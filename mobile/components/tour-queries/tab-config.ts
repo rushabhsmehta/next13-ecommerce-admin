@@ -11,7 +11,6 @@ export const TOUR_QUERY_TABS: TourQueryTabOption[] = [
   { id: "trip", label: "Trip" },
   { id: "flights", label: "Flights" },
   { id: "itinerary", label: "Itinerary" },
-  { id: "pricing", label: "Pricing" },
   { id: "variants", label: "Variants" },
   { id: "policies", label: "Policies" },
 ];
@@ -25,8 +24,8 @@ export const VARIANT_BUILD_TABS = [
 const TAB_IDS = new Set<string>(TOUR_QUERY_TABS.map((t) => t.id));
 
 export function parseTourQueryTab(value: unknown): TourQueryTabId {
-  // Legacy deep-links to the removed top-level Hotels tab → Variants
-  if (value === "hotels") return "variants";
+  // Legacy deep-links to the removed top-level Hotels / Pricing tabs → Variants
+  if (value === "hotels" || value === "pricing") return "variants";
   if (typeof value === "string" && TAB_IDS.has(value)) {
     return value as TourQueryTabId;
   }
@@ -64,7 +63,7 @@ export function fieldPathToTab(fieldPath: string): TourQueryTabId {
     return "itinerary";
   }
   if (lower.includes("pricing") || lower.includes("totalprice") || lower.includes("price")) {
-    return "pricing";
+    return "variants";
   }
   if (lower.includes("variant") || lower.includes("confirmed")) {
     return "variants";

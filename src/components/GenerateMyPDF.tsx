@@ -9,6 +9,7 @@ import { formatLocalDate } from '@/lib/timezone-utils';
 import { useSearchParams } from 'next/navigation';
 import { MailIcon, PhoneCallIcon, PhoneIcon } from 'lucide-react';
 import parse from 'html-react-parser'; // Assuming you have this installed
+import { resolveQueryQuoteTotal } from '@/lib/resolve-query-quote-total';
 
 interface GenerateMyPDFProps {
   data: TourPackageQuery & {
@@ -538,71 +539,23 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
           )}
         </View>
 
-        {selectedOption !== 'Supplier' && (
-          <View style={styles.card}>
-            <View style={styles.cardContainer}>
-              <View style={styles.cardContent}>
-                {/* Price Details in Tabular Format */}
-                {/* Price per Adult */}
-                {data.price !== '' && (
-                  <View style={styles.tableRow}>
-                    <Text style={styles.tableValue}>{data.price}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
-
-        {selectedOption !== 'Supplier' && (
-          <View style={styles.card}>
-            <View style={styles.cardContainer}>
-              <View style={styles.cardContent}>
-                {/* Price Details in Tabular Format */}
-                {/* Price per Adult */}
-                {data.pricePerAdult !== '' && (
-                  <View style={styles.tableRow}>
-                    <Text style={styles.tableLabel}>Price per Adult:</Text>
-                    <Text style={styles.tableValue}>{data.pricePerAdult}</Text>
-                  </View>
-                )}
-
-                {/* Price for Children Section */}
-                {data.pricePerChildOrExtraBed !== '' && (
-                  <View style={styles.tableRow}>
-                    <Text style={styles.tableLabel}>Price for Triple Occupancy:</Text>
-                    <Text style={styles.tableValue}>{data.pricePerChildOrExtraBed}</Text>
-                  </View>
-                )}
-
-                {data.pricePerChild5to12YearsNoBed !== '' && (
-                  <View style={styles.tableRow}>
-                    <Text style={styles.tableLabel}>Price per Child (5-12 Years - No bed):</Text>
-                    <Text style={styles.tableValue}>{data.pricePerChild5to12YearsNoBed}</Text>
-                  </View>
-                )}
-
-                {data.pricePerChildwithSeatBelow5Years !== '' && (
-                  <View style={styles.tableRow}>
-                    <Text style={styles.tableLabel}>Price per Child with Seat (Below 5 Years):</Text>
-                    <Text style={styles.tableValue}>{data.pricePerChildwithSeatBelow5Years}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
-
-        {selectedOption !== 'Supplier' && data.totalPrice !== '' && (
+        {selectedOption !== 'Supplier' && (() => {
+          const quote = resolveQueryQuoteTotal({
+            confirmedVariantId: (data as any)?.confirmedVariantId,
+            variantPricingData: (data as any)?.variantPricingData,
+          });
+          if (!quote.totalDisplay) return null;
+          return (
           <View style={styles.card}>
             <View style={styles.cardContainer}>
               <View style={styles.tableRow}>
                 <Text style={styles.tableLabel}>Total Price:</Text>
-                <Text style={styles.tableValue}>{data.totalPrice}</Text>
+                <Text style={styles.tableValue}>{quote.totalDisplay}</Text>
               </View>
             </View>
           </View>
-        )}
+          );
+        })()}
 
         {/* Tour highlights removed */}
 

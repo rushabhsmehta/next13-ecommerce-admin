@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prismadb from '@/lib/prismadb';
+import { resolveQueryQuoteTotal } from '@/lib/resolve-query-quote-total';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,15 +113,15 @@ export async function GET(req: Request) {
                 const commissionRate = 10; // Could be stored in associatePartner model
                 associate.commission += (sale.salePrice * commissionRate / 100) || 0;
               });
-            } else if (packageQuery.totalPrice) {
-              // If no sale details, try to use totalPrice from package
-              const totalPrice = parseFloat(packageQuery.totalPrice.replace(/[^\d.-]/g, '') || '0');
-              if (!isNaN(totalPrice)) {
-                associate.revenue += totalPrice;
-                
-                // Calculate commission
+            } else {
+              const quote = resolveQueryQuoteTotal({
+                confirmedVariantId: packageQuery.confirmedVariantId,
+                variantPricingData: packageQuery.variantPricingData,
+              });
+              if (quote.total != null) {
+                associate.revenue += quote.total;
                 const commissionRate = 10;
-                associate.commission += (totalPrice * commissionRate / 100);
+                associate.commission += (quote.total * commissionRate / 100);
               }
             }
           });

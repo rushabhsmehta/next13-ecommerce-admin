@@ -6,7 +6,6 @@ export type TourQueryTabId =
   | "trip"
   | "flights"
   | "itinerary"
-  | "pricing"
   | "variants"
   | "policies";
 

@@ -5,6 +5,7 @@ import { sendMetaEvent } from "@/lib/meta-capi";
 import { headers } from "next/headers";
 import { INQUIRY_STATUSES } from "@/lib/inquiry-statuses";
 import { canAccessInquiryForContext, resolveInquiryAccessContext } from "@/lib/inquiry-access";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 const validStatuses: readonly string[] = INQUIRY_STATUSES;
 
@@ -55,7 +56,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
           include: {
             tourPackageQueries: {
               orderBy: { updatedAt: 'desc' },
-              take: 1
+              take: 1,
+              select: {
+                id: true,
+                confirmedVariantId: true,
+                variantPricingData: true,
+              },
             }
           }
         });
@@ -68,11 +74,11 @@ export async function PATCH(req: Request, props: { params: Promise<{ inquiryId: 
           let purchaseValue = 0;
           if (fullInquiry.tourPackageQueries.length > 0) {
             const latestQuery = fullInquiry.tourPackageQueries[0];
-            // Safe parse the price string which might contain currency symbols or be text
-            const rawPrice = latestQuery.totalPrice || "0";
-            // Remove non-numeric chars except dot
-            const cleanedPrice = rawPrice.replace(/[^0-9.]/g, '');
-            purchaseValue = parseFloat(cleanedPrice) || 0;
+            const quote = resolveQueryQuoteTotal({
+              confirmedVariantId: latestQuery.confirmedVariantId,
+              variantPricingData: latestQuery.variantPricingData,
+            });
+            purchaseValue = quote.total ?? 0;
           }
 
           await sendMetaEvent("Purchase", {

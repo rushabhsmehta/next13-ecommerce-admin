@@ -6,9 +6,9 @@ import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEf
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { AlertCircle, AlignLeft, BedDouble, CheckIcon, ChevronDown, ChevronsUpDown, ChevronUp, FileCheck, FileText, HotelIcon, ImageIcon, ListChecks, ListPlus, MapPin, Plane, Plus, ScrollText, Tag, Trash, Type, Users, Utensils } from "lucide-react"
+import { AlertCircle, AlignLeft, BedDouble, CheckIcon, ChevronDown, ChevronsUpDown, ChevronUp, FileCheck, FileText, HotelIcon, ImageIcon, ListChecks, ListPlus, MapPin, Plane, Plus, ScrollText, Sparkles, Trash, Type, Users, Utensils } from "lucide-react"
 import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, Inquiry, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, RoomAllocation, SaleDetail, Supplier, TourPackage, TransportDetail, PackageVariant, VariantHotelMapping } from "@prisma/client"
-import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, TourPackagePricing, PricingComponent, PricingAttribute, LocationSeasonalPeriod } from "@prisma/client"
+import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, TourPackagePricing, PricingComponent, PricingAttribute, LocationSeasonalPeriod, MealPlan, VehicleType, RoomType, OccupancyType } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import {
   Command,
@@ -68,14 +68,12 @@ import GuestsTab from "./GuestsTab"
 import ItineraryTab from "./ItineraryTab"
 import LocationTab from "./LocationTab"
 import PoliciesTab from "./PoliciesTab"
-import PricingTab from "./PricingTab"
-
-import { RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Ensure types are imported
+import QueryVariantsTab from "@/components/tour-package-query/QueryVariantsTab"
+// Ensure types are imported
 import { REMARKS_DEFAULT } from "@/app/(dashboard)/tourPackageQueryFromTourPackage/[tourPackageQueryFromTourPackageId]/components/defaultValues"
-import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT } from "./defaultValues"
 
 
-// Define the pricing item schema
 const activitySchema = z.object({
   activityTitle: z.string().optional(),
   activityDescription: z.string().optional(),
@@ -179,8 +177,6 @@ const formSchema = z.object({
   numAdults: guestCountField,
   numChild5to12: guestCountField,
   numChild0to5: guestCountField,
-
-  totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),
   locationId: z.string().min(1),
   flightDetails: flightDetailsSchema.array().optional().default([]),
@@ -199,9 +195,12 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(),
-  pricingSection: z.array(pricingItemSchema).optional().default([]), // Use adjusted schema
-  pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
-  customMarkup: z.string().optional(), // Added for custom markup percentage
+  variantHotelOverrides: z.record(z.record(z.string())).optional(),
+  variantRoomAllocations: z.record(z.record(z.array(z.any()))).optional(),
+  variantTransportDetails: z.record(z.record(z.array(z.any()))).optional(),
+  variantPricingData: z.record(z.any()).optional(),
+  confirmedVariantId: z.string().optional().nullable(),
+  customQueryVariants: z.array(z.any()).optional(),
 });
 
 export type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -287,7 +286,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     termsconditions: false,
     kitchenGroupPolicy: false,
   });
-  const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const [lookupLoading, setLookupLoading] = useState(true); // Initialize as true
   // --- ADDED STATE FOR LOOKUP DATA ---
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -323,8 +321,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     tourStartsFrom: convertJourneyDateToTourStart(inquiry?.journeyDate),
     tourEndsOn: undefined,
     remarks: REMARKS_DEFAULT,
-
-    totalPrice: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
     importantNotes: IMPORTANT_NOTES_DEFAULT,
@@ -335,13 +331,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
     disclaimer: DISCLAIMER_DEFAULT,
-    pricingSection: DEFAULT_PRICING_SECTION,
-    pricingTier: 'standard', // Add default
-    customMarkup: '', // Add default
+
+
     images: [],
     flightDetails: [],
     itineraries: [],
     isFeatured: false,
+    selectedVariantIds: [],
+    variantHotelOverrides: {},
+    variantRoomAllocations: {},
+    variantTransportDetails: {},
+    variantPricingData: {},
+    confirmedVariantId: null,
+    customQueryVariants: [],
   };
 
   const form = useForm<TourPackageQueryFormValues>({
@@ -562,7 +564,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', String(selectedTourPackage.transport || ''));
       form.setValue('pickup_location', String(selectedTourPackage.pickup_location || ''));
       form.setValue('drop_location', String(selectedTourPackage.drop_location || ''));
-      // form.setValue('totalPrice', String(selectedTourPackage.totalPrice || '')); // REMOVED
+      // // REMOVED
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -672,10 +674,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         departureTime: flight.departureTime || undefined,
         arrivalTime: flight.arrivalTime || undefined,
         flightDuration: flight.flightDuration || undefined
-      })));
-      form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION); // Ensure pricing section is handled
-      form.setValue('pricingTier', (selectedTourPackage as any).pricingTier || 'standard'); // Handle pricing tier
-      form.setValue('customMarkup', (selectedTourPackage as any).customMarkup || ''); // Handle custom markup
+      }))); // Ensure pricing section is handled // Handle pricing tier // Handle custom markup
 
       // Check if there's a default variant and select it
       const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
@@ -809,7 +808,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       transport: data.transport || '',
       pickup_location: data.pickup_location || '',
       drop_location: data.drop_location || '',
-      totalPrice: data.totalPrice || '',
       disclaimer: data.disclaimer || '',
       // Apply timezone normalization to tour dates
       tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
@@ -832,7 +830,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
         })),
       })),
-      pricingSection: data.pricingSection || [],
     };
 
     // --- END ADJUST onSubmit ---
@@ -963,11 +960,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <span className="text-center leading-tight">Flights</span>
                     </TabsTrigger>
                     <TabsTrigger
-                      value="pricing"
+                      value="variants"
                       className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                     >
-                      <Tag className="h-4 w-4" />
-                      <span className="text-center leading-tight">Pricing</span>
+                      <Sparkles className="h-4 w-4" />
+                      <span className="text-center leading-tight">Variants</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="policies"
@@ -1012,9 +1009,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <Plane className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Flights</span>
                   </TabsTrigger>
-                  <TabsTrigger value="pricing" className="flex items-center gap-2 text-sm py-3 px-2">
-                    <Tag className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">Pricing</span>
+                  <TabsTrigger value="variants" className="flex items-center gap-2 text-sm py-3 px-2 cursor-help" title="Variant pricing is editable for Associate Partners">
+                    <Sparkles className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">Variants</span>
                   </TabsTrigger>
                   <TabsTrigger value="policies" className="flex items-center gap-2 text-sm py-3 px-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
                     <FileCheck className="h-4 w-4 flex-shrink-0" />
@@ -1043,24 +1040,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               />
             </TabsContent>
 
-            {/* Use PricingTab from shared components */}
-            <TabsContent value="pricing" className="space-y-4 mt-4 px-1 md:px-0">
-              <PricingTab
-                control={form.control as any}
-                loading={loading}
-                form={form}
-                hotels={hotels} // Correctly typed
-                // --- PASS LOOKUP DATA & STATE TO PRICING TAB ---
-                roomTypes={roomTypes}
-                occupancyTypes={occupancyTypes}
-                mealPlans={mealPlans}
-                vehicleTypes={vehicleTypes}
-                priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult} selectedTemplateId={form.watch('selectedTemplateId')}
-                selectedTemplateType={form.watch('selectedTemplateType')}
-              // --- END PASS LOOKUP DATA & STATE ---
-              />
-            </TabsContent>
 
             {/* Use GuestsTab from shared components - READ-ONLY for Associate Partners */}
             <TabsContent value="guests" className="space-y-4 mt-4 px-1 md:px-0">
@@ -1153,6 +1132,20 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 control={sharedControl}
                 loading={true} // Always disabled for associate partners
                 form={form}
+              />
+            </TabsContent>
+
+            <TabsContent value="variants" className="space-y-4 mt-4 px-1 md:px-0">
+              <QueryVariantsTab
+                control={sharedControl}
+                form={form}
+                loading={loading}
+                tourPackages={tourPackages}
+                hotels={hotels}
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
               />
             </TabsContent>
 

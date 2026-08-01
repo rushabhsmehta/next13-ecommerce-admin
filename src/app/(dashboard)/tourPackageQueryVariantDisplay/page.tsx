@@ -5,6 +5,7 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryVariantDisplayClient } from "./components/client";
 import { TourPackageQueryVariantDisplayColumn } from "./components/columns";
 import { isCurrentUserAssociate } from "@/lib/associate-utils";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 // Enable ISR - revalidate every 5 minutes (300 seconds)
 export const revalidate = 300;
@@ -17,7 +18,8 @@ const TourPackageQueryVariantDisplayPage = async () => {
             tourPackageQueryName: true,
             customerName: true,
             assignedTo: true,
-            totalPrice: true,
+            confirmedVariantId: true,
+            variantPricingData: true,
             createdAt: true,
             updatedAt: true,
             location: {
@@ -40,17 +42,23 @@ const TourPackageQueryVariantDisplayPage = async () => {
         // For associates, filtering logic based on their association
     }
 
-    const formattedTourPackageQueries: TourPackageQueryVariantDisplayColumn[] = filteredQueries.map((item) => ({
-        id: item.id,
-        tourPackageQueryNumber: item.tourPackageQueryNumber ?? '',
-        tourPackageQueryName: item.tourPackageQueryName ?? '',
-        customerName: item.customerName ?? '',
-        assignedTo: item.assignedTo ?? 'Unassigned',
-        location: item.location?.label ?? '',
-        totalPrice: item.totalPrice ?? '',
-        createdAt: formatLocalDate(item.createdAt, 'MMMM d, yyyy'),
-        updatedAt: formatLocalDate(item.updatedAt, 'MMMM d, yyyy'),
-    }));
+    const formattedTourPackageQueries: TourPackageQueryVariantDisplayColumn[] = filteredQueries.map((item) => {
+        const quote = resolveQueryQuoteTotal({
+            confirmedVariantId: item.confirmedVariantId,
+            variantPricingData: item.variantPricingData,
+        });
+        return {
+            id: item.id,
+            tourPackageQueryNumber: item.tourPackageQueryNumber ?? '',
+            tourPackageQueryName: item.tourPackageQueryName ?? '',
+            customerName: item.customerName ?? '',
+            assignedTo: item.assignedTo ?? 'Unassigned',
+            location: item.location?.label ?? '',
+            totalPrice: quote.totalDisplay ?? '',
+            createdAt: formatLocalDate(item.createdAt, 'MMMM d, yyyy'),
+            updatedAt: formatLocalDate(item.updatedAt, 'MMMM d, yyyy'),
+        };
+    });
 
     return (
         <div className="flex-col">

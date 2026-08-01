@@ -635,9 +635,34 @@ export async function createSmartBuildTourQuery(
       numChild0to5: String(inquiry.numChildrenBelow5 ?? ""),
       numDaysNight: tourPackage.numDaysNight || "1",
       tourStartsFrom: inquiry.journeyDate ? dateToUtc(inquiry.journeyDate) : null,
-      totalPrice:
-        input.totalPrice != null ? String(input.totalPrice) : undefined,
-      pricingSection: input.pricingSection?.length ? input.pricingSection : undefined,
+      customQueryVariants:
+        input.totalPrice != null
+          ? [
+              {
+                id: "smart-build-pricing",
+                name: "Smart Build Pricing",
+                description: "Auto-priced from package components",
+                sortOrder: 0,
+                source: "smart_build",
+              },
+            ]
+          : undefined,
+      variantPricingData:
+        input.totalPrice != null
+          ? {
+              "smart-build-pricing": {
+                calculationMethod: "manual",
+                components: (input.pricingSection ?? []).map((row) => ({
+                  name: row.name ?? "Item",
+                  price: String(row.price ?? ""),
+                  description: row.description ?? "",
+                })),
+                totalCost: Number(input.totalPrice) || 0,
+                updatedAt: new Date().toISOString(),
+              },
+            }
+          : undefined,
+      confirmedVariantId: input.totalPrice != null ? "smart-build-pricing" : undefined,
       isFeatured: false,
       isArchived: false,
     },

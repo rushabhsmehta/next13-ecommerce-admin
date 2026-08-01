@@ -3,6 +3,7 @@ import prismadb from "@/lib/prismadb";
 import { generatePDF } from "@/utils/generatepdf";
 import { companyInfo, brandColors } from "@/lib/pdf";
 import { formatSafeDate } from "@/lib/utils";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 export const dynamic = "force-dynamic";
 
@@ -306,10 +307,14 @@ function buildPolicies(q: QueryData): string {
 }
 
 function buildTotalPrice(q: QueryData): string {
-  if (!q.totalPrice) return "";
+  const quote = resolveQueryQuoteTotal({
+    confirmedVariantId: (q as any).confirmedVariantId,
+    variantPricingData: (q as any).variantPricingData,
+  });
+  if (!quote.totalDisplay) return "";
   return `
     <div style="text-align:right;margin:16px 0;padding:12px 16px;background:#FFF3EC;border:1px solid #E5E7EB;border-radius:6px">
-      <span style="font-size:15px;font-weight:700;color:#DC2626">Total Package Price: ${formatPrice(q.totalPrice)}</span>
+      <span style="font-size:15px;font-weight:700;color:#DC2626">Total Package Price: ${formatPrice(quote.totalDisplay)}</span>
       ${q.remarks ? `<div style="font-size:11px;color:#6B7280;margin-top:4px">Remarks: ${esc(q.remarks)}</div>` : ""}
     </div>
   `;

@@ -82,7 +82,7 @@ import GuestsTab from '@/components/tour-package-query/GuestsTab'; // Updated pa
 import ItineraryTab from '@/components/tour-package-query/ItineraryTab'; // Updated path
 import LocationTab from '@/components/tour-package-query/LocationTab'; // Updated path
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
-import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
+ // Updated path
 import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION, TOUR_CATEGORY_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 // Define the pricing item schema
@@ -179,12 +179,7 @@ const formSchema = z.object({
   drop_location: z.string().optional().nullable().transform(val => val || ''),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),
-  totalPrice: z.string().optional().nullable().transform(val => val || ''),
-  pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
-  pricingCalculationMethod: z.string().optional(),
-  pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
-  customMarkup: z.string().optional(), // Added for custom markup percentage
+  numChild0to5: z.string().optional(),
   remarks: z.string().optional(),
   locationId: z.string().min(1, "Location is required"), flightDetails: flightDetailsSchema.array(),
   inclusions: z.array(z.string()),
@@ -282,7 +277,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   const [openTemplate, setOpenTemplate] = useState(false);
   const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const editor = useRef(null)
 
   // Add state for lookup data
@@ -291,10 +285,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [lookupLoading, setLookupLoading] = useState(true);  // Store price calculation result in window for access in nested functions
-  useEffect(() => {
-    (window as any).setPriceCalculationResult = setPriceCalculationResult;
-    (window as any).priceCalculationResult = priceCalculationResult;
-  }, [priceCalculationResult]);
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
     exclusions: false,
@@ -452,9 +442,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       usefulTip: parseJsonField(initialData.usefulTip),
       cancellationPolicy: parseJsonField(initialData.cancellationPolicy),
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
-      termsconditions: parseJsonField(initialData.termsconditions),
-      pricingSection: parsePricingSection(initialData.pricingSection),
-      pricingCalculationMethod: (initialData as any).pricingCalculationMethod || '',
+      termsconditions: parseJsonField(initialData.termsconditions),
     }
     : {
       inquiryId: '',
@@ -474,8 +462,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       drop_location: '',
       numAdults: '',
       numChild5to12: '',
-      numChild0to5: '',
-      totalPrice: '',
+      numChild0to5: '',
       remarks: '',
       flightDetails: [],
       inclusions: INCLUSIONS_DEFAULT,
@@ -491,9 +478,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       itineraries: [],
       locationId: '',
       isFeatured: false,
-      isArchived: false,
-      pricingSection: DEFAULT_PRICING_SECTION,
-      pricingCalculationMethod: '',
+      isArchived: false,
     };
 
   const form = useForm<TourPackageQueryCreateCopyFormValues>({
@@ -578,7 +563,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
       // tour_highlights removed
-      // form.setValue('totalPrice', selectedTourPackage.totalPrice || ''); // REMOVED
+      // // REMOVED
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -618,7 +603,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         arrivalTime: flight.arrivalTime || undefined,
         flightDuration: flight.flightDuration || undefined
       })));
-      form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
 
       // Check if there's a default variant and select it
       const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
@@ -724,7 +708,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       form.setValue('pickup_location', selectedTourPackageQuery.pickup_location || '');
       form.setValue('drop_location', selectedTourPackageQuery.drop_location || '');
       // tour_highlights removed
-      form.setValue('totalPrice', selectedTourPackageQuery.totalPrice || '');
       form.setValue('inclusions', parseJsonField(selectedTourPackageQuery.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackageQuery.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackageQuery.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -734,7 +717,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       form.setValue('airlineCancellationPolicy', parseJsonField(selectedTourPackageQuery.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
       form.setValue('termsconditions', parseJsonField(selectedTourPackageQuery.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
       form.setValue('images', selectedTourPackageQuery.images || []);
-      form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection) || DEFAULT_PRICING_SECTION);
 
       // Convert and set itineraries
       const transformedItineraries = selectedTourPackageQuery.itineraries?.map(itinerary => ({
@@ -908,8 +890,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         })),
         transport: data.transport || '',
         pickup_location: data.pickup_location || '',
-        drop_location: data.drop_location || '',
-        totalPrice: data.totalPrice || '',
+        drop_location: data.drop_location || '',
         disclaimer: data.disclaimer || '',
       };
 
@@ -1034,10 +1015,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <Plane className="h-4 w-4" />
                 Flights
               </TabsTrigger>
-              <TabsTrigger value="pricing" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Pricing
-              </TabsTrigger>
               <TabsTrigger value="policies" className="flex items-center gap-2">
                 <FileCheck className="h-4 w-4" />
                 Policies
@@ -1102,20 +1079,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 control={form.control as any}
                 loading={loading}
                 form={form}
-              />
-            </TabsContent>            <TabsContent value="pricing" className="space-y-4 mt-4">
-              <PricingTab
-                control={form.control as any}
-                loading={loading}
-                form={form}
-                hotels={hotels}
-                roomTypes={roomTypes}
-                occupancyTypes={occupancyTypes}
-                mealPlans={mealPlans}
-                vehicleTypes={vehicleTypes}
-                priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult} selectedTemplateId={form.watch('selectedTemplateId')}
-                selectedTemplateType={form.watch('selectedTemplateType')}
               />
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">

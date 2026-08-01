@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getClerkPrimaryEmailByUserId } from "@/lib/clerk-request-user";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 export async function requireMobileOpsPortalStaff(userId: string): Promise<
   | { ok: true; staff: { id: string; name: string; email: string } }
@@ -64,17 +65,24 @@ export function formatOpsInquiry(row: any) {
       actionDate: a.actionDate?.toISOString?.() ?? a.actionDate,
       createdAt: a.createdAt?.toISOString?.() ?? a.createdAt,
     })),
-    tourPackageQueries: (row.tourPackageQueries ?? []).map((q: any) => ({
-      id: q.id,
-      tourPackageQueryNumber: q.tourPackageQueryNumber,
-      tourPackageQueryName: q.tourPackageQueryName,
-      customerName: q.customerName,
-      tourStartsFrom: q.tourStartsFrom?.toISOString?.() ?? q.tourStartsFrom,
-      tourEndsOn: q.tourEndsOn?.toISOString?.() ?? q.tourEndsOn,
-      isFeatured: q.isFeatured,
-      isArchived: q.isArchived,
-      totalPrice: q.totalPrice,
-    })),
+    tourPackageQueries: (row.tourPackageQueries ?? []).map((q: any) => {
+      const quote = resolveQueryQuoteTotal({
+        confirmedVariantId: q.confirmedVariantId,
+        variantPricingData: q.variantPricingData,
+      });
+      return {
+        id: q.id,
+        tourPackageQueryNumber: q.tourPackageQueryNumber,
+        tourPackageQueryName: q.tourPackageQueryName,
+        customerName: q.customerName,
+        tourStartsFrom: q.tourStartsFrom?.toISOString?.() ?? q.tourStartsFrom,
+        tourEndsOn: q.tourEndsOn?.toISOString?.() ?? q.tourEndsOn,
+        isFeatured: q.isFeatured,
+        isArchived: q.isArchived,
+        totalPrice: quote.totalDisplay,
+        quoteTotal: quote.total,
+      };
+    }),
   };
 }
 
@@ -102,7 +110,8 @@ export const opsInquiryInclude = {
       tourEndsOn: true,
       isFeatured: true,
       isArchived: true,
-      totalPrice: true,
+      confirmedVariantId: true,
+      variantPricingData: true,
     },
   },
 };

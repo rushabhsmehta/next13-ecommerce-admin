@@ -236,8 +236,8 @@ async function getInquiry(rawParams: unknown) {
           id: true,
           tourPackageQueryNumber: true,
           tourPackageQueryName: true,
-          totalPrice: true,
           confirmedVariantId: true,
+          variantPricingData: true,
         },
       },
       roomAllocations: {

@@ -23,6 +23,7 @@ import {
   renderRemarksHtml,
   renderParagraphList,
 } from "@/lib/pdf";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 import { /* renderItineraryImages, */ renderActivityImages } from "@/lib/itinerary-image-html";
 import { normalizeItineraryDays } from "@/lib/utils";
 import { isLastItineraryDay } from "@/lib/hotel-comparison-days";
@@ -709,9 +710,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       } catch { return String(val); }
     };
 
+    const resolvedQuote = resolveQueryQuoteTotal({
+      confirmedVariantId: (initialData as any).confirmedVariantId,
+      variantPricingData: (initialData as any).variantPricingData,
+    });
+    const quoteTotalDisplay = resolvedQuote.totalDisplay;
+    const quoteLineItems = resolvedQuote.lineItems;
     const remarksHtml = renderRemarksHtml(initialData.remarks);
     const hasRemarks = remarksHtml !== "";
-    const isPriceVisible = initialData.totalPrice && initialData.totalPrice.trim() !== "" && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB';
+    const isPriceVisible = !!quoteTotalDisplay && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB';
 
     const totalPriceSection =
       isPriceVisible
@@ -726,7 +733,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <div style="background: white; border-radius: 6px; padding: 20px 16px; margin: 8px 0; border: 1px solid #e5e7eb; position:relative;">
           <div style="position:absolute; top:0; left:0; right:0; height:3px; background:${brandGradients.primary};"></div>
           <div style="font-size: 26px; font-weight: 700; color: ${brandColors.primary}; margin-bottom: 4px; letter-spacing:0.5px;">
-            ₹ ${formatINR(initialData.totalPrice as string)}
+            ₹ ${formatINR(quoteTotalDisplay as string)}
           </div>
           <div style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform:uppercase; letter-spacing:0.75px;">
             Complete Tour Package Cost
@@ -760,15 +767,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `
         : "";
 
-    // 5.5. Enhanced Dynamic Pricing Section
-    console.log("PDF Generator - initialData pricingSection:", {
-      pricingSection: initialData.pricingSection
-    });
-
+    // 5.5. Enhanced Dynamic Pricing Section (from resolved variant quote)
     let dynamicPricingSection = "";
 
-    // Get pricing data from the pricingSection field
-    const pricingData = initialData.pricingSection;
+    // Get pricing data from resolved variant quote line items
+    const pricingData = quoteLineItems.length ? quoteLineItems : null;
 
     if (pricingData) {
       const parsedPricing = parsePricingSection(pricingData);

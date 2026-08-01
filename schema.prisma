@@ -248,7 +248,6 @@ model TourPackageQuery {
   numAdults                        String?
   numChild5to12                    String?
   numChild0to5                     String?
-  price                            String?                @db.Text
   isFeatured                       Boolean                @default(false)
   isArchived                       Boolean                @default(false)
   createdAt                        DateTime               @default(now())
@@ -256,11 +255,6 @@ model TourPackageQuery {
   assignedTo                       String?
   assignedToMobileNumber           String?
   assignedToEmail                  String?
-  pricePerAdult                    String?
-  pricePerChild5to12YearsNoBed     String?
-  pricePerChildOrExtraBed          String?
-  pricePerChildwithSeatBelow5Years String?
-  totalPrice                       String?                @db.Text
   transport                        String?
   tourPackageQueryNumber           String?
   customerNumber                   String?
@@ -273,8 +267,6 @@ model TourPackageQuery {
   disclaimer                       String?                @db.Text
   inquiryId                        String?
   associatePartnerId               String?
-  pricingSection                   Json?
-  pricingCalculationMethod         String? // 'manual' | 'autoHotelTransport' | 'autoTourPackage'
   selectedTemplateId               String?
   selectedTemplateType             String?
   tourPackageTemplateName          String?

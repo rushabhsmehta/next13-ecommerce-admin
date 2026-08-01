@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import prismadb from "@/lib/prismadb";
 import { TourPackageQueryClient } from "./components/client";
 import { TourPackageQueryColumn } from "./components/columns";
-import Navbar from "@/components/navbar";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 const tourPackageQueryPage = async ({
 
@@ -36,17 +36,22 @@ const tourPackageQueryPage = async ({
     }
   });
 
-  const formattedtourPackageQuery: TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
-    id: item.id,
-    tourPackageQueryName: item.tourPackageQueryName ?? '',
-    tourPackageQueryType: item.tourPackageQueryType ?? '',
-    isFeatured: item.isFeatured,
-    isArchived: item.isArchived,
-    price: item.price ?? '',
-    location: item.location.label,
-    //hotel: item.hotel.name,
-    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
-  }));
+  const formattedtourPackageQuery: TourPackageQueryColumn[] = tourPackageQuery.map((item) => {
+    const quote = resolveQueryQuoteTotal({
+      confirmedVariantId: item.confirmedVariantId,
+      variantPricingData: item.variantPricingData,
+    });
+    return {
+      id: item.id,
+      tourPackageQueryName: item.tourPackageQueryName ?? '',
+      tourPackageQueryType: item.tourPackageQueryType ?? '',
+      isFeatured: item.isFeatured,
+      isArchived: item.isArchived,
+      price: quote.totalDisplay ?? '',
+      location: item.location.label,
+      createdAt: format(item.createdAt, 'MMMM d, yyyy'),
+    };
+  });
 
   return (
     <>

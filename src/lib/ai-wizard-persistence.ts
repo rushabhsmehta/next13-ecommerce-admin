@@ -205,13 +205,39 @@ export async function saveAiWizardDraft(
       transport: draft.transport ?? null,
       pickup_location: draft.pickup_location ?? null,
       drop_location: draft.drop_location ?? null,
-      price,
-      totalPrice: price,
       tourStartsFrom: dateOrNullFromDraft(draft.tourStartsFrom),
       numAdults: draft.numAdults != null ? String(draft.numAdults) : null,
       numChild5to12: draft.numChildren != null ? String(draft.numChildren) : null,
       isFeatured: false,
       isArchived: false,
+      ...(price
+        ? {
+            customQueryVariants: [
+              {
+                id: "ai-wizard-pricing",
+                name: "AI Draft Pricing",
+                description: "Budget from AI wizard draft",
+                sortOrder: 0,
+                source: "ai_wizard",
+              },
+            ],
+            variantPricingData: {
+              "ai-wizard-pricing": {
+                calculationMethod: "manual",
+                components: [
+                  {
+                    name: "Total Package Cost",
+                    price: String(price),
+                    description: "From AI wizard budget",
+                  },
+                ],
+                totalCost: Number.parseFloat(String(price).replace(/[^\d.-]/g, "")) || 0,
+                updatedAt: new Date().toISOString(),
+              },
+            },
+            confirmedVariantId: "ai-wizard-pricing",
+          }
+        : {}),
       itineraries: itineraryRows.length ? { create: itineraryRows } : undefined,
       flightDetails: flightRows.length ? { create: flightRows } : undefined,
     },

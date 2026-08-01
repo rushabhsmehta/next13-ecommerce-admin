@@ -16,7 +16,6 @@ import { TourQueryFlightsTab } from "@/components/tour-queries/TourQueryFlightsT
 import { TourQueryGuestsTab } from "@/components/tour-queries/TourQueryGuestsTab";
 import { TourQueryItineraryTab } from "@/components/tour-queries/TourQueryItineraryTab";
 import { TourQueryPoliciesTab } from "@/components/tour-queries/TourQueryPoliciesTab";
-import { TourQueryPricingTab } from "@/components/tour-queries/TourQueryPricingTab";
 import { TourQueryTabShell } from "@/components/tour-queries/TourQueryTabShell";
 import { TourQueryTripTab } from "@/components/tour-queries/TourQueryTripTab";
 import { TourQueryVariantsTab } from "@/components/tour-queries/TourQueryVariantsTab";
@@ -77,7 +76,7 @@ function EditTourQueryScreenInner() {
     );
   }
 
-  const showMainSave = activeTab !== "pricing" && activeTab !== "variants";
+  const showMainSave = activeTab !== "variants";
 
   return (
     <>
@@ -123,9 +122,6 @@ function EditTourQueryScreenInner() {
           {activeTab === "trip" ? <TourQueryTripTab {...form} /> : null}
           {activeTab === "flights" ? <TourQueryFlightsTab {...form} /> : null}
           {activeTab === "itinerary" ? <TourQueryItineraryTab {...form} /> : null}
-          {activeTab === "pricing" ? (
-            <TourQueryPricingTab queryId={id} embedded />
-          ) : null}
           {activeTab === "variants" ? (
             <TourQueryVariantsTab queryId={id} embedded />
           ) : null}

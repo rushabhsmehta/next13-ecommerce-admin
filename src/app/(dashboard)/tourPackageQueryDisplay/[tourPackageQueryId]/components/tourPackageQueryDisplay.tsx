@@ -1,3 +1,4 @@
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 'use client'
 import React from 'react';
 import Image from 'next/image';
@@ -559,7 +560,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       )}
 
       {/* Enhanced Pricing Options Table */}
-      {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && parsePricingSection(initialData.pricingSection).length > 0 && (
+      {(() => {
+        const resolvedQuote = resolveQueryQuoteTotal({
+          confirmedVariantId: (initialData as any).confirmedVariantId,
+          variantPricingData: (initialData as any).variantPricingData,
+        });
+        return resolvedQuote.lineItems.length > 0 && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB';
+      })() && (
         <div className="mt-4 border border-orange-200 rounded-lg overflow-hidden shadow-sm">
           <div className="bg-gray-50 px-4 py-3 border-b border-orange-100 flex items-center justify-between">
             <h3 className="text-xl font-semibold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback flex items-center gap-2"><span className="text-base">💰</span>Pricing Options</h3>
@@ -580,7 +587,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {parsePricingSection(initialData.pricingSection).map((item, index) => (
+                {resolveQueryQuoteTotal({
+                    confirmedVariantId: (initialData as any).confirmedVariantId,
+                    variantPricingData: (initialData as any).variantPricingData,
+                  }).lineItems.map((item, index) => (
                   <tr key={index} className="hover:bg-orange-50/60">
                     <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[200px]">{item.name}</td>
                     <td className="px-3 py-2 text-green-600 font-semibold whitespace-nowrap">{item.price ? `₹ ${parseFloat(item.price).toLocaleString('en-IN')}` : '-'}</td>
@@ -597,7 +607,11 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       )}
       {/* Enhanced Total Price Display */}
       {(() => {
-        const isPriceVisible = initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ';
+        const resolvedQuoteTotal = resolveQueryQuoteTotal({
+        confirmedVariantId: (initialData as any).confirmedVariantId,
+        variantPricingData: (initialData as any).variantPricingData,
+      });
+      const isPriceVisible = !!resolvedQuoteTotal.totalDisplay && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB';
 
         return (
           <>
@@ -615,9 +629,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       <div className="text-5xl font-bold text-gray-900 mb-4">
                         <span className="text-orange-600">₹ </span>
                         <span dangerouslySetInnerHTML={{
-                          __html: initialData.totalPrice ?
-                            parseFloat(initialData.totalPrice.replace(/[^\d.-]/g, '')).toLocaleString('en-IN') :
-                            (initialData.totalPrice || '')
+                          __html: resolvedQuoteTotal.totalDisplay ?
+                            parseFloat(String(resolvedQuoteTotal.totalDisplay).replace(/[^\d.-]/g, '')).toLocaleString('en-IN') :
+                            (resolvedQuoteTotal.totalDisplay || '')
                         }} />
                       </div>
                       <div className="text-lg text-gray-600 bg-orange-50 px-6 py-3 rounded-full inline-block mb-4">

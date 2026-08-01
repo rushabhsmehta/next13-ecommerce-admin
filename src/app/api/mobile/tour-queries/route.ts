@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import prismadb from "@/lib/prismadb";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 import {
   requireSalesTripsRead,
   requireSalesTripsWrite,
@@ -231,10 +232,10 @@ export async function GET(req: Request) {
           numAdults: true,
           tourStartsFrom: true,
           tourEndsOn: true,
-          totalPrice: true,
+          confirmedVariantId: true,
+          variantPricingData: true,
           isFeatured: true,
           isArchived: true,
-          confirmedVariantId: true,
           updatedAt: true,
           createdAt: true,
           location: { select: { id: true, label: true } },
@@ -248,7 +249,18 @@ export async function GET(req: Request) {
     ]);
 
     return NextResponse.json({
-      queries,
+      queries: queries.map((q) => {
+        const quote = resolveQueryQuoteTotal({
+          confirmedVariantId: q.confirmedVariantId,
+          variantPricingData: q.variantPricingData,
+        });
+        const { variantPricingData: _vpd, ...rest } = q;
+        return {
+          ...rest,
+          quoteTotal: quote.total,
+          totalPrice: quote.totalDisplay,
+        };
+      }),
       total,
       hasMore: offset + queries.length < total,
       nextOffset: offset + queries.length,
@@ -385,7 +397,6 @@ export async function POST(req: Request) {
               number,
             tourPackageQueryType: pkg.tourPackageType ?? "Domestic",
             numDaysNight: pkg.numDaysNight,
-            price: pkg.price,
             inclusions: pkg.inclusions ?? undefined,
             exclusions: pkg.exclusions ?? undefined,
             importantNotes: pkg.importantNotes ?? undefined,
@@ -434,8 +445,6 @@ export async function POST(req: Request) {
           numAdults: true,
           numChild5to12: true,
           numChild0to5: true,
-          price: true,
-          totalPrice: true,
           customerName: true,
           customerNumber: true,
           remarks: true,
@@ -481,8 +490,6 @@ export async function POST(req: Request) {
             numAdults: overrides?.numAdults ?? src.numAdults,
             numChild5to12: overrides?.numChild5to12 ?? src.numChild5to12,
             numChild0to5: overrides?.numChild0to5 ?? src.numChild0to5,
-            price: src.price,
-            totalPrice: src.totalPrice,
             customerName: src.customerName,
             customerNumber: src.customerNumber,
             remarks: overrides?.remarks ?? src.remarks,
@@ -567,8 +574,8 @@ export async function POST(req: Request) {
           where: { id: createdId },
           select: {
             inquiryId: true,
-            totalPrice: true,
-            price: true,
+            confirmedVariantId: true,
+            variantPricingData: true,
             locationId: true,
             selectedTemplateId: true,
             tourCategory: true,
@@ -579,12 +586,14 @@ export async function POST(req: Request) {
           },
         });
         if (createdQuery?.inquiryId) {
+          const quote = resolveQueryQuoteTotal({
+            confirmedVariantId: createdQuery.confirmedVariantId,
+            variantPricingData: createdQuery.variantPricingData,
+          });
           await carryForwardInquiryCouponToTourQuery({
             inquiryId: createdQuery.inquiryId,
             tourPackageQueryId: createdId,
-            bookingAmount:
-              Number.parseFloat(String(createdQuery.totalPrice || createdQuery.price || "0")) ||
-              null,
+            bookingAmount: quote.total,
             locationId: createdQuery.locationId,
             tourPackageId: createdQuery.selectedTemplateId,
             tourCategory: createdQuery.tourCategory,

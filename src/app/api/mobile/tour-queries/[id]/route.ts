@@ -12,6 +12,7 @@ import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 import { copyItineraryMedia } from "@/app/api/mobile/lib/copy-itinerary-media";
 import { createVariantSnapshots } from "@/lib/variant-snapshot";
 import { guestCountField } from "@/lib/guest-count";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 export const dynamic = "force-dynamic";
 
@@ -125,14 +126,6 @@ const patchSchema = z.object({
   numAdults: guestCountField,
   numChild5to12: guestCountField,
   numChild0to5: guestCountField,
-  price: nullableText,
-  pricePerAdult: nullableText,
-  pricePerChildOrExtraBed: nullableText,
-  pricePerChild5to12YearsNoBed: nullableText,
-  pricePerChildwithSeatBelow5Years: nullableText,
-  totalPrice: nullableText,
-  pricingSection: z.array(pricingItemSchema).optional().nullable(),
-  pricingCalculationMethod: z.string().max(80).optional().nullable(),
   selectedMealPlanId: z.string().optional().nullable(),
   variantPricingData: z.record(z.any()).optional().nullable(),
   tourStartsFrom: z.string().optional().nullable(),
@@ -320,14 +313,6 @@ export async function GET(
         transport: true,
         pickup_location: true,
         drop_location: true,
-        price: true,
-        pricePerAdult: true,
-        pricePerChildOrExtraBed: true,
-        pricePerChild5to12YearsNoBed: true,
-        pricePerChildwithSeatBelow5Years: true,
-        totalPrice: true,
-        pricingSection: true,
-        pricingCalculationMethod: true,
         selectedMealPlanId: true,
         variantPricingData: true,
         remarks: true,
@@ -461,8 +446,11 @@ export async function GET(
 
     const response = {
       ...tpq,
-      pricingSection: parsePricingSection(tpq.pricingSection),
       variantPricingData: parseJsonRecord(tpq.variantPricingData),
+      quoteTotal: resolveQueryQuoteTotal({
+        confirmedVariantId: tpq.confirmedVariantId,
+        variantPricingData: tpq.variantPricingData,
+      }).total,
       selectedVariantIds: parseSelectedVariantIds(tpq.selectedVariantIds),
       customQueryVariants: Array.isArray(tpq.customQueryVariants)
         ? tpq.customQueryVariants
@@ -547,18 +535,6 @@ export async function PATCH(
     if (v.numAdults !== undefined) data.numAdults = v.numAdults;
     if (v.numChild5to12 !== undefined) data.numChild5to12 = v.numChild5to12;
     if (v.numChild0to5 !== undefined) data.numChild0to5 = v.numChild0to5;
-    if (v.price !== undefined) data.price = v.price;
-    if (v.pricePerAdult !== undefined) data.pricePerAdult = v.pricePerAdult;
-    if (v.pricePerChildOrExtraBed !== undefined)
-      data.pricePerChildOrExtraBed = v.pricePerChildOrExtraBed;
-    if (v.pricePerChild5to12YearsNoBed !== undefined)
-      data.pricePerChild5to12YearsNoBed = v.pricePerChild5to12YearsNoBed;
-    if (v.pricePerChildwithSeatBelow5Years !== undefined)
-      data.pricePerChildwithSeatBelow5Years = v.pricePerChildwithSeatBelow5Years;
-    if (v.totalPrice !== undefined) data.totalPrice = v.totalPrice;
-    if (v.pricingSection !== undefined) data.pricingSection = v.pricingSection ?? [];
-    if (v.pricingCalculationMethod !== undefined)
-      data.pricingCalculationMethod = v.pricingCalculationMethod || null;
     if (v.selectedMealPlanId !== undefined) data.selectedMealPlanId = v.selectedMealPlanId;
     if (v.variantPricingData !== undefined) data.variantPricingData = v.variantPricingData;
     if (v.remarks !== undefined) data.remarks = v.remarks;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import prismadb from "@/lib/prismadb";
 import { normalizeCouponCode, validateCouponEligibility } from "@/lib/coupons";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 export const dynamic = "force-dynamic";
 
@@ -26,19 +27,24 @@ async function hydrateTourQueryContext(input: z.infer<typeof schema>) {
       tourCategory: true,
       selectedTemplateId: true,
       customerNumber: true,
-      totalPrice: true,
+      variantPricingData: true,
+      confirmedVariantId: true,
       tourStartsFrom: true,
       numAdults: true,
     },
   });
   if (!query) return input;
+  const quote = resolveQueryQuoteTotal({
+    confirmedVariantId: query.confirmedVariantId,
+    variantPricingData: query.variantPricingData,
+  });
   return {
     ...input,
     locationId: input.locationId || query.locationId,
     tourCategory: input.tourCategory || query.tourCategory,
     tourPackageId: input.tourPackageId || query.selectedTemplateId,
     customerMobile: input.customerMobile || query.customerNumber,
-    bookingAmount: input.bookingAmount ?? Number.parseFloat(query.totalPrice || "0"),
+    bookingAmount: input.bookingAmount ?? quote.total ?? 0,
     travelDate: input.travelDate || query.tourStartsFrom?.toISOString?.(),
     numAdults: input.numAdults ?? query.numAdults,
   };

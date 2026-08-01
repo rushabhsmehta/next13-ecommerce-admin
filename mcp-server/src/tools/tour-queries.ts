@@ -113,8 +113,6 @@ NOTES:
       inquiryId: z.string().optional().describe("Link to an existing inquiry ID"),
       tourPackageId: z.string().optional().describe("Tour package ID from list_tour_packages — use get_tour_package to see its variants"),
       selectedVariantIds: z.array(z.string()).optional().describe("Variant IDs from get_tour_package to snapshot into this query — creates variant comparison table in PDF"),
-      price: z.string().optional().describe("Base price"),
-      totalPrice: z.string().optional().describe("Total package price"),
       itineraries: z.array(itineraryDaySchema).optional().default([])
         .describe("Day-by-day itinerary. Collect ALL days before calling this tool."),
       inclusions: z.array(z.string()).optional().describe("What is included e.g. ['Daily breakfast', 'Airport transfers']"),
@@ -246,7 +244,6 @@ Supports the same itinerary structure as create_tour_query:
       pickup_location: z.string().optional().describe("Updated pickup location"),
       drop_location: z.string().optional().describe("Updated drop location"),
       remarks: z.string().optional().describe("Updated remarks"),
-      totalPrice: z.string().optional().describe("Updated total price"),
       itineraries: z.array(itineraryDaySchema).optional()
         .describe("If provided, REPLACES all existing itineraries. Omit to leave itineraries unchanged."),
       inclusions: z.array(z.string()).optional(),

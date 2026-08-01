@@ -12,6 +12,7 @@ import { Separator } from '@radix-ui/react-separator';
 import { useEffect, useState } from 'react';
 import { VariantComparisonSection } from '@/components/tour-package-query/VariantComparisonSection';
 import { formatItineraryDayHeader, hasItineraryNotes } from '@/lib/utils';
+import { resolveQueryQuoteTotal } from '@/lib/resolve-query-quote-total';
 
 interface TourPackageQueryVariantDisplayProps {
     initialData: TourPackageQuery & {
@@ -501,7 +502,11 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
 
             {/* Enhanced Total Price Display */}
             {(() => {
-                const isPriceVisible = initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ';
+                const resolvedQuote = resolveQueryQuoteTotal({
+                    confirmedVariantId: (initialData as any).confirmedVariantId,
+                    variantPricingData: (initialData as any).variantPricingData,
+                });
+                const isPriceVisible = !!resolvedQuote.totalDisplay && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB';
 
                 return (
                     <>
@@ -519,9 +524,9 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                                             <div className="text-5xl font-bold text-gray-900 mb-4">
                                                 <span className="text-orange-600">₹ </span>
                                                 <span dangerouslySetInnerHTML={{
-                                                    __html: initialData.totalPrice ?
-                                                        parseFloat(initialData.totalPrice.replace(/[^\d.-]/g, '')).toLocaleString('en-IN') :
-                                                        (initialData.totalPrice || '')
+                                                    __html: resolvedQuote.totalDisplay ?
+                                                        parseFloat(String(resolvedQuote.totalDisplay).replace(/[^\d.-]/g, '')).toLocaleString('en-IN') :
+                                                        (resolvedQuote.totalDisplay || '')
                                                 }} />
                                             </div>
                                             <div className="text-lg text-gray-600 bg-orange-50 px-6 py-3 rounded-full inline-block mb-4">

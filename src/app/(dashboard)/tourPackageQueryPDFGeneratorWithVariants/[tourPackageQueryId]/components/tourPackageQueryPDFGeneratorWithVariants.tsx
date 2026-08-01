@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { escapeAttr, safeUrl } from "@/lib/html-escape";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 import {
   buildPackageTotalCalculationParts,
   findPricingRowPrice,
@@ -1140,7 +1141,12 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     `;
 
     // 3. Pricing Section
-    const pricingData = initialData.pricingSection;
+    const resolvedQuote = resolveQueryQuoteTotal({
+      confirmedVariantId: (initialData as any).confirmedVariantId,
+      variantPricingData: (initialData as any).variantPricingData,
+    });
+    const quoteTotalDisplay = resolvedQuote.totalDisplay;
+    const pricingData = resolvedQuote.lineItems.length ? resolvedQuote.lineItems : null;
     let dynamicPricingSection = "";
 
     if (pricingData) {
@@ -1190,7 +1196,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     // 4. Total Price
     const remarksHtml = renderRemarksHtml(initialData.remarks);
     const hasRemarks = remarksHtml !== "";
-    const totalPriceSection = initialData.totalPrice && initialData.totalPrice.trim() !== "" ? `
+    const totalPriceSection = quoteTotalDisplay ? `
       <div style="${priceCardStyle}; text-align: center;">
         <div style="margin-bottom: 8px;">
           <h3 style="font-size: 16px; font-weight: 600; color: #374151; margin: 0;">Total Package Cost</h3>
@@ -1199,7 +1205,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
         <div style="background: white; border-radius: 6px; padding: 20px 16px; margin: 8px 0; border: 1px solid #e5e7eb; position: relative;">
           <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: ${brandGradients.primary};"></div>
           <div style="font-size: 26px; font-weight: 700; color: ${brandColors.primary}; margin-bottom: 4px; letter-spacing: 0.5px;">
-            ₹ ${formatINR(initialData.totalPrice)}
+            ₹ ${formatINR(quoteTotalDisplay)}
           </div>
           <div style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.75px;">
             Complete Tour Package Cost
@@ -1234,7 +1240,7 @@ const TourPackageQueryPDFGeneratorWithVariants: React.FC<TourPackageQueryPDFGene
     ` : "";
 
     // 5. Standalone Remarks & Disclaimer Section (Render only if NOT visible in price section)
-    const isPriceVisible = initialData.totalPrice && initialData.totalPrice.trim() !== "";
+    const isPriceVisible = !!quoteTotalDisplay;
     const remarksSection =
       (!isPriceVisible && (hasRemarks || (initialData.disclaimer && initialData.disclaimer.trim() !== "")))
         ? `

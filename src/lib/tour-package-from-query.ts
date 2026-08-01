@@ -1,9 +1,9 @@
 import prismadb from "@/lib/prismadb";
 import {
   parsePolicyField,
-  parsePricingSection,
   type PolicyFieldKey,
 } from "@/app/api/mobile/tour-packages/policy-fields";
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 
 const POLICY_KEYS: PolicyFieldKey[] = [
   "inclusions",
@@ -19,24 +19,24 @@ const POLICY_KEYS: PolicyFieldKey[] = [
 
 export async function loadTourPackagePrefillFromQuery(queryId: string) {
   const query = await prismadb.tourPackageQuery.findUnique({
-      where: { id: queryId },
-      include: {
-        location: { select: { id: true, label: true } },
-        images: { select: { url: true }, orderBy: { createdAt: "asc" } },
-        itineraries: {
-          include: {
-            itineraryImages: { select: { url: true }, orderBy: { createdAt: "asc" } },
-            activities: {
-              include: {
-                activityImages: { select: { url: true }, orderBy: { createdAt: "asc" } },
-              },
-              orderBy: { createdAt: "asc" },
+    where: { id: queryId },
+    include: {
+      location: { select: { id: true, label: true } },
+      images: { select: { url: true }, orderBy: { createdAt: "asc" } },
+      itineraries: {
+        include: {
+          itineraryImages: { select: { url: true }, orderBy: { createdAt: "asc" } },
+          activities: {
+            include: {
+              activityImages: { select: { url: true }, orderBy: { createdAt: "asc" } },
             },
+            orderBy: { createdAt: "asc" },
           },
-          orderBy: [{ dayNumber: "asc" }, { days: "asc" }],
         },
+        orderBy: [{ dayNumber: "asc" }, { days: "asc" }],
       },
-    });
+    },
+  });
 
   if (!query) {
     throw new Error("Tour package query not found");
@@ -46,7 +46,15 @@ export async function loadTourPackagePrefillFromQuery(queryId: string) {
     POLICY_KEYS.map((key) => [key, parsePolicyField((query as any)[key])])
   ) as Record<PolicyFieldKey, string[]>;
 
-  const pricingSection = parsePricingSection(query.pricingSection);
+  const quote = resolveQueryQuoteTotal({
+    confirmedVariantId: query.confirmedVariantId,
+    variantPricingData: query.variantPricingData,
+  });
+  const pricingSection = quote.lineItems.map((item) => ({
+    name: item.name,
+    price: item.price,
+    description: item.description ?? "",
+  }));
 
   return {
     sourceQueryId: query.id,
@@ -61,7 +69,7 @@ export async function loadTourPackagePrefillFromQuery(queryId: string) {
     transport: query.transport || "",
     pickup_location: query.pickup_location || "",
     drop_location: query.drop_location || "",
-    price: query.totalPrice || query.price || "",
+    price: quote.totalDisplay || "",
     images: (query.images ?? []).map((img) => ({ url: img.url })),
     pricingSection,
     ...policies,

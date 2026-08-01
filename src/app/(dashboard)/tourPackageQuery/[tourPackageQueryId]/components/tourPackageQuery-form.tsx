@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
 import { useRouter, useParams } from "next/navigation";
-import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, ListPlus, Plane, Tag, MapPin, ChevronDown, ChevronUp, Plus, FileText, Users, Calculator, ListChecks, AlertCircle, ScrollText, UtensilsIcon, BedDoubleIcon, CarIcon, MapPinIcon, Trash2, PlusCircle, ImageIcon, BedIcon, Type, AlignLeft, Sparkles } from "lucide-react";
+import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, ListPlus, Plane, MapPin, ChevronDown, ChevronUp, Plus, FileText, Users, Calculator, ListChecks, AlertCircle, ScrollText, UtensilsIcon, BedDoubleIcon, CarIcon, MapPinIcon, Trash2, PlusCircle, ImageIcon, BedIcon, Type, AlignLeft, Sparkles } from "lucide-react";
 import { Activity, AssociatePartner, Images, ItineraryMaster, RoomAllocation, TransportDetail } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, RoomType, OccupancyType, MealPlan, VehicleType, PackageVariant, VariantHotelMapping, TourPackagePricing, PricingComponent, PricingAttribute, LocationSeasonalPeriod } from "@prisma/client"; // Add prisma types
 import { toast } from "react-hot-toast"
@@ -83,17 +83,8 @@ import GuestsTab from '@/components/tour-package-query/GuestsTab'; // Updated pa
 import ItineraryTab from '@/components/tour-package-query/ItineraryTab'; // Updated path
 import LocationTab from '@/components/tour-package-query/LocationTab'; // Updated path
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
-import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
 import QueryVariantsTab from '@/components/tour-package-query/QueryVariantsTab';
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
-
-
-// Define the pricing item schema
-const pricingItemSchema = z.object({
-  name: z.string().optional(),
-  price: z.string().optional(),
-  description: z.string().optional(),
-}).passthrough();
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 const activitySchema = z.object({
   activityTitle: z.string().optional(),
@@ -200,11 +191,6 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  totalPrice: z.string().optional().nullable().transform(val => val || ''),
-  pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
-  pricingCalculationMethod: z.string().optional(),
-  pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
-  customMarkup: z.string().optional(), // Added for custom markup percentage
   remarks: z.string().optional(),
   locationId: z.string().min(1, "Location is required"),
   flightDetails: flightDetailsSchema.array().optional().default([]),
@@ -308,7 +294,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [openTemplate, setOpenTemplate] = useState(false);
   const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const [dynamicTourPackages, setDynamicTourPackages] = useState<any[]>(tourPackages || []);
   const [fetchingPackages, setFetchingPackages] = useState(false);
   const editor = useRef(null)
@@ -318,11 +303,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [occupancyTypes, setOccupancyTypes] = useState<OccupancyType[]>([]);
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
-  const [lookupLoading, setLookupLoading] = useState(true);  // Store price calculation result in window for access in nested functions
-  useEffect(() => {
-    (window as any).setPriceCalculationResult = setPriceCalculationResult;
-    (window as any).priceCalculationResult = priceCalculationResult;
-  }, [priceCalculationResult]);
+  const [lookupLoading, setLookupLoading] = useState(true);
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
     exclusions: false,
@@ -334,27 +315,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     termsconditions: false,
     kitchenGroupPolicy: false,
   });
-
-  const parsePricingSection = (data: any): Array<{ name: string, price: string, description?: string }> => {
-    if (!data) return [];
-
-    // If it's already an array, return it
-    if (Array.isArray(data)) return data;
-
-    // If it's a string, try to parse it
-    if (typeof data === 'string') {
-      try {
-        const parsed = JSON.parse(data);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (e) {
-        console.error("Error parsing pricingSection:", e);
-        return [];
-      }
-    }
-
-    // If it's neither an array nor a string, return empty array
-    return [];
-  };
 
   const parseJsonField = (field: any): string[] => {
     if (!field) return [];
@@ -539,8 +499,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       cancellationPolicy: parseJsonField(initialData.cancellationPolicy),
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
       termsconditions: parseJsonField(initialData.termsconditions),
-      pricingSection: parsePricingSection(initialData.pricingSection),
-      pricingCalculationMethod: (initialData as any).pricingCalculationMethod || '',
     } : {
       inquiryId: '',
       tourPackageTemplate: '',
@@ -560,7 +518,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       numAdults: '',
       numChild5to12: '',
       numChild0to5: '',
-      totalPrice: '',
       remarks: '',
       flightDetails: [], inclusions: INCLUSIONS_DEFAULT,
       exclusions: EXCLUSIONS_DEFAULT,
@@ -577,7 +534,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       locationId: '',
       isFeatured: false,
       isArchived: false,
-      pricingSection: DEFAULT_PRICING_SECTION,
       // Initialize the optional fields with empty values
       selectedTemplateId: '',
       selectedTemplateType: '',
@@ -594,7 +550,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedTourPackageVariantName: '',
       numberOfRooms: 1,
       occupancySelections: [],
-      pricingCalculationMethod: '',
     }; const form = useForm<TourPackageQueryFormValues>({
       resolver: zodResolver(formSchema),
       defaultValues
@@ -602,9 +557,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sharedControl = form.control as any;
-
-  // This useFieldArray is now handled in the PricingTab component
-  // Removing unused code
 
   // Auto-load draft from Auto Builder
   useEffect(() => {
@@ -640,7 +592,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           customerNumber: data.customerNumber || '',
           tourCategory: data.tourCategory || 'Domestic',
           numDaysNight: data.numDaysNight || '',
-          totalPrice: data.price ? String(data.price) : '',
           transport: data.transport || '',
           pickup_location: data.pickup_location || '',
           drop_location: data.drop_location || '',
@@ -858,7 +809,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
       // tour_highlights removed
-      // form.setValue('totalPrice', selectedTourPackage.totalPrice || ''); // REMOVED
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -899,7 +849,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         flightDuration: flight.flightDuration || undefined,
         images: (flight as any).images || []
       })));
-      form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
 
       const defaultVariant = selectedTourPackage.packageVariants?.find((variantItem: any) => variantItem.isDefault);
       if (defaultVariant?.id) {
@@ -1018,7 +967,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pickup_location', selectedTourPackageQuery.pickup_location || '');
       form.setValue('drop_location', selectedTourPackageQuery.drop_location || '');
       // tour_highlights removed
-      form.setValue('totalPrice', selectedTourPackageQuery.totalPrice || '');
       form.setValue('inclusions', parseJsonField(selectedTourPackageQuery.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackageQuery.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackageQuery.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -1028,7 +976,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('airlineCancellationPolicy', parseJsonField(selectedTourPackageQuery.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
       form.setValue('termsconditions', parseJsonField(selectedTourPackageQuery.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
       form.setValue('images', selectedTourPackageQuery.images || []);
-      form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection) || DEFAULT_PRICING_SECTION);
 
       // Convert and set itineraries
       const transformedItineraries = selectedTourPackageQuery.itineraries?.map((itinerary: any) => ({
@@ -1066,9 +1013,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       toast.success('Tour Package Query template applied successfully');
     }
   };
-  // These functions are now handled in the PricingTab component
-  // Removing unused functions
-
   // Enhanced function to extract deep validation errors from itineraries
   const extractItineraryErrors = (errors: any) => {
     if (!errors || !errors.itineraries) return 'Unknown itinerary validation error';
@@ -1203,7 +1147,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         transport: data.transport || '',
         pickup_location: data.pickup_location || '',
         drop_location: data.drop_location || '',
-        totalPrice: data.totalPrice || '',
         disclaimer: data.disclaimer || '',
       };
 
@@ -1420,10 +1363,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Plane className="h-4 w-4" />
                 Flights
               </TabsTrigger>
-              <TabsTrigger value="pricing" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Pricing
-              </TabsTrigger>
               <TabsTrigger value="variants" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
                 Variants
@@ -1492,22 +1431,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 control={sharedControl}
                 loading={loading}
                 form={form}
-              />
-            </TabsContent>            <TabsContent value="pricing" className="space-y-4 mt-4">
-              <PricingTab
-                control={sharedControl}
-                loading={loading}
-                form={form}
-                hotels={hotels}
-                roomTypes={roomTypes}
-                occupancyTypes={occupancyTypes}
-                mealPlans={mealPlans}
-                vehicleTypes={vehicleTypes}
-                priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult}
-                selectedTemplateId={form.watch('selectedTemplateId')}
-                selectedTemplateType={form.watch('selectedTemplateType')}
-                selectedTourPackageVariantId={form.watch('selectedTourPackageVariantId')}
               />
             </TabsContent>
             <TabsContent value="variants" className="space-y-4 mt-4">

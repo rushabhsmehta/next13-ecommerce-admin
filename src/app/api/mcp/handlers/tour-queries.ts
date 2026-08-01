@@ -929,6 +929,51 @@ const AddTourQueryVariantSchema = z.object({
   replaceExisting: z.boolean().optional().default(false),
 });
 
+const UpdateTourQueryVariantSchema = z.object({
+  tourPackageQueryId: z.string().min(1),
+  variantId: z.string().min(1),
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  remarks: z.string().optional(),
+  totalPrice: z.number().optional(),
+  pricingComponents: z.array(VariantComponentSchema).optional(),
+  hotelOverrides: z.array(z.object({
+    dayNumber: z.number().int().min(1),
+    hotelName: z.string().min(1),
+  })).optional(),
+});
+
+type HotelOverrideInput = { dayNumber: number; hotelName: string };
+
+async function resolveHotelOverridesForVariant(params: {
+  hotelOverrides: HotelOverrideInput[];
+  dayToItineraryId: Map<number, string>;
+  locationId: string | null;
+}): Promise<Record<string, string>> {
+  const { hotelOverrides, dayToItineraryId, locationId } = params;
+  const hotelOverridesForVariant: Record<string, string> = {};
+  for (const override of hotelOverrides) {
+    const itineraryId = dayToItineraryId.get(override.dayNumber);
+    if (!itineraryId) continue;
+    const hotel = await prismadb.hotel.findFirst({
+      where: {
+        name: { contains: override.hotelName },
+        ...(locationId ? { locationId } : {}),
+      },
+      select: { id: true },
+    });
+    if (hotel) hotelOverridesForVariant[itineraryId] = hotel.id;
+  }
+  return hotelOverridesForVariant;
+}
+
+function computeVariantTotalCost(
+  totalPrice: number | undefined,
+  pricingComponents: { price: number }[]
+): number {
+  return totalPrice ?? pricingComponents.reduce((sum, c) => sum + c.price, 0);
+}
+
 // ── addTourQueryVariant ───────────────────────────────────────────────────────
 
 async function addTourQueryVariant(rawParams: unknown) {
@@ -961,19 +1006,14 @@ async function addTourQueryVariant(rawParams: unknown) {
 
   for (const variant of variants) {
     const variantId = crypto.randomUUID();
+    const components = variant.pricingComponents ?? [];
+    const totalCost = computeVariantTotalCost(variant.totalPrice, components);
 
-    // Build hotel overrides for this variant: { itineraryId: hotelId }
-    const hotelOverridesForVariant: Record<string, string> = {};
-    for (const override of variant.hotelOverrides ?? []) {
-      const itineraryId = dayToItineraryId.get(override.dayNumber);
-      if (!itineraryId) continue;
-      // Resolve hotel name → ID
-      const hotel = await prismadb.hotel.findFirst({
-        where: { name: { contains: override.hotelName }, locationId: query.locationId },
-        select: { id: true },
-      });
-      if (hotel) hotelOverridesForVariant[itineraryId] = hotel.id;
-    }
+    const hotelOverridesForVariant = await resolveHotelOverridesForVariant({
+      hotelOverrides: variant.hotelOverrides ?? [],
+      dayToItineraryId,
+      locationId: query.locationId,
+    });
 
     // Build the customQueryVariant object
     const customVariant = {
@@ -984,8 +1024,8 @@ async function addTourQueryVariant(rawParams: unknown) {
       remarks: variant.remarks ?? null,
       pricingData: {
         calculationMethod: "manual",
-        components: (variant.pricingComponents ?? []).map((c) => ({ name: c.name, price: c.price, description: c.description ?? null })),
-        totalCost: variant.totalPrice ?? (variant.pricingComponents ?? []).reduce((sum, c) => sum + c.price, 0),
+        components: components.map((c) => ({ name: c.name, price: c.price, description: c.description ?? null })),
+        totalCost,
         calculatedAt: new Date().toISOString(),
       },
     };
@@ -997,9 +1037,150 @@ async function addTourQueryVariant(rawParams: unknown) {
     }
 
     existingPricingData[variantId] = {
-      components: (variant.pricingComponents ?? []).map((c) => ({ name: c.name, price: c.price.toString() })),
-      totalCost: variant.totalPrice ?? (variant.pricingComponents ?? []).reduce((sum, c) => sum + c.price, 0),
+      components: components.map((c) => ({ name: c.name, price: c.price.toString() })),
+      totalCost,
     };
+  }
+
+  await prismadb.tourPackageQuery.update({
+    where: { id: tourPackageQueryId },
+    data: {
+      customQueryVariants: existingCustomVariants,
+      variantHotelOverrides: existingHotelOverrides,
+      variantPricingData: existingPricingData,
+    },
+  });
+
+  const updated = await prismadb.tourPackageQuery.findUnique({
+    where: { id: tourPackageQueryId },
+    include: fullQueryInclude,
+  });
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return { ...updated, pdfGeneratorUrl: `${baseUrl}/tourPackageQueryPDFGenerator/${tourPackageQueryId}` };
+}
+
+// ── updateTourQueryVariant ────────────────────────────────────────────────────
+
+async function updateTourQueryVariant(rawParams: unknown) {
+  const {
+    tourPackageQueryId,
+    variantId,
+    name,
+    description,
+    remarks,
+    totalPrice,
+    pricingComponents,
+    hotelOverrides,
+  } = UpdateTourQueryVariantSchema.parse(rawParams);
+
+  const query = await prismadb.tourPackageQuery.findUnique({
+    where: { id: tourPackageQueryId },
+    select: {
+      id: true,
+      locationId: true,
+      customQueryVariants: true,
+      variantHotelOverrides: true,
+      variantPricingData: true,
+      itineraries: { select: { id: true, dayNumber: true }, orderBy: { dayNumber: "asc" } },
+    },
+  });
+  if (!query) throw new NotFoundError(`Tour query ${tourPackageQueryId} not found`);
+
+  const existingCustomVariants: any[] = Array.isArray(query.customQueryVariants)
+    ? [...(query.customQueryVariants as any[])]
+    : [];
+  const existingHotelOverrides: Record<string, Record<string, string>> = {
+    ...((query.variantHotelOverrides as any) ?? {}),
+  };
+  const existingPricingData: Record<string, any> = {
+    ...((query.variantPricingData as any) ?? {}),
+  };
+
+  const customIndex = existingCustomVariants.findIndex((v) => v?.id === variantId);
+  const hasPricingEntry = Object.prototype.hasOwnProperty.call(existingPricingData, variantId);
+  if (customIndex < 0 && !hasPricingEntry) {
+    throw new NotFoundError(`Variant ${variantId} not found on tour query ${tourPackageQueryId}`);
+  }
+
+  const dayToItineraryId = new Map<number, string>();
+  for (const itin of query.itineraries) {
+    if (itin.dayNumber != null) dayToItineraryId.set(itin.dayNumber, itin.id);
+  }
+
+  const pricingChanged = totalPrice !== undefined || pricingComponents !== undefined;
+  if (pricingChanged) {
+    const existingEntry = existingPricingData[variantId] ?? {};
+    const existingCustom = customIndex >= 0 ? existingCustomVariants[customIndex] : null;
+
+    const nextComponents = pricingComponents !== undefined
+      ? pricingComponents
+      : (
+          existingCustom?.pricingData?.components
+          ?? (Array.isArray(existingEntry.components)
+            ? existingEntry.components.map((c: any) => ({
+                name: String(c.name ?? ""),
+                price: Number(c.price) || 0,
+                description: c.description ?? undefined,
+              }))
+            : [])
+        );
+
+    const totalCost = computeVariantTotalCost(
+      totalPrice,
+      nextComponents.map((c: { price: number }) => ({ price: Number(c.price) || 0 }))
+    );
+
+    existingPricingData[variantId] = {
+      ...existingEntry,
+      components: nextComponents.map((c: { name: string; price: number; description?: string | null }) => ({
+        name: c.name,
+        price: String(c.price),
+        ...(c.description != null ? { description: c.description } : {}),
+      })),
+      totalCost,
+    };
+
+    if (customIndex >= 0) {
+      const custom = { ...existingCustomVariants[customIndex] };
+      if (totalPrice !== undefined) {
+        custom.totalPrice = totalPrice.toString();
+      } else if (pricingComponents !== undefined) {
+        custom.totalPrice = totalCost.toString();
+      }
+      custom.pricingData = {
+        ...(custom.pricingData ?? {}),
+        calculationMethod: "manual",
+        components: nextComponents.map((c: { name: string; price: number; description?: string | null }) => ({
+          name: c.name,
+          price: Number(c.price) || 0,
+          description: c.description ?? null,
+        })),
+        totalCost,
+        calculatedAt: new Date().toISOString(),
+      };
+      existingCustomVariants[customIndex] = custom;
+    }
+  }
+
+  if (customIndex >= 0 && (name !== undefined || description !== undefined || remarks !== undefined)) {
+    const custom = { ...existingCustomVariants[customIndex] };
+    if (name !== undefined) custom.name = name;
+    if (description !== undefined) custom.description = description;
+    if (remarks !== undefined) custom.remarks = remarks;
+    existingCustomVariants[customIndex] = custom;
+  }
+
+  if (hotelOverrides !== undefined) {
+    const hotelOverridesForVariant = await resolveHotelOverridesForVariant({
+      hotelOverrides,
+      dayToItineraryId,
+      locationId: query.locationId,
+    });
+    if (Object.keys(hotelOverridesForVariant).length > 0) {
+      existingHotelOverrides[variantId] = hotelOverridesForVariant;
+    } else {
+      delete existingHotelOverrides[variantId];
+    }
   }
 
   await prismadb.tourPackageQuery.update({
@@ -1063,5 +1244,6 @@ export const tourQueryHandlers: ToolHandlerMap = {
   update_tour_query: updateTourQuery,
   archive_tour_query: archiveTourQuery,
   add_tour_query_variant: addTourQueryVariant,
+  update_tour_query_variant: updateTourQueryVariant,
   get_tour_query_pdf: getTourQueryPdf,
 };

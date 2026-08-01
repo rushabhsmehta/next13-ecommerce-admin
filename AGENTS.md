@@ -4,7 +4,7 @@ Short agent entrypoint for this repo. For deep inventories (full dashboard modul
 
 ## Project Overview
 
-Travel & tourism admin platform: CMS, admin dashboard, and API layer for tour packages, inquiries, hotel bookings, and financial transactions. Built on **Next.js 16** App Router with **Clerk** org RBAC, a custom **MCP** server (139 tools), and three **Expo** mobile apps from one `mobile/` codebase.
+Travel & tourism admin platform: CMS, admin dashboard, and API layer for tour packages, inquiries, hotel bookings, and financial transactions. Built on **Next.js 16** App Router with **Clerk** org RBAC, a custom **MCP** server (140 tools), and three **Expo** mobile apps from one `mobile/` codebase.
 
 ## Tech Stack
 
@@ -101,7 +101,7 @@ mobile/
   app/                      # Shared screens
   components/inquiries/     # CreateInquiryForm
   scripts/                  # adb-*, generate-app-icons.mjs
-mcp-server/                 # MCP tool registration (139 tools)
+mcp-server/                 # MCP tool registration (140 tools)
 schema.prisma               # Main MySQL schema
 prisma/whatsapp-schema.prisma
 prisma/migrations/          # Prisma migrations
@@ -157,7 +157,7 @@ Never run destructive Prisma commands against production. Schema changes → `pr
 ### MCP
 
 - Gateway: `src/app/api/mcp/route.ts`; 17 handler modules + `index.ts` dispatcher under `src/app/api/mcp/handlers/`.
-- Tools: `mcp-server/src/tools/*.ts` — **139** registered tools.
+- Tools: `mcp-server/src/tools/*.ts` — **140** registered tools.
 - Auth: `x-mcp-api-secret` header.
 
 ### Cron / campaigns

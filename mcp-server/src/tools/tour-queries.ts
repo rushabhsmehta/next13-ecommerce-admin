@@ -303,6 +303,7 @@ WHEN TO USE:
 - After create_tour_query when the customer wants to see multiple price options
 - Use replaceExisting: true to overwrite all current variants
 - Use replaceExisting: false (default) to append new variants to existing ones
+- To change one existing variant's price, use update_tour_query_variant instead of replaceExisting
 
 EXAMPLE VARIANTS:
 - Budget: Economy hotels, shared transport → total ₹15,000
@@ -348,6 +349,58 @@ The response includes pdfGeneratorUrl — open it to download the PDF with varia
   );
 
   server.tool(
+    "update_tour_query_variant",
+    `Update pricing or metadata for a single existing variant on a tour package query.
+
+Partial update — only fields you provide are changed. Call get_tour_query first to get variantId
+from customQueryVariants[].id (or keys in variantPricingData).
+
+WHEN TO USE:
+- Change one variant's totalPrice or pricingComponents without rebuilding all variants
+- Rename or edit description/remarks on a custom variant
+- Prefer this over add_tour_query_variant with replaceExisting: true when only one variant changes
+
+WHEN NOT TO USE:
+- Creating new variants → use add_tour_query_variant
+- Replacing the entire variant set → use add_tour_query_variant with replaceExisting: true
+
+Pricing is stored as manual (calculationMethod: "manual"). totalCost = totalPrice if provided,
+otherwise sum of pricingComponents.`,
+    {
+      tourPackageQueryId: z.string().describe("The tour query ID that owns the variant"),
+      variantId: z.string().describe("Variant ID from get_tour_query (customQueryVariants[].id or variantPricingData key)"),
+      name: z.string().optional().describe("Updated variant name (custom variants only)"),
+      description: z.string().optional().describe("Updated description (custom variants only)"),
+      remarks: z.string().optional().describe("Updated remarks (custom variants only)"),
+      totalPrice: z.number().optional().describe("Updated total price for this variant in INR"),
+      pricingComponents: z.array(z.object({
+        name: z.string().describe("Component name e.g. 'Hotel', 'Transport', 'Meals'"),
+        price: z.number().describe("Component price in INR"),
+        description: z.string().optional().describe("Notes for this component"),
+      })).optional().describe("Replace itemized price breakdown for this variant"),
+      hotelOverrides: z.array(z.object({
+        dayNumber: z.number().int().min(1).describe("Day number (1, 2, 3, ...) from the itinerary"),
+        hotelName: z.string().describe("Hotel name for this day in this variant"),
+      })).optional().describe("Replace hotel overrides for this variant (omit to leave unchanged)"),
+    },
+    async (params) => {
+      try {
+        const data = await callTool("update_tour_query_variant", params);
+        const d = data as any;
+        const pdfUrl = d?.pdfGeneratorUrl ?? "";
+        return {
+          content: [{
+            type: "text",
+            text: `Variant ${params.variantId} updated on tour query ${params.tourPackageQueryId}.\n\n📄 Download PDF with variant comparison: ${pdfUrl}\n\n${JSON.stringify(data, null, 2)}`,
+          }],
+        };
+      } catch (err) {
+        return toolError("update_tour_query_variant", err);
+      }
+    }
+  );
+
+  server.tool(
     "get_tour_query_pdf",
     `Generate and download a PDF for a tour package query.
 
@@ -358,7 +411,7 @@ Returns a base64-encoded PDF containing:
 - Inclusions / exclusions / policy sections
 - Pricing summary
 
-Use this after create_tour_query or add_tour_query_variant to produce a shareable PDF quote.
+Use this after create_tour_query, add_tour_query_variant, or update_tour_query_variant to produce a shareable PDF quote.
 The PDF uses the same branded layout as the CRM PDF download.`,
     {
       tourPackageQueryId: z.string().describe("Tour query ID (from create_tour_query or list_tour_queries)"),

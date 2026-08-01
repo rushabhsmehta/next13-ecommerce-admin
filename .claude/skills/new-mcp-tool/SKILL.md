@@ -9,7 +9,7 @@ argument-hint: <tool-name> [description]
 
 # Add New MCP Tool
 
-Add a new tool to the travel-admin MCP server (modular layout, ~139 tools).
+Add a new tool to the travel-admin MCP server (modular layout, ~140 tools).
 
 **Leverages:** `anthropic-skills:mcp-builder`
 

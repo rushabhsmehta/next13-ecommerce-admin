@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer for managing tour packages, customer inquiries, hotel bookings, and financial transactions. Built on Next.js 16 App Router with Clerk org RBAC, a custom MCP server (~139 tools), and three Expo mobile app variants (`public`, `staff`, `finance`).
+Travel & tourism admin platform. Serves as CMS, admin dashboard, and API layer for managing tour packages, customer inquiries, hotel bookings, and financial transactions. Built on Next.js 16 App Router with Clerk org RBAC, a custom MCP server (~140 tools), and three Expo mobile app variants (`public`, `staff`, `finance`).
 
 ## Tech Stack
 
@@ -398,7 +398,7 @@ The Expo mobile app calls `/api/mobile/*` rather than the dashboard routes. The 
 
 ## MCP Tools (travel-admin)
 
-**~139 tools** registered via the custom MCP server (count with `grep -rn 'server\.tool(' mcp-server/src/tools/`).
+**~140 tools** registered via the custom MCP server (count with `grep -rn 'server\.tool(' mcp-server/src/tools/`).
 
 ### Architecture (Modular)
 - **`src/app/api/mcp/route.ts`** — Slim gateway: auth via `x-mcp-api-secret` header, dispatch, error handling
@@ -426,7 +426,7 @@ The Expo mobile app calls `/api/mobile/*` rather than the dashboard routes. The 
 | `returns.ts` | `create_sale_return`, `list_sale_returns`, `create_purchase_return`, `list_purchase_returns` |
 | `reporting.ts` | `get_profit_loss`, `get_customer_statement`, `get_supplier_statement`, `get_cash_book`, `get_bank_book`, `get_tds_summary`, `get_gst_summary`, `get_expense_breakdown`, `get_revenue_by_location`, `get_daily_collection_report` |
 | `inquiries.ts` | `create_inquiry`, `list_inquiries`, `get_inquiry`, `update_inquiry_status`, `add_inquiry_note`, `assign_inquiry_staff`, `get_inquiry_actions`, `get_inquiry_summary`, `delete_inquiry` |
-| `tour-queries.ts` | `create_tour_query`, `list_tour_queries`, `get_tour_query`, `update_tour_query`, `confirm_tour_query`, `archive_tour_query`, `add_tour_query_variant`, `get_query_financial_summary`, `get_tour_query_pdf` |
+| `tour-queries.ts` | `create_tour_query`, `list_tour_queries`, `get_tour_query`, `update_tour_query`, `confirm_tour_query`, `archive_tour_query`, `add_tour_query_variant`, `update_tour_query_variant`, `get_query_financial_summary`, `get_tour_query_pdf` |
 | `locations.ts` | `search_locations`, `list_destinations`, `list_tour_packages`, `get_tour_package`, `list_hotels`, `get_hotel_pricing`, `create_hotel_pricing`, `update_hotel_pricing`, `delete_hotel_pricing`, `get_transport_pricing`, `create_transport_pricing`, `update_transport_pricing`, `delete_transport_pricing` |
 | `flights.ts` | `get_flight_ticket`, `list_flight_tickets`, `create_flight_ticket` |
 | `staff.ts` | `list_operational_staff`, `list_associate_partners` |

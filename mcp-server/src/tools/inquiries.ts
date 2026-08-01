@@ -13,6 +13,7 @@ export function registerInquiryTools(server: McpServer) {
     "create_inquiry",
     `Create a new customer travel inquiry.
     You can provide locationName (e.g. 'Goa') instead of locationId and it will be resolved automatically.
+    Optionally assign an associate/referral partner via associatePartnerId or associatePartnerName (use list_associate_partners to look up).
     journeyDate must be an ISO date string like '2026-04-15'.
     Example: "Create inquiry for Rahul Sharma, 9876543210, wants to go to Goa on April 15 with 2 adults"`,
     {
@@ -20,6 +21,14 @@ export function registerInquiryTools(server: McpServer) {
       customerMobileNumber: z.string().describe("Customer mobile number (10 digits)"),
       locationId: z.string().optional().describe("Location/destination ID (from search_locations)"),
       locationName: z.string().optional().describe("Location name if ID is unknown (e.g. 'Goa')"),
+      associatePartnerId: z
+        .string()
+        .optional()
+        .describe("Associate partner ID (from list_associate_partners)"),
+      associatePartnerName: z
+        .string()
+        .optional()
+        .describe("Associate partner name if ID is unknown (partial match)"),
       numAdults: z.number().int().min(1).describe("Number of adults"),
       numChildrenAbove11: z.number().int().min(0).optional().default(0).describe("Children above 11 years"),
       numChildren5to11: z.number().int().min(0).optional().default(0).describe("Children 5-11 years"),

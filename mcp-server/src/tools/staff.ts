@@ -18,7 +18,7 @@ export function registerStaffTools(server: McpServer) {
 
   server.tool(
     "list_associate_partners",
-    "List associate/referral partners.",
+    "List associate/referral partners. Use this to find an associatePartnerId before create_inquiry or update_inquiry.",
     {},
     async () => {
       try {

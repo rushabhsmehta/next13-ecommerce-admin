@@ -82,7 +82,7 @@ export const SHARED_TOOL_CONTRACT_OVERRIDES = {
   update_inquiry: defineToolContract({
     name: "update_inquiry",
     description:
-      "Update inquiry details (customer info, traveler counts, destination, dates, remarks).",
+      "Update inquiry details (customer info, traveler counts, destination, dates, remarks, associate partner). Pass associatePartnerId or associatePartnerName to assign a partner; pass associatePartnerId: null to clear (direct booking). Use list_associate_partners to look up IDs.",
     access: "write",
     retryable: false,
     inputSchema: {
@@ -91,6 +91,17 @@ export const SHARED_TOOL_CONTRACT_OVERRIDES = {
       customerMobileNumber: z.string().optional().describe("Updated mobile number"),
       locationId: z.string().optional().describe("Updated location ID"),
       locationName: z.string().optional().describe("Updated location name"),
+      associatePartnerId: z
+        .string()
+        .nullable()
+        .optional()
+        .describe(
+          "Associate partner ID (from list_associate_partners). Pass null to clear / set as direct booking."
+        ),
+      associatePartnerName: z
+        .string()
+        .optional()
+        .describe("Associate partner name if ID is unknown (partial match, e.g. 'Ramesh')"),
       numAdults: z.number().int().min(1).optional().describe("Updated number of adults"),
       numChildrenAbove11: z.number().int().min(0).optional().describe("Updated children above 11"),
       numChildren5to11: z.number().int().min(0).optional().describe("Updated children 5-11"),

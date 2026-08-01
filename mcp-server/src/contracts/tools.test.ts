@@ -43,16 +43,29 @@ test("normalizes customer contact aliases", () => {
   });
 });
 
-test("preserves update inquiry destination fields", () => {
+test("preserves update inquiry destination and associate partner fields", () => {
   const params = normalizeToolParams("update_inquiry", {
     inquiryId: "inq_123",
     locationName: "Goa",
+    associatePartnerId: "ap_1",
     remarks: "Needs beach resort",
   });
   assert.deepEqual(params, {
     inquiryId: "inq_123",
     locationName: "Goa",
+    associatePartnerId: "ap_1",
     remarks: "Needs beach resort",
+  });
+});
+
+test("preserves update inquiry clear associate partner (null)", () => {
+  const params = normalizeToolParams("update_inquiry", {
+    inquiryId: "inq_123",
+    associatePartnerId: null,
+  });
+  assert.deepEqual(params, {
+    inquiryId: "inq_123",
+    associatePartnerId: null,
   });
 });
 

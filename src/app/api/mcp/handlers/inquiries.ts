@@ -14,6 +14,8 @@ const CreateInquirySchema = z.object({
   customerMobileNumber: z.string().min(1),
   locationId: z.string().optional(),
   locationName: z.string().optional(),
+  associatePartnerId: z.string().optional(),
+  associatePartnerName: z.string().optional(),
   numAdults: z.number().int().min(1),
   numChildrenAbove11: z.number().int().min(0).optional().default(0),
   numChildren5to11: z.number().int().min(0).optional().default(0),
@@ -69,6 +71,8 @@ const UpdateInquirySchema = z.object({
   inquiryId: z.string().min(1),
   customerName: z.string().optional(),
   customerMobileNumber: z.string().optional(),
+  associatePartnerId: z.string().nullable().optional(),
+  associatePartnerName: z.string().optional(),
   numAdults: z.number().int().min(1).optional(),
   numChildrenAbove11: z.number().int().min(0).optional(),
   numChildren5to11: z.number().int().min(0).optional(),
@@ -84,6 +88,54 @@ const DeleteInquirySchema = z.object({
 const ListFollowUpsDueSchema = z.object({
   asOfDate: isoDateString.optional(),
 });
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Resolve associate partner for create/update.
+ * - undefined → leave unchanged (update) / omit (create)
+ * - null → clear partner (update only)
+ * - string → set to that partner id
+ */
+async function resolveAssociatePartnerId(opts: {
+  associatePartnerId?: string | null;
+  associatePartnerName?: string;
+}): Promise<string | null | undefined> {
+  if (opts.associatePartnerName) {
+    const partner = await prismadb.associatePartner.findFirst({
+      where: {
+        isActive: true,
+        name: { contains: opts.associatePartnerName },
+      },
+      select: { id: true, name: true },
+    });
+    if (!partner) {
+      throw new NotFoundError(
+        `Associate partner "${opts.associatePartnerName}" not found. Call list_associate_partners first.`,
+        "ASSOCIATE_PARTNER_NOT_FOUND"
+      );
+    }
+    return partner.id;
+  }
+
+  if (opts.associatePartnerId === null) return null;
+
+  if (opts.associatePartnerId) {
+    const partner = await prismadb.associatePartner.findUnique({
+      where: { id: opts.associatePartnerId },
+      select: { id: true },
+    });
+    if (!partner) {
+      throw new NotFoundError(
+        `Associate partner ${opts.associatePartnerId} not found. Call list_associate_partners first.`,
+        "ASSOCIATE_PARTNER_NOT_FOUND"
+      );
+    }
+    return partner.id;
+  }
+
+  return undefined;
+}
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
@@ -113,11 +165,17 @@ async function createInquiry(rawParams: unknown) {
   // dateToUtc returns undefined only when input is falsy; Zod already ensured journeyDate is a valid date string
   if (!journeyDate) throw new Error("Invalid journeyDate");
 
+  const associatePartnerId = await resolveAssociatePartnerId({
+    associatePartnerId: params.associatePartnerId,
+    associatePartnerName: params.associatePartnerName,
+  });
+
   const inquiry = await prismadb.inquiry.create({
     data: {
       customerName: params.customerName,
       customerMobileNumber: params.customerMobileNumber,
       locationId: resolvedLocationId,
+      ...(associatePartnerId ? { associatePartnerId } : {}),
       numAdults: params.numAdults,
       numChildrenAbove11: params.numChildrenAbove11 ?? 0,
       numChildren5to11: params.numChildren5to11 ?? 0,
@@ -128,6 +186,7 @@ async function createInquiry(rawParams: unknown) {
     },
     include: {
       location: { select: { id: true, label: true } },
+      associatePartner: { select: { id: true, name: true } },
     },
   });
 
@@ -279,7 +338,13 @@ async function getInquiryActions(rawParams: unknown) {
 }
 
 async function updateInquiry(rawParams: unknown) {
-  const { inquiryId, journeyDate, ...rest } = UpdateInquirySchema.parse(rawParams);
+  const {
+    inquiryId,
+    journeyDate,
+    associatePartnerId: rawAssociatePartnerId,
+    associatePartnerName,
+    ...rest
+  } = UpdateInquirySchema.parse(rawParams);
   const existing = await prismadb.inquiry.findUnique({ where: { id: inquiryId }, select: { id: true } });
   if (!existing) throw new NotFoundError(`Inquiry ${inquiryId} not found`);
 
@@ -288,10 +353,28 @@ async function updateInquiry(rawParams: unknown) {
     const d = dateToUtc(journeyDate);
     if (d) data.journeyDate = d;
   }
+
+  const associatePartnerId = await resolveAssociatePartnerId({
+    associatePartnerId: rawAssociatePartnerId,
+    associatePartnerName,
+  });
+  if (associatePartnerId !== undefined) {
+    data.associatePartnerId = associatePartnerId;
+  }
+
   return prismadb.inquiry.update({
     where: { id: inquiryId },
     data,
-    select: { id: true, customerName: true, customerMobileNumber: true, status: true, journeyDate: true, updatedAt: true },
+    select: {
+      id: true,
+      customerName: true,
+      customerMobileNumber: true,
+      status: true,
+      journeyDate: true,
+      associatePartnerId: true,
+      associatePartner: { select: { id: true, name: true } },
+      updatedAt: true,
+    },
   });
 }
 

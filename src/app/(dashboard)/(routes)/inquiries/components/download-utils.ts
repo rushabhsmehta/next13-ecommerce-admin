@@ -7,7 +7,11 @@ const EMPTY_ROW_8 = ['', '', '', '', '', '', '', ''];
 const formatLastFollowUp = (item: InquiryColumn): string => {
   const last = item.actionHistory?.[0];
   if (!last) return '';
-  return last.type ? `${last.timestamp} — ${last.type}` : (last.timestamp || '');
+  const base = last.type
+    ? `${last.timestamp} — ${last.type}`
+    : (last.timestamp || '');
+  const remarks = last.remarks?.trim();
+  return remarks ? `${base} — ${remarks}` : base;
 };
 
 // Helper function to load image as base64 data URL
@@ -100,7 +104,7 @@ export const downloadAsExcel = async (data: InquiryColumn[], filename = 'inquiri
     { wch: 14 },
     { wch: 16 },
     { wch: 16 },
-    { wch: 28 },
+    { wch: 50 },
   ];
   worksheet['!autofilter'] = {
     ref: XLSX.utils.encode_range({

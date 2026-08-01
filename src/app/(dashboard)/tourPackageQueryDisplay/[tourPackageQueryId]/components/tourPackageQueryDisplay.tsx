@@ -1,5 +1,6 @@
-import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 'use client'
+
+import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';

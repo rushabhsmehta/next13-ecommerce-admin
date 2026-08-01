@@ -46,6 +46,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
+import { guestCountField } from "@/lib/guest-count"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "@radix-ui/react-icons"
@@ -175,9 +176,9 @@ const formSchema = z.object({
   transport: z.string().optional().nullable().transform(val => val || ''),
   pickup_location: z.string().optional().nullable().transform(val => val || ''),
   drop_location: z.string().optional().nullable().transform(val => val || ''),
-  numAdults: z.string().optional(),
-  numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),
+  numAdults: guestCountField,
+  numChild5to12: guestCountField,
+  numChild0to5: guestCountField,
 
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),

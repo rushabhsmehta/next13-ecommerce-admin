@@ -65,7 +65,7 @@ const GuestsTab: React.FC<GuestsProps> = ({
             <FormItem>
               <FormLabel>Number of Adults</FormLabel>
               <FormControl>
-                <Input type="number" disabled={loading} placeholder="Number of Adults" {...field} onChange={event => field.onChange(event.target.value)} />
+                <Input type="number" disabled={loading} placeholder="Number of Adults" {...field} value={field.value ?? ""} onChange={event => field.onChange(event.target.value)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -79,7 +79,7 @@ const GuestsTab: React.FC<GuestsProps> = ({
             <FormItem>
               <FormLabel>Number of Children 5 to 12</FormLabel>
               <FormControl>
-                <Input type="number" disabled={loading} placeholder="Number of Children 5 to 12" {...field} onChange={event => field.onChange(event.target.value)} />
+                <Input type="number" disabled={loading} placeholder="Number of Children 5 to 12" {...field} value={field.value ?? ""} onChange={event => field.onChange(event.target.value)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -93,7 +93,7 @@ const GuestsTab: React.FC<GuestsProps> = ({
             <FormItem>
               <FormLabel>Number of Children 0 to 5</FormLabel>
               <FormControl>
-                <Input type="number" disabled={loading} placeholder="Number of Children 0 to 5" {...field} onChange={event => field.onChange(event.target.value)} />
+                <Input type="number" disabled={loading} placeholder="Number of Children 0 to 5" {...field} value={field.value ?? ""} onChange={event => field.onChange(event.target.value)} />
               </FormControl>
               <FormMessage />
             </FormItem>

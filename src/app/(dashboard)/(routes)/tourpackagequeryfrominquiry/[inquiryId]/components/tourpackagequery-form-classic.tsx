@@ -79,6 +79,7 @@ import dynamic from "next/dynamic";
 const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false, loading: () => <div className="h-[200px] w-full animate-pulse rounded-md bg-muted" /> });
 import { Switch } from "@/components/ui/switch"
 import { convertJourneyDateToTourStart, createDatePickerValue, normalizeApiDate } from "@/lib/timezone-utils"
+import { guestCountField } from "@/lib/guest-count"
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -200,9 +201,9 @@ const formSchema = z.object({
   transport: z.string().optional().nullable().transform(val => val || ''),
   pickup_location: z.string().optional().nullable().transform(val => val || ''),
   drop_location: z.string().optional().nullable().transform(val => val || ''),
-  numAdults: z.string().optional(),
-  numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),
+  numAdults: guestCountField,
+  numChild5to12: guestCountField,
+  numChild0to5: guestCountField,
 
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),

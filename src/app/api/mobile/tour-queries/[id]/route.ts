@@ -11,6 +11,7 @@ import {
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 import { copyItineraryMedia } from "@/app/api/mobile/lib/copy-itinerary-media";
 import { createVariantSnapshots } from "@/lib/variant-snapshot";
+import { guestCountField } from "@/lib/guest-count";
 
 export const dynamic = "force-dynamic";
 
@@ -121,9 +122,9 @@ const patchSchema = z.object({
   tourPackageQueryName: z.string().max(300).optional(),
   customerName: z.string().max(200).optional(),
   customerNumber: z.string().max(40).optional(),
-  numAdults: z.string().max(10).optional(),
-  numChild5to12: z.string().max(10).optional(),
-  numChild0to5: z.string().max(10).optional(),
+  numAdults: guestCountField,
+  numChild5to12: guestCountField,
+  numChild0to5: guestCountField,
   price: nullableText,
   pricePerAdult: nullableText,
   pricePerChildOrExtraBed: nullableText,

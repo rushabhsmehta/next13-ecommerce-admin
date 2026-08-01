@@ -11,6 +11,7 @@ import {
 import { recordMobileAudit } from "@/app/api/mobile/lib/mobile-audit";
 import { copyItineraryMedia } from "@/app/api/mobile/lib/copy-itinerary-media";
 import { carryForwardInquiryCouponToTourQuery } from "@/lib/coupons";
+import { guestCountField } from "@/lib/guest-count";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,9 @@ const createSchema = z.object({
       tourPackageQueryName: z.string().max(300).optional(),
       tourStartsFrom: z.string().optional(),
       tourEndsOn: z.string().optional(),
-      numAdults: z.string().optional(),
-      numChild5to12: z.string().optional(),
-      numChild0to5: z.string().optional(),
+      numAdults: guestCountField,
+      numChild5to12: guestCountField,
+      numChild0to5: guestCountField,
       remarks: z.string().max(5000).optional(),
     })
     .optional(),

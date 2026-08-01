@@ -45,6 +45,11 @@ import { BorderRadius, Colors, FontSize, Spacing } from "@/constants/theme";
 import { DEFAULT_OPS_IMAGE_URL } from "@/lib/ops-defaults";
 import { createOperationsClient } from "@/lib/operations";
 import { SupplierOutreachActions } from "@/components/inquiries/SupplierOutreachActions";
+import {
+  createAssociatePartnersClient,
+  fetchAssociatePartners,
+  type AssociatePartnerOption,
+} from "@/lib/associate-partners";
 
 const STATUS_SEGMENT_OPTIONS = INQUIRY_STATUSES.map((st) => ({
   id: st,
@@ -135,6 +140,10 @@ function AdminInquiryDetailInner() {
     () => createOperationsClient(authRequest),
     [authRequest]
   );
+  const partnersClient = useMemo(
+    () => createAssociatePartnersClient(authRequest),
+    [authRequest]
+  );
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -167,6 +176,14 @@ function AdminInquiryDetailInner() {
   const [staffCreateOpen, setStaffCreateOpen] = useState(false);
   const [creatingStaff, setCreatingStaff] = useState(false);
 
+  const [associatePartnerId, setAssociatePartnerId] = useState<string | null>(null);
+  const [associatePartnerName, setAssociatePartnerName] = useState<string | null>(null);
+  const [associatePickerOpen, setAssociatePickerOpen] = useState(false);
+  const [associatePartners, setAssociatePartners] = useState<AssociatePartnerOption[]>([]);
+  const [associateLoading, setAssociateLoading] = useState(false);
+  const [associateCreateOpen, setAssociateCreateOpen] = useState(false);
+  const [creatingAssociate, setCreatingAssociate] = useState(false);
+
   const load = useCallback(async () => {
     if (!inquiryId) return;
     setError(null);
@@ -187,6 +204,8 @@ function AdminInquiryDetailInner() {
       setNumChildren5to11(String(data.numChildren5to11 ?? 0));
       setStatusDraft((data.status ?? "PENDING").toUpperCase());
       setLocationId(data.locationId ?? "");
+      setAssociatePartnerId(data.associatePartnerId ?? null);
+      setAssociatePartnerName(data.associatePartner?.name ?? null);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Could not load inquiry.";
@@ -217,6 +236,8 @@ function AdminInquiryDetailInner() {
       setNumChildren5to11(String(data.numChildren5to11 ?? 0));
       setStatusDraft((data.status ?? "PENDING").toUpperCase());
       setLocationId(data.locationId ?? "");
+      setAssociatePartnerId(data.associatePartnerId ?? null);
+      setAssociatePartnerName(data.associatePartner?.name ?? null);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Could not refresh inquiry.";
@@ -259,6 +280,51 @@ function AdminInquiryDetailInner() {
       );
     } finally {
       setStaffLoading(false);
+    }
+  }
+
+  async function openAssociatePicker() {
+    if (!canWrite) return;
+    setAssociatePickerOpen(true);
+    setAssociateLoading(true);
+    try {
+      const rows = await fetchAssociatePartners(authRequest, { activeOnly: true });
+      setAssociatePartners(rows);
+    } catch {
+      setAssociatePartners([]);
+      Alert.alert(
+        "Partners",
+        "Could not load associate partners. You may need admin access."
+      );
+    } finally {
+      setAssociateLoading(false);
+    }
+  }
+
+  async function createAssociateQuick(values: Record<string, string>) {
+    const partnerName = values.name?.trim();
+    const mobileNumber = values.mobileNumber?.trim();
+    if (!partnerName || !mobileNumber) return;
+    setCreatingAssociate(true);
+    try {
+      const saved = await partnersClient.create({
+        name: partnerName,
+        mobileNumber,
+      });
+      setAssociatePartners((prev) =>
+        prev.some((p) => p.id === saved.id) ? prev : [saved, ...prev]
+      );
+      setAssociatePartnerId(saved.id);
+      setAssociatePartnerName(saved.name);
+      setAssociateCreateOpen(false);
+      setAssociatePickerOpen(false);
+    } catch (err) {
+      Alert.alert(
+        "Create failed",
+        err instanceof ApiError ? err.message : "Could not create the partner."
+      );
+    } finally {
+      setCreatingAssociate(false);
     }
   }
 
@@ -425,7 +491,7 @@ function AdminInquiryDetailInner() {
             customerName: customerName.trim(),
             customerMobileNumber: customerMobile.trim(),
             locationId: locationId || detail.locationId,
-            associatePartnerId: detail.associatePartnerId,
+            associatePartnerId,
             numAdults: na,
             numChildrenAbove11: detail.numChildrenAbove11,
             numChildren5to11: nc,
@@ -442,6 +508,8 @@ function AdminInquiryDetailInner() {
         }
       );
       setDetail(updated);
+      setAssociatePartnerId(updated.associatePartnerId ?? null);
+      setAssociatePartnerName(updated.associatePartner?.name ?? null);
       Alert.alert("Saved", "Inquiry updated.");
     } catch (err) {
       const message =
@@ -568,6 +636,16 @@ function AdminInquiryDetailInner() {
     [staffList]
   );
 
+  const associateOptions = useMemo(
+    () =>
+      associatePartners.map((p) => ({
+        id: p.id,
+        label: p.name,
+        subtitle: p.email ?? p.gmail ?? p.mobileNumber ?? undefined,
+      })),
+    [associatePartners]
+  );
+
   const selectedLocationLabel =
     locations.find((l) => l.id === locationId)?.label ??
     detail?.location?.label ??
@@ -626,12 +704,10 @@ function AdminInquiryDetailInner() {
           <Text style={styles.cardValue}>
             {detail.location?.label ?? "—"}
           </Text>
-          {detail.associatePartner ? (
-            <>
-              <Text style={[styles.cardLabel, { marginTop: 8 }]}>Associate</Text>
-              <Text style={styles.cardValue}>{detail.associatePartner.name}</Text>
-            </>
-          ) : null}
+          <Text style={[styles.cardLabel, { marginTop: 8 }]}>Associate</Text>
+          <Text style={styles.cardValue}>
+            {detail.associatePartner?.name ?? "Direct"}
+          </Text>
           {detail.assignedStaff ? (
             <>
               <Text style={[styles.cardLabel, { marginTop: 8 }]}>Assigned to</Text>
@@ -841,6 +917,36 @@ function AdminInquiryDetailInner() {
               </Text>
               <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
             </Pressable>
+            </AdminFormField>
+            <AdminFormField label="Associate partner" hint="Link to a partner or leave as direct booking.">
+            <Pressable
+              testID="inquiry-edit-associate-picker"
+              accessibilityRole="button"
+              accessibilityLabel="Choose associate partner"
+              style={styles.pickerBtn}
+              onPress={() => void openAssociatePicker()}
+            >
+              <Text style={styles.pickerBtnText} numberOfLines={2}>
+                {associatePartnerId
+                  ? associatePartnerName ?? "Selected partner"
+                  : "Direct booking (no associate)"}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+            </Pressable>
+            {associatePartnerId ? (
+              <Pressable
+                testID="inquiry-edit-associate-clear"
+                accessibilityRole="button"
+                accessibilityLabel="Clear associate partner"
+                onPress={() => {
+                  setAssociatePartnerId(null);
+                  setAssociatePartnerName(null);
+                }}
+                style={styles.clearBtn}
+              >
+                <Text style={styles.clearText}>Clear partner</Text>
+              </Pressable>
+            ) : null}
             </AdminFormField>
             <AdminFormField label="Journey date">
             <DateField
@@ -1076,6 +1182,55 @@ function AdminInquiryDetailInner() {
         testID="inquiry-staff-sheet"
       />
 
+      <AdminPickerSheet
+        visible={associatePickerOpen}
+        title="Choose associate partner"
+        options={associateOptions}
+        selectedId={associatePartnerId}
+        loading={associateLoading}
+        onClose={() => setAssociatePickerOpen(false)}
+        onSelect={(opt) => {
+          setAssociatePartnerId(opt.id);
+          setAssociatePartnerName(opt.label);
+        }}
+        footerAction={{
+          label: "Add partner",
+          testID: "inquiry-associate-add",
+          onPress: () => setAssociateCreateOpen(true),
+        }}
+        testID="inquiry-associate-sheet"
+      />
+
+      <AdminQuickCreateModal
+        visible={associateCreateOpen}
+        title="Add associate partner"
+        hint="Creates a partner and selects them for this inquiry."
+        fields={[
+          {
+            key: "name",
+            label: "Partner name",
+            placeholder: "e.g. Travel Partners Co",
+            required: true,
+            autoCapitalize: "words",
+            maxLength: 200,
+          },
+          {
+            key: "mobileNumber",
+            label: "Mobile number",
+            placeholder: "+91 9XXXXXXXXX",
+            required: true,
+            keyboardType: "phone-pad",
+            autoCapitalize: "none",
+            maxLength: 20,
+          },
+        ]}
+        submitLabel="Create partner"
+        loading={creatingAssociate}
+        onClose={() => setAssociateCreateOpen(false)}
+        onSubmit={createAssociateQuick}
+        testID="inquiry-associate-quick-create"
+      />
+
       <AdminQuickCreateModal
         visible={staffCreateOpen}
         title="Add staff"
@@ -1269,6 +1424,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   pickerBtnText: { flex: 1, fontSize: FontSize.sm, color: Colors.text, marginRight: 8 },
+  clearBtn: { alignSelf: "flex-start", marginTop: Spacing.sm },
+  clearText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.primary },
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: Spacing.sm },
   typeChip: {
     paddingHorizontal: 8,

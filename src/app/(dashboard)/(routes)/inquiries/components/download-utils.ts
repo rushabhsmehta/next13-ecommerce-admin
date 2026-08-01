@@ -2,6 +2,14 @@ import { InquiryColumn } from './columns';
 import { importXlsx } from "@/lib/lazy-xlsx";
 import { importJsPdf } from "@/lib/lazy-jspdf";
 
+const EMPTY_ROW_8 = ['', '', '', '', '', '', '', ''];
+
+const formatLastFollowUp = (item: InquiryColumn): string => {
+  const last = item.actionHistory?.[0];
+  if (!last) return '';
+  return last.type ? `${last.timestamp} — ${last.type}` : (last.timestamp || '');
+};
+
 // Helper function to load image as base64 data URL
 const loadImage = async (url: string): Promise<string> => {
   try {
@@ -26,17 +34,17 @@ export const downloadAsExcel = async (data: InquiryColumn[], filename = 'inquiri
 
   const worksheetRows: any[][] = [];
   const merges: any[] = [];
-  const columnCount = 6;
+  const columnCount = 8;
 
   const addLabelValueRow = (label: string, value: string) => {
     const rowIndex = worksheetRows.length;
-    worksheetRows.push([label, value, '', '', '', '']);
+    worksheetRows.push([label, value, '', '', '', '', '', '']);
     merges.push({ s: { r: rowIndex, c: 1 }, e: { r: rowIndex, c: columnCount - 1 } });
   };
 
   const addFullWidthRow = (text: string) => {
     const rowIndex = worksheetRows.length;
-    worksheetRows.push([text, '', '', '', '', '']);
+    worksheetRows.push([text, '', '', '', '', '', '', '']);
     merges.push({ s: { r: rowIndex, c: 0 }, e: { r: rowIndex, c: columnCount - 1 } });
   };
 
@@ -48,13 +56,13 @@ export const downloadAsExcel = async (data: InquiryColumn[], filename = 'inquiri
     addLabelValueRow('Website:', organization.website || '');
     addLabelValueRow('GST Number:', organization.gstNumber || '');
     addLabelValueRow('PAN Number:', organization.panNumber || '');
-    worksheetRows.push(['', '', '', '', '', '']);
+    worksheetRows.push([...EMPTY_ROW_8]);
   }
 
   addFullWidthRow('Inquiries Report');
   addFullWidthRow(`Generated on: ${new Date().toLocaleDateString()}`);
   addFullWidthRow(`Total Records: ${data.length}`);
-  worksheetRows.push(['', '', '', '', '', '']);
+  worksheetRows.push([...EMPTY_ROW_8]);
 
   const headerRowIndex = worksheetRows.length;
   const headers = [
@@ -64,6 +72,8 @@ export const downloadAsExcel = async (data: InquiryColumn[], filename = 'inquiri
     'Associate Partner',
     'Status',
     'Journey Date',
+    'Next Follow Up',
+    'Last Follow Up',
   ];
   worksheetRows.push(headers);
 
@@ -75,6 +85,8 @@ export const downloadAsExcel = async (data: InquiryColumn[], filename = 'inquiri
       item.associatePartner || '',
       item.status || '',
       item.journeyDate || '',
+      item.nextFollowUpDate || '',
+      formatLastFollowUp(item),
     ]);
   });
 
@@ -87,6 +99,8 @@ export const downloadAsExcel = async (data: InquiryColumn[], filename = 'inquiri
     { wch: 22 },
     { wch: 14 },
     { wch: 16 },
+    { wch: 16 },
+    { wch: 28 },
   ];
   worksheet['!autofilter'] = {
     ref: XLSX.utils.encode_range({
@@ -209,7 +223,16 @@ export const downloadAsPDF = async (data: InquiryColumn[], filename = 'inquiries
   yPosition += 10;
 
   // Define table columns
-  const tableColumn = ['Customer Name', 'Mobile', 'Location', 'Associate', 'Status', 'Journey Date'];
+  const tableColumn = [
+    'Customer Name',
+    'Mobile',
+    'Location',
+    'Associate',
+    'Status',
+    'Journey Date',
+    'Next Follow Up',
+    'Last Follow Up',
+  ];
 
   // Prepare table rows
   const tableRows = data.map((item) => [
@@ -219,6 +242,8 @@ export const downloadAsPDF = async (data: InquiryColumn[], filename = 'inquiries
     item.associatePartner,
     item.status,
     item.journeyDate,
+    item.nextFollowUpDate || '',
+    formatLastFollowUp(item),
   ]);
 
   // Generate the table

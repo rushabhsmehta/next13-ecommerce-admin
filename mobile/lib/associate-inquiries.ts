@@ -90,6 +90,8 @@ export interface AssociateInquiryUpdateInput {
   numAdults?: number;
   remarks?: string;
   nextFollowUpDate?: string | null;
+  /** Admin-only: link inquiry to an associate partner, or null for direct booking. */
+  associatePartnerId?: string | null;
 }
 
 export interface LocationOption {

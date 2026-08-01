@@ -89,6 +89,7 @@ const GuestsTab: React.FC<GuestsProps> = ({
                     placeholder="Number of Adults" 
                     className={cn("min-h-[44px]", loading && "opacity-50")}
                     {...field} 
+                    value={field.value ?? ""}
                     onChange={event => field.onChange(event.target.value)} 
                   />
                 </FormControl>
@@ -110,6 +111,7 @@ const GuestsTab: React.FC<GuestsProps> = ({
                     placeholder="Children 5-12" 
                     className={cn("min-h-[44px]", loading && "opacity-50")}
                     {...field} 
+                    value={field.value ?? ""}
                     onChange={event => field.onChange(event.target.value)} 
                   />
                 </FormControl>
@@ -131,6 +133,7 @@ const GuestsTab: React.FC<GuestsProps> = ({
                     placeholder="Children 0-5" 
                     className={cn("min-h-[44px]", loading && "opacity-50")}
                     {...field} 
+                    value={field.value ?? ""}
                     onChange={event => field.onChange(event.target.value)} 
                   />
                 </FormControl>

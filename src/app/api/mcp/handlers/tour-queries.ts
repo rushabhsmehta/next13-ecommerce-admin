@@ -1,6 +1,7 @@
 import prismadb from "@/lib/prismadb";
 import { z } from "zod";
 import { dateToUtc } from "@/lib/timezone-utils";
+import { guestCountField } from "@/lib/guest-count";
 import { McpError, NotFoundError } from "../lib/errors";
 import { isoDateString, type ToolHandlerMap } from "../lib/schemas";
 import { createVariantSnapshots } from "@/lib/variant-snapshot";
@@ -49,9 +50,9 @@ const CreateTourQuerySchema = z.object({
   numDaysNight: z.string().optional(),
   tourCategory: z.enum(["Domestic", "International"]).optional(),
   tourPackageQueryType: z.string().optional(),
-  numAdults: z.string().optional(),
-  numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),
+  numAdults: guestCountField,
+  numChild5to12: guestCountField,
+  numChild0to5: guestCountField,
   tourStartsFrom: isoDateString.optional(),
   tourEndsOn: isoDateString.optional(),
   transport: z.string().optional(),

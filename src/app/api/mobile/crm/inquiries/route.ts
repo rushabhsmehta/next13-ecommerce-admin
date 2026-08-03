@@ -8,6 +8,12 @@ import {
   resolveInquiryAccessContext,
 } from "@/lib/inquiry-access";
 import { verifyMobileBearerUserId } from "@/app/api/mobile/lib/verify-mobile-user";
+import {
+  buildInquiryLifecycleWhere,
+  INQUIRY_STATUSES,
+  resolveInquiryLifecycleParam,
+  type InquiryStatus,
+} from "@/lib/inquiry-statuses";
 
 export const dynamic = "force-dynamic";
 
@@ -20,20 +26,17 @@ function parseBoundedInt(value: string | null, fallback: number, min: number, ma
   return Math.min(Math.max(parsed, min), max);
 }
 
-/** Map mobile tab ids to DB status values (mixed legacy casing). */
+/** Map workflow status filter (exact status column, not lifecycle). */
 function inquiryStatusFilter(status: string | undefined): Prisma.InquiryWhereInput {
   if (!status || status === "ALL") return {};
-  const key = status.toLowerCase();
-  switch (key) {
-    case "pending":
+  const upper = status.toUpperCase();
+  if ((INQUIRY_STATUSES as readonly string[]).includes(upper)) {
+    if (upper === "PENDING") {
       return { status: { in: ["pending", "PENDING"] } };
-    case "completed":
-      return { status: { in: ["completed", "COMPLETED", "CONFIRMED", "confirmed"] } };
-    case "cancelled":
-      return { status: { in: ["cancelled", "CANCELLED"] } };
-    default:
-      return { status };
+    }
+    return { status: upper as InquiryStatus };
   }
+  return { status };
 }
 
 /**
@@ -59,6 +62,12 @@ export async function GET(req: Request) {
     const endDate = url.searchParams.get("endDate") || undefined;
     const followUpsOnly = url.searchParams.get("followUpsOnly") === "1";
     const noTourPackageQuery = url.searchParams.get("noTourPackageQuery") === "1";
+    const lifecycle = resolveInquiryLifecycleParam({
+      lifecycle: url.searchParams.get("lifecycle"),
+      noTourPackageQuery,
+      defaultLifecycle: "pending",
+    });
+    const lifecycleWhere = buildInquiryLifecycleWhere(lifecycle);
     const search = url.searchParams.get("search")?.trim();
     const limit = parseBoundedInt(url.searchParams.get("limit"), DEFAULT_LIMIT, 1, MAX_LIMIT);
     const offset = parseBoundedInt(url.searchParams.get("offset"), 0, 0, Number.MAX_SAFE_INTEGER);
@@ -115,16 +124,21 @@ export async function GET(req: Request) {
       }
     }
 
+    const statusFilter = inquiryStatusFilter(status);
     const where: Prisma.InquiryWhereInput = {
       ...(associateId && { associatePartnerId: associateId }),
-      ...inquiryStatusFilter(status),
+      ...lifecycleWhere,
       ...dateFilter,
     };
+    if (Object.keys(statusFilter).length > 0) {
+      if (where.status) {
+        where.AND = [...(Array.isArray(where.AND) ? where.AND : []), statusFilter];
+      } else {
+        Object.assign(where, statusFilter);
+      }
+    }
     if (accessContext.isAssociate && accessContext.associatePartnerId) {
       where.associatePartnerId = accessContext.associatePartnerId;
-    }
-    if (noTourPackageQuery) {
-      where.tourPackageQueries = { none: {} };
     }
     if (search) {
       where.OR = [
@@ -140,9 +154,7 @@ export async function GET(req: Request) {
         ? {
             ...where,
             nextFollowUpDate: { not: null },
-            ...(status && status !== "ALL"
-              ? {}
-              : { status: { notIn: ["CANCELLED", "CONFIRMED"] } }),
+            status: { notIn: ["CANCELLED", "CONFIRMED"] },
           }
         : where;
 

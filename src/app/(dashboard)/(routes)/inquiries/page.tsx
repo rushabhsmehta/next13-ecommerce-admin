@@ -6,6 +6,10 @@ import { InquiryColumn } from "./components/columns";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  buildInquiryLifecycleWhere,
+  resolveInquiryLifecycleParam,
+} from "@/lib/inquiry-statuses";
 
 interface InquiriesPageProps {
   searchParams: Promise<{
@@ -17,6 +21,7 @@ interface InquiriesPageProps {
     endDate?: string;
     followUpsOnly?: string;
     noTourPackageQuery?: string;
+    lifecycle?: string;
     page?: string;
     pageSize?: string;
     q?: string;
@@ -169,6 +174,17 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
     }
   }
 
+  const lifecycle = resolveInquiryLifecycleParam({
+    lifecycle: searchParams?.lifecycle,
+    noTourPackageQuery: searchParams?.noTourPackageQuery === "1",
+    defaultLifecycle: "pending",
+  });
+  const lifecycleWhere = buildInquiryLifecycleWhere(lifecycle);
+  const exactStatus =
+    searchParams?.status && searchParams.status !== "ALL"
+      ? searchParams.status
+      : undefined;
+
   // Build the where clause based on search params
   const where: any = {
     ...(associateId && {
@@ -177,9 +193,7 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
     ...(searchParams?.assignedStaffId && {
       assignedToStaffId: searchParams.assignedStaffId
     }),
-    ...(searchParams?.status && searchParams.status !== 'ALL' && {
-      status: searchParams.status
-    }),
+    ...lifecycleWhere,
     ...dateFilter,  // Add the date filter to the where clause
     ...(searchParams?.q && {
       OR: [
@@ -189,6 +203,14 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
       ]
     })
   };
+  // Exact status narrows within lifecycle; AND so it does not clobber notIn from lifecycle
+  if (exactStatus) {
+    if (where.status) {
+      where.AND = [...(where.AND || []), { status: exactStatus }];
+    } else {
+      where.status = exactStatus;
+    }
+  }
   // Apply follow-ups-only filter: include records with a nextFollowUpDate set and exclude CANCELLED/CONFIRMED
   const followUpsOnly = searchParams?.followUpsOnly === '1';
   if (followUpsOnly) {
@@ -200,18 +222,12 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
     where.status = {
       notIn: ['CANCELLED', 'CONFIRMED']
     };
-  }
-  // Apply "no tour package query" filter: only inquiries with zero associated tourPackageQueries
-  const noTourPackageQuery = searchParams?.noTourPackageQuery === '1';
-  if (noTourPackageQuery) {
-    where.tourPackageQueries = { none: {} };
-    // Merge with any existing status exclusion (e.g. from followUpsOnly) instead of overwriting
-    if (where.status && where.status.notIn) {
-      if (!where.status.notIn.includes('CANCELLED')) {
-        where.status.notIn.push('CANCELLED');
-      }
-    } else {
-      where.status = { notIn: ['CANCELLED'] };
+    // Drop AND status clauses that could re-include terminals
+    if (where.AND) {
+      where.AND = where.AND.filter(
+        (clause: { status?: unknown }) => !clause?.status || typeof clause.status !== "string"
+      );
+      if (where.AND.length === 0) delete where.AND;
     }
   }
 
@@ -290,7 +306,7 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
       assignedToStaffId: item.assignedToStaffId || null,
       assignedStaffName: item.assignedStaff?.name || null,
       assignedStaffAt: item.assignedStaffAt ? formatLocalDate(item.assignedStaffAt, 'dd MMM yyyy HH:mm') : null,
-      tourPackageQueries: item.tourPackageQueries || 'Not specified',
+      tourPackageQueries: item.tourPackageQueries || [],
       // @ts-ignore
       nextFollowUpDate: item.nextFollowUpDate ? formatLocalDate(item.nextFollowUpDate, 'dd MMM yyyy') : null,
       // Also keep raw ISO for client-side updates

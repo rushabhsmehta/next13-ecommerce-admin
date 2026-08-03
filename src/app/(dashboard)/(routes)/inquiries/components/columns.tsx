@@ -21,7 +21,8 @@ import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import { INQUIRY_STATUS_OPTIONS } from "@/lib/inquiry-statuses"
+import { INQUIRY_STATUS_OPTIONS, getInquiryLifecycleBadge } from "@/lib/inquiry-statuses"
+import { Badge } from "@/components/ui/badge"
 
 const statusOptions = INQUIRY_STATUS_OPTIONS;
 
@@ -316,9 +317,27 @@ export const columns: ColumnDef<InquiryColumn>[] = [
     header: "Customer Details",
     cell: ({ row }) => {
       const customer = row.original;
+      const lifecycleBadge = getInquiryLifecycleBadge(
+        Array.isArray(customer.tourPackageQueries) && customer.tourPackageQueries.length > 0,
+        customer.status
+      );
       return (
         <div className="space-y-1">
-          <div className="font-medium">{customer.customerName}</div>
+          <div className="flex items-center gap-2">
+            <div className="font-medium">{customer.customerName}</div>
+            {lifecycleBadge && (
+              <Badge
+                variant="outline"
+                className={
+                  lifecycleBadge === "Live"
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] px-1.5 py-0"
+                    : "bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0"
+                }
+              >
+                {lifecycleBadge}
+              </Badge>
+            )}
+          </div>
           <div className="text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">

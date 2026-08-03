@@ -34,6 +34,12 @@ import { ApiError, withAuth } from "@/lib/api";
 import { fetchCrmInquiriesList, type CrmInquiryListRow, type CrmInquiryTourPackageQuerySummary } from "@/lib/crm-inquiries-list";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import {
+  getInquiryLifecycleBadge,
+  INQUIRY_LIFECYCLE_OPTIONS,
+  INQUIRY_STATUS_LABELS,
+  type InquiryStatus,
+} from "@/lib/inquiry-statuses";
 /**
  * Staff CRM inquiries list — filterable, paginated, scoped per RBAC
  * (associates only see their own leads via /api/mobile/crm/inquiries).
@@ -83,14 +89,15 @@ function formatTravelDate(raw: string | null | undefined): string | null {
   });
 }
 
-const STATUS_FILTERS: { id: string; label: string }[] = [
-  { id: "ALL", label: "All" },
-  { id: "pending", label: "Pending" },
-  { id: "contacted", label: "Contacted" },
-  { id: "quoted", label: "Quoted" },
-  { id: "negotiation", label: "Negotiation" },
-  { id: "completed", label: "Completed" },
-];
+function statusLabel(status: string): string {
+  const upper = status.toUpperCase() as InquiryStatus;
+  return INQUIRY_STATUS_LABELS[upper] ?? status;
+}
+
+const LIFECYCLE_FILTERS = INQUIRY_LIFECYCLE_OPTIONS.map((o) => ({
+  id: o.value,
+  label: o.label,
+}));
 
 const PERIOD_FILTERS: { id: string; label: string }[] = [
   { id: "ALL", label: "Any period" },
@@ -151,7 +158,7 @@ function AdminInquiriesList({
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("pending");
+  const [lifecycleFilter, setLifecycleFilter] = useState<string>("pending");
   const [periodFilter, setPeriodFilter] = useState<string>("ALL");
   const [followUpsOnly, setFollowUpsOnly] = useState(false);
   const [search, setSearch] = useState("");
@@ -183,7 +190,7 @@ function AdminInquiriesList({
         const qs = new URLSearchParams();
         qs.set("limit", String(PAGE_SIZE));
         qs.set("offset", String(nextOffset));
-        if (statusFilter !== "ALL") qs.set("status", statusFilter);
+        qs.set("lifecycle", lifecycleFilter);
         if (periodFilter !== "ALL") qs.set("period", periodFilter);
         if (followUpsOnly) qs.set("followUpsOnly", "1");
         if (debouncedSearch) qs.set("search", debouncedSearch);
@@ -217,7 +224,7 @@ function AdminInquiriesList({
         setLoadingMore(false);
       }
     },
-    [authRequest, statusFilter, periodFilter, followUpsOnly, debouncedSearch]
+    [authRequest, lifecycleFilter, periodFilter, followUpsOnly, debouncedSearch]
   );
 
   useEffect(() => {
@@ -293,10 +300,10 @@ function AdminInquiriesList({
       />
 
       <AdminSegmentedControl
-        options={STATUS_FILTERS}
-        value={statusFilter}
-        onChange={setStatusFilter}
-        testIDPrefix="crm-status"
+        options={LIFECYCLE_FILTERS}
+        value={lifecycleFilter}
+        onChange={setLifecycleFilter}
+        testIDPrefix="crm-lifecycle"
       />
 
       <AdminCommandBar
@@ -337,11 +344,11 @@ function AdminInquiriesList({
               icon="people-outline"
               title="No inquiries match"
               body="Adjust filters or clear the search box to see more results."
-              actionLabel={hasAdvancedFilters || search.trim() ? "Reset filters" : undefined}
+              actionLabel={hasAdvancedFilters || search.trim() || lifecycleFilter !== "pending" ? "Reset filters" : undefined}
               onActionPress={
-                hasAdvancedFilters || search.trim()
+                hasAdvancedFilters || search.trim() || lifecycleFilter !== "pending"
                   ? () => {
-                      setStatusFilter("pending");
+                      setLifecycleFilter("pending");
                       setPeriodFilter("ALL");
                       setFollowUpsOnly(false);
                       setSearch("");
@@ -392,7 +399,7 @@ function AdminInquiriesList({
         title="Inquiry filters"
         onClose={() => setFilterSheetOpen(false)}
         onReset={() => {
-          setStatusFilter("pending");
+          setLifecycleFilter("pending");
           setPeriodFilter("ALL");
           setFollowUpsOnly(false);
           setSearch("");
@@ -463,6 +470,7 @@ function InquiryCard({
 }) {
   const queries = row.tourPackageQueries ?? [];
   const travelDate = formatTravelDate(row.journeyDate);
+  const lifecycleBadge = getInquiryLifecycleBadge(queries.length > 0, row.status);
 
   return (
     <Pressable
@@ -474,11 +482,23 @@ function InquiryCard({
       accessibilityHint="Opens inquiry details."
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.cardName} numberOfLines={1}>
-          {row.customerName}
-        </Text>
+        <View style={styles.cardTitleRow}>
+          <Text style={styles.cardName} numberOfLines={1}>
+            {row.customerName}
+          </Text>
+          {lifecycleBadge ? (
+            <View
+              style={[
+                styles.lifecyclePill,
+                lifecycleBadge === "Live" ? styles.lifecycleLive : styles.lifecyclePending,
+              ]}
+            >
+              <Text style={styles.lifecyclePillText}>{lifecycleBadge}</Text>
+            </View>
+          ) : null}
+        </View>
         <View style={styles.statusPill}>
-          <Text style={styles.statusPillText}>{row.status.toUpperCase()}</Text>
+          <Text style={styles.statusPillText}>{statusLabel(row.status)}</Text>
         </View>
       </View>
       <Text style={styles.cardMeta}>
@@ -678,7 +698,30 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: Spacing.sm,
   },
-  cardName: { flex: 1, fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
+  cardTitleRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minWidth: 0,
+  },
+  cardName: { flexShrink: 1, fontSize: FontSize.md, fontWeight: "800", color: Colors.text },
+  lifecyclePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  lifecyclePending: {
+    backgroundColor: "#FEF3C7",
+  },
+  lifecycleLive: {
+    backgroundColor: "#E0E7FF",
+  },
+  lifecyclePillText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: Colors.text,
+  },
   statusPill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -689,7 +732,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: "800",
     color: Colors.primary,
-    textTransform: "uppercase",
   },
   cardMeta: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
   cardTravelDate: {

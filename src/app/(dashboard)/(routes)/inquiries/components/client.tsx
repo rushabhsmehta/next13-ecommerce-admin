@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { FileIcon, FileSpreadsheet, Plus, Filter } from "lucide-react";
 import { PeriodFilter } from "./period-filter";
 import { StatusFilter } from "./status-filter";
+import { LifecycleFilter } from "./lifecycle-filter";
 import { downloadAsExcel, downloadAsPDF } from "@/app/(dashboard)/(routes)/inquiries/components/download-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -157,21 +158,6 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     });
   };
 
-  // No Tour Package Query toggle
-  const noTourPackageQuery = searchParams?.get('noTourPackageQuery') === '1';
-  const onToggleNoTPQ = (checked: boolean) => {
-    const params = new URLSearchParams(searchParams?.toString() || '');
-    if (checked) {
-      params.set('noTourPackageQuery', '1');
-    } else {
-      params.delete('noTourPackageQuery');
-    }
-    params.set('page', '1'); // Reset to first page
-    startTransition(() => {
-      router.replace(`/inquiries?${params.toString()}`);
-    });
-  };
-
   const onAssignedStaffChange = (staffId: string) => {
     setLocalAssignedStaffId(staffId || '');
     startTransition(() => {
@@ -228,12 +214,13 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   };
 
   const clearAllFilters = () => {
-    // Reset local state and URL params
+    // Reset local state and URL params; default lifecycle remains Pending
     setLocalAssociateId('');
     setLocalAssignedStaffId('');
     setLocalStatus('');
     setLocalPeriod('');
     const params = new URLSearchParams();
+    params.set('lifecycle', 'pending');
     startTransition(() => router.replace(`/inquiries?${params.toString()}`));
   };
 
@@ -295,6 +282,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           </div>
         </div>
 
+        {/* Lifecycle tabs */}
+        <div className="flex items-center">
+          <LifecycleFilter />
+        </div>
+
         {/* Desktop Filters */}
         <div className="hidden md:flex items-center gap-x-2">
           <PeriodFilter />
@@ -336,10 +328,6 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             <Checkbox id="followups-pill-desktop" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
             <label htmlFor="followups-pill-desktop" className="text-sm">Follow-ups only</label>
           </div>
-          <div className="px-3 py-1 rounded-full border bg-white flex items-center gap-2">
-            <Checkbox id="no-tpq-pill-desktop" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
-            <label htmlFor="no-tpq-pill-desktop" className="text-sm">No Tour Package Query</label>
-          </div>
           {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
         </div>
 
@@ -366,8 +354,6 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
                 onAssignedStaffChange={onAssignedStaffChange}
                 followUpsOnly={followUpsOnly}
                 onToggleFollowUpsOnly={onToggleFollowUpsOnly}
-                noTourPackageQuery={noTourPackageQuery}
-                onToggleNoTPQ={onToggleNoTPQ}
                 isPending={isPending}
                 localAssociateId={localAssociateId}
                 onAssociateChange={onAssociateChange}
@@ -382,11 +368,6 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           <div className="flex items-center ml-2">
             <Checkbox id="followups-only-mobile" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
             <label htmlFor="followups-only-mobile" className="text-sm ml-2">Follow-ups only</label>
-            {isPending && <span className="text-xs text-muted-foreground ml-2">Updating…</span>}
-          </div>
-          <div className="flex items-center ml-2">
-            <Checkbox id="no-tpq-mobile" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
-            <label htmlFor="no-tpq-mobile" className="text-sm ml-2">No Tour Package Query</label>
             {isPending && <span className="text-xs text-muted-foreground ml-2">Updating…</span>}
           </div>
           <div className="flex flex-wrap gap-2 mt-2">

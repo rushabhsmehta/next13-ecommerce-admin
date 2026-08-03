@@ -2,6 +2,7 @@
 
 import { PeriodFilter } from "./period-filter";
 import { StatusFilter } from "./status-filter";
+import { LifecycleFilter } from "./lifecycle-filter";
 import {
   Select,
   SelectContent,
@@ -18,8 +19,6 @@ export interface InquiriesFiltersContentProps {
   onAssignedStaffChange: (value: string) => void;
   followUpsOnly: boolean;
   onToggleFollowUpsOnly: (checked: boolean) => void;
-  noTourPackageQuery: boolean;
-  onToggleNoTPQ: (checked: boolean) => void;
   isPending: boolean;
   localAssociateId: string;
   onAssociateChange: (value: string) => void;
@@ -33,8 +32,6 @@ export function InquiriesFiltersContent({
   onAssignedStaffChange,
   followUpsOnly,
   onToggleFollowUpsOnly,
-  noTourPackageQuery,
-  onToggleNoTPQ,
   isPending,
   localAssociateId,
   onAssociateChange,
@@ -42,6 +39,7 @@ export function InquiriesFiltersContent({
 }: InquiriesFiltersContentProps) {
   return (
     <div className="flex flex-col space-y-4 py-4">
+      <LifecycleFilter />
       <PeriodFilter />
       <StatusFilter />
       {!isAssociateUser && operationalStaffs && (
@@ -70,19 +68,6 @@ export function InquiriesFiltersContent({
         />
         <label htmlFor="followups-only" className="text-sm">
           Follow-ups only
-        </label>
-        {isPending && (
-          <span className="text-xs text-muted-foreground">Updating…</span>
-        )}
-      </div>
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="no-tpq"
-          checked={noTourPackageQuery}
-          onCheckedChange={(v) => onToggleNoTPQ(!!v)}
-        />
-        <label htmlFor="no-tpq" className="text-sm">
-          No Tour Package Query
         </label>
         {isPending && (
           <span className="text-xs text-muted-foreground">Updating…</span>

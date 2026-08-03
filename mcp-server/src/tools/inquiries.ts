@@ -51,15 +51,21 @@ export function registerInquiryTools(server: McpServer) {
 
   server.tool(
     "list_inquiries",
-    "List or search customer inquiries. ALWAYS use this first when asked about a customer's inquiry - search by customerName (partial name works, e.g. 'Sheetal'). Do NOT ask the user for an inquiry ID; find it yourself using this tool.",
+    "List or search customer inquiries. ALWAYS use this first when asked about a customer's inquiry - search by customerName (partial name works, e.g. 'Sheetal'). Do NOT ask the user for an inquiry ID; find it yourself using this tool. lifecycle=pending means no tour package query yet (and not confirmed/cancelled); lifecycle=live means at least one tour package query exists (and not confirmed/cancelled).",
     {
-      status: z.string().optional().describe("Filter by status: PENDING, CONFIRMED, CANCELLED, HOT_QUERY, QUERY_SENT, ALL"),
+      status: z.string().optional().describe("Filter by workflow status: PENDING, CONFIRMED, CANCELLED, HOT_QUERY, QUERY_SENT, ASKED_TO_SUPPLIER, ALL"),
+      lifecycle: z
+        .enum(["pending", "live", "all"])
+        .optional()
+        .describe(
+          "TPQ lifecycle bucket: pending (no tour package query), live (has tour package query), all. Independent of status."
+        ),
       customerName: z.string().optional().describe("Search by customer name (partial match works, e.g. 'Sheetal' will find 'Sheetal Sharma')"),
       limit: z.number().int().min(1).max(100).optional().default(25).describe("Max results"),
     },
-    async ({ status, customerName, limit }) => {
+    async ({ status, customerName, limit, lifecycle }) => {
       try {
-        const data = await callTool("list_inquiries", { status, customerName, limit });
+        const data = await callTool("list_inquiries", { status, customerName, limit, lifecycle });
         return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (err) {
         return toolError("list_inquiries", err);

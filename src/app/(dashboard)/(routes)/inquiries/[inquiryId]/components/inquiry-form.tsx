@@ -60,6 +60,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { INQUIRY_STATUS_OPTIONS } from "@/lib/inquiry-statuses";
 
 const roomAllocationSchema = z.object({
   id: z.string().optional(),
@@ -836,12 +837,11 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="HOT_QUERY">Hot Query</SelectItem>
-                      <SelectItem value="ASKED_TO_SUPPLIER">Asked to Supplier</SelectItem>
-                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                      <SelectItem value="QUERY_SENT">Query Sent</SelectItem>
+                      {INQUIRY_STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

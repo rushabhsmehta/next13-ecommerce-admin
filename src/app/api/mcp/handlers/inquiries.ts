@@ -3,7 +3,7 @@ import { z } from "zod";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { McpError, NotFoundError } from "../lib/errors";
 import { isoDateString, type ToolHandlerMap } from "../lib/schemas";
-import { INQUIRY_STATUSES } from "@/lib/inquiry-statuses";
+import { INQUIRY_STATUSES, buildInquiryLifecycleWhere } from "@/lib/inquiry-statuses";
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +30,7 @@ const CreateInquirySchema = z.object({
 
 const ListInquiriesSchema = z.object({
   status: z.string().optional(),
+  lifecycle: z.enum(["pending", "live", "all"]).optional(),
   customerName: z.string().optional(),
   limit: z.number().int().min(1).max(200).optional().default(25),
 });
@@ -195,12 +196,21 @@ async function createInquiry(rawParams: unknown) {
 
 async function listInquiries(rawParams: unknown) {
   const params = ListInquiriesSchema.parse(rawParams);
-  const { status, limit, customerName } = params;
+  const { status, limit, customerName, lifecycle } = params;
+  const lifecycleWhere = buildInquiryLifecycleWhere(lifecycle ?? "all");
+  const where: Record<string, unknown> = {
+    ...lifecycleWhere,
+    ...(customerName && { customerName: { contains: customerName } }),
+  };
+  if (status && status !== "ALL") {
+    if (where.status) {
+      where.AND = [...((where.AND as unknown[]) || []), { status }];
+    } else {
+      where.status = status;
+    }
+  }
   return prismadb.inquiry.findMany({
-    where: {
-      ...(status && status !== "ALL" && { status }),
-      ...(customerName && { customerName: { contains: customerName } }),
-    },
+    where,
     select: {
       id: true,
       customerName: true,
@@ -416,15 +426,29 @@ async function listFollowUpsDue(rawParams: unknown) {
 }
 
 async function getInquirySummary(_rawParams: unknown) {
-  const [total, pending, confirmed, cancelled, hotQuery, querySent] = await Promise.all([
-    prismadb.inquiry.count(),
-    prismadb.inquiry.count({ where: { status: "PENDING" } }),
-    prismadb.inquiry.count({ where: { status: "CONFIRMED" } }),
-    prismadb.inquiry.count({ where: { status: "CANCELLED" } }),
-    prismadb.inquiry.count({ where: { status: "HOT_QUERY" } }),
-    prismadb.inquiry.count({ where: { status: "QUERY_SENT" } }),
-  ]);
-  return { total, pending, confirmed, cancelled, hotQuery, querySent };
+  const pendingLifecycle = buildInquiryLifecycleWhere("pending");
+  const liveLifecycle = buildInquiryLifecycleWhere("live");
+  const [total, pending, confirmed, cancelled, hotQuery, querySent, lifecyclePending, lifecycleLive] =
+    await Promise.all([
+      prismadb.inquiry.count(),
+      prismadb.inquiry.count({ where: { status: "PENDING" } }),
+      prismadb.inquiry.count({ where: { status: "CONFIRMED" } }),
+      prismadb.inquiry.count({ where: { status: "CANCELLED" } }),
+      prismadb.inquiry.count({ where: { status: "HOT_QUERY" } }),
+      prismadb.inquiry.count({ where: { status: "QUERY_SENT" } }),
+      prismadb.inquiry.count({ where: pendingLifecycle }),
+      prismadb.inquiry.count({ where: liveLifecycle }),
+    ]);
+  return {
+    total,
+    pending,
+    confirmed,
+    cancelled,
+    hotQuery,
+    querySent,
+    lifecyclePending,
+    lifecycleLive,
+  };
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────

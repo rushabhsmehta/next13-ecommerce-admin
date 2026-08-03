@@ -22,7 +22,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { CompactStaffAssignment } from "@/components/compact-staff-assignment";
 
-import { INQUIRY_STATUS_OPTIONS } from "@/lib/inquiry-statuses";
+import { INQUIRY_STATUS_OPTIONS, getInquiryLifecycleBadge, INQUIRY_STATUS_LABELS, type InquiryStatus } from "@/lib/inquiry-statuses";
 const statusOptions = INQUIRY_STATUS_OPTIONS;
 
 const getStatusColor = (status: string) => {
@@ -142,9 +142,27 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data, isAs
                     </div>
                   </div>
 
-                  <div className="ml-2">
+                  <div className="ml-2 flex flex-col items-end gap-1">
+                    {(() => {
+                      const lifecycleBadge = getInquiryLifecycleBadge(
+                        Array.isArray(inquiry.tourPackageQueries) && inquiry.tourPackageQueries.length > 0,
+                        inquiry.status
+                      );
+                      return lifecycleBadge ? (
+                        <Badge
+                          variant="outline"
+                          className={
+                            lifecycleBadge === "Live"
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]"
+                              : "bg-amber-50 text-amber-700 border-amber-200 text-[10px]"
+                          }
+                        >
+                          {lifecycleBadge}
+                        </Badge>
+                      ) : null;
+                    })()}
                     <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(inquiry.status)}`}>
-                      {inquiry.status === 'PENDING' ? 'Pending' : inquiry.status === 'HOT_QUERY' ? 'Hot Query' : inquiry.status === 'CONFIRMED' ? 'Confirmed' : inquiry.status === 'QUERY_SENT' ? 'Query Sent' : inquiry.status === 'ASKED_TO_SUPPLIER' ? 'Asked to Supplier' : 'Cancelled'}
+                      {INQUIRY_STATUS_LABELS[inquiry.status as InquiryStatus] || inquiry.status}
                     </div>
                   </div>
                 </div>

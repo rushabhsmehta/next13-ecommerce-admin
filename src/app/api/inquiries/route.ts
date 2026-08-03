@@ -25,6 +25,10 @@ import {
   canActOnInquiries,
   resolveInquiryAccessContext,
 } from "@/lib/inquiry-access";
+import {
+  buildInquiryLifecycleWhere,
+  resolveInquiryLifecycleParam,
+} from "@/lib/inquiry-statuses";
 
 const createInquirySchema = z.object({
   customerName: z.string().min(1),
@@ -386,6 +390,13 @@ export async function GET(req: Request) {
     const endDate = url.searchParams.get('endDate') || undefined;
     const followUpsOnly = url.searchParams.get('followUpsOnly') === '1';
     const noTourPackageQuery = url.searchParams.get('noTourPackageQuery') === '1';
+    const lifecycle = resolveInquiryLifecycleParam({
+      lifecycle: url.searchParams.get('lifecycle'),
+      noTourPackageQuery,
+      // Preserve prior GET /api/inquiries behavior when no lifecycle is given
+      defaultLifecycle: 'all',
+    });
+    const lifecycleWhere = buildInquiryLifecycleWhere(lifecycle);
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
     }
@@ -461,14 +472,18 @@ export async function GET(req: Request) {
     // Build the where clause
     const where: any = {
       ...(associateId && { associatePartnerId: associateId }),
-      ...(status && status !== 'ALL' && { status }),
+      ...lifecycleWhere,
       ...dateFilter
     };
+    if (status && status !== 'ALL') {
+      if (where.status) {
+        where.AND = [...(where.AND || []), { status }];
+      } else {
+        where.status = status;
+      }
+    }
     if (accessContext.isAssociate && accessContext.associatePartnerId) {
       where.associatePartnerId = accessContext.associatePartnerId;
-    }
-    if (noTourPackageQuery) {
-      where.tourPackageQueries = { none: {} };
     }
 
     const inquiries = await prismadb.inquiry.findMany({

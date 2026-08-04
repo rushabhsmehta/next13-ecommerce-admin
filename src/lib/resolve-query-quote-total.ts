@@ -28,8 +28,8 @@ export type ResolvedQueryQuote = {
   lineItems: QueryQuoteLineItem[];
 };
 
-type VariantPricingLike = VariantPricingEntry & {
-  totalCost?: unknown;
+type VariantPricingLike = Omit<VariantPricingEntry, "totalCost" | "components"> & {
+  totalCost?: number | string;
   components?: Array<{
     name?: string;
     price?: string | number;
@@ -56,7 +56,16 @@ function parseTotalCost(entry: VariantPricingLike | null | undefined): number | 
  */
 function resolveInclusiveTotal(entry: VariantPricingLike | null | undefined): number | null {
   if (!entry) return null;
-  const parts = buildPackageTotalCalculationParts(entry);
+  const forCalc: VariantPricingEntry = {
+    ...entry,
+    totalCost: typeof entry.totalCost === "number" ? entry.totalCost : parseTotalCost(entry) ?? undefined,
+    components: entry.components?.map((c) => ({
+      name: String(c.name ?? ""),
+      price: c.price == null ? "" : String(c.price),
+      description: c.description ?? null,
+    })),
+  };
+  const parts = buildPackageTotalCalculationParts(forCalc);
   if (parts && Number.isFinite(parts.netLineTotal) && parts.netLineTotal > 0) {
     return parts.netLineTotal;
   }

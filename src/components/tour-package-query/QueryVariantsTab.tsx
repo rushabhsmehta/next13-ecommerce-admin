@@ -26,6 +26,7 @@ import { utcToLocal } from "@/lib/timezone-utils";
 import { DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
 import {
   applyPerPersonRatesToPricingItems,
+  buildPackageTotalCalculationParts,
 } from "@/lib/variant-pricing-display";
 import {
   applyPercentDiscountToPricingComponents,
@@ -2451,12 +2452,27 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   <Card className="shadow-sm border-2 border-orange-200/60 bg-gradient-to-r from-orange-50 to-red-50">
                     <CardContent className="pt-5 pb-5">
                       <label className="text-sm font-semibold text-orange-700 flex items-center mb-2">
-                        <Trophy className="mr-2 h-4 w-4" /> Final Amount
+                        <Trophy className="mr-2 h-4 w-4" /> Package total (before GST)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">Rs.</span>
                         <Input value={totalPrice} disabled={loading} placeholder="Total price" type="number" className="text-xl font-bold pl-8 bg-white border-orange-300 h-12" onChange={(e) => setVariantTotalPrices(prev => ({ ...prev, [cVariant.id]: e.target.value }))} onBlur={() => syncVariantPricingToForm(cVariant.id)} />
                       </div>
+                      {(() => {
+                        const inclusiveParts = buildPackageTotalCalculationParts({
+                          ...(savedVariantPricingData?.[cVariant.id] || {}),
+                          totalCost: parseFloat(String(totalPrice || "").replace(/[^\d.-]/g, "")) ||
+                            savedVariantPricingData?.[cVariant.id]?.totalCost,
+                          components: variantPricingItems[cVariant.id] ??
+                            savedVariantPricingData?.[cVariant.id]?.components,
+                        });
+                        if (!inclusiveParts || inclusiveParts.netLineTotal <= 0) return null;
+                        return (
+                          <p className="text-sm font-semibold text-orange-800 mt-3 bg-white/80 border border-orange-200 rounded px-3 py-2">
+                            Total including GST: Rs.{inclusiveParts.netLineTotal.toLocaleString("en-IN")}
+                          </p>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
 
@@ -4126,7 +4142,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                   </CardContent>
                 </Card>
 
-                {/* Total Package Price - Always visible and editable */}
+                {/* Total Package Price - Always visible and editable (stored GST-exclusive) */}
                 <Card className="shadow-sm border-2 border-orange-200/60 bg-gradient-to-r from-orange-50 to-red-50 mt-4">
                   <CardContent className="pt-5 pb-5">
                     <div className="flex items-center mb-3">
@@ -4136,7 +4152,7 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-orange-700 flex items-center">
                         <Trophy className="mr-2 h-4 w-4" />
-                        Final Amount
+                        Package total (before GST)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">Rs.</span>
@@ -4157,11 +4173,23 @@ const QueryVariantsTab: React.FC<QueryVariantsTabProps> = ({
                       </div>
                       <p className="text-xs text-orange-600 mt-1 flex items-center">
                         <CheckCircle className="mr-1 h-3 w-3" />
-                        This represents the final total price for this variant
+                        Editable base package total (GST-exclusive). Customer-facing quote adds 5% GST.
                       </p>
-                      <p className="text-[10px] text-orange-500 bg-orange-50 px-2 py-1 rounded border border-orange-200 inline-block">
-                        including GST
-                      </p>
+                      {(() => {
+                        const inclusiveParts = buildPackageTotalCalculationParts({
+                          ...(savedVariantPricingData?.[variant.id] || {}),
+                          totalCost: parseFloat(String(variantTotalPrices[variant.id] || "").replace(/[^\d.-]/g, "")) ||
+                            savedVariantPricingData?.[variant.id]?.totalCost,
+                          components: variantPricingItems[variant.id] ??
+                            savedVariantPricingData?.[variant.id]?.components,
+                        });
+                        if (!inclusiveParts || inclusiveParts.netLineTotal <= 0) return null;
+                        return (
+                          <p className="text-sm font-semibold text-orange-800 mt-2 bg-white/80 border border-orange-200 rounded px-3 py-2">
+                            Total including GST: Rs.{inclusiveParts.netLineTotal.toLocaleString("en-IN")}
+                          </p>
+                        );
+                      })()}
                     </div>
                   </CardContent>
                 </Card>

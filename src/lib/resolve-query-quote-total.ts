@@ -1,7 +1,15 @@
 /**
  * Resolve the commercial quote total for a TourPackageQuery from variant pricing only.
  * General pricing fields (totalPrice / pricingSection) are intentionally not consulted.
+ *
+ * Stored `totalCost` is GST-exclusive; commercial totals returned here are GST-inclusive
+ * (same formula as the comparison-table Total Price row).
  */
+
+import {
+  buildPackageTotalCalculationParts,
+  type VariantPricingEntry,
+} from "@/lib/variant-pricing-display";
 
 export type QueryQuoteSource = "confirmed" | "single_variant" | "none";
 
@@ -20,7 +28,7 @@ export type ResolvedQueryQuote = {
   lineItems: QueryQuoteLineItem[];
 };
 
-type VariantPricingLike = {
+type VariantPricingLike = VariantPricingEntry & {
   totalCost?: unknown;
   components?: Array<{
     name?: string;
@@ -40,6 +48,19 @@ function parseTotalCost(entry: VariantPricingLike | null | undefined): number | 
         : Number.NaN;
   if (!Number.isFinite(n) || n <= 0) return null;
   return n;
+}
+
+/**
+ * Commercial quote total: GST-inclusive net line total when calculable,
+ * otherwise fall back to stored GST-exclusive totalCost.
+ */
+function resolveInclusiveTotal(entry: VariantPricingLike | null | undefined): number | null {
+  if (!entry) return null;
+  const parts = buildPackageTotalCalculationParts(entry);
+  if (parts && Number.isFinite(parts.netLineTotal) && parts.netLineTotal > 0) {
+    return parts.netLineTotal;
+  }
+  return parseTotalCost(entry);
 }
 
 function toLineItems(entry: VariantPricingLike | null | undefined): QueryQuoteLineItem[] {
@@ -65,7 +86,7 @@ function pricedEntries(
 ): Array<{ variantId: string; total: number; entry: VariantPricingLike }> {
   const out: Array<{ variantId: string; total: number; entry: VariantPricingLike }> = [];
   for (const [variantId, entry] of Object.entries(map)) {
-    const total = parseTotalCost(entry);
+    const total = resolveInclusiveTotal(entry);
     if (total != null) out.push({ variantId, total, entry });
   }
   return out;
@@ -80,7 +101,7 @@ export function resolveQueryQuoteTotal(input: {
 
   if (confirmedId) {
     const entry = map[confirmedId];
-    const total = parseTotalCost(entry);
+    const total = resolveInclusiveTotal(entry);
     if (total != null) {
       return {
         source: "confirmed",

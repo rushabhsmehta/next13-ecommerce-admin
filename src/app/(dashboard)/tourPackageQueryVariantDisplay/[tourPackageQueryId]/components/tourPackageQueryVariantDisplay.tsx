@@ -626,15 +626,23 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                         {/* Description Section */}
                         <div className="flex-grow p-8">
                             <div className="text-2xl text-justify mb-6" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
-                            {hasItineraryNotes(itinerary.notes) && (
-                                <div className="mt-4">
-                                    <div className="text-xl font-semibold mb-2">Notes</div>
-                                    <div className="text-lg text-justify" dangerouslySetInnerHTML={{ __html: itinerary.notes || '' }}></div>
-                                </div>
-                            )}
                         </div>
 
                         <CardContent className="p-8">
+                            {/* Notes Section */}
+                            {hasItineraryNotes(itinerary.notes) && (
+                                <Card className="my-6 border-amber-200">
+                                    <CardHeader className="bg-amber-50 p-6 text-3xl font-bold text-center rounded-t-lg border-b border-amber-100">
+                                        <span className="bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-500 text-transparent bg-clip-text print-gradient-fallback">
+                                            Notes
+                                        </span>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className="text-xl leading-relaxed text-gray-700" dangerouslySetInnerHTML={{ __html: itinerary.notes || '' }} />
+                                    </CardContent>
+                                </Card>
+                            )}
+
                             {/* Activities Section */}
                             {itinerary.activities && itinerary.activities.length > 0 && (
                                 <Card className="my-6">
@@ -644,44 +652,58 @@ export const TourPackageQueryVariantDisplay: React.FC<TourPackageQueryVariantDis
                                         </span>
                                     </CardHeader>
                                     <CardContent className="p-6">
-                                        <div className="grid gap-6">
+                                        <div className="grid gap-4">
                                             {itinerary.activities.map((activity, activityIndex) => (
-                                                <div key={activityIndex} className="mb-6">
-                                                    {activity.activityImages && activity.activityImages.length === 1 ? (
-                                                        <div className="flex items-start mb-6 w-full">
-                                                            <div className="w-[250px] h-[250px] flex-shrink-0">
-                                                                <Image
-                                                                    src={activity.activityImages[0].url}
-                                                                    alt={`Activity Image ${activityIndex + 1}`}
-                                                                    className="rounded-lg object-cover w-full h-full"
-                                                                    width={250}
-                                                                    height={250}
-                                                                />
+                                                <div
+                                                    key={activityIndex}
+                                                    className="flex items-start gap-4 rounded-lg bg-orange-50/60 border border-orange-100 p-4"
+                                                >
+                                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold mt-1">
+                                                        {activityIndex + 1}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        {activity.activityImages && activity.activityImages.length === 1 ? (
+                                                            <div className="flex items-start w-full gap-4">
+                                                                <div className="w-[200px] h-[200px] flex-shrink-0">
+                                                                    <Image
+                                                                        src={activity.activityImages[0].url}
+                                                                        alt={`Activity Image ${activityIndex + 1}`}
+                                                                        className="rounded-lg object-cover w-full h-full"
+                                                                        width={200}
+                                                                        height={200}
+                                                                    />
+                                                                </div>
+                                                                <div className="w-full">
+                                                                    <div className="text-2xl font-bold mb-2" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }} />
+                                                                    {activity.activityDescription ? (
+                                                                        <p className="text-xl text-justify text-gray-700" dangerouslySetInnerHTML={{ __html: activity.activityDescription }} />
+                                                                    ) : null}
+                                                                </div>
                                                             </div>
-                                                            <div className="ml-6 w-full">
-                                                                <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                                                                <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-full">
-                                                            <div className="flex justify-start items-center mb-6 gap-6">
-                                                                {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
-                                                                    <div key={actImgIndex} className="w-[250px] h-[250px] flex-shrink-0">
-                                                                        <Image
-                                                                            src={image.url}
-                                                                            alt={`Activity Image ${actImgIndex + 1}`}
-                                                                            className="rounded-lg object-cover w-full h-full"
-                                                                            width={250}
-                                                                            height={250}
-                                                                        />
+                                                        ) : (
+                                                            <div className="w-full">
+                                                                {activity.activityImages && activity.activityImages.length > 0 && (
+                                                                    <div className="flex justify-start items-center mb-4 gap-4 flex-wrap">
+                                                                        {activity.activityImages.map((image, actImgIndex) => (
+                                                                            <div key={actImgIndex} className="w-[200px] h-[200px] flex-shrink-0">
+                                                                                <Image
+                                                                                    src={image.url}
+                                                                                    alt={`Activity Image ${actImgIndex + 1}`}
+                                                                                    className="rounded-lg object-cover w-full h-full"
+                                                                                    width={200}
+                                                                                    height={200}
+                                                                                />
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
-                                                                ))}
+                                                                )}
+                                                                <div className="text-2xl font-bold mb-2" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }} />
+                                                                {activity.activityDescription ? (
+                                                                    <p className="text-xl text-justify text-gray-700" dangerouslySetInnerHTML={{ __html: activity.activityDescription }} />
+                                                                ) : null}
                                                             </div>
-                                                            <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                                                            <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

@@ -22,7 +22,7 @@ import {
   renderBulletList,
   sanitizeText,
 } from "@/lib/pdf";
-import { formatItineraryDayHeader } from "@/lib/utils";
+import { formatItineraryDayHeader, hasItineraryNotes } from "@/lib/utils";
 
 type FormattedPackageTitle = {
   primary: string;
@@ -600,7 +600,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                 </div>
               ` : ""}
 
-              ${safe(itinerary.notes) ? `
+              ${hasItineraryNotes(itinerary.notes) ? `
                 <div style="margin-bottom: 18px;">
                   <h4 style="font-size: 13px; font-weight: 700; color: ${brandColors.slateText}; margin: 0 0 10px 0; text-transform:uppercase; letter-spacing:0.4px;">Notes</h4>
                   <div style="font-size: 13px; line-height: 1.65; color: ${brandColors.muted};">${cleanHtml(itinerary.notes)}</div>

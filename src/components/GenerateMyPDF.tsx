@@ -10,6 +10,7 @@ import { useSearchParams } from 'next/navigation';
 import { MailIcon, PhoneCallIcon, PhoneIcon } from 'lucide-react';
 import parse from 'html-react-parser'; // Assuming you have this installed
 import { resolveQueryQuoteTotal } from '@/lib/resolve-query-quote-total';
+import { hasItineraryNotes } from '@/lib/utils';
 
 interface GenerateMyPDFProps {
   data: TourPackageQuery & {
@@ -271,6 +272,29 @@ const styles = StyleSheet.create({
   },
   activitiesContainer: {
     marginBottom: 20,
+  },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    padding: 8,
+    backgroundColor: '#fff7ed',
+    borderRadius: 4,
+  },
+  activityNumber: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#f97316',
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginRight: 8,
+    paddingTop: 3,
+  },
+  activityBody: {
+    flex: 1,
   },
 
   // Line Break
@@ -615,7 +639,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                 }
               </Text>
 
-              {itinerary.notes && itinerary.notes.replace(/<[^>]*>/g, '').trim() ? (
+              {hasItineraryNotes(itinerary.notes) ? (
                 <>
                   <Text style={styles.cardTitle}>Notes</Text>
                   <Text style={styles.cardText}>
@@ -718,37 +742,42 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                   <View style={styles.activitiesContainer}>
                     <Text style={styles.cardTitle}>Activities</Text>
                     {itinerary.activities.map((activity, activityIndex) => (
-                      <View key={activityIndex} style={styles.cardContainer}>
-                        {activity.activityImages && activity.activityImages.length === 1 ? (
-                          <View style={styles.cardContent}>
-                            <Image
-                              src={activity.activityImages[0].url}
-                              style={styles.activityImage}
-                            />
+                      <View key={activityIndex} style={styles.activityRow}>
+                        <Text style={styles.activityNumber}>{activityIndex + 1}</Text>
+                        <View style={styles.activityBody}>
+                          {activity.activityImages && activity.activityImages.length === 1 ? (
+                            <View style={styles.cardContent}>
+                              <Image
+                                src={activity.activityImages[0].url}
+                                style={styles.activityImage}
+                              />
+                              <View>
+                                <Text style={styles.cardTitle}>{parseHTMLContent(activity.activityTitle || '')} </Text>
+                                <Text style={styles.cardText}>{parseHTMLContent(activity.activityDescription || '')}</Text>
+                              </View>
+                            </View>
+                          ) : (
                             <View>
-                              <Text style={styles.cardTitle}>{parseHTMLContent(activity.activityTitle || '')} </Text>
-                              <Text style={styles.cardText}>{parseHTMLContent(activity.activityDescription || '')}</Text>
+                              {/* Multiple Images Layout */}
+                              {activity.activityImages && activity.activityImages.length > 0 && (
+                                <View style={styles.imagesContainer}>
+                                  {activity.activityImages.map((image, actImgIndex) => (
+                                    <Image
+                                      key={actImgIndex}
+                                      src={image.url}
+                                      style={styles.activityImage}
+                                    />
+                                  ))}
+                                </View>
+                              )}
+                              {/* Text Content - Displayed below the images */}
+                              <View>
+                                <Text style={styles.cardTitle}>{parseHTMLContent(activity.activityTitle || '')} </Text>
+                                <Text style={styles.cardText}> {parseHTMLContent(activity.activityDescription || '')}</Text>
+                              </View>
                             </View>
-                          </View>
-                        ) : (
-                          <View>
-                            {/* Multiple Images Layout */}
-                            <View style={styles.imagesContainer}>
-                              {activity.activityImages.map((image, actImgIndex) => (
-                                <Image
-                                  key={actImgIndex}
-                                  src={image.url}
-                                  style={styles.activityImage}
-                                />
-                              ))}
-                            </View>
-                            {/* Text Content - Displayed below the images */}
-                            <View>
-                              <Text style={styles.cardTitle}>{parseHTMLContent(activity.activityTitle || '')} </Text>
-                              <Text style={styles.cardText}> {parseHTMLContent(activity.activityDescription || '')}</Text>
-                            </View>
-                          </View>
-                        )}
+                          )}
+                        </View>
                       </View>
                     ))}
                   </View>

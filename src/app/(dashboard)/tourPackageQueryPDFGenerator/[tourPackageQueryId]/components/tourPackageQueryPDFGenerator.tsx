@@ -25,7 +25,7 @@ import {
 } from "@/lib/pdf";
 import { resolveQueryQuoteTotal } from "@/lib/resolve-query-quote-total";
 import { /* renderItineraryImages, */ renderActivityImages } from "@/lib/itinerary-image-html";
-import { normalizeItineraryDays } from "@/lib/utils";
+import { hasItineraryNotes, normalizeItineraryDays } from "@/lib/utils";
 import { isLastItineraryDay } from "@/lib/hotel-comparison-days";
 
 /** Keeps single-variant PDF tables from stretching full page width. */
@@ -1163,7 +1163,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             </div>
           ` : ''}
 
-          ${(itinerary.notes && itinerary.notes.trim()) ? `
+          ${hasItineraryNotes(itinerary.notes) ? `
             <div style="margin-bottom: 20px;">
               <h4 style="font-size: 15px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 12px 0; display: flex; align-items: center; border-bottom: 2px solid ${brandColors.light}; padding-bottom: 8px;">
                 <span style="${iconStyle}">📝</span>

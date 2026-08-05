@@ -211,11 +211,11 @@ const InquiriesPage = async (props: InquiriesPageProps) => {
       where.status = exactStatus;
     }
   }
-  // Apply follow-ups-only filter: include records with a nextFollowUpDate set and exclude CANCELLED/CONFIRMED
+  // Apply follow-ups-only filter: due today/overdue, exclude CANCELLED/CONFIRMED
   const followUpsOnly = searchParams?.followUpsOnly === '1';
   if (followUpsOnly) {
     where.nextFollowUpDate = {
-      not: null
+      lte: endOfDay(new Date()),
     };
     // Always override any status filter when followUpsOnly is active — cancelled/confirmed
     // inquiries should never appear in the follow-ups view regardless of other active filters.

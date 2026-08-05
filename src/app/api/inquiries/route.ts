@@ -489,8 +489,8 @@ export async function GET(req: Request) {
     const inquiries = await prismadb.inquiry.findMany({
       where: followUpsOnly ? {
         ...where,
-        // Next follow-up date must be present
-        nextFollowUpDate: { not: null },
+        // Due today or overdue (date-only field compared through end of local day)
+        nextFollowUpDate: { lte: endOfDay(now) },
         // Exclude cancelled and confirmed inquiries
         status: { notIn: ['CANCELLED', 'CONFIRMED'] }
       } : where,

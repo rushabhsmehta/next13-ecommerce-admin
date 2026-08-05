@@ -35,9 +35,12 @@ import { fetchCrmInquiriesList, type CrmInquiryListRow, type CrmInquiryTourPacka
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
+  buildInquiryListTabQuery,
   getInquiryLifecycleBadge,
-  INQUIRY_LIFECYCLE_OPTIONS,
+  INQUIRY_LIST_TAB_OPTIONS,
   INQUIRY_STATUS_LABELS,
+  normalizeInquiryListTab,
+  type InquiryListTab,
   type InquiryStatus,
 } from "@/lib/inquiry-statuses";
 /**
@@ -94,7 +97,7 @@ function statusLabel(status: string): string {
   return INQUIRY_STATUS_LABELS[upper] ?? status;
 }
 
-const LIFECYCLE_FILTERS = INQUIRY_LIFECYCLE_OPTIONS.map((o) => ({
+const LIST_TAB_FILTERS = INQUIRY_LIST_TAB_OPTIONS.map((o) => ({
   id: o.value,
   label: o.label,
 }));
@@ -107,6 +110,7 @@ const PERIOD_FILTERS: { id: string; label: string }[] = [
   { id: "LAST_MONTH", label: "Last month" },
 ];
 
+const DEFAULT_LIST_TAB: InquiryListTab = "followup";
 const PAGE_SIZE = 30;
 
 function AdminCrmInquiriesScreenInner() {
@@ -158,16 +162,15 @@ function AdminInquiriesList({
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lifecycleFilter, setLifecycleFilter] = useState<string>("pending");
+  const [listTab, setListTab] = useState<InquiryListTab>(DEFAULT_LIST_TAB);
   const [periodFilter, setPeriodFilter] = useState<string>("ALL");
-  const [followUpsOnly, setFollowUpsOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const pagingRef = useRef({ nextOffset: 0, hasMore: true });
 
-  const hasAdvancedFilters = periodFilter !== "ALL" || followUpsOnly;
+  const hasAdvancedFilters = periodFilter !== "ALL";
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -187,12 +190,14 @@ function AdminInquiriesList({
       }
       setError(null);
       try {
+        const tabQuery = buildInquiryListTabQuery(listTab);
         const qs = new URLSearchParams();
         qs.set("limit", String(PAGE_SIZE));
         qs.set("offset", String(nextOffset));
-        qs.set("lifecycle", lifecycleFilter);
+        qs.set("lifecycle", tabQuery.lifecycle);
+        if (tabQuery.followUpsOnly) qs.set("followUpsOnly", "1");
+        if (tabQuery.status) qs.set("status", tabQuery.status);
         if (periodFilter !== "ALL") qs.set("period", periodFilter);
-        if (followUpsOnly) qs.set("followUpsOnly", "1");
         if (debouncedSearch) qs.set("search", debouncedSearch);
         const q = qs.toString();
         const {
@@ -224,7 +229,7 @@ function AdminInquiriesList({
         setLoadingMore(false);
       }
     },
-    [authRequest, lifecycleFilter, periodFilter, followUpsOnly, debouncedSearch]
+    [authRequest, listTab, periodFilter, debouncedSearch]
   );
 
   useEffect(() => {
@@ -300,10 +305,10 @@ function AdminInquiriesList({
       />
 
       <AdminSegmentedControl
-        options={LIFECYCLE_FILTERS}
-        value={lifecycleFilter}
-        onChange={setLifecycleFilter}
-        testIDPrefix="crm-lifecycle"
+        options={LIST_TAB_FILTERS}
+        value={listTab}
+        onChange={(value) => setListTab(normalizeInquiryListTab(value))}
+        testIDPrefix="crm-list-tab"
       />
 
       <AdminCommandBar
@@ -344,13 +349,16 @@ function AdminInquiriesList({
               icon="people-outline"
               title="No inquiries match"
               body="Adjust filters or clear the search box to see more results."
-              actionLabel={hasAdvancedFilters || search.trim() || lifecycleFilter !== "pending" ? "Reset filters" : undefined}
+              actionLabel={
+                hasAdvancedFilters || search.trim() || listTab !== DEFAULT_LIST_TAB
+                  ? "Reset filters"
+                  : undefined
+              }
               onActionPress={
-                hasAdvancedFilters || search.trim() || lifecycleFilter !== "pending"
+                hasAdvancedFilters || search.trim() || listTab !== DEFAULT_LIST_TAB
                   ? () => {
-                      setLifecycleFilter("pending");
+                      setListTab(DEFAULT_LIST_TAB);
                       setPeriodFilter("ALL");
-                      setFollowUpsOnly(false);
                       setSearch("");
                     }
                   : undefined
@@ -399,9 +407,8 @@ function AdminInquiriesList({
         title="Inquiry filters"
         onClose={() => setFilterSheetOpen(false)}
         onReset={() => {
-          setLifecycleFilter("pending");
+          setListTab(DEFAULT_LIST_TAB);
           setPeriodFilter("ALL");
-          setFollowUpsOnly(false);
           setSearch("");
         }}
         testID="crm-filter-sheet"
@@ -425,23 +432,6 @@ function AdminInquiriesList({
             );
           })}
         </View>
-        <Pressable
-          testID="crm-follow-ups-only"
-          accessibilityRole="button"
-          accessibilityLabel="Follow-ups due only"
-          accessibilityState={{ selected: followUpsOnly }}
-          onPress={() => setFollowUpsOnly((v) => !v)}
-          style={[styles.followToggle, followUpsOnly && styles.followToggleOn]}
-        >
-          <Ionicons
-            name={followUpsOnly ? "alarm" : "alarm-outline"}
-            size={16}
-            color={followUpsOnly ? Colors.textInverse : Colors.textSecondary}
-          />
-          <Text style={[styles.followToggleText, followUpsOnly && styles.followToggleTextOn]}>
-            Follow-ups due only
-          </Text>
-        </Pressable>
       </AdminFilterSheet>
     </AdminScreen>
   );
@@ -670,19 +660,6 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryBg },
   chipText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.textSecondary },
   chipTextActive: { color: Colors.primaryDark },
-  followToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderSubtle,
-    backgroundColor: Colors.surface,
-  },
-  followToggleOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  followToggleText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.textSecondary },
-  followToggleTextOn: { color: Colors.textInverse },
   card: {
     backgroundColor: Colors.background,
     borderBottomWidth: StyleSheet.hairlineWidth,

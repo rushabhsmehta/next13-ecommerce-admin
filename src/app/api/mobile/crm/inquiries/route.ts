@@ -153,7 +153,7 @@ export async function GET(req: Request) {
     const finalWhere: Prisma.InquiryWhereInput = followUpsOnly
         ? {
             ...where,
-            nextFollowUpDate: { not: null },
+            nextFollowUpDate: { lte: endOfDay(now) },
             status: { notIn: ["CANCELLED", "CONFIRMED"] },
           }
         : where;

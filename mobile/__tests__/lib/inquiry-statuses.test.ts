@@ -1,8 +1,10 @@
 import {
   INQUIRY_STATUS_LABELS,
   buildInquiryLifecycleWhere,
+  buildInquiryListTabQuery,
   getInquiryLifecycleBadge,
   normalizeInquiryLifecycle,
+  normalizeInquiryListTab,
   resolveInquiryLifecycleParam,
 } from "../../lib/inquiry-statuses";
 
@@ -60,5 +62,50 @@ describe("inquiry-statuses lifecycle", () => {
     expect(getInquiryLifecycleBadge(true, "HOT_QUERY")).toBe("Live");
     expect(getInquiryLifecycleBadge(true, "CONFIRMED")).toBeNull();
     expect(getInquiryLifecycleBadge(false, "CANCELLED")).toBeNull();
+  });
+});
+
+describe("inquiry list tabs", () => {
+  it("normalizes list tab values and defaults to followup", () => {
+    expect(normalizeInquiryListTab("Follow-up")).toBe("followup");
+    expect(normalizeInquiryListTab("follow_up")).toBe("followup");
+    expect(normalizeInquiryListTab("CONFIRMED")).toBe("confirmed");
+    expect(normalizeInquiryListTab("cancelled")).toBe("cancelled");
+    expect(normalizeInquiryListTab(undefined)).toBe("followup");
+    expect(normalizeInquiryListTab("bogus")).toBe("followup");
+  });
+
+  it("maps follow-up tab to due-follow-up query params", () => {
+    expect(buildInquiryListTabQuery("followup")).toEqual({
+      lifecycle: "all",
+      followUpsOnly: true,
+    });
+  });
+
+  it("maps live tab to live lifecycle", () => {
+    expect(buildInquiryListTabQuery("live")).toEqual({
+      lifecycle: "live",
+      followUpsOnly: false,
+    });
+  });
+
+  it("maps confirmed and cancelled tabs to inquiry status filters", () => {
+    expect(buildInquiryListTabQuery("confirmed")).toEqual({
+      lifecycle: "all",
+      followUpsOnly: false,
+      status: "CONFIRMED",
+    });
+    expect(buildInquiryListTabQuery("cancelled")).toEqual({
+      lifecycle: "all",
+      followUpsOnly: false,
+      status: "CANCELLED",
+    });
+  });
+
+  it("maps all tab to unrestricted lifecycle", () => {
+    expect(buildInquiryListTabQuery("all")).toEqual({
+      lifecycle: "all",
+      followUpsOnly: false,
+    });
   });
 });

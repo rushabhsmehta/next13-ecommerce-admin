@@ -58,30 +58,36 @@ const editorConfig = {
   `,
 };
 
+const optionalNullableString = z.string().optional().nullable().transform(val => val || '');
+const optionalNullableDate = z.preprocess(
+  (v) => (v == null || v === '' ? undefined : v),
+  z.date().optional()
+);
+
 const activitySchema = z.object({
-  activityTitle: z.string().optional(),
-  activityDescription: z.string().optional(),
+  activityTitle: optionalNullableString,
+  activityDescription: optionalNullableString,
   activityImages: z.object({ url: z.string() }).array(),
 });
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
-  itineraryTitle: z.string().optional(),
-  itineraryDescription: z.string().optional(),
+  itineraryTitle: optionalNullableString,
+  itineraryDescription: z.string().optional().nullable(),
   notes: z.string().nullable().optional(),
   dayNumber: z.number().optional(),
-  days: z.string().optional(),
+  days: optionalNullableString,
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
-  hotelId: z.string().optional(), // Array of hotel IDs
-  numberofRooms: z.string().optional(),
-  roomCategory: z.string().optional(),
+  hotelId: optionalNullableString, // Array of hotel IDs
+  numberofRooms: optionalNullableString,
+  roomCategory: optionalNullableString,
   locationId: z.string(), // Array of hotel IDs
   // Added for Tour Package Query parity
   roomAllocations: z.array(z.object({
-    roomTypeId: z.string().optional(),
-    occupancyTypeId: z.string().optional(),
-    mealPlanId: z.string().optional(),
+    roomTypeId: optionalNullableString,
+    occupancyTypeId: optionalNullableString,
+    mealPlanId: optionalNullableString,
     quantity: z.union([
       z.string().transform(val => parseInt(val) || 1),
       z.number()
@@ -92,8 +98,8 @@ const itinerarySchema = z.object({
     useCustomRoomType: z.boolean().optional().default(false),
   })).optional().default([]),
   transportDetails: z.array(z.object({
-    vehicleTypeId: z.string().optional(),
-    transportType: z.string().optional(),
+    vehicleTypeId: optionalNullableString,
+    transportType: optionalNullableString,
     quantity: z.union([
       z.string().transform(val => parseInt(val) || 1),
       z.number()
@@ -106,40 +112,39 @@ const itinerarySchema = z.object({
 
 const flightDetailsSchema = z.object({
 
-  date: z.string().optional(),
-  flightName: z.string().optional(),
-  flightNumber: z.string().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  departureTime: z.string().optional(),
-  arrivalTime: z.string().optional(),
-  flightDuration: z.string().optional(),
+  date: optionalNullableString,
+  flightName: optionalNullableString,
+  flightNumber: optionalNullableString,
+  from: optionalNullableString,
+  to: optionalNullableString,
+  departureTime: optionalNullableString,
+  arrivalTime: optionalNullableString,
+  flightDuration: optionalNullableString,
 
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
-  tourPackageQueryNumber: z.string().optional(),
-  tourPackageQueryName: z.string().min(1),
-  tourPackageQueryType: z.string().optional(),
-  tourCategory: z.string().default("Domestic").optional(),
-  customerName: z.string().optional(),
-  customerNumber: z.string().optional(),
-  numDaysNight: z.string().optional(),
-  tourStartsFrom: z.date().optional(),
-  tourEndsOn: z.date().optional(),
-  transport: z.string().optional(),
-  pickup_location: z.string().optional(),
-  drop_location: z.string().optional(),
-  numAdults: z.string().optional(),
-  numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),
+  tourPackageQueryNumber: optionalNullableString,
+  tourPackageQueryName: z.string().nullish().transform(v => v ?? '').pipe(z.string().min(1, "Tour Package Query Name is required")),
+  tourPackageQueryType: optionalNullableString,
+  tourCategory: z.string().nullish().transform(v => v || 'Domestic'),
+  customerName: optionalNullableString,
+  customerNumber: optionalNullableString,
+  numDaysNight: optionalNullableString,
+  tourStartsFrom: optionalNullableDate,
+  tourEndsOn: optionalNullableDate,
+  transport: optionalNullableString,
+  pickup_location: optionalNullableString,
+  drop_location: optionalNullableString,
+  numAdults: optionalNullableString,
+  numChild5to12: optionalNullableString,
+  numChild0to5: optionalNullableString,
 
 
 
 
 
-
-  remarks: z.string().optional().nullable().transform(val => val || ''), locationId: z.string().min(1),
+  remarks: optionalNullableString, locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
@@ -153,12 +158,12 @@ const formSchema = z.object({
   cancellationPolicy: z.array(z.string()),
   airlineCancellationPolicy: z.array(z.string()),
   termsconditions: z.array(z.string()),
-  disclaimer: z.string().optional().nullable().transform(val => val || ''),
+  disclaimer: optionalNullableString,
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema).optional().default([]),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
-  associatePartnerId: z.string().optional(),
+  associatePartnerId: optionalNullableString,
 });
 
 

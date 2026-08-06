@@ -92,16 +92,22 @@ const pricingItemSchema = z.object({
   description: z.string().optional(),
 }).passthrough();
 
+const optionalNullableString = z.string().optional().nullable().transform(val => val || '');
+const optionalNullableDate = z.preprocess(
+  (v) => (v == null || v === '' ? undefined : v),
+  z.date().optional()
+);
+
 const activitySchema = z.object({
-  activityTitle: z.string().optional(),
-  activityDescription: z.string().optional(),
+  activityTitle: optionalNullableString,
+  activityDescription: optionalNullableString,
   activityImages: z.object({ url: z.string() }).array(),
 });
 
 const roomAllocationSchema = z.object({
-  roomTypeId: z.string().optional(), // Changed from roomType
-  occupancyTypeId: z.string().optional(), // Changed from occupancyType
-  mealPlanId: z.string().optional(), // Changed from mealPlan
+  roomTypeId: optionalNullableString, // Changed from roomType
+  occupancyTypeId: optionalNullableString, // Changed from occupancyType
+  mealPlanId: optionalNullableString, // Changed from mealPlan
   quantity: z.union([
     z.string().transform(val => parseInt(val) || 1), // Transform string to number
     z.number()
@@ -114,8 +120,8 @@ const roomAllocationSchema = z.object({
 });
 
 const transportDetailsSchema = z.object({
-  vehicleTypeId: z.string().optional(), // Changed from vehicleType
-  transportType: z.string().optional(), // This might also need to become an ID if it's a lookup
+  vehicleTypeId: optionalNullableString, // Changed from vehicleType
+  transportType: optionalNullableString, // This might also need to become an ID if it's a lookup
   quantity: z.union([
     z.string().transform(val => parseInt(val) || 1), // Transform string to number
     z.number()
@@ -126,14 +132,14 @@ const transportDetailsSchema = z.object({
 const itinerarySchema = z.object({
   id: z.string().optional(),
   itineraryImages: z.object({ url: z.string() }).array(),
-  itineraryTitle: z.string().optional(),
+  itineraryTitle: optionalNullableString,
   itineraryDescription: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   dayNumber: z.coerce.number().optional(),
-  days: z.string().optional(),
+  days: optionalNullableString,
   activities: z.array(activitySchema),
-  hotelId: z.string().optional().default(''), // Make hotelId optional with default value
-  locationId: z.string().optional().default(''), // Make locationId optional with default value
+  hotelId: optionalNullableString, // Make hotelId optional with default value
+  locationId: optionalNullableString, // Make locationId optional with default value
   // Room allocations array for detailed room configuration
   roomAllocations: z.array(roomAllocationSchema).optional().default([]),
   // Transport details array for transport configuration
@@ -142,45 +148,45 @@ const itinerarySchema = z.object({
 
 
 const flightDetailsSchema = z.object({
-  date: z.string().optional(),
-  flightName: z.string().optional(),
-  flightNumber: z.string().optional(), // Added flightNumber
-  from: z.string().optional(), // Added from
-  to: z.string().optional(), // Added to
-  departureTime: z.string().optional(),
-  arrivalTime: z.string().optional(),
-  flightDuration: z.string().optional(),
+  date: optionalNullableString,
+  flightName: optionalNullableString,
+  flightNumber: optionalNullableString, // Added flightNumber
+  from: optionalNullableString, // Added from
+  to: optionalNullableString, // Added to
+  departureTime: optionalNullableString,
+  arrivalTime: optionalNullableString,
+  flightDuration: optionalNullableString,
   images: z.object({ url: z.string() }).array().optional(), // Added images array
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
   inquiryId: z.string().nullable().optional(),
-  tourPackageTemplate: z.string().optional(),
-  tourPackageQueryTemplate: z.string().optional(),  // Add fields to store the selected template ID and type
-  selectedTemplateId: z.string().optional(),
-  selectedTemplateType: z.string().optional(),
+  tourPackageTemplate: optionalNullableString,
+  tourPackageQueryTemplate: optionalNullableString,  // Add fields to store the selected template ID and type
+  selectedTemplateId: optionalNullableString,
+  selectedTemplateType: optionalNullableString,
   selectedVariantIds: z.array(z.string()).optional().default([]),
-  selectedTourPackageVariantId: z.string().optional().default(''),
-  selectedTourPackageVariantName: z.string().optional().default(''),
+  selectedTourPackageVariantId: optionalNullableString,
+  selectedTourPackageVariantName: optionalNullableString,
   numberOfRooms: z.number().optional().default(0),
-  selectedMealPlanId: z.string().optional().default(''),
-  tourPackageTemplateName: z.string().optional(),
-  tourPackageQueryNumber: z.string().optional(),
-  tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
-  tourPackageQueryType: z.string().optional(),
-  tourCategory: z.string().default("Domestic").optional(),
-  customerName: z.string().optional(),
-  customerNumber: z.string().optional(),
-  numDaysNight: z.string().optional(),
-  tourStartsFrom: z.date().optional(),
-  tourEndsOn: z.date().optional(),
-  transport: z.string().optional().nullable().transform(val => val || ''),
-  pickup_location: z.string().optional().nullable().transform(val => val || ''),
-  drop_location: z.string().optional().nullable().transform(val => val || ''),
-  numAdults: z.string().optional(),
-  numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),
-  remarks: z.string().optional().nullable().transform(val => val || ''),
+  selectedMealPlanId: optionalNullableString,
+  tourPackageTemplateName: optionalNullableString,
+  tourPackageQueryNumber: optionalNullableString,
+  tourPackageQueryName: z.string().nullish().transform(v => v ?? '').pipe(z.string().min(1, "Tour Package Query Name is required")),
+  tourPackageQueryType: optionalNullableString,
+  tourCategory: z.string().nullish().transform(v => v || 'Domestic'),
+  customerName: optionalNullableString,
+  customerNumber: optionalNullableString,
+  numDaysNight: optionalNullableString,
+  tourStartsFrom: optionalNullableDate,
+  tourEndsOn: optionalNullableDate,
+  transport: optionalNullableString,
+  pickup_location: optionalNullableString,
+  drop_location: optionalNullableString,
+  numAdults: optionalNullableString,
+  numChild5to12: optionalNullableString,
+  numChild0to5: optionalNullableString,
+  remarks: optionalNullableString,
   locationId: z.string().min(1, "Location is required"), flightDetails: flightDetailsSchema.array(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
@@ -191,13 +197,14 @@ const formSchema = z.object({
   cancellationPolicy: z.array(z.string()),
   airlineCancellationPolicy: z.array(z.string()),
   termsconditions: z.array(z.string()),
-  disclaimer: z.string().optional().nullable().transform(val => val || ''),
+  disclaimer: optionalNullableString,
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema).optional().default([]),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
-  associatePartnerId: z.string().optional(), // Add associatePartnerId to the schema
+  associatePartnerId: optionalNullableString, // Add associatePartnerId to the schema
 });
+
 
 export type TourPackageQueryCreateCopyFormValues = z.infer<typeof formSchema>
 
@@ -442,7 +449,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       usefulTip: parseJsonField(initialData.usefulTip),
       cancellationPolicy: parseJsonField(initialData.cancellationPolicy),
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
-      termsconditions: parseJsonField(initialData.termsconditions),
+      termsconditions: parseJsonField(initialData.termsconditions),
     }
     : {
       inquiryId: '',
@@ -478,7 +485,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       itineraries: [],
       locationId: '',
       isFeatured: false,
-      isArchived: false,
+      isArchived: false,
     };
 
   const form = useForm<TourPackageQueryCreateCopyFormValues>({

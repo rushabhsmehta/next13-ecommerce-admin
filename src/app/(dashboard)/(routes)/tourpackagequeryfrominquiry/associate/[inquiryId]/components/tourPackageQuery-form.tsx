@@ -74,17 +74,23 @@ import { REMARKS_DEFAULT } from "@/app/(dashboard)/tourPackageQueryFromTourPacka
 import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT } from "./defaultValues"
 
 
+const optionalNullableString = z.string().optional().nullable().transform(val => val || '');
+const optionalNullableDate = z.preprocess(
+  (v) => (v == null || v === '' ? undefined : v),
+  z.date().optional()
+);
+
 const activitySchema = z.object({
-  activityTitle: z.string().optional(),
-  activityDescription: z.string().optional(),
+  activityTitle: optionalNullableString,
+  activityDescription: optionalNullableString,
   activityImages: z.object({ url: z.string() }).array(),
 });
 
 // --- ADJUSTED SCHEMAS ---
 const roomAllocationSchema = z.object({
-  roomTypeId: z.string().optional(), // Changed from roomType
-  occupancyTypeId: z.string().optional(), // Changed from occupancyType
-  mealPlanId: z.string().optional(), // Changed from mealPlan
+  roomTypeId: optionalNullableString, // Changed from roomType
+  occupancyTypeId: optionalNullableString, // Changed from occupancyType
+  mealPlanId: optionalNullableString, // Changed from mealPlan
   quantity: z.union([
     z.string().transform(val => parseInt(val) || 1), // Transform string to number
     z.number()
@@ -100,8 +106,8 @@ const roomAllocationSchema = z.object({
 });
 
 const transportDetailsSchema = z.object({
-  vehicleTypeId: z.string().optional(), // Changed from vehicleType
-  transportType: z.string().optional(), // This might also need to become an ID if it's a lookup
+  vehicleTypeId: optionalNullableString, // Changed from vehicleType
+  transportType: optionalNullableString, // This might also need to become an ID if it's a lookup
   quantity: z.union([
     z.string().transform(val => parseInt(val) || 1), // Transform string to number
     z.number()
@@ -111,14 +117,14 @@ const transportDetailsSchema = z.object({
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
-  itineraryTitle: z.string().optional(),
+  itineraryTitle: optionalNullableString,
   itineraryDescription: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   dayNumber: z.coerce.number().optional(),
-  days: z.string().optional(),
+  days: optionalNullableString,
   activities: z.array(activitySchema),
-  hotelId: z.string().optional().default(''), // Make optional with default
-  locationId: z.string().optional().default(''), // Make optional with default
+  hotelId: optionalNullableString, // Make optional with default
+  locationId: optionalNullableString, // Make optional with default
   // Add room allocations and transport details arrays matching shared component schema
   roomAllocations: z.array(roomAllocationSchema).optional().default([]),
   transportDetails: z.array(transportDetailsSchema).optional().default([]),
@@ -127,14 +133,14 @@ const itinerarySchema = z.object({
 
 
 const flightDetailsSchema = z.object({
-  date: z.string().optional(),
-  flightName: z.string().optional(),
-  flightNumber: z.string().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  departureTime: z.string().optional(),
-  arrivalTime: z.string().optional(),
-  flightDuration: z.string().optional(),
+  date: optionalNullableString,
+  flightName: optionalNullableString,
+  flightNumber: optionalNullableString,
+  from: optionalNullableString,
+  to: optionalNullableString,
+  departureTime: optionalNullableString,
+  arrivalTime: optionalNullableString,
+  flightDuration: optionalNullableString,
   images: z.object({ url: z.string() }).array().optional(),
 }); // Assuming an array of flight details
 
@@ -146,38 +152,38 @@ const pricingItemSchema = z.object({
 
 const formSchema = z.object({
   inquiryId: z.string().nullable().optional(),
-  tourPackageTemplate: z.string().optional(),
-  tourPackageQueryTemplate: z.string().optional(),  // Add fields to store the selected template ID and type
-  selectedTemplateId: z.string().optional(),
-  selectedTemplateType: z.string().optional(),
+  tourPackageTemplate: optionalNullableString,
+  tourPackageQueryTemplate: optionalNullableString,  // Add fields to store the selected template ID and type
+  selectedTemplateId: optionalNullableString,
+  selectedTemplateType: optionalNullableString,
   selectedVariantIds: z.array(z.string()).optional().default([]),
-  selectedTourPackageVariantId: z.string().optional().default(''),
-  selectedTourPackageVariantName: z.string().optional().default(''),
-  tourPackageTemplateName: z.string().optional(),
+  selectedTourPackageVariantId: optionalNullableString,
+  selectedTourPackageVariantName: optionalNullableString,
+  tourPackageTemplateName: optionalNullableString,
   numberOfRooms: z.number().optional().default(0),
   // Add fields for pricing calculations
-  selectedMealPlanId: z.string().optional(),
+  selectedMealPlanId: optionalNullableString,
   occupancySelections: z.array(z.object({
     occupancyTypeId: z.string(),
     count: z.number(),
     paxPerUnit: z.number()
   })).optional(),
-  tourPackageQueryNumber: z.string().optional(),
-  tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
-  tourPackageQueryType: z.string().optional(),
-  tourCategory: z.string().default("Domestic").optional(),
-  customerName: z.string().optional(),
-  customerNumber: z.string().optional(),
-  numDaysNight: z.string().optional(),
-  tourStartsFrom: z.date().optional(),
-  tourEndsOn: z.date().optional(),
-  transport: z.string().optional().nullable().transform(val => val || ''),
-  pickup_location: z.string().optional().nullable().transform(val => val || ''),
-  drop_location: z.string().optional().nullable().transform(val => val || ''),
+  tourPackageQueryNumber: optionalNullableString,
+  tourPackageQueryName: z.string().nullish().transform(v => v ?? '').pipe(z.string().min(1, "Tour Package Query Name is required")),
+  tourPackageQueryType: optionalNullableString,
+  tourCategory: z.string().nullish().transform(v => v || 'Domestic'),
+  customerName: optionalNullableString,
+  customerNumber: optionalNullableString,
+  numDaysNight: optionalNullableString,
+  tourStartsFrom: optionalNullableDate,
+  tourEndsOn: optionalNullableDate,
+  transport: optionalNullableString,
+  pickup_location: optionalNullableString,
+  drop_location: optionalNullableString,
   numAdults: guestCountField,
   numChild5to12: guestCountField,
   numChild0to5: guestCountField,
-  remarks: z.string().optional().nullable().transform(val => val || ''),
+  remarks: optionalNullableString,
   locationId: z.string().min(1),
   flightDetails: flightDetailsSchema.array().optional().default([]),
   inclusions: z.array(z.string()),
@@ -189,12 +195,12 @@ const formSchema = z.object({
   cancellationPolicy: z.array(z.string()),
   airlineCancellationPolicy: z.array(z.string()),
   termsconditions: z.array(z.string()),
-  disclaimer: z.string().optional().nullable().transform(val => val || ''),
+  disclaimer: optionalNullableString,
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema), // Use adjusted schema
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
-  associatePartnerId: z.string().optional(),
+  associatePartnerId: optionalNullableString,
   variantHotelOverrides: z.record(z.record(z.string())).optional(),
   variantRoomAllocations: z.record(z.record(z.array(z.any()))).optional(),
   variantTransportDetails: z.record(z.record(z.array(z.any()))).optional(),

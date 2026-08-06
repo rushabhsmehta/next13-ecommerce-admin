@@ -177,7 +177,7 @@ const formSchema = z.object({
   numAdults: guestCountField,
   numChild5to12: guestCountField,
   numChild0to5: guestCountField,
-  remarks: z.string().optional(),
+  remarks: z.string().optional().nullable().transform(val => val || ''),
   locationId: z.string().min(1),
   flightDetails: flightDetailsSchema.array().optional().default([]),
   inclusions: z.array(z.string()),

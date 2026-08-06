@@ -179,8 +179,8 @@ const formSchema = z.object({
   drop_location: z.string().optional().nullable().transform(val => val || ''),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),
-  remarks: z.string().optional(),
+  numChild0to5: z.string().optional(),
+  remarks: z.string().optional().nullable().transform(val => val || ''),
   locationId: z.string().min(1, "Location is required"), flightDetails: flightDetailsSchema.array(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
@@ -442,7 +442,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       usefulTip: parseJsonField(initialData.usefulTip),
       cancellationPolicy: parseJsonField(initialData.cancellationPolicy),
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
-      termsconditions: parseJsonField(initialData.termsconditions),
+      termsconditions: parseJsonField(initialData.termsconditions),
     }
     : {
       inquiryId: '',
@@ -462,7 +462,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       drop_location: '',
       numAdults: '',
       numChild5to12: '',
-      numChild0to5: '',
+      numChild0to5: '',
       remarks: '',
       flightDetails: [],
       inclusions: INCLUSIONS_DEFAULT,
@@ -478,7 +478,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       itineraries: [],
       locationId: '',
       isFeatured: false,
-      isArchived: false,
+      isArchived: false,
     };
 
   const form = useForm<TourPackageQueryCreateCopyFormValues>({
@@ -890,7 +890,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         })),
         transport: data.transport || '',
         pickup_location: data.pickup_location || '',
-        drop_location: data.drop_location || '',
+        drop_location: data.drop_location || '',
         disclaimer: data.disclaimer || '',
       };
 

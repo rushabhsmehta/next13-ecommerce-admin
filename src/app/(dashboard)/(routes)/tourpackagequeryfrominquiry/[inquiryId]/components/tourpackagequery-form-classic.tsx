@@ -203,7 +203,7 @@ const formSchema = z.object({
   numAdults: guestCountField,
   numChild5to12: guestCountField,
   numChild0to5: guestCountField,
-  remarks: z.string().optional(),
+  remarks: z.string().optional().nullable().transform(val => val || ''),
   locationId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
   inclusions: z.array(z.string()),
@@ -226,7 +226,7 @@ const formSchema = z.object({
   variantTransportDetails: z.record(z.record(z.array(z.any()))).optional(),
   variantPricingData: z.record(z.any()).optional(),
   confirmedVariantId: z.string().optional().nullable(),
-  customQueryVariants: z.array(z.any()).optional(),
+  customQueryVariants: z.array(z.any()).optional(),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -480,7 +480,7 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
     airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
-    disclaimer: DISCLAIMER_DEFAULT,
+    disclaimer: DISCLAIMER_DEFAULT,
     images: [],
     flightDetails: [],
     itineraries: [],

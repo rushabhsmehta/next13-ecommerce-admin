@@ -139,7 +139,7 @@ const formSchema = z.object({
 
 
 
-  remarks: z.string().optional(), locationId: z.string().min(1),
+  remarks: z.string().optional().nullable().transform(val => val || ''), locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),

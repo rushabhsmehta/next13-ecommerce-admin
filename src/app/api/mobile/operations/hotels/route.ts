@@ -38,7 +38,9 @@ export async function GET(req: Request) {
     const destinationId = searchParams.get("destinationId") ?? undefined;
     const limitRaw = Number.parseInt(searchParams.get("limit") ?? "30", 10);
     const offsetRaw = Number.parseInt(searchParams.get("offset") ?? "0", 10);
-    const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 30, 1), 100);
+    // Pickers load an entire location's hotels (South India alone is 180+);
+    // keep the cap high enough that a single page can cover large locations.
+    const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 30, 1), 500);
     const offset = Math.max(Number.isFinite(offsetRaw) ? offsetRaw : 0, 0);
 
     const where: Record<string, unknown> = {};

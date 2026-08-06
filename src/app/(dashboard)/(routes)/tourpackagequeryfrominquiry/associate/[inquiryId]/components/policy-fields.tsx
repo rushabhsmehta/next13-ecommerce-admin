@@ -4,6 +4,11 @@ import { UseFormReturn } from "react-hook-form";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  paragraphsToText,
+  reconcilePolicyDraft,
+  textToParagraphs,
+} from "@/lib/policy-text";
 
 interface PolicyFieldProps {
   form: UseFormReturn<any>;
@@ -13,17 +18,6 @@ interface PolicyFieldProps {
   loading: boolean;
   useDefaultsChecked: boolean;
   onUseDefaultsChange: (checked: boolean) => void;
-}
-
-function paragraphsToText(items: string[]): string {
-  return items.filter((item) => String(item ?? "").trim()).join("\n\n");
-}
-
-function textToParagraphs(text: string): string[] {
-  return text
-    .split(/\n\s*\n/)
-    .map((p) => p.replace(/\s*\n\s*/g, " ").trim())
-    .filter(Boolean);
 }
 
 export const PolicyField: React.FC<PolicyFieldProps> = ({
@@ -40,7 +34,7 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({
   const [text, setText] = useState(() => paragraphsToText(policyItems));
 
   useEffect(() => {
-    setText(paragraphsToText(policyItems));
+    setText((current) => reconcilePolicyDraft(current, policyItems));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(policyItems)]);
 

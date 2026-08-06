@@ -383,6 +383,37 @@ export function createOperationsClient(authRequest: AuthenticatedRequest) {
       );
     },
 
+    /** Paginate until exhausted — used by hotel pickers so large locations are not truncated. */
+    async listAllHotels(
+      filters: {
+        search?: string;
+        locationId?: string;
+        destinationId?: string;
+      } = {}
+    ): Promise<OpsHotel[]> {
+      const pageSize = 500;
+      const items: OpsHotel[] = [];
+      let offset = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const qs = new URLSearchParams();
+        if (filters.search) qs.set("search", filters.search);
+        if (filters.locationId) qs.set("locationId", filters.locationId);
+        if (filters.destinationId) qs.set("destinationId", filters.destinationId);
+        qs.set("limit", String(pageSize));
+        qs.set("offset", String(offset));
+        const res = await authRequest<HotelListResponse>(
+          `/api/mobile/operations/hotels?${qs.toString()}`,
+          READ_CACHE
+        );
+        items.push(...res.items);
+        hasMore = res.hasMore;
+        offset = res.nextOffset;
+        if (items.length > 5000) break;
+      }
+      return items;
+    },
+
     getHotel(id: string): Promise<HotelDetail> {
       return authRequest<HotelDetail>(
         `/api/mobile/operations/hotels/${encodeURIComponent(id)}`

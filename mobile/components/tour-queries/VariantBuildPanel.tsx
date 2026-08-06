@@ -246,12 +246,26 @@ export function VariantBuildPanel({
       if (!locId || hotelsCache[locId]) return;
       setLoadingHotelsFor(locId);
       try {
-        const response = await authRequest<{ items: { id: string; name: string }[] }>(
-          `/api/mobile/operations/list?type=hotels&locationId=${encodeURIComponent(locId)}&limit=100`
-        );
+        const pageSize = 500;
+        const items: { id: string; name: string }[] = [];
+        let offset = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const response = await authRequest<{
+            items: { id: string; name: string }[];
+            hasMore?: boolean;
+            nextOffset?: number;
+          }>(
+            `/api/mobile/operations/list?type=hotels&locationId=${encodeURIComponent(locId)}&limit=${pageSize}&offset=${offset}`
+          );
+          items.push(...(response?.items || []));
+          hasMore = Boolean(response?.hasMore);
+          offset = response?.nextOffset ?? items.length;
+          if (items.length > 5000) break;
+        }
         setHotelsCache((prev) => ({
           ...prev,
-          [locId]: response?.items || [],
+          [locId]: items,
         }));
       } catch (err) {
         console.log("Failed to load hotels for location", locId, err);

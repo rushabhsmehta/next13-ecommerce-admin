@@ -262,7 +262,7 @@ type MappedRoomAllocation = {
 
 type MappedTransportDetail = {
   vehicleTypeId: string;
-  transportType?: string;
+  transportType: string;
   quantity: number;
   description: string;
 };
@@ -300,6 +300,7 @@ function mapInquiryTransportDetails(transportDetails: InquiryWithAllocations["tr
   if (!transportDetails?.length) return [];
   return transportDetails.map((transport) => ({
     vehicleTypeId: transport.vehicleTypeId || "",
+    transportType: "",
     quantity: Number(transport.quantity) || 1,
     description: transport.description || "",
   }));
@@ -724,14 +725,14 @@ export const TourPackageQueryFormClassic: React.FC<TourPackageQueryFormProps> = 
 
     form.setValue('itineraries', transformedItineraries);
     form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map((flight) => ({
-      date: flight.date || undefined,
-      flightName: flight.flightName || undefined,
-      flightNumber: flight.flightNumber || undefined,
-      from: flight.from || undefined,
-      to: flight.to || undefined,
-      departureTime: flight.departureTime || undefined,
-      arrivalTime: flight.arrivalTime || undefined,
-      flightDuration: flight.flightDuration || undefined,
+      date: flight.date || '',
+      flightName: flight.flightName || '',
+      flightNumber: flight.flightNumber || '',
+      from: flight.from || '',
+      to: flight.to || '',
+      departureTime: flight.departureTime || '',
+      arrivalTime: flight.arrivalTime || '',
+      flightDuration: flight.flightDuration || '',
     })));
 
     handleTourPackageVariantSelection(selectedTourPackageId, []);

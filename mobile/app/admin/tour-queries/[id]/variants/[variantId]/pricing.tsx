@@ -139,7 +139,40 @@ function VariantPricingScreenInner() {
     } else {
       setComponentsBeforeDiscount(null);
     }
-    setCalculation(null);
+    const method = normalizeCalculationMethod(res.pricing?.calculationMethod);
+    if (
+      method === "autoHotelTransport" &&
+      res.pricing &&
+      (Array.isArray(res.pricing.itineraryBreakdown)
+        ? res.pricing.itineraryBreakdown.length > 0
+        : res.pricing.basePrice > 0 || res.pricing.totalCost > 0)
+    ) {
+      setMarkup(String(res.pricing.markupPercentage ?? 0));
+      setCalculation({
+        calculationMethod: "autoHotelTransport",
+        pricingSection: res.pricing.components ?? [],
+        totalCost: Number(res.pricing.totalCost ?? 0),
+        basePrice: Number(res.pricing.basePrice ?? 0),
+        subtotalBeforeDiscount:
+          res.pricing.subtotalBeforeDiscount != null
+            ? Number(res.pricing.subtotalBeforeDiscount)
+            : undefined,
+        appliedMarkup: {
+          percentage: Number(res.pricing.markupPercentage ?? 0),
+          amount: Number(res.pricing.markupAmount ?? 0),
+        },
+        breakdown: {
+          accommodation: Number(res.pricing.accommodation ?? 0),
+          transport: Number(res.pricing.transport ?? 0),
+        },
+        itineraryBreakdown: res.pricing.itineraryBreakdown,
+        transportDetails: res.pricing.transportDetails,
+        perPersonRates: res.pricing.perPersonRates,
+        calculatedAt: res.pricing.calculatedAt ?? undefined,
+      });
+    } else {
+      setCalculation(null);
+    }
     setFetchResult(null);
     setSelectedComponentIds([]);
     setComponentQuantities({});

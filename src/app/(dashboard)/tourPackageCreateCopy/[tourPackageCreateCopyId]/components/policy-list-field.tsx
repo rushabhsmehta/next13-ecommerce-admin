@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  paragraphsToText,
+  reconcilePolicyDraft,
+  textToParagraphs,
+} from "@/lib/policy-text";
 
 interface PolicyListFieldProps {
   label: string;
@@ -8,17 +13,6 @@ interface PolicyListFieldProps {
   onChange: (value: string[]) => void;
   loading: boolean;
   placeholder?: string;
-}
-
-function paragraphsToText(items: string[]): string {
-  return (items || []).filter((item) => String(item ?? "").trim()).join("\n\n");
-}
-
-function textToParagraphs(text: string): string[] {
-  return text
-    .split(/\n\s*\n/)
-    .map((p) => p.replace(/\s*\n\s*/g, " ").trim())
-    .filter(Boolean);
 }
 
 export const PolicyListField: React.FC<PolicyListFieldProps> = ({
@@ -31,7 +25,7 @@ export const PolicyListField: React.FC<PolicyListFieldProps> = ({
   const [text, setText] = useState(paragraphsToText(value));
 
   useEffect(() => {
-    setText(paragraphsToText(value));
+    setText((current) => reconcilePolicyDraft(current, value));
   }, [value]);
 
   return (

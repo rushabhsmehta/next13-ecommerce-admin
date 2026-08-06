@@ -44,8 +44,8 @@ export interface VariantPricingBreakdown {
   markupAmount: number;
   accommodation: number;
   transport: number;
-  itineraryBreakdown?: unknown;
-  transportDetails?: unknown;
+  itineraryBreakdown?: VariantPricingDayBreakdown[];
+  transportDetails?: VariantPricingTransportDetail[];
   perPersonRates?: unknown;
   calculatedAt: string | null;
   subtotalBeforeDiscount?: number | null;
@@ -161,6 +161,47 @@ export interface VariantPricingDetailResponse {
   queryContext?: VariantPricingQueryContext;
 }
 
+export interface VariantPricingRoomCostDetail {
+  roomTypeId?: string;
+  occupancyTypeId?: string;
+  mealPlanId?: string;
+  quantity?: number;
+  pricePerNight?: number;
+  totalCost?: number;
+  roomTypeName?: string;
+  occupancyTypeName?: string;
+  mealPlanName?: string;
+  extraBedCosts?: Array<{
+    occupancyTypeId?: string;
+    occupancyTypeName?: string;
+    pricePerNight?: number;
+    quantity?: number;
+    totalCost?: number;
+  }>;
+  extraBedTotalCost?: number;
+}
+
+export interface VariantPricingDayBreakdown {
+  day?: number;
+  dayNumber?: number;
+  accommodationCost?: number;
+  transportCost?: number;
+  totalCost?: number;
+  dayTotal?: number;
+  hotelName?: string;
+  roomBreakdown?: VariantPricingRoomCostDetail[];
+}
+
+export interface VariantPricingTransportDetail {
+  day?: number;
+  vehicleTypeId?: string;
+  vehicleType?: string;
+  quantity?: number;
+  pricePerUnit?: number;
+  pricingType?: string;
+  totalCost?: number;
+}
+
 export interface VariantPricingCalculationResponse {
   calculationMethod: string;
   pricingSection: VariantPricingComponent[];
@@ -169,8 +210,8 @@ export interface VariantPricingCalculationResponse {
   subtotalBeforeDiscount?: number;
   appliedMarkup: { percentage: number; amount: number };
   breakdown: { accommodation: number; transport: number };
-  itineraryBreakdown?: unknown;
-  transportDetails?: unknown;
+  itineraryBreakdown?: VariantPricingDayBreakdown[];
+  transportDetails?: VariantPricingTransportDetail[];
   perPersonRates?: unknown;
   calculatedAt?: string;
 }

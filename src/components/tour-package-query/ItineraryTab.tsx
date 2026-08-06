@@ -58,7 +58,7 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 // Removed RoomAllocationComponent & TransportDetailsComponent (moved to Hotels tab)
 import ImageUpload from "@/components/ui/image-upload";
 // Removed hotel image preview (now managed in Hotels tab)
-import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -321,10 +321,10 @@ function ItineraryTab({
     return <div ref={setNodeRef} style={style}>{children({ attributes, listeners, isDragging, setNodeRef, style })}</div>;
   };
 
-  // DnD sensors (restored)
+  // Pointer-only: KeyboardSensor treats Space/Enter as drag-start and swallows
+  // spaces while typing in activity/itinerary fields inside the sortable item.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor)
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
   // Normalizers to ensure fields are strings/arrays and not null
@@ -512,7 +512,10 @@ function ItineraryTab({
                                   <Copy className="h-4 w-4" />
                                 </button>
                               </AccordionPrimitive.Header>
-                              <AccordionContent className="pt-4 px-4 pb-6">
+                              <AccordionContent
+                                className="pt-4 px-4 pb-6"
+                                onKeyDown={(e) => e.stopPropagation()}
+                              >
                                 <div className="flex justify-end mb-4">
                                   <Button
                                     type="button"
@@ -834,22 +837,25 @@ function ItineraryTab({
                                               <FormMessage />
                                             </FormItem>
 
-                                            {/* Activity Title */}
+                                            {/* Activity Title — plain input so spaces always type correctly */}
                                             <FormItem>
                                               <FormLabel>Activity Title</FormLabel>
                                               <FormControl>
-                                                {(() => {
-                                                  const ref = getJoditRef(`act-title-${index}-${activityIndex}`);
-                                                  ref.current = (newContent) => {
+                                                <Input
+                                                  disabled={loading}
+                                                  placeholder="Activity Title"
+                                                  value={stripHtml(activity.activityTitle || '')}
+                                                  onChange={(e) => {
                                                     const updatedItineraries = [...value];
                                                     updatedItineraries[index].activities[activityIndex] = {
                                                       ...updatedItineraries[index].activities[activityIndex],
-                                                      activityTitle: newContent,
+                                                      activityTitle: e.target.value,
                                                     };
                                                     onChange(updatedItineraries);
-                                                  };
-                                                  return <StableJoditEditor value={activity.activityTitle || ''} onBlurRef={ref} />;
-                                                })()}
+                                                  }}
+                                                  onKeyDown={(e) => e.stopPropagation()}
+                                                  className="bg-white"
+                                                />
                                               </FormControl>
                                             </FormItem>
 
@@ -857,18 +863,20 @@ function ItineraryTab({
                                             <FormItem>
                                               <FormLabel>Description</FormLabel>
                                               <FormControl>
-                                                {(() => {
-                                                  const ref = getJoditRef(`act-desc-${index}-${activityIndex}`);
-                                                  ref.current = (newContent) => {
-                                                    const updatedItineraries = [...value];
-                                                    updatedItineraries[index].activities[activityIndex] = {
-                                                      ...updatedItineraries[index].activities[activityIndex],
-                                                      activityDescription: newContent,
+                                                <div onKeyDown={(e) => e.stopPropagation()}>
+                                                  {(() => {
+                                                    const ref = getJoditRef(`act-desc-${index}-${activityIndex}`);
+                                                    ref.current = (newContent) => {
+                                                      const updatedItineraries = [...value];
+                                                      updatedItineraries[index].activities[activityIndex] = {
+                                                        ...updatedItineraries[index].activities[activityIndex],
+                                                        activityDescription: newContent,
+                                                      };
+                                                      onChange(updatedItineraries);
                                                     };
-                                                    onChange(updatedItineraries);
-                                                  };
-                                                  return <StableJoditEditor value={activity.activityDescription || ''} onBlurRef={ref} />;
-                                                })()}
+                                                    return <StableJoditEditor value={activity.activityDescription || ''} onBlurRef={ref} />;
+                                                  })()}
+                                                </div>
                                               </FormControl>
                                             </FormItem>
 

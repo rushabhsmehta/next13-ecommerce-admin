@@ -309,6 +309,35 @@ describe("createOperationsClient", () => {
     );
   });
 
+  it("listAllHotels paginates until hasMore is false", async () => {
+    const page1 = Array.from({ length: 500 }, (_, i) => ({
+      id: `h${i}`,
+      name: `Hotel ${i}`,
+    }));
+    const page2 = [{ id: "h500", name: "Hotel Kodai Resort" }];
+    const request = jest
+      .fn()
+      .mockResolvedValueOnce({
+        items: page1,
+        total: 501,
+        hasMore: true,
+        nextOffset: 500,
+      })
+      .mockResolvedValueOnce({
+        items: page2,
+        total: 501,
+        hasMore: false,
+        nextOffset: 501,
+      });
+    const client = createOperationsClient(request as any);
+    const items = await client.listAllHotels({ locationId: "loc1" });
+    expect(items).toHaveLength(501);
+    expect(items[500].name).toBe("Hotel Kodai Resort");
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[0][0]).toContain("offset=0");
+    expect(request.mock.calls[1][0]).toContain("offset=500");
+  });
+
   it("createHotel POSTs with an idempotency key", async () => {
     const request = jest.fn(async () => ({ id: "h1", name: "Taj" }));
     const client = createOperationsClient(request as any);

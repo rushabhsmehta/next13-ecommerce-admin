@@ -845,14 +845,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       })) || [];
       form.setValue('itineraries', transformedItineraries);
       form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map((flight: any) => ({
-        date: flight.date || undefined,
-        flightName: flight.flightName || undefined,
-        flightNumber: flight.flightNumber || undefined,
-        from: flight.from || undefined,
-        to: flight.to || undefined,
-        departureTime: flight.departureTime || undefined,
-        arrivalTime: flight.arrivalTime || undefined,
-        flightDuration: flight.flightDuration || undefined,
+        date: flight.date || '',
+        flightName: flight.flightName || '',
+        flightNumber: flight.flightNumber || '',
+        from: flight.from || '',
+        to: flight.to || '',
+        departureTime: flight.departureTime || '',
+        arrivalTime: flight.arrivalTime || '',
+        flightDuration: flight.flightDuration || '',
         images: (flight as any).images || []
       })));
 
@@ -1005,14 +1005,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('itineraries', transformedItineraries);
       // Set flight details
       form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map((flight: any) => ({
-        date: flight.date || undefined,
-        flightName: flight.flightName || undefined,
-        flightNumber: flight.flightNumber || undefined,
-        from: flight.from || undefined,
-        to: flight.to || undefined,
-        departureTime: flight.departureTime || undefined,
-        arrivalTime: flight.arrivalTime || undefined,
-        flightDuration: flight.flightDuration || undefined,
+        date: flight.date || '',
+        flightName: flight.flightName || '',
+        flightNumber: flight.flightNumber || '',
+        from: flight.from || '',
+        to: flight.to || '',
+        departureTime: flight.departureTime || '',
+        arrivalTime: flight.arrivalTime || '',
+        flightDuration: flight.flightDuration || '',
         images: (flight as any).images || []
       })));
 

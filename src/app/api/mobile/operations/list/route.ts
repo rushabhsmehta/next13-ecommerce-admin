@@ -47,7 +47,9 @@ export async function GET(req: Request) {
     const locationId = searchParams.get("locationId") ?? undefined;
     const limitRaw = Number.parseInt(searchParams.get("limit") ?? "30", 10);
     const offsetRaw = Number.parseInt(searchParams.get("offset") ?? "0", 10);
-    const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 30, 1), 100);
+    // Hotels pickers need full location lists (100 was truncating older/later names).
+    const maxLimit = type === "hotels" ? 500 : 100;
+    const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 30, 1), maxLimit);
     const offset = Math.max(Number.isFinite(offsetRaw) ? offsetRaw : 0, 0);
 
     let items: MobileOpsItem[] = [];

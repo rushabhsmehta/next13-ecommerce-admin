@@ -55,7 +55,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
 import ImageUpload from "@/components/ui/image-upload";
 import Image from 'next/image';
-import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Calendar } from "@/components/ui/calendar";
@@ -219,9 +219,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
     return joditRefsMap.current[key];
   };
   // DnD sensors
+  // Pointer-only: KeyboardSensor swallows Space while typing in nested fields.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor)
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
   // Sortable wrapper to attach drag listeners to a handle and item container
@@ -412,7 +412,10 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                   }}></div>
                                 </div>
                               </AccordionTrigger>
-                              <AccordionContent className="pt-4 px-4 pb-6">
+                              <AccordionContent
+                                className="pt-4 px-4 pb-6"
+                                onKeyDown={(e) => e.stopPropagation()}
+                              >
                                 <div className="flex justify-end mb-4">
                                   <Button
                                     type="button"
@@ -496,6 +499,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                                 const inquiryTransportDetails = inquiry?.transportDetails && inquiry.transportDetails.length > 0
                                                   ? inquiry.transportDetails.map((transport: any) => ({
                                                       vehicleTypeId: transport.vehicleTypeId || '',
+                                                      transportType: transport.transportType || '',
                                                       quantity: Number(transport.quantity) || 1,
                                                       description: transport.description || ''
                                                     }))
@@ -946,7 +950,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                               <Input
                                                 disabled={loading}
                                                 placeholder="Activity Title"
-                                                value={activity.activityTitle || ''}
+                                                value={stripHtml(activity.activityTitle || '')}
                                                 onChange={(e) => {
                                                   const newItineraries = [...value];
                                                   newItineraries[index].activities[activityIndex].activityTitle = e.target.value;

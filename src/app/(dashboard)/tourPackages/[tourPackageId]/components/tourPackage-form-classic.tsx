@@ -63,11 +63,21 @@ import { Switch } from "@/components/ui/switch"
 import { PolicyField } from "./policy-fields";
 import PackageVariantsTab from "@/components/tour-package-query/PackageVariantsTab"
 import { Calendar } from "@/components/ui/calendar"
-import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core"
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core"
 import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { isValid, parse } from "date-fns"
 import { formatLocalDate } from "@/lib/timezone-utils"
+
+function stripHtml(html: string) {
+  if (!html) return "";
+  if (typeof window !== "undefined" && window.DOMParser) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return doc.body.textContent || doc.body.innerText || "";
+  }
+  return html.replace(/<[^>]*>/g, "").trim();
+}
+
 // This will be overridden in the component
 const defaultEditorConfig = {
   readonly: false, // all options from <https://xdsoft.net/jodit/do c/>
@@ -338,8 +348,7 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
   const editor = useRef(null)
   const [itineraryOpenMap, setItineraryOpenMap] = useState<Record<number, boolean>>({ 0: true });
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor)
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
 
   const reindexItineraries = (items: any[]) => items.map((item, idx) => ({ ...item, dayNumber: idx + 1 }));
@@ -783,13 +792,6 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
   // Helper function to strip HTML tags and copy day details to clipboard
   const copyDayToClipboard = async (itinerary: any) => {
     try {
-      // Helper to strip HTML tags
-      const stripHtml = (html: string) => {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || '';
-      };
-
       // Build the text to copy
       const dayTitle = stripHtml(itinerary.itineraryTitle || '');
       const dayDescription = stripHtml(itinerary.itineraryDescription || '');
@@ -1530,7 +1532,10 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                                                 </button>
                                               </div>
                                             </AccordionTrigger>
-                                            <AccordionContent className="px-4 pb-6 pt-4 space-y-6">
+                                            <AccordionContent
+                                              className="px-4 pb-6 pt-4 space-y-6"
+                                              onKeyDown={(e) => e.stopPropagation()}
+                                            >
                                               <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-3">
                                                 <p className="text-xs text-slate-500">Refine the content below to match the exact guest experience.</p>
                                                 <div className="flex flex-wrap gap-2">
@@ -1898,41 +1903,45 @@ export const TourPackageFormClassic: React.FC<TourPackageFormProps> = ({
                                                           <FormItem>
                                                             <FormLabel>Activity Title</FormLabel>
                                                             <FormControl>
-                                                              <JoditEditor
-                                                                ref={editor}
-                                                                value={activity.activityTitle || ''}
-                                                                onBlur={(content) => {
+                                                              <Input
+                                                                disabled={loading || readOnly}
+                                                                placeholder="Activity Title"
+                                                                value={stripHtml(activity.activityTitle || '')}
+                                                                onChange={(e) => {
                                                                   updateItinerary(index, (current) => {
                                                                     const updatedActivities = [...(Array.isArray(current.activities) ? current.activities : [])];
                                                                     updatedActivities[activityIndex] = {
                                                                       ...updatedActivities[activityIndex],
-                                                                      activityTitle: content,
+                                                                      activityTitle: e.target.value,
                                                                     };
                                                                     return { ...current, activities: updatedActivities };
                                                                   });
                                                                 }}
-                                                                onChange={() => { }}
+                                                                onKeyDown={(e) => e.stopPropagation()}
+                                                                className="bg-white"
                                                               />
                                                             </FormControl>
                                                           </FormItem>
                                                           <FormItem>
                                                             <FormLabel>Activity Description</FormLabel>
                                                             <FormControl>
-                                                              <JoditEditor
-                                                                ref={editor}
-                                                                value={activity.activityDescription || ''}
-                                                                onBlur={(content) => {
-                                                                  updateItinerary(index, (current) => {
-                                                                    const updatedActivities = [...(Array.isArray(current.activities) ? current.activities : [])];
-                                                                    updatedActivities[activityIndex] = {
-                                                                      ...updatedActivities[activityIndex],
-                                                                      activityDescription: content,
-                                                                    };
-                                                                    return { ...current, activities: updatedActivities };
-                                                                  });
-                                                                }}
-                                                                onChange={() => { }}
-                                                              />
+                                                              <div onKeyDown={(e) => e.stopPropagation()}>
+                                                                <JoditEditor
+                                                                  ref={editor}
+                                                                  value={activity.activityDescription || ''}
+                                                                  onBlur={(content) => {
+                                                                    updateItinerary(index, (current) => {
+                                                                      const updatedActivities = [...(Array.isArray(current.activities) ? current.activities : [])];
+                                                                      updatedActivities[activityIndex] = {
+                                                                        ...updatedActivities[activityIndex],
+                                                                        activityDescription: content,
+                                                                      };
+                                                                      return { ...current, activities: updatedActivities };
+                                                                    });
+                                                                  }}
+                                                                  onChange={() => { }}
+                                                                />
+                                                              </div>
                                                             </FormControl>
                                                           </FormItem>
                                                         </div>

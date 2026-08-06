@@ -601,14 +601,14 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       })) || [];
       form.setValue('itineraries', transformedItineraries);
       form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
-        date: flight.date || undefined,
-        flightName: flight.flightName || undefined,
-        flightNumber: flight.flightNumber || undefined,
-        from: flight.from || undefined,
-        to: flight.to || undefined,
-        departureTime: flight.departureTime || undefined,
-        arrivalTime: flight.arrivalTime || undefined,
-        flightDuration: flight.flightDuration || undefined
+        date: flight.date || '',
+        flightName: flight.flightName || '',
+        flightNumber: flight.flightNumber || '',
+        from: flight.from || '',
+        to: flight.to || '',
+        departureTime: flight.departureTime || '',
+        arrivalTime: flight.arrivalTime || '',
+        flightDuration: flight.flightDuration || ''
       })));
 
       // Check if there's a default variant and select it
@@ -748,14 +748,14 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
       // Set flight details
       form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map(flight => ({
-        date: flight.date || undefined,
-        flightName: flight.flightName || undefined,
-        flightNumber: flight.flightNumber || undefined,
-        from: flight.from || undefined,
-        to: flight.to || undefined,
-        departureTime: flight.departureTime || undefined,
-        arrivalTime: flight.arrivalTime || undefined,
-        flightDuration: flight.flightDuration || undefined
+        date: flight.date || '',
+        flightName: flight.flightName || '',
+        flightNumber: flight.flightNumber || '',
+        from: flight.from || '',
+        to: flight.to || '',
+        departureTime: flight.departureTime || '',
+        arrivalTime: flight.arrivalTime || '',
+        flightDuration: flight.flightDuration || ''
       })));
 
       toast.success('Tour Package Query template applied successfully');

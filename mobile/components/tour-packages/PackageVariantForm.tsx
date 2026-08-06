@@ -103,9 +103,13 @@ export function PackageVariantForm({
   const [submitting, setSubmitting] = useState(false);
 
   const loadHotels = useCallback(async () => {
+    if (!locationId) {
+      setHotels([]);
+      return;
+    }
     try {
-      const res = await opsClient.listHotels({ locationId, limit: 200 });
-      setHotels(res.items.map((h) => ({ id: h.id, label: h.name })));
+      const items = await opsClient.listAllHotels({ locationId });
+      setHotels(items.map((h) => ({ id: h.id, label: h.name })));
     } catch {
       /* ignore */
     }

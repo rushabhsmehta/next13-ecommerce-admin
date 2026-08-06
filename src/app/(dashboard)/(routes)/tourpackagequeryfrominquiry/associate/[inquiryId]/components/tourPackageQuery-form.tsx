@@ -637,6 +637,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             console.log('Inquiry transport details:', inquiry.transportDetails);
             return inquiry.transportDetails.map((transport: any) => ({
               vehicleTypeId: transport.vehicleTypeId || '',
+              transportType: transport.transportType || '',
               quantity: Number(transport.quantity) || 1,
               description: transport.description || ''
             }));
@@ -672,14 +673,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       console.log('Setting form itineraries...');
       form.setValue('itineraries', transformedItineraries);
       form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
-        date: flight.date || undefined,
-        flightName: flight.flightName || undefined,
-        flightNumber: flight.flightNumber || undefined,
-        from: flight.from || undefined,
-        to: flight.to || undefined,
-        departureTime: flight.departureTime || undefined,
-        arrivalTime: flight.arrivalTime || undefined,
-        flightDuration: flight.flightDuration || undefined
+        date: flight.date || '',
+        flightName: flight.flightName || '',
+        flightNumber: flight.flightNumber || '',
+        from: flight.from || '',
+        to: flight.to || '',
+        departureTime: flight.departureTime || '',
+        arrivalTime: flight.arrivalTime || '',
+        flightDuration: flight.flightDuration || ''
       }))); // Ensure pricing section is handled // Handle pricing tier // Handle custom markup
 
       // Check if there's a default variant and select it
@@ -789,6 +790,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     const inquiryTransportDetails = inquiry?.transportDetails && inquiry.transportDetails.length > 0
       ? inquiry.transportDetails.map((transport: any) => ({
         vehicleTypeId: transport.vehicleTypeId || '',
+        transportType: transport.transportType || '',
         quantity: Number(transport.quantity) || 1,
         description: transport.description || ''
       }))
